@@ -1,7 +1,7 @@
 /**
  * Locale parity, in both directions, over BOTH halves of the bundle.
  *
- * The pair shipped English only: ~90 UI strings and 74 backend error codes
+ * The pair shipped English only: ~90 UI strings and 77 backend error codes
  * that rendered in the middle of a Russian or Spanish product as English —
  * a failure invisible to every test that runs in one locale, which is all of
  * them unless one is written on purpose. This is that one.
@@ -34,9 +34,9 @@ function engineFor(locale: "en" | "ru" | "es") {
 }
 
 describe("the backend registry actually reaches the pair", () => {
-  it("carries all 74 codes, including the ones only this module raises", () => {
-    expect(DOCS_ERROR_CODES.length).toBe(74);
-    expect(DOCS_OWNED.length).toBe(32);
+  it("carries all 77 codes, including the ones only this module raises", () => {
+    expect(DOCS_ERROR_CODES.length).toBe(77);
+    expect(DOCS_OWNED.length).toBe(35);
     // The two the audit named: a lost save race and an exhausted workspace
     // used to be the same sentence ("Something went wrong").
     expect(DOCS_ERROR_CODES).toContain("error.409.docs_seq_conflict");

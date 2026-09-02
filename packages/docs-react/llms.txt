@@ -1,6 +1,6 @@
-# @stapel/docs-react 0.5.0
+# @stapel/docs-react 0.6.0
 
-Headless React flow pair for stapel-docs (contract >=0.3 <0.4) — business + state, zero visual opinion.
+Headless React flow pair for stapel-docs (contract >=0.5 <0.6) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -36,6 +36,9 @@ Paths are relative to `/docs/api/v1/`.
 - docs_api_v1_documents_revisions_download_retrieve: GET /documents/{document_id}/revisions/{revision_id}/download
 - docs_api_v1_documents_revisions_list: GET /documents/{document_id}/revisions
 - docs_api_v1_documents_revisions_restore_create: POST /documents/{document_id}/revisions/{revision_id}/restore
+- docs_api_v1_documents_star_create: POST /documents/{document_id}/star
+- docs_api_v1_documents_star_destroy: DELETE /documents/{document_id}/star
+- docs_api_v1_documents_thumbnail_retrieve: GET /documents/{document_id}/thumbnail
 - docs_api_v1_documents_updates_create: POST /documents/{document_id}/updates
 - docs_api_v1_documents_updates_retrieve: GET /documents/{document_id}/updates
 - docs_api_v1_folders_create: POST /folders
@@ -44,6 +47,11 @@ Paths are relative to `/docs/api/v1/`.
 - docs_api_v1_folders_partial_update: PATCH /folders/{folder_id}
 - docs_api_v1_folders_restore_create: POST /folders/{folder_id}/restore
 - docs_api_v1_folders_retrieve: GET /folders/{folder_id}
+- docs_api_v1_folders_star_create: POST /folders/{folder_id}/star
+- docs_api_v1_folders_star_destroy: DELETE /folders/{folder_id}/star
+- docs_api_v1_recents_list: GET /recents
+- docs_api_v1_search_list: GET /search
+- docs_api_v1_starred_retrieve: GET /starred
 - docs_api_v1_trash_empty_create: POST /trash/empty
 - docs_api_v1_trash_retrieve: GET /trash
 - docs_api_v1_uploads_create: POST /uploads
@@ -75,7 +83,7 @@ Paths are relative to `/docs/api/v1/`.
 - useUpload (mutation) → createUpload+finalizeUpload+getDocument+putContent+uploadToPutUrl
 
 ## Errors (render t(code, params); UX from remediation)
-74 keys (full catalog: manifest.json §errors). By remediation: fix_input 32 · retry 29 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+77 keys (full catalog: manifest.json §errors). By remediation: fix_input 34 · retry 30 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

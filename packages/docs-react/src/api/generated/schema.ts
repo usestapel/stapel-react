@@ -244,6 +244,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docs/api/v1/documents/{document_id}/star": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Star or unstar one document for the requesting user.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["docs_api_v1_documents_star_create"];
+        /**
+         * @description Star or unstar one document for the requesting user.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["docs_api_v1_documents_star_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/documents/{document_id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Serve a cached image thumbnail of a ``type=file`` image document.
+         *
+         *     Same authorization and the same storage seam as the content endpoint —
+         *     a preview is the document, smaller. Missing Pillow answers 503 (the
+         *     ExporterUnavailable convention: a frontend falls back to a type icon);
+         *     a non-image, a non-file or an unknown tier answers 400.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_documents_thumbnail_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/documents/{document_id}/updates": {
         parameters: {
             query?: never;
@@ -353,6 +405,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/docs/api/v1/folders/{folder_id}/star": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Star or unstar one folder for the requesting user.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["docs_api_v1_folders_star_create"];
+        /**
+         * @description Star or unstar one folder for the requesting user.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["docs_api_v1_folders_star_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/recents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Documents the requesting user reached most recently (newest first).
+         *
+         *     Written by the service layer on content read, download-URL issuance and
+         *     accepted save — never by this endpoint, which only reads.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_recents_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Workspace-scoped name search over live folders and documents.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_search_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/api/v1/starred": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Everything the requesting user starred in one workspace.
+         *
+         *     Live rows only. A trashed item drops out of the listing but keeps its
+         *     star until purge, so restoring it brings the bookmark back.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["docs_api_v1_starred_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/docs/api/v1/trash": {
         parameters: {
             query?: never;
@@ -446,6 +593,11 @@ export interface components {
         AppendResultDTO: {
             head_seq: number;
         };
+        /** @description One ancestor folder on a search hit's path. */
+        BreadcrumbNodeDTO: {
+            id: string;
+            name: string;
+        };
         DocumentCreate: {
             /** Format: uuid */
             workspace_id: string;
@@ -491,6 +643,8 @@ export interface components {
             folder_id?: string | null;
             /** @description Set while the document sits in the trash. */
             deleted_at?: string | null;
+            /** @description Whether the requesting user starred this; null when the request carries no user (not applicable is not false). */
+            is_starred?: boolean | null;
         };
         /** @description Opaque presigned GET URL — clients must never assume its shape. */
         DownloadUrlDTO: {
@@ -515,6 +669,8 @@ export interface components {
             parent_id?: string | null;
             /** @description Set while the folder sits in the trash. */
             deleted_at?: string | null;
+            /** @description Whether the requesting user starred this; null when the request carries no user (not applicable is not false). */
+            is_starred?: boolean | null;
         };
         /** @description One journal row of the ``?since=`` replay feed. */
         JournalUpdateDTO: {
@@ -558,6 +714,23 @@ export interface components {
         SaveResultDTO: {
             head_seq: number;
             revision_id?: string | null;
+        };
+        /**
+         * @description One name-search hit (drive-spec §3.3).
+         *
+         *     ``kind`` dispatches the client's rendering; ``breadcrumb`` is the
+         *     root-first ancestor chain of the hit's CONTAINER (empty at the workspace
+         *     root), materialized server-side so a result list costs one request.
+         */
+        SearchHitDTO: {
+            kind: string;
+            id: string;
+            workspace_id: string;
+            name: string;
+            parent_id?: string | null;
+            type?: string | null;
+            is_starred?: boolean | null;
+            breadcrumb?: components["schemas"]["BreadcrumbNodeDTO"][];
         };
         TrashEmpty: {
             /** Format: uuid */
@@ -949,6 +1122,69 @@ export interface operations {
             };
         };
     };
+    docs_api_v1_documents_star_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_documents_star_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_documents_thumbnail_retrieve: {
+        parameters: {
+            query: {
+                /** @description Longest-edge pixel tier; the ladder is fixed (160, 480). */
+                tier: number;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     docs_api_v1_documents_updates_retrieve: {
         parameters: {
             query?: {
@@ -1133,6 +1369,112 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["FolderPresenterDTO"];
                 };
+            };
+        };
+    };
+    docs_api_v1_folders_star_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_folders_star_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                folder_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    docs_api_v1_recents_list: {
+        parameters: {
+            query: {
+                workspace_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentPresenterDTO"][];
+                };
+            };
+        };
+    };
+    docs_api_v1_search_list: {
+        parameters: {
+            query: {
+                /** @description Ceiling on returned hits (default SEARCH_MAX_RESULTS). */
+                limit?: number;
+                /** @description Case-insensitive substring of a folder name or document title. Mandatory: an absent query is a 400, never the whole workspace. */
+                q: string;
+                workspace_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchHitDTO"][];
+                };
+            };
+        };
+    };
+    docs_api_v1_starred_retrieve: {
+        parameters: {
+            query: {
+                workspace_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
