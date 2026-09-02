@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/docs-react",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "demos": [
     {
       "id": "docs.breadcrumbs",

@@ -1,4 +1,4 @@
-# @stapel/docs-react 0.9.0
+# @stapel/docs-react 0.9.1
 
 Headless React flow pair for stapel-docs (contract >=0.8 <0.9) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
