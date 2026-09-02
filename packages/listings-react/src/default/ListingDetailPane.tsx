@@ -446,11 +446,8 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     >
                       {(bind) => (
                         <Button
-                          {...(bind.disabled ? { "aria-disabled": true } : {})}
-                          data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
-                          {...(bind["aria-describedby"] !== undefined
-                            ? { "aria-describedby": bind["aria-describedby"] }
-                            : {})}
+                          // See `<ListingCard>`: the binding, spread whole.
+                          {...bind}
                           aria-label={favoriteLabel}
                           aria-pressed={bag.isFavorited}
                           icon={heartIcon}

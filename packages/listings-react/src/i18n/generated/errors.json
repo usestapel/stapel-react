@@ -287,6 +287,20 @@
     "en": "Unknown listing status '{status}'"
   },
   {
+    "code": "error.400.listing_location_required",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "Choose where the item is before publishing"
+  },
+  {
+    "code": "error.400.listing_zero_price_not_allowed",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "A price of 0 is not allowed in this category. Leave the price empty for \"price not stated\"."
+  },
+  {
     "code": "error.400.publish_validation_failed",
     "status": 400,
     "params": [],

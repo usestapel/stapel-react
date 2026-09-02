@@ -11,6 +11,7 @@
  * produces a different request cannot silently reuse a page — the stale-page
  * bug (new filter, cached rows) is unwritable rather than merely avoided.
  */
+import { engagementIds } from "../api/types.js";
 import type { ListingPageParams } from "../api/types.js";
 
 /** The normalized page cursor a list read is keyed on. */
@@ -67,6 +68,18 @@ export const listingsQueryKeys: {
   allFavorites(): readonly ["listings", "my", "favorites"];
   /** Every published-card PAGE, same reason. */
   allLists(): readonly ["listings", "list"];
+  /**
+   * The per-viewer overlay for one page of ids.
+   *
+   * Keyed on the NORMALIZED list (`engagementIds`: sorted, de-duplicated,
+   * capped) and joined into one string, which is the same value the request
+   * sends. The doctrine at the top of this file applied to a batch read: two
+   * renders asking for the same ids in a different order are asking the
+   * identical question — the answer is a map keyed by id and carries no order
+   * of its own — so they must share one cache entry and cost one request.
+   * Keyed on the raw array they would cost two, per re-render, per grid.
+   */
+  engagement(ids: readonly number[]): readonly ["listings", "engagement", string];
 } = {
   all: [ROOT],
   list: (page) => [ROOT, "list", page],
@@ -80,4 +93,5 @@ export const listingsQueryKeys: {
   validateDraft: (id) => [ROOT, "validate-draft", id],
   allFavorites: () => [ROOT, "my", "favorites"],
   allLists: () => [ROOT, "list"],
+  engagement: (ids) => [ROOT, "engagement", engagementIds(ids).join(",")],
 };

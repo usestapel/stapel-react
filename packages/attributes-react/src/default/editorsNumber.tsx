@@ -38,7 +38,7 @@ import { SkinNumberField, SkinPickerSheet } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { featureName } from "../types.js";
-import { firstCode, optionsRefOf, useVocabularyClient } from "../vocabulary.js";
+import { firstCode, optionsRefOf, termPageOf, useVocabularyClient } from "../vocabulary.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
 import { configLabel } from "./labels.js";
 import { useTouchFloor } from "./touchFloor.js";
@@ -127,7 +127,11 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
     let stale = false;
     client
       .search(vocabulary, level, "", parent)
-      .then((terms) => {
+      .then((answered) => {
+        // The allowed set is the whole level, in any order — the band tells a
+        // picker where to draw a rule and says nothing about which integers
+        // are permitted, so only the rows are read here.
+        const { terms } = termPageOf(answered);
         if (stale || terms.length === 0 || terms.length >= REF_INT_PAGE) return;
         const numbers = terms.map((term) => Number.parseInt(term.code, 10));
         if (numbers.some((one) => !Number.isFinite(one))) return;

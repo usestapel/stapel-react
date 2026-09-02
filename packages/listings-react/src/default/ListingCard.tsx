@@ -117,6 +117,7 @@ import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from ".
 import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { isListingViewed } from "../model/engagement.js";
+import { useEngagedListing } from "../headless/Engagement.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
@@ -453,7 +454,10 @@ export function CardTarget(
 
 export function ListingCard(props: ListingCardProps): ReactElement {
   const t = useT();
-  const { listing } = props;
+  // The engagement scope's answer laid over the row, when a container opened
+  // one — the same object otherwise. A card fed by search carries no
+  // `viewed`/`is_favorited` of its own; see `headless/Engagement.tsx`.
+  const listing = useEngagedListing(props.listing);
   const favorite = useFavoriteToggle(listing.id, listing.is_favorited);
   const { token } = antdTheme.useToken();
 
@@ -660,11 +664,12 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                         {(bind) => (
                           <Flex justify="flex-end" style={{ width: "100%" }}>
                             <Button
-                              {...(bind.disabled ? { "aria-disabled": true } : {})}
-                              data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
-                              {...(bind["aria-describedby"] !== undefined
-                                ? { "aria-describedby": bind["aria-describedby"] }
-                                : {})}
+                              // The substrate's binding, spread whole: it now
+                              // owns "never inert" for the whole fleet —
+                              // `disabled` stays false, `aria-disabled` and
+                              // `tabIndex` come from it, and the reason is
+                              // wired by `aria-describedby`.
+                              {...bind}
                               aria-label={favoriteLabel}
                               aria-pressed={favorite.favorited}
                               data-testid="listings-card-favorite"

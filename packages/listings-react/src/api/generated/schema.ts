@@ -45,15 +45,25 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Listings CRUD plus owner lifecycle actions and favorites.
+         * @description Read one listing — and count the open.
          *
-         *     Read and write live in one class, so the guest wall
-         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
-         *     is applied per ACTION and never as a class permission: an anonymous
-         *     session must keep browsing and keep its favorites, and only the
-         *     authorship actions — ``create``, ``update``/``partial_update``,
-         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
-         *     seller.
+         *     A GET with a side effect, deliberately, because "opening a listing"
+         *     IS the event and a storefront that had to POST it separately would
+         *     report a different number than the page it drew (and would stop
+         *     reporting at all the moment a client forgot the second call).
+         *
+         *     The side effect is bounded on both ends. It cannot lie: the owner's
+         *     own opens and unattributable ones are refused inside
+         *     ``record_view``. And it cannot become a write per read: every repeat
+         *     open inside ``VIEW_DEDUP_WINDOW_SECONDS`` is one cache hit and no
+         *     query. The response is therefore safe to give a private cache and
+         *     must never be given a shared one — which is the pre-existing rule
+         *     for an authenticated read anyway.
+         *
+         *     ``viewed`` is annotated BEFORE the recording, so the open that first
+         *     sees a listing answers ``false`` and the next one answers ``true``.
+         *     A card that greyed itself out on the very read that discovered it
+         *     would be telling the reader they had already been here.
          *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
@@ -308,6 +318,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/listings/api/v1/listings/engagement/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The per-viewer overlay for a page of cards, in one call.
+         *
+         *     ``AllowAny`` on purpose: ``view_count`` is public, and an anonymous
+         *     caller gets it with both per-viewer flags answering ``null``. A
+         *     storefront therefore makes the same request whether or not anyone is
+         *     signed in, and a guest's grid is not a second code path.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["listings_api_v1_listings_engagement_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/listings/api/v1/listings/my/counters/": {
         parameters: {
             query?: never;
@@ -522,8 +558,8 @@ export interface components {
             favorited: boolean;
             listing_id: number;
         };
-        FeatureDao: components["schemas"]["IntDao"] | components["schemas"]["FloatDao"] | components["schemas"]["StringDao"] | components["schemas"]["BoolDao"] | components["schemas"]["HexColorDao"] | components["schemas"]["SelectDao"] | components["schemas"]["DateDao"] | components["schemas"]["HeaderDao"] | components["schemas"]["HierarchicalSelectDao"] | components["schemas"]["ConvertibleUnitDao"] | components["schemas"]["RefSelectDao"] | components["schemas"]["RefHierarchicalSelectDao"] | components["schemas"]["GroupDao"];
-        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"] | components["schemas"]["GroupDto"];
+        FeatureDao: components["schemas"]["RefSelectDao"] | components["schemas"]["IntDao"] | components["schemas"]["FloatDao"] | components["schemas"]["StringDao"] | components["schemas"]["BoolDao"] | components["schemas"]["HexColorDao"] | components["schemas"]["SelectDao"] | components["schemas"]["DateDao"] | components["schemas"]["HeaderDao"] | components["schemas"]["HierarchicalSelectDao"] | components["schemas"]["ConvertibleUnitDao"] | components["schemas"]["RefHierarchicalSelectDao"] | components["schemas"]["GroupDao"];
+        FeatureDto: components["schemas"]["RefSelectDto"] | components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefHierarchicalSelectDto"] | components["schemas"]["GroupDto"];
         /** @description Serializer for FeatureValidationResult. */
         FeatureValidationResult: {
             id?: unknown;
@@ -738,7 +774,7 @@ export interface components {
             readonly id: number;
             title?: string;
             /** Format: decimal */
-            price?: string;
+            price?: string | null;
             /** Format: decimal */
             price_base?: string | null;
             currency?: string;
@@ -784,6 +820,8 @@ export interface components {
             stock_quantity?: number | null;
             status?: components["schemas"]["StatusD41Enum"];
             readonly is_favorited: boolean | null;
+            readonly viewed: boolean | null;
+            readonly view_count: number;
         };
         /** @description Full listing detail. */
         ListingDetail: {
@@ -795,7 +833,7 @@ export interface components {
             description?: string;
             language?: string;
             /** Format: decimal */
-            price?: string;
+            price?: string | null;
             /** Format: decimal */
             price_base?: string | null;
             currency?: string;
@@ -868,6 +906,8 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
             readonly is_favorited: boolean | null;
+            readonly viewed: boolean | null;
+            readonly view_count: number;
         };
         /**
          * @description Create/update the draft twin fields.
@@ -906,6 +946,30 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
+        };
+        /**
+         * @description The per-viewer overlay for ONE listing in a batch read.
+         *
+         *     Exists because a storefront's grid does not come from this module: the
+         *     SERP is served by the search index, whose stored card can carry neither a
+         *     flag that differs per reader nor a counter that moves faster than a
+         *     document re-indexed on a listing event. So the grid draws the card from
+         *     search and asks HERE, once for the whole page, for the three things that
+         *     are about the person looking.
+         */
+        ListingEngagement: {
+            /** @description Distinct viewers who have opened this listing. Public — it is the same number for every reader. */
+            view_count: number;
+            /** @description Whether the CALLER has opened this listing before. `null` for an anonymous caller: nothing is remembered for a stranger, and `false` would be a claim rather than an absence. */
+            viewed: boolean | null;
+            /** @description Whether the CALLER has favorited it. `null` for anonymous, same reason. */
+            is_favorited: boolean | null;
+        };
+        /** @description ``{listing id: overlay}``. An id with no listing is simply absent. */
+        ListingEngagementBatch: {
+            items: {
+                [key: string]: components["schemas"]["ListingEngagement"];
+            };
         };
         /** @description Lightweight status view (mirrors the listings.status comm Function). */
         ListingStatus: {
@@ -954,7 +1018,7 @@ export interface components {
             readonly id: number;
             title?: string;
             /** Format: decimal */
-            price?: string;
+            price?: string | null;
             /** Format: decimal */
             price_base?: string | null;
             currency?: string;
@@ -1000,6 +1064,8 @@ export interface components {
             stock_quantity?: number | null;
             status?: components["schemas"]["StatusD41Enum"];
             readonly is_favorited: boolean | null;
+            readonly viewed: boolean | null;
+            readonly view_count: number;
             moderation_status?: components["schemas"]["ModerationStatusEnum"];
             title_draft?: string;
             /** Format: decimal */
@@ -1637,6 +1703,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationBatchResult"];
+                };
+            };
+        };
+    };
+    listings_api_v1_listings_engagement_retrieve: {
+        parameters: {
+            query: {
+                /** @description Listing ids, comma-separated or the parameter repeated. Capped at ENGAGEMENT_BATCH_LIMIT ids per call — one page of cards, not a crawl of the board. */
+                ids: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingEngagementBatch"];
                 };
             };
         };

@@ -12,6 +12,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { isStapelApiError } from "@stapel/core";
 import { createVocabularyClient, RESOLVE_BATCH } from "../src/client.js";
+import type { VocabularyTermPage } from "../src/client.js";
 
 const BASE = "https://stand.example/vocabularies/api/v1/";
 
@@ -127,17 +128,145 @@ describe("search — the URL that goes out", () => {
     expect(new URL(s.urls[0] as string).searchParams.get("limit")).toBe("200");
   });
 
-  it("returns the page's rows, `has_children` included", async () => {
+  it("returns the PAGE, not a bare array — `has_children` and `total` included", async () => {
     const s = stub(PAGE);
-    const terms = await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+    const answer = await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
       "phone-models",
       "Vendor",
       ""
     );
-    expect(terms).toEqual([
-      { code: "apple", label: "Apple", has_children: true },
-      { code: "samsung", label: "Samsung", has_children: true },
+    // The envelope is the point: a bare array cannot carry `popular_count`.
+    expect(Array.isArray(answer)).toBe(false);
+    expect(answer).toEqual({
+      results: [
+        { code: "apple", label: "Apple", has_children: true },
+        { code: "samsung", label: "Samsung", has_children: true },
+      ],
+      total: 2,
+    });
+  });
+});
+
+describe("search — the popular band survives the wire (0.2.0)", () => {
+  const BANDED = {
+    results: [
+      { code: "apple", label: "Apple", level: "Vendor", has_children: true, band: "popular" },
+      { code: "samsung", label: "Samsung", level: "Vendor", has_children: true, band: "popular" },
+      { code: "alcatel", label: "Alcatel", level: "Vendor", has_children: false, band: "all" },
+    ],
+    total: 3,
+    popular_count: 2,
+  };
+
+  it("forwards `band` on every row", async () => {
+    const s = stub(BANDED);
+    const answer = (await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+      "phone-models",
+      "Vendor",
+      ""
+    )) as VocabularyTermPage;
+    expect(answer.results.map((term) => term.band)).toEqual(["popular", "popular", "all"]);
+  });
+
+  it("forwards `popular_count` on the page", async () => {
+    const s = stub(BANDED);
+    const answer = (await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+      "phone-models",
+      "Vendor",
+      ""
+    )) as VocabularyTermPage;
+    expect(answer.popular_count).toBe(2);
+    expect(answer.total).toBe(3);
+  });
+
+  it("forwards an interleaved `q` page VERBATIM — no reorder, no re-tag", async () => {
+    // The server orders by prefix_rank FIRST and the band second, so under a
+    // query a page legitimately reads [popular+prefix, all+prefix, popular,
+    // all]: two rows tagged `popular` of which only the first LEADS. A client
+    // that filtered on the tag would lift row three over row two. The band is
+    // a SLICE at popular_count — here 1 — and this client's job is to hand the
+    // ranking on untouched.
+    const interleaved = {
+      results: [
+        { code: "app-a", label: "Apple", level: "Vendor", has_children: true, band: "popular" },
+        { code: "app-b", label: "Appo", level: "Vendor", has_children: false, band: "all" },
+        { code: "sam", label: "Samsung", level: "Vendor", has_children: true, band: "popular" },
+        { code: "alc", label: "Alcatel", level: "Vendor", has_children: false, band: "all" },
+      ],
+      total: 4,
+      popular_count: 1,
+    };
+    const s = stub(interleaved);
+    const answer = (await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+      "phone-models",
+      "Vendor",
+      "app"
+    )) as VocabularyTermPage;
+
+    expect(answer.results.map((term) => term.code)).toEqual([
+      "app-a",
+      "app-b",
+      "sam",
+      "alc",
     ]);
+    expect(answer.results.map((term) => term.band)).toEqual([
+      "popular",
+      "all",
+      "popular",
+      "all",
+    ]);
+    expect(answer.popular_count).toBe(1);
+  });
+
+  it("a 0.1.x page — no band, no popular_count — reads exactly as it did", async () => {
+    const s = stub(PAGE);
+    const answer = (await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+      "phone-models",
+      "Vendor",
+      ""
+    )) as VocabularyTermPage;
+    // Absent, not `undefined`-valued and not invented: a consumer reads "no
+    // band" and draws one plain list.
+    expect(answer.popular_count).toBeUndefined();
+    expect("popular_count" in answer).toBe(false);
+    for (const term of answer.results) expect("band" in term).toBe(false);
+  });
+
+  it("carries `popular_count: 0` — an ANSWER, not a missing field", async () => {
+    // 0 means "this page has no popular band" (a page past the boundary, a
+    // level nobody ranked, a `q` search whose top hit is a plain prefix match)
+    // and a consumer draws one plain list from it. Losing it would be
+    // indistinguishable from a pre-0.2.0 stand, which is the same list by a
+    // different route and a worse thing to guess.
+    const s = stub({
+      results: [{ code: "x", label: "X", level: "L", has_children: false, band: "all" }],
+      total: 1,
+      popular_count: 0,
+    });
+    const answer = (await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+      "v",
+      "L",
+      ""
+    )) as VocabularyTermPage;
+    expect(answer.popular_count).toBe(0);
+    expect(answer.results[0]?.band).toBe("all");
+  });
+
+  it("refuses a count it could not slice with", async () => {
+    // Not paranoia about the contract — an index hazard. `popular_count` is
+    // sliced with, so a fractional or negative one is dropped and the page
+    // degrades to the plain list rather than cutting somewhere absurd.
+    const s = stub({
+      results: [{ code: "x", label: "X", level: "L", has_children: false, band: "popular" }],
+      total: 1,
+      popular_count: -3,
+    });
+    const answer = (await createVocabularyClient({ baseUrl: BASE, fetch: s.fetch }).search(
+      "v",
+      "L",
+      ""
+    )) as VocabularyTermPage;
+    expect(answer.popular_count).toBeUndefined();
   });
 });
 

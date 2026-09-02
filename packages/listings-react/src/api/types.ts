@@ -39,65 +39,109 @@ import type { components } from "./generated/schema.js";
 export type Schemas = components["schemas"];
 
 /**
- * The ENGAGEMENT siblings of `is_favorited`, declared here because the
- * generated schema does not carry them yet.
+ * The engagement fields, named off the GENERATED row so a rename upstream
+ * breaks the build here rather than going quiet on a grid.
  *
- * `api/generated/schema.ts` is emitted from stapel-listings' own
- * `docs/schema.json` and is never hand-edited — so a field that is LANDING
- * upstream but not yet published has exactly one honest home: an optional
- * extension of the row this pair reads, kept beside the generated type rather
- * than inside it. When the schema grows the two fields the intersection
- * becomes a no-op and this block is deleted; until then nothing in the pair
- * has to guess.
+ * These were hand-written mirrors while this pair's contract pin sat at
+ * `>=0.12 <0.13` and the emitted schema could not see stapel-listings
+ * 0.16/0.17. The pin has landed, so the mirrors are gone and the names come
+ * from `Schemas["ListingCard"]`. What is kept is the OPTIONALITY, and that is
+ * not laziness:
  *
- * Both are optional AND nullable, and the three states are three different
- * facts:
- *
- *   absent   — this deployment's server does not send the field at all
- *   `null`   — it sends it, and nobody asked on this person's behalf
- *              (an anonymous read annotates `Value(None)`, the same way
- *              `is_favorited` does)
- *   a value  — the answer
- *
- * The first two both mean "draw nothing extra". Only the third can dim a card
- * or print a number, which is what makes the whole feature a silent no-op on
- * every response the fleet answers today. `model/engagement.ts` is the one
- * place that collapses them, and it is where a skin asks.
- *
- * ── Two spellings of the same flag, and why both are declared ─────────────
- *
- * The already-seen flag is `is_viewed` in the note this pair was built
- * against and `viewed` in the schema stapel-listings actually emits (it also
- * grew a batch overlay — see `model/engagement.ts`). Nothing has shipped yet,
- * so which one lands is still open, and a pair that bet on one name would
- * silently render nothing for the other: a boolean read off an absent key is
- * `undefined`, which this pair correctly treats as "no dimming". A defect
- * with no symptom, on a seam between two repositories, is the exact shape
- * this fleet keeps paying for.
- *
- * Both are therefore declared and both are read, in that order, by
- * `isListingViewed`. The cost is one `??`; the alternative is a feature that
- * looks fine in the pair's own tests and does nothing on the deployment.
- * When the name settles, the loser is deleted here and nowhere else.
+ * **A generated type is a promise about the contract, not about the bytes a
+ * particular deployment sends.** The schema says every card carries `viewed`
+ * and `view_count`; a storefront pointed at a server still running 0.15 gets
+ * rows without them, and the two surfaces this feature exists for — a feed
+ * and a SERP — are served by the SEARCH index, whose stored document carries
+ * neither by construction. `Partial` is what keeps `model/engagement.ts`
+ * allowed to ask, and every reader there answers "absent" with the same
+ * silence it answers `null` with.
  */
-export interface ListingEngagementFields {
-  /** Has THIS reader already opened this listing? `null` for an anonymous
-   * read — nothing is remembered for a stranger, and `false` would be a
-   * claim rather than an absence. */
-  readonly is_viewed?: boolean | null;
-  /** The same flag under the name stapel-listings' own schema gives it. */
-  readonly viewed?: boolean | null;
-  /** How many distinct viewers have opened it. Public: the same number for
-   * every reader. Declared nullable although the upstream schema is not —
-   * a field that is absent today may arrive annotated. */
-  readonly view_count?: number | null;
+export type ListingEngagementFields = Partial<
+  Pick<Schemas["ListingCard"], "viewed" | "view_count">
+>;
+
+/** A generated row with its engagement fields relaxed to optional — see
+ * {@link ListingEngagementFields} for why every row type below is spelled
+ * this way rather than taken from `Schemas` whole. */
+type WithOptionalEngagement<Row extends ListingEngagementFields> = Omit<
+  Row,
+  keyof ListingEngagementFields
+> &
+  ListingEngagementFields;
+
+/**
+ * The per-viewer overlay for ONE listing, as the batch read answers it.
+ *
+ * Note what is REQUIRED here and optional on the row: the overlay always
+ * carries all three keys, because it is the answer to a question that was
+ * actually asked. A row that carries none of them was serialized by a build
+ * that had never heard of them.
+ */
+export type ListingEngagement = Schemas["ListingEngagement"];
+
+/**
+ * `GET /listings/engagement/?ids=…` 200 — `{listing id: overlay}`.
+ *
+ * The keys are the ids as STRINGS (a DRF `DictField`), and an id with no
+ * listing is simply absent rather than present-and-empty. Both facts are why
+ * `model/engagement.ts` looks entries up through one function instead of
+ * indexing the object at call sites.
+ */
+export type ListingEngagementBatch = Schemas["ListingEngagementBatch"];
+
+/**
+ * The most ids one overlay call may carry — `ENGAGEMENT_BATCH_LIMIT`
+ * upstream, which silently TRUNCATES anything longer ("one page of cards, not
+ * a crawl of the board").
+ *
+ * Mirrored here so the truncation happens where it can be seen and named
+ * rather than in a response that quietly came back short. A page of more than
+ * a hundred cards is not a page; a caller that has one should ask per screen.
+ */
+export const LISTINGS_ENGAGEMENT_BATCH_LIMIT = 100;
+
+/**
+ * Normalize the ids on a page into the exact list the request sends.
+ *
+ * Sorted, de-duplicated, non-integer values dropped, capped at
+ * {@link LISTINGS_ENGAGEMENT_BATCH_LIMIT}. Sorting is what makes the cache
+ * key honest: the answer is a MAP keyed by id, so two renders that ask for
+ * the same ids in different orders are asking the identical question and must
+ * not buy two cache entries and two requests. De-duplication is the same
+ * argument for a grid that shows one listing twice (a promoted slot above the
+ * organic result it also occupies).
+ *
+ * `queryKeys.engagement` and `api.engagement` are both built from THIS, so
+ * the key cannot drift from the request it stands for.
+ */
+export function engagementIds(ids: readonly number[]): readonly number[] {
+  const seen = new Set<number>();
+  for (const id of ids) {
+    if (Number.isInteger(id)) seen.add(id);
+  }
+  return [...seen].sort((a, b) => a - b).slice(0, LISTINGS_ENGAGEMENT_BATCH_LIMIT);
 }
 
 /** `GET /listings/{pk}/` 200 — everything a detail page reads. */
-export type ListingDetail = Schemas["ListingDetail"] & ListingEngagementFields;
+export type ListingDetail = WithOptionalEngagement<Schemas["ListingDetail"]>;
 
-/** One row of a card list (`GET /listings/`, `GET /listings/my/favorites/`). */
-export type ListingCard = Schemas["ListingCard"] & ListingEngagementFields;
+/**
+ * One row of a card list (`GET /listings/`, `GET /listings/my/favorites/`) —
+ * and the PROP every card component in this pair takes, which is why its
+ * engagement fields are optional where the schema makes them required.
+ *
+ * The schema is right about this module's own responses: `GET /listings/`
+ * carries `viewed` and `view_count` on every row. But the card components are
+ * handed rows from elsewhere, and the most important elsewhere is the SEARCH
+ * index — `@stapel/search-react` fills `renderCard` with a stored document
+ * that cannot hold a per-reader flag by construction. Requiring the fields on
+ * the prop would make the pair's primary consumer unable to satisfy its own
+ * type, for data no one can supply; it is precisely the case
+ * `<ListingEngagementScope>` exists to answer. A deployment running a server
+ * older than 0.16 is the same shape of fact.
+ */
+export type ListingCard = WithOptionalEngagement<Schemas["ListingCard"]>;
 
 /** `POST /listings/` request+response and `POST /{pk}/save-draft/` response —
  * the draft twin. Every user-editable field is a `*_draft` one, promoted onto
@@ -129,7 +173,12 @@ export type DeleteResponse = Schemas["DeleteResponse"];
 
 /** The keyset envelope both public card lists come back in
  * (`IDAnchorPagination`). */
-export type PaginatedListingCards = Schemas["PaginatedListingCardList"];
+export type PaginatedListingCards = Omit<
+  Schemas["PaginatedListingCardList"],
+  "items"
+> & {
+  items: ListingCard[];
+};
 
 /**
  * One row of `GET /listings/my/listings/` — the OWNER's card.
@@ -148,12 +197,17 @@ export type PaginatedListingCards = Schemas["PaginatedListingCardList"];
  *    tab keyed off them is a column of blank rows. `myListingTitle` /
  *    `myListingPrice` (`model/mine.ts`) are the one place the fallback lives.
  */
-export type MyListingCard = Schemas["MyListingCard"] & ListingEngagementFields;
+export type MyListingCard = WithOptionalEngagement<Schemas["MyListingCard"]>;
 
 /** The keyset envelope `GET /listings/my/listings/` comes back in — the same
  * `IDAnchorPagination` shape as {@link PaginatedListingCards}, over the owner
  * row. */
-export type PaginatedMyListingCards = Schemas["PaginatedMyListingCardList"];
+export type PaginatedMyListingCards = Omit<
+  Schemas["PaginatedMyListingCardList"],
+  "items"
+> & {
+  items: MyListingCard[];
+};
 
 /**
  * The nine lifecycle states, as `models.ListingStatus` declares them.

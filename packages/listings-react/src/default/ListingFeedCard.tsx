@@ -63,6 +63,7 @@ import { radii, spacing } from "@stapel/tokens";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { lifecycleCaption } from "../model/status.js";
 import { isListingViewed } from "../model/engagement.js";
+import { useEngagedListing } from "../headless/Engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { FavoriteHeart } from "./favorite.js";
 import {
@@ -151,7 +152,9 @@ export type ListingFeedCardProps = ListingFeedCardBaseProps & ListingCardOpenPro
 
 export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
   const t = useT();
-  const { listing } = props;
+  // See `<ListingCard>`: the scope's overlay over the row, or the row. This
+  // is the surface it matters most on — a home feed is drawn from search.
+  const listing = useEngagedListing(props.listing);
   const status =
     listing.status === undefined ? undefined : lifecycleCaption(listing.status);
   const title = listing.title ?? "";

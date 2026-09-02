@@ -4,6 +4,7 @@ import type {
   FavoriteToggleResponse,
   ListingActionResponse,
   ListingDetail,
+  ListingEngagementBatch,
   ListingDraft,
   ListingDraftPatch,
   ListingPageParams,
@@ -15,6 +16,7 @@ import type {
   PublishResponse,
 } from "./types.js";
 import type { ValidationBatchResult } from "@stapel/attributes-react";
+import { engagementIds } from "./types.js";
 
 /**
  * The pair's typed operation surface — one method per stapel-listings endpoint
@@ -122,6 +124,33 @@ export interface ListingsApi {
     params?: ListingPageParams,
     options?: { readonly signal?: AbortSignal }
   ): Promise<PaginatedListingCards>;
+
+  /**
+   * The per-viewer OVERLAY for a whole page of cards, in one call.
+   *
+   * `{listing id: {view_count, viewed, is_favorited}}`, with an id that has
+   * no listing simply absent. This is the endpoint that makes the engagement
+   * flags visible on the two surfaces that matter: a storefront's feed and
+   * its SERP are served by the SEARCH index, whose stored card cannot hold a
+   * flag that differs per reader or a counter that moves faster than a
+   * re-index, so the grid draws the card from search and asks HERE for the
+   * three things that are about the person looking.
+   *
+   * `AllowAny` upstream, deliberately: `view_count` is public and both
+   * per-viewer flags answer `null` for a guest, so a storefront makes the
+   * same request signed in or not and a guest's grid is not a second code
+   * path.
+   *
+   * Ids are normalized by `engagementIds` before they get here — sorted,
+   * de-duplicated and capped at `LISTINGS_ENGAGEMENT_BATCH_LIMIT`, because
+   * the server TRUNCATES a longer list rather than refusing it and a short
+   * answer to a long question is the kind of absence this pair does not
+   * render.
+   */
+  engagement(
+    ids: readonly number[],
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<ListingEngagementBatch>;
 
   /**
    * Start a draft. `category_id` is the only required member: the server
@@ -251,6 +280,16 @@ export function createListingsApi(client: StapelClient): ListingsApi {
     myFavorites: (params, options) =>
       client.get(`${COLLECTION}my/favorites/`, {
         query: pageQuery(params),
+        ...signal(options),
+      }),
+
+    // One comma-separated value rather than a repeated parameter, for the
+    // reason `statusQuery` gives: both spellings are accepted upstream
+    // (`getlist("ids")` then splits on commas), and this one survives every
+    // `query` serializer a host's own StapelClient might carry.
+    engagement: (ids, options) =>
+      client.get(`${COLLECTION}engagement/`, {
+        query: { ids: engagementIds(ids).join(",") },
         ...signal(options),
       }),
 

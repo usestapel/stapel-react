@@ -28,15 +28,52 @@ import type { Term, TermPage } from "./api/types.js";
 
 /** One term of a vocabulary level, as `GET …/terms/` returns it.
  *
- * A structural twin of `@stapel/attributes-react`'s `VocabularyTerm` — the same
- * three fields, `has_children` spelled the wire's way. The declaration is not
+ * A structural twin of `@stapel/attributes-react`'s `VocabularyTerm` —
+ * `has_children` and `band` spelled the wire's way. The declaration is not
  * shared because the two packages must not import each other; the assignment
  * is proven by `test/clientShape.test.ts`. */
 export interface VocabularyTerm {
   readonly code: string;
   readonly label: string;
   readonly has_children?: boolean;
+  /**
+   * Which band this row is in (`stapel-vocabularies` 0.2.0): `popular` for the
+   * short recommended set a level opens on, `all` for the alphabet under it.
+   *
+   * Optional, because a level nobody has ranked and a service older than 0.2.0
+   * both send nothing. It is a HINT and not the boundary — the page's
+   * {@link VocabularyTermPage.popular_count} is.
+   */
+  readonly band?: "popular" | "all";
 }
+
+/**
+ * One page of a level — the envelope, not just its rows.
+ *
+ * The page carries a fact no row can: `popular_count`, where the popular band
+ * ENDS. A consumer draws its separator by SLICING the rows at that index; it
+ * must never filter on `band`, because the server ranks a `q` search by prefix
+ * FIRST and the band second, so a page can legitimately read
+ * `[popular+prefix, all+prefix, popular, all]`. Filtering there would lift row
+ * three over row two and destroy the typeahead ranking.
+ *
+ * Structurally identical to `@stapel/attributes-react`'s
+ * `VocabularyTermPage`, for the same reason as {@link VocabularyTerm}.
+ */
+export interface VocabularyTermPage {
+  readonly results: readonly VocabularyTerm[];
+  /** How many LEADING rows of {@link results} are in the popular band. The
+   * separator goes after index `popular_count - 1`; `0` means this page has
+   * none. Absent from a service older than 0.2.0. */
+  readonly popular_count?: number;
+  /** Rows matching the query before `limit`/`offset`, so a control can say
+   * "50 of 14 962". */
+  readonly total?: number;
+}
+
+/** What a {@link VocabularyClient.search} may answer with: the endpoint's page,
+ * or a bare array from a host backing the seam with an in-memory table. */
+export type VocabularyTermAnswer = readonly VocabularyTerm[] | VocabularyTermPage;
 
 /**
  * The seam `@stapel/attributes-react` declares and this package implements.
@@ -51,7 +88,12 @@ export interface VocabularyTerm {
 export interface VocabularyClient {
   /** Terms of one level, narrowed by `query` and — when the caller has a
    * parent term — by that term's code. An empty `query` means "the first page
-   * of this level", which is what a dropdown opens on. `signal` is honoured. */
+   * of this level", which is what a dropdown opens on. `signal` is honoured.
+   *
+   * The answer is the endpoint's PAGE ({@link VocabularyTermPage}) or a bare
+   * array; {@link createVocabularyClient} always answers with the page, so
+   * `popular_count` survives the wire. A host that hands the seam an in-memory
+   * table keeps returning an array and gets one plain list. */
   search(
     vocabulary: string,
     level: string,
@@ -59,7 +101,7 @@ export interface VocabularyClient {
     parent?: string,
     signal?: AbortSignal,
     offset?: number
-  ): Promise<readonly VocabularyTerm[]>;
+  ): Promise<VocabularyTermAnswer>;
   /** `{code: label}` for codes already stored somewhere. Unknown codes are
    * omitted by the server, so a caller falls back to the code itself. */
   resolve(
@@ -109,6 +151,63 @@ function labelsOf(body: unknown): Record<string, string> {
   return out;
 }
 
+/**
+ * One row as a DEPLOYMENT may send it, which is not quite what the pin
+ * declares: `band` arrived in stapel-vocabularies 0.2.0 and a stand still on
+ * 0.1.x sends rows without it. `code`, `label` and `has_children` are in both,
+ * so only the one field the pin added is loosened — and the names come from
+ * the generated {@link Term}, so an upstream rename reddens this file.
+ */
+type WireTerm = Omit<Term, "band"> & { readonly band?: Term["band"] };
+
+/** The same, for the envelope: `popular_count` is the field the pin added, and
+ * `results` is guarded because a 200 with the wrong body is still a 200. */
+type WirePage = Omit<TermPage, "results" | "popular_count"> & {
+  readonly results?: readonly WireTerm[];
+  readonly popular_count?: TermPage["popular_count"];
+};
+
+/** A count the page may not carry, kept only if it could actually index the
+ * rows: absence is a pre-0.2.0 stand, and a fractional or negative count is a
+ * server a consumer should fall back from rather than slice with. */
+function countOf(value: number | undefined): number | undefined {
+  return value !== undefined && Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+/**
+ * The endpoint's body as the page a consumer reads.
+ *
+ * VERBATIM in the only two senses that matter: the rows keep the server's
+ * order, and `popular_count` is carried across untouched. This function
+ * neither sorts nor re-tags — the ordering is `prefix_rank, popular_band,
+ * -popularity, sort, label` and only the server knows it.
+ *
+ * `band` is forwarded as the contract types it. The one thing still read
+ * defensively is PRESENCE: the pin declares both new fields required, and a
+ * deployment older than the pin sends neither, so both are simply left off —
+ * which is the "one plain list" a consumer already draws.
+ */
+function pageOf(body: unknown): VocabularyTermPage {
+  const envelope = body as WirePage | null | undefined;
+  const rows: readonly WireTerm[] = Array.isArray(envelope?.results) ? envelope.results : [];
+  const results = rows.map((term) => {
+    const band = term.band;
+    return {
+      code: term.code,
+      label: term.label,
+      has_children: term.has_children,
+      ...(band !== undefined ? { band } : {}),
+    };
+  });
+  const popularCount = countOf(envelope?.popular_count);
+  const total = countOf(envelope?.total);
+  return {
+    results,
+    ...(popularCount !== undefined ? { popular_count: popularCount } : {}),
+    ...(total !== undefined ? { total } : {}),
+  };
+}
+
 export function createVocabularyClient(
   options: CreateVocabularyClientOptions
 ): VocabularyClient {
@@ -154,13 +253,7 @@ export function createVocabularyClient(
       // Omitted at zero: the first page is the first page.
       if (offset !== undefined && offset > 0) params.set("offset", String(offset));
       const url = `${base}vocabularies/${encodeURIComponent(vocabulary)}/terms/?${params.toString()}`;
-      const page = (await read(url, signal)) as TermPage | undefined;
-      const results: readonly Term[] = page?.results ?? [];
-      return results.map((term) => ({
-        code: term.code,
-        label: term.label,
-        has_children: term.has_children,
-      }));
+      return pageOf(await read(url, signal));
     },
 
     async resolve(vocabulary, level, codes) {

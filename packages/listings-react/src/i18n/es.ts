@@ -207,6 +207,12 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.favorites.sign_in_hint":
     "Los favoritos se guardan en tu cuenta, así que te siguen entre dispositivos.",
 
+  // Las dos comprobaciones de publicación que llegaron con el contrato 0.17.
+  "error.400.listing_location_required":
+    "Indica dónde está el artículo antes de publicarlo",
+  "error.400.listing_zero_price_not_allowed":
+    "En esta categoría no se permite un precio de 0. Deja el precio vacío para «precio no indicado».",
+
   "listings.blocked.sign_in": "Inicia sesión para hacer esto",
   "listings.blocked.guest":
     "Esta cuenta todavía no puede hacerlo — termina de configurarla primero",

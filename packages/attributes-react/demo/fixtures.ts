@@ -439,15 +439,16 @@ export const REF_HIERARCHICAL_FEATURES: readonly FeatureDef[] = [CAR_TREE];
 
 /** The in-memory vocabulary the demo's client answers from: two levels of
  * phones and three of cars, which is the smallest thing that shows a parent
- * narrowing a child and a cascader loading a level at a time. One vendor is
- * flagged `recommended`, so the sheet's two-band shape is photographable; the
- * car levels flag nothing, which is the shape every endpoint sends today. */
+ * narrowing a child and a cascader loading a level at a time. The vendor level
+ * leads with one `popular` row so the sheet's two-band shape is
+ * photographable; the car levels rank nothing, which is what a level with no
+ * band looks like. */
 const TERMS: Readonly<Record<string, Readonly<Record<string, readonly VocabularyTerm[]>>>> = {
   "phone-models": {
     Vendor: [
-      { code: "apple", label: "Apple", has_children: true, recommended: true },
-      { code: "samsung", label: "Samsung", has_children: true },
-      { code: "xiaomi", label: "Xiaomi", has_children: true },
+      { code: "apple", label: "Apple", has_children: true, band: "popular" },
+      { code: "samsung", label: "Samsung", has_children: true, band: "all" },
+      { code: "xiaomi", label: "Xiaomi", has_children: true, band: "all" },
     ],
     "Model:apple": [
       { code: "iphone-15", label: "iPhone 15" },
@@ -493,9 +494,16 @@ export const DEMO_VOCABULARY_CLIENT: VocabularyClient = {
     const table = TERMS[vocabulary] ?? {};
     const rows = table[parent === undefined ? level : `${level}:${parent}`] ?? [];
     const needle = query.trim().toLowerCase();
-    return needle.length === 0
-      ? rows
-      : rows.filter((row) => row.label.toLowerCase().includes(needle));
+    const results =
+      needle.length === 0
+        ? rows
+        : rows.filter((row) => row.label.toLowerCase().includes(needle));
+    // The endpoint's own page shape, `popular_count` and all — the leading run
+    // of the band, which is exactly what the server counts. Filtering the
+    // popular row away takes the band with it.
+    let popular = 0;
+    while (results[popular]?.band === "popular") popular += 1;
+    return { results, total: results.length, popular_count: popular };
   },
   async resolve(vocabulary, level, codes) {
     const table = TERMS[vocabulary] ?? {};

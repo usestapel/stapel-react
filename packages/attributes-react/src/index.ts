@@ -97,12 +97,18 @@ export {
   VOCABULARY_BACKED_TYPES,
   VocabularyClientProvider,
   firstCode,
-  isRecommendedTerm,
+  isPopularTerm,
   optionsRefOf,
-  partitionRecommended,
+  splitPopularBand,
+  termPageOf,
   useVocabularyClient,
 } from "./vocabulary.js";
-export type { VocabularyClient, VocabularyTerm } from "./vocabulary.js";
+export type {
+  VocabularyClient,
+  VocabularyTerm,
+  VocabularyTermAnswer,
+  VocabularyTermPage,
+} from "./vocabulary.js";
 
 export {
   INVALID_RULES_FEATURE,

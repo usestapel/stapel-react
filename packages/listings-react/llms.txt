@@ -1,6 +1,6 @@
 # @stapel/listings-react 0.18.2
 
-Headless React flow pair for stapel-listings (contract >=0.12 <0.13) — business + state, zero visual opinion.
+Headless React flow pair for stapel-listings (contract >=0.17 <0.18) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -25,6 +25,7 @@ Paths are relative to `/listings/api/v1/`.
 - listings_api_v1_listings_complete_create: POST /listings/{id}/complete/
 - listings_api_v1_listings_create: POST /listings/
 - listings_api_v1_listings_destroy: DELETE /listings/{id}/
+- listings_api_v1_listings_engagement_retrieve: GET /listings/engagement/
 - listings_api_v1_listings_favorite_create: POST /listings/{id}/favorite/
 - listings_api_v1_listings_list: GET /listings/
 - listings_api_v1_listings_my_counters_retrieve: GET /listings/my/counters/
@@ -47,6 +48,7 @@ Paths are relative to `/listings/api/v1/`.
 - useFavoriteListing (mutation) → favorite+unfavorite
 - useListing (query) → retrieve
 - useListingCards (query) → list
+- useListingEngagement (query) → engagement
 - useListingStatus (query) → status
 - useMyCounters (query) → myCounters
 - useMyFavorites (query) → myFavorites
@@ -55,7 +57,7 @@ Paths are relative to `/listings/api/v1/`.
 - useValidateDraft (query) → validateDraft
 
 ## Errors (render t(code, params); UX from remediation)
-66 keys (full catalog: manifest.json §errors). By remediation: fix_input 37 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+68 keys (full catalog: manifest.json §errors). By remediation: fix_input 39 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.description_too_long [400] → fix_input {max_length}
 - error.400.description_too_short [400] → fix_input {min_length}
@@ -109,6 +111,7 @@ const { tracked } = useTracked();
 - listings.card → <ListingCard> [default|saved|visitor|grid cell|list row|no-photo]  demo/ListingCard.demo.tsx
 - listings.composer → <ListingComposerPage> [default|unwired|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
 - listings.detail → <ListingDetailPane> [default|contact-unwired|owner|not-found]  demo/ListingDetail.demo.tsx
+- listings.engagement-scope → <ListingEngagementScope> [default|unscoped|visitor|failed]  demo/ListingEngagementScope.demo.tsx
 - listings.favorites → <FavoritesPane> [default|paged|empty|failed|visitor]  demo/Favorites.demo.tsx
 - listings.feed-card → <ListingFeedCard> [default|tile|visitor|wide]  demo/ListingFeedCard.demo.tsx
 - listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|failed]  demo/MyListings.demo.tsx

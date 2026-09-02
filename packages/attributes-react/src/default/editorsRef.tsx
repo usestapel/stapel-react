@@ -51,7 +51,8 @@ import { featureName } from "../types.js";
 import {
   firstCode,
   optionsRefOf,
-  partitionRecommended,
+  splitPopularBand,
+  termPageOf,
   useVocabularyClient,
 } from "../vocabulary.js";
 import type { VocabularyClient, VocabularyTerm } from "../vocabulary.js";
@@ -157,6 +158,10 @@ function useTermSearch(
   parent: string | undefined
 ): {
   readonly terms: readonly VocabularyTerm[];
+  /** How many LEADING terms are in the popular band — the server's own
+   * `popular_count`, accumulated across the pages that have been asked for.
+   * `0` is a level with no band, which draws one plain list. */
+  readonly popularCount: number;
   readonly loading: boolean;
   /** Does {@link terms} answer the query the box holds? While this is false
    * the list is not an answer and nothing in it may be picked. */
@@ -176,6 +181,9 @@ function useTermSearch(
   const [answer, setAnswer] = useState<{
     readonly query: string;
     readonly terms: readonly VocabularyTerm[];
+    /** Where the popular band ends in {@link terms} — see the paging note in
+     * `more` for how a second page adds to it. */
+    readonly popularCount: number;
     /** No further pages: the last one came back short, or added nothing new
      * (an un-paged client returning page one again reads as exhausted). */
     readonly exhausted: boolean;
@@ -201,17 +209,21 @@ function useTermSearch(
       inFlight.current = controller;
       client
         .search(vocabulary, level, query, parent, controller.signal)
-        .then((found) => {
+        .then((answered) => {
           if (controller.signal.aborted || current.current !== query) return;
+          const { terms: found, popularCount } = termPageOf(answered);
+          const page = found.slice(0, VOCABULARY_PAGE);
           setAnswer({
             query,
-            terms: found.slice(0, VOCABULARY_PAGE),
+            terms: page,
+            // Clamped to what is kept: the band cannot outrun the rows.
+            popularCount: Math.min(popularCount, page.length),
             exhausted: found.length < VOCABULARY_PAGE,
           });
         })
         .catch(() => {
           if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: [], exhausted: true });
+          setAnswer({ query, terms: [], popularCount: 0, exhausted: true });
         });
     },
     [client, vocabulary, level, parent]
@@ -296,16 +308,30 @@ function useTermSearch(
     pendingMore.current = true;
     client
       .search(vocabulary, level, settled.query, parent, undefined, settled.terms.length)
-      .then((found) => {
+      .then((answered) => {
         pendingMore.current = false;
         if (current.current !== settled.query) return;
+        const { terms: found, popularCount } = termPageOf(answered);
         const known = new Set(settled.terms.map((term) => term.code));
         const fresh = found.filter((term) => !known.has(term.code));
+        // The band of a CONCATENATION is a leading run, so a later page can
+        // only extend it while everything held so far is still in it. The
+        // server caps the band well inside the first page, which makes this
+        // 0 in practice — but a host on a small `limit` can page THROUGH the
+        // boundary, and appending those rows below the rule would put the
+        // tail of the popular band under "All options".
+        const freshPopular = found
+          .slice(0, popularCount)
+          .filter((term) => !known.has(term.code)).length;
         setAnswer((latest) => {
           if (latest === null || latest.query !== settled.query) return latest;
           return {
             query: latest.query,
             terms: [...latest.terms, ...fresh],
+            popularCount:
+              latest.popularCount === latest.terms.length
+                ? latest.popularCount + freshPopular
+                : latest.popularCount,
             exhausted: fresh.length === 0 || found.length < VOCABULARY_PAGE,
           };
         });
@@ -318,6 +344,7 @@ function useTermSearch(
   const matched = wanted !== null && answer !== null && answer.query === wanted;
   return {
     terms: matched && answer !== null ? answer.terms : EMPTY_TERMS,
+    popularCount: matched && answer !== null ? answer.popularCount : 0,
     loading: wanted !== null && !matched,
     matched,
     query: wanted ?? "",
@@ -381,7 +408,7 @@ function useStoredLabels(
  * never draw.
  */
 function BandHeading(props: {
-  readonly band: "recommended" | "rest";
+  readonly band: "popular" | "all";
   readonly separated: boolean;
   readonly children: string;
 }): ReactElement {
@@ -411,19 +438,21 @@ function BandHeading(props: {
 /**
  * The sections one level's sheet draws, in the order a thumb meets them.
  *
- * The terms arrive as ONE list in the server's order and are drawn as one
- * unless some of them are flagged {@link VocabularyTerm.recommended} — no
- * endpoint sends the flag yet, so the unflagged shape is the one on screen
- * today and it must stay a plain, headingless list. Flagged, the level splits
- * into two bands with the recommended few on top, and:
+ * The terms arrive as ONE list already in the server's order, and are drawn as
+ * one unless the page says where its popular band ends (`popularCount`). A
+ * level nobody has ranked, and any service older than
+ * `stapel-vocabularies` 0.2.0, both answer 0 — which is the shape on screen
+ * today and must stay a plain, headingless list. With a band:
  *
- *  - the second band's heading is drawn ONLY beside a first one. A search that
- *    matches nothing recommended collapses back to the plain list rather than
- *    putting "All options" and a rule above the whole thing;
- *  - a band with no surviving match is not emitted at all, so filtering can
- *    never leave a heading over nothing;
- *  - the order INSIDE each band is untouched — which terms lead is the
- *    server's answer, not this file's.
+ *  - the split is a SLICE at `popularCount`, never a filter on the rows' own
+ *    `band` tag. Under `q` the server ranks by prefix first and the band
+ *    second, so a tagged row can sit below an untagged one on purpose;
+ *  - the second band's heading is drawn ONLY beside a first one. A search
+ *    whose leading rows are plain prefix matches (`popular_count: 0`)
+ *    collapses back to the plain list rather than putting "All options" and a
+ *    rule above the whole thing;
+ *  - a band with nothing in it is not emitted at all, so a filtered level can
+ *    never leave a heading over nothing.
  */
 function buildGroups(input: {
   readonly recentLabel: string;
@@ -432,6 +461,7 @@ function buildGroups(input: {
   readonly recents: readonly string[];
   readonly held: readonly string[];
   readonly terms: readonly VocabularyTerm[];
+  readonly popularCount: number;
   readonly labelOf: (code: string) => string;
   readonly query: string;
 }): readonly PickerGroup[] {
@@ -454,25 +484,25 @@ function buildGroups(input: {
       groups.push({ key: "recent", label: input.recentLabel, options: recents.map(row) });
     }
   }
-  const { recommended, rest } = partitionRecommended(input.terms);
-  if (recommended.length === 0) {
+  const { popular, rest } = splitPopularBand(input.terms, input.popularCount);
+  if (popular.length === 0) {
     groups.push({ key: "terms", label: undefined, options: rest.map(termRow) });
     return groups;
   }
   groups.push({
-    key: "terms-recommended",
+    key: "terms-popular",
     label: (
-      <BandHeading band="recommended" separated={false}>
+      <BandHeading band="popular" separated={false}>
         {input.recommendedLabel}
       </BandHeading>
     ),
-    options: recommended.map(termRow),
+    options: popular.map(termRow),
   });
   if (rest.length > 0) {
     groups.push({
       key: "terms",
       label: (
-        <BandHeading band="rest" separated>
+        <BandHeading band="all" separated>
           {input.allOptionsLabel}
         </BandHeading>
       ),
@@ -517,7 +547,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   );
 
   const sheet = useDisclosure();
-  const { terms, loading, matched, query, search, open, more } = useTermSearch(
+  const { terms, popularCount, loading, matched, query, search, open, more } = useTermSearch(
     client,
     vocabulary,
     level,
@@ -559,7 +589,8 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     let stale = false;
     client
       .search(vocabulary, level, "", parent)
-      .then((found) => {
+      .then((answered) => {
+        const { terms: found } = termPageOf(answered);
         if (!stale && found.length === 1) setSoleTerm(found[0]);
       })
       // A failed probe bakes nothing — the picker stays live and the server
@@ -593,6 +624,7 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     recents,
     held: codes,
     terms,
+    popularCount,
     labelOf,
     query,
   });
@@ -725,7 +757,7 @@ function RefRung(props: {
 }): ReactElement {
   const t = useT();
   const sheet = useDisclosure();
-  const { terms, loading, matched, query, search, open, more } = useTermSearch(
+  const { terms, popularCount, loading, matched, query, search, open, more } = useTermSearch(
     props.client,
     props.vocabulary,
     props.level,
@@ -756,6 +788,7 @@ function RefRung(props: {
     recents,
     held,
     terms,
+    popularCount,
     labelOf,
     query,
   });

@@ -8,7 +8,7 @@ import type { ListingsErrorCode } from "./errors.gen.js";
 /**
  * `ru` texts for the backend error codes this catalog carries.
  *
- * PARTIAL, and deliberately typed to say so: 24 key(s) owned by
+ * PARTIAL, and deliberately typed to say so: 26 key(s) owned by
  * stapel_attributes, stapel_listings are absent, because that owner ships no locale catalog
  * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
  * artifact via the en bundle; the pair layers its own authored `ru`

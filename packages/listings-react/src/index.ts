@@ -67,7 +67,9 @@ export type { ListingsApi } from "./api/listingsApi.js";
 export {
   DEFAULT_LISTING_CURRENCY,
   LISTING_STATUSES,
+  LISTINGS_ENGAGEMENT_BATCH_LIMIT,
   MODERATION_STATUSES,
+  engagementIds,
 } from "./api/types.js";
 export type {
   DeleteResponse,
@@ -80,6 +82,8 @@ export type {
   ListingDetail as ListingDetailData,
   ListingDraft,
   ListingDraftPatch,
+  ListingEngagement,
+  ListingEngagementBatch,
   ListingEngagementFields,
   ListingFeatureDao,
   ListingFeatureDaoUnion,
@@ -156,8 +160,13 @@ export {
 } from "./model/features.js";
 export type { FeatureCopySource } from "./model/features.js";
 
-// ── model: the engagement axis (already-seen / view count) ───────────────────
-export { isListingViewed, listingViewCount } from "./model/engagement.js";
+// ── model: the engagement axis (already-seen / view count / the overlay) ─────
+export {
+  engagementFor,
+  isListingViewed,
+  listingViewCount,
+  withEngagement,
+} from "./model/engagement.js";
 
 // ── model: validation, the mirror and the publish-400 split ──────────────────
 export {
@@ -196,6 +205,7 @@ export type { ListingPageKey } from "./model/queryKeys.js";
 export {
   useListing,
   useListingCards,
+  useListingEngagement,
   useListingStatus,
   useMyCounters,
   useMyFavorites,
@@ -245,6 +255,19 @@ export type {
   MyListingsBag,
   UseMyListingsOptions,
 } from "./headless/MyListings.js";
+export {
+  ListingEngagementContext,
+  ListingEngagementScope,
+  useEngagedListing,
+  useEngagementOverlay,
+  useListingEngagementOverlay,
+  useListingEngagementScope,
+} from "./headless/Engagement.js";
+export type {
+  ListingEngagementBag,
+  ListingEngagementScopeProps,
+  UseListingEngagementOverlayOptions,
+} from "./headless/Engagement.js";
 export { Favorites, useFavorites, useFavoriteToggle } from "./headless/Favorites.js";
 export type {
   FavoriteToggleBag,

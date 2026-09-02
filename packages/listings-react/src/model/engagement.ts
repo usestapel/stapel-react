@@ -1,49 +1,50 @@
 /**
- * "Have I already seen this one?" — the engagement axis of a listing row.
+ * "Have I already seen this one?" — the engagement axis of a listing row, and
+ * the OVERLAY that is the only way a storefront ever gets an answer.
  *
  * A classified's results page is mostly re-reading: the same twenty offers
  * scrolled past for the third evening in a row. Every mature one marks the
  * rows you already opened, and a shopper who cannot see which those are is
- * paying attention to the same card repeatedly. `is_viewed` is that mark and
+ * paying attention to the same card repeatedly. `viewed` is that mark and
  * `view_count` is the seller-facing counterpart on the listing page.
  *
- * ── This module exists because the contract is LANDING, not live ───────────
+ * ── Why the row alone is not enough, and the overlay is the load-bearing half
  *
- * Neither field is in any response the fleet answers today, and neither is in
- * the generated schema (which is emitted, not written — see
- * {@link ListingEngagementFields} for where the optional declaration lives and
- * why it is not in `api/generated/schema.ts`). Three surfaces want the answer,
- * so three surfaces would each grow their own `row.is_viewed === true` and
- * their own opinion about `null` — and the day the field arrives with a
- * different nullability, three places would have to be found. One reader is
- * one place.
+ * stapel-listings puts `viewed` / `view_count` on its own card and detail
+ * serializers, and on the listing PAGE that is the end of the story. But the
+ * two surfaces a buyer actually scrolls — the home feed and the SERP — are
+ * not served by this module at all: their cards come out of the SEARCH index,
+ * whose stored document can carry neither a flag that differs per reader nor
+ * a counter that moves faster than a re-index. So on exactly the screens the
+ * feature exists for, `viewed` and `is_favorited` never arrive on the row,
+ * every card renders undimmed with an outline heart, and nothing anywhere
+ * reports a problem.
  *
- * The rule every function here keeps: **absent, `null` and `NaN` all mean
- * "draw nothing extra"**. No dimming, no number, no warning, no log line. A
- * pair that printed "0 views" for a field the server never sent would be
- * inventing a fact about the seller's listing; a pair that logged the absence
- * would fill a storefront's console with a message about a release that has
- * not shipped.
+ * `GET /listings/engagement/?ids=…` is the answer the backend built for it:
+ * ONE call for a whole page, `{id: {view_count, viewed, is_favorited}}`,
+ * `AllowAny` so a signed-out grid is not a second code path. This module is
+ * the READING side of it — what a row means, how one entry is found in a
+ * batch, and how an entry is laid over a row a container fetched from
+ * somewhere else. The id normalizer both the request and its cache key are
+ * built from lives with the wire types (`engagementIds`), because the cap it
+ * enforces is the server's.
  *
- * ── What upstream has actually built, and what this module does NOT do ────
+ * ── The rule every function here keeps ────────────────────────────────────
  *
- * stapel-listings' own schema already carries the two fields on the row —
- * under the names {@link ListingEngagementFields} declares — and ALSO a batch
- * overlay, `GET /listings/engagement/`, returning `{listing id: {viewed,
- * view_count, is_favorited}}`. The overlay exists because a storefront's grid
- * is served by the SEARCH index, whose stored card can carry neither a flag
- * that differs per reader nor a counter that moves faster than a re-indexed
- * document; a grid drawn from search asks the overlay once for the page.
- *
- * This pair reads the ROW, which is what its own card and detail responses
- * carry, and does not call the overlay. Wiring it is a real piece of work
- * with a home of its own — one request per page, keyed by the ids a
- * container assembled, merged over rows this package never fetched — and it
- * belongs to whichever surface owns the grid, not to a reader function. It is
- * written down here so the next person finds the endpoint instead of
- * concluding the data does not exist.
+ * **Absent, `null` and `NaN` all mean "draw nothing extra".** No dimming, no
+ * number, no warning, no log line, and — for a failed overlay — no banner
+ * over a grid that is otherwise working. A pair that printed "0 views" for a
+ * field the server never sent would be inventing a fact about a seller's
+ * listing; a pair that turned a decoration's 500 into an error state would
+ * have taken a working results page away from a shopper over a flag. A grid
+ * that renders is worth more than a flag.
  */
-import type { ListingEngagementFields } from "../api/types.js";
+import type {
+  ListingCard,
+  ListingEngagement,
+  ListingEngagementBatch,
+  ListingEngagementFields,
+} from "../api/types.js";
 
 /**
  * Has this reader already opened this listing?
@@ -51,16 +52,11 @@ import type { ListingEngagementFields } from "../api/types.js";
  * `true` and only `true`. `null` is "we did not ask on this person's behalf"
  * — the same third state `is_favorited` carries for an anonymous read — and a
  * row nobody asked about is not a row somebody has seen.
- *
- * Both spellings of the flag are read: the contract note says `is_viewed` and
- * the emitted schema says `viewed`, neither has shipped, and betting on one
- * would render nothing at all for the other with no error anywhere. See
- * {@link ListingEngagementFields}.
  */
 export function isListingViewed(
   row: ListingEngagementFields | undefined
 ): boolean {
-  return row?.is_viewed === true || row?.viewed === true;
+  return row?.viewed === true;
 }
 
 /**
@@ -79,4 +75,44 @@ export function listingViewCount(
 ): number | undefined {
   const raw = row?.view_count;
   return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+}
+
+/**
+ * One listing's entry out of a batch answer, or `undefined`.
+ *
+ * The wire keys are STRINGS and an id with no listing is simply absent, so
+ * this is a lookup rather than an index: `batch.items[id]` would be a type
+ * error today and a silent `undefined` tomorrow.
+ */
+export function engagementFor(
+  batch: ListingEngagementBatch | undefined,
+  id: number
+): ListingEngagement | undefined {
+  return batch?.items[String(id)];
+}
+
+/**
+ * Lay an overlay entry over a row, so a card reads ONE object whatever its
+ * provenance.
+ *
+ * The overlay wins where it speaks, and it speaks about all three of its
+ * fields at once — it is the answer to a question that was actually asked on
+ * this reader's behalf, and the row (a search document, or a card serialized
+ * before the fields existed) is at best older and at worst silent. Where
+ * there is no overlay entry the row is returned UNCHANGED, by identity: a
+ * missing id, an overlay that has not loaded, and an overlay that failed are
+ * the same "we know nothing more than the row does", and none of them may
+ * fabricate a `false`.
+ */
+export function withEngagement(
+  row: ListingCard,
+  overlay: ListingEngagement | undefined
+): ListingCard {
+  if (overlay === undefined) return row;
+  return {
+    ...row,
+    viewed: overlay.viewed,
+    view_count: overlay.view_count,
+    is_favorited: overlay.is_favorited,
+  };
 }

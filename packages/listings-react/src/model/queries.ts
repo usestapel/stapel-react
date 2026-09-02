@@ -5,11 +5,13 @@ import type { StapelApiError } from "@stapel/core";
 import type { ValidationBatchResult } from "@stapel/attributes-react";
 import type {
   ListingDetail,
+  ListingEngagementBatch,
   ListingPageParams,
   ListingStatusInfo,
   MyCounters,
   PaginatedListingCards,
 } from "../api/types.js";
+import { engagementIds } from "../api/types.js";
 import { useListingsApi } from "./context.js";
 import { listingsQueryKeys, pageKey } from "./queryKeys.js";
 
@@ -145,6 +147,45 @@ export function useValidateDraft(
     queryFn: ({ signal }) => api.validateDraft(id as number, { signal }),
     enabled: (options?.enabled ?? false) && id !== undefined && sessionReady,
     staleTime: 0,
+    retry: false,
+  });
+}
+
+/**
+ * The per-viewer ENGAGEMENT overlay for one page of ids, in one request.
+ *
+ * `AllowAny` upstream, so it joins the ungated regime described at the top of
+ * this file: a signed-out grid asks exactly the same question and is told
+ * `null` for both per-viewer flags. Gating it on the session substrate would
+ * make a shop window wait for a login bootstrap in order to decorate itself.
+ *
+ * ── Every failure mode here is a NO-OP, on purpose ────────────────────────
+ *
+ * `retry: false`, no error surface, and `enabled` false for an empty page.
+ * This read decorates a grid that has already rendered from somewhere else:
+ * if it 500s, times out, or is never wired at all, the cards must draw
+ * exactly as they drew before it existed. Retrying a decoration three times
+ * spends a person's connection on a flag, and an error banner over a working
+ * results page trades the thing they came for against the thing they did not
+ * ask about. `useEngagementOverlay` therefore reads only `data`, and the
+ * failure is available to a host that wants it and rendered by nobody.
+ *
+ * `placeholderData: keepPreviousData` for the paging case: a grid whose cards
+ * un-dim for a moment on every page change is reporting a state change that
+ * did not happen. The previous answer is still true about the previous ids,
+ * and `withEngagement` only ever reads the entries whose ids it asked for.
+ */
+export function useListingEngagement(
+  ids: readonly number[],
+  options?: { readonly enabled?: boolean }
+): UseQueryResult<ListingEngagementBatch, StapelApiError> {
+  const api = useListingsApi();
+  const wanted = engagementIds(ids);
+  return useQuery({
+    queryKey: listingsQueryKeys.engagement(wanted),
+    queryFn: ({ signal }) => api.engagement(wanted, { signal }),
+    enabled: (options?.enabled ?? true) && wanted.length > 0,
+    placeholderData: keepPreviousData,
     retry: false,
   });
 }

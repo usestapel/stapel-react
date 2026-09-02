@@ -226,6 +226,14 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.favorites.sign_in_hint":
     "Избранное хранится в аккаунте, поэтому переходит с вами на другие устройства.",
 
+  // The two publish checks the 0.17 contract brought with it: a place is
+  // required, and a zero price in such a category is an empty field rather
+  // than "free".
+  "error.400.listing_location_required":
+    "Перед публикацией укажите, где находится товар",
+  "error.400.listing_zero_price_not_allowed":
+    "В этой категории цена 0 недопустима. Оставьте поле пустым — это и есть «цена не указана».",
+
   "listings.blocked.sign_in": "Войдите, чтобы сделать это",
   "listings.blocked.guest":
     "Этот аккаунт пока так не может — сначала завершите настройку",

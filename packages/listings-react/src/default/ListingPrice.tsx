@@ -37,8 +37,19 @@ import {
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 
 export interface ListingPriceProps {
-  /** The amount as the wire spells it — a decimal string. */
-  readonly amount: string | undefined;
+  /**
+   * The amount as the wire spells it — a decimal string, or `null` for a
+   * listing that carries no price at all.
+   *
+   * `null` is in the TYPE since stapel-listings 0.17 spelled it in the
+   * schema (`price?: string | null`, D51: a blank price stays null
+   * server-side). It was always in the DATA — `hasAmount` below has guarded
+   * for it from the start, with a comment saying the serializer hands it
+   * through an unguarded `string | undefined`. Now the type says what the
+   * runtime already knew, and the guard stops being a defence against its
+   * own signature.
+   */
+  readonly amount: string | null | undefined;
   /** The code the amount is quoted in (`Listing.currency`). */
   readonly currency?: string | undefined;
 }

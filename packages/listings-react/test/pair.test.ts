@@ -39,12 +39,16 @@ describe("the API surface is this pair's SLICE of the contract", () => {
     createStapelClient({ baseUrl: BASE, fetch: mockServer({}).fetch })
   );
 
-  it("exposes the fourteen operations a storefront calls", () => {
+  it("exposes the sixteen operations a storefront calls", () => {
     const methods = Object.keys(api).filter((key) => key !== "client").sort();
     expect(methods).toEqual([
       "archive",
       "complete",
       "createDraft",
+      // The per-viewer overlay for a page of cards. It is on the list because
+      // a storefront's feed and SERP come from the search index and this is
+      // the only way the engagement flags reach them at all.
+      "engagement",
       "favorite",
       "list",
       "myCounters",
@@ -145,15 +149,22 @@ describe("the runtime carries the deployment's knowledge", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
-    // 66 as of stapel-listings 0.10.0: the embedded stapel_attributes
-    // registry gained error.400.feature_invalid_rules with the rule grammar.
-    // (65 came from 0.9.0's error.403.listing_anonymous_not_allowed.)
+    // 68 as of stapel-listings 0.17.0: the contract-pin bump brought two
+    // publish checks with it — error.400.listing_location_required and
+    // error.400.listing_zero_price_not_allowed (a price of 0 is an empty
+    // field, not "free"). 66 came from 0.10.0's
+    // error.400.feature_invalid_rules; 65 from 0.9.0's
+    // error.403.listing_anonymous_not_allowed.
     // The number is asserted rather than derived on purpose: a code that
     // vanishes from the registry is a contract change somebody should have to
     // notice, and a code that arrives without a ru/es sentence is caught by
-    // the i18n suite next door.
-    expect(LISTINGS_ERROR_CODES.length).toBe(66);
+    // the i18n suite next door — which is exactly how these two were found.
+    expect(LISTINGS_ERROR_CODES.length).toBe(68);
     expect(LISTINGS_ERROR_CODES).toContain("error.400.feature_invalid_rules");
+    expect(LISTINGS_ERROR_CODES).toContain("error.400.listing_location_required");
+    expect(LISTINGS_ERROR_CODES).toContain(
+      "error.400.listing_zero_price_not_allowed"
+    );
     for (const code of LISTINGS_ERROR_CODES) {
       expect(explainListingsError(code)).toBeTruthy();
     }

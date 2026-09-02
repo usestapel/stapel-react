@@ -89,6 +89,7 @@ import {
 import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { isListingViewed } from "../model/engagement.js";
+import { useEngagedListing } from "../headless/Engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { PriceTrendIcon } from "./icons.js";
 import { FavoriteHeart } from "./favorite.js";
@@ -174,7 +175,9 @@ const BODY: CSSProperties = { flex: "1 1 auto", minWidth: 0 };
 
 export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
   const t = useT();
-  const { listing, priceTrend } = props;
+  const { priceTrend } = props;
+  // See `<ListingCard>`: the scope's overlay over the row, or the row.
+  const listing = useEngagedListing(props.listing);
   const { token } = antdTheme.useToken();
 
   const badgeDaos = asFeatureDaoList(listing.features_badges);

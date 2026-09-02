@@ -62,7 +62,7 @@ afterEach(() => {
 describe("the fields are ABSENT, and that is a total no-op", () => {
   it("dims nothing and marks nothing on any of the three cards", () => {
     // `CARD` is a real response body and carries neither field.
-    expect("is_viewed" in CARD).toBe(false);
+    expect("viewed" in CARD).toBe(false);
     expect("view_count" in CARD).toBe(false);
 
     render(allCards(CARD));
@@ -85,7 +85,7 @@ describe("the fields are ABSENT, and that is a total no-op", () => {
       .flat()
       .map((entry) => String(entry))
       .join(" ");
-    expect(said).not.toContain("is_viewed");
+    expect(said).not.toContain("viewed");
     expect(said).not.toContain("view_count");
   });
 
@@ -112,8 +112,8 @@ describe("`null` is not `true` — an unasked row is not a seen one", () => {
   it.each([
     ["null", null],
     ["false", false],
-  ] as const)("leaves the cards undimmed for is_viewed=%s", (_name, value) => {
-    render(allCards({ ...CARD, is_viewed: value }));
+  ] as const)("leaves the cards undimmed for viewed=%s", (_name, value) => {
+    render(allCards({ ...CARD, viewed: value }));
     for (const id of CARD_IDS) {
       expect(screen.getByTestId(id).hasAttribute("data-listing-viewed"), id).toBe(
         false
@@ -121,37 +121,18 @@ describe("`null` is not `true` — an unasked row is not a seen one", () => {
     }
   });
 
-  it("reads the same way in the model, under EITHER spelling", () => {
-    for (const key of ["is_viewed", "viewed"] as const) {
-      expect(isListingViewed({ [key]: true }), key).toBe(true);
-      expect(isListingViewed({ [key]: false }), key).toBe(false);
-      expect(isListingViewed({ [key]: null }), key).toBe(false);
-    }
+  it("reads the same way in the model", () => {
+    expect(isListingViewed({ viewed: true })).toBe(true);
+    expect(isListingViewed({ viewed: false })).toBe(false);
+    expect(isListingViewed({ viewed: null })).toBe(false);
     expect(isListingViewed({})).toBe(false);
     expect(isListingViewed(undefined)).toBe(false);
-  });
-
-  /**
-   * The seam this pair must not fall through. The contract note this work was
-   * built against calls the flag `is_viewed`; stapel-listings' own emitted
-   * schema calls it `viewed`. Neither has shipped, so the name is still open
-   * — and a pair that read only one would render NOTHING for the other, with
-   * no error and no log line, because an absent key is `undefined` and
-   * `undefined` correctly means "do not dim". A defect with no symptom.
-   */
-  it("dims a card that arrives under the schema's own spelling", () => {
-    render(allCards({ ...CARD, viewed: true }));
-    for (const id of CARD_IDS) {
-      expect(screen.getByTestId(id).getAttribute("data-listing-viewed"), id).toBe(
-        "true"
-      );
-    }
   });
 });
 
 describe("an already-seen row is DIMMED, and legibly so in either theme", () => {
   it("marks every card surface", () => {
-    render(allCards({ ...CARD, is_viewed: true }));
+    render(allCards({ ...CARD, viewed: true }));
     for (const id of CARD_IDS) {
       const card = screen.getByTestId(id);
       expect(card.getAttribute("data-listing-viewed"), id).toBe("true");
@@ -179,7 +160,7 @@ describe("an already-seen row is DIMMED, and legibly so in either theme", () => 
   });
 
   it("does not dim the heart with it — a faded control reads as a dead one", () => {
-    render(member(<ListingCard listing={{ ...CARD, is_viewed: true }} href="/l/7" />));
+    render(member(<ListingCard listing={{ ...CARD, viewed: true }} href="/l/7" />));
     const heart = screen.getByTestId("listings-card-favorite");
     // The rule reaches the anchor and the photo, and the heart is outside
     // both — see CARD_VIEWED_CLASS.
@@ -214,18 +195,23 @@ describe("the view count on the listing page", () => {
     expect(screen.getByTestId("listings-detail-views").textContent).toBe("0");
   });
 
-  it("shows nothing for null", async () => {
-    await pane({ view_count: null });
+  it("shows nothing when the response carries no count", async () => {
+    // `view_count` is a non-nullable integer on the contract, so the absence
+    // this arm renders is a DEPLOYMENT one: a server older than 0.16 answers
+    // a detail with no such key at all. The type admits that (see
+    // `ListingEngagementFields`) and the page says nothing rather than
+    // printing a zero nobody reported.
+    await pane({});
     expect(screen.queryByTestId("listings-detail-views")).toBeNull();
   });
 
   it("reads the same way in the model", () => {
     expect(listingViewCount({ view_count: 12 })).toBe(12);
     expect(listingViewCount({ view_count: 0 })).toBe(0);
-    expect(listingViewCount({ view_count: null })).toBeUndefined();
     expect(listingViewCount({})).toBeUndefined();
     expect(listingViewCount(undefined)).toBeUndefined();
-    // Never "NaN views" on a seller's page.
+    // Never "NaN views" on a seller's page. Unreachable from the wire — the
+    // belt is for a host that computed the number itself.
     expect(listingViewCount({ view_count: Number.NaN })).toBeUndefined();
   });
 });
@@ -233,6 +219,7 @@ describe("the view count on the listing page", () => {
 describe("what the generated contract actually carries", () => {
   // Relative to the package root, as `pair.test.ts` reads its manifests.
   const schema = readFileSync("src/api/generated/schema.ts", "utf8");
+  const types = readFileSync("src/api/types.ts", "utf8");
 
   it("has is_favorited and NO favourite count — which is why none is drawn", () => {
     expect(schema).toContain("is_favorited");
@@ -251,12 +238,53 @@ describe("what the generated contract actually carries", () => {
     }
   });
 
-  it("does not carry the engagement fields yet — hence the local extension", () => {
-    // When this goes red, the field has landed in the generated schema: keep
-    // the spelling it actually arrived under, drop the other from
-    // `ListingEngagementFields`, and delete the intersection once BOTH are
-    // there.
-    expect(schema).not.toContain("is_viewed");
-    expect(schema).not.toContain("view_count");
+  /**
+   * THIS TEST USED TO ASSERT THE OPPOSITE, AND THAT IS THE POINT.
+   *
+   * While the pair's contract pin sat at `>=0.12 <0.13` the emitted schema
+   * could not see stapel-listings 0.16/0.17, so `ListingEngagementFields`,
+   * `ListingEngagement` and `ListingEngagementBatch` were hand-written
+   * mirrors of a contract that had already shipped. A duplicated wire type is
+   * a second source of truth, and a second source of truth with no expiry is
+   * one somebody discovers years later — so the expiry was a test asserting
+   * the schema still LACKED the surface. The pin landed, that test went red,
+   * and the mirrors were deleted.
+   *
+   * What replaces it is the durable claim: the pair's types are DERIVED from
+   * the generated table rather than restated beside it. A future hand-written
+   * `interface ListingEngagement` fails here.
+   */
+  it("is where the engagement types come from — no hand-written mirrors", () => {
+    expect(schema).toContain("ListingEngagement");
+    expect(schema).toContain("ListingEngagementBatch");
+    expect(schema).toContain("/listings/api/v1/listings/engagement/");
+    expect(schema).toContain("viewed");
+    expect(schema).toContain("view_count");
+
+    expect(types).toContain('Schemas["ListingEngagement"]');
+    expect(types).toContain('Schemas["ListingEngagementBatch"]');
+    // The field NAMES are picked off the generated row, so a rename upstream
+    // is a compile error here rather than a grid that quietly stops dimming.
+    expect(types).toContain('Pick<Schemas["ListingCard"], "viewed" | "view_count">');
+    // And nothing restates them.
+    expect(types).not.toMatch(/interface ListingEngagement\b/);
+    expect(types).not.toMatch(/interface ListingEngagementBatch\b/);
+  });
+
+  /**
+   * The one thing the generated types do NOT settle: a generated type is a
+   * promise about the CONTRACT, and the bytes a given deployment sends may be
+   * older. The engagement fields are required on `Schemas["ListingCard"]` and
+   * optional on this pair's `ListingCard`, because the pair's most important
+   * card source — the search index, through `renderCard` — cannot supply them
+   * at all. That relaxation is deliberate and load-bearing; assert it, or the
+   * next person "tightens" it and breaks every search-served grid.
+   */
+  it("keeps the engagement fields OPTIONAL on the row the cards take", () => {
+    const searchRow: ListingCardData = { ...CARD };
+    expect("viewed" in searchRow).toBe(false);
+    expect(isListingViewed(searchRow)).toBe(false);
+    expect(listingViewCount(searchRow)).toBeUndefined();
+    expect(types).toContain("WithOptionalEngagement");
   });
 });

@@ -40,7 +40,11 @@
  * unavailable notice) rather than a crash.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { VocabularyClient, VocabularyTerm } from "../client.js";
+import type {
+  VocabularyClient,
+  VocabularyTerm,
+  VocabularyTermAnswer,
+} from "../client.js";
 
 /** The pause after the last keystroke before a query goes to the server. Long
  * enough that typing a word is one request, short enough that it still feels
@@ -50,6 +54,46 @@ export const TERM_SEARCH_DEBOUNCE_MS = 250;
 /** The list a control shows when it has no answer to the question in its box.
  * One frozen instance, so "no answer" is a stable identity across renders. */
 const EMPTY_TERMS: readonly VocabularyTerm[] = Object.freeze([]);
+
+/** How many rows at the HEAD of a list carry `band: "popular"`. */
+function leadingPopular(terms: readonly VocabularyTerm[]): number {
+  let count = 0;
+  for (const term of terms) {
+    if (term.band !== "popular") break;
+    count += 1;
+  }
+  return count;
+}
+
+/**
+ * A search answer as the rows plus the size of their popular band.
+ *
+ * **The page's `popular_count` is the authority and a row's own `band` is only
+ * the fallback.** The server ranks a `q` search by prefix FIRST and the band
+ * second, so a page can legitimately read
+ * `[popular+prefix, all+prefix, popular, all]` — two rows tagged `popular` of
+ * which only the first LEADS. The band is therefore a SLICE at the count, and
+ * never a filter on the tag: filtering would lift row three over row two and
+ * destroy the ranking the server just computed.
+ *
+ * With no count (an array answer, a service older than 0.2.0) the fallback is
+ * the LEADING RUN, whose worst case is zero — one plain list.
+ */
+function answerOf(answer: VocabularyTermAnswer): {
+  readonly terms: readonly VocabularyTerm[];
+  readonly popularCount: number;
+} {
+  if (Array.isArray(answer)) {
+    const rows = answer as readonly VocabularyTerm[];
+    return { terms: rows, popularCount: leadingPopular(rows) };
+  }
+  const page = answer as { results?: readonly VocabularyTerm[]; popular_count?: number };
+  const terms = Array.isArray(page.results) ? page.results : EMPTY_TERMS;
+  const declared = page.popular_count;
+  if (declared === undefined) return { terms, popularCount: leadingPopular(terms) };
+  if (!Number.isInteger(declared) || declared <= 0) return { terms, popularCount: 0 };
+  return { terms, popularCount: Math.min(declared, terms.length) };
+}
 
 export interface TermSearchOptions {
   readonly vocabulary: string;
@@ -61,8 +105,18 @@ export interface TermSearchOptions {
 }
 
 export interface TermSearchState {
-  /** The terms that answer the query in the box — empty while they would not. */
+  /** The terms that answer the query in the box — empty while they would not.
+   * In the server's own order, popular band first; never re-sorted here. */
   readonly terms: readonly VocabularyTerm[];
+  /**
+   * How many LEADING rows of {@link terms} are in the popular band — the
+   * endpoint's `popular_count`, or the leading run of `band: "popular"` when a
+   * client answers with a bare array.
+   *
+   * A control draws its separator by SLICING `terms` here; filtering on `band`
+   * would reorder a `q` search's ranking. `0` means "draw one plain list".
+   */
+  readonly popularCount: number;
   readonly loading: boolean;
   /**
    * Does {@link terms} answer the query the box holds?
@@ -90,6 +144,7 @@ export function useTermSearch(
   const [answer, setAnswer] = useState<{
     readonly query: string;
     readonly terms: readonly VocabularyTerm[];
+    readonly popularCount: number;
   } | null>(null);
   // What the box holds right now. `null` is "nothing has been asked for yet",
   // which is neither loading nor answered.
@@ -111,14 +166,14 @@ export function useTermSearch(
         .then((found) => {
           // Superseded, whether or not the client honoured the signal.
           if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: found });
+          setAnswer({ query, ...answerOf(found) });
         })
         .catch(() => {
           // A failure ANSWERS with nothing rather than freezing the last list:
           // stale options next to a fresh query are pickable, and the code
           // that gets picked may not be in the level at all.
           if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: [] });
+          setAnswer({ query, terms: EMPTY_TERMS, popularCount: 0 });
         });
     },
     [client, vocabulary, level, parent]
@@ -167,6 +222,9 @@ export function useTermSearch(
   const matched = wanted !== null && answer !== null && answer.query === wanted;
   return {
     terms: matched && answer !== null ? answer.terms : EMPTY_TERMS,
+    // A list that is not the answer has no band either: the count belongs to
+    // the rows it was measured against.
+    popularCount: matched && answer !== null ? answer.popularCount : 0,
     loading: wanted !== null && !matched,
     matched,
     search,

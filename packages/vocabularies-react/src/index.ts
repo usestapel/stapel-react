@@ -28,6 +28,8 @@ export {
 export type {
   VocabularyClient,
   VocabularyTerm,
+  VocabularyTermPage,
+  VocabularyTermAnswer,
   CreateVocabularyClientOptions,
 } from "./client.js";
 

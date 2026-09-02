@@ -44,9 +44,22 @@ all supply its own two functions (an in-memory table, an existing search
 endpoint) and keep every ref editor working.
 
 ```ts
-search(vocabulary, level, query, parent?, signal?): Promise<readonly VocabularyTerm[]>
+search(vocabulary, level, query, parent?, signal?, offset?): Promise<VocabularyTermAnswer>
 resolve(vocabulary, level, codes): Promise<Readonly<Record<string, string>>>
 ```
+
+`VocabularyTermAnswer` is `readonly VocabularyTerm[] | VocabularyTermPage`.
+`createVocabularyClient` always answers with the PAGE —
+`{results, popular_count?, total?}` — because the page carries a fact no row
+can: where the POPULAR BAND ends. Each row also carries its own
+`band: "popular" | "all"`.
+
+**The band is a SLICE at `popular_count`, never a filter on `band`.** Under a
+query the server ranks by prefix first and the band second, so a page can
+legitimately read `[popular+prefix, all+prefix, popular, all]`; filtering on
+the tag would lift row three over row two and destroy the ranking. A host
+implementing the seam over an in-memory table keeps returning a bare array and
+gets one plain list, unchanged.
 
 `search` is `GET vocabularies/{slug}/terms/?level=&parent=&q=&limit=` —
 `parent` is OMITTED, never sent empty, because `parent=` asks for the children

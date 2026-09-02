@@ -151,11 +151,8 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
         <>
           <Button
             shape="circle"
-            {...(bind.disabled ? { "aria-disabled": true } : {})}
-            data-disabled-reason="the enclosing <GatedControl> renders the gate's reason beside this button"
-            {...(bind["aria-describedby"] !== undefined
-              ? { "aria-describedby": bind["aria-describedby"] }
-              : {})}
+            // See `<ListingCard>`: the substrate's binding, spread whole.
+            {...bind}
             aria-label={label}
             aria-pressed={favorite.favorited}
             data-testid={props.testId}

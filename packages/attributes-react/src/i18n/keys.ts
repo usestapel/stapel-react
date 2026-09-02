@@ -103,13 +103,20 @@ export const ATTRIBUTES_I18N_KEYS = {
    * search box is empty — a "recent" list that does not answer the query is
    * the stale list defect wearing a heading. */
   pickerRecent: "attributes.picker.recent",
-  /** The heading of the RECOMMENDED band: the few terms the catalogue puts
-   * first, so a fifty-row make list does not bury the six makes most people
-   * are here for. Drawn only when the level actually flags some — a payload
-   * that flags nothing is one plain list with no heading at all. */
+  /**
+   * The heading of the band a level opens on: the few terms most listings
+   * carry, so a 529-vendor list does not open on `3Q, 4Good, 8848`.
+   *
+   * The COPY says "Recommended" while the wire calls the band `popular`
+   * (`stapel-vocabularies` 0.2.0). That is deliberate and not a stale name —
+   * "Popular" is a claim about other people's behaviour that this package
+   * cannot substantiate at the point of rendering, and the key names the
+   * heading a person reads, never a field. Drawn only when the page reports a
+   * band; without one the sheet has no heading at all.
+   */
   pickerRecommended: "attributes.picker.recommended",
-  /** The heading of the band UNDER the recommended one — the rest of the
-   * level, in the server's order. Drawn only beside a recommended band; on
+  /** The heading of the band UNDER it — the rest of the level, in the
+   * server's order (the wire's `all`). Drawn only beside the first band; on
    * its own it would be a heading over the whole list. */
   pickerAllOptions: "attributes.picker.all_options",
   /** The tail row of a list too long to draw: more matched than is on

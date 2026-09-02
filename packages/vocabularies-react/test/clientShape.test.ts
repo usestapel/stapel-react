@@ -22,6 +22,22 @@
  */
 import { describe, expect, it } from "vitest";
 import { createVocabularyClient } from "../src/client.js";
+import type { VocabularyTermPage } from "../src/client.js";
+import type { TermPage } from "../src/api/types.js";
+
+// The generated wire page must be READABLE as the seam's page. The pin is at
+// stapel-vocabularies 0.2.0, so the generated `Term`/`TermPage` now declare
+// `band` and `popular_count` REQUIRED — and the seam's own copies keep them
+// optional, because the seam describes more than the pinned endpoint: a
+// deployment older than the pin sends neither, and a host may back the seam
+// with an in-memory table that has no bands at all.
+//
+// One-way on purpose, and that is the direction with teeth: required-to-
+// optional is assignable, so a field the contract drops or renames breaks this
+// line, while the seam staying broader than the wire is the whole design.
+function wireReachesTheSeam(page: TermPage): VocabularyTermPage {
+  return page;
+}
 
 // ── transcribed from @stapel/attributes-react src/vocabulary.ts ─────────────
 // Do not import it. Do not "simplify" it. It is a photograph.
@@ -30,7 +46,18 @@ interface UpstreamVocabularyTerm {
   readonly code: string;
   readonly label: string;
   readonly has_children?: boolean;
+  readonly band?: "popular" | "all";
 }
+
+interface UpstreamVocabularyTermPage {
+  readonly results: readonly UpstreamVocabularyTerm[];
+  readonly popular_count?: number;
+  readonly total?: number;
+}
+
+type UpstreamVocabularyTermAnswer =
+  | readonly UpstreamVocabularyTerm[]
+  | UpstreamVocabularyTermPage;
 
 interface UpstreamVocabularyClient {
   search(
@@ -38,13 +65,21 @@ interface UpstreamVocabularyClient {
     level: string,
     query: string,
     parent?: string,
-    signal?: AbortSignal
-  ): Promise<readonly UpstreamVocabularyTerm[]>;
+    signal?: AbortSignal,
+    offset?: number
+  ): Promise<UpstreamVocabularyTermAnswer>;
   resolve(
     vocabulary: string,
     level: string,
     codes: readonly string[]
   ): Promise<Readonly<Record<string, string>>>;
+}
+
+// The envelope must be the SAME envelope, not merely a compatible one: a page
+// this package builds has to be readable as upstream's page. A drift on either
+// side is a type error on this line.
+function pageReachesUpstream(page: VocabularyTermPage): UpstreamVocabularyTermPage {
+  return page;
 }
 
 // ── the assertion ──────────────────────────────────────────────────────────
@@ -66,6 +101,35 @@ describe("the vocabulary seam", () => {
     expect(typeof asUpstream.search).toBe("function");
     expect(typeof asUpstream.resolve).toBe("function");
     expect(acceptsTheSeam(asUpstream)).toBe(asUpstream);
+  });
+
+  it("the page envelope is the one attributes-react reads, and the wire's own", () => {
+    // The compiler decided both; the runtime half keeps the transcription a
+    // copy of something that exists.
+    const page = pageReachesUpstream({
+      results: [{ code: "apple", label: "Apple", band: "popular" }],
+      popular_count: 1,
+      total: 1,
+    });
+    expect(page.popular_count).toBe(1);
+    expect(page.results[0]?.band).toBe("popular");
+    // The wire row now carries the band the pin declares, and it reaches the
+    // seam unchanged — the half that could only be asserted once the pin moved.
+    expect(
+      wireReachesTheSeam({
+        results: [
+          {
+            code: "apple",
+            label: "Apple",
+            level: "Vendor",
+            has_children: true,
+            band: "popular",
+          },
+        ],
+        total: 1,
+        popular_count: 1,
+      }).results[0]?.band
+    ).toBe("popular");
   });
 
   it("neither package imports the other", async () => {

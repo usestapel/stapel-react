@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "backend": {
     "module": "stapel-vocabularies",
-    "contract": ">=0.1 <0.2"
+    "contract": ">=0.2 <0.3"
   },
   "layers": [
     "api",
@@ -483,7 +483,9 @@
       "VocabulariesRuntime",
       "Vocabulary",
       "VocabularyClient",
-      "VocabularyTerm"
+      "VocabularyTerm",
+      "VocabularyTermAnswer",
+      "VocabularyTermPage"
     ]
   }
 }

@@ -55,7 +55,7 @@ export interface paths {
         };
         /**
          * Search the terms of one level
-         * @description A page of terms at `level`, optionally the children of a `parent` term at the level above, optionally matching `q`. Prefix matches rank before the rest, then the level's own sort order and label. `has_children` is what tells a cascading control whether to ask for the next level. `total` counts the whole filtered set, before limit and offset.
+         * @description A page of terms at `level`, optionally the children of a `parent` term at the level above, optionally matching `q`. The query is expanded to match variants (cross-script, aliases) by the deployment's configured expander; a label starting with any variant ranks before the rest, then the popular band, then the level's own sort order and label. Rows lead with the **popular band** — the short recommended set a level opens on instead of whatever the alphabet put first. Each row carries `band` (`popular` / `all`) and the page carries `popular_count`, the number of leading rows in the band, so a control draws its separator without guessing. `has_children` is what tells a cascading control whether to ask for the next level. `total` counts the whole filtered set, before limit and offset.
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
@@ -94,6 +94,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description * `popular` - popular
+         *     * `all` - all
+         * @enum {string}
+         */
+        BandEnum: "popular" | "all";
         /** @description One level of a vocabulary. */
         Level: {
             name: string;
@@ -108,12 +114,23 @@ export interface components {
             level: string;
             /** @description Whether this term has any child term — what tells a cascading control whether to ask for the next level. */
             has_children: boolean;
+            /**
+             * @description Which band this row is in: `popular` for the short recommended band the level opens on, `all` for the alphabet under it. Rows are ordered popular-band-first, so a control renders the separator from `popular_count` rather than by scanning for the change.
+             *
+             *     * `popular` - popular
+             *     * `all` - all
+             */
+            band: components["schemas"]["BandEnum"];
+            /** @description Present (value `vector`) only on rows the similarity net appended under a thin deterministic answer — a 'did you mean' row. Absent on every literal match. */
+            match?: string;
         };
         /** @description One page of terms plus the size of the whole filtered set. */
         TermPage: {
             results: components["schemas"]["Term"][];
-            /** @description Number of terms matching level/parent/q, before limit and offset. */
+            /** @description Number of terms matching level/parent/q, before limit and offset — plus any vector-appended rows, so it never claims fewer rows than the page shows. */
             total: number;
+            /** @description How many LEADING rows of `results` are in the popular band. The separator goes after index popular_count - 1; 0 means this page has no popular band (a page past the boundary, a level nobody has ranked, or a `q` search whose top hit is a plain prefix match). */
+            popular_count: number;
         };
         /** @description A vocabulary as the catalogue endpoints render it. */
         Vocabulary: {
@@ -184,7 +201,7 @@ export interface operations {
                 offset?: number;
                 /** @description Code of a term at the parent level; restricts the page to its children. */
                 parent?: string;
-                /** @description Case-insensitive substring of the label. */
+                /** @description Case-insensitive substring of the label, matched against every variant the configured query expander returns (the literal query always among them). */
                 q?: string;
             };
             header?: never;
