@@ -4,7 +4,7 @@
   "version": "0.7.0",
   "backend": {
     "module": "stapel-docs",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -608,6 +608,11 @@
       "remediation": "fix_input"
     },
     "error.400.docs_folder_depth": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_invalid_crdt_payload": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -1358,7 +1363,9 @@
     "docs.tree.root",
     "docs.type.csv",
     "docs.type.markdown",
+    "docs.type.markdownLive",
     "docs.type.text",
+    "docs.type.textLive",
     "docs.upload.action",
     "docs.upload.done",
     "docs.upload.failed",
@@ -1371,6 +1378,7 @@
     "error.400.docs_export_format",
     "error.400.docs_folder_cycle",
     "error.400.docs_folder_depth",
+    "error.400.docs_invalid_crdt_payload",
     "error.400.docs_not_trashed",
     "error.400.docs_share_level",
     "error.400.docs_share_mode_disabled",
@@ -1451,6 +1459,7 @@
   "exports": {
     "runtime": [
       "Breadcrumbs",
+      "CRDT_DOCUMENT_TYPES",
       "CsvEditor",
       "DEFAULT_DOCUMENT_TYPES",
       "DOCS_ERRORS",
@@ -1459,6 +1468,7 @@
       "DOCS_HEAD_SEQ_HEADER",
       "DOCS_I18N_KEYS",
       "DOCS_SHARE_ERROR_CODES",
+      "DOCS_STREAM_MODULE",
       "DOC_UPDATES_INTERVAL_MS",
       "DocEditor",
       "DocUploader",
@@ -1477,9 +1487,13 @@
       "createDocsApi",
       "createDocsRuntime",
       "createFlowMachine",
+      "deriveDocsSocketOrigin",
+      "docSocketPath",
+      "docStreamKey",
       "docsErrorBundleEn",
       "docsI18nBundleEn",
       "docsQueryKeys",
+      "docsSocketUrl",
       "explainDocsError",
       "explicitDocEditor",
       "exportDocument",
@@ -1507,6 +1521,7 @@
       "useCreateDocument",
       "useCreateFolder",
       "useCreateRevision",
+      "useDocStream",
       "useDocUpdates",
       "useDocsAnalytics",
       "useDocsApi",
@@ -1564,6 +1579,10 @@
       "DocShareLevel",
       "DocShareLinkStatus",
       "DocShareSubjectKind",
+      "DocStreamBag",
+      "DocStreamEvent",
+      "DocStreamOptions",
+      "DocStreamTransport",
       "DocUpdate",
       "DocUpdatesBag",
       "DocUpdatesFeed",

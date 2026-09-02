@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "backend": {
     "module": "stapel-docs",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -410,6 +410,11 @@
       "remediation": "fix_input"
     },
     "error.400.docs_folder_depth": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_invalid_crdt_payload": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -1077,6 +1082,7 @@
     "error.400.docs_export_format",
     "error.400.docs_folder_cycle",
     "error.400.docs_folder_depth",
+    "error.400.docs_invalid_crdt_payload",
     "error.400.docs_not_trashed",
     "error.400.docs_share_level",
     "error.400.docs_share_mode_disabled",

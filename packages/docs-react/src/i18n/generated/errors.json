@@ -56,6 +56,13 @@
     "en": "Folder tree depth limit exceeded"
   },
   {
+    "code": "error.400.docs_invalid_crdt_payload",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "The payload is not a valid CRDT update for this document type"
+  },
+  {
     "code": "error.400.docs_not_trashed",
     "status": 400,
     "params": [],

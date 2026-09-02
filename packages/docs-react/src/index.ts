@@ -102,7 +102,7 @@ export {
   useDocsAnalytics,
 } from "./model/context.js";
 export { docsQueryKeys } from "./model/queryKeys.js";
-export { DEFAULT_DOCUMENT_TYPES } from "./model/documentTypes.js";
+export { CRDT_DOCUMENT_TYPES, DEFAULT_DOCUMENT_TYPES } from "./model/documentTypes.js";
 export type { DocumentTypeOption } from "./model/documentTypes.js";
 export { formatDate, formatDateTime, formatBytes } from "./model/format.js";
 export { buildFolderTree, folderTrail } from "./model/folderTree.js";
@@ -125,6 +125,20 @@ export {
 export type { DocumentText, RevisionText } from "./model/queries.js";
 export { DOC_UPDATES_INTERVAL_MS, useDocUpdates } from "./model/updates.js";
 export type { DocUpdatesBag, DocUpdatesOptions } from "./model/updates.js";
+export {
+  DOCS_STREAM_MODULE,
+  deriveDocsSocketOrigin,
+  docSocketPath,
+  docStreamKey,
+  docsSocketUrl,
+  useDocStream,
+} from "./model/stream.js";
+export type {
+  DocStreamBag,
+  DocStreamEvent,
+  DocStreamOptions,
+  DocStreamTransport,
+} from "./model/stream.js";
 export {
   useAppendUpdates,
   useSaveContent,

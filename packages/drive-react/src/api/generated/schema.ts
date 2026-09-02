@@ -875,6 +875,8 @@ export interface components {
             updated_at: string;
             /** @description Containing folder id; null for the workspace root. */
             folder_id?: string | null;
+            /** @description Where to open the document's realtime stream (ws/docs/<id>), relative to the deployment's WebSocket prefix; null when this deployment serves no socket — clients then poll the ?since= feed, which is first-class. */
+            socket_path?: string | null;
             /** @description Set while the document sits in the trash. */
             deleted_at?: string | null;
             /** @description Whether the requesting user starred this; null when the request carries no user (not applicable is not false). */

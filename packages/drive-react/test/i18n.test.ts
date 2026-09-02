@@ -32,8 +32,8 @@ function engineFor(locale: "en" | "ru" | "es") {
 }
 
 describe("the backend registry actually reaches the pair", () => {
-  it("carries the whole 0.6.1 registry, share axis included", () => {
-    expect(DRIVE_ERROR_CODES.length).toBe(84);
+  it("carries the whole 0.7.0 registry, share axis included", () => {
+    expect(DRIVE_ERROR_CODES.length).toBe(85);
     expect(DOCS_OWNED.length).toBeGreaterThan(0);
     // The three the drive product surfaces by name.
     expect(DRIVE_ERROR_CODES).toContain("error.507.docs_workspace_quota");

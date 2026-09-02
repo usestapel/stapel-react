@@ -65,7 +65,7 @@ describe("self-description (frontend-core §2.4 — manifest)", () => {
     // This package was born on the 0.5 surface and grew a share sheet on the
     // 0.6 one; a manifest announcing an older range would be announcing a wire
     // it cannot call.
-    expect(manifest.backend.contract).toBe(">=0.6 <0.7");
+    expect(manifest.backend.contract).toBe(">=0.7 <0.8");
     expect(Array.isArray(manifest.layers)).toBe(true);
   });
 

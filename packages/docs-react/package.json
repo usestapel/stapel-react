@@ -25,6 +25,10 @@
       "types": "./dist/editors/codemirror/index.d.ts",
       "default": "./dist/editors/codemirror/index.js"
     },
+    "./editors/collab": {
+      "types": "./dist/editors/collab/index.d.ts",
+      "default": "./dist/editors/collab/index.js"
+    },
     "./editors/milkdown": {
       "types": "./dist/editors/milkdown/index.d.ts",
       "default": "./dist/editors/milkdown/index.js"
@@ -80,6 +84,11 @@
       "name": "editors/milkdown — the lazy engine's WRAPPER only (plus the CodeMirror source mode it falls back to): @milkdown/crepe is a dynamic import() and must never be measured here",
       "path": "dist/editors/milkdown/index.js",
       "limit": "7 KB"
+    },
+    {
+      "name": "editors/collab — the co-editing WRAPPER only (session manager + registration): yjs and y-codemirror.next are dynamic import()s and must never be measured here",
+      "path": "dist/editors/collab/index.js",
+      "limit": "9 KB"
     }
   ],
   "peerDependencies": {
@@ -88,10 +97,13 @@
     "@codemirror/view": ">=6 <7",
     "@milkdown/crepe": ">=7.10 <8",
     "@stapel/core": ">=0.18.1 <1.0.0",
+    "@stapel/realtime": ">=0.1.1",
     "@stapel/tokens-antd": ">=0.7.0",
     "@tanstack/react-query": "^5.0.0",
     "antd": ">=5.20.0 <7",
-    "react": ">=19"
+    "react": ">=19",
+    "y-codemirror.next": ">=0.3 <0.4",
+    "yjs": ">=13.6 <14"
   },
   "devDependencies": {
     "@codemirror/lang-markdown": "^6.3.0",
@@ -99,6 +111,7 @@
     "@codemirror/view": "^6.36.0",
     "@size-limit/preset-small-lib": "^11.2.0",
     "@stapel/core": "workspace:^",
+    "@stapel/realtime": "workspace:^",
     "@stapel/showcase": "workspace:^",
     "@stapel/tokens": "workspace:^",
     "@stapel/tokens-antd": "workspace:^",
@@ -113,7 +126,9 @@
     "react-dom": "^19.1.0",
     "size-limit": "^11.2.0",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "y-codemirror.next": "^0.3.5",
+    "yjs": "^13.6.0"
   },
   "engines": {
     "node": ">=22"
@@ -138,6 +153,12 @@
       "optional": true
     },
     "antd": {
+      "optional": true
+    },
+    "y-codemirror.next": {
+      "optional": true
+    },
+    "yjs": {
       "optional": true
     }
   }

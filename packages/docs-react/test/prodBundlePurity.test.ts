@@ -88,7 +88,16 @@ describe("prod bundle carries no showcase/demo code (§5.1)", () => {
  * "an engine leaked into the main entry" rather than as "the budget moved".
  */
 describe("the optional editor engines stay out of the main entry", () => {
-  const ENGINE_SPECIFIERS = ["@codemirror/", "@milkdown/"];
+  // Package-name prefixes for the dependency checks…
+  const ENGINE_PACKAGES = ["@codemirror/", "@milkdown/", "yjs", "y-codemirror.next"];
+  // …and quoted import specifiers for the bundle scan, so the word "yjs" in
+  // a docstring cannot trip it.
+  const ENGINE_SPECIFIERS = [
+    "@codemirror/",
+    "@milkdown/",
+    '"yjs"',
+    '"y-codemirror.next"',
+  ];
 
   function distFile(relative: string): string {
     const path = resolve(PKG_DIR, relative);
@@ -105,9 +114,9 @@ describe("the optional editor engines stay out of the main entry", () => {
     const runtime = pkg.dependencies ?? {};
     const meta = pkg.peerDependenciesMeta ?? {};
     const peers = Object.keys(pkg.peerDependencies ?? {}).filter((name) =>
-      ENGINE_SPECIFIERS.some((prefix) => name.startsWith(prefix))
+      ENGINE_PACKAGES.some((prefix) => name.startsWith(prefix))
     );
-    expect(peers.length).toBeGreaterThan(0);
+    expect(peers.length).toBeGreaterThan(3);
     for (const name of peers) {
       expect(Object.keys(runtime)).not.toContain(name);
       expect(meta[name]?.optional, `${name} must be an OPTIONAL peer`).toBe(true);
@@ -125,15 +134,17 @@ describe("the optional editor engines stay out of the main entry", () => {
     for (const entry of [
       "dist/editors/codemirror/CodeMirrorEditor.js",
       "dist/editors/milkdown/MilkdownEditor.js",
+      "dist/editors/collab/CollabEditor.js",
+      "dist/editors/collab/yjsPeer.js",
+      "dist/editors/collab/session.js",
     ]) {
       const source = distFile(entry);
       // A static `import … from "@codemirror/view"` would make the package a
       // hard requirement of the subpath — and would break the build of any
       // host that did not install an OPTIONAL peer.
-      expect(/^\s*import\s[^;]*from\s*["'](@codemirror|@milkdown)\//m.test(source)).toBe(
-        false
-      );
-      expect(/^\s*export\s[^;]*from\s*["'](@codemirror|@milkdown)\//m.test(source)).toBe(
+      const engineFrom =
+        /^\s*(import|export)\s[^;]*from\s*["'](@codemirror\/|@milkdown\/|yjs["']|y-codemirror\.next["'])/m;
+      expect(engineFrom.test(source), `${entry} imports an engine statically`).toBe(
         false
       );
     }
@@ -142,6 +153,7 @@ describe("the optional editor engines stay out of the main entry", () => {
   it("the engine subpaths are published (exports map + the files allowlist)", () => {
     expect(pkg.exports ?? {}).toHaveProperty("./editors/codemirror");
     expect(pkg.exports ?? {}).toHaveProperty("./editors/milkdown");
+    expect(pkg.exports ?? {}).toHaveProperty("./editors/collab");
     expect(pkg.files ?? []).toContain("dist");
   });
 });

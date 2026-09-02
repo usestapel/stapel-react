@@ -22,8 +22,8 @@ What is genuinely here, and nowhere else in the fleet:
   list/grid toggle, bottom action sheet, FAB + tray, Starred/Recent/Trash tabs.
 
 > **Contract.** Generated against stapel-docs' own committed artifacts at the
-> pinned **v0.6.1** ref (`contract-pins.json`): `src/api/generated/schema.ts`,
-> `src/i18n/generated/errors*.ts` (84 codes, en/ru/es) and
+> pinned **v0.7.0** ref (`contract-pins.json`): `src/api/generated/schema.ts`,
+> `src/i18n/generated/errors*.ts` (85 codes, en/ru/es) and
 > `manifest.json` + `llms.txt` are emitted by the root `gen:*` drivers and
 > drift-gated.
 

@@ -108,6 +108,10 @@ export const DOCS_I18N_KEYS = {
   typeText: "docs.type.text",
   typeMarkdown: "docs.type.markdown",
   typeCsv: "docs.type.csv",
+  /** The two live (crdt) builtins of 0.7.0 — offered via
+   * `CRDT_DOCUMENT_TYPES`, opt-in (see `model/documentTypes.ts`). */
+  typeMarkdownLive: "docs.type.markdownLive",
+  typeTextLive: "docs.type.textLive",
   // Revisions modal (default skin: RevisionsModal)
   revisionsTitle: "docs.revisions.title",
   revisionsAutomatic: "docs.revisions.automatic",
@@ -293,6 +297,8 @@ export const docsI18nBundleEn: I18nDictionary = {
   "docs.type.text": "Plain text",
   "docs.type.markdown": "Markdown",
   "docs.type.csv": "Spreadsheet (CSV)",
+  "docs.type.markdownLive": "Markdown (live co-editing)",
+  "docs.type.textLive": "Plain text (live co-editing)",
   "docs.revisions.title": "Version history",
   "docs.revisions.automatic": "Automatic revision",
   "docs.revisions.previewEmpty": "Select a revision to preview it.",

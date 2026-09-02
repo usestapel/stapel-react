@@ -10,8 +10,8 @@ token refresh, verification-403 interception, i18n engine, analytics seam,
 TanStack Query).
 
 > **Contract.** Generated against stapel-docs' own committed artifacts at the
-> pinned **v0.6.1** ref (`contract-pins.json`): `src/api/generated/schema.ts`
-> (44 operations), `src/i18n/generated/errors*.ts` (84 codes, en/ru/es) and
+> pinned **v0.7.0** ref (`contract-pins.json`): `src/api/generated/schema.ts`
+> (44 operations), `src/i18n/generated/errors*.ts` (85 codes, en/ru/es) and
 > `manifest.json` + `llms.txt` are emitted by the root `gen:*` drivers and
 > drift-gated. `flows.json` is `[]` — this module declares no flows, so
 > `DOCS_FLOWS` is empty by construction rather than by omission. The api
@@ -152,6 +152,85 @@ const append = useAppendUpdates(documentId);
 Polling is the floor a browser always reaches, not a claim about transport: a
 host with a socket passes `enabled: false` and feeds the same consumer from
 the wire. `intervalMs` defaults to `DOC_UPDATES_INTERVAL_MS` (2.5s).
+
+## Live co-editing (crdt types)
+
+stapel-docs 0.7.0 makes the `crdt` discipline real: two builtin live types —
+`ymd` ("Markdown (live)", `editor_hint: "markdown.crdt"`) and `ytxt` ("Plain
+text (live)", `"text.crdt"`) — whose snapshot body IS a binary Yjs state with
+ONE shared `Y.Text` named `"content"` (pycrdt server-side, so the wire is
+Yjs-compatible), plus a resumable read-only socket per document on the
+`stapel-realtime` substrate. The document envelope now carries `socket_path`
+(`ws/docs/<id>`, `null` on a polling-only deployment — polling stays
+first-class forever).
+
+**The transport seam is one hook in the main entry** — wire-level only, no
+CRDT library:
+
+```tsx
+const stream = useDocStream(documentId, {
+  enabled: doc.data?.collab === "crdt",
+  since: appliedHeadSeq, // the seq your model already holds
+  onEvents: (events) => { for (const e of events) apply(e.update); }, // base64, ordered, deduped
+  onResync: () => rehydrate(), // content/document reads are already invalidated
+});
+stream.transport; // "socket" | "polling" | "idle" — a surface can SAY which
+```
+
+It resolves `socket_path` off the document row and consumes the stream via
+`@stapel/realtime` (now a peer — reconnect/resume/heartbeat/close-code canon
+live there, once for the fleet). When the row says `null`, the host mounted no
+`<RealtimeProvider>`, or the socket closed with a verdict, the same events
+flow from the `useDocUpdates` poll — taken up at the cursor the socket got
+to, never from zero. A transient drop is NOT handed over: the substrate
+resumes by seq, which is what the journal is for.
+
+**The editors live behind `./editors/collab`** — optional peers, dynamic
+`import()`, like every engine here:
+
+```sh
+pnpm add yjs y-codemirror.next @codemirror/state @codemirror/view @codemirror/lang-markdown
+```
+
+```ts
+// once, at startup — registration, not a fork:
+import { registerCollabDocEditors } from "@stapel/docs-react/editors/collab";
+registerCollabDocEditors(); // claims "markdown.crdt" + "text.crdt"
+```
+
+Each surface binds CodeMirror 6 to the document's `Y.Text` via `yCollab`,
+hydrates from `GET /content` (the binary Y state), applies remote updates
+origin-tagged (nothing echoes back out), and batches local Y updates through
+`POST /updates` under the journal's own `client_id`/`client_seq` dedup — a
+failed batch retries AS-IS under its own `client_seq`, and edits made
+meanwhile go to the next batch, so nothing can land twice or be silently
+dropped. There is no Save button: the journal IS the save. On a resync order
+the fresh state MERGES into the live doc — CRDT commutativity does the
+rebase, so unsent local edits survive re-hydration and still flush (pinned by
+`test/collabSession.test.ts`).
+
+An explicit registration is also what stands `DocSurface`'s crdt guard down —
+"a registered crdt editor IS the collaborative path" — so the default skin
+resolves these hints with no other change. With the peers absent the surface
+states the missing packages and stays read-only: deliberately NO textarea
+fallback, because a snapshot save over a crdt body is refused by the write
+door (`error.400.docs_invalid_crdt_payload`).
+
+The "New document" picker does not offer the live types by default: the
+server registers them only when the `[crdt]` extra (pycrdt) is installed, and
+0.7.0 still publishes no `/types` listing to ask. A host that installed the
+extra opts in with `CRDT_DOCUMENT_TYPES`:
+
+```tsx
+<FileManager documentTypes={[...DEFAULT_DOCUMENT_TYPES, ...CRDT_DOCUMENT_TYPES]} />
+```
+
+**Deliberately not in this slice** (stated, not half-built): presence,
+cursors and selections — 0.7.0 ships no awareness transport, so `yCollab` is
+bound without one and remote carets simply do not render; Milkdown WYSIWYG
+collab — the WYSIWYG engine stays snapshot-only until an awareness/undo story
+exists for it; write frames over the socket — the design settles it, update
+writes are REST POSTs and the socket is delivery only.
 
 ## The default skin — `@stapel/docs-react/default` (opt-in)
 

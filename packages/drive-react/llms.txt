@@ -1,6 +1,6 @@
 # @stapel/drive-react 0.2.0
 
-Headless React flow pair for stapel-docs (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-docs (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -74,7 +74,7 @@ Paths are relative to `/docs/api/v1/`.
 - useToggleStar (mutation) → setStar
 
 ## Errors (render t(code, params); UX from remediation)
-84 keys (full catalog: manifest.json §errors). By remediation: fix_input 38 · retry 32 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.
+85 keys (full catalog: manifest.json §errors). By remediation: fix_input 39 · retry 32 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

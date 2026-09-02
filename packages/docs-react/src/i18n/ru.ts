@@ -92,6 +92,8 @@ export const docsI18nBundleRu: I18nDictionary = {
   "docs.type.text": "Обычный текст",
   "docs.type.markdown": "Markdown",
   "docs.type.csv": "Таблица (CSV)",
+  "docs.type.markdownLive": "Markdown (совместное редактирование)",
+  "docs.type.textLive": "Текст (совместное редактирование)",
   "docs.revisions.title": "История версий",
   "docs.revisions.automatic": "Автоматическая версия",
   "docs.revisions.previewEmpty": "Выберите версию, чтобы посмотреть её.",

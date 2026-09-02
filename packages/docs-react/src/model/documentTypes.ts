@@ -36,3 +36,23 @@ export const DEFAULT_DOCUMENT_TYPES: readonly DocumentTypeOption[] = [
   { type: "md", labelKey: DOCS_I18N_KEYS.typeMarkdown },
   { type: "csv", labelKey: DOCS_I18N_KEYS.typeCsv },
 ];
+
+/**
+ * The two live (crdt) builtins of 0.7.0 — `doc_types.py`'s `ymd` ("Markdown
+ * (live)") and `ytxt` ("Plain text (live)").
+ *
+ * Deliberately NOT folded into {@link DEFAULT_DOCUMENT_TYPES}: the server
+ * registers these types only when the `[crdt]` extra (pycrdt) is installed,
+ * there is still no `/types` read to ask (the 0.7.0 contract carries none —
+ * the same backend gap as above), and a picker offering a type the
+ * deployment refuses would mint 400s. A host that installed the extra opts
+ * in with one line:
+ *
+ * ```tsx
+ * <FileManager documentTypes={[...DEFAULT_DOCUMENT_TYPES, ...CRDT_DOCUMENT_TYPES]} />
+ * ```
+ */
+export const CRDT_DOCUMENT_TYPES: readonly DocumentTypeOption[] = [
+  { type: "ymd", labelKey: DOCS_I18N_KEYS.typeMarkdownLive },
+  { type: "ytxt", labelKey: DOCS_I18N_KEYS.typeTextLive },
+];

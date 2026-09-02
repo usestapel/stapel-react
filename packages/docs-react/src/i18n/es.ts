@@ -92,6 +92,8 @@ export const docsI18nBundleEs: I18nDictionary = {
   "docs.type.text": "Texto sin formato",
   "docs.type.markdown": "Markdown",
   "docs.type.csv": "Hoja de cálculo (CSV)",
+  "docs.type.markdownLive": "Markdown (edición colaborativa)",
+  "docs.type.textLive": "Texto sin formato (edición colaborativa)",
   "docs.revisions.title": "Historial de versiones",
   "docs.revisions.automatic": "Versión automática",
   "docs.revisions.previewEmpty": "Elige una versión para verla.",
