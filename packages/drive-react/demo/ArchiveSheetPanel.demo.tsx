@@ -4,8 +4,9 @@ import { defineDemo } from "@stapel/showcase";
 import { ArchiveSheetPanel } from "../src/default/index.js";
 import { DriveDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
+import { DOC_ZIP } from "./fixtures.js";
 
-const ZIP_ID = "d-zip";
+const ZIP_ID = DOC_ZIP.id;
 
 const LISTING = {
   entry_count: 5,
@@ -44,7 +45,7 @@ function Sheet(props: { readonly handlers: DemoHandlers }): ReactElement {
     <DriveDemoHarness handlers={props.handlers}>
       <ArchiveSheetPanel
         documentId={ZIP_ID}
-        title="site-photos.zip"
+        title={DOC_ZIP.title}
         onClose={() => undefined}
       />
     </DriveDemoHarness>

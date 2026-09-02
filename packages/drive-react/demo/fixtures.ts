@@ -75,6 +75,16 @@ export const DOC_CONTRACT: DocDocument = {
   is_starred: false,
 };
 
+export const DOC_ZIP: DocDocument = {
+  ...DOC_BUDGET,
+  id: "d-zip",
+  title: "site-photos.zip",
+  mime_type: "application/zip",
+  editor_hint: "",
+  type: "file",
+  diffable: false,
+};
+
 export const ROOT_FOLDERS: readonly DocFolder[] = [FOLDER_FINANCE, FOLDER_PHOTOS];
 export const ROOT_DOCUMENTS: readonly DocDocument[] = [
   DOC_PHOTO,
