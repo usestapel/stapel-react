@@ -25,7 +25,18 @@
 import { spacing } from "@stapel/tokens-antd";
 import { ListRow } from "@stapel/tokens-antd/skin";
 import type { ReactElement } from "react";
-import { Badge, Button, Card, Empty, Flex, List, Space, Spin, Typography } from "antd";
+import {
+  Badge,
+  Button,
+  Card,
+  Empty,
+  Flex,
+  List,
+  Space,
+  Spin,
+  Typography,
+  theme as antdTheme,
+} from "antd";
 import { matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
 import type { ChatMessage, Conversation } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
@@ -64,6 +75,15 @@ export interface ConversationListPanelProps {
   openHref?: (conversationId: string) => string;
   /** Where a row leads, in a SPA. Used when `openHref` is not given. */
   onOpen?: (conversationId: string) => void;
+  /**
+   * The conversation that is OPEN, when this list is rendered beside its
+   * thread (`<ConversationSplitPanel/>`). The matching row is painted with
+   * the theme's selected-item background and carries `aria-current="page"` —
+   * the same fact stated once for the eye and once for the reader. Default
+   * undefined: the standalone inbox screen has no open thread beside it and
+   * renders exactly as before.
+   */
+  selectedId?: string | null;
 }
 
 function relativeTime(locale: string, iso: string): string {
@@ -199,9 +219,13 @@ function InboxRows(props: {
   readonly locale: string;
   readonly openHref: ((conversationId: string) => string) | undefined;
   readonly onOpen: ((conversationId: string) => void) | undefined;
+  readonly selectedId: string | null;
 }): ReactElement {
-  const { rows, viewerId } = props;
+  const { rows, viewerId, selectedId } = props;
   const previews = useThreadPreviews(rows.map((row) => row.id));
+  // The selected-item background comes from the token bag, never a literal:
+  // a hex here would be right in exactly one of the two theme modes.
+  const { token } = antdTheme.useToken();
   return (
     <PeopleScope userIds={conversationPeopleIds(rows, viewerId)}>
       {(directory) => (
@@ -210,7 +234,19 @@ function InboxRows(props: {
           dataSource={[...rows]}
           rowKey={(row) => row.id}
           renderItem={(row) => (
-            <List.Item>
+            <List.Item
+              // The selection is the LIST ITEM's, not the title link's: the
+              // whole row is what the eye finds again after reading the
+              // thread, so the whole row is what gets the paint and the
+              // `aria-current="page"` that says the same thing out loud.
+              {...(selectedId !== null && row.id === selectedId
+                ? {
+                    "aria-current": "page" as const,
+                    "data-chat-row-selected": "",
+                    style: { background: token.colorPrimaryBg },
+                  }
+                : {})}
+            >
               <ConversationRow
                 row={row}
                 viewerId={viewerId}
@@ -237,6 +273,7 @@ export function ConversationListPanel(
   // the transport's own "Request failed with status 500".
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
   const { openHref, onOpen } = props;
+  const selectedId = props.selectedId ?? null;
   const viewerId =
     props.viewerId === null || props.viewerId === undefined
       ? null
@@ -302,6 +339,7 @@ export function ConversationListPanel(
                   locale={locale}
                   openHref={openHref}
                   onOpen={onOpen}
+                  selectedId={selectedId}
                 />
                 {hasNextPage ? (
                   <Button

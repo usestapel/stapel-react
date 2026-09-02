@@ -103,6 +103,8 @@ export const chatI18nBundleEs: I18nDictionary = {
     "Aún no hay mensajes sobre esto. Saluda: la conversación se queda con ello.",
   "chat.thread.menu": "Opciones de la conversación",
 
+  "chat.split.empty": "Elige una conversación",
+
   "chat.composer.placeholder": "Escribe un mensaje…",
   "chat.composer.send": "Enviar",
   "chat.composer.sending": "Enviando…",

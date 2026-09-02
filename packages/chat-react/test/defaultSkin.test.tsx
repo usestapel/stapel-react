@@ -70,6 +70,54 @@ describe("<ConversationListPanel/>", () => {
     expectNoRawKeys();
   });
 
+  it("the open conversation's row is marked selected — and only that row", async () => {
+    const server = mockServer({
+      "GET /conversations": {
+        body: conversationPage([
+          conversation({ id: "conv-a" }),
+          conversation({ id: "conv-b" }),
+        ]),
+      },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationListPanel
+          viewerId={BUYER}
+          selectedId="conv-b"
+          openHref={(id) => `/account/chat/${id}`}
+        />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(2)
+    );
+    // The ATTRIBUTE, not the colour: the background is the theme's business
+    // and asserting a resolved hex would pin a token value, not a behaviour.
+    const rows = screen.getAllByTestId("chat-conversation-row");
+    const selected = rows[1]?.closest('[aria-current="page"]');
+    expect(selected).not.toBeNull();
+    expect(selected?.hasAttribute("data-chat-row-selected")).toBe(true);
+    expect(rows[0]?.closest('[aria-current="page"]')).toBeNull();
+    expect(document.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+  });
+
+  it("without a selectedId no row claims to be current", async () => {
+    const server = mockServer({
+      "GET /conversations": {
+        body: conversationPage([conversation({ id: "conv-a" })]),
+      },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationListPanel viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(1)
+    );
+    expect(document.querySelector("[aria-current]")).toBeNull();
+  });
+
   it("an outage renders the failure arm, not 'no conversations yet'", async () => {
     const server = mockServer({
       "GET /conversations": {

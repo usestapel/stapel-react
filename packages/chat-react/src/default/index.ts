@@ -16,6 +16,10 @@ export { ConversationListPanel } from "./ConversationListPanel.js";
 export type { ConversationListPanelProps } from "./ConversationListPanel.js";
 export { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 export type { ConversationThreadPanelProps } from "./ConversationThreadPanel.js";
+// The desktop two-pane arrangement over the two panels above. Mounting it is
+// the HOST's viewport decision — a phone host keeps the two screens.
+export { ConversationSplitPanel } from "./ConversationSplitPanel.js";
+export type { ConversationSplitPanelProps } from "./ConversationSplitPanel.js";
 export { StartChatButton } from "./StartChatButton.js";
 export type { StartChatButtonProps } from "./StartChatButton.js";
 export { SignInLink } from "./SignInLink.js";

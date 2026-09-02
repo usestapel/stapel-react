@@ -103,6 +103,8 @@ export const chatI18nBundleRu: I18nDictionary = {
     "Сообщений об этом пока нет. Напишите первым — переписка останется здесь.",
   "chat.thread.menu": "Действия с диалогом",
 
+  "chat.split.empty": "Выберите диалог",
+
   "chat.composer.placeholder": "Напишите сообщение…",
   "chat.composer.send": "Отправить",
   "chat.composer.sending": "Отправка…",

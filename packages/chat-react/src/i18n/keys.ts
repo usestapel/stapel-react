@@ -78,6 +78,13 @@ export const CHAT_I18N_KEYS = {
   /** The overflow menu: its trigger's accessible name and its sheet's title. */
   threadMenu: "chat.thread.menu",
 
+  /**
+   * The right pane of the desktop split inbox before anything is open. An
+   * invitation, not an apology: nothing has failed and nothing is empty —
+   * the person simply has not picked yet, and the list is right there.
+   */
+  splitEmpty: "chat.split.empty",
+
   // Composer
   composerPlaceholder: "chat.composer.placeholder",
   composerSend: "chat.composer.send",
@@ -229,6 +236,8 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.thread.empty_subject":
     "No messages about this yet. Say hello — this conversation stays with it.",
   "chat.thread.menu": "Conversation options",
+
+  "chat.split.empty": "Pick a conversation",
 
   "chat.composer.placeholder": "Write a message…",
   "chat.composer.send": "Send",

@@ -37,7 +37,16 @@
  * navigation does, because it drew the link — should say so, and this page
  * takes both so that it can.
  *
- * When both are given the id wins and the slug is decoration.
+ * When both are given the id wins and the slug is decoration — EVERYWHERE on
+ * the page, and the qualifier is there because it was earned. The `"pane"`
+ * arm used to fall back to `<CategoryTreePane slug>` whenever a slug was on
+ * the props, resolving it through the catalogue sync for a level the id path
+ * had ALREADY loaded to gate the page: on a live classified deployment that
+ * was 13.2 seconds of skeletons under "Subcategories" on a cold desktop
+ * landing, while the same host's list page drew the widget in 0.4 s from
+ * per-level reads. The arm now renders the rows in hand and asks one small
+ * cached children read per row for the counts; the catalogue is paid for only
+ * by a host that truly has nothing but a slug.
  *
  * ── One form of sub-categories, chosen here ────────────────────────────────
  *
@@ -110,6 +119,7 @@ import {
   useCategory,
   useCategoryCatalog,
   useCategoryChildren,
+  useCategoryLevels,
 } from "../model/queries.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
@@ -117,6 +127,7 @@ import { CategoryCascadeField } from "./CategoryCascadeField.js";
 import { CategoryFeatureList } from "./CategoryFeatureList.js";
 import { CategoryTileGrid } from "./CategoryTileGrid.js";
 import type { TileDensity } from "./CategoryTileGrid.js";
+import { CategoryLevelList } from "./CategoryLevelList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
 import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
@@ -206,8 +217,10 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
 /**
  * How a category page offers what is inside it.
  *
- * `"pane"`     a titled LIST of links (`<CategoryTreePane>`) — the default,
- *              and the only shape this page had.
+ * `"pane"`     a titled LIST of links — the default, and the only shape this
+ *              page had. Drawn from the level the id path already holds, or
+ *              by `<CategoryTreePane>` for a slug-only host; one shared row
+ *              markup either way (see this file's header).
  * `"tiles"`    the reference design's tile grid within the catalogue's depth
  *              cap (`catalog/tiles.ts`), and past it the CASCADE the cap hands
  *              over to. One arm, two halves of one navigation model.
@@ -299,6 +312,51 @@ function useCategoryPageSource(props: {
 }
 
 /**
+ * The `"pane"` arm on the ID PATH: the titled list, from the rows the page
+ * already holds.
+ *
+ * `useCategoryPageSource` gated the page on `GET {id}/children/`, so by the
+ * time this mounts the level is IN HAND — the only thing the catalogue could
+ * still add is the per-row "N subcategories" chip, and that is one small
+ * cached children read per row (`useCategoryLevels`), the same rung a cascade
+ * or the next landing reads. The rows render immediately; a chip whose read
+ * has not landed (or refused) draws nothing — no Tag, no chevron, no zero
+ * standing in for an unknown. When it lands as >0 it draws exactly what the
+ * catalogue path draws, because both arms render `<CategoryLevelList>`.
+ *
+ * A component rather than a branch inside `Subcategories`, because the arm is
+ * conditional and the fan-out is a hook: mounting and unmounting WITH the arm
+ * is what keeps the reads from firing under `"tiles"` or `"none"`.
+ */
+function SubcategoryLevelPane(props: {
+  readonly childRows: readonly Category[];
+  readonly basePath: string;
+  readonly linkComponent?: LinkComponent;
+}): ReactElement {
+  const t = useT();
+  const ids = props.childRows.map((row) => row.id);
+  const counts = useCategoryLevels(ids);
+  return (
+    <Flex vertical gap={spacing[2]} data-testid="categories-tree">
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        {t(CATEGORIES_I18N_KEYS.categorySubcategories)}
+      </Typography.Title>
+      <CategoryLevelList
+        {...(props.linkComponent !== undefined
+          ? { linkComponent: props.linkComponent }
+          : {})}
+        rows={props.childRows}
+        childCount={(row) => {
+          const level = counts.rows[ids.indexOf(row.id)];
+          return level == null ? null : level.length;
+        }}
+        basePath={props.basePath}
+      />
+    </Flex>
+  );
+}
+
+/**
  * The chosen arm, and only it.
  *
  * A leaf renders nothing in every arm: "this category has no sub-categories"
@@ -314,6 +372,15 @@ function Subcategories(props: {
    * component IS the element's children, and an array of category rows put
    * there would be rendered as content instead of read as data. */
   readonly childRows: readonly Category[];
+  /**
+   * Which address resolved `childRows`. `true` = the id path: the rows are
+   * `GET {id}/children/`, already paid for, and the pane arm renders them
+   * directly. `false` = the catalogue built them for a slug-only host, and
+   * the pane arm keeps `<CategoryTreePane>`, whose sync is by then a cache
+   * hit. The distinction cannot be read off `slug` — hosts pass BOTH
+   * addresses, and choosing by slug is the 13-second defect (see the header).
+   */
+  readonly rowsFromId: boolean;
   readonly slug?: string;
   readonly basePath: string;
   readonly linkComponent?: LinkComponent;
@@ -384,6 +451,18 @@ function Subcategories(props: {
     );
   }
 
+  // The id path already holds this level — mounting the pane here would
+  // resolve the slug through the full catalogue sync for rows that are
+  // sitting in `childRows`, which is the 13-second defect in the header.
+  if (props.rowsFromId) {
+    return (
+      <SubcategoryLevelPane
+        childRows={props.childRows}
+        basePath={props.basePath}
+        {...link}
+      />
+    );
+  }
   if (props.slug === undefined) return cascade;
   return (
     <CategoryTreePane
@@ -478,6 +557,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
 
                 <Subcategories
                   form={props.subcategories ?? "pane"}
+                  rowsFromId={
+                    props.categoryId !== null && props.categoryId !== undefined
+                  }
                   {...(props.subcategoryTileDensity !== undefined
                     ? { tileDensity: props.subcategoryTileDensity }
                     : {})}

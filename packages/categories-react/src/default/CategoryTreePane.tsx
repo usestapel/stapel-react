@@ -12,22 +12,25 @@
  * page budget, so what is on screen is a PARTIAL catalogue — which is neither
  * an empty one nor a failed one, and gets its own line rather than being
  * silently indistinguishable from a complete tree.
+ *
+ * The rows themselves are `<CategoryLevelList>`, shared with the id path of
+ * `<CategoryPage>` — this pane owns the CATALOGUE resolution (a slug has no
+ * server-side lookup, so it costs the sync) and the four load sentences
+ * around it, not the row markup. See that file's header for why the split
+ * exists.
  */
 import { spacing } from "@stapel/tokens";
 import type { ReactElement } from "react";
-import { Alert, Flex, List, Tag, Typography } from "antd";
-import { useT, useTPlural } from "@stapel/core";
-import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
-import type { CategoryNode } from "../catalog/tree.js";
+import { Alert, Flex, Typography } from "antd";
+import { useT } from "@stapel/core";
 import { CategoryTree } from "../headless/CategoryTree.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
-import { CategoryLink } from "./CategoryLink.js";
+import { CategoryLevelList } from "./CategoryLevelList.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
 import {
   EmptyState,
   ErrorAlert,
   LoadList,
-  PHONE_CONTROL_HEIGHT,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "./types.js";
@@ -45,7 +48,6 @@ export interface CategoryTreePaneProps extends ThemeModeProp, LinkComponentProp 
 
 export function CategoryTreePane(props: CategoryTreePaneProps): ReactElement {
   const t = useT();
-  const tPlural = useTPlural();
   const base = props.basePath ?? "/c";
 
   return (
@@ -98,62 +100,18 @@ export function CategoryTreePane(props: CategoryTreePaneProps): ReactElement {
               }
             >
               {(nodes) => (
-                <List<CategoryNode>
-                  data-testid="categories-tree-list"
-                  size="small"
-                  dataSource={[...nodes]}
-                  renderItem={(node) => (
-                    <List.Item
-                      key={node.id}
-                      data-category-id={node.id}
-                      style={{ paddingInline: 0 }}
-                    >
-                      {/* The whole ROW is the link, on the touch floor, with
-                          a chevron for a branch: a 24px word inside a 41px
-                          row is a target a thumb misses and an affordance an
-                          eye cannot see. */}
-                      <CategoryLink
-                        {...(props.linkComponent !== undefined
-                          ? { linkComponent: props.linkComponent }
-                          : {})}
-                        href={`${base}/${node.category.slug}`}
-                        slug={node.category.slug}
-                        categoryId={node.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: spacing[2],
-                          width: "100%",
-                          minHeight: PHONE_CONTROL_HEIGHT,
-                          paddingInline: spacing[2],
-                        }}
-                      >
-                        <span>
-                          {renderCategoryLabel(categoryLabel(node.category), t)}
-                        </span>
-                        <Flex align="center" gap={spacing[2]}>
-                          {node.children.length > 0 ? (
-                            // The count SAYS what it counts. It used to be a
-                            // bare number with a `title=` — meaning available
-                            // to a mouse pointer and to nothing else.
-                            <Tag
-                              variant="filled"
-                              data-category-children={node.children.length}
-                            >
-                              {tPlural(
-                                CATEGORIES_I18N_KEYS.categorySubcategoriesCount,
-                                { count: node.children.length }
-                              )}
-                            </Tag>
-                          ) : null}
-                          <span aria-hidden="true">
-                            {node.children.length > 0 ? "\u203a" : ""}
-                          </span>
-                        </Flex>
-                      </CategoryLink>
-                    </List.Item>
-                  )}
+                <CategoryLevelList
+                  {...(props.linkComponent !== undefined
+                    ? { linkComponent: props.linkComponent }
+                    : {})}
+                  rows={nodes.map((node) => node.category)}
+                  // The built tree already knows every level, so a count
+                  // here is never unknown — `0` is a true leaf, not a guess.
+                  childCount={(row) =>
+                    nodes.find((node) => node.id === row.id)?.children
+                      .length ?? 0
+                  }
+                  basePath={base}
                 />
               )}
             </LoadList>
