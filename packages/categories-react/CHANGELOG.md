@@ -10,8 +10,10 @@
   ~550px tiles inside a wide desktop column. `"compact"` is the dense strip:
   4.4 visible columns AND an absolute 128px cap on the column, so the same
   mount is small on a phone and a modest strip — never a wall — at any width.
-  Compact tiles keep the aspect, the art corner, the monogram and the
-  three-line hyphenating label, at a smaller size and padding.
+  A compact tile is also a different anatomy, not a shrunken cozy one: at
+  ~70px the label-corner/art-corner layout collides, so the dense arm draws
+  the icon (or monogram) centred on top with a centred two-line hyphenating
+  label under it — the dense-grid convention, on a square tile.
   `<CategoryPage subcategoryTileDensity>` passes the same choice through to the
   tiles arm. `TileDensity` is exported. The skin bundle budget moves 13 KB →
   13.25 KB for it.

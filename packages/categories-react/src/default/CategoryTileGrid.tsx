@@ -167,8 +167,23 @@ const tileBase: CSSProperties = {
   overflow: "hidden",
 };
 
-// A dense tile keeps its whole area for the label and the art.
-const tileCompact: CSSProperties = { ...tileBase, padding: spacing[2] };
+/**
+ * The compact tile is a different ANATOMY, not just a smaller cozy tile: at
+ * ~70px the reference label-top-left/art-bottom-right corners collide, and a
+ * hyphenating root name clipped to its first syllable ("Nedvi-") reads as a
+ * broken screen. The dense-grid convention every classified app uses at this
+ * size is the icon centred on top with the label centred under it — the
+ * label gets the tile's full width, which is what lets a long root name
+ * hyphenate into two honest lines instead of clipping into one.
+ */
+const tileCompact: CSSProperties = {
+  ...tileBase,
+  aspectRatio: "1 / 1",
+  padding: spacing[2],
+  justifyContent: "center",
+  alignItems: "center",
+  gap: spacing[1],
+};
 
 function tileStyle(density: TileDensity): CSSProperties {
   return density === "compact" ? tileCompact : tileBase;
@@ -200,6 +215,20 @@ const labelStyle: CSSProperties = {
 const labelCompact: CSSProperties = {
   ...labelStyle,
   fontSize: COMPACT_LABEL_FONT_SIZE,
+  lineHeight: 1.2,
+  textAlign: "center",
+  // Two centred lines under the icon; the third line belongs to the cozy
+  // anatomy, where the label owns the top of the tile.
+  WebkitLineClamp: 2,
+};
+
+/** Compact art: centred over the label, never a corner ornament. */
+const artCompact: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  maxWidth: "50%",
+  maxHeight: "45%",
 };
 
 const artStyle: CSSProperties = {
@@ -290,13 +319,31 @@ function Tile(props: {
       href={props.href}
       style={tileStyle(props.density)}
     >
-      <span
-        style={props.density === "compact" ? labelCompact : labelStyle}
-        {...(props.testId !== undefined ? { "data-testid": props.testId } : {})}
-      >
-        {props.label}
-      </span>
-      <span style={artStyle}>{props.art}</span>
+      {props.density === "compact" ? (
+        <>
+          <span style={artCompact}>{props.art}</span>
+          <span
+            style={labelCompact}
+            {...(props.testId !== undefined
+              ? { "data-testid": props.testId }
+              : {})}
+          >
+            {props.label}
+          </span>
+        </>
+      ) : (
+        <>
+          <span
+            style={labelStyle}
+            {...(props.testId !== undefined
+              ? { "data-testid": props.testId }
+              : {})}
+          >
+            {props.label}
+          </span>
+          <span style={artStyle}>{props.art}</span>
+        </>
+      )}
     </CategoryLink>
   );
 }
