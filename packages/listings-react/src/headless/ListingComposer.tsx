@@ -492,7 +492,13 @@ export function useListingComposer(
   }, [ensureListingId, saveDraft, effectiveValues, options.features]);
 
   const save = useCallback((): void => {
-    setShowErrors(true);
+    // Deliberately NOT arming `showErrors` here (D54): saves are
+    // housekeeping — the flat page saves on every blur and the staged
+    // composer on every step change — and a draft is allowed to be
+    // incomplete; that is what a draft is. Arming the mirror on save meant
+    // red "field is required" lines under untouched fields before the
+    // person's first keystroke. The mirror reaches the fields on the SUBMIT
+    // ATTEMPT: `publish()` below.
     if (!saveGate.available) return;
     setRefusal(undefined);
     void persist().catch(() => {

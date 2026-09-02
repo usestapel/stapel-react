@@ -287,7 +287,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
 
   "listings.card.no_photo": "No photo",
   "listings.card.photo_unavailable": "Photo unavailable",
-  "listings.card.price_absent": "Price on request",
+  "listings.card.price_absent": "Price not specified",
   "listings.card.favorite_add": "Save to favourites",
   "listings.card.favorite_remove": "Remove from favourites",
   "listings.card.untitled": "Untitled listing",

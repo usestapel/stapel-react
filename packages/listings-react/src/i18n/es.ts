@@ -71,7 +71,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
 
   "listings.card.no_photo": "Sin foto",
   "listings.card.photo_unavailable": "Foto no disponible",
-  "listings.card.price_absent": "Precio a consultar",
+  "listings.card.price_absent": "Precio no especificado",
   "listings.card.favorite_add": "Guardar en favoritos",
   "listings.card.favorite_remove": "Quitar de favoritos",
   "listings.card.untitled": "Anuncio sin título",

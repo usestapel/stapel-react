@@ -87,7 +87,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
 
   "listings.card.no_photo": "Без фото",
   "listings.card.photo_unavailable": "Фото недоступно",
-  "listings.card.price_absent": "Цена по запросу",
+  "listings.card.price_absent": "Цена не указана",
   "listings.card.favorite_add": "В избранное",
   "listings.card.favorite_remove": "Убрать из избранного",
   "listings.card.untitled": "Объявление без названия",

@@ -44,9 +44,12 @@ export interface ListingPriceProps {
 }
 
 /** Is there a price at all? A listing may carry none, and "no price" is a
- * sentence, not a zero. */
+ * sentence, not a zero. The wire spells absence as `null` (a blank price
+ * stays null server-side — D51), and a serializer may hand that through the
+ * `string | undefined` type unguarded, so the check is a type test rather
+ * than a `.length` on whatever arrived. */
 function hasAmount(props: ListingPriceProps): boolean {
-  return props.amount !== undefined && props.amount.length > 0;
+  return typeof props.amount === "string" && props.amount.length > 0;
 }
 
 function PlainPrice(props: ListingPriceProps): ReactElement {
