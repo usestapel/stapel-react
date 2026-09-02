@@ -1,11 +1,11 @@
 {
   "$generated": "hand-authored, not scripts/gen-manifest.mjs (that driver derives backend.contract from a sibling Django module's docs/schema.json + pyproject.toml; stapel-attributes is an L1 library with NO HTTP surface and emits neither — see backend below)",
   "package": "@stapel/attributes-react",
-  "version": "0.5.0",
+  "version": "0.11.0",
   "backend": {
     "module": "stapel-attributes",
     "kind": "L1 library, no HTTP surface",
-    "contract": ">=0.6 <0.7",
+    "contract": ">=0.8.2 <0.9",
     "pin": "stapel-attributes 0.6.0. No docs/schema.json exists to generate against (no HTTP surface), but 0.5.0 adds a canon that IS generated from: docs/feature-def.schema.json emits src/generated/featureDef.ts through scripts/gen-feature-def.mjs (pnpm gen:feature-def, under gen:check), and tests/golden/rules/ is copied into test/fixtures/rules-corpus/ by scripts/gen-rules-corpus.mjs (pnpm gen:rules) so test/rules.golden.test.ts runs the SAME cases Python records: 59 state cases and 10 pipeline cases inlined into index.json, plus the generated imported set of 0.5.1 (imported/{prose,values-by-group}.json, copied byte for byte) - 3890 distinct rules at both polarities, 7780 frames, 15730 feature-state expectations, with a shape gate that all five effects appear and that the two frames of a pair differ on the rule-bearing feature. 0.6.0 adds the thirteenth builtin type, the composite `group` (a list of rows of child feature definitions), and its GroupConfig/GroupRepeat shapes to the canon. The other pinned artefacts are test/fixtures/attributes-registry.json (the thirteen builtin types) and the ValidationErrorCode vocabulary (sixteen codes, invalid_rules new in 0.5.0), both from the engine's own tests/golden/ corpora and asserted by test/contract.test.ts. test/configKeys.test.ts additionally pins the per-type CONFIG key surface: every key the validation mirror reads must reach a control."
   },
   "layers": [
