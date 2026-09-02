@@ -38,7 +38,7 @@ export function searchResponse(
       candidates: 25,
       counted: ["brand", "condition"],
       skipped: [],
-      core_ranges: ["price"],
+      dropped_filters: [], core_ranges: ["price"],
     },
     facet_labels: {
       condition: {
@@ -257,6 +257,7 @@ export function legacySearchResponse(
     candidates: 43,
     counted: Object.keys(facets),
     skipped: [],
+    dropped_filters: [],
   };
   return { ...rest, facet_meta: meta } as SearchResponse;
 }

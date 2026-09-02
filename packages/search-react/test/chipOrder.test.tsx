@@ -59,7 +59,7 @@ function specsFor(
       candidates: options.barren === true ? 0 : 43,
       counted: Object.keys(PHONE_FACETS),
       skipped: [],
-      core_ranges: [...coreRanges],
+      dropped_filters: [], core_ranges: [...coreRanges],
     },
     state,
     categoryFeatures: PHONE_RANGE_FEATURES,

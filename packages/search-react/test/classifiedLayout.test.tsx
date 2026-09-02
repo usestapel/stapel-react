@@ -56,7 +56,7 @@ function server(): ReturnType<typeof mockServer> {
           approximate: false,
           candidates: 25,
           counted: ["condition", "brand"],
-          skipped: [], core_ranges: [],
+          skipped: [], dropped_filters: [], core_ranges: [],
         },
       }),
     },

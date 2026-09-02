@@ -36,7 +36,7 @@ describe("drill-down: a facet is counted with its own filter removed", () => {
     // reshuffled by count is a size chart that moves on every click.
     const groups = buildFacetGroups({
       facets: { brand: { makita: 9, bosch: 12, interskol: 0 } },
-      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [] },
       state: stateOf("type=listing"),
       categoryFeatures: FEATURES,
     });
@@ -50,7 +50,7 @@ describe("drill-down: a facet is counted with its own filter removed", () => {
   it("orders an unlabelled (open) set by count", () => {
     const groups = buildFacetGroups({
       facets: { colour: { red: 2, blue: 9, green: 5 } },
-      meta: { approximate: false, candidates: 16, counted: ["colour"], skipped: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 16, counted: ["colour"], skipped: [], dropped_filters: [], core_ranges: [] },
       state: stateOf("type=listing"),
     });
     expect(groups[0]?.options.map((o) => o.value)).toEqual(["blue", "green", "red"]);
@@ -65,7 +65,7 @@ describe("a skipped slug says 'not counted', never 0", () => {
         approximate: false,
         candidates: 12,
         counted: ["brand"],
-        skipped: ["power_w"], core_ranges: [],
+        skipped: ["power_w"], dropped_filters: [], core_ranges: [],
       },
       state: stateOf("type=listing&f.power_w=750"),
     });
@@ -80,7 +80,7 @@ describe("a skipped slug says 'not counted', never 0", () => {
     // Otherwise the filter is a constraint with no control to remove it.
     const groups = buildFacetGroups({
       facets: {},
-      meta: { approximate: false, candidates: 0, counted: [], skipped: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [] },
       state: stateOf("type=listing&f.brand=bosch"),
       categoryFeatures: FEATURES,
     });
@@ -102,7 +102,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 12,
         counted: ["brand"],
-        skipped: ["condition"], core_ranges: [],
+        skipped: ["condition"], dropped_filters: [], core_ranges: [],
       },
       state: stateOf("type=listing"),
       categoryFeatures: FEATURES,
@@ -124,7 +124,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 3,
         counted: [],
-        skipped: ["condition"], core_ranges: [],
+        skipped: ["condition"], dropped_filters: [], core_ranges: [],
       },
       state: stateOf("type=listing&f.condition=used"),
       categoryFeatures: FEATURES,
@@ -145,7 +145,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 4,
         counted: [],
-        skipped: ["make_ref"], core_ranges: [],
+        skipped: ["make_ref"], dropped_filters: [], core_ranges: [],
       },
       state: stateOf("type=listing"),
       categoryFeatures: [
@@ -166,7 +166,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 4,
         counted: [],
-        skipped: ["colour"], core_ranges: [],
+        skipped: ["colour"], dropped_filters: [], core_ranges: [],
       },
       state: stateOf("type=listing"),
       facetLabels: {
@@ -193,7 +193,7 @@ describe("labels come from the category schema (@stapel/attributes-react)", () =
   it("resolves the group name and the option captions", () => {
     const groups = buildFacetGroups({
       facets: { brand: { bosch: 12, makita: 9 } },
-      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [] },
       state: stateOf("type=listing"),
       categoryFeatures: FEATURES,
       t,
@@ -206,7 +206,7 @@ describe("labels come from the category schema (@stapel/attributes-react)", () =
     // No labels invented: raw values are the honest answer, blanks are not.
     const groups = buildFacetGroups({
       facets: { brand: { bosch: 12 } },
-      meta: { approximate: false, candidates: 12, counted: ["brand"], skipped: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 12, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [] },
       state: stateOf("type=listing"),
     });
     expect(groups[0]?.label).toBe("brand");
@@ -244,7 +244,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: true,
             candidates: 15000,
             counted: ["brand"],
-            skipped: ["power_w", "colour"], core_ranges: [],
+            skipped: ["power_w", "colour"], dropped_filters: [], core_ranges: [],
           },
         }),
       },
@@ -274,7 +274,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: true,
             candidates: 15000,
             counted: ["brand"],
-            skipped: ["power_w", "colour"], core_ranges: [],
+            skipped: ["power_w", "colour"], dropped_filters: [], core_ranges: [],
           },
         }),
       },
@@ -299,7 +299,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: false,
             candidates: 12,
             counted: ["brand"],
-            skipped: [], core_ranges: [],
+            skipped: [], dropped_filters: [], core_ranges: [],
           },
         }),
       },
@@ -326,7 +326,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: false,
             candidates: 12,
             counted: ["brand"],
-            skipped: ["power_w"], core_ranges: [],
+            skipped: ["power_w"], dropped_filters: [], core_ranges: [],
           },
         }),
       },
@@ -362,7 +362,7 @@ describe("the panel renders the server's honesty flags", () => {
       "/query": {
         body: searchResponse({
           facets: {},
-          facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], core_ranges: [] },
+          facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [] },
         }),
       },
     });

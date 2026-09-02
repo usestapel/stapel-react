@@ -67,7 +67,7 @@ const SERVER = mockServer({
         candidates: 16,
         counted: ["brand"],
         skipped: [],
-        core_ranges: [],
+        dropped_filters: [], core_ranges: [],
       },
     }),
   },
