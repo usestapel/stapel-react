@@ -325,6 +325,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories/api/v1/categories/by-slug/{slug}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Retrieve one category by its slug. `slug` is unique, so this is an alternate primary key, not a search.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_v1_categories_by_slug_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/categories/api/v1/categories/carousel/": {
         parameters: {
             query?: never;
@@ -389,6 +410,27 @@ export interface paths {
          *     **Permissions:** `ReadOnlyOrStaff`
          */
         get: operations["categories_api_v1_categories_revision_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/v1/categories/roots/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Top-level categories (no parent), sorted by tn_priority descending. The entry point of the tree, without the whole table.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_v1_categories_roots_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -641,15 +683,28 @@ export interface components {
             /** @description List of created/updated object IDs */
             updated_ids: string[];
         };
-        /** @description Category serializer with feature references and revision tracking. */
+        /**
+         * @description The PUBLIC category projection — every anonymous read serves this.
+         *
+         *     List, detail, ``children``, ``roots``, ``carousel`` and ``by-slug`` all
+         *     answer to strangers (the whole surface is ``ReadOnlyOrStaff``), so which
+         *     keys ride here is a disclosure decision. ``external_id`` /
+         *     ``external_source`` do NOT: they are the source catalogue's own node ids,
+         *     stamped by ``load_catalog`` so a re-import can find its rows again — an
+         *     operator fact. A stand that imported a competitor's catalogue was serving
+         *     that catalogue's internal numbering to anyone with curl, one key per row.
+         *     Provenance lives on the staff surfaces only: the Django admin, the
+         *     staff-gated bulk serializer, and :class:`CategoryStaffSerializer` on the
+         *     write actions.
+         *
+         *     The exact key set is frozen by ``test_public_read.
+         *     PUBLIC_CATEGORY_KEYS`` — adding a field here is a conscious act that
+         *     extends that contract in the same commit.
+         */
         Category: {
             readonly id: number;
             name: string;
             slug: string;
-            /** @description Identifier in the source catalogue this category was imported from. */
-            external_id?: string;
-            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
-            external_source?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -728,6 +783,50 @@ export interface components {
             parent_id?: number | null;
             /** @description Tree node priority (for add/reorder) */
             priority?: number;
+        };
+        /**
+         * @description The public projection plus provenance — staff writes only.
+         *
+         *     ``create``/``update``/``partial_update`` are gated by ``ReadOnlyOrStaff``,
+         *     and an operator hand-fixing an imported row legitimately needs to see and
+         *     set ``external_id``/``external_source`` (re-pointing a row at its source
+         *     node is how a botched match is repaired). Extending the public class keeps
+         *     the two projections structurally one serializer: a field added to the
+         *     public set is automatically part of this one, and this one can never lose
+         *     a public field silently.
+         */
+        CategoryStaff: {
+            readonly id: number;
+            name: string;
+            slug: string;
+            /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
+            catalog_icon?: string;
+            /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
+            carousel_icon?: string;
+            /** @description Whether this category appears in the carousel */
+            carousel_enabled?: boolean;
+            /** @description Whether this category is active */
+            active?: boolean;
+            readonly features: number[];
+            /** @description If True, category name is a translation key */
+            translatable?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks: string;
+            /** Children pks */
+            readonly tn_children_pks: string;
+            readonly revision: number;
+            deleted?: boolean;
+            /** @description Identifier in the source catalogue this category was imported from. */
+            external_id?: string;
+            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
+            external_source?: string;
         };
         /**
          * @description * `keep` - keep
@@ -984,7 +1083,7 @@ export interface components {
             /** @description Form section; sections order by first appearance. */
             group?: string;
         };
-        FeatureConfig: components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"] | components["schemas"]["ConvertibleUnitConfig"] | components["schemas"]["RefSelectConfig"] | components["schemas"]["RefHierarchicalSelectConfig"] | components["schemas"]["GroupConfig"];
+        FeatureConfig: components["schemas"]["RefSelectConfig"] | components["schemas"]["IntConfig"] | components["schemas"]["FloatConfig"] | components["schemas"]["StringConfig"] | components["schemas"]["BoolConfig"] | components["schemas"]["HexColorConfig"] | components["schemas"]["SelectConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["HeaderConfig"] | components["schemas"]["HierarchicalSelectConfig"] | components["schemas"]["ConvertibleUnitConfig"] | components["schemas"]["RefHierarchicalSelectConfig"] | components["schemas"]["GroupConfig"];
         FeatureConvertType: {
             /** @description New config after conversion */
             config: Omit<components["schemas"]["FeatureConfig"], "type">;
@@ -1069,7 +1168,7 @@ export interface components {
             /** Parent */
             tn_parent?: number | null;
         };
-        FeatureDto: components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefSelectDto"] | components["schemas"]["RefHierarchicalSelectDto"] | components["schemas"]["GroupDto"];
+        FeatureDto: components["schemas"]["RefSelectDto"] | components["schemas"]["IntDto"] | components["schemas"]["FloatDto"] | components["schemas"]["StringDto"] | components["schemas"]["BoolDto"] | components["schemas"]["HexColorDto"] | components["schemas"]["SelectDto"] | components["schemas"]["DateDto"] | components["schemas"]["HeaderDto"] | components["schemas"]["HierarchicalSelectDto"] | components["schemas"]["ConvertibleUnitDto"] | components["schemas"]["RefHierarchicalSelectDto"] | components["schemas"]["GroupDto"];
         /** @description Request payload for applying feature editor changes. */
         FeatureEditorApply: {
             features: components["schemas"]["FeatureEditorItem"][];
@@ -1357,6 +1456,7 @@ export interface components {
             postfix1000?: string | null;
             placeholder?: string | null;
             precision?: number;
+            optionsRef?: components["schemas"]["OptionsRef"] | null;
         };
         /** @description Serializer for integer feature DTO. */
         IntDto: {
@@ -1433,15 +1533,21 @@ export interface components {
             };
             results: components["schemas"]["FeatureCompact"][];
         };
-        /** @description Category serializer with feature references and revision tracking. */
-        PatchedCategory: {
+        /**
+         * @description The public projection plus provenance — staff writes only.
+         *
+         *     ``create``/``update``/``partial_update`` are gated by ``ReadOnlyOrStaff``,
+         *     and an operator hand-fixing an imported row legitimately needs to see and
+         *     set ``external_id``/``external_source`` (re-pointing a row at its source
+         *     node is how a botched match is repaired). Extending the public class keeps
+         *     the two projections structurally one serializer: a field added to the
+         *     public set is automatically part of this one, and this one can never lose
+         *     a public field silently.
+         */
+        PatchedCategoryStaff: {
             readonly id?: number;
             name?: string;
             slug?: string;
-            /** @description Identifier in the source catalogue this category was imported from. */
-            external_id?: string;
-            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
-            external_source?: string;
             /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
             catalog_icon?: string;
             /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
@@ -1466,6 +1572,10 @@ export interface components {
             readonly tn_children_pks?: string;
             readonly revision?: number;
             deleted?: boolean;
+            /** @description Identifier in the source catalogue this category was imported from. */
+            external_id?: string;
+            /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
+            external_source?: string;
         };
         /** @description Serializer for creating/updating features with polymorphic config. */
         PatchedFeatureCreateUpdate: {
@@ -1824,9 +1934,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Category"];
-                "application/x-www-form-urlencoded": components["schemas"]["Category"];
-                "multipart/form-data": components["schemas"]["Category"];
+                "application/json": components["schemas"]["CategoryStaff"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryStaff"];
+                "multipart/form-data": components["schemas"]["CategoryStaff"];
             };
         };
         responses: {
@@ -1835,7 +1945,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Category"];
+                    "application/json": components["schemas"]["CategoryStaff"];
                 };
             };
         };
@@ -1874,9 +1984,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Category"];
-                "application/x-www-form-urlencoded": components["schemas"]["Category"];
-                "multipart/form-data": components["schemas"]["Category"];
+                "application/json": components["schemas"]["CategoryStaff"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryStaff"];
+                "multipart/form-data": components["schemas"]["CategoryStaff"];
             };
         };
         responses: {
@@ -1885,7 +1995,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Category"];
+                    "application/json": components["schemas"]["CategoryStaff"];
                 };
             };
         };
@@ -1923,9 +2033,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedCategory"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedCategory"];
-                "multipart/form-data": components["schemas"]["PatchedCategory"];
+                "application/json": components["schemas"]["PatchedCategoryStaff"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCategoryStaff"];
+                "multipart/form-data": components["schemas"]["PatchedCategoryStaff"];
             };
         };
         responses: {
@@ -1934,7 +2044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Category"];
+                    "application/json": components["schemas"]["CategoryStaff"];
                 };
             };
         };
@@ -2233,6 +2343,37 @@ export interface operations {
             };
         };
     };
+    categories_api_v1_categories_by_slug_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     categories_api_v1_categories_carousel_list: {
         parameters: {
             query?: never;
@@ -2289,6 +2430,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MaxRevision"];
+                };
+            };
+        };
+    };
+    categories_api_v1_categories_roots_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"][];
                 };
             };
         };

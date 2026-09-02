@@ -109,8 +109,8 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
 });
 
 describe("ownership of the twenty un-catalogued keys", () => {
-  it("the pair authors its own eight in ru and es", () => {
-    expect(CATEGORIES_OWNED).toHaveLength(8);
+  it("the pair authors its own nine in ru and es", () => {
+    expect(CATEGORIES_OWNED).toHaveLength(9);
     for (const code of CATEGORIES_OWNED) {
       expect(categoriesI18nBundleRu[code], code).toBeTruthy();
       expect(categoriesI18nBundleEs[code], code).toBeTruthy();

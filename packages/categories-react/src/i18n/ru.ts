@@ -52,6 +52,8 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "error.400.categories_invalid_conversion":
     "Недопустимое преобразование типа (поддерживается только select ↔ string).",
   "error.400.categories_not_deleted": "Категория не удалена.",
+  "error.404.categories_slug_not_found":
+    "Категория со слагом «{slug}» не найдена.",
   "error.409.categories_feature_editor_conflict":
     "Категорию изменил другой редактор (ожидалась ревизия {expected}, сейчас {actual}); перезагрузите страницу и повторите.",
 

@@ -106,9 +106,11 @@ describe("the API surface is the PUBLIC half of the contract", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
-    // 63 since stapel-categories 0.7.0: the embedded stapel_attributes
-    // registry gained error.400.feature_invalid_rules with the rule grammar.
-    expect(CATEGORIES_ERROR_CODES.length).toBe(63);
+    // 64 since stapel-categories 0.14.0 (the pin catch-up): the by-slug
+    // lookup brought error.404.categories_slug_not_found; before that, 63
+    // since 0.7.0, when the embedded stapel_attributes registry gained
+    // error.400.feature_invalid_rules with the rule grammar.
+    expect(CATEGORIES_ERROR_CODES.length).toBe(64);
     expect(CATEGORIES_ERROR_CODES).toContain("error.400.feature_invalid_rules");
     for (const code of CATEGORIES_ERROR_CODES) {
       expect(explainCategoriesError(code)).toBeTruthy();

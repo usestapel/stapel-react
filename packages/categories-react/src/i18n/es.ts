@@ -36,6 +36,8 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "error.400.categories_invalid_conversion":
     "Conversión de tipo no válida (solo se admite select ↔ string).",
   "error.400.categories_not_deleted": "La categoría no está eliminada.",
+  "error.404.categories_slug_not_found":
+    "No existe ninguna categoría con el slug «{slug}».",
   "error.409.categories_feature_editor_conflict":
     "Otro editor modificó la categoría (se esperaba la revisión {expected}, ahora {actual}); recarga y vuelve a intentarlo.",
 
