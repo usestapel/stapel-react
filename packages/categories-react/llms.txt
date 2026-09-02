@@ -1,6 +1,6 @@
 # @stapel/categories-react 0.12.0
 
-Headless React flow pair for stapel-categories (contract >=0.14 <0.15) — business + state, zero visual opinion.
+Headless React flow pair for stapel-categories (contract >=0.11 <0.12) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -23,7 +23,6 @@ Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/categories/api/v1/`.
 - categories_api_v1_categories_bulk_add_create: POST /categories/bulk_add/
 - categories_api_v1_categories_bulk_commands_create: POST /categories/bulk-commands/
-- categories_api_v1_categories_by_slug_retrieve: GET /categories/by-slug/{slug}/
 - categories_api_v1_categories_carousel_list: GET /categories/carousel/
 - categories_api_v1_categories_children_list: GET /categories/{id}/children/
 - categories_api_v1_categories_create: POST /categories/
@@ -38,7 +37,6 @@ Paths are relative to `/categories/api/v1/`.
 - categories_api_v1_categories_partial_update: PATCH /categories/{id}/
 - categories_api_v1_categories_retrieve: GET /categories/{id}/
 - categories_api_v1_categories_revision_retrieve: GET /categories/revision/
-- categories_api_v1_categories_roots_list: GET /categories/roots/
 - categories_api_v1_categories_undelete_create: POST /categories/{id}/undelete/
 - categories_api_v1_categories_update: PUT /categories/{id}/
 - categories_api_v1_categories_validate_configs_retrieve: GET /categories/{id}/validate-configs/

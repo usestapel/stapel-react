@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.10 <0.11"
@@ -762,6 +762,9 @@
     "search.facets.empty",
     "search.facets.load_failed",
     "search.facets.loading",
+    "search.facets.match_count",
+    "search.facets.match_count.one",
+    "search.facets.match_count.other",
     "search.facets.not_counted",
     "search.facets.range_apply",
     "search.facets.range_clear",
@@ -770,6 +773,8 @@
     "search.facets.range_invalid",
     "search.facets.range_to",
     "search.facets.range_to_aria",
+    "search.facets.search",
+    "search.facets.search_empty",
     "search.facets.show_all",
     "search.facets.show_less",
     "search.facets.skipped",

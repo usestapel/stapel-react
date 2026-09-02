@@ -724,6 +724,7 @@
     "chat.presence.last_seen",
     "chat.presence.online",
     "chat.presence.unknown",
+    "chat.split.empty",
     "chat.start.blocked.mandate_unknown",
     "chat.start.blocked.self",
     "chat.start.blocked.sign_in",
