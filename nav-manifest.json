@@ -236,7 +236,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "entries": [
         {
           "id": "categories.catalog",
@@ -310,7 +310,7 @@
     },
     {
       "package": "@stapel/docs-react",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "entries": [
         {
           "id": "docs.files",
@@ -354,7 +354,7 @@
     },
     {
       "package": "@stapel/drive-react",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "entries": [
         {
           "id": "drive.home",
@@ -510,7 +510,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.15.0",
+      "version": "0.15.1",
       "entries": [
         {
           "id": "listings.detail",

@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/docs-react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "demos": [
     {
       "id": "docs.breadcrumbs",
@@ -372,7 +372,7 @@
       ],
       "source": {
         "file": "demo/richEditors.demo.tsx",
-        "line": 72
+        "line": 97
       }
     },
     {
