@@ -66,9 +66,9 @@
   },
   "size-limit": [
     {
-      "name": "index — headless docs pair (client + hooks + editor registry + builtins + i18n)",
+      "name": "index — headless docs pair (client + hooks + editor registry + builtins + i18n). 12 -> 12.5 KB when the revision surfaces gained their `enabled` gate (0.9.1): a closed <RevisionsModal/> now costs zero requests, and the two optional options bags that buy it measure 12004 B against a 12000 B line — a budget that fails on 4 B of a shipped fix is a gate proving nothing, so it is raised deliberately rather than worked around at the call site.",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "12.5 KB"
     },
     {
       "name": "default — the file-manager/editor skin (antd) must stay out of the main bundle",

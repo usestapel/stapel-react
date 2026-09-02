@@ -35,12 +35,19 @@ export interface RevisionHistoryBag {
  *   {({ state, restore }) => matchList(state, { loading, failed, empty, ready })}
  * </RevisionHistory>
  * ```
+ *
+ * `enabled` (default true) holds the READ back while the surface drawing it
+ * is mounted but not shown — a closed dialog reads nothing. The writes are
+ * unaffected: a mutation only fires when something calls it.
  */
 export function RevisionHistory(props: {
   documentId: string;
+  enabled?: boolean;
   children: (bag: RevisionHistoryBag) => ReactNode;
 }): ReactNode {
-  const query = useRevisions(props.documentId);
+  const query = useRevisions(props.documentId, {
+    enabled: props.enabled ?? true,
+  });
   const createMutation = useCreateRevision(props.documentId);
   const restoreMutation = useRestoreRevision(props.documentId);
   return props.children({

@@ -72,16 +72,22 @@ export function useDocuments(
   });
 }
 
-/** A single document head by id (`head_seq`, `editor_hint`, metadata…). */
+/** A single document head by id (`head_seq`, `editor_hint`, metadata…).
+ *
+ * `options.enabled` is what lets a surface that is MOUNTED but not yet shown
+ * cost nothing — a closed dialog, a collapsed pane. Default true: a caller
+ * that says nothing keeps the old behavior. */
 export function useDocument(
-  documentId: string
+  documentId: string,
+  options?: { readonly enabled?: boolean }
 ): UseQueryResult<DocDocument, StapelApiError> {
   const api = useDocsApi();
   const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: docsQueryKeys.document(documentId),
     queryFn: () => api.getDocument(documentId),
-    enabled: sessionReady && documentId.length > 0,
+    enabled:
+      sessionReady && documentId.length > 0 && (options?.enabled ?? true),
   });
 }
 
@@ -122,14 +128,16 @@ export function useDocumentContent(
 
 /** The document's named + automatic revisions. */
 export function useRevisions(
-  documentId: string
+  documentId: string,
+  options?: { readonly enabled?: boolean }
 ): UseQueryResult<DocRevision[], StapelApiError> {
   const api = useDocsApi();
   const sessionReady = useActiveSessionReady();
   return useQuery({
     queryKey: docsQueryKeys.revisions(documentId),
     queryFn: () => api.listRevisions(documentId),
-    enabled: sessionReady && documentId.length > 0,
+    enabled:
+      sessionReady && documentId.length > 0 && (options?.enabled ?? true),
   });
 }
 

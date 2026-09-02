@@ -150,7 +150,11 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
   const t = useT();
   const { locale } = useI18n();
   const api = useDocsApi();
-  const documentQuery = useDocument(props.documentId);
+  // A modal a host mounted beside a row but nobody opened reads NOTHING
+  // (upstream tail of the drive wave): both reads are gated on `open`.
+  const documentQuery = useDocument(props.documentId, {
+    enabled: props.open,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pinName, setPinName] = useState("");
   const [rollbackTo, setRollbackTo] = useState<DocRevision | null>(null);
@@ -203,7 +207,7 @@ export function RevisionsModal(props: RevisionsModalProps): ReactElement {
           props.onClose();
         }}
       >
-        <RevisionHistory documentId={props.documentId}>
+        <RevisionHistory documentId={props.documentId} enabled={props.open}>
           {({
             state,
             createRevision,
