@@ -1,0 +1,119 @@
+# @stapel/drive-react 0.0.0
+
+Headless React flow pair for stapel-docs (contract >=0.5 <0.6) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <DriveProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainDriveError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from driveQueryKeys.
+- User strings = i18n keys (registerDriveI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/docs/api/v1/`.
+- docs_api_v1_documents_content_retrieve: GET /documents/{document_id}/content
+- docs_api_v1_documents_content_update: PUT /documents/{document_id}/content
+- docs_api_v1_documents_create: POST /documents
+- docs_api_v1_documents_destroy: DELETE /documents/{document_id}
+- docs_api_v1_documents_download_retrieve: GET /documents/{document_id}/download
+- docs_api_v1_documents_export_retrieve: GET /documents/{document_id}/export
+- docs_api_v1_documents_list: GET /documents
+- docs_api_v1_documents_partial_update: PATCH /documents/{document_id}
+- docs_api_v1_documents_restore_create: POST /documents/{document_id}/restore
+- docs_api_v1_documents_retrieve: GET /documents/{document_id}
+- docs_api_v1_documents_revisions_content_retrieve: GET /documents/{document_id}/revisions/{revision_id}/content
+- docs_api_v1_documents_revisions_create: POST /documents/{document_id}/revisions
+- docs_api_v1_documents_revisions_download_retrieve: GET /documents/{document_id}/revisions/{revision_id}/download
+- docs_api_v1_documents_revisions_list: GET /documents/{document_id}/revisions
+- docs_api_v1_documents_revisions_restore_create: POST /documents/{document_id}/revisions/{revision_id}/restore
+- docs_api_v1_documents_star_create: POST /documents/{document_id}/star
+- docs_api_v1_documents_star_destroy: DELETE /documents/{document_id}/star
+- docs_api_v1_documents_thumbnail_retrieve: GET /documents/{document_id}/thumbnail
+- docs_api_v1_documents_updates_create: POST /documents/{document_id}/updates
+- docs_api_v1_documents_updates_retrieve: GET /documents/{document_id}/updates
+- docs_api_v1_folders_create: POST /folders
+- docs_api_v1_folders_destroy: DELETE /folders/{folder_id}
+- docs_api_v1_folders_list: GET /folders
+- docs_api_v1_folders_partial_update: PATCH /folders/{folder_id}
+- docs_api_v1_folders_restore_create: POST /folders/{folder_id}/restore
+- docs_api_v1_folders_retrieve: GET /folders/{folder_id}
+- docs_api_v1_folders_star_create: POST /folders/{folder_id}/star
+- docs_api_v1_folders_star_destroy: DELETE /folders/{folder_id}/star
+- docs_api_v1_recents_list: GET /recents
+- docs_api_v1_search_list: GET /search
+- docs_api_v1_starred_retrieve: GET /starred
+- docs_api_v1_trash_empty_create: POST /trash/empty
+- docs_api_v1_trash_retrieve: GET /trash
+- docs_api_v1_uploads_create: POST /uploads
+- docs_api_v1_uploads_finalize_create: POST /uploads/{upload_id}/finalize
+
+## Query hooks (server state; keys come only from the key factory)
+- useDriveSearch (query) → search
+- useFolderChildren (query) → listFolderChildren
+- useRecents (query) → listRecents
+- useStarred (query) → listStarred
+- useToggleStar (mutation) → setStar
+
+## Errors (render t(code, params); UX from remediation)
+77 keys (full catalog: manifest.json §errors). By remediation: fix_input 34 · retry 30 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- drive.breadcrumbs → <DriveBreadcrumbBar> [default|root|loading]  demo/DriveBreadcrumbBar.demo.tsx
+- drive.recents → <RecentsPane> [default|empty]  demo/RecentsPane.demo.tsx
+- drive.rowActions → <DriveRowActions> [default|folder]  demo/DriveRowActions.demo.tsx
+- drive.screen → <DriveScreen> [default|uploading|quotaExceeded|emptyFolder|starred|recents|searchResults|desktop]  demo/DriveScreen.demo.tsx
+- drive.search → <DriveSearchField> [default|noResults|failed]  demo/DriveSearchField.demo.tsx
+- drive.starred → <StarredPane> [default|empty|failed]  demo/StarredPane.demo.tsx
+- drive.thumbnail → <DriveThumbnail> [default|pdf|sheet]  demo/DriveThumbnail.demo.tsx
+- drive.trash → <DriveTrashPane> [default|empty]  demo/DriveTrashPane.demo.tsx
+- drive.uploadTray → <UploadTrayPanel> [default|failed|quota|empty]  demo/UploadTrayPanel.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainDriveError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

@@ -1,0 +1,130 @@
+{
+  "name": "@stapel/drive-react",
+  "version": "0.0.0",
+  "description": "Phone-first Drive product over stapel-docs 0.5: starred / recents / name search / thumbnails, an upload queue with real per-file progress (XHR PUT, concurrency 2, quota-507 state), folder navigation one rung per request, and an antd skin behind /default. Composes @stapel/docs-react as a peer; duplicates none of it.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/drive-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
+    "./nav-manifest": "./nav-manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "manifest.json",
+    "nav-manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — headless drive pair (the five new operations + hooks + bags + the en key table). Budgeted at the measured 6.6 KB plus headroom, not at a sibling's 12: a budget nothing can reach is not a gate. The docs pair it composes is a PEER and is ignored — measuring it here would report a number no change to this package can move.",
+      "path": "dist/index.js",
+      "limit": "8 KB",
+      "ignore": [
+        "@stapel/docs-react"
+      ]
+    },
+    {
+      "name": "default — the phone-first product skin (antd + the token bridge) must stay out of the main bundle. Measured 10.2 KB; the headroom is for the share sheet the docs 0.6.0 slice adds, and nothing else.",
+      "path": "dist/default/index.js",
+      "limit": "14 KB",
+      "ignore": [
+        "@stapel/docs-react",
+        "@stapel/docs-react/default"
+      ]
+    },
+    {
+      "name": "i18n/ru subpath (opt-in locale: the ru UI copy + the generated ru error texts)",
+      "path": "dist/i18n/ru.js",
+      "limit": "5 KB"
+    },
+    {
+      "name": "i18n/es subpath (opt-in locale: the es UI copy + the generated es error texts)",
+      "path": "dist/i18n/es.js",
+      "limit": "4 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.22.0 <1.0.0",
+    "@stapel/docs-react": ">=0.5.0",
+    "@stapel/tokens": ">=0.6.0",
+    "@stapel/tokens-antd": ">=0.11.0",
+    "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens": {
+      "optional": true
+    },
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/docs-react": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@tanstack/react-query": "^5.81.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "msw": "^2.10.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

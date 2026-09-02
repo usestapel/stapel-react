@@ -1,0 +1,25 @@
+{
+  "package": "@stapel/drive-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "drive.home",
+      "labelKey": "drive.nav.drive",
+      "icon": "FolderOpenOutlined",
+      "route": {
+        "path": "/drive"
+      },
+      "component": {
+        "export": "DriveScreen",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 32
+    }
+  ]
+}

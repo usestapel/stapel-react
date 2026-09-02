@@ -1,0 +1,61 @@
+// Shared per-package vitest setup (jsdom suites) — the fleet's copy.
+//
+// Full CI runs every package's suite in parallel under turbo; on a loaded
+// machine testing-library's default 1s `waitFor` budget flakes even though the
+// awaited state always arrives. Raising `asyncUtilTimeout` removes the timing
+// assumption without slowing green tests.
+import { afterEach } from "vitest";
+import { cleanup, configure } from "@testing-library/react";
+
+configure({ asyncUtilTimeout: 10_000 });
+
+// vitest runs without injected globals, so testing-library's automatic
+// afterEach cleanup never registers — do it explicitly. Without it every
+// component a file renders stays mounted for the whole file, and antd's
+// timers/frames keep firing into the environment teardown.
+afterEach(() => {
+  cleanup();
+});
+
+// jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the §54
+// default-skin suite) reads both on mount.
+//
+// `matches` is EVALUATED, not hard-coded false. A blanket `false` is not a
+// neutral stub: `@stapel/tokens-antd/skin` picks a bottom sheet over a modal
+// by asking `(min-width: 768px)`, so a stub that answers "no" to every query
+// silently declares every test viewport a phone — jsdom's own window is
+// 1024x768, i.e. a desktop. A getter, not a snapshot, so a test that sets
+// `window.innerWidth` before rendering gets the surface it asked for.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  window.matchMedia = ((query: string) => {
+    const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    return {
+      get matches(): boolean {
+        return min === null ? false : window.innerWidth >= Number(min[1]);
+      },
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    } as unknown as MediaQueryList;
+  }) as typeof window.matchMedia;
+}
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}
+
+// jsdom throws "Not implemented" when getComputedStyle is called with a
+// pseudo-element arg — Ant Design v6 does exactly that on some component
+// mounts. Drop the second arg and delegate to jsdom's real one-arg version.
+if (typeof window !== "undefined" && typeof window.getComputedStyle === "function") {
+  const realGetComputedStyle = window.getComputedStyle.bind(window);
+  window.getComputedStyle = ((elt: Element) =>
+    realGetComputedStyle(elt)) as typeof window.getComputedStyle;
+}

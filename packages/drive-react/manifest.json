@@ -1,0 +1,1082 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/drive-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-docs",
+    "contract": ">=0.5 <0.6"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "docs_api_v1_documents_content_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/content",
+      "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_content_update": {
+      "method": "PUT",
+      "path": "/docs/api/v1/documents/{document_id}/content",
+      "tag": "Docs / content",
+      "request": null,
+      "response": "SaveResultDTO"
+    },
+    "docs_api_v1_documents_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents",
+      "tag": "Docs / documents",
+      "request": "DocumentCreate",
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_download_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/download",
+      "tag": "Docs / content",
+      "request": null,
+      "response": "DownloadUrlDTO"
+    },
+    "docs_api_v1_documents_export_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/export",
+      "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_partial_update": {
+      "method": "PATCH",
+      "path": "/docs/api/v1/documents/{document_id}",
+      "tag": "Docs / documents",
+      "request": "PatchedDocumentPatch",
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_restore_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/restore",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}",
+      "tag": "Docs / documents",
+      "request": null,
+      "response": "DocumentPresenterDTO"
+    },
+    "docs_api_v1_documents_revisions_content_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/content",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_revisions_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/revisions",
+      "tag": "Docs / revisions",
+      "request": "NamedRevision",
+      "response": "RevisionPresenterDTO"
+    },
+    "docs_api_v1_documents_revisions_download_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/download",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": "DownloadUrlDTO"
+    },
+    "docs_api_v1_documents_revisions_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/revisions",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_revisions_restore_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/revisions/{revision_id}/restore",
+      "tag": "Docs / revisions",
+      "request": null,
+      "response": "SaveResultDTO"
+    },
+    "docs_api_v1_documents_star_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/star",
+      "tag": "Docs / starred",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_star_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/documents/{document_id}/star",
+      "tag": "Docs / starred",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_thumbnail_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/thumbnail",
+      "tag": "Docs / content",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_documents_updates_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/documents/{document_id}/updates",
+      "tag": "Docs / updates",
+      "request": "UpdatesAppend",
+      "response": "AppendResultDTO"
+    },
+    "docs_api_v1_documents_updates_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/documents/{document_id}/updates",
+      "tag": "Docs / updates",
+      "request": null,
+      "response": "UpdatesFeedDTO"
+    },
+    "docs_api_v1_folders_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/folders",
+      "tag": "Docs / folders",
+      "request": "FolderCreate",
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/folders/{folder_id}",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_folders_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/folders",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_folders_partial_update": {
+      "method": "PATCH",
+      "path": "/docs/api/v1/folders/{folder_id}",
+      "tag": "Docs / folders",
+      "request": "PatchedFolderPatch",
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_restore_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/folders/{folder_id}/restore",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/folders/{folder_id}",
+      "tag": "Docs / folders",
+      "request": null,
+      "response": "FolderPresenterDTO"
+    },
+    "docs_api_v1_folders_star_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/folders/{folder_id}/star",
+      "tag": "Docs / starred",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_folders_star_destroy": {
+      "method": "DELETE",
+      "path": "/docs/api/v1/folders/{folder_id}/star",
+      "tag": "Docs / starred",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_recents_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/recents",
+      "tag": "Docs / recents",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_search_list": {
+      "method": "GET",
+      "path": "/docs/api/v1/search",
+      "tag": "Docs / search",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_starred_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/starred",
+      "tag": "Docs / starred",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_trash_empty_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/trash/empty",
+      "tag": "Docs / trash",
+      "request": "TrashEmpty",
+      "response": "TrashPurgeResultDTO"
+    },
+    "docs_api_v1_trash_retrieve": {
+      "method": "GET",
+      "path": "/docs/api/v1/trash",
+      "tag": "Docs / trash",
+      "request": null,
+      "response": null
+    },
+    "docs_api_v1_uploads_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/uploads",
+      "tag": "Docs / uploads",
+      "request": "UploadCreate",
+      "response": "UploadTicketDTO"
+    },
+    "docs_api_v1_uploads_finalize_create": {
+      "method": "POST",
+      "path": "/docs/api/v1/uploads/{upload_id}/finalize",
+      "tag": "Docs / uploads",
+      "request": null,
+      "response": "DocumentPresenterDTO"
+    }
+  },
+  "hooks": {
+    "useDriveSearch": {
+      "kind": "query",
+      "operation": "search",
+      "queryKey": [
+        "drive",
+        "search",
+        "{params}"
+      ]
+    },
+    "useFolderChildren": {
+      "kind": "query",
+      "operation": "listFolderChildren",
+      "queryKey": [
+        "drive",
+        "children",
+        "{workspaceId}",
+        "{…}"
+      ]
+    },
+    "useRecents": {
+      "kind": "query",
+      "operation": "listRecents",
+      "queryKey": [
+        "drive",
+        "recents",
+        "{workspaceId}"
+      ]
+    },
+    "useStarred": {
+      "kind": "query",
+      "operation": "listStarred",
+      "queryKey": [
+        "drive",
+        "starred",
+        "{workspaceId}"
+      ]
+    },
+    "useToggleStar": {
+      "kind": "mutation",
+      "operation": "setStar",
+      "invalidates": [
+        [
+          "drive"
+        ]
+      ]
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.docs_bad_since": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_duplicate_name": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_export_format": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_folder_cycle": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_folder_depth": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_not_trashed": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_thumbnail_tier": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_thumbnail_unsupported": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_too_many_updates": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_too_many_uploads": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_type_not_editable": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_unknown_type": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_updates_not_crdt": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_expired": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.docs_upload_mime": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_mismatch": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_state": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.docs_upload_unmeasurable": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.docs_forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.docs_upload_owner": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_document_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_folder_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_revision_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.docs_upload_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.docs_seq_conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.412.docs_missing_if_match": {
+      "status": 412,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_body_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_export_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_update_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.docs_upload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.docs_download_url_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.docs_exporter_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.docs_thumbnails_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.docs_workspaces_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.507.docs_workspace_quota": {
+      "status": 507,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "drive.breadcrumbs",
+      "title": "Breadcrumb bar",
+      "description": "Sticky, horizontally scrolling, never wrapping onto a second line. The trail is normally FREE — descending pushes the folder that was tapped, and the row was on screen a moment ago — so browsing costs one folder read per rung. Only a cold deep link has no trail, and then the docs pair's ancestor walk answers.",
+      "component": "DriveBreadcrumbBar",
+      "covers": [
+        "DriveBreadcrumb"
+      ],
+      "variants": [
+        "default",
+        "root",
+        "loading"
+      ],
+      "source": "demo/DriveBreadcrumbBar.demo.tsx"
+    },
+    {
+      "id": "drive.recents",
+      "title": "Recent",
+      "description": "Written by the service layer on content read, download-URL issuance and accepted save — never by the client, and never by this endpoint, which only reads. Folders are absent by contract, which is why this pane draws one list rather than two with an empty half.",
+      "component": "RecentsPane",
+      "covers": [
+        "Recents"
+      ],
+      "variants": [
+        "default",
+        "empty"
+      ],
+      "source": "demo/RecentsPane.demo.tsx"
+    },
+    {
+      "id": "drive.rowActions",
+      "title": "Row actions",
+      "description": "Open, star, rename, move, download and trash, as a full-width sheet with thumb-sized rows. Every write is the docs pair's — rename and move are both a PATCH on the object, because the backend has no separate move route — and the rename/move prompts are that pair's dialogs with this pair's copy. The star is the one write this package owns.",
+      "component": "DriveRowActions",
+      "variants": [
+        "default",
+        "folder"
+      ],
+      "source": "demo/DriveRowActions.demo.tsx"
+    },
+    {
+      "id": "drive.screen",
+      "title": "Drive",
+      "description": "The whole product on one screen: a sticky path strip, one scrolling column of folders-then-files, a list/grid toggle, per-row star and overflow, the Starred/Recent/Trash tabs, and the upload tray under a FAB. On a wide window the column stops at a measure and centres — that is the entire desktop story, because the two-pane file manager already exists in @stapel/docs-react and a second one would be two screens to fix every bug in.",
+      "component": "DriveScreen",
+      "covers": [
+        "DriveProvider",
+        "DriveList",
+        "DriveGrid",
+        "DriveBreadcrumb",
+        "UploadTray",
+        "Starred",
+        "Recents",
+        "DriveSearch"
+      ],
+      "variants": [
+        "default",
+        "uploading",
+        "quotaExceeded",
+        "emptyFolder",
+        "starred",
+        "recents",
+        "searchResults",
+        "desktop"
+      ],
+      "source": "demo/DriveScreen.demo.tsx"
+    },
+    {
+      "id": "drive.search",
+      "title": "Search",
+      "description": "The delay lives in the input, not in the hook: useDriveSearch takes a finished q, so a query restored from a URL runs at once and a caller that already debounced does not pay twice. An empty box asks nothing — the backend refuses a blank q with a 400 on purpose, so 'type something' is a state and not an error.",
+      "component": "DriveSearchField",
+      "covers": [
+        "DriveSearch"
+      ],
+      "variants": [
+        "default",
+        "noResults",
+        "failed"
+      ],
+      "source": "demo/DriveSearchField.demo.tsx"
+    },
+    {
+      "id": "drive.starred",
+      "title": "Starred",
+      "description": "A star is a bookmark: the backend takes docs.view for it, both verbs answer 204 whatever the previous state was, and the icon flips before the request because the round trip is invisible only if it does. A trashed item drops out of this list but keeps its star until purge — restoring it brings the bookmark back.",
+      "component": "StarredPane",
+      "covers": [
+        "Starred"
+      ],
+      "variants": [
+        "default",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/StarredPane.demo.tsx"
+    },
+    {
+      "id": "drive.thumbnail",
+      "title": "Thumbnail",
+      "description": "An <img> at the authorized thumbnail URL — same cookie, same authorize() gate and same storage seam as the content endpoint, so the browser's cache and the ETag do the work a blob round trip would undo. Three different refusals (not an image, no Pillow, no cached entry) land on one answer, because to a thumb they mean one thing: there is no picture for this.",
+      "component": "DriveThumbnail",
+      "variants": [
+        "default",
+        "pdf",
+        "sheet"
+      ],
+      "source": "demo/DriveThumbnail.demo.tsx"
+    },
+    {
+      "id": "drive.trash",
+      "title": "Trash",
+      "description": "A thin wrapper over @stapel/docs-react's TrashPane, not a second implementation. The trash was the one drive surface that was already finished — restore, per-item delete-forever, and an Empty trash whose three off-states each say WHICH — and re-drawing it here would mean diverging on the first bug fix.",
+      "component": "DriveTrashPane",
+      "variants": [
+        "default",
+        "empty"
+      ],
+      "source": "demo/DriveTrashPane.demo.tsx"
+    },
+    {
+      "id": "drive.uploadTray",
+      "title": "Upload tray",
+      "description": "One row per file with a bar that moves because bytes moved — the presigned PUT runs over XMLHttpRequest precisely because fetch cannot report request-body progress. Two files transfer at once; the rest say 'waiting', which is the truth about a queue with concurrency 2 rather than a stalled 0%.",
+      "component": "UploadTrayPanel",
+      "variants": [
+        "default",
+        "failed",
+        "quota",
+        "empty"
+      ],
+      "source": "demo/UploadTrayPanel.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "drive.action.download",
+    "drive.action.move",
+    "drive.action.open",
+    "drive.action.rename",
+    "drive.action.trash",
+    "drive.actions.label",
+    "drive.crumb.label",
+    "drive.crumb.root",
+    "drive.error.unknown",
+    "drive.item.document",
+    "drive.item.folder",
+    "drive.list.empty",
+    "drive.list.emptyHint",
+    "drive.list.error",
+    "drive.list.loading",
+    "drive.list.retry",
+    "drive.move.sameFolder",
+    "drive.move.submit",
+    "drive.move.title",
+    "drive.move.toRoot",
+    "drive.nav.drive",
+    "drive.preview.alt",
+    "drive.recents.empty",
+    "drive.recents.emptyHint",
+    "drive.recents.error",
+    "drive.rename.empty",
+    "drive.rename.field",
+    "drive.rename.submit",
+    "drive.rename.title",
+    "drive.rename.unchanged",
+    "drive.search.empty",
+    "drive.search.error",
+    "drive.search.idle",
+    "drive.search.inRoot",
+    "drive.search.label",
+    "drive.search.placeholder",
+    "drive.star.add",
+    "drive.star.remove",
+    "drive.starred.empty",
+    "drive.starred.emptyHint",
+    "drive.starred.error",
+    "drive.tab.files",
+    "drive.tab.recents",
+    "drive.tab.starred",
+    "drive.tab.trash",
+    "drive.trash.confirm",
+    "drive.upload.action",
+    "drive.upload.cancel",
+    "drive.upload.canceled",
+    "drive.upload.clear",
+    "drive.upload.done",
+    "drive.upload.empty",
+    "drive.upload.failed",
+    "drive.upload.queued",
+    "drive.upload.quotaHint",
+    "drive.upload.quotaTitle",
+    "drive.upload.retry",
+    "drive.upload.trayTitle",
+    "drive.upload.uploading",
+    "drive.view.grid",
+    "drive.view.list",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.docs_bad_since",
+    "error.400.docs_duplicate_name",
+    "error.400.docs_export_format",
+    "error.400.docs_folder_cycle",
+    "error.400.docs_folder_depth",
+    "error.400.docs_not_trashed",
+    "error.400.docs_thumbnail_tier",
+    "error.400.docs_thumbnail_unsupported",
+    "error.400.docs_too_many_updates",
+    "error.400.docs_too_many_uploads",
+    "error.400.docs_type_not_editable",
+    "error.400.docs_unknown_type",
+    "error.400.docs_updates_not_crdt",
+    "error.400.docs_upload_expired",
+    "error.400.docs_upload_mime",
+    "error.400.docs_upload_mismatch",
+    "error.400.docs_upload_state",
+    "error.400.docs_upload_unmeasurable",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.docs_forbidden",
+    "error.403.docs_upload_owner",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.docs_document_not_found",
+    "error.404.docs_folder_not_found",
+    "error.404.docs_revision_not_found",
+    "error.404.docs_upload_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.409.docs_seq_conflict",
+    "error.410.gone",
+    "error.412.docs_missing_if_match",
+    "error.413.docs_body_too_large",
+    "error.413.docs_export_too_large",
+    "error.413.docs_update_too_large",
+    "error.413.docs_upload_too_large",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.docs_download_url_unavailable",
+    "error.503.docs_exporter_unavailable",
+    "error.503.docs_thumbnails_unavailable",
+    "error.503.docs_workspaces_unavailable",
+    "error.503.mandate_unavailable",
+    "error.507.docs_workspace_quota"
+  ],
+  "exports": {
+    "runtime": [
+      "DEFAULT_UPLOAD_CONCURRENCY",
+      "DRIVE_ERRORS",
+      "DRIVE_ERROR_CODES",
+      "DRIVE_I18N_KEYS",
+      "DriveBreadcrumb",
+      "DriveGrid",
+      "DriveList",
+      "DriveProvider",
+      "DriveRuntimeContext",
+      "DriveSearch",
+      "Recents",
+      "Starred",
+      "THUMBNAIL_TIERS",
+      "UploadTray",
+      "createDriveApi",
+      "createDriveRuntime",
+      "documentRow",
+      "driveErrorBundleEn",
+      "driveI18nBundleEn",
+      "driveQueryKeys",
+      "driveRows",
+      "explainDriveError",
+      "folderRow",
+      "hasImagePreview",
+      "putWithProgress",
+      "registerDriveI18n",
+      "thumbnailTierFor",
+      "thumbnailUrl",
+      "useDriveAnalytics",
+      "useDriveApi",
+      "useDriveRuntime",
+      "useDriveSearch",
+      "useFolderChildren",
+      "useRecents",
+      "useStarred",
+      "useThumbnailUrl",
+      "useToggleStar",
+      "useUploadQueue"
+    ],
+    "types": [
+      "BreadcrumbBag",
+      "CreateDriveRuntimeOptions",
+      "DriveApi",
+      "DriveApiOptions",
+      "DriveBreadcrumbNode",
+      "DriveErrorCode",
+      "DriveErrorSpec",
+      "DriveI18nKey",
+      "DriveListBag",
+      "DriveRow",
+      "DriveRuntime",
+      "DriveSearchBag",
+      "DriveSearchHit",
+      "DriveSearchParams",
+      "PutProgress",
+      "PutProgressOptions",
+      "PutProgressResult",
+      "RecentsBag",
+      "Remediation",
+      "Schemas",
+      "StarTarget",
+      "StarTargetKind",
+      "StarredBag",
+      "StarredListing",
+      "ThumbnailTier",
+      "ToggleStarVariables",
+      "UploadItem",
+      "UploadItemStatus",
+      "UploadQueueBag",
+      "UploadQueueOptions",
+      "UploadTrayBag"
+    ]
+  }
+}

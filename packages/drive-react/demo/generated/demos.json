@@ -1,0 +1,330 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/drive-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "drive.breadcrumbs",
+      "title": "Breadcrumb bar",
+      "description": "Sticky, horizontally scrolling, never wrapping onto a second line. The trail is normally FREE — descending pushes the folder that was tapped, and the row was on screen a moment ago — so browsing costs one folder read per rung. Only a cold deep link has no trail, and then the docs pair's ancestor walk answers.",
+      "component": "DriveBreadcrumbBar",
+      "covers": [
+        "DriveBreadcrumb"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "My drive › Finance › 2026, from the trail the navigation already held.",
+          "viewport": "phone",
+          "step": "nested"
+        },
+        {
+          "id": "root",
+          "description": "At the workspace root: one crumb, and it is the truth.",
+          "viewport": "phone",
+          "step": "root"
+        },
+        {
+          "id": "loading",
+          "description": "A cold deep link with the ancestor read still in flight: a skeleton, not the finished root crumb — those two look identical and mean opposite things.",
+          "viewport": "phone",
+          "step": "loading"
+        }
+      ],
+      "source": {
+        "file": "demo/DriveBreadcrumbBar.demo.tsx",
+        "line": 35
+      }
+    },
+    {
+      "id": "drive.recents",
+      "title": "Recent",
+      "description": "Written by the service layer on content read, download-URL issuance and accepted save — never by the client, and never by this endpoint, which only reads. Folders are absent by contract, which is why this pane draws one list rather than two with an empty half.",
+      "component": "RecentsPane",
+      "covers": [
+        "Recents"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two documents in the order the server returned them; nothing is re-sorted here.",
+          "viewport": "phone",
+          "step": "populated"
+        },
+        {
+          "id": "empty",
+          "description": "Nothing opened yet — and the hint says what will fill it.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/RecentsPane.demo.tsx",
+        "line": 27
+      }
+    },
+    {
+      "id": "drive.rowActions",
+      "title": "Row actions",
+      "description": "Open, star, rename, move, download and trash, as a full-width sheet with thumb-sized rows. Every write is the docs pair's — rename and move are both a PATCH on the object, because the backend has no separate move route — and the rename/move prompts are that pair's dialogs with this pair's copy. The star is the one write this package owns.",
+      "component": "DriveRowActions",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A file: download is offered, and the star reads 'Remove star' because this one is starred.",
+          "viewport": "phone",
+          "step": "document"
+        },
+        {
+          "id": "folder",
+          "description": "A folder: no download — there is no endpoint that answers a folder's bytes, so the action is absent rather than present and dead.",
+          "viewport": "phone",
+          "step": "folder"
+        }
+      ],
+      "source": {
+        "file": "demo/DriveRowActions.demo.tsx",
+        "line": 25
+      }
+    },
+    {
+      "id": "drive.screen",
+      "title": "Drive",
+      "description": "The whole product on one screen: a sticky path strip, one scrolling column of folders-then-files, a list/grid toggle, per-row star and overflow, the Starred/Recent/Trash tabs, and the upload tray under a FAB. On a wide window the column stops at a measure and centres — that is the entire desktop story, because the two-pane file manager already exists in @stapel/docs-react and a second one would be two screens to fix every bug in.",
+      "component": "DriveScreen",
+      "covers": [
+        "DriveProvider",
+        "DriveList",
+        "DriveGrid",
+        "DriveBreadcrumb",
+        "UploadTray",
+        "Starred",
+        "Recents",
+        "DriveSearch"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The workspace root: two folders, then three files, newest first — the server's order inside each group, never re-sorted here.",
+          "viewport": "phone",
+          "step": "browse"
+        },
+        {
+          "id": "uploading",
+          "description": "Two files in flight and one waiting: concurrency is 2, so the third row says 'waiting' instead of animating a bar that is not moving. The percentages come from real XHR progress events.",
+          "viewport": "phone",
+          "step": "uploading"
+        },
+        {
+          "id": "quotaExceeded",
+          "description": "The workspace is full. A 507 is not 'the upload failed' — it is a state with its own banner and its own two remedies, and the failed rows deliberately offer no Retry, because retrying a full workspace is the same refusal one second later.",
+          "viewport": "phone",
+          "step": "quota"
+        },
+        {
+          "id": "emptyFolder",
+          "description": "A folder with nothing in it — a sentence only sayable about a read that actually succeeded (matchList's four arms).",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "starred",
+          "description": "The Starred tab: folders and documents in one list, the same row component the folder listing uses.",
+          "viewport": "phone",
+          "step": "starred"
+        },
+        {
+          "id": "recents",
+          "description": "The Recent tab: documents only, newest access first — folders are not 'opened' in the sense the backend records.",
+          "viewport": "phone",
+          "step": "recents"
+        },
+        {
+          "id": "searchResults",
+          "description": "A tree-wide name search. Each hit carries the breadcrumb of its container, materialized server-side, so a result list costs one request and still says where the match lives.",
+          "viewport": "phone",
+          "step": "search"
+        },
+        {
+          "id": "desktop",
+          "description": "The same single column on a wide window: capped at a reading measure and centred. No second layout.",
+          "viewport": "desktop",
+          "step": "browse"
+        }
+      ],
+      "source": {
+        "file": "demo/DriveScreen.demo.tsx",
+        "line": 74
+      }
+    },
+    {
+      "id": "drive.search",
+      "title": "Search",
+      "description": "The delay lives in the input, not in the hook: useDriveSearch takes a finished q, so a query restored from a URL runs at once and a caller that already debounced does not pay twice. An empty box asks nothing — the backend refuses a blank q with a 400 on purpose, so 'type something' is a state and not an error.",
+      "component": "DriveSearchField",
+      "covers": [
+        "DriveSearch"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Nothing typed: the idle state, distinct from 'no results' — one of them is a question nobody asked.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "noResults",
+          "description": "A query that matched nothing.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "The search endpoint answered 500 — the failure arm with its retry.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/DriveSearchField.demo.tsx",
+        "line": 21
+      }
+    },
+    {
+      "id": "drive.starred",
+      "title": "Starred",
+      "description": "A star is a bookmark: the backend takes docs.view for it, both verbs answer 204 whatever the previous state was, and the icon flips before the request because the round trip is invisible only if it does. A trashed item drops out of this list but keeps its star until purge — restoring it brings the bookmark back.",
+      "component": "StarredPane",
+      "covers": [
+        "Starred"
+      ],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One starred folder and one starred file, in one list.",
+          "viewport": "phone",
+          "step": "populated"
+        },
+        {
+          "id": "empty",
+          "description": "Genuinely empty, and the sentence says what a star is FOR rather than 'nothing here'.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "The read answered 503: the failure arm, not the empty one. An outage must never wear the costume of an empty list.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/StarredPane.demo.tsx",
+        "line": 28
+      }
+    },
+    {
+      "id": "drive.thumbnail",
+      "title": "Thumbnail",
+      "description": "An <img> at the authorized thumbnail URL — same cookie, same authorize() gate and same storage seam as the content endpoint, so the browser's cache and the ETag do the work a blob round trip would undo. Three different refusals (not an image, no Pillow, no cached entry) land on one answer, because to a thumb they mean one thing: there is no picture for this.",
+      "component": "DriveThumbnail",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "An image document whose preview 404s: the picture glyph, never the browser's broken-image icon.",
+          "viewport": "phone",
+          "step": "fallback-image"
+        },
+        {
+          "id": "pdf",
+          "description": "A PDF: no request is made at all — the mime says there is no image preview, so the glyph is drawn without asking.",
+          "viewport": "phone",
+          "step": "fallback-mime"
+        },
+        {
+          "id": "sheet",
+          "description": "A CSV gets the table glyph — six families, matched on the server's mime.",
+          "viewport": "desktop",
+          "step": "fallback-table"
+        }
+      ],
+      "source": {
+        "file": "demo/DriveThumbnail.demo.tsx",
+        "line": 26
+      }
+    },
+    {
+      "id": "drive.trash",
+      "title": "Trash",
+      "description": "A thin wrapper over @stapel/docs-react's TrashPane, not a second implementation. The trash was the one drive surface that was already finished — restore, per-item delete-forever, and an Empty trash whose three off-states each say WHICH — and re-drawing it here would mean diverging on the first bug fix.",
+      "component": "DriveTrashPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "One trashed folder and one trashed file; Empty trash is live.",
+          "viewport": "phone",
+          "step": "populated"
+        },
+        {
+          "id": "empty",
+          "description": "Genuinely empty: the button is off WITH the empty reason.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/DriveTrashPane.demo.tsx",
+        "line": 22
+      }
+    },
+    {
+      "id": "drive.uploadTray",
+      "title": "Upload tray",
+      "description": "One row per file with a bar that moves because bytes moved — the presigned PUT runs over XMLHttpRequest precisely because fetch cannot report request-body progress. Two files transfer at once; the rest say 'waiting', which is the truth about a queue with concurrency 2 rather than a stalled 0%.",
+      "component": "UploadTrayPanel",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two uploading, one waiting, one done — the four states a queue actually holds at once.",
+          "viewport": "phone",
+          "step": "in-flight"
+        },
+        {
+          "id": "failed",
+          "description": "The object store refused one file. It keeps its own error and its own Retry; the other rows are untouched, because one bad file must not fail nineteen good ones.",
+          "viewport": "phone",
+          "step": "failed"
+        },
+        {
+          "id": "quota",
+          "description": "507: the workspace is full. Its own banner with the two remedies, and NO Retry on the row — a button that cannot work is worse than no button.",
+          "viewport": "phone",
+          "step": "quota"
+        },
+        {
+          "id": "empty",
+          "description": "Nothing queued yet — the tray says so instead of drawing an empty box.",
+          "viewport": "desktop",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/UploadTrayPanel.demo.tsx",
+        "line": 29
+      }
+    }
+  ]
+}
