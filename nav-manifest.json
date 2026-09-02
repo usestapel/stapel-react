@@ -280,7 +280,7 @@
     },
     {
       "package": "@stapel/chat-react",
-      "version": "0.6.2",
+      "version": "0.7.0",
       "entries": [
         {
           "id": "chat.conversations",
@@ -310,7 +310,7 @@
     },
     {
       "package": "@stapel/docs-react",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "entries": [
         {
           "id": "docs.files",
@@ -354,7 +354,7 @@
     },
     {
       "package": "@stapel/drive-react",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "entries": [
         {
           "id": "drive.home",
