@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "backend": {
     "module": "stapel-categories",
-    "contract": ">=0.11 <0.12"
+    "contract": ">=0.14 <0.15"
   },
   "layers": [
     "api",
@@ -30,6 +30,13 @@
       "request": "CategoryBulkCommand",
       "response": null
     },
+    "categories_api_v1_categories_by_slug_retrieve": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/by-slug/{slug}/",
+      "tag": "Categories",
+      "request": null,
+      "response": "Category"
+    },
     "categories_api_v1_categories_carousel_list": {
       "method": "GET",
       "path": "/categories/api/v1/categories/carousel/",
@@ -48,8 +55,8 @@
       "method": "POST",
       "path": "/categories/api/v1/categories/",
       "tag": "Categories",
-      "request": "Category",
-      "response": "Category"
+      "request": "CategoryStaff",
+      "response": "CategoryStaff"
     },
     "categories_api_v1_categories_data.json_retrieve": {
       "method": "GET",
@@ -111,8 +118,8 @@
       "method": "PATCH",
       "path": "/categories/api/v1/categories/{id}/",
       "tag": "Categories",
-      "request": "PatchedCategory",
-      "response": "Category"
+      "request": "PatchedCategoryStaff",
+      "response": "CategoryStaff"
     },
     "categories_api_v1_categories_retrieve": {
       "method": "GET",
@@ -128,6 +135,13 @@
       "request": null,
       "response": "MaxRevision"
     },
+    "categories_api_v1_categories_roots_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/roots/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
     "categories_api_v1_categories_undelete_create": {
       "method": "POST",
       "path": "/categories/api/v1/categories/{id}/undelete/",
@@ -139,8 +153,8 @@
       "method": "PUT",
       "path": "/categories/api/v1/categories/{id}/",
       "tag": "Categories",
-      "request": "Category",
-      "response": "Category"
+      "request": "CategoryStaff",
+      "response": "CategoryStaff"
     },
     "categories_api_v1_categories_validate_configs_retrieve": {
       "method": "GET",
