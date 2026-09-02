@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/vocabularies-react",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "backend": {
     "module": "stapel-vocabularies",
     "contract": ">=0.1 <0.2"
