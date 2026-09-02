@@ -242,8 +242,55 @@ export function orderChipFilters(
   return [...specs].sort((a, b) => {
     const applied = Number(specApplied(b)) - Number(specApplied(a));
     if (applied !== 0) return applied;
-    return CHIP_BAND_ORDER.indexOf(a.band) - CHIP_BAND_ORDER.indexOf(b.band);
+    const band = CHIP_BAND_ORDER.indexOf(a.band) - CHIP_BAND_ORDER.indexOf(b.band);
+    if (band !== 0) return band;
+    // WITHIN the counted-facet band: coverage — the answer's own evidence of
+    // which axes this corpus actually fills (D16 reopen: an imported
+    // catalogue gave the phones leaf option tables for its wholesale
+    // plumbing, and schema order put them ahead of the brand). A group the
+    // server did not count sums to zero and trails every counted one; ties
+    // keep the authored order because the sort is stable.
+    if (a.band === "facet" && b.band === "facet") {
+      return facetCoverage(b.facet) - facetCoverage(a.facet);
+    }
+    return 0;
   });
+}
+
+/** How many candidate documents carry ANY value of this axis — the row's
+ * "people actually fill this in" evidence. Uncounted options are `null`
+ * (never `0` — different sentences) and contribute nothing. */
+function facetCoverage(group: FacetGroup): number {
+  let total = 0;
+  for (const option of group.options) total += option.count ?? 0;
+  return total;
+}
+
+/**
+ * How many banded chips the row draws before the "more" door — enough for the
+ * axes with real evidence behind them, small enough that the tail of a
+ * 44-axis cars leaf lives in the panel instead of in four flicks. A host
+ * passes `maxRowChips` to move it, or `null` to disable the door.
+ */
+export const CHIP_ROW_CAP = 8;
+
+/**
+ * The visible row and what the door owes: the first `max` specs — and EVERY
+ * applied one, however many, because a constraint on screen must keep the
+ * control that removes it (the same rule the barren filter follows). The
+ * overflow count is what the door chip prints; the chips behind it are not
+ * deleted, they are the panel's — one tap behind the door itself.
+ */
+export function capChipRow(
+  specs: readonly ChipSpec[],
+  max: number | null
+): { readonly visible: readonly ChipSpec[]; readonly overflow: number } {
+  if (max === null || specs.length <= max) {
+    return { visible: specs, overflow: 0 };
+  }
+  const applied = specs.filter(specApplied).length;
+  const cut = Math.max(max, applied);
+  return { visible: specs.slice(0, cut), overflow: specs.length - cut };
 }
 
 export interface FilterChipsProps {
@@ -295,6 +342,13 @@ export interface FilterChipsProps {
   /** Open the whole panel — the leading chip's action. The page owns that
    * sheet, because the page is the surface it covers. */
   readonly onOpenAll: () => void;
+  /**
+   * The row's chip budget before the "more" door — see {@link CHIP_ROW_CAP}
+   * (the default). `null` draws every chip, door-less, as the row did before
+   * it was capped. Applied filters never count against the budget's loss:
+   * they are always drawn.
+   */
+  readonly maxRowChips?: number | null;
   /**
    * Draw the location chip. Default `true`.
    *
@@ -437,7 +491,11 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
   // need. Applied ones stay: a constraint always keeps the control that
   // removes it.
   const barren = bag.counted.length > 0 && bag.candidates === 0;
-  const ordered = orderChipFilters(ranges, groups, { barren });
+  const orderedAll = orderChipFilters(ranges, groups, { barren });
+  const { visible: ordered, overflow } = capChipRow(
+    orderedAll,
+    props.maxRowChips === undefined ? CHIP_ROW_CAP : props.maxRowChips
+  );
 
   const geo = state.geo;
   const showGeoChip =
@@ -568,6 +626,23 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
               {spec.range.label}
             </Button>
           )
+        )}
+
+        {/* The "more" door (D16): the capped tail is not deleted, it is one
+            tap away — this opens the SAME full panel the leading circle
+            does, where every cut control lives whole. The count keeps the
+            door honest about how much it is standing in front of. */}
+        {overflow > 0 && (
+          <Button
+            style={CHIP}
+            shape="round"
+            data-testid="search-chips-overflow"
+            data-analytics="none"
+            data-analytics-reason="opening the filter sheet is a read, not a flow step"
+            onClick={props.onOpenAll}
+          >
+            {t(SEARCH_I18N_KEYS.filtersChipOverflow, { count: overflow })}
+          </Button>
         )}
       </div>
 

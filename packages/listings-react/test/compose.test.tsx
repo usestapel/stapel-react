@@ -417,7 +417,7 @@ describe("every blocked publish states which reason it is", () => {
 });
 
 describe("the button says what it will do", () => {
-  it("reads 'Send changes' when editing something already published", async () => {
+  it("reads 'Save changes' when editing something already published", async () => {
     const srv = mockServer({
       "/listings/42/": { body: detail({ id: 42, status: "published" }) },
     });
@@ -433,8 +433,82 @@ describe("the button says what it will do", () => {
     );
     await waitFor(() => {
       expect(screen.getByTestId("listings-composer-publish").textContent).toBe(
-        "Send changes"
+        "Save changes"
       );
     });
+  });
+});
+
+describe("the edit screen speaks the edit's own language (D33)", () => {
+  // Walker pass 3: the primary on an already-published listing read like
+  // first publication, and «Save draft» beside it silently parked the edit in
+  // a draft twin — a seller's first round of edits was lost to that pair of
+  // labels. The LIVE-EDIT arm now says what each button actually does: the
+  // primary saves the changes (the listing stays live, changes go through
+  // review — the outcome copy already says so), and the quiet exit names the
+  // draft it stashes into and the fact the live listing is untouched.
+  function mountLiveEdit(): ReturnType<typeof server> {
+    const srv = server({
+      "/listings/42/": { body: detail({ id: 42, status: "published" }) },
+      "/listings/42/publish/": {
+        body: { published: true, listing_id: 42, status: "published" },
+      },
+    });
+    render(
+      <TestProviders server={srv}>
+        <ListingComposerPage
+          listingId={42}
+          features={[]}
+          images={GALLERY}
+          renderCategoryPicker={categoryPicker}
+        />
+      </TestProviders>
+    );
+    return srv;
+  }
+
+  it("the primary reads 'save changes', not a word about publishing", async () => {
+    mountLiveEdit();
+    await seeded();
+    expect(screen.getByTestId("listings-composer-publish").textContent).toBe(
+      "Save changes"
+    );
+  });
+
+  it("the quiet exit names the stash, and the confirmation names the fate", async () => {
+    mountLiveEdit();
+    await seeded();
+    expect(screen.getByTestId("listings-composer-save").textContent).toBe(
+      "Stash as draft"
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("listings-composer-save"));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-composer-saved").textContent).toBe(
+        "Changes stashed as a draft — the published listing is unchanged"
+      );
+    });
+  });
+
+  it("a DRAFT keeps the draft words on both buttons", async () => {
+    const srv = server();
+    render(
+      <TestProviders server={srv}>
+        <ListingComposerPage
+          listingId={42}
+          features={[]}
+          images={GALLERY}
+          renderCategoryPicker={categoryPicker}
+        />
+      </TestProviders>
+    );
+    await seeded();
+    expect(screen.getByTestId("listings-composer-publish").textContent).toBe(
+      "Publish"
+    );
+    expect(screen.getByTestId("listings-composer-save").textContent).toBe(
+      "Save draft"
+    );
   });
 });

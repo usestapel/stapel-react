@@ -948,12 +948,22 @@ export function ListingComposerPage(
               data-analytics-reason="business action — host app wraps with its own tracked()"
               onClick={bag.save}
             >
-              {t(bag.saving ? LISTINGS_I18N_KEYS.composeSaving : LISTINGS_I18N_KEYS.composeSave)}
+              {t(
+                bag.saving
+                  ? LISTINGS_I18N_KEYS.composeSaving
+                  : bag.isLiveEdit
+                    ? LISTINGS_I18N_KEYS.composeSaveLive
+                    : LISTINGS_I18N_KEYS.composeSave
+              )}
             </GatedButton>
 
             {bag.saved ? (
               <Typography.Text type="success" data-testid="listings-composer-saved">
-                {t(LISTINGS_I18N_KEYS.composeSaved)}
+                {t(
+                  bag.isLiveEdit
+                    ? LISTINGS_I18N_KEYS.composeSavedLive
+                    : LISTINGS_I18N_KEYS.composeSaved
+                )}
               </Typography.Text>
             ) : null}
           </Flex>

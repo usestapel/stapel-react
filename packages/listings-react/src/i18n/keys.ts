@@ -143,6 +143,12 @@ export const LISTINGS_I18N_KEYS = {
   composeStock: "listings.compose.stock",
   composeAutoRepublish: "listings.compose.auto_republish",
   composeSave: "listings.compose.save",
+  /** The quiet exit ON A LIVE EDIT: parks the changes in the draft twin and
+   * leaves the published listing untouched (D33 — «Save draft» on a
+   * published listing read as the safe choice and silently shelved the
+   * seller's first round of edits). */
+  composeSaveLive: "listings.compose.save_live",
+  composeSavedLive: "listings.compose.saved_live",
   composeSaving: "listings.compose.saving",
   composeSaved: "listings.compose.saved",
   composePublish: "listings.compose.publish",
@@ -344,10 +350,13 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.compose.stock": "How many",
   "listings.compose.auto_republish": "Re-publish automatically when it expires",
   "listings.compose.save": "Save draft",
+  "listings.compose.save_live": "Stash as draft",
+  "listings.compose.saved_live":
+    "Changes stashed as a draft — the published listing is unchanged",
   "listings.compose.saving": "Saving…",
   "listings.compose.saved": "Draft saved",
   "listings.compose.publish": "Publish",
-  "listings.compose.republish": "Send changes",
+  "listings.compose.republish": "Save changes",
   "listings.compose.publishing": "Sending…",
   "listings.compose.published_first":
     "Sent for review. It goes on sale once a moderator approves it.",

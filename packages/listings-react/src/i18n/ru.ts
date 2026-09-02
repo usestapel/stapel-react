@@ -156,10 +156,13 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.compose.stock": "Сколько штук",
   "listings.compose.auto_republish": "Публиковать заново, когда истечёт срок",
   "listings.compose.save": "Сохранить черновик",
+  "listings.compose.save_live": "Отложить правки в черновик",
+  "listings.compose.saved_live":
+    "Правки отложены в черновик — опубликованное объявление не изменилось",
   "listings.compose.saving": "Сохраняем…",
   "listings.compose.saved": "Черновик сохранён",
   "listings.compose.publish": "Опубликовать",
-  "listings.compose.republish": "Отправить правки",
+  "listings.compose.republish": "Сохранить изменения",
   "listings.compose.publishing": "Отправляем…",
   "listings.compose.published_first":
     "Отправлено на проверку. Объявление появится в продаже после одобрения модератора.",

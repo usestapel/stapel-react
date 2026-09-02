@@ -3,7 +3,7 @@
  * its reason as READABLE TEXT (not a tooltip on a control that takes no
  * pointer events), and that it never prints a raw i18n key.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
   ConversationListPanel,
@@ -17,6 +17,7 @@ import {
   conversation,
   conversationPage,
   errorEnvelope,
+  message,
   messagePage,
 } from "./fixtures.js";
 
@@ -187,5 +188,66 @@ describe("<StartChatButton/>", () => {
     );
     expect(screen.getByTestId("chat-start-button")).toHaveProperty("disabled", false);
     expect(screen.queryByTestId("chat-start-blocked")).toBeNull();
+  });
+});
+
+describe("Enter sends (D35)", () => {
+  // A hardware keyboard's Enter in a message box is "send" in every messenger
+  // a person has ever used; the walker typed, hit Enter, and watched the text
+  // sit in the field with a newline in it. Shift+Enter stays the newline —
+  // the same split antd's own chat controls and every desktop messenger draw.
+  async function threadWithMessage(): Promise<ReturnType<typeof mockServer>> {
+    const server = mockServer({
+      "GET /messages": { body: messagePage([1]) },
+      "POST /read": { body: {} },
+      "POST /messages": { status: 201, body: message(4, { body: "hello" }) },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationThreadPanel conversationId={CONVERSATION_ID} viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() => expect(screen.getAllByTestId("chat-message")).toHaveLength(1));
+    return server;
+  }
+
+  it("plain Enter sends the trimmed draft", async () => {
+    const server = await threadWithMessage();
+    const input = screen.getByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "hello" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() =>
+      expect(
+        server.calls.filter(
+          (c) => c.method === "POST" && c.url.includes("/messages")
+        )
+      ).toHaveLength(1)
+    );
+  });
+
+  it("Shift+Enter is a newline, not a send", async () => {
+    const server = await threadWithMessage();
+    const input = screen.getByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "hello" } });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    // Nothing to wait for: the assertion is that nothing happened.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(
+      server.calls.filter(
+        (c) => c.method === "POST" && c.url.includes("/messages")
+      )
+    ).toHaveLength(0);
+  });
+
+  it("Enter over an empty draft sends nothing", async () => {
+    const server = await threadWithMessage();
+    const input = screen.getByTestId("chat-composer-input");
+    fireEvent.keyDown(input, { key: "Enter" });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(
+      server.calls.filter(
+        (c) => c.method === "POST" && c.url.includes("/messages")
+      )
+    ).toHaveLength(0);
   });
 });

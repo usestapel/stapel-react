@@ -158,13 +158,20 @@ function refLabels(
 function formatNumber(
   config: Readonly<Record<string, unknown>>,
   value: unknown,
-  defaultPrecision: number,
+  kind: "int" | "float",
   options: FormatOptions | undefined
 ): string | undefined {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) return undefined;
   const precision = config["precision"];
-  const digits = typeof precision === "number" && precision >= 0 ? precision : defaultPrecision;
+  // The engines' own defaults (`types/int/type.py` and `types/float/type.py`:
+  // `precision if … is not None else 1` / `else 2`).
+  const digits =
+    typeof precision === "number" && precision >= 0
+      ? precision
+      : kind === "int"
+        ? 1
+        : 2;
   // `prefix`/`postfix`/`postfix1000` are TRANSLATION KEYS upstream
   // (`types/int/type.py:get_translation_keys` collects all three), so they go
   // through the host's catalogue like an option label — a Russian storefront
@@ -179,7 +186,13 @@ function formatNumber(
     const scaled = (parsed / 1000).toFixed(digits).replace(/\.?0+$/, "");
     return `${prefix}${scaled} ${translateConfig(options, postfix1000)}`;
   }
-  const body = digits > 0 ? parsed.toFixed(digits) : String(Math.trunc(parsed));
+  // `precision` drives ONLY the scaled branch of an int. The engine's plain
+  // branch is `str(value)` — an integer never grows a decimal tail, whatever
+  // the config says (D26: a live category shipped `precision: 1` on a year
+  // field and the card read "2024.0"). A float's plain branch keeps its
+  // configured decimals — that IS its contract.
+  const body =
+    kind === "int" ? String(Math.trunc(parsed)) : parsed.toFixed(digits);
   const postfix = translateConfig(options, config["postfix"]);
   return `${prefix}${body}${postfix ? ` ${postfix}` : ""}`;
 }
@@ -236,9 +249,9 @@ export function formatFeatureValue(
       return `${prefix}${str(value)}${postfix ? ` ${postfix}` : ""}`;
     }
     case "int":
-      return formatNumber(config, value, 0, options);
+      return formatNumber(config, value, "int", options);
     case "float":
-      return formatNumber(config, value, 2, options);
+      return formatNumber(config, value, "float", options);
     case "bool": {
       const on = value === true || value === 1 || value === "true";
       const label = translateConfig(options, config[on ? "trueLabel" : "falseLabel"]);

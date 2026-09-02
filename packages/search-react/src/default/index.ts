@@ -51,8 +51,10 @@ export type {
 export {
   FilterChips,
   CHIP_BAND_ORDER,
+  CHIP_ROW_CAP,
   CHIP_ROW_CLASS,
   CHIP_ROW_STYLE_HREF,
+  capChipRow,
   categoryLeaf,
   chipRowCss,
   orderChipFilters,

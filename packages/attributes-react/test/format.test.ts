@@ -168,3 +168,31 @@ describe("FORMATTABLE_TYPES", () => {
     expect(FORMATTABLE_TYPES).toHaveLength(13);
   });
 });
+
+describe("int never grows a decimal tail (D26)", () => {
+  // The engine's own rule (`types/int/type.py: format_value`): `precision`
+  // exists for the `postfix1000` SCALED branch alone, and the plain branch is
+  // `str(value)`. A live catalogue imported `precision: 1` onto the year field
+  // and the card read "2024.0" — an integer year, printed as a float the
+  // server itself would never write.
+  it("a config precision does not put decimals on a plain int", () => {
+    const year = feature("year", { type: "int", precision: 1 });
+    expect(formatFeatureValue(year, { type: "int", value: 2024 })).toBe("2024");
+  });
+
+  it("precision still drives the scaled postfix1000 branch, zeros stripped", () => {
+    const weight = feature("weight", {
+      type: "int",
+      postfix: "g",
+      postfix1000: "kg",
+    });
+    // Engine default precision is 1 in the scaled branch: 1500 g → "1.5 kg",
+    // never "2 kg" (a rounded-up weight is a different weight).
+    expect(formatFeatureValue(weight, { type: "int", value: 1500 })).toBe("1.5 kg");
+    expect(formatFeatureValue(weight, { type: "int", value: 500 })).toBe("500 g");
+  });
+
+  it("a float keeps its configured decimals — that is its contract", () => {
+    expect(formatFeatureValue(FLOAT_FEATURE, { type: "float", value: 2 })).toBe("2.0 L");
+  });
+});

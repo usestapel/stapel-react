@@ -130,6 +130,7 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.filters.all": "Все фильтры",
   "search.filters.short": "Фильтры",
   "search.filters.chip_more": ", +{count}",
+  "search.filters.chips_overflow": "Ещё {count}",
 
   "search.empty.exits_title": "Попробуйте расширить поиск",
   "search.empty.up_a_level": "Подняться на уровень выше",

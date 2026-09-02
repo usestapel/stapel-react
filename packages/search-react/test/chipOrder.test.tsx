@@ -15,11 +15,12 @@
  * evidence it actually has — see `FilterChips`'s ordering note.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import {
   CHIP_BAND_ORDER,
   SearchPage,
+  capChipRow,
   orderChipFilters,
 } from "../src/default/index.js";
 import { buildFacetGroups, buildRangeGroups, parseSearchState } from "../src/index.js";
@@ -196,7 +197,11 @@ describe("the rendered row", () => {
       "search-chip-condition",
       "search-chip-vendor",
     ]);
-    expect(ids.at(-1)).toBe("search-chip-range-wholesale_packing_count");
+    // The tail is CAPPED now (D16 reopen): the row ends at its budget and
+    // the two wholesale counts live behind the door, in the panel.
+    expect(ids.at(-1)).toBe("search-chip-range-width_for_delivery");
+    expect(ids).toHaveLength(8);
+    expect(screen.getByTestId("search-chips-overflow").textContent).toContain("2");
   });
 
   it("still draws every chip on a server that sends no core axis", async () => {
@@ -237,5 +242,151 @@ describe("a barren result: the chips that never needed a count are not the answe
 
   it("changes nothing when the result is not barren", () => {
     expect(slugs(specsFor())).toEqual(slugs(specsFor("type=listing", ["price"], {})));
+  });
+});
+
+function mountChips(body: unknown): void {
+  function Page(): ReactElement {
+    const adapter: SearchParamsAdapter = useTestParams(
+      "type=listing&category=elektronika/mobilnye-telefony"
+    );
+    return (
+      <SearchPage
+        adapter={adapter}
+        defaultType="listing"
+        filtersLayout="sheet"
+        categoryFeatures={PHONE_RANGE_FEATURES}
+      />
+    );
+  }
+  render(
+    <TestProviders
+      server={mockServer({
+        "/query": { body },
+        "/suggest": { body: { items: [], backend: "postgres" } },
+      })}
+    >
+      <Page />
+    </TestProviders>
+  );
+}
+
+/**
+ * D16 (reopened): ordering alone did not survive a grown catalogue. The
+ * attributes-v2 import gave the phones leaf option tables for its wholesale
+ * plumbing — so they came back as (uncounted) facet groups — and a cars leaf
+ * declares enough axes for 44 chips in one row. Two mechanisms close it:
+ *
+ *  - WITHIN the counted-facet band, the row leads with the axes the answer
+ *    itself shows people actually fill: coverage (the sum of a group's
+ *    counts) ranks a brand every document carries above a "camera flaws"
+ *    eleven carry and above an uncounted schema guess with no evidence at
+ *    all. Ties keep the authored order — the sort stays stable.
+ *  - the row is CAPPED, with a "more" door to the full panel for the rest.
+ *    Nothing is deleted: the panel behind the leading circle still carries
+ *    every control, and an APPLIED filter is never behind the door.
+ */
+describe("within the facet band, coverage leads (D16 reopen)", () => {
+  function facetGroup(
+    slug: string,
+    counts: readonly (number | null)[],
+    selected: readonly string[] = []
+  ) {
+    return {
+      slug,
+      label: slug,
+      feature: undefined,
+      counted: counts.some((count) => count !== null),
+      options: counts.map((count, index) => ({
+        value: `v${String(index)}`,
+        count,
+        label: `v${String(index)}`,
+        selected: selected.includes(`v${String(index)}`),
+      })),
+      selected,
+    };
+  }
+
+  it("a heavily-carried axis outranks a sparse one, whatever the schema order", () => {
+    const ordered = orderChipFilters(
+      [],
+      [
+        facetGroup("wholesale_packing", [2, 1]),
+        facetGroup("vendor", [25, 15, 10]),
+        facetGroup("camera_flaws", [8, 3]),
+      ]
+    );
+    expect(
+      ordered.map((spec) => (spec.band === "facet" ? spec.facet.slug : ""))
+    ).toEqual(["vendor", "camera_flaws", "wholesale_packing"]);
+  });
+
+  it("an uncounted schema group has no evidence and trails the counted ones", () => {
+    const ordered = orderChipFilters(
+      [],
+      [
+        facetGroup("wholesale_measure_unit", [null, null]),
+        facetGroup("condition", [30, 12]),
+      ]
+    );
+    expect(
+      ordered.map((spec) => (spec.band === "facet" ? spec.facet.slug : ""))
+    ).toEqual(["condition", "wholesale_measure_unit"]);
+  });
+
+  it("equal coverage keeps the authored order — the sort stays stable", () => {
+    const ordered = orderChipFilters(
+      [],
+      [facetGroup("a", [10, 10]), facetGroup("b", [20])]
+    );
+    expect(
+      ordered.map((spec) => (spec.band === "facet" ? spec.facet.slug : ""))
+    ).toEqual(["a", "b"]);
+  });
+});
+
+describe("the row is capped behind a more-door (D16 reopen)", () => {
+  it("caps unapplied chips and counts the rest for the door", () => {
+    const specs = specsFor(); // price + condition + vendor + 7 attributes = 10
+    const { visible, overflow } = capChipRow(specs, 8);
+    expect(visible).toHaveLength(8);
+    expect(overflow).toBe(2);
+  });
+
+  it("null disables the cap", () => {
+    const specs = specsFor();
+    const { visible, overflow } = capChipRow(specs, null);
+    expect(visible).toHaveLength(specs.length);
+    expect(overflow).toBe(0);
+  });
+
+  it("an applied filter is NEVER behind the door", () => {
+    // Nine applied ranges against a cap of 3: every one of them stays, and
+    // only the unapplied rest is counted for the door.
+    const applied = specsFor(
+      "type=listing&r.akb=80..&r.weight_for_delivery=1..&r.length_for_delivery=1..&r.height_for_delivery=1..&r.width_for_delivery=1..&r.wholesale_min_order_count=1..&r.wholesale_packing_count=1..&r.price=1.."
+    );
+    const { visible } = capChipRow(applied, 3);
+    const visibleSlugs = slugs(visible);
+    for (const spec of applied) {
+      if (spec.band === "facet" ? spec.facet.selected.length > 0 : spec.range.active) {
+        expect(visibleSlugs).toContain(
+          spec.band === "facet" ? spec.facet.slug : spec.range.slug
+        );
+      }
+    }
+  });
+
+  it("the rendered row draws the door, and the door opens the panel", async () => {
+    mountChips(searchResponse({ facets: PHONE_FACETS }));
+    await waitFor(() => {
+      expect(screen.getByTestId("search-chip-condition")).toBeTruthy();
+    });
+    const door = screen.getByTestId("search-chips-overflow");
+    expect(door.textContent).toContain("2");
+    fireEvent.click(door);
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filters-sheet")).toBeTruthy();
+    });
   });
 });

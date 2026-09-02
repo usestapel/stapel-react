@@ -101,6 +101,7 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.filters.all": "Todos los filtros",
   "search.filters.short": "Filtros",
   "search.filters.chip_more": ", +{count}",
+  "search.filters.chips_overflow": "Más · {count}",
 
   "search.empty.exits_title": "Prueba a ampliar la búsqueda",
   "search.empty.up_a_level": "Subir un nivel",

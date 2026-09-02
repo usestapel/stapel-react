@@ -139,10 +139,13 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.compose.stock": "Cuántas unidades",
   "listings.compose.auto_republish": "Volver a publicar cuando caduque",
   "listings.compose.save": "Guardar borrador",
+  "listings.compose.save_live": "Apartar como borrador",
+  "listings.compose.saved_live":
+    "Cambios apartados como borrador — el anuncio publicado no cambió",
   "listings.compose.saving": "Guardando…",
   "listings.compose.saved": "Borrador guardado",
   "listings.compose.publish": "Publicar",
-  "listings.compose.republish": "Enviar los cambios",
+  "listings.compose.republish": "Guardar los cambios",
   "listings.compose.publishing": "Enviando…",
   "listings.compose.published_first":
     "Enviado a revisión. Saldrá a la venta cuando un moderador lo apruebe.",

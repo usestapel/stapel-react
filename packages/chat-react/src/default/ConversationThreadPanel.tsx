@@ -239,9 +239,29 @@ function ComposerBody(props: {
       <Input.TextArea
         value={props.value}
         onChange={(event) => props.setValue(event.target.value)}
+        /* Enter SENDS (D35). On a hardware keyboard Enter in a message box is
+           "send" in every messenger a person has met; without this the walker
+           typed, hit Enter, and watched the draft sit in the field with a
+           newline in it. Shift+Enter keeps the newline — the same split every
+           desktop messenger draws — and a phone's soft keyboard is untouched:
+           its return key inserts the newline without a keydown this handler
+           acts on being distinguishable, and the send button sits beside the
+           field either way. `isComposing` guards an IME mid-composition,
+           where Enter commits the candidate and must never post it. The gate
+           is the same one the button obeys, so Enter can never send what the
+           button refuses. */
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || event.shiftKey) return;
+          if (event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          if (gate.disabled || props.isSending) return;
+          props.send();
+        }}
         placeholder={t(CHAT_I18N_KEYS.composerPlaceholder)}
         autoSize={{ minRows: 2, maxRows: 6 }}
         data-testid="chat-composer-input"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
       />
       <Flex align="center" gap={spacing[3]} wrap="wrap">
         <Button

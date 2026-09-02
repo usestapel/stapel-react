@@ -161,6 +161,9 @@ export const SEARCH_I18N_KEYS = {
   /** A chip filtering on more than one value: "Bosch, +2". Not a plural
    * family — nothing is being counted in words. */
   filtersChipMore: "search.filters.chip_more",
+  /** The chip standing in for the row's capped tail — opens the full panel.
+   * `{count}` is how many chips it hides (D16). */
+  filtersChipOverflow: "search.filters.chips_overflow",
 
   // ── the way OUT of a search that found nothing ───────────────────────────
   /** Caption above the exit buttons. Not a second "nothing found" — that
@@ -406,6 +409,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.filters.all": "All filters",
   "search.filters.short": "Filters",
   "search.filters.chip_more": ", +{count}",
+  "search.filters.chips_overflow": "More · {count}",
 
   "search.empty.exits_title": "Try widening the search",
   "search.empty.up_a_level": "Go up a level",
