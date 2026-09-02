@@ -19,6 +19,7 @@ import { DocEditor } from "../src/index.js";
 import { createCodeMirrorDocEditor } from "../src/editors/codemirror/index.js";
 import type { CodeMirrorModules } from "../src/editors/codemirror/index.js";
 import { createMilkdownDocEditor } from "../src/editors/milkdown/index.js";
+import type { MilkdownModule } from "../src/editors/milkdown/index.js";
 import type { DocEditorComponent } from "../src/editors/registry.js";
 import { DocsDemoHarness, textBody } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
@@ -40,14 +41,38 @@ const TEXT: DemoHandlers = {
 const NOT_INSTALLED = (): Promise<CodeMirrorModules> =>
   Promise.reject(new Error('Cannot find module "@codemirror/view"'));
 
-const RichMarkdown = createMilkdownDocEditor({ wrap: EditorChrome });
+/**
+ * The default loaders import a string-typed specifier, which node resolves
+ * (tests) but a dev-server browser cannot — a bare specifier in a variable
+ * `import()` never reaches the bundler's graph. A HOST registers the editors
+ * from its own module scope, so its bundler sees literal imports; these two
+ * loaders are the demo playing that host, with the same literal imports.
+ */
+const LOAD_CODEMIRROR_AS_A_HOST = async (): Promise<CodeMirrorModules> => {
+  const [state, view, langMarkdown] = await Promise.all([
+    import("@codemirror/state"),
+    import("@codemirror/view"),
+    import("@codemirror/lang-markdown"),
+  ]);
+  return { state, view, langMarkdown } as unknown as CodeMirrorModules;
+};
+const LOAD_MILKDOWN_AS_A_HOST = async (): Promise<MilkdownModule> =>
+  (await import("@milkdown/crepe")) as unknown as MilkdownModule;
+
+const RichMarkdown = createMilkdownDocEditor({
+  wrap: EditorChrome,
+  loadPeer: LOAD_MILKDOWN_AS_A_HOST,
+  loadCodeMirrorPeer: LOAD_CODEMIRROR_AS_A_HOST,
+});
 const SourceOnlyMarkdown = createMilkdownDocEditor({
   wrap: EditorChrome,
   loadPeer: () => Promise.reject(new Error('Cannot find module "@milkdown/crepe"')),
+  loadCodeMirrorPeer: LOAD_CODEMIRROR_AS_A_HOST,
 });
 const CodeMirrorText = createCodeMirrorDocEditor({
   wrap: EditorChrome,
   testAttribute: "text",
+  loadPeer: LOAD_CODEMIRROR_AS_A_HOST,
 });
 const EngineMissing = createCodeMirrorDocEditor({
   wrap: EditorChrome,
