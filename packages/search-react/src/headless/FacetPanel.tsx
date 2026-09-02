@@ -65,6 +65,7 @@ const EMPTY_META: FacetMeta = {
   candidates: 0,
   counted: [],
   skipped: [],
+  dropped_filters: [],
   core_ranges: [],
 };
 
