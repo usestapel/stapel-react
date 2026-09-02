@@ -111,6 +111,12 @@ export const driveI18nBundleRu: I18nDictionary = {
     "Этот способ доступа отключён в этой установке. Записи ниже сейчас ничего не дают — их не отзывали, и если способ включить обратно, доступ вернётся.",
   "drive.share.unavailable": "Вы не можете управлять этим способом доступа.",
 
+  "drive.create.label": "Создать",
+  "drive.create.uploadFiles": "Загрузить файлы",
+  "drive.create.newFolder": "Новая папка",
+  "drive.newFolder.title": "Новая папка",
+  "drive.newFolder.submit": "Создать",
+
   "drive.upload.action": "Загрузить",
   "drive.upload.trayTitle": "Загрузки",
   "drive.upload.queued": "В очереди",

@@ -109,6 +109,12 @@ export const driveI18nBundleEs: I18nDictionary = {
     "Esta forma de compartir está desactivada en esta instalación. Las filas de abajo no conceden nada ahora mismo: no se revocaron, y al volver a activarla el acceso regresa.",
   "drive.share.unavailable": "No puedes administrar esta forma de compartir.",
 
+  "drive.create.label": "Nuevo",
+  "drive.create.uploadFiles": "Subir archivos",
+  "drive.create.newFolder": "Nueva carpeta",
+  "drive.newFolder.title": "Nueva carpeta",
+  "drive.newFolder.submit": "Crear",
+
   "drive.upload.action": "Subir",
   "drive.upload.trayTitle": "Subidas",
   "drive.upload.queued": "En espera",

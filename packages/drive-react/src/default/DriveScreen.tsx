@@ -30,10 +30,14 @@
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { Button, Flex, List, Segmented, Tabs } from "antd";
-import { EmptyState, LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
+import { useQueryClient } from "@tanstack/react-query";
+import { EmptyState, LoadBoundary, SkinDialog, SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens-antd";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
+import { useCreateFolder } from "@stapel/docs-react";
+import { NameDialog } from "@stapel/docs-react/default";
+import { driveQueryKeys } from "../model/queryKeys.js";
 import { DriveList } from "../headless/DriveList.js";
 import { UploadTray } from "../headless/UploadTray.js";
 import type { UploadTrayBag } from "../headless/UploadTray.js";
@@ -116,6 +120,31 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
   const UploadTrayPanel = resolveDriveSkinComponent("uploadTray");
   const [actionRow, setActionRow] = useState<DriveRow | null>(null);
   const [searching, setSearching] = useState(false);
+  // The FAB's action sheet (owner escalation 2026-09-02): the FAB used to
+  // open the file picker DIRECTLY, which left the drive with no way to make
+  // a folder at all. Now it opens a sheet with the two things a person adds
+  // to a folder — files, or a folder — and the picker is one tap deeper.
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  // The write is the docs pair's (`POST /folders` — this pair duplicates no
+  // mutation). Its own invalidation covers the DOCS keys; the drive listing
+  // reads its own per-rung key (`driveQueryKeys.children`), so the rung the
+  // person is looking at is invalidated here for the new row to appear.
+  const createFolder = useCreateFolder();
+  const queryClient = useQueryClient();
+  const doCreateFolder = (name: string): void => {
+    createFolder.mutate(
+      { workspace_id: props.workspaceId, name, parent_id: folderId },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({
+            queryKey: driveQueryKeys.children(props.workspaceId, folderId),
+          });
+        },
+      }
+    );
+    setNewFolderOpen(false);
+  };
 
   const openRow = (row: DriveRow): void => {
     if (row.kind === "folder") {
@@ -156,18 +185,20 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
       <Flex justify="flex-end">
         {/* The FAB. A label, not an icon alone: the one primary action of the
             screen is worth the width, and an icon-only control would need a
-            name nobody reads out loud anyway. */}
+            name nobody reads out loud anyway. It opens the CREATE SHEET, not
+            the picker: "upload files" and "new folder" are peers, and a FAB
+            that is secretly only a picker forecloses the second one. */}
         <Button
           type="primary"
           icon={<PlusGlyph />}
           data-testid="drive-upload-fab"
           data-analytics="none"
-          data-analytics-reason="opens the file picker — the upload itself is the tracked outcome, and the host app wraps it with its own tracked()"
+          data-analytics-reason="opens the create sheet — the upload/create itself is the tracked outcome, and the host app wraps it with its own tracked()"
           onClick={() => {
-            fileInput.current?.click();
+            setCreateSheetOpen(true);
           }}
         >
-          {t(DRIVE_I18N_KEYS.uploadAction)}
+          {t(DRIVE_I18N_KEYS.createLabel)}
         </Button>
         <input
           type="file"
@@ -213,6 +244,22 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
                   title={t(DRIVE_I18N_KEYS.listEmpty)}
                   hint={t(DRIVE_I18N_KEYS.listEmptyHint)}
                   testId="drive-listing-empty"
+                  action={
+                    // The SAME sheet as the FAB — one affordance, one
+                    // behaviour. A second, bare picker here would put two
+                    // different answers behind the same word.
+                    <Button
+                      type="primary"
+                      data-testid="drive-empty-upload"
+                      data-analytics="none"
+                      data-analytics-reason="opens the create sheet — the upload/create itself is the tracked outcome, and the host app wraps it with its own tracked()"
+                      onClick={() => {
+                        setCreateSheetOpen(true);
+                      }}
+                    >
+                      {t(DRIVE_I18N_KEYS.uploadAction)}
+                    </Button>
+                  }
                 />
               ) : view === "grid" ? (
                 <div
@@ -343,6 +390,62 @@ function DriveScreenBody(props: DriveScreenProps): ReactElement {
           : {})}
         onClose={() => {
           setActionRow(null);
+        }}
+      />
+
+      {/* The create sheet — the same bottom-sheet shape as the row actions
+          (`SkinDialog` decides sheet-vs-modal once for the fleet). Two
+          actions, thumb-sized rows. */}
+      <SkinDialog
+        open={createSheetOpen}
+        onClose={() => {
+          setCreateSheetOpen(false);
+        }}
+        title={t(DRIVE_I18N_KEYS.createLabel)}
+        dismissLabel={t(DRIVE_I18N_KEYS.createLabel)}
+        data-testid="drive-create-sheet"
+      >
+        <Flex vertical gap={spacing[2]} style={{ paddingBlock: spacing[2] }}>
+          <Button
+            type="text"
+            style={{ width: "100%", justifyContent: "flex-start" }}
+            data-testid="drive-create-upload"
+            data-analytics="none"
+            data-analytics-reason="opens the file picker — the upload itself is the tracked outcome, and the host app wraps it with its own tracked()"
+            onClick={() => {
+              setCreateSheetOpen(false);
+              fileInput.current?.click();
+            }}
+          >
+            {t(DRIVE_I18N_KEYS.createUploadFiles)}
+          </Button>
+          <Button
+            type="text"
+            style={{ width: "100%", justifyContent: "flex-start" }}
+            data-testid="drive-create-folder"
+            data-analytics="none"
+            data-analytics-reason="opens the name prompt — the confirmed create carries the tracked action, and the host app wraps it with its own tracked()"
+            onClick={() => {
+              setCreateSheetOpen(false);
+              setNewFolderOpen(true);
+            }}
+          >
+            {t(DRIVE_I18N_KEYS.createNewFolder)}
+          </Button>
+        </Flex>
+      </SkinDialog>
+
+      {/* The new-folder prompt — the docs pair's `NameDialog`, exactly the
+          rename prompt's shape, with this pair's copy passed in as keys. */}
+      <NameDialog
+        open={newFolderOpen}
+        titleKey={DRIVE_I18N_KEYS.newFolderTitle}
+        confirmKey={DRIVE_I18N_KEYS.newFolderSubmit}
+        initialValue=""
+        busy={createFolder.isPending}
+        onConfirm={doCreateFolder}
+        onClose={() => {
+          setNewFolderOpen(false);
         }}
       />
     </Flex>

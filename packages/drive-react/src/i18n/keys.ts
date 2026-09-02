@@ -108,6 +108,13 @@ export const DRIVE_I18N_KEYS = {
   shareSuspendedBanner: "drive.share.suspendedBanner",
   shareUnavailable: "drive.share.unavailable",
 
+  // The create sheet (the FAB's action sheet) + the new-folder prompt
+  createLabel: "drive.create.label",
+  createUploadFiles: "drive.create.uploadFiles",
+  createNewFolder: "drive.create.newFolder",
+  newFolderTitle: "drive.newFolder.title",
+  newFolderSubmit: "drive.newFolder.submit",
+
   // Upload (the FAB + the tray)
   uploadAction: "drive.upload.action",
   uploadTrayTitle: "drive.upload.trayTitle",
@@ -228,6 +235,12 @@ export const driveI18nBundleEn: I18nDictionary = {
   "drive.share.suspendedBanner":
     "This way of sharing is switched off for this deployment. The rows below grant nothing right now — they were not revoked, and switching the mode back on restores them.",
   "drive.share.unavailable": "You cannot manage this kind of sharing.",
+
+  "drive.create.label": "New",
+  "drive.create.uploadFiles": "Upload files",
+  "drive.create.newFolder": "New folder",
+  "drive.newFolder.title": "New folder",
+  "drive.newFolder.submit": "Create",
 
   "drive.upload.action": "Upload",
   "drive.upload.trayTitle": "Uploads",
