@@ -252,6 +252,42 @@ describe("the favourite control is blocked, never hidden", () => {
     expect(srv.calls.length).toBe(before);
   });
 
+  it("draws the container's sign-in door beside the blocked heart", async () => {
+    const srv = mockServer({
+      "/listings/7/status/": { body: statusInfo() },
+      "/listings/7/": { body: detail({ is_favorited: null }) },
+    });
+    render(
+      <TestProviders server={srv} mandate="anonymous">
+        <ListingDetailPane id={7} signIn={{ href: "/login?next=/l/7" }} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-favorite")).toBeTruthy();
+    });
+    // The reason states WHY; the door says WHERE — the cards' own pattern,
+    // and until this prop the pane's heart had the sentence with no door.
+    const door = screen.getByTestId("listings-detail-sign-in");
+    expect(door.getAttribute("href")).toBe("/login?next=/l/7");
+  });
+
+  it("draws no door for a member, whose heart is live", async () => {
+    const srv = mockServer({
+      "/listings/7/favorite/": { body: { favorited: true, listing_id: 7 } },
+      "/listings/7/status/": { body: statusInfo() },
+      "/listings/7/": { body: detail({ is_favorited: false }) },
+    });
+    render(
+      <TestProviders server={srv} mandate="member">
+        <ListingDetailPane id={7} signIn={{ href: "/login?next=/l/7" }} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-favorite")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("listings-detail-sign-in")).toBeNull();
+  });
+
   it("toggles for a member and hits the endpoint the state implies", async () => {
     const srv = mockServer({
       "/listings/7/status/": { body: statusInfo() },

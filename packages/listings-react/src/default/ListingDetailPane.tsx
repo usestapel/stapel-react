@@ -48,6 +48,7 @@ import {
   useI18n,
   useT,
 } from "@stapel/core";
+import type { SignInCta } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import { FeatureValueList } from "@stapel/attributes-react/default";
 import { formatFeatureValue, isRedactedValue } from "@stapel/attributes-react";
@@ -55,6 +56,7 @@ import { useListingDetail } from "../headless/ListingDetail.js";
 import { useListingActions } from "../headless/ListingActions.js";
 import { asFeatureDaoList, featureValuesForDisplay } from "../model/features.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+import { SignInLink } from "./SignInLink.js";
 import { HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
@@ -94,6 +96,15 @@ export interface ListingDetailPaneProps
    * button). Cross-pair navigation is the container's job (spec §6.2 item 5),
    * so this pair takes nodes rather than routes. */
   readonly actions?: ReactNode;
+  /**
+   * The container's sign-in door, rendered beside the favourite's refusal —
+   * the same `SignInCta` seam the three card skins already take. The pane was
+   * the one heart in this pair whose "sign in to do this" had no door next to
+   * it (measured on a live storefront: the sentence, and the nearest sign-in
+   * a screen-corner away), which is exactly the gap `signIn` closed on the
+   * cards. Absent: the reason stands alone, as before.
+   */
+  readonly signIn?: SignInCta;
   readonly footer?: ReactNode;
 }
 
@@ -285,6 +296,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 {/* Favouriting your own listing is not a thing anyone does;
                     for everyone else it is the secondary it always was. */}
                 {owner ? null : (
+                  <Flex vertical gap={spacing[1]}>
                   <GatedControl
                     gate={bag.favoriteGate}
                     testId="listings-detail-favorite-gate"
@@ -308,6 +320,18 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                       </Button>
                     )}
                   </GatedControl>
+                  {/* The door. `GatedControl` prints the reason; where a
+                      visitor signs in is the container's, and arrives as
+                      `signIn` — the cards' own pattern, verbatim. */}
+                  {bag.favoriteGate.available ? null : (
+                    <Typography.Text
+                      type="secondary"
+                      data-testid="listings-detail-favorite-blocked"
+                    >
+                      <SignInLink cta={props.signIn} testId="listings-detail-sign-in" />
+                    </Typography.Text>
+                  )}
+                  </Flex>
                 )}
 
                 {props.actions}

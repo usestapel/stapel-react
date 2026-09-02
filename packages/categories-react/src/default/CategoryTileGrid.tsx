@@ -91,8 +91,17 @@ const VISIBLE_COLUMNS = 2.5;
  * both fit without the row eating the fold. */
 const TILE_ASPECT_RATIO = "4 / 3";
 
-/** Lines a tile's label may take before it is clipped. */
-const LABEL_LINES = 2;
+/**
+ * Lines a tile's label may take before it is clipped.
+ *
+ * Three, not the original two, and with hyphenation below — measured on a
+ * live 390px classified catalogue: the tile's inner column is ~105px there,
+ * one root name is a single 12-letter word wider than that (the clamp
+ * ellipsized it on its FIRST line), and the longest root name is three lines
+ * of text however it breaks. Real root names in a hyphenating language need
+ * the third line more than the art corner needs the headroom.
+ */
+const LABEL_LINES = 3;
 
 /** How many tiles the loading arm reserves room for. */
 const SKELETON_TILES = [1, 2, 3, 4] as const;
@@ -130,12 +139,21 @@ const tileStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontWeight: fontWeight.semibold,
-  // Two lines, then an ellipsis: a category name that pushes the art out of
+  // The clamp, then an ellipsis: a category name that pushes the art out of
   // the tile is worse than a truncated one.
   display: "-webkit-box",
   WebkitBoxOrient: "vertical",
   WebkitLineClamp: LABEL_LINES,
   overflow: "hidden",
+  // A touch tighter than the skin's body line: three clamped lines are a
+  // label, not a paragraph, and the saved height is what keeps the art corner
+  // inside the tile at the measured 129×97 phone geometry.
+  lineHeight: 1.3,
+  // A word wider than the tile breaks like a book word instead of clipping:
+  // `hyphens` under the document's own `lang`, and `overflow-wrap` as the
+  // floor for a browser without that language's dictionary.
+  hyphens: "auto",
+  overflowWrap: "anywhere",
 };
 
 const artStyle: CSSProperties = {
