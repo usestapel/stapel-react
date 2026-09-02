@@ -35,6 +35,7 @@ import { I18nProvider, createI18n } from "@stapel/core";
 import { VocabularyClientProvider } from "../src/index.js";
 import type { VocabularyClient, VocabularyTerm } from "../src/index.js";
 import { renderDemoVariant, runDemoPlay } from "@stapel/showcase";
+import { PICKER_SEARCH_TESTID } from "@stapel/tokens-antd/skin";
 import { registerAttributesI18n } from "../src/i18n/keys.js";
 import { FeatureFields } from "../src/default/FeatureFields.js";
 import { REF_SELECT_FEATURE } from "./fixtures.js";
@@ -114,29 +115,38 @@ function matched(): string | null {
 }
 
 /**
- * What the dropdown OFFERS, as `label:disabled` pairs.
+ * What the SHEET offers, as `label:disabled` pairs.
  *
- * rc-select marks a popup with nothing in it `ant-select-dropdown-empty` and
- * hides it — and then stops re-rendering its contents, so the option nodes of
- * the last non-empty list stay in the document behind `display: none`. The
- * class is therefore the fact and the leftover nodes are not: a helper that
- * read the nodes alone would report a list nobody can see, which is the exact
- * confusion this defect is about.
+ * The rows are the picker's own (`data-stapel-picker-row`), and a stale list
+ * is not read off the nodes but off the two facts the substrate stamps: the
+ * list's `data-stapel-picker-list="stale"` and each row's `disabled`. That
+ * matters here more than anywhere: the defect is a row that LOOKS pickable,
+ * so the test has to ask whether it can be pressed rather than whether it is
+ * on screen.
  */
 function offered(): readonly string[] {
-  const popup = document.querySelector(".ant-select-dropdown");
-  if (popup === null || popup.classList.contains("ant-select-dropdown-empty")) return [];
-  return Array.from(popup.querySelectorAll(".ant-select-item-option")).map(
-    (node) =>
-      `${node.getAttribute("title") ?? ""}:${node.getAttribute("aria-disabled") ?? "false"}`
+  return Array.from(
+    document.querySelectorAll<HTMLButtonElement>("[data-stapel-picker-row]")
+  ).map((node) => `${node.textContent ?? ""}:${node.disabled ? "true" : "false"}`);
+}
+
+/** The sheet's row for a term, or `null` when nothing on screen offers it. */
+function row(label: string): HTMLButtonElement | null {
+  return (
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>("[data-stapel-picker-row]")
+    ).find((node) => (node.textContent ?? "").includes(label)) ?? null
   );
 }
 
-/** The dropdown row for a term, or `null` when nothing on screen offers it. */
-function row(label: string): HTMLElement | null {
-  const popup = document.querySelector(".ant-select-dropdown");
-  if (popup === null || popup.classList.contains("ant-select-dropdown-empty")) return null;
-  return popup.querySelector(`.ant-select-item-option[title="${label}"]`);
+/** Tap the field, which is what opens the sheet and asks for the first page. */
+function openSheet(): void {
+  fireEvent.click(screen.getByTestId("attributes-ref-trigger"));
+}
+
+/** Type into the sheet's search box. */
+function type(query: string): void {
+  fireEvent.change(screen.getByTestId(PICKER_SEARCH_TESTID), { target: { value: query } });
 }
 
 async function settle(): Promise<void> {
@@ -152,7 +162,7 @@ describe("the list is blank, not stale, while a newer query is in flight", () =>
     mount(client);
 
     // Open, answer the first page: the list is an answer to "".
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    openSheet();
     await act(async () => {
       pending[0]?.resolve(APPLE);
       await Promise.resolve();
@@ -163,7 +173,7 @@ describe("the list is blank, not stale, while a newer query is in flight", () =>
     // One keystroke. Nothing has been requested yet — the debounce has not
     // fired — and this is exactly the window the live measure caught: 250 ms
     // of a list that answers a question nobody is asking any more.
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "sam" } });
+    type("sam");
     await settle();
     expect(pending).toHaveLength(1);
     expect(matched()).toBe("false");
@@ -174,13 +184,13 @@ describe("the list is blank, not stale, while a newer query is in flight", () =>
     vi.useFakeTimers();
     const { client, pending } = deferredClient();
     mount(client);
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    openSheet();
     await act(async () => {
       pending[0]?.resolve(APPLE);
       await Promise.resolve();
     });
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "sam" } });
+    type("sam");
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -202,13 +212,13 @@ describe("the list is blank, not stale, while a newer query is in flight", () =>
     vi.useFakeTimers();
     const { client, pending } = deferredClient();
     mount(client);
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    openSheet();
     await act(async () => {
       pending[0]?.resolve(APPLE);
       await Promise.resolve();
     });
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "sam" } });
+    type("sam");
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -229,17 +239,17 @@ describe("a response is dropped unless its query is the one in the box", () => {
     const { client, pending } = deferredClient();
     mount(client);
 
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    openSheet();
     await act(async () => {
       pending[0]?.resolve([]);
       await Promise.resolve();
     });
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "a" } });
+    type("a");
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "sam" } });
+    type("sam");
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -268,12 +278,13 @@ describe("a response is dropped unless its query is the one in the box", () => {
     const search = vi.fn<VocabularyClient["search"]>(async () => APPLE);
     const client: VocabularyClient = { search, resolve: async () => ({}) };
     mount(client);
-    const box = screen.getByRole("combobox");
-    fireEvent.change(box, { target: { value: "a" } });
+    openSheet();
+    await settle();
+    type("a");
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
-    fireEvent.change(box, { target: { value: "sam" } });
+    type("sam");
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -291,21 +302,28 @@ describe("nothing on screen can be picked until it answers the box", () => {
     const onChange = vi.fn();
     mount(client, { vendor: ["apple"] }, onChange);
 
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    openSheet();
     await act(async () => {
       pending[0]?.resolve([]);
       await Promise.resolve();
     });
     // Answered: the held code stands in for its label and IS pickable.
     expect(matched()).toBe("true");
-    expect(row("apple")?.getAttribute("aria-disabled")).not.toBe("true");
+    expect(row("apple")?.disabled).toBe(false);
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "sam" } });
+    type("sam");
     await settle();
-    // The whole dropdown is now the held row, and it is inert: the list is not
-    // an answer to "sam" and a tap must not be able to commit anything from it.
+    // The whole sheet is now the held row, and it is inert: the list is not an
+    // answer to "sam" and a tap must not be able to commit anything from it.
+    // Both halves of the substrate's stale state are asserted — the list says
+    // so, and the row cannot be pressed.
     expect(matched()).toBe("false");
-    expect(row("apple")?.getAttribute("aria-disabled")).toBe("true");
+    expect(
+      document.querySelector("[data-stapel-picker-list]")?.getAttribute(
+        "data-stapel-picker-list"
+      )
+    ).toBe("stale");
+    expect(row("apple")?.disabled).toBe(true);
 
     fireEvent.click(row("apple") as HTMLElement);
     await settle();
@@ -318,7 +336,7 @@ describe("what the person sees while it is thinking", () => {
     vi.useFakeTimers();
     const { client, pending } = deferredClient();
     mount(client);
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    openSheet();
     await act(async () => {
       pending[0]?.resolve(APPLE);
       await Promise.resolve();
@@ -326,7 +344,7 @@ describe("what the person sees while it is thinking", () => {
     const control = (): HTMLElement => screen.getByTestId("attributes-ref-select");
     expect(control().getAttribute("data-vocabulary-busy")).toBe("false");
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "sam" } });
+    type("sam");
     await settle();
     // Busy from the keystroke — including the 250 ms before the request even
     // leaves, which is where most of the measured window lived.

@@ -1,6 +1,6 @@
 /**
  * The antd BUILTIN value editors — one per value type `stapel_attributes`
- * ships (`types/`: thirteen of them).
+ * ships (`types/`: thirteen of them), and the table that resolves them.
  *
  * ── Where these sit in the resolution ladder ───────────────────────────────
  *
@@ -8,7 +8,32 @@
  *   → this table                               ← the skin's default
  *   → `<UnsupportedValueEditor/>`              ← loud, never silent
  *
- * ── The rule this file is now held to ──────────────────────────────────────
+ * ── Where the editors themselves live ──────────────────────────────────────
+ *
+ * The file used to hold all thirteen. The picker rework roughly doubled what
+ * a choice-shaped editor does, so the set is split by SHAPE — each file
+ * stating the one rule its editors obey — and this module keeps the types
+ * that are neither a choice nor a number nor text, plus the table:
+ *
+ *  - `editorKit.tsx`     — the config readers, the lock wrapper, the chips
+ *                          and trigger both halves of a choice share.
+ *  - `editorsChoice.tsx` — `select`, `bool`. "A closed list is picked, not
+ *                          unfolded"; an unanswered required bool is neither
+ *                          yes nor no.
+ *  - `editorsNumber.tsx` — `int`, `float`, `convertible_unit`. "A bound is a
+ *                          hint, never a clamp."
+ *  - `editorsText.tsx`   — `string`. "A length limit is counted, never
+ *                          capped."
+ *  - `editorsRef.tsx`    — `ref_select`, `ref_hierarchical_select`. "A list
+ *                          that does not answer the box is never pickable."
+ *  - here                — `date`, `header`, `hex_color`,
+ *                          `hierarchical_select`, `group`.
+ *
+ * The public API is unchanged: {@link BUILTIN_VALUE_EDITORS},
+ * {@link BUILTIN_VALUE_EDITOR_TYPES} and the two timestamp helpers are
+ * exported from here exactly as before, and `/default`'s barrel is untouched.
+ *
+ * ── The rule this set is held to ───────────────────────────────────────────
  *
  * **A control never offers what the mirror will refuse.** The audit found the
  * editors reading roughly half the config keys `validate.ts` reads: a closed
@@ -19,17 +44,9 @@
  * human reading two files side by side, which is not a mechanism.
  *
  * The mechanism is `test/configKeys.test.ts`: for every value type, the set of
- * `config[...]` keys the MIRROR reads must be a SUBSET of the set this file's
- * editor reads, both extracted from the source. Adding a rule to `validate.ts`
- * without an affordance here is now a red test, by name, with the missing key
- * printed. Two consequences visible below:
- *
- *  - `string` passes `pattern` and `minLength` to the native input and turns
- *    `maxLength` into a code-point COUNTER rather than a cap (the DOM counts
- *    UTF-16 units and the engine counts code points, so a hard cap would stop
- *    a person two emoji short of the real limit with no explanation);
- *  - every options-bearing numeric/string config draws a picker, closed when
- *    `allowCustom === false` and suggesting otherwise.
+ * `config[...]` keys the MIRROR reads must be a SUBSET of the set that type's
+ * editor reads, both extracted from the source — now across the files above,
+ * which the gate resolves by declaration name.
  *
  * ── These are NOT forms-react's widgets, and the differences are the point ─
  *
@@ -50,60 +67,48 @@
  *    exact-colour swatch, not a bare `ColorPicker`.
  *  - **`select` is always a LIST**, even when `maxSelected: 1`
  *    (`types/select/dto.py`: `value: List[str]`). A single choice is a
- *    one-element array, and `Segmented`'s scalar is wrapped on the way out.
+ *    one-element array, and a chip's scalar is wrapped on the way out.
  *
  * `convertible_unit` is the fourth object-valued type (`{value, unit}`), and
  * the editor must NOT convert anything itself: the server converts the number
  * from the submitted unit into the family's base unit before validating.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
-import {
-  AutoComplete,
-  Button,
-  Cascader,
-  Checkbox,
-  ColorPicker,
-  Flex,
-  Input,
-  InputNumber,
-  Radio,
-  Segmented,
-  Select,
-  Switch,
-  Typography,
-} from "antd";
+import { useCallback, useMemo } from "react";
+import type { ReactElement } from "react";
+import { Button, Cascader, ColorPicker, Flex, Input, Select, Typography } from "antd";
 import { actionBlocked, useI18n, useT } from "@stapel/core";
-import { GatedControl, PHONE_CONTROL_HEIGHT, SkinTheme } from "@stapel/tokens-antd/skin";
+import {
+  GatedControl,
+  PHONE_CONTROL_HEIGHT,
+  SkinNumberField,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { resolveValueEditor } from "../registry.js";
-import { featureConfig, featureName, featureType } from "../types.js";
+import { featureName, featureType } from "../types.js";
 import type { FeatureConfig } from "../types.js";
-import {
-  SIMPLE_COLORS,
-  codePointLength,
-  groupChildren,
-  groupRowBounds,
-  isBlank,
-} from "../validate.js";
-import { firstCode, optionsRefOf, useVocabularyClient } from "../vocabulary.js";
-import type { VocabularyClient, VocabularyTerm } from "../vocabulary.js";
+import { SIMPLE_COLORS, groupChildren, groupRowBounds, isBlank } from "../validate.js";
 import { UnsupportedValueEditor } from "./notice.js";
 import { formatFeatureValue } from "../format.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
-import { configLabel, optionLabel } from "./labels.js";
+import { optionLabel } from "./labels.js";
 import { useTouchFloor } from "./touchFloor.js";
-
-/** At or below this many choices an inline single-select renders as a
- * `Segmented` — the profiles-react / forms-react threshold, kept identical on
- * purpose. Above it, an inline group of radio buttons, which wraps. */
-const SEGMENTED_MAX_OPTIONS = 4;
-
-/** The `convertible_unit` unit chooser holds a unit CODE (`m`, `ft`, `mm`),
- * never a word — so its width is measured in characters, not pixels: it
- * follows the type scale instead of contradicting it. */
-const UNIT_SELECT_WIDTH = "12ch";
+import {
+  HintLine,
+  Lockable,
+  configOf,
+  errorStatus,
+  numberish,
+  rangePlaceholder,
+  requiredAria,
+  str,
+  useRangeHint,
+} from "./editorKit.js";
+import { BoolEditor, SelectEditor } from "./editorsChoice.js";
+import { ConvertibleUnitEditor, makeNumberEditor } from "./editorsNumber.js";
+import { StringEditor } from "./editorsText.js";
+import { RefHierarchicalSelectEditor, RefSelectEditor } from "./editorsRef.js";
 
 /** One row of a composite: the cells a `group` holds, keyed by child slug. */
 type GroupRow = Readonly<Record<string, unknown>>;
@@ -115,509 +120,6 @@ const EMPTY_ROW: GroupRow = {};
  * `ConfigProvider` consumer, and a group's box is chrome, not a control, so it
  * takes the same neutral border every bordered surface in the skin does. */
 const GROUP_BORDER = "var(--stapel-border, rgba(128,128,128,0.35))";
-
-/**
- * The height a chip's LABEL is held to inside a narrow column.
- *
- * antd derives a `Segmented` item from `controlHeight`, and `SkinTheme` only
- * raises that to 44px on a phone VIEWPORT — so the same chips in a composer
- * column a few hundred pixels wide on a desktop measured ~27px in the visual
- * pass. The label is the one part of the control a caller can size, and
- * growing it grows the item: the track adds its own padding on each side,
- * `spacing[1]` in total, so a 40px label is a 44px chip.
- */
-const CHIP_LABEL_FLOOR: number = PHONE_CONTROL_HEIGHT - spacing[1];
-
-/** A chip as antd takes it once its label is a node rather than a string. */
-interface ChipOption {
-  readonly value: string;
-  readonly label: ReactNode;
-}
-
-/** {@link CHIP_LABEL_FLOOR}, applied to one choice. */
-function touchChip(choice: Choice): ChipOption {
-  return {
-    value: choice.value,
-    label: (
-      <span
-        style={{ display: "inline-flex", alignItems: "center", minHeight: CHIP_LABEL_FLOOR }}
-      >
-        {choice.label}
-      </span>
-    ),
-  };
-}
-
-/**
- * antd's `status` prop under `exactOptionalPropertyTypes` does not accept
- * `undefined` — it wants the key ABSENT. Spread this instead of passing
- * `status={error ? "error" : undefined}`.
- */
-function errorStatus(error: unknown): { status: "error" } | Record<string, never> {
-  return error ? { status: "error" } : {};
-}
-
-function str(value: unknown): string {
-  return typeof value === "string" ? value : value === null || value === undefined ? "" : String(value);
-}
-
-function numberish(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return undefined;
-}
-
-function configOf(props: ValueEditorProps): FeatureConfig {
-  return featureConfig(props.feature);
-}
-
-/** `aria-required` for the row's required state, absent when it is not — the
- * asterisk antd draws is decorative and reaches no screen reader. */
-function requiredAria(props: ValueEditorProps): { "aria-required": true } | Record<string, never> {
-  return props.required === true ? { "aria-required": true } : {};
-}
-
-/**
- * A control the CATALOGUE locked (`select.lockUserInput`, `date.lockInput`).
- *
- * Not a bare `disabled`: a switched-off control with nothing beside it is the
- * dead rectangle §83 exists to forbid, and "why can't I change this?" has an
- * answer here — the admin fixed the value. `GatedControl` puts that sentence
- * under the control and wires `aria-describedby` to it. When nothing is
- * locked the wrapper is skipped entirely, so the common case gains no DOM.
- */
-function Lockable(props: {
-  readonly locked: boolean;
-  readonly disabled: boolean;
-  readonly children: (bind: {
-    readonly disabled: boolean;
-    readonly "aria-describedby": string | undefined;
-  }) => ReactNode;
-}): ReactElement {
-  if (!props.locked) {
-    return <>{props.children({ disabled: props.disabled, "aria-describedby": undefined })}</>;
-  }
-  return (
-    <GatedControl
-      gate={actionBlocked(ATTRIBUTES_I18N_KEYS.lockedByConfig)}
-      testId="attributes-locked"
-    >
-      {(bind) => props.children({ disabled: true, "aria-describedby": bind["aria-describedby"] })}
-    </GatedControl>
-  );
-}
-
-/** One offered choice. A named type, not an inline object literal, because
- * `test/configKeys.test.ts` brace-matches these function bodies out of the
- * source and a `{…}` in a return type is a body it would stop at. */
-interface Choice {
-  readonly value: string;
-  readonly label: string;
-}
-
-/** `{value, label}` choices from either option shape the engine allows, with
- * labels resolved through the host's catalogue when `translatable_options`
- * is on (its default). Shared by `string`, `int`/`float` and `select`, which
- * is why all three read `options` and `allowCustom` the same way. */
-function useChoices(config: FeatureConfig): readonly Choice[] {
-  const t = useT();
-  return useMemo(() => {
-    const raw = config["options"];
-    if (!Array.isArray(raw)) return [];
-    return raw.map((option) => {
-      if (option !== null && typeof option === "object") {
-        const entry = option as { value?: unknown; label?: unknown };
-        const value = str(entry.value);
-        return { value, label: optionLabel(t, config, entry.label, value) };
-      }
-      const value = str(option);
-      return { value, label: value };
-    });
-  }, [config, t]);
-}
-
-/** Does this config offer a CLOSED list — options present and free entry off?
- * `allowCustom` absent means TRUE for every type that has it (the dataclass
- * default, and `type.py`'s `allowCustom if … is not None else (options is
- * None)`), so an options list alone constrains nothing. */
-function isClosedList(config: FeatureConfig, choiceCount: number): boolean {
-  return choiceCount > 0 && config["allowCustom"] === false;
-}
-
-// ── string ───────────────────────────────────────────────────────────────────
-
-/**
- * `string` → an `Input`, a `TextArea` when `config.multiline`, a closed
- * `Select` when the options are a fixed vocabulary, and an `AutoComplete` when
- * they are suggestions.
- */
-const StringEditor: ValueEditor = (props: ValueEditorProps) => {
-  const t = useT();
-  const cfg = configOf(props);
-  const choices = useChoices(cfg);
-  const closed = isClosedList(cfg, choices.length);
-  const placeholder = str(cfg["placeholder"]);
-  const value = str(props.value);
-  const minLength = numberish(cfg["minLength"]);
-  const maxLength = numberish(cfg["maxLength"]);
-  const pattern = str(cfg["pattern"]);
-  // `prefix`/`postfix` are TRANSLATION KEYS upstream
-  // (`types/string/type.py:get_translation_keys`), never literal copy.
-  const prefix = configLabel(t, cfg["prefix"]);
-  const postfix = configLabel(t, cfg["postfix"]);
-
-  if (closed) {
-    return (
-      <Select
-        id={props.id}
-        style={{ width: "100%" }}
-        options={[...choices]}
-        disabled={props.disabled === true}
-        {...errorStatus(props.error)}
-        {...requiredAria(props)}
-        placeholder={placeholder.length > 0 ? placeholder : t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
-        showSearch
-        optionFilterProp="label"
-        {...(value.length > 0 ? { value } : {})}
-        onChange={(next: string) => props.onChange(next.length > 0 ? next : undefined)}
-      />
-    );
-  }
-
-  // Chrome shared by every free-entry branch. `value`/`onChange` are NOT here:
-  // the `AutoComplete` branch below owns them and clones them onto its child.
-  const chrome = {
-    disabled: props.disabled === true,
-    ...errorStatus(props.error),
-    ...requiredAria(props),
-    ...(placeholder.length > 0 ? { placeholder } : {}),
-    ...(minLength !== undefined ? { minLength } : {}),
-    ...(prefix.length > 0 ? { prefix } : {}),
-    ...(postfix.length > 0 ? { suffix: postfix } : {}),
-    // `config.maxLength` is deliberately NOT a hard cap: the engine counts
-    // Unicode CODE POINTS and the DOM's `maxlength` counts UTF-16 code units,
-    // so a cap would stop a person two emoji short of the real limit with no
-    // explanation. It becomes a live counter IN THE ENGINE'S UNIT instead, and
-    // the mirror reports the limit when it is actually exceeded.
-    ...(maxLength !== undefined
-      ? {
-          showCount: {
-            formatter: ({ value: text }: { value: string }): string =>
-              `${codePointLength(text)} / ${maxLength}`,
-          },
-        }
-      : {}),
-  };
-
-  if (cfg["multiline"] === true) {
-    return (
-      <Input.TextArea
-        id={props.id}
-        value={value}
-        {...chrome}
-        autoSize={{ minRows: 3, maxRows: 8 }}
-        // antd hangs the counter BELOW a textarea, absolutely positioned, so
-        // it lands on top of the field's help line. The row needs the height
-        // reserved for it; a single-line `Input` puts its counter inside the
-        // box and needs none.
-        {...(maxLength !== undefined ? { style: { marginBottom: spacing[5] } } : {})}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
-    );
-  }
-
-  // Options + `allowCustom` (the default): the list is a SUGGESTION, so the
-  // control must SHOW it and still take anything typed.
-  if (choices.length > 0) {
-    return (
-      <AutoComplete
-        id={props.id}
-        options={[...choices]}
-        value={value}
-        disabled={props.disabled === true}
-        style={{ width: "100%" }}
-        filterOption={(typed, option) =>
-          str(option?.label).toLowerCase().includes(typed.toLowerCase())
-        }
-        onChange={(next: string) => props.onChange(next.length > 0 ? next : undefined)}
-      >
-        {/* AutoComplete clones this child and injects value/onChange/disabled
-            from the parent above — hence no `value` or `disabled` here. */}
-        <Input {...chrome} {...(pattern.length > 0 ? { pattern } : {})} />
-      </AutoComplete>
-    );
-  }
-
-  // A native `pattern` is `re.fullmatch` semantics in the browser — the same
-  // anchoring `patternFullMatch` applies in the mirror, from the same string.
-  return (
-    <Input
-      id={props.id}
-      value={value}
-      {...chrome}
-      {...(pattern.length > 0 ? { pattern } : {})}
-      onChange={(event) => props.onChange(event.target.value)}
-    />
-  );
-};
-
-// ── int / float ──────────────────────────────────────────────────────────────
-
-function makeNumberEditor(isInt: boolean): ValueEditor {
-  const Editor = (props: ValueEditorProps): ReactElement => {
-    const t = useT();
-    const cfg = configOf(props);
-    const choices = useChoices(cfg);
-    const closed = isClosedList(cfg, choices.length);
-    const min = numberish(cfg["min"]);
-    const max = numberish(cfg["max"]);
-    // `int`'s `precision` is a DISPLAY hint upstream (it defaults to 1 and
-    // means "significant step", not "decimal places"), so an integer control
-    // pins 0 decimals rather than reading it — reading it would let an `int`
-    // field accept `1.0` and then silently truncate server-side.
-    const precision = isInt ? 0 : numberish(cfg["precision"]);
-    const placeholder = str(cfg["placeholder"]);
-    const current = numberish(props.value);
-    // Upstream declares all three as translation keys
-    // (`types/int/type.py:get_translation_keys`). `postfix1000` is the unit a
-    // value of a thousand or more is READ in ("k", "t"), and the engine swaps
-    // to it at exactly that boundary in `format_value` — so the control's
-    // suffix follows the number the person is typing.
-    const prefix = configLabel(t, cfg["prefix"]);
-    const postfix = configLabel(t, cfg["postfix"]);
-    const postfix1000 = configLabel(t, cfg["postfix1000"]);
-    const suffix =
-      postfix1000.length > 0 && current !== undefined && Math.abs(current) >= 1000
-        ? postfix1000
-        : postfix;
-
-    if (closed) {
-      return (
-        <Select
-          id={props.id}
-          style={{ width: "100%" }}
-          options={choices.map((choice) => ({
-            value: choice.value,
-            label: `${prefix}${choice.label}${suffix ? ` ${suffix}` : ""}`,
-          }))}
-          disabled={props.disabled === true}
-          {...errorStatus(props.error)}
-          {...requiredAria(props)}
-          placeholder={
-            placeholder.length > 0 ? placeholder : t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)
-          }
-          {...(current === undefined ? {} : { value: String(current) })}
-          onChange={(next: string) => props.onChange(numberish(next))}
-        />
-      );
-    }
-
-    return (
-      <InputNumber
-        id={props.id}
-        style={{ width: "100%" }}
-        value={current ?? null}
-        disabled={props.disabled === true}
-        {...errorStatus(props.error)}
-        {...requiredAria(props)}
-        {...(min !== undefined ? { min } : {})}
-        {...(max !== undefined ? { max } : {})}
-        {...(precision !== undefined ? { precision } : {})}
-        {...(isInt ? { step: 1 } : {})}
-        {...(placeholder.length > 0 ? { placeholder } : {})}
-        {...(prefix.length > 0 ? { prefix } : {})}
-        {...(suffix.length > 0 ? { suffix } : {})}
-        // Options with free entry: a datalist offers them without closing the
-        // control, which is what `allowCustom` (the default) actually means.
-        {...(choices.length > 0 ? { "aria-autocomplete": "list" as const } : {})}
-        onChange={(next) => props.onChange(next ?? undefined)}
-      />
-    );
-  };
-  Editor.displayName = isInt ? "IntValueEditor" : "FloatValueEditor";
-  return Editor;
-}
-
-// ── bool ─────────────────────────────────────────────────────────────────────
-
-const BoolEditor: ValueEditor = (props: ValueEditorProps) => {
-  const t = useT();
-  const cfg = configOf(props);
-  const on = props.value === true;
-  // `trueLabel`/`falseLabel` are translation KEYS
-  // (`types/bool/type.py:117-123` collects them for the catalogue, and
-  // `format_value` falls back to `feature.bool.true`). Rendering them verbatim
-  // showed English captions on a Russian storefront.
-  const trueLabel = configLabel(t, cfg["trueLabel"]) || t(ATTRIBUTES_I18N_KEYS.boolYes);
-  const falseLabel = configLabel(t, cfg["falseLabel"]) || t(ATTRIBUTES_I18N_KEYS.boolNo);
-  return (
-    <Flex align="center" gap={spacing[2]}>
-      <Switch
-        id={props.id}
-        checked={on}
-        disabled={props.disabled === true}
-        {...requiredAria(props)}
-        onChange={(checked) => props.onChange(checked)}
-      />
-      <Typography.Text type="secondary">{on ? trueLabel : falseLabel}</Typography.Text>
-    </Flex>
-  );
-};
-
-// ── select ───────────────────────────────────────────────────────────────────
-
-/** `SelectConfig.uiStyle` — `dropdown` is the DEFAULT and, crucially, what an
- * ABSENT key means (`types/select/config.py`). The old
- * `cfg["uiStyle"] !== "dropdown"` test was true for absent, so an unconfigured
- * small single-select rendered inline where the config said dropdown. */
-function uiStyleOf(config: FeatureConfig): "dropdown" | "checkboxes" | "chips" {
-  const declared = str(config["uiStyle"]);
-  return declared === "checkboxes" || declared === "chips" ? declared : "dropdown";
-}
-
-/**
- * `select` → a control in the style the CONFIG asked for, on both the single
- * and the multiple branch.
- *
- * The value is a LIST on every branch. `maxSelected` absent means UNLIMITED
- * (the engine's own default); reading an absent key as 1 would silently turn
- * every unconfigured select into a single-choice control.
- *
- * `chips` and `checkboxes` both mean "every option visible, no popup"; they
- * differ only where antd gives them different single-choice controls (a
- * `Segmented` bar versus radio buttons). For a MULTIPLE select antd ships one
- * inline control, `Checkbox.Group`, so both styles reach it — stated here
- * rather than silently, because the alternative is inventing a chip widget
- * that no other pair in the fleet has.
- */
-const SelectEditor: ValueEditor = (props: ValueEditorProps) => {
-  const t = useT();
-  const cfg = configOf(props);
-  const touchFloor = useTouchFloor();
-  const choices = useChoices(cfg);
-  const maxSelected = numberish(cfg["maxSelected"]);
-  const minSelected = numberish(cfg["minSelected"]) ?? 0;
-  const multiple = maxSelected === undefined || maxSelected > 1;
-  const style = uiStyleOf(cfg);
-  const locked = cfg["lockUserInput"] === true;
-  const current = Array.isArray(props.value) ? props.value.map(str) : [];
-  const options = [...choices];
-
-  const emit = (next: readonly string[]): void =>
-    props.onChange(next.length > 0 ? [...next] : undefined);
-
-  // antd's `Select` has `maxCount` and no minimum, so the floor is said in
-  // words beside the control instead of only after a refused submit.
-  const minHint =
-    minSelected > 0 ? (
-      <Typography.Text type="secondary" data-testid="attributes-min-selected">
-        {t(ATTRIBUTES_I18N_KEYS.selectMinSelected, { count: minSelected })}
-      </Typography.Text>
-    ) : null;
-
-  const control = (bind: {
-    readonly disabled: boolean;
-    readonly "aria-describedby": string | undefined;
-  }): ReactElement => {
-    if (style !== "dropdown" && !multiple && choices.length > 0) {
-      if (choices.length <= SEGMENTED_MAX_OPTIONS && style === "chips") {
-        return (
-          <Segmented<string>
-            id={props.id}
-            // antd renders a `radiogroup` div, which a `<label for>` cannot
-            // name — so the accessible name comes from the feature itself.
-            aria-label={featureName(props.feature)}
-            {...(bind["aria-describedby"] !== undefined
-              ? { "aria-describedby": bind["aria-describedby"] }
-              : {})}
-            // A narrow column is a touched one: the chips carry the 44px
-            // floor the viewport rule alone would not give them here.
-            {...(touchFloor ? { "data-attributes-touch-floor": "" } : {})}
-            options={touchFloor ? options.map(touchChip) : options}
-            value={current[0] ?? ""}
-            disabled={bind.disabled}
-            onChange={(next) => emit(next.length > 0 ? [next] : [])}
-          />
-        );
-      }
-      return (
-        <Radio.Group
-          id={props.id}
-          aria-label={featureName(props.feature)}
-          {...(bind["aria-describedby"] !== undefined
-            ? { "aria-describedby": bind["aria-describedby"] }
-            : {})}
-          options={options}
-          {...(style === "chips" ? { optionType: "button" as const } : {})}
-          value={current[0] ?? ""}
-          disabled={bind.disabled}
-          onChange={(event) => emit(event.target.value ? [String(event.target.value)] : [])}
-        />
-      );
-    }
-
-    if (style !== "dropdown" && multiple && choices.length > 0) {
-      return (
-        <Checkbox.Group
-          // `Checkbox.Group` renders a plain `div` and antd's types carry no
-          // `id`, so `<label for>` has nothing to point at — the group names
-          // itself, exactly as `Segmented` does two branches up.
-          aria-label={featureName(props.feature)}
-          {...(bind["aria-describedby"] !== undefined
-            ? { "aria-describedby": bind["aria-describedby"] }
-            : {})}
-          options={options}
-          value={[...current]}
-          disabled={bind.disabled}
-          onChange={(next) => emit((next as readonly (string | number | boolean)[]).map(str))}
-        />
-      );
-    }
-
-    const dropdown = {
-      id: props.id,
-      style: { width: "100%" },
-      options,
-      disabled: bind.disabled,
-      ...errorStatus(props.error),
-      ...requiredAria(props),
-      ...(bind["aria-describedby"] !== undefined
-        ? { "aria-describedby": bind["aria-describedby"] }
-        : {}),
-      placeholder: t(ATTRIBUTES_I18N_KEYS.selectPlaceholder),
-    };
-    if (multiple) {
-      return (
-        <Select
-          {...dropdown}
-          mode="multiple"
-          {...(maxSelected !== undefined ? { maxCount: maxSelected } : {})}
-          value={[...current]}
-          onChange={(next: readonly string[]) => emit(next)}
-        />
-      );
-    }
-    return (
-      <Select
-        {...dropdown}
-        {...(current[0] !== undefined ? { value: current[0] } : {})}
-        onChange={(next: string) => emit(next.length > 0 ? [next] : [])}
-      />
-    );
-  };
-
-  return (
-    <Flex vertical gap={spacing[1]}>
-      <Lockable locked={locked} disabled={props.disabled === true}>
-        {control}
-      </Lockable>
-      {minHint}
-    </Flex>
-  );
-};
 
 // ── date ─────────────────────────────────────────────────────────────────────
 
@@ -679,9 +181,21 @@ function tightest(
   return pick(a, b);
 }
 
+/**
+ * `date` → the NATIVE input for its precision, with its bounds carried twice:
+ * as the input's own `min`/`max` (so the platform's own picker greys out what
+ * the engine would refuse) and as a line under the field in words.
+ *
+ * The native control is deliberate. A phone renders it as the OS date wheel a
+ * person already knows, with their locale, their first day of the week and
+ * their calendar — none of which a JS widget gets right for free, and all of
+ * which cost a runtime dependency (dayjs) this package does not otherwise
+ * need. The value on the wire is a Unix timestamp either way.
+ */
 const DateEditor: ValueEditor = (props: ValueEditorProps) => {
   const t = useT();
   const { locale } = useI18n();
+  const rangeHint = useRangeHint();
   const cfg = configOf(props);
   const precision = str(cfg["precision"]) || "date";
   const current = numberish(props.value);
@@ -702,6 +216,13 @@ const DateEditor: ValueEditor = (props: ValueEditorProps) => {
     Math.min
   );
 
+  const spell = useCallback(
+    (seconds: number): string =>
+      formatFeatureValue(props.feature, { type: "date", value: seconds }, { t, locale }) ??
+      timestampToInputValue(seconds, precision),
+    [props.feature, t, locale, precision]
+  );
+
   // `config.options` is a PICKLIST of timestamps the admin curated (model
   // years, delivery slots). The engine does not range-check against it, but
   // offering a free calendar where a fixed list was configured is the same
@@ -712,88 +233,98 @@ const DateEditor: ValueEditor = (props: ValueEditorProps) => {
     return raw
       .map((option) => numberish(option))
       .filter((seconds): seconds is number => seconds !== undefined)
-      .map((seconds) => ({
-        value: String(seconds),
-        label:
-          formatFeatureValue(props.feature, { type: "date", value: seconds }, { t, locale }) ??
-          timestampToInputValue(seconds, precision),
-      }));
-  }, [cfg, props.feature, t, locale, precision]);
+      .map((seconds) => ({ value: String(seconds), label: spell(seconds) }));
+  }, [cfg, spell]);
 
   const placeholder = str(cfg["placeholder"]);
+  const hint = rangeHint(
+    min === undefined ? undefined : spell(min),
+    max === undefined ? undefined : spell(max)
+  );
 
   return (
-    <Lockable locked={locked} disabled={props.disabled === true}>
-      {(bind) => {
-        const described =
-          bind["aria-describedby"] !== undefined
-            ? { "aria-describedby": bind["aria-describedby"] }
-            : {};
-        if (picks.length > 0) {
-          return (
-            <Select
-              id={props.id}
-              style={{ width: "100%" }}
-              options={picks}
-              disabled={bind.disabled}
-              {...errorStatus(props.error)}
-              {...requiredAria(props)}
-              {...described}
-              placeholder={
-                placeholder.length > 0 ? placeholder : t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)
-              }
-              {...(current === undefined ? {} : { value: String(current) })}
-              onChange={(next: string) => props.onChange(numberish(next))}
-            />
-          );
-        }
+    <Flex vertical gap={spacing[1]}>
+      <Lockable locked={locked} disabled={props.disabled === true}>
+        {(bind) => {
+          const described =
+            bind["aria-describedby"] !== undefined
+              ? { "aria-describedby": bind["aria-describedby"] }
+              : {};
+          if (picks.length > 0) {
+            return (
+              <Select
+                id={props.id}
+                style={{ width: "100%" }}
+                options={picks}
+                disabled={bind.disabled}
+                {...errorStatus(props.error)}
+                {...requiredAria(props)}
+                {...described}
+                placeholder={
+                  placeholder.length > 0 ? placeholder : t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)
+                }
+                {...(current === undefined ? {} : { value: String(current) })}
+                onChange={(next: string) => props.onChange(numberish(next))}
+              />
+            );
+          }
 
-        // "Year only" is a number, not a date: a date input would force a
-        // month and a day the admin explicitly said they do not want. The
-        // value on the wire is still a timestamp — January 1st, local time.
-        if (precision === "year") {
+          // "Year only" is a number, not a date: a date input would force a
+          // month and a day the admin explicitly said they do not want. The
+          // value on the wire is still a timestamp — January 1st, local time.
+          if (precision === "year") {
+            const years = [
+              min === undefined ? undefined : new Date(min * 1000).getFullYear(),
+              max === undefined ? undefined : new Date(max * 1000).getFullYear(),
+            ] as const;
+            const box = rangePlaceholder(years[0], years[1]);
+            return (
+              <SkinNumberField
+                id={props.id}
+                integer
+                ariaLabel={featureName(props.feature)}
+                {...(props.required === true ? { ariaRequired: true } : {})}
+                value={
+                  current === undefined ? undefined : new Date(current * 1000).getFullYear()
+                }
+                disabled={bind.disabled}
+                testId="attributes-date-year"
+                {...errorStatus(props.error)}
+                {...(placeholder.length > 0
+                  ? { hintPlaceholder: placeholder }
+                  : box !== undefined
+                    ? { hintPlaceholder: box }
+                    : {})}
+                onValueChange={(year) => {
+                  props.onChange(
+                    year === undefined
+                      ? undefined
+                      : Math.floor(new Date(year, 0, 1).getTime() / 1000)
+                  );
+                }}
+              />
+            );
+          }
+
           return (
-            <InputNumber
+            <Input
               id={props.id}
-              style={{ width: "100%" }}
-              value={current === undefined ? null : new Date(current * 1000).getFullYear()}
+              type={DATE_INPUT_TYPE[precision] ?? "date"}
+              value={current === undefined ? "" : timestampToInputValue(current, precision)}
               disabled={bind.disabled}
               {...errorStatus(props.error)}
               {...requiredAria(props)}
               {...described}
-              step={1}
-              precision={0}
-              {...(min !== undefined ? { min: new Date(min * 1000).getFullYear() } : {})}
-              {...(max !== undefined ? { max: new Date(max * 1000).getFullYear() } : {})}
               {...(placeholder.length > 0 ? { placeholder } : {})}
-              onChange={(next) =>
-                props.onChange(
-                  next === null || next === undefined
-                    ? undefined
-                    : Math.floor(new Date(next, 0, 1).getTime() / 1000)
-                )
-              }
+              {...(min !== undefined ? { min: timestampToInputValue(min, precision) } : {})}
+              {...(max !== undefined ? { max: timestampToInputValue(max, precision) } : {})}
+              onChange={(event) => props.onChange(inputValueToTimestamp(event.target.value))}
             />
           );
-        }
-
-        return (
-          <Input
-            id={props.id}
-            type={DATE_INPUT_TYPE[precision] ?? "date"}
-            value={current === undefined ? "" : timestampToInputValue(current, precision)}
-            disabled={bind.disabled}
-            {...errorStatus(props.error)}
-            {...requiredAria(props)}
-            {...described}
-            {...(placeholder.length > 0 ? { placeholder } : {})}
-            {...(min !== undefined ? { min: timestampToInputValue(min, precision) } : {})}
-            {...(max !== undefined ? { max: timestampToInputValue(max, precision) } : {})}
-            onChange={(event) => props.onChange(inputValueToTimestamp(event.target.value))}
-          />
-        );
-      }}
-    </Lockable>
+        }}
+      </Lockable>
+      {hint !== undefined && <HintLine testId="attributes-date-hint">{hint}</HintLine>}
+    </Flex>
   );
 };
 
@@ -1003,6 +534,13 @@ function toCascaderOptions(
  * `value`s from root to the chosen node, which is exactly what the engine
  * stores and validates level by level.
  *
+ * It keeps the `Cascader` where its vocabulary-backed cousin no longer does,
+ * and the difference is the size of the tree: here the WHOLE tree is inlined
+ * in the config (a category's body types, a size grid), so every column is
+ * already in the browser and the control never shows a level that is empty
+ * because something has not loaded. `ref_hierarchical_select` cannot say that
+ * about an 812k-term vocabulary, which is why it became a chain of rungs.
+ *
  * Both depth bounds reach the control. `maxDepth` PRUNES the tree, so a level
  * the engine would refuse is never offered; `minDepth > 1` drops
  * `changeOnSelect`, so a partial path stops being selectable at all instead of
@@ -1041,578 +579,10 @@ const HierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   );
 };
 
-// ── convertible_unit ─────────────────────────────────────────────────────────
-
-/**
- * `convertible_unit` → a number beside the unit it is expressed in.
- *
- * The wire DTO is `{type, value, unit}`: the number AS TYPED, tagged with
- * which of the config's `unit_m` (metric) / `unit_i` (imperial) codes it is
- * in. The server converts to the family's base unit before validating, so
- * the editor must send the unit and must NOT convert anything itself — the
- * conversion table lives in Python.
- */
-const ConvertibleUnitEditor: ValueEditor = (props: ValueEditorProps) => {
-  const t = useT();
-  const cfg = configOf(props);
-  const units = [str(cfg["unit_m"]), str(cfg["unit_i"])].filter((code) => code.length > 0);
-  const current =
-    props.value !== null && typeof props.value === "object"
-      ? (props.value as { value?: unknown; unit?: unknown })
-      : {};
-  const unit = str(current.unit) || units[0] || "";
-  const amount = numberish(current.value);
-  const precision = numberish(cfg["precision"]);
-  const prefix = configLabel(t, cfg["prefix"]);
-
-  const emit = (nextAmount: number | undefined, nextUnit: string): void => {
-    if (nextAmount === undefined) {
-      props.onChange(undefined);
-      return;
-    }
-    props.onChange({
-      value: nextAmount,
-      ...(nextUnit.length > 0 ? { unit: nextUnit } : {}),
-    });
-  };
-
-  return (
-    <Flex gap={spacing[2]}>
-      <InputNumber
-        id={props.id}
-        style={{ flex: 1 }}
-        value={amount ?? null}
-        disabled={props.disabled === true}
-        {...errorStatus(props.error)}
-        {...requiredAria(props)}
-        {...(precision !== undefined ? { precision } : {})}
-        {...(prefix.length > 0 ? { prefix } : {})}
-        onChange={(next) => emit(next ?? undefined, unit)}
-      />
-      {units.length > 0 && (
-        <Select
-          // The unit chooser is a SECOND control in one field: the row's label
-          // names the number, so this one names itself or a screen reader
-          // announces an unlabelled combobox.
-          aria-label={t(ATTRIBUTES_I18N_KEYS.unit)}
-          style={{ width: UNIT_SELECT_WIDTH }}
-          disabled={props.disabled === true}
-          {...errorStatus(props.error)}
-          value={unit}
-          options={units.map((code) => ({ value: code, label: code }))}
-          onChange={(next: string) => emit(amount, next)}
-        />
-      )}
-    </Flex>
-  );
-};
-
-// ── ref_select / ref_hierarchical_select ─────────────────────────────────────
-
-/** How long a person may keep typing before a search leaves. 250 ms is the
- * fleet's typeahead debounce; below it a 14 962-row level is searched on every
- * keystroke, above it the list feels stuck. */
-const VOCABULARY_DEBOUNCE_MS = 250;
-
-/** How many terms a level's first page offers when nothing has been typed —
- * the endpoint's own default `limit`. */
-const VOCABULARY_PAGE = 50;
-
-/** The list a control shows when it has no answer to the question in its box.
- * One frozen instance, so "no answer" is a stable identity across renders. */
-const EMPTY_TERMS: readonly VocabularyTerm[] = Object.freeze([]);
-
-/**
- * A debounced, superseding search against the {@link VocabularyClient}, whose
- * ONE invariant is that the list on screen answers the query in the box.
- *
- * ── The defect this shape exists to make impossible (C23) ──────────────────
- *
- * Measured on the live stand, on every reference field of the seller form:
- * `Vendor` 621/635 ms, `Model` 416/421 ms, `RAM` 631/639 ms during which the
- * dropdown showed the PREVIOUS query's terms and every one of them was
- * pickable. A person who types three letters and taps the first row — which is
- * what people do — wrote somebody else's code into the attribute, silently: a
- * night run published `vendor=3q, model=qoo-s` for a listing typed as
- * Apple/iPhone 13.
- *
- * Aborting the previous request never fixed that, and could not: the stale
- * window is not the network, it is the QUARTER SECOND of debounce plus the
- * round trip during which the old answer was still rendered. So the hook holds
- * the query the list ANSWERS beside the terms, and reports terms only while it
- * equals the query the box holds:
- *
- *  - **a keystroke blanks the list immediately.** Not on the response, not
- *    when the debounce fires — on the keystroke, because that is the instant
- *    the list stopped being the answer.
- *  - **every request carries its query, and a response is dropped unless its
- *    query is still the current one.** The abort is kept as well, but it is a
- *    courtesy to the network; correctness may not rest on a client honouring
- *    `signal`, and an implementation that ignores it resolves stale results
- *    over fresh ones exactly as before.
- *  - **`matched` is false while a newer query is in flight**, and the editors
- *    disable every row that is still on screen. A blank list nobody can pick
- *    from is the only honest state for "we do not know yet".
- *  - **a failure ANSWERS with an empty list** rather than freezing the last
- *    one. Stale options next to a fresh query are worse than none: they are
- *    pickable, and the code that gets picked may not be in the level at all.
- */
-function useTermSearch(
-  client: VocabularyClient | null,
-  vocabulary: string,
-  level: string,
-  parent: string | undefined
-): {
-  readonly terms: readonly VocabularyTerm[];
-  readonly loading: boolean;
-  /** Does {@link terms} answer the query the box holds? While this is false
-   * the list is not an answer and nothing in it may be picked. */
-  readonly matched: boolean;
-  search(query: string): void;
-  open(): void;
-} {
-  // The answer AND the question it answers, as one value — two states could
-  // be written in either order and the pair would be briefly inconsistent,
-  // which is the whole defect in miniature.
-  const [answer, setAnswer] = useState<{
-    readonly query: string;
-    readonly terms: readonly VocabularyTerm[];
-  } | null>(null);
-  // What the box holds right now. `null` is "nothing has been asked for yet",
-  // which is neither loading nor answered.
-  const [wanted, setWanted] = useState<string | null>(null);
-  // The same value, readable from a promise callback. A response is accepted
-  // only while this still equals the query it was made for.
-  const current = useRef<string | null>(null);
-  const inFlight = useRef<AbortController | undefined>(undefined);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // Has this (vocabulary, level, parent) been asked for yet? antd reports the
-  // dropdown as opening on every keystroke, so without this the "first page"
-  // fetch fires once per character — a request storm nobody can see in a
-  // screenshot and everybody pays for on a 15 000-row level.
-  const asked = useRef(false);
-
-  const run = useCallback(
-    (query: string): void => {
-      if (client === null || vocabulary.length === 0 || level.length === 0) return;
-      inFlight.current?.abort();
-      const controller = new AbortController();
-      inFlight.current = controller;
-      client
-        .search(vocabulary, level, query, parent, controller.signal)
-        .then((found) => {
-          if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: found.slice(0, VOCABULARY_PAGE) });
-        })
-        .catch(() => {
-          if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: [] });
-        });
-    },
-    [client, vocabulary, level, parent]
-  );
-
-  // The parent moved (or the pointer did): whatever is listed belongs to the
-  // old parent's children and must not stay pickable — nor may an answer for
-  // the old parent, still in flight, land on the new one.
-  //
-  // The CLIENT is deliberately not a dependency, as it was not before. It
-  // arrives from context and a host is expected to build it once at its
-  // composition root; a host that builds one inline hands this a new identity
-  // every render, and aborting the in-flight search on every render would be a
-  // control that can never finish loading. A swapped client is covered anyway:
-  // `current` is what admits an answer, and `run` is rebuilt on the new one.
-  useEffect(() => {
-    asked.current = false;
-    current.current = null;
-    inFlight.current?.abort();
-    setAnswer(null);
-    setWanted(null);
-  }, [vocabulary, level, parent]);
-
-  useEffect(
-    () => () => {
-      if (timer.current !== undefined) clearTimeout(timer.current);
-      inFlight.current?.abort();
-    },
-    []
-  );
-
-  const search = useCallback(
-    (query: string): void => {
-      asked.current = true;
-      // BEFORE the debounce, not after it: the list stopped being the answer
-      // the moment the query changed, and the 250 ms it would otherwise stay
-      // on screen is most of the measured stale window.
-      current.current = query;
-      setWanted(query);
-      if (timer.current !== undefined) clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        run(query);
-      }, VOCABULARY_DEBOUNCE_MS);
-    },
-    [run]
-  );
-
-  // Opening is not typing: the first page is fetched immediately, because a
-  // spinner that starts a quarter of a second after the click reads as a
-  // control that did not respond. Once only, per level and parent.
-  const open = useCallback((): void => {
-    if (asked.current) return;
-    asked.current = true;
-    current.current = "";
-    setWanted("");
-    run("");
-  }, [run]);
-
-  const matched = wanted !== null && answer !== null && answer.query === wanted;
-  return {
-    terms: matched && answer !== null ? answer.terms : EMPTY_TERMS,
-    loading: wanted !== null && !matched,
-    matched,
-    search,
-    open,
-  };
-}
-
-/**
- * Labels for codes the form already HOLDS — a reopened draft, a seeded value.
- *
- * Without it the control shows the stored CODES (`iphone-15-pro`), which is
- * the fallback and not the answer: a person reopening their listing would be
- * looking at slugs out of an importer. `resolve` exists for exactly this, and
- * it is asked once per code — a code the vocabulary does not know stays itself
- * rather than being asked for again on every render.
- */
-function useStoredLabels(
-  client: VocabularyClient | null,
-  vocabulary: string,
-  level: string,
-  codes: readonly string[]
-): Readonly<Record<string, string>> {
-  const [labels, setLabels] = useState<Readonly<Record<string, string>>>({});
-  const asked = useRef(new Set<string>());
-  const key = codes.join("\u0000");
-  useEffect(() => {
-    asked.current = new Set<string>();
-    setLabels({});
-  }, [vocabulary, level, client]);
-  useEffect(() => {
-    if (client === null || vocabulary.length === 0 || level.length === 0) return;
-    const wanted = codes.filter((code) => !asked.current.has(code));
-    if (wanted.length === 0) return;
-    for (const code of wanted) asked.current.add(code);
-    let live = true;
-    void client
-      .resolve(vocabulary, level, wanted)
-      .then((found) => {
-        if (live) setLabels((previous) => ({ ...previous, ...found }));
-      })
-      .catch(() => {
-        // An unresolvable code keeps showing itself — the stored answer is the
-        // truth, and a blank control would be a worse lie than a slug.
-      });
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the codes, joined: the array identity changes every render
-  }, [client, vocabulary, level, key]);
-  return labels;
-}
-
-/**
- * `ref_select` → an antd `Select` that searches a vocabulary LEVEL instead of
- * filtering a list it was given.
- *
- * `filterOption={false}` is not a detail: the options ARE the answer to the
- * current query, and letting antd filter them again would hide rows the server
- * deliberately returned (a prefix match ranked first, a label matched in
- * another language).
- *
- * `optionsRef.parentFeature` is read off {@link ValueEditorProps.siblings} —
- * the form's other answers. When it holds a code the level is narrowed to that
- * term's children; when it is empty the whole level is offered, so a form need
- * not be filled in order. And when it CHANGES, this feature's own value is
- * cleared: a model that belonged to the previous vendor is not an answer, it
- * is a refusal waiting to happen at publish time.
- */
-const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
-  const t = useT();
-  const cfg = configOf(props);
-  const client = useVocabularyClient();
-  const pointer = optionsRefOf(cfg);
-  const vocabulary = pointer?.vocabulary ?? "";
-  const level = pointer?.level ?? "";
-  const parentFeature = pointer?.parentFeature;
-  const parent =
-    parentFeature === undefined ? undefined : firstCode(props.siblings?.[parentFeature]);
-
-  const declaredMax = cfg["maxSelected"];
-  // ABSENT means 1 for this type (`RefSelectConfig.maxSelected = 1`), the
-  // opposite of `select`. An explicit null is the unlimited one.
-  const maxSelected = declaredMax === null ? undefined : (numberish(declaredMax) ?? 1);
-  const minSelected = numberish(cfg["minSelected"]) ?? 0;
-  const multiple = maxSelected === undefined || maxSelected > 1;
-  const codes = useMemo(
-    () => (Array.isArray(props.value) ? props.value.map(str).filter((one) => one.length > 0) : []),
-    [props.value]
-  );
-
-  const { terms, loading, matched, search, open } = useTermSearch(
-    client,
-    vocabulary,
-    level,
-    parent
-  );
-  const labels = useStoredLabels(client, vocabulary, level, codes);
-
-  // Reset on a parent CHANGE, not on the first render: seeding a saved draft
-  // must not wipe the answer it was seeded with. The ref holds the parent this
-  // value was chosen under.
-  const seenParent = useRef<string | undefined>(parent);
-  const onChange = props.onChange;
-  useEffect(() => {
-    if (seenParent.current === parent) return;
-    seenParent.current = parent;
-    onChange(undefined);
-  }, [parent, onChange]);
-
-  if (client === null || pointer === undefined) {
-    return (
-      <UnsupportedValueEditor
-        feature={props.feature}
-        reason={ATTRIBUTES_I18N_KEYS.vocabularyUnavailable}
-      />
-    );
-  }
-
-  // A stored code with no term in the current page still has to be pickable
-  // and visible, or reopening a draft would silently empty the control — but
-  // while the list does not answer the box (`matched === false`) it is NOT
-  // pickable: a held row left live during the stale window is one more thing a
-  // fast tap can land on. `terms` is already empty there, so this is the whole
-  // dropdown, disabled.
-  const options = [
-    ...codes
-      .filter((code) => !terms.some((term) => term.code === code))
-      .map((code) => ({
-        value: code,
-        label: labels[code] ?? code,
-        ...(matched ? {} : { disabled: true }),
-      })),
-    ...terms.map((term) => ({ value: term.code, label: term.label })),
-  ];
-
-  return (
-    <>
-      <Select
-        id={props.id}
-        style={{ width: "100%" }}
-        showSearch
-        filterOption={false}
-        options={options}
-        loading={loading}
-        // The one fact a photograph and a browser probe can both read: whether
-        // what is listed answers what is typed. `false` is the state the live
-        // measure caught for 400–640 ms per field with a pickable list on
-        // screen. `data-*` rather than `aria-busy` because antd forwards the
-        // former to the control's root and drops the latter.
-        data-testid="attributes-ref-select"
-        data-vocabulary-matched={matched ? "true" : "false"}
-        data-vocabulary-busy={loading ? "true" : "false"}
-        disabled={props.disabled === true}
-        {...errorStatus(props.error)}
-        {...requiredAria(props)}
-        {...(multiple ? { mode: "multiple" as const } : {})}
-        {...(maxSelected !== undefined && maxSelected > 1 ? { maxCount: maxSelected } : {})}
-        placeholder={t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
-        notFoundContent={loading ? null : t(ATTRIBUTES_I18N_KEYS.vocabularyNoMatches)}
-        value={multiple ? codes : (codes[0] ?? null)}
-        onDropdownVisibleChange={(visible) => {
-          if (visible) open();
-        }}
-        onSearch={search}
-        onChange={(next: string | string[]) => {
-          const picked = Array.isArray(next) ? next.map(str) : next ? [str(next)] : [];
-          props.onChange(picked.length > 0 ? picked : undefined);
-        }}
-      />
-      {minSelected > 1 && (
-        <Typography.Text type="secondary">
-          {t(ATTRIBUTES_I18N_KEYS.selectMinSelected, { count: minSelected })}
-        </Typography.Text>
-      )}
-    </>
-  );
-};
-
-/** One `Cascader` node, loaded lazily. `isLeaf` is what stops antd asking for
- * children of a level that has none left. */
-interface RefCascaderOption {
-  value: string;
-  label: string;
-  isLeaf?: boolean;
-  loading?: boolean;
-  children?: RefCascaderOption[];
-}
-
-/**
- * `ref_hierarchical_select` → a `Cascader` whose columns are VOCABULARY
- * LEVELS, each fetched when the column before it is chosen.
- *
- * The chain is `config.levels`, root first; a node at depth `i` is expanded by
- * asking the client for level `i + 1` narrowed by that node's code. Nothing is
- * prefetched past the first level: the whole reason this type exists is that
- * the tree does not fit in a response.
- *
- * Both depth bounds reach the control, exactly as the inline
- * `hierarchical_select` editor does them: `maxDepth` stops the columns (a
- * node at the bound is a LEAF), and `minDepth > 1` drops `changeOnSelect` so a
- * partial path stops being selectable instead of being selectable and then
- * refused (`below_minimum`).
- */
-const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
-  const t = useT();
-  const cfg = configOf(props);
-  const client = useVocabularyClient();
-  const vocabulary = str(cfg["vocabulary"]);
-  const levels = useMemo(
-    () => (Array.isArray(cfg["levels"]) ? cfg["levels"].map(str).filter((one) => one.length > 0) : []),
-    [cfg]
-  );
-  const minDepth = numberish(cfg["minDepth"]) ?? 1;
-  const maxDepth = Math.min(numberish(cfg["maxDepth"]) ?? levels.length, levels.length);
-  const [options, setOptions] = useState<RefCascaderOption[]>([]);
-  const value = useMemo(
-    () => (Array.isArray(props.value) ? props.value.map(str) : undefined),
-    [props.value]
-  );
-  // The stored path is CODES, and only the root column is loaded on mount — so
-  // without this a reopened draft reads "Volkswagen / golf / mk7": one label
-  // and two slugs. Each level resolves its own code, once.
-  const [pathLabels, setPathLabels] = useState<readonly string[]>([]);
-  const pathKey = (value ?? []).join("\u0000");
-  useEffect(() => {
-    const path = pathKey.length === 0 ? [] : pathKey.split("\u0000");
-    if (client === null || vocabulary.length === 0 || path.length === 0) {
-      setPathLabels([]);
-      return;
-    }
-    let live = true;
-    void Promise.all(
-      path.map(async (code, depth) => {
-        const level = levels[depth];
-        if (level === undefined) return code;
-        try {
-          return (await client.resolve(vocabulary, level, [code]))[code] ?? code;
-        } catch {
-          return code;
-        }
-      })
-    ).then((resolved) => {
-      if (live) setPathLabels(resolved);
-    });
-    return () => {
-      live = false;
-    };
-  }, [client, vocabulary, levels, pathKey]);
-
-  const toOptions = useCallback(
-    (terms: readonly VocabularyTerm[], depth: number): RefCascaderOption[] =>
-      terms.map((term) => ({
-        value: term.code,
-        label: term.label,
-        ...(depth + 1 >= maxDepth || term.has_children === false ? { isLeaf: true } : {}),
-      })),
-    [maxDepth]
-  );
-
-  // Which TREE the columns on screen belong to. A cascader loads a column at a
-  // time and writes the answer into the node that asked for it, so a pointer
-  // that moves under an in-flight column would graft one vocabulary's terms
-  // onto another's node — the same class of defect as C23 (an answer to a
-  // question nobody is asking any more), one column deeper.
-  const generation = useRef(0);
-  useEffect(() => {
-    generation.current += 1;
-  }, [client, vocabulary, levels]);
-
-  // The root column, once — the only level fetched without a parent.
-  useEffect(() => {
-    if (client === null || vocabulary.length === 0 || levels.length === 0) return;
-    let live = true;
-    void client
-      .search(vocabulary, levels[0] as string, "")
-      .then((terms) => {
-        if (live) setOptions(toOptions(terms, 0));
-      })
-      .catch(() => {
-        if (live) setOptions([]);
-      });
-    return () => {
-      live = false;
-    };
-  }, [client, vocabulary, levels, toOptions]);
-
-  if (client === null || vocabulary.length === 0 || levels.length === 0) {
-    return (
-      <UnsupportedValueEditor
-        feature={props.feature}
-        reason={ATTRIBUTES_I18N_KEYS.vocabularyUnavailable}
-      />
-    );
-  }
-
-  const loadData = (selected: RefCascaderOption[]): void => {
-    const node = selected[selected.length - 1];
-    const depth = selected.length;
-    const nextLevel = levels[depth];
-    if (node === undefined || nextLevel === undefined) return;
-    const asked = generation.current;
-    node.loading = true;
-    void client
-      .search(vocabulary, nextLevel, "", node.value)
-      .then((terms) => {
-        if (asked !== generation.current) return;
-        node.loading = false;
-        node.children = toOptions(terms, depth);
-        if (node.children.length === 0) node.isLeaf = true;
-        setOptions((current) => [...current]);
-      })
-      .catch(() => {
-        if (asked !== generation.current) return;
-        node.loading = false;
-        node.isLeaf = true;
-        setOptions((current) => [...current]);
-      });
-  };
-
-  return (
-    <Cascader
-      id={props.id}
-      style={{ width: "100%" }}
-      options={options as never}
-      loadData={loadData as never}
-      disabled={props.disabled === true}
-      {...errorStatus(props.error)}
-      {...requiredAria(props)}
-      placeholder={t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
-      {...(minDepth <= 1 ? { changeOnSelect: true } : {})}
-      {...(value ? { value } : {})}
-      {...(value !== undefined && pathLabels.length === value.length
-        ? { displayRender: (): string => pathLabels.join(" / ") }
-        : {})}
-      onChange={(next: unknown) =>
-        props.onChange(Array.isArray(next) && next.length > 0 ? next.map(str) : undefined)
-      }
-    />
-  );
-};
-
 // ── group (the composite) ────────────────────────────────────────────────────
 
 /**
- * `group` → a bordered subform: a list of ROWS, each row a set of child
+ * `group` → a bordered subform: a list of ROW CARDS, each row a set of child
  * features of the ordinary kinds.
  *
  * The value is `[{child_slug: value}, …]` — one object per row — and the whole
@@ -1636,9 +606,11 @@ const RefHierarchicalSelectEditor: ValueEditor = (props: ValueEditorProps) => {
  *    guess drawn as a fact.
  *
  * `repeat: null` is a SINGLE-row group: no add, no remove, no row numbers —
- * a plain fieldset. Repeatable, the add button stops at `repeat.max` and the
- * remove button at `repeat.min`, so the control never offers what the mirror
- * would refuse (the rule this file is held to).
+ * a plain fieldset. Repeatable, the remove button DISAPPEARS at `repeat.min`
+ * (there is nothing to explain: one row is visibly the last one) while the
+ * add button STAYS at `repeat.max` with the reason beside it — "five is the
+ * most this catalogue allows" is a fact only the config knows, and a button
+ * that vanishes at the cap looks like a bug.
  */
 const GroupEditor: ValueEditor = (props: ValueEditorProps) => {
   const t = useT();
@@ -1683,8 +655,28 @@ const GroupEditor: ValueEditor = (props: ValueEditorProps) => {
   };
 
   const disabled = props.disabled === true;
-  const canAdd = repeatable && !disabled && (maxRows === undefined || rows.length < maxRows);
+  const atMax = maxRows !== undefined && rows.length >= maxRows;
+  const canAdd = repeatable && !disabled && !atMax;
   const canRemove = repeatable && !disabled && rows.length > Math.max(minRows, 1);
+
+  const addButton = (bind?: {
+    readonly disabled: boolean;
+    readonly "aria-describedby": string | undefined;
+  }): ReactElement => (
+    <Button
+      size="small"
+      disabled={bind === undefined ? !canAdd : bind.disabled}
+      data-analytics="none"
+      data-analytics-reason="local form edit — the funnel step is the submit, not a row"
+      style={{ minHeight: touch ? PHONE_CONTROL_HEIGHT : undefined }}
+      {...(bind?.["aria-describedby"] !== undefined
+        ? { "aria-describedby": bind["aria-describedby"] }
+        : {})}
+      onClick={() => emit([...rows, EMPTY_ROW])}
+    >
+      {t(ATTRIBUTES_I18N_KEYS.groupAddRow)}
+    </Button>
+  );
 
   // `props.id` lands on the CONTAINER, not on a cell.
   //
@@ -1778,17 +770,17 @@ const GroupEditor: ValueEditor = (props: ValueEditorProps) => {
         </div>
       ))}
       {repeatable && (
-        <div>
-          <Button
-            size="small"
-            disabled={!canAdd}
-            data-analytics="none"
-            data-analytics-reason="local form edit — the funnel step is the submit, not a row"
-            style={{ minHeight: touch ? PHONE_CONTROL_HEIGHT : undefined }}
-            onClick={() => emit([...rows, EMPTY_ROW])}
-          >
-            {t(ATTRIBUTES_I18N_KEYS.groupAddRow)}
-          </Button>
+        <div data-attributes-group-add="">
+          {atMax && !disabled ? (
+            <GatedControl
+              gate={actionBlocked(ATTRIBUTES_I18N_KEYS.groupAtMaxRows, { count: maxRows })}
+              testId="attributes-group-at-max"
+            >
+              {(bind) => addButton(bind)}
+            </GatedControl>
+          ) : (
+            addButton()
+          )}
         </div>
       )}
     </Flex>

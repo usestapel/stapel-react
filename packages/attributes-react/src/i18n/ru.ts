@@ -48,6 +48,16 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "attributes.select.placeholder": "Выберите",
   "attributes.locked": "Значение задано каталогом — изменить его здесь нельзя.",
   "attributes.select.min_selected": "Выберите не менее {count}.",
+  "attributes.select.max_selected": "Выберите не более {count}.",
+  "attributes.picker.done": "Готово",
+  "attributes.picker.search": "Поиск",
+  "attributes.picker.recent": "Недавние",
+  "attributes.picker.refine": "Продолжайте вводить, чтобы сузить список.",
+  "attributes.ref.parent_first": "Сначала выберите «{parent}».",
+  "attributes.help.more": "Как заполнить",
+  "attributes.hint.range": "От {min} до {max}.",
+  "attributes.hint.min": "От {min}.",
+  "attributes.hint.max": "До {max}.",
   "attributes.color.exact": "Точный оттенок",
   "attributes.unit": "Единица измерения",
   "attributes.vocabulary_unavailable": "Эту характеристику здесь пока нельзя заполнить.",
@@ -56,6 +66,7 @@ export const attributesI18nBundleRu: I18nDictionary = {
   "attributes.group.row": "Строка {index}",
   "attributes.group.add_row": "Добавить строку",
   "attributes.group.remove_row": "Удалить",
+  "attributes.group.at_max_rows": "Больше {count} строк здесь добавить нельзя.",
 };
 
 /** Register the `ru` bundle. Call AFTER `registerAttributesI18n` so it

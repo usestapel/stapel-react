@@ -83,6 +83,44 @@ export const ATTRIBUTES_I18N_KEYS = {
   /** `select.minSelected` — the floor antd's `Select` cannot enforce, said
    * beside the control instead of only after a refused submit. */
   selectMinSelected: "attributes.select.min_selected",
+  /**
+   * `select.maxSelected` — the ceiling, said ON the chips it switches off.
+   *
+   * A capped multiple choice is drawn inline for exactly this reason: the
+   * control can stop at the cap only while it owns the selection, and a chip
+   * that cannot be added says why beside the row instead of letting the
+   * person add a seventh answer the mirror is going to refuse.
+   */
+  selectMaxSelected: "attributes.select.max_selected",
+  /** The picker sheet's commit button. It carries the count of what is about
+   * to be kept, which is the difference between pressing it and dismissing. */
+  pickerDone: "attributes.picker.done",
+  /** The picker sheet's search box — its placeholder and its accessible
+   * name. */
+  pickerSearch: "attributes.picker.search",
+  /** The heading of the sheet's first section: the codes this person picked
+   * last, on this vocabulary level. Drawn only when there are any and the
+   * search box is empty — a "recent" list that does not answer the query is
+   * the stale list defect wearing a heading. */
+  pickerRecent: "attributes.picker.recent",
+  /** The tail row of a list too long to draw: more matched than is on
+   * screen, so the search box is where the rest of them are. */
+  pickerRefine: "attributes.picker.refine",
+  /** A rung of a chained reference whose parent has not been answered yet.
+   * Interpolates `{parent}` — the level's own name, because "choose the
+   * previous one first" is not something a person can act on. */
+  refParentFirst: "attributes.ref.parent_first",
+  /** The disclosure that holds a long `description`. The help itself is the
+   * catalogue's sentence; this is the handle, and it says what is behind it
+   * rather than "More". */
+  helpMore: "attributes.help.more",
+  /** A bound with both ends. Interpolates `{min}` and `{max}`, already
+   * formatted by the editor (numerals for a number, a date for a date). */
+  hintRange: "attributes.hint.range",
+  /** A bound with a floor only. */
+  hintMin: "attributes.hint.min",
+  /** A bound with a ceiling only. */
+  hintMax: "attributes.hint.max",
   /** Accessible name of the `hex_color` exact-shade picker, which antd renders
    * as an unlabelable trigger. */
   colorExact: "attributes.color.exact",
@@ -115,6 +153,15 @@ export const ATTRIBUTES_I18N_KEYS = {
   /** Drop one row. Absent once `repeat.min` is reached, rather than disabled:
    * a control that can never be pressed is the dead rectangle §83 forbids. */
   groupRemoveRow: "attributes.group.remove_row",
+  /**
+   * Why the add button is off: `repeat.max` rows are already here.
+   *
+   * The button STAYS on screen with the sentence beside it, unlike the remove
+   * control, because the two absences mean different things — "you cannot
+   * remove the only row" is obvious from there being one row, while "five is
+   * the most this catalogue allows" is a fact only the config knows.
+   */
+  groupAtMaxRows: "attributes.group.at_max_rows",
 } as const;
 
 export type AttributesI18nKey =
@@ -163,6 +210,16 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.select.placeholder": "Choose",
   "attributes.locked": "Set by the catalogue — it cannot be changed here.",
   "attributes.select.min_selected": "Choose at least {count}.",
+  "attributes.select.max_selected": "Choose at most {count}.",
+  "attributes.picker.done": "Done",
+  "attributes.picker.search": "Search",
+  "attributes.picker.recent": "Recent",
+  "attributes.picker.refine": "Keep typing to narrow the list.",
+  "attributes.ref.parent_first": "Choose {parent} first.",
+  "attributes.help.more": "How to fill this in",
+  "attributes.hint.range": "From {min} to {max}.",
+  "attributes.hint.min": "From {min}.",
+  "attributes.hint.max": "Up to {max}.",
   "attributes.color.exact": "Exact shade",
   "attributes.unit": "Unit",
   "attributes.vocabulary_unavailable": "This detail cannot be filled in here yet.",
@@ -171,6 +228,7 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.group.row": "Row {index}",
   "attributes.group.add_row": "Add row",
   "attributes.group.remove_row": "Remove",
+  "attributes.group.at_max_rows": "This detail takes at most {count} rows.",
 };
 
 /** Register the package's `en` floor into a core i18n engine (call once at

@@ -25,6 +25,7 @@ import {
   unsupportedTypes,
 } from "../src/index.js";
 import type { VocabularyClient, VocabularyTerm } from "../src/index.js";
+import { PICKER_SEARCH_TESTID } from "@stapel/tokens-antd/skin";
 import { ATTRIBUTES_I18N_KEYS, registerAttributesI18n } from "../src/i18n/keys.js";
 import { FeatureFields } from "../src/default/FeatureFields.js";
 import { BUILTIN_VALUE_EDITOR_TYPES } from "../src/default/editors.js";
@@ -82,6 +83,24 @@ function wrap(node: ReactElement, client: VocabularyClient | null): ReactElement
       <VocabularyClientProvider value={client}>{node}</VocabularyClientProvider>
     </I18nProvider>
   );
+}
+
+/** The field a closed sheet leaves behind — tapping it is what opens the
+ * sheet and asks the level for its first page. */
+function triggers(): readonly HTMLElement[] {
+  return screen.getAllByTestId("attributes-ref-trigger");
+}
+
+/** Type into the open sheet's search box. */
+function typeQuery(query: string): void {
+  fireEvent.change(screen.getByTestId(PICKER_SEARCH_TESTID), { target: { value: query } });
+}
+
+/** A row of the open sheet, by its label. */
+function sheetRow(label: string): HTMLButtonElement | undefined {
+  return Array.from(
+    document.querySelectorAll<HTMLButtonElement>("[data-stapel-picker-row]")
+  ).find((node) => (node.textContent ?? "").includes(label));
 }
 
 describe("no provider is a loud state, through the existing channel", () => {
@@ -149,7 +168,7 @@ describe("a feature whose rules do not parse goes down the same channel", () => 
 });
 
 describe("RefSelectEditor", () => {
-  it("fetches the level's first page when the dropdown opens, not before", async () => {
+  it("fetches the level's first page when the SHEET opens, not before", async () => {
     const { client, search } = stubClient();
     render(
       wrap(
@@ -158,9 +177,9 @@ describe("RefSelectEditor", () => {
       )
     );
     expect(search).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByRole("combobox"));
+    fireEvent.click(triggers()[0] as HTMLElement);
     await waitFor(() => expect(search).toHaveBeenCalledWith("phone-models", "Vendor", "", undefined, expect.anything()));
-    await waitFor(() => expect(screen.getByTitle("Apple")).toBeDefined());
+    await waitFor(() => expect(sheetRow("Apple")).toBeDefined());
   });
 
   it("debounces typing and supersedes the in-flight search", async () => {
@@ -173,10 +192,13 @@ describe("RefSelectEditor", () => {
           client
         )
       );
-      const box = screen.getByRole("combobox");
-      fireEvent.change(box, { target: { value: "a" } });
-      fireEvent.change(box, { target: { value: "ap" } });
-      fireEvent.change(box, { target: { value: "app" } });
+      fireEvent.click(triggers()[0] as HTMLElement);
+      await act(async () => {
+        await Promise.resolve();
+      });
+      typeQuery("a");
+      typeQuery("ap");
+      typeQuery("app");
       const typed = (): unknown[] =>
         search.mock.calls.filter((call) => call[2] !== "").map((call) => call[2]);
       expect(typed()).toEqual([]);
@@ -184,12 +206,11 @@ describe("RefSelectEditor", () => {
         vi.advanceTimersByTime(300);
       });
       // Three keystrokes inside the window are ONE request, and it is the
-      // LAST query — not the first, which is the version that leaves a
-      // dropdown showing results for "a". One request TOTAL, too: antd reports
-      // the dropdown as opening on every keystroke, and typing preempts the
-      // level's first page rather than racing it.
+      // LAST query — not the first, which is the version that leaves a list
+      // showing results for "a". Two requests in total: the level's first
+      // page, asked for ONCE when the sheet opened, and this one.
       expect(typed()).toEqual(["app"]);
-      expect(search).toHaveBeenCalledTimes(1);
+      expect(search.mock.calls.map((call) => call[2])).toEqual(["", "app"]);
     } finally {
       vi.useRealTimers();
     }
@@ -205,12 +226,15 @@ describe("RefSelectEditor", () => {
           client
         )
       );
-      const box = screen.getByRole("combobox");
-      fireEvent.change(box, { target: { value: "a" } });
+      fireEvent.click(triggers()[0] as HTMLElement);
+      await act(async () => {
+        await Promise.resolve();
+      });
+      typeQuery("a");
       await act(async () => {
         vi.advanceTimersByTime(300);
       });
-      fireEvent.change(box, { target: { value: "sam" } });
+      typeQuery("sam");
       await act(async () => {
         vi.advanceTimersByTime(300);
       });
@@ -235,7 +259,7 @@ describe("RefSelectEditor", () => {
         client
       )
     );
-    fireEvent.mouseDown(screen.getAllByRole("combobox")[1] as HTMLElement);
+    fireEvent.click(triggers()[1] as HTMLElement);
     await waitFor(() =>
       expect(search).toHaveBeenCalledWith(
         "phone-models",
@@ -245,7 +269,7 @@ describe("RefSelectEditor", () => {
         expect.anything()
       )
     );
-    await waitFor(() => expect(screen.getByTitle("iPhone 15")).toBeDefined());
+    await waitFor(() => expect(sheetRow("iPhone 15")).toBeDefined());
   });
 
   it("clears its own answer when the parent moves, and not on the first render", async () => {
@@ -291,13 +315,13 @@ describe("RefSelectEditor", () => {
       )
     );
     // Reopening a draft must not empty the control while the vocabulary is
-    // unread — the code stands in for the label until a search replaces it.
-    expect(screen.getByTitle("apple")).toBeDefined();
+    // unread — the code stands in for the label until `resolve` replaces it.
+    expect((triggers()[0] as HTMLElement).textContent).toContain("apple");
   });
 });
 
 describe("RefHierarchicalSelectEditor", () => {
-  it("loads the root level once and asks for the next level per parent", async () => {
+  it("asks for nothing until a rung is opened, then asks that rung's level once", async () => {
     const { client, search } = stubClient();
     render(
       wrap(
@@ -305,10 +329,34 @@ describe("RefHierarchicalSelectEditor", () => {
         client
       )
     );
+    // The chain is three rungs and 107 049 modifications; the old Cascader
+    // fetched its root column on mount, for every such field on the form,
+    // whether or not anybody was going to answer it.
+    expect(search).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId("attributes-ref-rung-trigger-0"));
     await waitFor(() =>
-      expect(search).toHaveBeenCalledWith("car-models", "Make", "")
+      expect(search).toHaveBeenCalledWith("car-models", "Make", "", undefined, expect.anything())
     );
     expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it("gates every rung below the one being answered, with the reason as TEXT", () => {
+    const { client } = stubClient();
+    render(
+      wrap(
+        <FeatureFields features={[REF_HIERARCHICAL_FEATURE]} values={{}} onChange={() => {}} />,
+        client
+      )
+    );
+    // The root rung is answerable; the two under it are waiting, and each says
+    // which answer it is waiting for — beside the control, never in a tooltip
+    // a disabled control could not show anyway.
+    expect(screen.queryByTestId("attributes-ref-rung-gate-0")).toBeNull();
+    expect(screen.getByTestId("attributes-ref-rung-gate-1")).toBeDefined();
+    expect(
+      (screen.getByTestId("attributes-ref-rung-trigger-1") as HTMLButtonElement).disabled
+    ).toBe(true);
+    expect(screen.getByText("Choose Make first.")).toBeDefined();
   });
 });
 

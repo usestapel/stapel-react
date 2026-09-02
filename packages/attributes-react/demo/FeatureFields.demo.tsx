@@ -19,6 +19,10 @@ import { AttributesDemoHarness, EditableFeatureFields } from "./_harness.js";
 import {
   CHOICE_FEATURES,
   CHOICE_VALUES,
+  GROUP_FULL_VALUES,
+  PICKER_EMPTY_VALUES,
+  PICKER_FEATURES,
+  PICKER_VALUES,
   DEMO_VOCABULARY_CLIENT,
   REFUSED_VALUES,
   REF_HIERARCHICAL_FEATURES,
@@ -215,13 +219,15 @@ export default defineDemo({
       // Typed through the control's own affordance rather than seeded by a
       // prop that exists only for demos: the stale window opens on a
       // KEYSTROKE, so a keystroke is what this variant performs.
-      play: async ({ find }) => {
-        const box = (await find('input[role="combobox"]')) as HTMLInputElement;
-        // `mousedown`, not `click`: that is the event antd opens a Select on,
-        // and the dropdown has to be open for the blank list to be the
-        // picture rather than an assertion.
-        box.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-        box.focus();
+      play: async ({ click, find }) => {
+        // The field is a trigger now, and the list lives in the sheet it
+        // opens — so the state is reached the way a person reaches it: tap,
+        // then type into the sheet's own search box. The sheet is a PORTAL,
+        // which is why the box is looked for outside the canvas.
+        await click('[data-testid="attributes-ref-trigger"]');
+        const box = (await find('[data-testid="stapel-picker-search"]', {
+          portal: true,
+        })) as HTMLInputElement;
         type(box, "iph");
         // BUSY is the assertion, not `matched="false"`: an untouched control
         // is already unmatched (it has been asked nothing), and busy is the
@@ -239,6 +245,71 @@ export default defineDemo({
       render: () => (
         <AttributesDemoHarness surface="base">
           <EditableFeatureFields features={REF_SELECT_FEATURES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    "pickers — answered": {
+      description:
+        "One row per picker shape. A nine-option select is a field that says what is chosen over a sheet with a search box (six is the most a person reads at a glance); the equipment cap is REACHED, so every unchosen chip is off with the reason under the row rather than letting a fourth answer through to a refusal; the road test is answered; the VIN is monospace, counted in code points, and carries the plaque that says it is never published.",
+      viewport: "phone",
+      step: "answered",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={PICKER_FEATURES} initialValues={PICKER_VALUES} />
+        </AttributesDemoHarness>
+      ),
+    },
+    "pickers — nothing answered yet": {
+      description:
+        "The same five fields untouched. The required bool shows NEITHER chip pressed — a switch would draw “No” for a question nobody has answered and the asterisk beside it would contradict that until the submit was refused. The number's bounds are its placeholder and the line under it, never a clamp; the long help is folded into a disclosure instead of pushing the next question off the screen.",
+      viewport: "phone",
+      step: "empty",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields
+            features={PICKER_FEATURES}
+            initialValues={PICKER_EMPTY_VALUES}
+          />
+        </AttributesDemoHarness>
+      ),
+    },
+    "the sheet, open": {
+      description:
+        "The long list, picked. On a phone the sheet takes the screen it needs, keeps its search box pinned above the keyboard and scrolls its own body — none of which an antd dropdown panel floating over the field it belongs to can do. Reached by a tap, because that is how a person reaches it.",
+      viewport: "phone",
+      step: "sheet-open",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={PICKER_FEATURES} initialValues={PICKER_VALUES} />
+        </AttributesDemoHarness>
+      ),
+      play: async ({ click, find }) => {
+        await click('[data-testid="attributes-select-trigger"]');
+        await find("[data-stapel-picker-row]", { portal: true });
+      },
+    },
+    "chained reference — one rung at a time": {
+      description:
+        "Make → Model → Generation as three rungs, each waiting for the one above it with the sentence saying WHICH one — visible text under the control, because a disabled control shows no tooltip to anybody. A Cascader cannot say that: a column empty because its parent is unanswered looks exactly like a column empty because the vocabulary is.",
+      viewport: "phone",
+      step: "make-not-chosen",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields
+            features={REF_HIERARCHICAL_FEATURES}
+            vocabularyClient={DEMO_VOCABULARY_CLIENT}
+          />
+        </AttributesDemoHarness>
+      ),
+    },
+    "composite — at its row cap": {
+      description:
+        "Five rows of five. The add button STAYS on screen with the cap said beside it, while the remove control simply is not drawn on a single row — the two absences mean different things, and only one of them is a fact the person could not have worked out for themselves.",
+      viewport: "desktop",
+      step: "five-of-five",
+      render: () => (
+        <AttributesDemoHarness surface="base">
+          <EditableFeatureFields features={GROUP_FEATURES} initialValues={GROUP_FULL_VALUES} />
         </AttributesDemoHarness>
       ),
     },

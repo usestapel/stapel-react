@@ -41,6 +41,16 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "attributes.select.placeholder": "Elegir",
   "attributes.locked": "Lo define el catálogo: no se puede cambiar aquí.",
   "attributes.select.min_selected": "Elige al menos {count}.",
+  "attributes.select.max_selected": "Elige como máximo {count}.",
+  "attributes.picker.done": "Listo",
+  "attributes.picker.search": "Buscar",
+  "attributes.picker.recent": "Recientes",
+  "attributes.picker.refine": "Sigue escribiendo para acotar la lista.",
+  "attributes.ref.parent_first": "Elige antes {parent}.",
+  "attributes.help.more": "Cómo rellenarlo",
+  "attributes.hint.range": "De {min} a {max}.",
+  "attributes.hint.min": "Desde {min}.",
+  "attributes.hint.max": "Hasta {max}.",
   "attributes.color.exact": "Tono exacto",
   "attributes.unit": "Unidad",
   "attributes.vocabulary_unavailable": "Este detalle todavía no se puede rellenar aquí.",
@@ -49,6 +59,7 @@ export const attributesI18nBundleEs: I18nDictionary = {
   "attributes.group.row": "Fila {index}",
   "attributes.group.add_row": "Añadir fila",
   "attributes.group.remove_row": "Quitar",
+  "attributes.group.at_max_rows": "Este detalle admite como máximo {count} filas.",
 };
 
 /** Register the `es` bundle. Call AFTER `registerAttributesI18n` so it

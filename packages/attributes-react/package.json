@@ -48,14 +48,14 @@
   },
   "size-limit": [
     {
-      "name": "index — the registry + mirror + DTO helpers must stay React-only: no antd",
+      "name": "index — the registry + mirror + DTO helpers must stay React-only: no antd (8 → 8.5 KB: the eleven picker keys and their English floor ride in the shared bundle)",
       "path": "dist/index.js",
-      "limit": "8 KB"
+      "limit": "8.5 KB"
     },
     {
-      "name": "default — the antd value editors must stay out of the main bundle",
+      "name": "default — the antd value editors must stay out of the main bundle (14 → 16 KB: every closed list gained a sheet and a trigger, every reference field a recents section and a chain of rungs)",
       "path": "dist/default/index.js",
-      "limit": "14 KB"
+      "limit": "16 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
@@ -69,8 +69,8 @@
     }
   ],
   "peerDependencies": {
-    "@stapel/core": ">=0.18.1 <1.0.0",
-    "@stapel/tokens-antd": ">=0.7.0",
+    "@stapel/core": ">=0.23.0 <1.0.0",
+    "@stapel/tokens-antd": ">=0.12.0",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },

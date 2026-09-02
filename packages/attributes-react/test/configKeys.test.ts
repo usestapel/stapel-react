@@ -23,10 +23,16 @@
  *
  * A config key is READ by a function when its body contains `config["key"]`,
  * `cfg["key"]`, `num(config, "key")` or `list(config, "key")` — the four
- * spellings both files use. Helper functions are followed one level
+ * spellings both halves use. Helper functions are followed one level
  * ({@link HELPERS}): `SelectEditor` reaches `options` through `useChoices`,
  * and pretending otherwise would make the gate lie in the direction that
  * lets a real gap through.
+ *
+ * The editors live in five files now (`editors.tsx` plus the shape-specific
+ * ones and the shared kit), so a declaration is looked up across ALL of them
+ * by NAME — {@link EDITOR_SOURCES}. A new editor file that is not in that
+ * list is a file this gate does not read, which is why the list is asserted
+ * to cover every declaration the table names.
  *
  * The subset runs in ONE direction on purpose. An editor may read keys the
  * mirror does not (`placeholder`, `multiline`, `date.options`, `lockInput`) —
@@ -45,14 +51,26 @@ function source(relative: string): string {
 }
 
 const MIRROR_SRC = source("src/validate.ts");
-const EDITOR_SRC = source("src/default/editors.tsx");
-const LABELS_SRC = source("src/default/labels.ts");
+
+/**
+ * Every file an editor (or an editor's helper) can live in. Order does not
+ * matter — a declaration name is unique across them, which is asserted below.
+ */
+const EDITOR_SOURCES: readonly string[] = [
+  "src/default/editors.tsx",
+  "src/default/editorKit.tsx",
+  "src/default/editorsChoice.tsx",
+  "src/default/editorsNumber.tsx",
+  "src/default/editorsRef.tsx",
+  "src/default/editorsText.tsx",
+  "src/default/labels.ts",
+].map(source);
 
 /** The body of a top-level `function NAME(…) {…}` or `const NAME … = … {…}`,
  * by brace matching from the declaration. */
-function functionBody(source: string, name: string): string {
+function functionBodyIn(source: string, name: string): string | undefined {
   const declaration = new RegExp(`(?:function|const)\\s+${name}\\b`).exec(source);
-  if (declaration === null) throw new Error(`no declaration of ${name} found`);
+  if (declaration === null) return undefined;
   const open = source.indexOf("{", declaration.index);
   if (open === -1) throw new Error(`no body for ${name}`);
   let depth = 0;
@@ -66,16 +84,24 @@ function functionBody(source: string, name: string): string {
   throw new Error(`unbalanced body for ${name}`);
 }
 
-/** Helpers a body may reach a config key through, and the source they live
- * in. Followed one level — deeper indirection would mean a config read this
- * package cannot see, which is itself worth refusing. */
-const HELPERS: Readonly<Record<string, string>> = {
-  useChoices: EDITOR_SRC,
-  isClosedList: EDITOR_SRC,
-  uiStyleOf: EDITOR_SRC,
-  toCascaderOptions: EDITOR_SRC,
-  optionLabel: LABELS_SRC,
-};
+/** The same, across a set of sources — the editors are five files. */
+function functionBody(sources: readonly string[], name: string): string {
+  const found = sources.map((one) => functionBodyIn(one, name)).filter((one) => one !== undefined);
+  if (found.length === 0) throw new Error(`no declaration of ${name} found`);
+  if (found.length > 1) throw new Error(`${name} is declared in more than one editor source`);
+  return found[0] as string;
+}
+
+/** Helpers a body may reach a config key through. Followed one level — deeper
+ * indirection would mean a config read this package cannot see, which is
+ * itself worth refusing. */
+const HELPERS: readonly string[] = [
+  "useChoices",
+  "isClosedList",
+  "uiStyleOf",
+  "toCascaderOptions",
+  "optionLabel",
+];
 
 function keysIn(body: string): Set<string> {
   const keys = new Set<string>();
@@ -92,12 +118,12 @@ function keysIn(body: string): Set<string> {
 }
 
 /** Config keys a function reads, following {@link HELPERS} one level. */
-function configKeysRead(source: string, name: string): ReadonlySet<string> {
-  const body = functionBody(source, name);
+function configKeysRead(sources: readonly string[], name: string): ReadonlySet<string> {
+  const body = functionBody(sources, name);
   const keys = keysIn(body);
-  for (const [helper, helperSource] of Object.entries(HELPERS)) {
+  for (const helper of HELPERS) {
     if (!new RegExp(`\\b${helper}\\s*\\(`).test(body)) continue;
-    for (const key of keysIn(functionBody(helperSource, helper))) keys.add(key);
+    for (const key of keysIn(functionBody(EDITOR_SOURCES, helper))) keys.add(key);
   }
   return keys;
 }
@@ -139,13 +165,13 @@ const HALVES: Readonly<Record<string, { mirror: string | null; editor: string }>
 
 describe("the extractor itself", () => {
   it("finds the keys it claims to find, so a green gate means something", () => {
-    expect([...configKeysRead(MIRROR_SRC, "validateDate")].sort()).toEqual([
+    expect([...configKeysRead([MIRROR_SRC], "validateDate")].sort()).toEqual([
       "allowFuture",
       "allowPast",
       "maxDate",
       "minDate",
     ]);
-    expect(configKeysRead(EDITOR_SRC, "SelectEditor").has("options")).toBe(true); // via useChoices
+    expect(configKeysRead(EDITOR_SOURCES, "SelectEditor").has("options")).toBe(true); // via useChoices
   });
 
   it("covers every builtin type — a type with no entry here is not gated", () => {
@@ -157,8 +183,8 @@ describe("every config key the mirror reads reaches a control", () => {
   for (const [type, halves] of Object.entries(HALVES)) {
     it(`${type}: mirror keys ⊆ editor keys`, () => {
       const mirror =
-        halves.mirror === null ? new Set<string>() : configKeysRead(MIRROR_SRC, halves.mirror);
-      const editor = configKeysRead(EDITOR_SRC, halves.editor);
+        halves.mirror === null ? new Set<string>() : configKeysRead([MIRROR_SRC], halves.mirror);
+      const editor = configKeysRead(EDITOR_SOURCES, halves.editor);
       const missing = [...mirror].filter((key) => !editor.has(key)).sort();
       // A failure reads: "date: allowPast is enforced by the mirror and has no
       // affordance in DateEditor" — the key, the type, and where to put it.

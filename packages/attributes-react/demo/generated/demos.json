@@ -137,6 +137,37 @@
           "step": "no-client"
         },
         {
+          "id": "pickers — answered",
+          "description": "One row per picker shape. A nine-option select is a field that says what is chosen over a sheet with a search box (six is the most a person reads at a glance); the equipment cap is REACHED, so every unchosen chip is off with the reason under the row rather than letting a fourth answer through to a refusal; the road test is answered; the VIN is monospace, counted in code points, and carries the plaque that says it is never published.",
+          "viewport": "phone",
+          "step": "answered"
+        },
+        {
+          "id": "pickers — nothing answered yet",
+          "description": "The same five fields untouched. The required bool shows NEITHER chip pressed — a switch would draw “No” for a question nobody has answered and the asterisk beside it would contradict that until the submit was refused. The number's bounds are its placeholder and the line under it, never a clamp; the long help is folded into a disclosure instead of pushing the next question off the screen.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "the sheet, open",
+          "description": "The long list, picked. On a phone the sheet takes the screen it needs, keeps its search box pinned above the keyboard and scrolls its own body — none of which an antd dropdown panel floating over the field it belongs to can do. Reached by a tap, because that is how a person reaches it.",
+          "viewport": "phone",
+          "step": "sheet-open",
+          "play": true
+        },
+        {
+          "id": "chained reference — one rung at a time",
+          "description": "Make → Model → Generation as three rungs, each waiting for the one above it with the sentence saying WHICH one — visible text under the control, because a disabled control shows no tooltip to anybody. A Cascader cannot say that: a column empty because its parent is unanswered looks exactly like a column empty because the vocabulary is.",
+          "viewport": "phone",
+          "step": "make-not-chosen"
+        },
+        {
+          "id": "composite — at its row cap",
+          "description": "Five rows of five. The add button STAYS on screen with the cap said beside it, while the remove control simply is not drawn on a single row — the two absences mean different things, and only one of them is a fact the person could not have worked out for themselves.",
+          "viewport": "desktop",
+          "step": "five-of-five"
+        },
+        {
           "id": "submitting",
           "description": "A submit in flight: every editor goes read-only at once, from the one prop the composer already owns.",
           "viewport": "phone",
@@ -145,7 +176,7 @@
       ],
       "source": {
         "file": "demo/FeatureFields.demo.tsx",
-        "line": 58
+        "line": 62
       }
     },
     {

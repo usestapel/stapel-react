@@ -92,18 +92,28 @@ describe("the subform", () => {
   });
 
   it("draws a cell with the child's OWN editor, bounds included", () => {
-    renderGroup(GROUP_FEATURE, [{ quantity: 10, discount: 5 }]);
-    // `int` with min/max — the same control a top-level int row would get.
+    renderGroup(GROUP_FEATURE, [{ quantity: 10 }]);
+    // `int` with min/max — the same control a top-level int row would get,
+    // and the bounds are on it as a HINT rather than as a clamp: the empty
+    // box shows the range, and nothing rewrites what is typed.
     const cell = screen.getAllByLabelText(/quantity/)[0] as HTMLElement;
-    expect(cell.getAttribute("aria-valuemin")).toBe("1");
-    expect(cell.getAttribute("aria-valuemax")).toBe("10000000");
+    expect(cell.getAttribute("placeholder")).toBe("1–10000000");
+    expect(cell.getAttribute("max")).toBeNull();
   });
 
   it("marks a mandatory child, and only a mandatory one", () => {
     renderGroup(GROUP_FEATURE, [{ quantity: 10 }]);
     const row = rowNodes()[0] as HTMLElement;
-    expect(within(row).getByLabelText(/quantity/).getAttribute("aria-required")).toBe("true");
-    expect(within(row).getByLabelText("discount").getAttribute("aria-required")).toBeNull();
+    const label = (slug: string): HTMLElement | null =>
+      row.querySelector(`label[for$="-${slug}"]`);
+    expect(label("quantity")?.textContent).toContain("*");
+    expect(label("discount")?.textContent).not.toContain("*");
+    // The control itself carries the same answer, through the substrate's
+    // own `ariaRequired` contract rather than a local effect poking the DOM.
+    const cell = (slug: string): HTMLElement | null =>
+      row.querySelector(`[id$="-${slug}"]`);
+    expect(cell("quantity")?.getAttribute("aria-required")).toBe("true");
+    expect(cell("discount")?.getAttribute("aria-required")).toBeNull();
   });
 });
 

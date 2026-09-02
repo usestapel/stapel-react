@@ -608,3 +608,99 @@ export const SLOW_VOCABULARY_CLIENT: VocabularyClient = {
   resolve: (vocabulary, level, codes) =>
     DEMO_VOCABULARY_CLIENT.resolve(vocabulary, level, codes),
 };
+
+// ── the pickers: a list too long for chips, a cap, a code, a gate ───────────
+
+/**
+ * Nine options and no `uiStyle`: past the six a person takes in at a glance,
+ * so the control is a field that says what is chosen over a sheet with a
+ * search box — the shape the whole imported corpus of inline selects needs
+ * once a category has more than a handful of anything.
+ */
+export const DELIVERY_CITY: FeatureDef = feature("city", "Collection point", {
+  type: "select",
+  maxSelected: 1,
+  options: [
+    { value: "central", label: "demo.city.central" },
+    { value: "north", label: "demo.city.north" },
+    { value: "south", label: "demo.city.south" },
+    { value: "east", label: "demo.city.east" },
+    { value: "west", label: "demo.city.west" },
+    { value: "airport", label: "demo.city.airport" },
+    { value: "harbour", label: "demo.city.harbour" },
+    { value: "station", label: "demo.city.station" },
+    { value: "university", label: "demo.city.university" },
+  ],
+});
+
+/** A required bool. Unanswered it is neither Yes nor No — a switch would draw
+ * "No" for a question nobody has answered and the asterisk beside it would
+ * contradict that until the submit was refused. */
+export const ROADWORTHY: FeatureDef = feature(
+  "roadworthy",
+  "Passed its road test",
+  { type: "bool" },
+  { mandatory: true }
+);
+
+/**
+ * The identifier case, twice over: seventeen characters exactly (so the box
+ * is monospace and a paste loses its spaces), and `visibility: "owner"` — the
+ * field is REQUIRED, stored and moderated, and never published. The plaque
+ * beside the label says so before anything is typed.
+ */
+export const VIN: FeatureDef = feature(
+  "vin",
+  "VIN",
+  { type: "string", minLength: 17, maxLength: 17, pattern: "[A-HJ-NPR-Z0-9]{17}" },
+  {
+    mandatory: true,
+    visibility: "owner",
+    description: "demo.help.vin",
+  }
+);
+
+/** Three sentences of instructions — a help text that is a paragraph rather
+ * than a caption, so the row folds it into a disclosure instead of pushing
+ * the next question off a phone screen. */
+export const MILEAGE: FeatureDef = feature(
+  "mileage",
+  "Mileage",
+  { type: "int", min: 0, max: 1_000_000, postfix: "demo.unit.km" },
+  { description: "demo.help.mileage", example: "demo.example.mileage" }
+);
+
+export const PICKER_FEATURES: readonly FeatureDef[] = [
+  DELIVERY_CITY,
+  EXTRAS,
+  ROADWORTHY,
+  VIN,
+  MILEAGE,
+];
+
+/** Chosen: a city out of the sheet, the equipment cap reached (three of
+ * three, so every other chip is off with the reason under the row), the road
+ * test answered, and a VIN half typed. */
+export const PICKER_VALUES: Readonly<Record<string, unknown>> = {
+  city: ["harbour"],
+  extras: ["abs", "ac", "gps"],
+  roadworthy: false,
+  vin: "WVWZZZ1KZAW",
+  mileage: 128_400,
+};
+
+/** The same five fields with nothing in them: the tristate shows neither
+ * answer, the trigger shows its placeholder, and the counter is at zero. */
+export const PICKER_EMPTY_VALUES: Readonly<Record<string, unknown>> = {};
+
+/** Five rows of five — the composite at `repeat.max`, where the add button
+ * stays on screen with the cap said beside it. */
+export const GROUP_FULL_VALUES: Readonly<Record<string, unknown>> = {
+  discount_ladder: [
+    { quantity: 10, discount: 5 },
+    { quantity: 50, discount: 12 },
+    { quantity: 100, discount: 18 },
+    { quantity: 250, discount: 22 },
+    { quantity: 500, discount: 30 },
+  ],
+};

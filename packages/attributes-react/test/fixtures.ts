@@ -213,3 +213,45 @@ export const STUB_VOCABULARY_CLIENT: VocabularyClient = {
     return { apple: "Apple" };
   },
 };
+
+/** Eight options and no `uiStyle`: past the chips threshold, so the control
+ * is a trigger over a picker sheet with a search box. */
+export const LONG_SELECT_FEATURE: FeatureDef = feature("city", {
+  type: "select",
+  maxSelected: 1,
+  translatable_options: false,
+  options: [
+    { value: "central", label: "Central depot" },
+    { value: "north", label: "North gate" },
+    { value: "south", label: "South gate" },
+    { value: "east", label: "East yard" },
+    { value: "west", label: "West yard" },
+    { value: "airport", label: "Airport counter" },
+    { value: "harbour", label: "Harbour office" },
+    { value: "station", label: "Station locker" },
+  ],
+});
+
+/** The same list, UNCAPPED and multiple — the one multi shape the sheet can
+ * hold, since there is no cardinality for its draft to break. */
+export const LONG_MULTI_FEATURE: FeatureDef = {
+  ...LONG_SELECT_FEATURE,
+  slug: "stops",
+  name: "stops",
+  config: { ...LONG_SELECT_FEATURE.config, maxSelected: null },
+};
+
+/** Seventeen characters exactly, with a pattern that admits no spaces: the
+ * code case, drawn monospace with a paste that strips them. */
+export const VIN_FEATURE: FeatureDef = feature(
+  "vin",
+  { type: "string", minLength: 17, maxLength: 17, pattern: "[A-HJ-NPR-Z0-9]{17}" },
+  { mandatory: true, visibility: "owner" }
+);
+
+/** A bool an answer is REQUIRED for — unanswered is neither yes nor no. */
+export const REQUIRED_BOOL_FEATURE: FeatureDef = feature(
+  "roadworthy",
+  { type: "bool" },
+  { mandatory: true }
+);

@@ -244,6 +244,40 @@ function FeatureHints(props: { readonly hints: readonly FeatureHint[] }): ReactE
 }
 
 /**
+ * Above this many characters the catalogue's help text is a DISCLOSURE rather
+ * than a line.
+ *
+ * 99.9% of imported fields carry a `description`, and most of them are one
+ * short sentence that belongs under the box unfolded. A handful are three:
+ * measuring instructions, what counts as a defect, which document a number is
+ * copied from. Stacked at full height under every field they push the next
+ * question off a phone screen, and a form nobody scrolls to the bottom of is
+ * a form with unanswered fields at the end of it. The number is the length at
+ * which a help line stops being a caption and starts being a paragraph —
+ * roughly two lines at the phone body size.
+ */
+const HELP_COLLAPSE_ABOVE = 140;
+
+/**
+ * The field's help: the catalogue's sentence, or a disclosure holding it.
+ *
+ * A native `<details>`, so the keyboard, the screen reader and find-in-page
+ * all work without this component owning any of it — the same reason the
+ * section headings are one. Collapsed by default and never for a short help,
+ * because a disclosure over one sentence is a tap charged for nothing.
+ */
+function FeatureHelp(props: { readonly help: string }): ReactElement {
+  const t = useT();
+  if (props.help.length <= HELP_COLLAPSE_ABOVE) return <>{props.help}</>;
+  return (
+    <details data-testid="attributes-help-more">
+      <summary style={{ cursor: "pointer" }}>{t(ATTRIBUTES_I18N_KEYS.helpMore)}</summary>
+      {props.help}
+    </details>
+  );
+}
+
+/**
  * What a seller is owed AT THE FIELD when the answer will not be published.
  *
  * A mandatory VIN is a strange thing to be asked for, and the question a
@@ -310,7 +344,7 @@ function FeatureRow(props: FeatureRowProps): ReactElement {
   const extra =
     props.help === undefined && props.hints.length === 0 && notice === null ? undefined : (
       <>
-        {props.help}
+        {props.help !== undefined && <FeatureHelp help={props.help} />}
         <FeatureHints hints={props.hints} />
         {notice}
       </>

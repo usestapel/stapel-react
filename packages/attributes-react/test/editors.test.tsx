@@ -98,23 +98,26 @@ describe("bool", () => {
 });
 
 describe("select — always a LIST, even for a single choice", () => {
-  it("wraps a Segmented single choice in an array", () => {
+  it("wraps a single chip choice in an array", () => {
     const { onChange } = renderOne(SELECT_FEATURE);
     fireEvent.click(screen.getByText("Diesel"));
     expect(onChange).toHaveBeenCalledWith("fuel", ["diesel"]);
   });
 
-  it("renders a multi Select above the Segmented threshold and emits an array", () => {
-    renderOne(MULTI_SELECT_FEATURE);
-    // Five options and maxSelected 3 — a dropdown, not a segmented control.
-    expect(screen.queryByText("Sunroof")).toBeNull();
-    expect(screen.getByText("Choose")).toBeDefined();
+  it("draws a CAPPED multiple choice inline, and emits an array", () => {
+    const { onChange } = renderOne(MULTI_SELECT_FEATURE, ["abs"]);
+    // Five options and `maxSelected: 3`: chips, because a sheet holds its own
+    // draft and could not stop at the cap. Every option is on screen.
+    expect(screen.getByText("Sunroof")).toBeDefined();
+    fireEvent.click(screen.getByText("ESP"));
+    expect(onChange).toHaveBeenCalledWith("extras", ["abs", "esp"]);
   });
 
-  it("shows the current selection", () => {
+  it("shows the current selection as pressed chips", () => {
     renderOne(MULTI_SELECT_FEATURE, ["abs", "esp"]);
-    expect(screen.getByTitle("ABS")).toBeDefined();
-    expect(screen.getByTitle("ESP")).toBeDefined();
+    expect(screen.getByText("ABS").getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("ESP").getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Sunroof").getAttribute("aria-pressed")).toBe("false");
   });
 });
 
