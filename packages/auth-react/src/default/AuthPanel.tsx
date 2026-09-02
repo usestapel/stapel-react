@@ -193,6 +193,23 @@ export interface AuthPanelProps {
    * what the host is saying is that they are not obtained by pressing this.
    */
   readonly showGuestEntry?: boolean;
+  /**
+   * Who owns the frame (owner ruling 2026-09-02: pair visuals must never
+   * force themselves on a host).
+   *
+   * - `"card"` (default): this panel paints its own page ground and floats
+   *   its own raised card on it — a working sign-in SCREEN out of the box,
+   *   exactly as before this prop existed.
+   * - `"bare"`: NO page surface and NO card. Zones A–D render directly, so
+   *   the host owns the frame, the width, the padding and the background —
+   *   a host that already wraps this panel in its own branded card stops
+   *   getting a card-in-card squeezed into that card's padding. The antd
+   *   token algorithm still applies (`SkinTheme surface="bare"` themes
+   *   without painting), and the brand/legal slots render ONLY when passed:
+   *   no `SlotPlaceholder` even in a dev build, because a host that owns
+   *   the chrome already states its identity outside the panel.
+   */
+  readonly chrome?: "card" | "bare";
 }
 
 /**
@@ -417,25 +434,18 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
     variant === "login" &&
     (caps.data?.registration.anonymous ?? false);
 
-  return (
-    <SkinTheme
-      {...(props.mode !== undefined ? { mode: props.mode } : {})}
-      surface="base"
-      style={PAGE_STYLE}
-      data-testid="auth-panel-page"
-    >
-      {/* The CARD. Before this, the panel painted no surface of its own: the
-          form floated on the host page, which is why dark mode produced
-          light-theme text on a near-black background (visual pass CF-1/C10)
-          and why a desktop sign-in was a bare 656px column of controls with
-          no anchor. One raised surface fixes the legibility, gives the brand
-          and legal slots somewhere to live, and makes "the form's width" a
-          real measurement every control inside can inherit. */}
-      <SkinTheme surface="raised" style={CARD_STYLE}>
+  // Who owns the frame — see the `chrome` prop. `"bare"` must render no
+  // surface of ours AND no dev placeholder: an unfilled slot is a message for
+  // the developer wiring the CARD chrome; a host that took the chrome for
+  // itself already answered it.
+  const bare = props.chrome === "bare";
+
+  /** Zones A–D — the panel's content, identical under either chrome. */
+  const zoneContent = (
         <Flex vertical gap="large" style={{ width: "100%" }} data-testid="auth-panel">
           {/* Zone A — brand, title, and the single system-notice slot */}
           <Flex vertical gap="small">
-            {props.brand ?? <SlotPlaceholder name="brand" />}
+            {props.brand ?? (bare ? null : <SlotPlaceholder name="brand" />)}
             <Typography.Title level={3} style={{ margin: 0 }}>
               {t(
                 variant === "register"
@@ -576,12 +586,16 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
                   )}
                 </Button>
               )}
-              {props.legal ?? <SlotPlaceholder name="legal" />}
+              {props.legal ?? (bare ? null : <SlotPlaceholder name="legal" />)}
             </Flex>
           )}
         </Flex>
-      </SkinTheme>
+  );
 
+  /** The dialogs ride beside the zones under BOTH chromes — they portal out
+   * of the layout anyway, so the chrome owns nothing about them. */
+  const dialogs = (
+    <>
       {/* The alt-method dialog (owner directive point 1): picking anything
           from the bottom row or the overflow menu (other than a direct OAuth
           redirect, or a passkey — see below) opens THIS, never a phantom
@@ -624,6 +638,44 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
           }}
         />
       </SkinDialog>
+    </>
+  );
+
+  // The BARE chrome (owner ruling 2026-09-02): no page ground, no card — the
+  // host's own frame is the frame. `surface="bare"` still applies the antd
+  // token algorithm (light/dark, brand, the phone control floor) but paints
+  // nothing, so the host's background and padding stay the host's.
+  if (bare) {
+    return (
+      <SkinTheme
+        {...(props.mode !== undefined ? { mode: props.mode } : {})}
+        surface="bare"
+      >
+        {zoneContent}
+        {dialogs}
+      </SkinTheme>
+    );
+  }
+
+  return (
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      surface="base"
+      style={PAGE_STYLE}
+      data-testid="auth-panel-page"
+    >
+      {/* The CARD. Before this, the panel painted no surface of its own: the
+          form floated on the host page, which is why dark mode produced
+          light-theme text on a near-black background (visual pass CF-1/C10)
+          and why a desktop sign-in was a bare 656px column of controls with
+          no anchor. One raised surface fixes the legibility, gives the brand
+          and legal slots somewhere to live, and makes "the form's width" a
+          real measurement every control inside can inherit. A host that
+          already HAS a card of its own opts out with `chrome="bare"` above. */}
+      <SkinTheme surface="raised" style={CARD_STYLE}>
+        {zoneContent}
+      </SkinTheme>
+      {dialogs}
     </SkinTheme>
   );
 }
