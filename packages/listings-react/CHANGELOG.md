@@ -1,5 +1,25 @@
 # @stapel/listings-react
 
+## 0.18.2
+
+### Patch Changes
+
+- The phone SERP card can state a blocked heart's refusal as a gesture (D45).
+
+  `<ListingSerpCard blockedReason="popover">` — the choice the grid card got in
+  the desktop pass, now on the one-column card a phone actually uses. A
+  signed-out walker measured "sign in to do this" printed fourteen times down
+  one search page, once under every card, in the line where a price or a place
+  belongs; fourteen copies of one sentence is not fourteen pieces of help. The
+  mechanism is this package's existing `GateReasonPopover`: it opens on tap as
+  readily as on hover, its anchor is `aria-disabled` rather than html-disabled
+  (so the tap is not swallowed), and the sentence stays in the accessibility
+  tree wired to the heart. `signIn` puts the door inside the disclosure.
+
+  Default unchanged — a host that says nothing still gets the standing line.
+  `<FavoriteHeart>` carries both arms now, so any surface mounting it inherits
+  the choice.
+
 ## 0.18.1
 
 ### Patch Changes

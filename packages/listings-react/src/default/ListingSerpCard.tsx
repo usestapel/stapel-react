@@ -76,6 +76,7 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
+import type { SignInCta } from "@stapel/core";
 import { useT } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
 import { FeatureBadges } from "@stapel/attributes-react/default";
@@ -149,6 +150,14 @@ export interface ListingSerpCardBaseProps
   /** Hide the favourite entirely — for a surface where it makes no sense (the
    * owner's own listings). NOT a way to hide it from visitors. */
   readonly showFavorite?: boolean;
+  /** How loudly the blocked heart states its refusal (D45) — `"text"`
+   * (default) keeps the standing sentence, `"popover"` moves it onto the
+   * gesture. A phone SERP is the surface that needed the choice: fourteen
+   * cards printed fourteen copies of one sentence. */
+  readonly blockedReason?: "text" | "popover";
+  /** The container's sign-in door, shown inside the disclosure when the
+   * refusal is a `"popover"`. */
+  readonly signIn?: SignInCta;
 }
 
 export type ListingSerpCardProps = ListingSerpCardBaseProps & ListingCardOpenProps;
@@ -207,6 +216,10 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
             listingId={listing.id}
             favorited={listing.is_favorited}
             testId="listings-serp-favorite"
+            {...(props.blockedReason !== undefined
+              ? { blockedReason: props.blockedReason }
+              : {})}
+            {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
           />
         )}
       </Flex>

@@ -1,6 +1,6 @@
 {
   "name": "@stapel/listings-react",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "Headless React pair for stapel-listings: a typed client over the draft twin, the composer that turns a category schema into a submittable listing, and the owner's dashboard. Two independent axes are rendered as two — lifecycle `status` decides visibility and `moderation_status` decides nothing about it, so an edit to a live listing stays live and says 'under review' instead of vanishing. Feature values are drawn and mirrored by @stapel/attributes-react; photos arrive as an injected upload bag whose `refs` ARE `images_draft` and whose `settled` gates the submit; a publish refusal is routed onto the control that caused it by slug. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin.",
   "license": "MIT",
   "repository": {

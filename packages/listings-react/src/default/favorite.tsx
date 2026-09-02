@@ -28,9 +28,11 @@
 import type { CSSProperties, ReactElement } from "react";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { GatedControl } from "@stapel/tokens-antd/skin";
-import { useT } from "@stapel/core";
+import type { SignInCta } from "@stapel/core";
+import { useActionGate, useT } from "@stapel/core";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+import { GateReasonPopover } from "./GateReasonPopover.js";
 import { HeartIcon } from "./icons.js";
 
 export interface FavoriteHeartProps {
@@ -43,6 +45,22 @@ export interface FavoriteHeartProps {
   /** `"inline"` puts the reason beside the heart, `"stack"` (default) under
    * it — the choice belongs to the surface, which knows its own geometry. */
   readonly layout?: "stack" | "inline";
+  /**
+   * How loudly the refusal is stated on THIS surface (D45).
+   *
+   * `"text"` (default) keeps the standing sentence beside the heart — what
+   * this control has always done, and the right answer where one card is the
+   * screen. `"popover"` moves it onto the gesture: a signed-out phone SERP
+   * printed "sign in to do this" once under every one of fourteen cards, in
+   * the line where a price belongs, and fourteen copies of one sentence is
+   * not fourteen pieces of help. The reason never leaves the accessibility
+   * tree either way — see {@link GateReasonPopover}.
+   */
+  readonly blockedReason?: "text" | "popover";
+  /** The surface's sign-in door, rendered INSIDE the disclosure. Absent: the
+   * disclosure holds the reason alone. Only read in the `"popover"` arm; the
+   * standing arm's door is the container's, as it always was. */
+  readonly signIn?: SignInCta;
   readonly style?: CSSProperties;
 }
 
@@ -61,6 +79,39 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
       ? LISTINGS_I18N_KEYS.cardFavoriteRemove
       : LISTINGS_I18N_KEYS.cardFavoriteAdd
   );
+  // The RESOLVED sentence, not the gate's key — `useActionGate` is the one
+  // place a blocked reason becomes words in this fleet.
+  const reason = useActionGate(favorite.gate).reason;
+  if (props.blockedReason === "popover" && reason !== undefined) {
+    // `aria-disabled`, never `disabled`: the gate already refuses the action
+    // (`toggle` is a no-op while blocked), and an html-disabled button
+    // swallows the hover, the focus and the tap the disclosure opens on.
+    return (
+      <GateReasonPopover
+        reason={reason}
+        cta={props.signIn}
+        testId={`${props.testId}-reason`}
+        signInTestId={`${props.testId}-sign-in`}
+      >
+        {(bind) => (
+          <Button
+            shape="circle"
+            aria-disabled
+            {...bind}
+            aria-label={label}
+            aria-pressed={favorite.favorited}
+            data-testid={props.testId}
+            data-favorited={String(favorite.favorited)}
+            data-analytics="none"
+            data-analytics-reason="business action — host app wraps with its own tracked()"
+            onClick={favorite.toggle}
+            icon={<HeartIcon filled={favorite.favorited} />}
+            {...(props.style !== undefined ? { style: props.style } : {})}
+          />
+        )}
+      </GateReasonPopover>
+    );
+  }
   return (
     <GatedControl
       gate={favorite.gate}
