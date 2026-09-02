@@ -1,5 +1,35 @@
 # @stapel/chat-react
 
+## 0.7.0
+
+### Minor Changes
+
+- The selected-row axis and the desktop split inbox arrangement.
+
+  Measured on a wide desktop viewport (1440×900) of a live classified
+  deployment: the chat thread page was ONE full-width lane — the composer
+  stretched to 1230px, a reader's own bubbles a screen away from the avatar
+  that named them — and no conversation list beside the open thread, which
+  lived on a separate screen. The reference design for a desktop inbox is two
+  panes, and the pair had no two-pane arm to mount.
+
+  - `<ConversationListPanel/>` gains `selectedId?: string | null`: the matching
+    row is painted with the theme's selected-item background (token bag, never
+    a literal) and carries `aria-current="page"` — the same fact stated once
+    for the eye and once for the reader. Default undefined; existing hosts are
+    untouched.
+  - New `<ConversationSplitPanel/>` (exported from `./default`): the two
+    existing panels on a `360px minmax(0, 1fr)` grid with a `colorSplit`
+    divider — list left, thread right, and a quiet "Pick a conversation" empty
+    state (new key `chat.split.empty`, en/ru/es) until something is selected.
+    Thread pass-throughs (`limit`, `maxLength`, `notifications`) forward to the
+    thread; `empty` lets a host bring its own right pane. The thread pane caps
+    its reading measure at 48rem so a message lane never stretches across a
+    wide pane — the cap lives in the split arrangement, not in
+    `<ConversationThreadPanel/>`, whose solo behaviour is unchanged.
+  - Mounting the split is the HOST's viewport decision (the `CategoryPage`
+    rule): a phone host keeps the two screens and never mounts it.
+
 ## 0.6.2
 
 ### Patch Changes
