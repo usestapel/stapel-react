@@ -1,4 +1,4 @@
-# @stapel/listings-react 0.17.0
+# @stapel/listings-react 0.18.0
 
 Headless React flow pair for stapel-listings (contract >=0.12 <0.13) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
