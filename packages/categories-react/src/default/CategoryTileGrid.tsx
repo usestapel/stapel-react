@@ -87,6 +87,25 @@ const TILE_ROWS = 2;
  */
 const VISIBLE_COLUMNS = 2.5;
 
+/**
+ * The COMPACT geometry, in two numbers (the owner's ruling on tile size,
+ * 2026-09-02: the cozy tiles were "huge" at 390px and a fraction-of-container
+ * column turned a 1440px catalogue page into a wall of ~550px tiles).
+ *
+ * More visible columns makes the phone row dense — a 390px port shows four
+ * tiles and the peek of a fifth. The PIXEL CAP is the desktop half of the
+ * same fix: the column is `min(fraction, cap)`, so a wide container gets a
+ * modest strip of 128px tiles instead of inflating the fraction into
+ * billboards. Both numbers stay relative to the CONTAINER first — the cap
+ * only stops the growth, it never stretches a narrow port.
+ */
+const COMPACT_VISIBLE_COLUMNS = 4.4;
+const COMPACT_MAX_COLUMN_PX = 128;
+
+/** The two tile geometries a host can ask for. `cozy` is the reference
+ * two-row scroller; `compact` is the dense strip — see the constants above. */
+export type TileDensity = "cozy" | "compact";
+
 /** Tile proportions — wider than tall, so a two-line label and the art corner
  * both fit without the row eating the fold. */
 const TILE_ASPECT_RATIO = "4 / 3";
@@ -106,7 +125,7 @@ const LABEL_LINES = 3;
 /** How many tiles the loading arm reserves room for. */
 const SKELETON_TILES = [1, 2, 3, 4] as const;
 
-const scrollerStyle: CSSProperties = {
+const scrollerBase: CSSProperties = {
   display: "grid",
   gridAutoFlow: "column",
   gridTemplateRows: `repeat(${TILE_ROWS}, auto)`,
@@ -122,7 +141,18 @@ const scrollerStyle: CSSProperties = {
   scrollbarWidth: "none",
 };
 
-const tileStyle: CSSProperties = {
+/** The compact delta: denser columns AND the absolute cap that keeps a wide
+ * container honest — see the constants above. */
+const scrollerCompact: CSSProperties = {
+  ...scrollerBase,
+  gridAutoColumns: `min(calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${spacing[2]}px), ${COMPACT_MAX_COLUMN_PX}px)`,
+};
+
+function scrollerStyle(density: TileDensity): CSSProperties {
+  return density === "compact" ? scrollerCompact : scrollerBase;
+}
+
+const tileBase: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
@@ -136,6 +166,17 @@ const tileStyle: CSSProperties = {
   scrollSnapAlign: "start",
   overflow: "hidden",
 };
+
+// A dense tile keeps its whole area for the label and the art.
+const tileCompact: CSSProperties = { ...tileBase, padding: spacing[2] };
+
+function tileStyle(density: TileDensity): CSSProperties {
+  return density === "compact" ? tileCompact : tileBase;
+}
+
+/** Compact label: the same clamp at the skin's small size — an ~80px tile
+ * cannot spend body-size lines and still show its art corner. */
+const COMPACT_LABEL_FONT_SIZE = 12;
 
 const labelStyle: CSSProperties = {
   fontWeight: fontWeight.semibold,
@@ -154,6 +195,11 @@ const labelStyle: CSSProperties = {
   // floor for a browser without that language's dictionary.
   hyphens: "auto",
   overflowWrap: "anywhere",
+};
+
+const labelCompact: CSSProperties = {
+  ...labelStyle,
+  fontSize: COMPACT_LABEL_FONT_SIZE,
 };
 
 const artStyle: CSSProperties = {
@@ -230,6 +276,7 @@ function Tile(props: {
   readonly categoryId?: number;
   readonly linkComponent?: LinkComponent;
   readonly testId?: string;
+  readonly density: TileDensity;
 }): ReactElement {
   return (
     <CategoryLink
@@ -241,10 +288,10 @@ function Tile(props: {
         ? { categoryId: props.categoryId }
         : {})}
       href={props.href}
-      style={tileStyle}
+      style={tileStyle(props.density)}
     >
       <span
-        style={labelStyle}
+        style={props.density === "compact" ? labelCompact : labelStyle}
         {...(props.testId !== undefined ? { "data-testid": props.testId } : {})}
       >
         {props.label}
@@ -307,6 +354,13 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * has them, and a list, a breadcrumb or a selector may render them.
    */
   readonly categoryDepth?: number;
+  /**
+   * Tile geometry (default `"cozy"`, the reference two-row scroller).
+   * `"compact"` is the dense strip: 4+ visible columns and an absolute cap on
+   * the column width, so the same mount is small on a phone and a modest
+   * strip — never a wall — inside a wide desktop column.
+   */
+  readonly density?: TileDensity;
 }
 
 /** The scroll port itself: the "All" tile, then one tile per row. */
@@ -316,6 +370,7 @@ function TileRow(props: {
   readonly allTile?: boolean;
   readonly linkComponent?: LinkComponent;
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  readonly density: TileDensity;
 }): ReactElement {
   const t = useT();
   const linkProps =
@@ -323,12 +378,13 @@ function TileRow(props: {
       ? { linkComponent: props.linkComponent }
       : {};
   return (
-    <div style={scrollerStyle} data-testid="categories-tile-grid-list">
+    <div style={scrollerStyle(props.density)} data-testid="categories-tile-grid-list">
       {props.allTile !== false && (() => {
         const allLabel = t(CATEGORIES_I18N_KEYS.tilesAll);
         return (
           <Tile
             {...linkProps}
+            density={props.density}
             href={props.basePath}
             label={allLabel}
             art={<TileMonogram label={allLabel} />}
@@ -342,6 +398,7 @@ function TileRow(props: {
           <Tile
             key={entry.category.id}
             {...linkProps}
+            density={props.density}
             href={entry.href}
             slug={entry.category.slug}
             categoryId={entry.category.id}
@@ -370,8 +427,10 @@ export function CategoryTileGrid(
   // fired. A component that fetched and then hid the answer would pay for
   // rows nobody may see.
   const offersTiles = categoryOffersTileGrid(props.categoryDepth);
+  const density: TileDensity = props.density ?? "cozy";
   const rowProps = {
     basePath,
+    density,
     ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
     ...(props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
@@ -407,7 +466,7 @@ export function CategoryTileGrid(
                 testId="categories-tile-grid"
                 onRetry={bag.refetch}
                 loading={
-                  <div style={scrollerStyle}>
+                  <div style={scrollerStyle(density)}>
                     {SKELETON_TILES.map((slot) => (
                       <Skeleton.Button
                         key={slot}

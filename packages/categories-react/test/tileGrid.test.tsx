@@ -355,3 +355,52 @@ describe("<CategoryQuickSearchPanel>", () => {
     ).toBe("/s?type=listing");
   });
 });
+
+describe("tile density (the owner's ruling on tile size)", () => {
+  // Measured on the live storefront: at 390px the cozy tile is ~143px wide and
+  // the two-row grid pushes the feed ~240px down; on a 1440px catalogue column
+  // the same fraction-of-container geometry inflates each tile to ~550px — a
+  // wall of grey. "compact" answers both with one mechanism: more visible
+  // columns AND an absolute cap on the column, so a wide container gets a
+  // modest strip instead of billboards.
+  function tileList(): HTMLElement {
+    return screen.getByTestId("categories-tile-grid-list");
+  }
+
+  it("cozy (the default) keeps the reference geometry — 2.5 visible columns", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    expect(tileList().style.gridAutoColumns).toContain("/ 2.5");
+    expect(tileList().style.gridAutoColumns).not.toContain("min(");
+  });
+
+  it("compact shows 4+ columns and caps the column in absolute pixels", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid density="compact" />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    const columns = tileList().style.gridAutoColumns;
+    expect(columns).toContain("min(");
+    expect(columns).toContain("/ 4.4");
+    expect(columns).toContain("128px");
+  });
+
+  it("compact still renders every tile — density changes geometry, not rows", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid density="compact" entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByTestId("categories-tile-grid-list")[0]?.querySelectorAll("a")
+      ).toHaveLength(2)
+    );
+  });
+});

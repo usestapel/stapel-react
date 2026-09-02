@@ -116,6 +116,7 @@ import { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 import { CategoryCascadeField } from "./CategoryCascadeField.js";
 import { CategoryFeatureList } from "./CategoryFeatureList.js";
 import { CategoryTileGrid } from "./CategoryTileGrid.js";
+import type { TileDensity } from "./CategoryTileGrid.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
 import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
@@ -176,6 +177,12 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * made this a prop rather than a stylesheet.
    */
   readonly subcategories?: SubcategoryForm;
+  /**
+   * Tile geometry for the `"tiles"` arm — `<CategoryTileGrid density>`,
+   * passed through verbatim. Ignored by the `"pane"` arm, which has no tiles
+   * to size. Default is the grid's own (`"cozy"`).
+   */
+  readonly subcategoryTileDensity?: TileDensity;
   /**
    * A narrowing made in the cascade below the tiles.
    *
@@ -313,6 +320,7 @@ function Subcategories(props: {
   readonly onNarrow?: (category: Category | null) => void;
   readonly narrowValue?: number | null;
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  readonly tileDensity?: TileDensity;
 }): ReactElement | null {
   const t = useT();
   const link =
@@ -357,6 +365,9 @@ function Subcategories(props: {
         </Typography.Title>
         <CategoryTileGrid
           {...link}
+          {...(props.tileDensity !== undefined
+            ? { density: props.tileDensity }
+            : {})}
           {...(props.renderIcon !== undefined
             ? { renderIcon: props.renderIcon }
             : {})}
@@ -467,6 +478,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
 
                 <Subcategories
                   form={props.subcategories ?? "pane"}
+                  {...(props.subcategoryTileDensity !== undefined
+                    ? { tileDensity: props.subcategoryTileDensity }
+                    : {})}
                   current={source.current}
                   depth={source.depth ?? 0}
                   childRows={source.children}

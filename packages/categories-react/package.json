@@ -62,7 +62,7 @@
     {
       "name": "default — the antd skin (catalog, category page, carousel, picker, breadcrumbs) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "13 KB"
+      "limit": "13.25 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
