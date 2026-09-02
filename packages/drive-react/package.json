@@ -1,6 +1,6 @@
 {
   "name": "@stapel/drive-react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Phone-first Drive product over stapel-docs 0.6: starred / recents / name search / thumbnails, a share sheet over the docs pair's share axis, an upload queue with real per-file progress (XHR PUT, concurrency 2, quota-507 state), folder navigation one rung per request, and an antd skin behind /default. Composes @stapel/docs-react as a peer; duplicates none of it.",
   "license": "MIT",
   "repository": {

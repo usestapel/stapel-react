@@ -1,5 +1,12 @@
 # @stapel/eslint-plugin
 
+## 0.13.1
+
+### Patch Changes
+
+- Updated dependencies [3a1759b]
+  - @stapel/tokens@0.7.0
+
 ## 0.13.0
 
 ### Minor Changes

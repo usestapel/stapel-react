@@ -1,5 +1,32 @@
 # @stapel/drive-react
 
+## 0.3.0
+
+### Minor Changes
+
+- 4438ef3: FAB action sheet + create folder.
+
+  The drive FAB no longer opens the file picker directly — it opens the pair's
+  bottom sheet (the same `SkinDialog` shape the row actions use) with two
+  actions: **Upload files** (the existing behaviour, one tap deeper — it
+  triggers the same hidden input) and **New folder** — the docs pair's
+  `NameDialog` (exactly the rename prompt's shape) calling `useCreateFolder`
+  with the CURRENT folder as the parent, then invalidating the drive listing's
+  per-rung key so the new row appears. The empty state gains an Upload button
+  that opens the SAME sheet — one affordance, one behaviour. The FAB's label
+  becomes "New" (`drive.create.label`); new keys `drive.create.*` /
+  `drive.newFolder.*` land in the key table with ru + es translations.
+
+### Patch Changes
+
+- 95cdfac: Regenerated against the stapel-docs v0.7.0 pin (one pin per module):
+  `socket_path` lands on the generated document schema, the error registry
+  grows to 85 codes (`error.400.docs_invalid_crdt_payload`), and the manifest
+  range becomes `>=0.7 <0.8`. No behavior change — the drive product does not
+  open live documents; its create surface is untouched (there is still no
+  `/types` listing to drive it from, and the live types exist only where the
+  backend's `[crdt]` extra is installed).
+
 ## 0.2.0
 
 ### Minor Changes
