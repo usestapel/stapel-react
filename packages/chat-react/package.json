@@ -61,9 +61,9 @@
       "limit": "10.5 KB"
     },
     {
-      "name": "default — the antd chat skin must stay out of the main bundle. Raised 10 -> 13 KB: measured 12.17 KB after the inbox row became a person (avatar + name + subject + preview through the host people seam), the thread gained the pinned subject card and the report/block overflow sheet. The ceiling is the split, not the size — this subpath is opt-in and antd-carrying by design Raised 13 -> 14 KB in 0.6.0: the presence line and the notifications pre-prompt on the shared permission substrate.",
+      "name": "default — the antd chat skin must stay out of the main bundle. Raised 10 -> 13 KB: measured 12.17 KB after the inbox row became a person (avatar + name + subject + preview through the host people seam), the thread gained the pinned subject card and the report/block overflow sheet. The ceiling is the split, not the size — this subpath is opt-in and antd-carrying by design Raised 13 -> 14 KB in 0.6.0: the presence line and the notifications pre-prompt on the shared permission substrate. Raised 14 -> 14.5 KB in 0.7.1: the notification ask stopped being a modal (D64). PermissionSheet was ONE imported component; an ask that does not take the screen hostage is markup this package owns — an alert, its two controls and the denied arm — plus the whole-row link that made an inbox row one control instead of a name button (D65). Measured 14.33 KB against 13.97 KB before.",
       "path": "dist/default/index.js",
-      "limit": "14 KB"
+      "limit": "14.5 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry (4.5 KB since the wire cutover: four more NAMED degradations, in full sentences, is the point of them). Raised 4.5 -> 4.8 KB: measured 4.46 KB with the person/subject/menu copy, which leaves no room for a word Raised again 4.8 -> 5.2 KB in 0.6.0: presence and the notifications pre-prompt add seven keys, three of them full sentences — the permission copy has to say what the offer is FOR before a browser prompt appears, and a short version of that sentence is how a person refuses something they did not understand. Measured 4.79 KB.",
