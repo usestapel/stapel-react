@@ -137,25 +137,29 @@ export interface components {
     schemas: {
         /** @description One destination in the dropdown, ready to render and ready to follow. */
         CategorySuggestion: {
-            /** @description Category id. */
+            /** @description Category id. A `listings`-graded row derives it from the path's leaf segment. */
             id: number;
-            /** @description Category slug. */
+            /** @description Category slug. Empty on a `listings`-graded row: no comm Function in the fleet resolves a path id to its slug or name yet. */
             slug: string;
-            /** @description The category's own display name. */
+            /** @description The category's own display name. On a `listings`-graded row this is the leaf id as a truthful segment — render such rows by their `count` instead. */
             name: string;
-            /** @description Display names root->leaf, e.g. ['Мужская одежда', 'Шорты']. This is what distinguishes three categories that share a name. */
+            /** @description Display names root->leaf, e.g. ['Мужская одежда', 'Шорты']. This is what distinguishes three categories that share a name. `listings`-graded rows carry the id segments here. */
             path: string[];
             /** @description The ancestry as ids joined with '/'. Pass it verbatim as the `category` parameter of /query — do not re-join path segments yourself. */
             category: string;
-            /** @description Live listings a buyer would see under this category, descendants included — the same number the SERP reports for it. */
+            /** @description Live listings a buyer would see under this category, descendants included — the same number the SERP reports for it. On a `listings`-graded row: how many of them match the typed query, which is the count a `?q=…&category=…` tap will show. */
             count: number;
             /** @description Number of segments in `path`. */
             depth: number;
             /**
-             * @description How the name matched. Informational; ranking is by `count`.
+             * @description How the row earned its place: the four name grades from `categories.suggest`, or `listings` — a goods-driven row, offered because documents matching the query live there even though no category name says the word. Ranking: strong grades (exact/prefix/word) and `listings` sort as one class above `substring`; within a class, stocked before empty, then grade, then count desc, then depth, then name. `vector` rows — embedding-space neighbours offered when nothing first-class matched — always sit below every deterministic row, ordered by similarity.
              *
+             *     * `exact` - exact
              *     * `prefix` - prefix
+             *     * `word` - word
              *     * `substring` - substring
+             *     * `listings` - listings
+             *     * `vector` - vector
              */
             match: components["schemas"]["MatchEnum"];
         };
@@ -193,11 +197,15 @@ export interface components {
             stale_reason?: string;
         };
         /**
-         * @description * `prefix` - prefix
+         * @description * `exact` - exact
+         *     * `prefix` - prefix
+         *     * `word` - word
          *     * `substring` - substring
+         *     * `listings` - listings
+         *     * `vector` - vector
          * @enum {string}
          */
-        MatchEnum: "prefix" | "substring";
+        MatchEnum: "exact" | "prefix" | "word" | "substring" | "listings" | "vector";
         /** @description The P2B Art. 5 disclosure, generated from the scorer registry. */
         RankingResponse: {
             doc_type: string;
@@ -285,7 +293,7 @@ export interface components {
             took_ms: number;
         };
         SuggestResponse: {
-            /** @description Destinations, ranked by live listing count desc, then depth, then name. */
+            /** @description Destinations, ranked by match class (strong name grades and goods-driven rows above substring), then stocked before empty, then grade, then live listing count desc, then depth, then name. */
             categories: components["schemas"]["CategorySuggestion"][];
             /** @description Title prefixes from the index. */
             terms: string[];
@@ -293,7 +301,7 @@ export interface components {
             items: string[];
             /** @description Which dictionary answered — the same resolution /query reports. */
             language: string;
-            /** @description What this answer could not do: `category_suggestions` (no provider for category names), `category_rollup` (no ancestry, so counts would read 0). */
+            /** @description What this answer could not do: `category_suggestions` (no provider for category names), `category_rollup` (no ancestry, so counts would read 0), `category_listing_suggestions` (no name matched and the configured engine does not implement the optional goods-driven verb, or it failed). */
             degraded: string[];
             backend: string;
         };
