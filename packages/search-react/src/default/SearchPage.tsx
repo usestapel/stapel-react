@@ -35,17 +35,17 @@
  *
  * ── Where the search opens, and what it calls the place ───────────────────
  *
- * `defaultGeo` centres a fresh search on the visitor — a granted browser
- * prompt, or the server's IP guess when there was none — and `geoLabel` says
- * what that place is CALLED. Both are the host's to resolve: this page has a
- * `lat` and a `lon` in its query string and no way on earth to turn them into
- * "Berlin Mitte", which is exactly why it must not print them. A search
- * package that grew a geocoder to say a nicer sentence would have taken on the
- * whole of `geo-react` to avoid one bad line.
+ * `geoOffer` is a place this search COULD be narrowed to — the visitor's own
+ * position, as the host resolved it — and `geoLabel` says what the place a
+ * search is ALREADY narrowed to is CALLED. Both are the host's to resolve:
+ * this page has a `lat` and a `lon` in its query string and no way on earth to
+ * turn them into "Berlin Mitte", which is exactly why it must not print them.
+ * A search package that grew a geocoder to say a nicer sentence would have
+ * taken on the whole of `geo-react` to avoid one bad line.
  *
- * The centring is applied once, only into a URL that carries no location, and
- * never again after the visitor has said anything about location themselves —
- * see {@link SearchStateProviderProps.defaultGeo}, which owns the rules.
+ * The offer is never applied on the page's own initiative: it is drawn as a
+ * button on the location row, and pressing it is the person's word. See
+ * {@link SearchStateProviderProps.geoOffer} for the defect that shape closes.
  *
  * ── The filter column is laid out only when there is something in it ──────
  *
@@ -211,16 +211,17 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * Default `false` — see {@link FacetPanelPaneProps.skippedNotice}. */
   readonly skippedNotice?: boolean;
   /**
-   * Open the search centred where the visitor is, when the URL says nothing
-   * about location — see {@link SearchStateProviderProps.defaultGeo} for the
-   * four rules that keep it from overruling a link or a person.
+   * A location this search could be narrowed to, OFFERED to the visitor — see
+   * {@link SearchStateProviderProps.geoOffer} for why it is an offer and not a
+   * default, and for the defect that distinction closes.
    *
    * The host resolves the position; this page does not know what a map or a
    * geocoder is and must not learn. A browser prompt (`usePermission`
    * + `geolocation`) or the server's IP guess both arrive here as the same two
-   * numbers, and `geoLabel` is where the name of the place they mean comes in.
+   * numbers. Nothing is applied until the person presses the offer, and
+   * `geoOfferLabel` is what the button calls the place.
    */
-  readonly defaultGeo?: SearchGeo | undefined;
+  readonly geoOffer?: SearchGeo | undefined;
   /** Container chrome under the results — e.g. the ranking-disclosure link. */
   readonly footer?: ReactNode;
   /**
@@ -643,7 +644,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     renderGeoFilter,
     geoLabel,
     skippedNotice,
-    defaultGeo,
+    geoOffer,
     footer,
     filtersHeader,
     resultsHeader,
@@ -665,7 +666,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
 
   return (
     <SkinTheme surface="base" {...(mode !== undefined ? { mode } : {})}>
-      <SearchStateProvider adapter={adapter} defaultGeo={defaultGeo} {...parseOptions}>
+      <SearchStateProvider adapter={adapter} geoOffer={geoOffer} {...parseOptions}>
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}

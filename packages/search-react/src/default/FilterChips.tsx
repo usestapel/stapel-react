@@ -179,6 +179,27 @@ const ROW: CSSProperties = {
 
 const CHIP: CSSProperties = { flex: "0 0 auto", borderRadius: radii.full };
 
+/**
+ * The applied location's way OFF, sitting against the chip it removes.
+ *
+ * A sibling button rather than an "x" inside the chip: a button inside a
+ * button is invalid HTML and the nested one is unreachable by keyboard in
+ * several browsers. Two adjacent controls read as one pill because the gap
+ * between them is `spacing[1]` and the chip's own trailing corner is squared
+ * off against it.
+ *
+ * WHY THE LOCATION AND NOT EVERY CHIP: a facet chip states its own value
+ * ("Apple 7"), so a person can see what to undo and the sheet is where they
+ * undo it. A location chip states a place name the pair was HANDED, and the
+ * filter behind it can empty a whole category page — which is exactly the
+ * shape a person needs to be able to reverse without first learning that the
+ * chip opens a sheet with a button called "Everywhere" in it.
+ */
+const CHIP_CLEAR: CSSProperties = {
+  flex: "0 0 auto",
+  marginInlineStart: -spacing[1],
+};
+
 /** Which picker is open, if any. `null` closes everything. */
 type OpenChip = string | null;
 
@@ -398,7 +419,7 @@ export function categoryLeaf(path: string): string | undefined {
 
 export function FilterChips(props: FilterChipsProps): ReactElement | null {
   const t = useT();
-  const { state, setCategory } = useSearchState();
+  const { state, setCategory, setGeo } = useSearchState();
   const bag = useFacetPanel({
     ...(props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
@@ -585,6 +606,23 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
             {geoChipLabel}
           </Button>
         )}
+        {/* Applied only. With nothing applied the chip beside this is an
+            invitation, and an invitation has nothing to cancel. */}
+        {showGeoChip && geo !== undefined && (
+          <Button
+            shape="circle"
+            size="small"
+            style={CHIP_CLEAR}
+            aria-label={t(SEARCH_I18N_KEYS.geoClear)}
+            icon={<ClearGlyph />}
+            data-testid="search-chip-geo-clear"
+            data-analytics="none"
+            data-analytics-reason="a filter is a read, not a flow step"
+            onClick={() => {
+              setGeo(null);
+            }}
+          />
+        )}
 
         {/* One list, in the row's stated order — see this module's ordering
             note. Rendering ranges and facets as two separate `.map`s is what
@@ -710,6 +748,27 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
 /** The mark on the "all filters" chip: something is applied. Not a count —
  * the counts are on the chips beside it, and a number inside a 32px circle is
  * a number nobody reads. */
+/** The cross the location chip's neighbour carries — an inline monochrome
+ * SVG in `currentColor`, the same house convention as every other glyph in
+ * this pair. */
+function ClearGlyph(): ReactElement {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
 function ActiveDot(): ReactElement {
   return (
     <span

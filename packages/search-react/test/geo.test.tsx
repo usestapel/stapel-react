@@ -8,10 +8,17 @@
  *    DIGITS anywhere in the rendered page, because a future sentence that
  *    quietly re-introduces them under another key is the same defect.
  *
- * 2. `defaultGeo` centres a fresh search on the visitor without ever
- *    overruling one. The URL is the state, so every rule below is a rule about
- *    who may write to it: a shared link wins, the visitor wins, and the host's
- *    guess only fills a silence.
+ * 2. A LOCATION FILTER IS NEVER APPLIED WITHOUT THE PERSON ASKING. `geoOffer`
+ *    is the host's guess about where the visitor is, and this pair does
+ *    exactly nothing with it until a control is pressed: no write to the URL,
+ *    no history entry, no `lat` on the wire, and — the hardest one to see —
+ *    no second request superseding the first.
+ *
+ *    This replaces `defaultGeo`, which applied the guess under four rules
+ *    about not overruling a person. All four held; the outcome was still a
+ *    25 km wall around every category leaf that nobody chose, and leaves with
+ *    stock reading "nothing found". The rules were not the defect. Applying
+ *    at all was.
  *
  * The wire is mocked and nothing else is (`harness`'s `mockServer`): the
  * request the page issues is the observable that proves a centre was applied,
@@ -130,15 +137,26 @@ describe("the location filter says where in words, never in coordinates", () => 
   }
 });
 
-// ── 2. defaultGeo fills a silence and nothing else ─────────────────────────
+// ── 2. an offer is an offer: nothing is applied until it is pressed ────────
 
-/** Reads the live location out of the state, and offers the way out of it, so
- * a test can watch the URL move in both directions. */
+/** Reads the live location AND the standing offer out of the state, and
+ * offers both ways to move it, so a test can watch the URL in every
+ * direction. */
 function GeoProbe(): ReactElement {
-  const { state, setGeo } = useSearchState();
+  const { state, geoOffer, setGeo, acceptGeoOffer } = useSearchState();
   return (
     <>
       <span data-testid="geo">{JSON.stringify(state.geo ?? null)}</span>
+      <span data-testid="offer">{JSON.stringify(geoOffer ?? null)}</span>
+      <button
+        type="button"
+        data-testid="geo-accept"
+        data-analytics="none"
+        data-analytics-reason="test double"
+        onClick={acceptGeoOffer}
+      >
+        near me
+      </button>
       <button
         type="button"
         data-testid="geo-clear"
@@ -160,7 +178,13 @@ function geoNow(): SearchGeo | null {
     | null;
 }
 
-/** The provider under a controllable URL, with the default handed in from
+function offerNow(): SearchGeo | null {
+  return JSON.parse(screen.getByTestId("offer").textContent ?? "null") as
+    | SearchGeo
+    | null;
+}
+
+/** The provider under a controllable URL, with the offer handed in from
  * outside so a test can make it arrive late. */
 function Frame(props: {
   readonly initial?: string;
@@ -173,13 +197,13 @@ function Frame(props: {
   const adapter = useTestParams(props.initial ?? "type=listing");
   props.onAdapter?.({ search: adapter.search, history: adapter.history });
   return (
-    // Handed over unconditionally, `undefined` included: `defaultGeo` is
+    // Handed over unconditionally, `undefined` included: `geoOffer` is
     // declared `| undefined` precisely so a host still resolving a position
     // can pass what it has without a conditional spread.
     <SearchStateProvider
       adapter={adapter}
       defaultType="listing"
-      defaultGeo={props.value}
+      geoOffer={props.value}
     >
       <GeoProbe />
     </SearchStateProvider>
@@ -209,8 +233,8 @@ function LateHost(props: { readonly resolved: SearchGeo }): ReactElement {
   );
 }
 
-describe("defaultGeo centres a fresh search and overrules nobody", () => {
-  it("applies to a URL that carries no location at all", async () => {
+describe("a location filter is never applied without the person asking", () => {
+  it("an offer does not reach the URL, the state, or the history", async () => {
     let latest: { search: string; history: readonly string[] } = {
       search: "",
       history: [],
@@ -224,95 +248,165 @@ describe("defaultGeo centres a fresh search and overrules nobody", () => {
       />
     );
     await waitFor(() => {
-      expect(geoNow()).toEqual(MOSCOW);
+      expect(screen.getByTestId("geo")).toBeTruthy();
     });
-    // In the URL, not only in the state — otherwise the link the visitor
-    // shares means a different search than the page they are looking at.
-    expect(latest.search).toContain("lat=55.756");
-    expect(latest.search).toContain("lon=37.617");
-  });
+    await settle();
 
-  it("REPLACES the history entry — Back leaves the page, it does not undo a centring nobody asked for", async () => {
-    let latest: { search: string; history: readonly string[] } = {
-      search: "",
-      history: [],
-    };
-    render(
-      <Frame
-        value={MOSCOW}
-        onAdapter={(a) => {
-          latest = a;
-        }}
-      />
-    );
-    await waitFor(() => {
-      expect(geoNow()).toEqual(MOSCOW);
-    });
+    expect(geoNow()).toBeNull();
+    expect(latest.search).not.toContain("lat=");
+    expect(latest.search).not.toContain("radius_km");
+    // Not even a replaced one. The visitor performed no navigation, so the
+    // history is still the single entry the page opened on.
     expect(latest.history).toHaveLength(1);
   });
 
-  it("the URL wins: a shared link's own location is not overwritten", async () => {
+  it("the offer is readable, so a control can invite instead of the pair deciding", async () => {
+    render(<Frame value={MOSCOW} />);
+    await waitFor(() => {
+      expect(offerNow()).toEqual(MOSCOW);
+    });
+  });
+
+  it("pressing the offer applies it — and PUSHES, so Back takes it off again", async () => {
+    let latest: { search: string; history: readonly string[] } = {
+      search: "",
+      history: [],
+    };
+    render(
+      <Frame
+        value={MOSCOW}
+        onAdapter={(a) => {
+          latest = a;
+        }}
+      />
+    );
+    await waitFor(() => {
+      expect(offerNow()).toEqual(MOSCOW);
+    });
+
+    fireEvent.click(screen.getByTestId("geo-accept"));
+    await waitFor(() => {
+      expect(geoNow()).toEqual(MOSCOW);
+    });
+    expect(latest.search).toContain("lat=55.756");
+    // PUSHED on top of the entry the page opened on: Back is the way off.
+    expect(latest.history).toHaveLength(2);
+  });
+
+  it("an applied location retires the offer — nothing is offered twice", async () => {
+    render(<Frame value={MOSCOW} />);
+    await waitFor(() => {
+      expect(offerNow()).toEqual(MOSCOW);
+    });
+    fireEvent.click(screen.getByTestId("geo-accept"));
+    await waitFor(() => {
+      expect(geoNow()).toEqual(MOSCOW);
+    });
+    expect(offerNow()).toBeNull();
+  });
+
+  it("a link that already carries a place is neither overwritten nor offered an alternative", async () => {
     render(<Frame initial={LINK_WITH_GEO} value={MOSCOW} />);
     await waitFor(() => {
       expect(geoNow()).toEqual({ ...BERLIN, radiusKm: 10 });
     });
     await settle();
     expect(geoNow()).toEqual({ ...BERLIN, radiusKm: 10 });
+    expect(offerNow()).toBeNull();
   });
 
-  it("a default that arrives LATE still applies, because the browser prompt is slow", async () => {
+  it("A HAND-TYPED RADIUS IS THE PERSON'S WORD: it survives verbatim, offer or no offer", async () => {
+    let latest: { search: string; history: readonly string[] } = {
+      search: "",
+      history: [],
+    };
+    render(
+      <Frame
+        initial="type=listing&lat=52.52&lon=13.405&radius_km=300"
+        value={MOSCOW}
+        onAdapter={(a) => {
+          latest = a;
+        }}
+      />
+    );
+    await waitFor(() => {
+      expect(geoNow()).toEqual({ ...BERLIN, radiusKm: 300 });
+    });
+    await settle();
+    // Not widened, not narrowed, not replaced by the host's own number.
+    expect(geoNow()).toEqual({ ...BERLIN, radiusKm: 300 });
+    expect(latest.search).toContain("radius_km=300");
+    expect(latest.history).toHaveLength(1);
+  });
+
+  it("a cleared location stays cleared, and the offer that comes back is only an offer", async () => {
+    render(<Frame value={MOSCOW} />);
+    await waitFor(() => {
+      expect(offerNow()).toEqual(MOSCOW);
+    });
+    fireEvent.click(screen.getByTestId("geo-accept"));
+    await waitFor(() => {
+      expect(geoNow()).toEqual(MOSCOW);
+    });
+
+    fireEvent.click(screen.getByTestId("geo-clear"));
+    await waitFor(() => {
+      expect(geoNow()).toBeNull();
+    });
+    await settle();
+    expect(geoNow()).toBeNull();
+  });
+
+  it("an offer that arrives LATE is still only an offer", async () => {
     render(<LateHost resolved={MOSCOW} />);
     await waitFor(() => {
       expect(screen.getByTestId("geo")).toBeTruthy();
     });
-    // Frame one: the host has nothing yet, and the search is not centred.
     expect(geoNow()).toBeNull();
 
     fireEvent.click(screen.getByTestId("resolve"));
     await waitFor(() => {
-      expect(geoNow()).toEqual(MOSCOW);
+      expect(offerNow()).toEqual(MOSCOW);
     });
-  });
-
-  it("applies exactly once: a cleared location stays cleared", async () => {
-    render(<Frame value={MOSCOW} />);
-    await waitFor(() => {
-      expect(geoNow()).toEqual(MOSCOW);
-    });
-
-    fireEvent.click(screen.getByTestId("geo-clear"));
-    await waitFor(() => {
-      expect(geoNow()).toBeNull();
-    });
-    // The effect re-runs on this very commit: the URL is empty of geo again
-    // and `defaultGeo` is still the same value. Nothing in the VALUES tells
-    // this apart from the first render, which is why the record of who spoke
-    // is a ref and not a comparison.
     await settle();
     expect(geoNow()).toBeNull();
   });
 
-  it("stays cleared even when the host then resolves a different position", async () => {
-    render(<LateHost resolved={BERLIN} />);
-    await waitFor(() => {
-      expect(screen.getByTestId("geo")).toBeTruthy();
-    });
-    fireEvent.click(screen.getByTestId("geo-clear"));
-    await waitFor(() => {
-      expect(geoNow()).toBeNull();
-    });
-
-    fireEvent.click(screen.getByTestId("resolve"));
-    await settle();
-    expect(geoNow()).toBeNull();
-  });
-
-  it("the centred search is what actually goes on the wire", async () => {
+  it("THE WIRE: one request, and it carries no location the visitor did not ask for", async () => {
     const server = mockServer({ "/query": { body: searchResponse() } });
     function Page(): ReactElement {
       const adapter = useTestParams("type=listing");
       return (
-        <SearchPage adapter={adapter} defaultType="listing" defaultGeo={MOSCOW} />
+        <SearchPage adapter={adapter} defaultType="listing" geoOffer={MOSCOW} />
+      );
+    }
+    render(
+      <TestProviders server={server}>
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(server.lastQuery("/query")).not.toBeNull();
+    });
+    await settle();
+
+    expect(server.lastQuery("/query")?.get("lat")).toBeNull();
+    expect(server.lastQuery("/query")?.get("radius_km")).toBeNull();
+    // The double query, stated as a number. `defaultGeo` wrote the URL after
+    // the first fetch had already left, so every leaf and every result page
+    // issued two requests and aborted one — visible in a network log as a
+    // permanent `ERR_ABORTED`, and invisible everywhere else.
+    expect(server.calls.filter((c) => c.url.includes("/query"))).toHaveLength(1);
+  });
+
+  it("THE WIRE: the search a person narrowed themselves does carry it", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    function Page(): ReactElement {
+      const adapter = useTestParams(
+        "type=listing&lat=55.756&lon=37.617&radius_km=25"
+      );
+      return (
+        <SearchPage adapter={adapter} defaultType="listing" geoOffer={MOSCOW} />
       );
     }
     render(
@@ -323,6 +417,6 @@ describe("defaultGeo centres a fresh search and overrules nobody", () => {
     await waitFor(() => {
       expect(server.lastQuery("/query")?.get("lat")).toBe("55.756");
     });
-    expect(server.lastQuery("/query")?.get("lon")).toBe("37.617");
+    expect(server.lastQuery("/query")?.get("radius_km")).toBe("25");
   });
 });

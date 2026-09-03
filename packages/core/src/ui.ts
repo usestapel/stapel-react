@@ -56,6 +56,23 @@ export interface LinkComponentProps {
   readonly style?: CSSProperties;
   readonly onClick?: MouseEventHandler<HTMLElement>;
   readonly "aria-label"?: string;
+  /**
+   * Hide this link from assistive technology — for a SECOND link to a
+   * destination the surface already names.
+   *
+   * A card whose picture and whose title both open the same listing is one
+   * target to a person using a mouse and two announcements to a person using a
+   * screen reader; the picture is the one with nothing to say. Pair it with
+   * `tabIndex: -1` (both, or neither: a focusable `aria-hidden` element is
+   * worse than either alone).
+   */
+  readonly "aria-hidden"?: boolean | "true" | "false";
+  /**
+   * Keep this link out of the tab order — see `aria-hidden`. A grid of
+   * twenty-four cards that each grow a decorative second stop is a keyboard
+   * walk twice as long for nothing.
+   */
+  readonly tabIndex?: number;
   readonly "data-testid"?: string;
   readonly [dataAttribute: `data-${string}`]: unknown;
 }

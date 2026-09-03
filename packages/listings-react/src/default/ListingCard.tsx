@@ -123,7 +123,7 @@ import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
 import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
-import { ListingPhotoStrip } from "./ListingPhoto.js";
+import { PHOTO_LINK_CLASS, ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
@@ -231,6 +231,18 @@ export const CARD_BLEED_CLASS = "stapel-listing-card-bleed";
 export const CARD_VIEWED_CLASS = "stapel-listing-card-seen";
 
 /**
+ * The class that makes a card LOOK like a target.
+ *
+ * Measured on a live 1440px grid before this pack: `box-shadow: none`,
+ * `transform: none`, the border unchanged and `cursor: auto` — a card that
+ * opens a listing and gives a person no reason to believe it does. antd's own
+ * `hoverable` was not used: it hard-codes `boxShadowCard` and nothing else, so
+ * it cannot state a border and cannot be told to stand still for somebody who
+ * asked their system for less motion.
+ */
+export const CARD_HOVER_CLASS = "stapel-listing-card-hoverable";
+
+/**
  * How far a seen card is dimmed.
  *
  * OPACITY and not a colour, which is the whole reason this needs no dark-mode
@@ -289,6 +301,7 @@ export function cardTargetCss(): string {
   const media = `.${CARD_MEDIA_CLASS}`;
   const main = `.${CARD_MAIN_CLASS}`;
   const bleed = `.${CARD_BLEED_CLASS}`;
+  const hover = CARD_HOVER_CLASS;
   return [
     `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
     `.${CARD_TARGET_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
@@ -311,6 +324,18 @@ export function cardTargetCss(): string {
       `${bleed}{padding-block:var(--listing-card-inset);` +
       `padding-inline-start:var(--listing-card-inset)}` +
       `}`,
+    // A linked slide. `display:block` kills the inline baseline gap under the
+    // picture, which on a grid of tiles reads as cards of unequal height; the
+    // ring is for a browser that focuses an `aria-hidden` anchor anyway.
+    `.${PHOTO_LINK_CLASS}{display:block}`,
+    `.${PHOTO_LINK_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
+    // The card says it is a target. Two properties, both from the theme's own
+    // tokens, and a transition that a person who asked for less motion does
+    // not get.
+    `.${hover}{transition:box-shadow 160ms ease,border-color 160ms ease}`,
+    `.${hover}:hover{box-shadow:var(--listing-card-hover-shadow);` +
+      `border-color:var(--listing-card-focus)}`,
+    `@media (prefers-reduced-motion:reduce){.${hover}{transition:none}}`,
     // Already seen. The photo and everything inside the card's anchor dim
     // together; the heart is outside the anchor and stays as it was — see
     // CARD_VIEWED_CLASS.
@@ -577,11 +602,12 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         {...(status !== undefined
           ? { "data-listing-status": status.status }
           : {})}
-        // Both only when the server actually said so: absent and `null` leave
-        // the card byte-identical to what it renders today.
-        {...(viewed
-          ? { className: CARD_VIEWED_CLASS, "data-listing-viewed": "true" }
-          : {})}
+        // `viewed` only when the server actually said so: absent and `null`
+        // leave the card's dimming exactly as it renders today.
+        className={
+          viewed ? `${CARD_HOVER_CLASS} ${CARD_VIEWED_CLASS}` : CARD_HOVER_CLASS
+        }
+        {...(viewed ? { "data-listing-viewed": "true" } : {})}
         // The body's own padding is zero because the frame fills the card and
         // the photo runs edge to edge when it is stacked: padding here would
         // be a strip of card around a picture. The text block inside the
@@ -591,18 +617,27 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         style={{
           ["--listing-card-focus" as string]: token.colorPrimary,
           ["--listing-card-inset" as string]: `${String(token.paddingSM)}px`,
+          // The theme's own elevation, so the lift is the same one every
+          // raised surface in the skin uses and it is right in both modes.
+          ["--listing-card-hover-shadow" as string]: token.boxShadowSecondary,
         }}
       >
         <div className={CARD_QUERY_CLASS}>
           <div className={`${CARD_FRAME_CLASS} ${CARD_BLEED_CLASS}`}>
-            {/* The photos, OUTSIDE the anchor — see `<ListingPhotoStrip>`.
-                A swipeable strip is a control, and a link may not contain
-                one; the anchor still covers everything a person reads. */}
+            {/* The STRIP is outside the anchor — a swipeable scroller is a
+                control and a link may not contain one — but each SLIDE is
+                linked, so the 267x200 photograph is part of the card's target
+                instead of the one place on it where a click does nothing.
+                See `<ListingPhotoStrip>` for where that line is drawn. */}
             <div className={CARD_MEDIA_CLASS}>
               <ListingPhotoStrip
                 images={listing.images ?? []}
                 title={title.length > 0 ? title : String(listing.id)}
                 testId="listings-card-photos"
+                {...(props.href !== undefined ? { href: props.href } : {})}
+                {...(props.href !== undefined && props.linkComponent !== undefined
+                  ? { linkComponent: props.linkComponent }
+                  : {})}
               />
             </div>
 

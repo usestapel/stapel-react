@@ -219,6 +219,7 @@ export const SEARCH_I18N_KEYS = {
   geoRadiusKm: "search.geo.radius_km",
   geoRadiusLabel: "search.geo.radius_label",
   geoClear: "search.geo.clear",
+  geoNearMe: "search.geo.near_me",
   /**
    * What `<LocationSummaryLine>` says when NO location is applied.
    *
@@ -449,6 +450,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.limit.from_link": "This link sets its own page size.",
 
   "search.geo.title": "Location",
+  "search.geo.near_me": "Near me",
   "search.geo.radius_km": "Within {km} km",
   "search.geo.radius_label": "Radius, km",
   "search.geo.clear": "Anywhere",

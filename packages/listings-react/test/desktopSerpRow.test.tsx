@@ -136,7 +136,13 @@ describe("the rule text — the row arm a browser applies", () => {
     // A media query would make the same card wrong in a grid on a wide
     // screen: a 300px column inside a 1440px viewport is not a row.
     expect(css).toContain(`@container (min-width:${String(LISTING_CARD_ROW_MIN)}px)`);
-    expect(css).not.toContain("@media");
+    // A WIDTH media query is the defect — it asks the window. The one
+    // `@media` this sheet does carry is `prefers-reduced-motion`, which asks
+    // the person.
+    expect(css).not.toContain("@media (min-width");
+    expect(css).not.toContain("@media (max-width");
+    expect(css.match(/@media/g) ?? []).toEqual(["@media"]);
+    expect(css).toContain("@media (prefers-reduced-motion:reduce)");
     expect(css).toContain(`.${CARD_QUERY_CLASS}{container-type:inline-size}`);
   });
 

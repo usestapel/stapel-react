@@ -36,8 +36,15 @@ describe("the open control is exactly one thing", () => {
     const open = screen.getByTestId("listings-card-open");
     expect(open.tagName).toBe("A");
     expect(open.getAttribute("href")).toBe("/l/7");
-    // One anchor for one card: the only navigation on the page.
-    expect(container.querySelectorAll('a[href="/l/7"]')).toHaveLength(1);
+    // One DESTINATION for one card. The picture is linked too (it is the
+    // largest target on the card and a click on it used to do nothing), so
+    // the claim is that every anchor leads to the same listing and nothing
+    // else navigates — not that there is exactly one element.
+    const anchors = [...container.querySelectorAll("a[href]")];
+    expect(anchors.length).toBeGreaterThan(0);
+    for (const a of anchors) expect(a.getAttribute("href")).toBe("/l/7");
+    // …and exactly one of them is reachable by keyboard or screen reader.
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
   it("onOpen alone renders a button with no href for the browser to follow", () => {

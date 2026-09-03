@@ -158,6 +158,7 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.geo.radius_km": "В радиусе {km} км",
   "search.geo.radius_label": "Радиус, км",
   "search.geo.clear": "Везде",
+  "search.geo.near_me": "Рядом со мной",
   "search.geo.everywhere": "Ищем везде",
   "search.geo.box": "В показанной области",
   "search.geo.chosen_place": "Выбранное место на карте",

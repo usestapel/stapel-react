@@ -23,6 +23,24 @@
  * applied it says the search is looking everywhere, which is the truth and is
  * also the invitation to narrow it.
  *
+ * ## The offer, and why it is a BUTTON on this row
+ *
+ * A visitor whose browser has already granted geolocation is one the host can
+ * place precisely — and for a long time this pair took that as licence to
+ * place them, through a `defaultGeo` that wrote a 25 km radius into the URL
+ * before anybody had said anything (see {@link SearchStateProviderProps.geoOffer}
+ * for what that cost: whole category leaves reading "nothing found" while
+ * their stock sat 30 km away). The position is still worth having. It is just
+ * not the pair's to apply.
+ *
+ * So the offer lands HERE, on the one row that is on screen at every width
+ * without opening a sheet, beside the sentence it would change ("searching
+ * everywhere" → "within 25 km of you"). It states its own radius, because a
+ * button that says only "near me" is asking a person to accept a number they
+ * cannot see; and the moment it is pressed the radius becomes the ordinary
+ * adjustable one in the panel, and the location becomes an ordinary chip with
+ * an ordinary way off.
+ *
  * ## The right-hand affordance carries a COUNT, and the chip row carries a dot
  *
  * `<FilterChips>`'s leading chip is a 32px circle: a number inside it is a
@@ -139,6 +157,10 @@ const LOCATION: CSSProperties = {
  * noise, and it costs 16px. */
 const PIN: CSSProperties = { flex: "0 0 auto", display: "inline-flex" };
 
+/** The offer. It never shrinks: it is three words and a number, and half of
+ * "Near me" is not an offer. */
+const OFFER: CSSProperties = { flex: "0 0 auto", paddingInline: 0 };
+
 /**
  * The count, IN the flow.
  *
@@ -208,7 +230,7 @@ export function LocationSummaryLine(
   props: LocationSummaryLineProps
 ): ReactElement {
   const t = useT();
-  const { state, activeFilters } = useSearchState();
+  const { state, activeFilters, geoOffer, acceptGeoOffer } = useSearchState();
   const [open, setOpen] = useState(false);
   const geo = state.geo;
 
@@ -219,6 +241,14 @@ export function LocationSummaryLine(
   const radius =
     geo !== undefined && geo.kind === "center" && geo.radiusKm !== undefined
       ? t(SEARCH_I18N_KEYS.geoRadiusKm, { km: geo.radiusKm })
+      : undefined;
+
+  // The offer's own radius, said out loud on the button. `geoOffer` is
+  // already `undefined` whenever a location is applied (the provider closes
+  // the question), so this row never shows an offer beside a place.
+  const offerRadius =
+    geoOffer !== undefined && geoOffer.kind === "center" && geoOffer.radiusKm !== undefined
+      ? t(SEARCH_I18N_KEYS.geoRadiusKm, { km: geoOffer.radiusKm })
       : undefined;
 
   const where: ReactNode =
@@ -271,6 +301,29 @@ export function LocationSummaryLine(
             )}
           </span>
         </Button>
+
+        {/* The offer, and nothing is applied until it is pressed. Drawn only
+            when the host has a position to offer AND the search carries no
+            location of its own — the provider enforces the second half, so
+            this is one condition, not two that could disagree. */}
+        {geoOffer !== undefined && (
+          <Button
+            type="link"
+            style={OFFER}
+            data-testid="search-location-offer"
+            data-analytics="none"
+            data-analytics-reason="applying a filter the person pressed is search state, and search state is the URL"
+            onClick={acceptGeoOffer}
+          >
+            {t(SEARCH_I18N_KEYS.geoNearMe)}
+            {offerRadius !== undefined && (
+              <span data-testid="search-location-offer-radius">
+                {" · "}
+                {offerRadius}
+              </span>
+            )}
+          </Button>
+        )}
 
         {/* "Filters", not "All filters": this end of the row shares 390px
             with a place name that can run to fifteen characters, and the word

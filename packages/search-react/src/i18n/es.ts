@@ -127,6 +127,7 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.geo.radius_km": "A menos de {km} km",
   "search.geo.radius_label": "Radio, km",
   "search.geo.clear": "En cualquier lugar",
+  "search.geo.near_me": "Cerca de mí",
   "search.geo.everywhere": "Buscando en todas partes",
   "search.geo.box": "Dentro del área mostrada",
   "search.geo.chosen_place": "Un lugar elegido en el mapa",

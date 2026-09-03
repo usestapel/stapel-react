@@ -8,10 +8,14 @@
  *
  * Four claims, each of which a rewrite could quietly lose:
  *
- *  1. everything a person READS — price, title, place — is inside ONE anchor.
- *     The photo strip is the exception and is a SIBLING of it: a swipeable
- *     strip is a control, a link may not contain one, and a horizontal swipe
- *     that ends inside an `<a>` is a swipe the browser may deliver as a click;
+ *  1. everything a person READS — price, title, place — is inside ONE anchor,
+ *     and the PICTURE opens the same listing. The photo STRIP is still a
+ *     sibling of the reading anchor (a swipeable scroller is a control and a
+ *     link may not contain one), but each slide carries its own link: the
+ *     267x200 photograph was measured as the one place on a card where a
+ *     click did nothing at all. The slide links are `aria-hidden` +
+ *     `tabIndex={-1}`, so the card stays ONE tab stop with ONE accessible
+ *     name — a second way to reach a destination, not a second destination;
  *  2. it is a REAL `<a href>`, so middle-click, ⌘-click, "copy link address"
  *     and a crawler all still work. An `onClick` on a div has none of that,
  *     and is the shape a "make the card clickable" rewrite reaches for first;
@@ -30,6 +34,7 @@ import type { ReactElement } from "react";
 import { render, screen, within } from "@testing-library/react";
 import type { LinkComponent } from "@stapel/core";
 import { ListingCard } from "../src/default/index.js";
+import { CARD_HOVER_CLASS, cardTargetCss } from "../src/default/ListingCard.js";
 import type { ListingCard as ListingCardData } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { CARD } from "./fixtures.js";
@@ -98,15 +103,61 @@ describe("the whole card is one target", () => {
     expect(screen.queryByRole("link", { name: "Open" })).toBeNull();
   });
 
-  it("stays a real anchor: one href, no div pretending to be a link", () => {
+  it("stays a real anchor: every href is the listing's, and no div pretends to be a link", () => {
     const { container } = render(
       providers(<ListingCard listing={CARD} href="/l/7" />)
     );
-    const anchors = container.querySelectorAll('a[href="/l/7"]');
-    expect(anchors).toHaveLength(1);
-    expect(anchors[0]?.getAttribute("href")).toBe("/l/7");
+    const anchors = [...container.querySelectorAll("a[href]")];
+    expect(anchors.length).toBeGreaterThan(0);
+    // Every anchor on the card leads to the SAME listing. A card that grew a
+    // second destination would be a card a person cannot predict.
+    for (const a of anchors) expect(a.getAttribute("href")).toBe("/l/7");
     // Nothing else on the card claims to be a link.
     expect(container.querySelectorAll('[role="link"]')).toHaveLength(0);
+  });
+
+  it("THE PICTURE IS PART OF THE TARGET — and costs no extra tab stop or name", () => {
+    // Measured on a live 1440px grid before this existed: the 267x200 photo
+    // sat outside the anchor, `cursor: auto`, and clicking it left the visitor
+    // exactly where they were. It is the largest and most obvious target on
+    // the card.
+    const { container } = render(
+      providers(<ListingCard listing={CARD} href="/l/7" />)
+    );
+    // The slide, not the `<img>`: with no resolver wired this harness draws
+    // the designed "no photo" box instead of a picture, and the claim is
+    // about the SLIDE being part of the target either way.
+    const photoAnchor = container.querySelector(
+      '[data-testid="listings-photo-link"]'
+    );
+    expect(photoAnchor).not.toBeNull();
+    expect(photoAnchor?.getAttribute("href")).toBe("/l/7");
+    // Whatever the slide draws — a resolved picture, or the designed "no
+    // photo" box this harness gets with no resolver wired — is INSIDE it.
+    expect(photoAnchor?.firstElementChild).not.toBeNull();
+
+    // …and it is INVISIBLE to the keyboard and to a screen reader, because
+    // the reading anchor beside it already announces this listing once.
+    expect(photoAnchor?.getAttribute("tabindex")).toBe("-1");
+    expect(photoAnchor?.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("the card LOOKS like a target: a hover rule, and one that respects reduced motion", () => {
+    // `box-shadow: none`, `transform: none`, border unchanged, `cursor: auto`
+    // — the measured resting AND hovered state of a card that opens a listing.
+    const css = cardTargetCss();
+    expect(css).toContain(`.${CARD_HOVER_CLASS}:hover`);
+    expect(css).toContain("box-shadow:var(--listing-card-hover-shadow)");
+    expect(css).toContain("border-color:var(--listing-card-focus)");
+    expect(css).toContain("@media (prefers-reduced-motion:reduce)");
+
+    const { container } = render(
+      providers(<ListingCard listing={CARD} href="/l/7" />)
+    );
+    expect(
+      container.querySelector(`.${CARD_HOVER_CLASS}`)
+    ).not.toBeNull();
   });
 
   it("hands the anchor to the host's router component when there is one", () => {

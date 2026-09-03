@@ -2,9 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useRef,
 } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type {
@@ -57,8 +55,22 @@ export interface SearchStateBag {
   readonly state: SearchQueryState;
   /** What the URL carried that could not be read (see `SearchStateIssue`). */
   readonly issues: readonly SearchStateIssue[];
-  /** Facet values + ranges + geo the person has applied. */
+  /** Facet values + ranges + geo the person has applied.
+   *
+   * Everything counted here was chosen BY the person: this pair applies no
+   * filter of its own, so the number beside "clear all" can never be one the
+   * reader has to go hunting for.
+   */
   readonly activeFilters: number;
+  /**
+   * A location the host can narrow to, which nobody has accepted yet —
+   * `undefined` when the host offers none, or when the search already carries
+   * a location of its own (an offer would then be a second answer to a
+   * question already answered).
+   *
+   * Draw it as an invitation ("near me"), never as state.
+   */
+  readonly geoOffer: SearchGeo | undefined;
 
   setText(q: string): void;
   setSort(sort: string | null): void;
@@ -72,6 +84,9 @@ export interface SearchStateBag {
   clearAll(): void;
   /** Move to a keyset page. The ONLY mutator that keeps a cursor. */
   goToAnchor(anchor: string | null, direction: "next" | "prev"): void;
+  /** Accept {@link geoOffer}. A no-op when there is nothing on offer, so a
+   * control can be pressed without first re-checking what this bag says. */
+  acceptGeoOffer(): void;
   /** Escape hatch for a host control this pair does not ship. Goes through
    * `patchSearchState`, so it drops the cursor like every other change. */
   patch(patch: SearchStatePatch): void;
@@ -82,40 +97,35 @@ const StateContext = createContext<SearchStateBag | null>(null);
 export interface SearchStateProviderProps extends ParseSearchStateOptions {
   readonly adapter: SearchParamsAdapter;
   /**
-   * Where to centre the results when the URL says nothing about location —
-   * the visitor's own position, as the HOST resolved it (a granted browser
-   * geolocation prompt, or the server's IP guess when there was none).
+   * A location this search COULD be narrowed to — offered, never applied.
    *
-   * Opt-in, and it is deliberately not one of the `default*` parse options
-   * beside it. Those are read-time fallbacks: `defaultCategory` fills a gap in
-   * the parsed state and never reaches the query string. A location cannot
-   * work that way. It has to be WRITTEN, once, because the URL is the state:
-   * a centre that lived only in the parse would vanish from a link the visitor
-   * shares, and — worse — would be re-applied on the very next render after
-   * they cleared it, which is a filter that will not come off.
+   * The host resolves it (a granted browser prompt, the server's IP guess);
+   * this provider does nothing with it except hand it back on the bag as
+   * {@link SearchStateBag.geoOffer}, so a control can draw "near me" and the
+   * PERSON decides. Nothing is written to the URL until they press it.
    *
-   * So the rules, all four of which are about not overruling a person:
+   * ## Why this is an offer and not a default (defect: a silent radius)
    *
-   *  - **Only into an empty URL.** A link that carries `lat`/`lon` or `bbox`
-   *    already means a place, and it must mean the same place for everybody
-   *    who opens it. A default that overwrote it would make one address bar
-   *    two different searches.
-   *  - **Once.** Tracked as "has anyone spoken about location yet", in a ref —
-   *    not by comparing the default against the current value, which cannot
-   *    tell "the visitor cleared it" from "it has not been applied".
-   *  - **Never after a clear.** `setGeo` marks the question answered, so a
-   *    person who widens the search back to everywhere stays there.
-   *  - **Late is fine.** A browser prompt and an IP round trip both resolve
-   *    after the first paint, so `undefined` now and a value three renders
-   *    later still applies — provided the URL is still empty of geo at that
-   *    moment.
+   * The previous shape of this prop (`defaultGeo`) wrote the visitor's
+   * position into the query string on the first render that could, under four
+   * careful rules about not overruling a person. Every rule held, and the
+   * result was still a filter nobody asked for: a browser permission granted
+   * once, for one map, became a permanent 25 km wall around every category
+   * leaf and every result page in the deployment. Measured on a live board:
+   * 48 phones became 17, and three leaves with stock became "nothing found".
+   * The page looks perfectly healthy while doing it, which is what makes it
+   * dangerous — the honest reading of an empty leaf is "this board is empty",
+   * not "your browser told us where you are".
    *
-   * It REPLACES the history entry rather than pushing one: the visitor did not
-   * perform this change, and Back should leave the page, not undo a centring
-   * they never asked for. The adapter's `setParams` takes `{ replace: true }`
-   * for exactly this, and the react-router binding honours it.
+   * There is no set of rules that fixes that, because the defect is not in
+   * the rules: applying a spatial filter is a decision about what the person
+   * wants to see, and only they hold it. So the prop carries the same value
+   * and the provider no longer commits it. Two more defects fall out with it:
+   * the URL is never rewritten behind the visitor (a hand-typed `radius_km`
+   * survives), and the results are fetched ONCE instead of being fetched and
+   * immediately superseded by a second, narrower query.
    */
-  readonly defaultGeo?: SearchGeo | undefined;
+  readonly geoOffer?: SearchGeo | undefined;
   readonly children: ReactNode;
 }
 
@@ -128,7 +138,7 @@ export interface SearchStateProviderProps extends ParseSearchStateOptions {
 export function SearchStateProvider(
   props: SearchStateProviderProps
 ): ReactElement {
-  const { adapter, children, defaultGeo, ...parseOptions } = props;
+  const { adapter, children, geoOffer, ...parseOptions } = props;
   const { params, setParams } = adapter;
 
   // The parse options are spread into a stable dependency: a host that builds
@@ -165,16 +175,6 @@ export function SearchStateProvider(
     [setParams, search]
   );
 
-  /**
-   * Has anything at all said where to search yet?
-   *
-   * `true` once the URL was seen carrying a location, once `defaultGeo` has
-   * been applied, or once anybody called `setGeo` — including with `null`.
-   * That last one is the whole reason this is a ref and not a comparison: a
-   * cleared location and an unapplied default look identical in the state, and
-   * only the record of who spoke tells them apart.
-   */
-  const geoSettled = useRef(false);
 
   const bag = useMemo<SearchStateBag>(() => {
     const state = parsed.state;
@@ -188,6 +188,12 @@ export function SearchStateProvider(
       state,
       issues: parsed.issues,
       activeFilters: activeFilterCount(state),
+      // An offer stands only while the question is open. Once the search
+      // carries a place — from a link, or because somebody pressed the offer
+      // — there is nothing left to offer, and a control that kept drawing
+      // "near me" beside an applied location would be inviting a person to
+      // re-answer a question they can already see the answer to.
+      geoOffer: state.geo === undefined ? geoOffer : undefined,
 
       // Typing replaces rather than pushes: one history entry per letter
       // would make Back useless, which is the control the spec's acceptance
@@ -200,11 +206,13 @@ export function SearchStateProvider(
       setFilter: (slug, values) => apply(setFilterValues(state, slug, values)),
       setRange: (slug, range) => apply(setRangeValue(state, slug, range)),
       setGeo: (geo) => {
-        // The person has now answered the location question themselves —
-        // including by answering "anywhere". `defaultGeo` does not get to ask
-        // it again.
-        geoSettled.current = true;
         apply(patchSearchState(state, { geo }));
+      },
+      acceptGeoOffer: () => {
+        if (geoOffer === undefined || state.geo !== undefined) return;
+        // A PUSH, like any other filter the person applies: Back takes the
+        // narrowing off again, which is the same promise every chip makes.
+        apply(patchSearchState(state, { geo: geoOffer }));
       },
       // A page size is a preference, not a step through the results.
       setLimit: (limit) => apply(patchSearchState(state, { limit }), { replace: true }),
@@ -213,25 +221,8 @@ export function SearchStateProvider(
         apply(patchSearchState(state, { anchor, direction })),
       patch: (patch) => apply(patchSearchState(state, patch)),
     };
-  }, [parsed, commit]);
+  }, [parsed, commit, geoOffer]);
 
-  // An effect, not a render-time write: this puts a value in the URL, and a
-  // router asked to navigate during a render is a warning at best and a loop
-  // at worst. It runs after every commit, which is what makes a `defaultGeo`
-  // that arrives on the fourth render — the browser prompt finally answered —
-  // land as reliably as one present on the first.
-  useEffect(() => {
-    if (geoSettled.current) return;
-    if (parsed.state.geo !== undefined) {
-      // The link brought its own place. That settles the question for this
-      // visit even if the host is still resolving one of its own.
-      geoSettled.current = true;
-      return;
-    }
-    if (defaultGeo === undefined) return;
-    geoSettled.current = true;
-    commit(patchSearchState(parsed.state, { geo: defaultGeo }), { replace: true });
-  }, [defaultGeo, parsed.state, commit]);
 
   return <StateContext.Provider value={bag}>{children}</StateContext.Provider>;
 }

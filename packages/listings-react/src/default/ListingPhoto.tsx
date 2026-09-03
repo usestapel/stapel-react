@@ -27,9 +27,21 @@ import { Typography, theme as antdTheme } from "antd";
 import { Image } from "@stapel/image";
 import { SkinCarousel } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
+import type { LinkComponent } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import { useListingsRuntime } from "../model/context.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+
+
+/**
+ * The class a linked slide carries.
+ *
+ * `display:block` is the load-bearing half: an inline anchor around a block
+ * image leaves a baseline gap under the picture, which on a grid of tiles is a
+ * visible row of mismatched card heights. The rule itself lives in
+ * `cardTargetCss()`, beside the card's other one-rule-per-defect entries.
+ */
+export const PHOTO_LINK_CLASS = "stapel-listing-photo-link";
 
 /** The default shape of a listing photo box everywhere in this skin. Declared
  * once so a card, a detail hero and a dashboard thumbnail cannot drift into
@@ -151,6 +163,28 @@ export function ListingPhoto(props: ListingPhotoProps): ReactElement {
  * SERP was measured correct on while the desktop card (a still `<img>` inside
  * the anchor, one photo, no dots) was not.
  *
+ * ── …and why each SLIDE may still be one, when a card asks (`href`) ────────
+ *
+ * The rule above is about the STRIP, and it was read as a rule about the
+ * picture. It is not, and the difference was measured: on a 1440px grid the
+ * photo is 267x200 — the largest, most obvious target on the card — and
+ * clicking it did nothing at all. `cursor: auto`, no hover, and the visitor
+ * stayed on the page they were already on. A person who clicks a picture of a
+ * phone is asking to see the phone; there is no reading of that click in which
+ * the right answer is silence.
+ *
+ * So a card may hand this strip its own `href`, and each slide becomes a link
+ * around its picture. What that does NOT do is make the strip a link: the
+ * scroller, its arrows and its dots stay controls, outside every anchor,
+ * because they are what the header's rule is actually protecting. And the
+ * slide links are `tabIndex={-1}` + `aria-hidden`, so a card is still ONE tab
+ * stop and one accessible name — the reading anchor's — rather than one per
+ * photograph.
+ *
+ * A surface that does not pass `href` is byte-identical to before. The phone
+ * SERP passes none: a horizontal swipe is a real gesture there, and it is the
+ * gesture the header's rule was written for.
+ *
  * A listing with no photos still gets one slide, so a row's height does not
  * depend on whether a seller uploaded anything, and a ONE-photo strip gets
  * neither peek nor dots: the sliver of a next slide is an affordance for
@@ -164,10 +198,59 @@ export function ListingPhotoStrip(props: {
   /** The surface's own test id, so a screen holding two kinds of card does
    * not hand a test two elements under one name. */
   readonly testId: string;
+  /**
+   * Where a click on the PICTURE goes — the card's own `href`, when the card
+   * wants its photograph to be part of its target. Omitted, every slide is
+   * inert exactly as it has always been.
+   */
+  readonly href?: string;
+  /** The host's `<Link>`, so the click stays inside the SPA. */
+  readonly linkComponent?: LinkComponent;
 }): ReactElement {
   const t = useT();
   const { images, title } = props;
   const many = images.length > 1;
+
+  /**
+   * One slide, linked or not.
+   *
+   * `aria-hidden` + `tabIndex={-1}`: this is a SECOND way to reach a
+   * destination the card already names, not a second destination. Without it a
+   * grid of twenty-four cards grows twenty-four extra tab stops, each
+   * announcing the same listing the card announced a moment ago.
+   */
+  const slide = (photo: ReactElement, key: string): ReactElement => {
+    if (props.href === undefined) return photo;
+    const Link = props.linkComponent;
+    return Link !== undefined ? (
+      <Link
+        key={key}
+        href={props.href}
+        className={PHOTO_LINK_CLASS}
+        aria-hidden="true"
+        tabIndex={-1}
+        data-testid="listings-photo-link"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
+      >
+        {photo}
+      </Link>
+    ) : (
+      <a
+        key={key}
+        href={props.href}
+        className={PHOTO_LINK_CLASS}
+        aria-hidden="true"
+        tabIndex={-1}
+        data-testid="listings-photo-link"
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
+      >
+        {photo}
+      </a>
+    );
+  };
+
   return (
     <SkinCarousel
       label={t(LISTINGS_I18N_KEYS.cardPhotos)}
@@ -176,24 +259,25 @@ export function ListingPhotoStrip(props: {
       dots={many}
       data-testid={props.testId}
     >
-      {images.length === 0 ? (
-        <ListingPhoto imageRef={undefined} alt={title} />
-      ) : (
-        images.map((reference, index) => (
-          <ListingPhoto
-            key={reference}
-            imageRef={reference}
-            alt={
-              many
-                ? t(LISTINGS_I18N_KEYS.detailPhotoAlt, {
-                    index: index + 1,
-                    total: images.length,
-                  })
-                : title
-            }
-          />
-        ))
-      )}
+      {images.length === 0
+        ? slide(<ListingPhoto imageRef={undefined} alt={title} />, "empty")
+        : images.map((reference, index) =>
+            slide(
+              <ListingPhoto
+                key={reference}
+                imageRef={reference}
+                alt={
+                  many
+                    ? t(LISTINGS_I18N_KEYS.detailPhotoAlt, {
+                        index: index + 1,
+                        total: images.length,
+                      })
+                    : title
+                }
+              />,
+              reference
+            )
+          )}
     </SkinCarousel>
   );
 }
