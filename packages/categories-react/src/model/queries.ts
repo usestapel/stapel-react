@@ -2,7 +2,12 @@ import { useCallback, useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
-import type { Category, CategoryFeature, MaxRevision } from "../api/types.js";
+import type {
+  Category,
+  CategoryFeature,
+  CategoryTreeNode,
+  MaxRevision,
+} from "../api/types.js";
 import { browsableCategories } from "../catalog/browse.js";
 import type { CategoryVisibilityOptions } from "../catalog/browse.js";
 import { buildCategoryTree } from "../catalog/tree.js";
@@ -409,6 +414,51 @@ export function useCategoryFeatures(
     queryKey: categoriesQueryKeys.features(id ?? -1),
     queryFn: ({ signal }) => api.features(id as number, { signal }),
     enabled: (options?.enabled ?? true) && typeof id === "number",
+    staleTime: options?.staleTime ?? DEFAULT_CATALOG_STALE_TIME,
+    retry: false,
+  });
+}
+
+/** The levels a menu asks for when nobody says otherwise: roots, their
+ * children, and one more — the three the mega-menu draws. */
+export const DEFAULT_TREE_DEPTH = 3;
+
+/** {@link useCategoryTree}'s options. */
+export interface UseCategoryTreeOptions {
+  readonly enabled?: boolean;
+  readonly staleTime?: number;
+}
+
+/**
+ * The first `depth` levels of the catalogue, NESTED — one request, one cached
+ * answer, and the read the desktop mega-menu is built on.
+ *
+ * The alternative it replaces is the reason it exists: assembled from `roots`
+ * plus a `children` call per node, a three-level menu is one request per
+ * branch on the coldest page of a storefront; assembled from the synced
+ * catalogue it is the whole table (1.4 MB, twenty seconds measured) before the
+ * first name can be drawn. This is four fields per node and the presentation
+ * of the level below.
+ *
+ * NOT browse-projected, and that is not an omission: the endpoint serves
+ * ACTIVE rows only and no tombstones at all, so the client predicate would
+ * have nothing left to remove. It is also not a catalogue source — the nodes
+ * carry no revision, so nothing here can seed or advance the delta snapshot.
+ *
+ * The server caches on the tree's own revision fingerprint and sends
+ * `Cache-Control: public, max-age`; `staleTime` mirrors that, so the query
+ * cache and the browser's HTTP cache do not disagree about how fresh a menu
+ * is.
+ */
+export function useCategoryTree(
+  depth: number = DEFAULT_TREE_DEPTH,
+  options?: UseCategoryTreeOptions
+): UseQueryResult<readonly CategoryTreeNode[], StapelApiError> {
+  const api = useCategoriesApi();
+  return useQuery({
+    queryKey: categoriesQueryKeys.tree(depth),
+    queryFn: ({ signal }) => api.tree({ depth }, { signal }),
+    enabled: options?.enabled ?? true,
     staleTime: options?.staleTime ?? DEFAULT_CATALOG_STALE_TIME,
     retry: false,
   });

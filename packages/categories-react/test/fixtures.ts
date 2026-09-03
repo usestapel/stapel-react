@@ -8,7 +8,11 @@
  * filtered for DIFFERENT reasons.
  */
 import type { FeatureDef } from "@stapel/attributes-react";
-import type { Category, CategoryListPage } from "../src/index.js";
+import type {
+  Category,
+  CategoryListPage,
+  CategoryTreeNode,
+} from "../src/index.js";
 
 export function categoryRow(
   id: number,
@@ -232,4 +236,95 @@ export const FEATURES: readonly FeatureDef[] = [
   FEATURE_WARRANTY,
   FEATURE_CLOSED_SET,
   FEATURE_HOLO,
+];
+
+// ── the NESTED tree (`GET /tree/?depth=N`) ─────────────────────────────────
+//
+// A different shape from the flat rows above, and deliberately so: four fields
+// per node, children inline, no revision and no tombstone. The fixture carries
+// the two things a menu gets wrong — a second-level column with more children
+// than one column may show, and a `chips` parent whose children are a
+// partition rather than a level.
+
+export function treeNode(
+  id: number,
+  slug: string,
+  name: string,
+  path: string,
+  extra: Partial<CategoryTreeNode> = {}
+): CategoryTreeNode {
+  return {
+    id,
+    slug,
+    name,
+    path,
+    catalog_icon: "",
+    children_as: null,
+    children: [],
+    ...extra,
+  };
+}
+
+/** A cars-shaped node: a partition, not a level (contract §1). */
+export const TREE_CARS: CategoryTreeNode = treeNode(
+  151,
+  "cars",
+  "category.cars",
+  "141/151",
+  {
+    children_as: "chips",
+    children: [
+      treeNode(152, "cars-new", "category.cars_new", "141/151/152"),
+      treeNode(153, "cars-used", "category.cars_used", "141/151/153"),
+    ],
+  }
+);
+
+/** Seven third-level links under one header — two past the five a column
+ * shows, which is what makes the tail link appear. */
+export const TREE_PARTS: CategoryTreeNode = treeNode(
+  161,
+  "parts",
+  "category.parts",
+  "141/161",
+  {
+    children_as: "tiles",
+    children: Array.from({ length: 7 }, (_, i) =>
+      treeNode(1610 + i, `part-${String(i)}`, `category.part_${String(i)}`, `141/161/${String(1610 + i)}`)
+    ),
+  }
+);
+
+export const TREE_TRANSPORT: CategoryTreeNode = treeNode(
+  141,
+  "transport",
+  "category.transport",
+  "141",
+  {
+    catalog_icon: "https://cdn.test/catalog/transport.png",
+    children_as: "tiles",
+    children: [TREE_CARS, TREE_PARTS],
+  }
+);
+
+export const TREE_ELECTRONICS: CategoryTreeNode = treeNode(
+  1,
+  "electronics",
+  "category.electronics",
+  "1",
+  {
+    children_as: "tiles",
+    children: [
+      treeNode(2, "phones", "category.phones", "1/2", {
+        children_as: "tiles",
+        children: [treeNode(4, "used-phones", "category.used_phones", "1/2/4")],
+      }),
+      treeNode(3, "laptops", "category.laptops", "1/3"),
+    ],
+  }
+);
+
+export const TREE: readonly CategoryTreeNode[] = [
+  TREE_TRANSPORT,
+  TREE_ELECTRONICS,
 ];

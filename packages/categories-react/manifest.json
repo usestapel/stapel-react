@@ -4,7 +4,7 @@
   "version": "0.14.0",
   "backend": {
     "module": "stapel-categories",
-    "contract": ">=0.14 <0.15"
+    "contract": ">=0.19 <0.20"
   },
   "layers": [
     "api",
@@ -240,6 +240,13 @@
       "request": "FeatureCreateUpdate",
       "response": "Feature"
     },
+    "categories_api_v1_tree_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/tree/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
     "collect_translation_keys": {
       "method": "GET",
       "path": "/categories/api/v1/categories/translation-keys/",
@@ -298,6 +305,15 @@
         "categories",
         "features",
         "{id}"
+      ]
+    },
+    "useCategoryTree": {
+      "kind": "query",
+      "operation": "tree",
+      "queryKey": [
+        "categories",
+        "tree",
+        "{depth}"
       ]
     }
   },
@@ -811,6 +827,28 @@
       "source": "demo/CategoryFeatureList.demo.tsx"
     },
     {
+      "id": "categories.mega-menu",
+      "title": "Category mega menu",
+      "description": "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below 1024px.",
+      "component": "CategoryMegaMenu",
+      "covers": [
+        "useCategoryTree"
+      ],
+      "tokens": [
+        "surface-overlay",
+        "brand-subtle",
+        "border-subtle",
+        "text-muted"
+      ],
+      "variants": [
+        "open",
+        "tight cap",
+        "empty catalogue",
+        "outage"
+      ],
+      "source": "demo/CategoryMegaMenu.demo.tsx"
+    },
+    {
       "id": "categories.picker",
       "title": "Category picker",
       "description": "Drill down or search; either way the options come out of the tree already in memory, so typing issues no request per keystroke and the control works offline once the catalogue has synced. A non-leaf selection is refused WITH ITS REASON: a listing filed under 'Electronics' instead of 'Electronics › Phones' inherits a different feature set, so the form then asks the wrong questions.",
@@ -954,6 +992,8 @@
     "categories.features.type.select",
     "categories.features.type.string",
     "categories.features.untyped",
+    "categories.mega_menu.label",
+    "categories.mega_menu.more",
     "categories.picker.blocked.not_a_leaf",
     "categories.picker.blocked.nothing_selected",
     "categories.picker.choose",
@@ -1058,12 +1098,14 @@
       "CategoryFeatures",
       "CategoryPicker",
       "CategoryTree",
+      "DEFAULT_TREE_DEPTH",
       "EMPTY_SNAPSHOT",
       "MAX_SYNC_PAGES",
       "MAX_TILE_DEPTH",
       "UNPERSISTED_WARNING",
       "applyCategoryPage",
       "browsableCategories",
+      "browseStage",
       "buildCategoryCascade",
       "buildCategoryTree",
       "cascadeChainIds",
@@ -1079,6 +1121,7 @@
       "categoryAncestorIds",
       "categoryBreadcrumbs",
       "categoryChildIds",
+      "categoryIconSrc",
       "categoryLabel",
       "categoryListParams",
       "categoryOffersTileGrid",
@@ -1119,9 +1162,12 @@
       "useCategoryFeatures",
       "useCategoryLevels",
       "useCategoryRows",
-      "useCategorySearch"
+      "useCategorySearch",
+      "useCategoryTree"
     ],
     "types": [
+      "BrowseStage",
+      "BrowseStageInput",
       "BuildCategoryTreeOptions",
       "CarouselEntry",
       "CatalogKeyOptions",
@@ -1146,6 +1192,7 @@
       "CategoryCascadeSource",
       "CategoryCascadeStep",
       "CategoryCatalog",
+      "CategoryChildrenAs",
       "CategoryCrumb",
       "CategoryFanOut",
       "CategoryFeature",
@@ -1165,10 +1212,13 @@
       "CategoryPickerBag",
       "CategoryPickerBlockedReason",
       "CategoryPickerProps",
+      "CategoryPresentation",
       "CategoryRevisions",
       "CategorySearchHit",
       "CategorySnapshot",
       "CategoryTreeBag",
+      "CategoryTreeNode",
+      "CategoryTreeParams",
       "CategoryTreeProps",
       "CategoryVisibilityOptions",
       "CreateCatalogStoreOptions",
@@ -1183,7 +1233,8 @@
       "UseCategoryCarouselOptions",
       "UseCategoryCascadeOptions",
       "UseCategoryCatalogOptions",
-      "UseCategorySearchOptions"
+      "UseCategorySearchOptions",
+      "UseCategoryTreeOptions"
     ]
   }
 }

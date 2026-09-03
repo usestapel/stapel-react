@@ -42,7 +42,7 @@ describe("the API surface is the PUBLIC half of the contract", () => {
     createStapelClient({ baseUrl: BASE, fetch: mockServer({}).fetch })
   );
 
-  it("exposes exactly the six anonymous reads", () => {
+  it("exposes exactly the seven anonymous reads", () => {
     const methods = Object.keys(api).filter((k) => k !== "client").sort();
     expect(methods).toEqual([
       "carousel",
@@ -53,6 +53,8 @@ describe("the API surface is the PUBLIC half of the contract", () => {
       // server-driven walk possible: one row, its ancestry included.
       "retrieve",
       "revision",
+      // Three levels, nested, in one cached answer — the mega-menu's read.
+      "tree",
     ]);
   });
 
@@ -84,6 +86,7 @@ describe("the API surface is the PUBLIC half of the contract", () => {
       "/features/": { body: FEATURES },
       "/categories/carousel/": { body: [] },
       "/categories/revision/": { body: { revision: 7 } },
+      "/tree/": { body: [] },
       "/categories/": { body: FULL_PAGE },
     });
     const wired = createCategoriesApi(
@@ -94,12 +97,15 @@ describe("the API surface is the PUBLIC half of the contract", () => {
     await wired.carousel();
     await wired.features(1);
     await wired.revision();
+    await wired.tree({ depth: 3 });
     expect(server.calls.map((c) => c.url.replace(BASE, ""))).toEqual([
       "categories/",
       "categories/1/children/",
       "categories/carousel/",
       "categories/1/features/",
       "categories/revision/",
+      // Beside the router, not on the category collection — contract §4.
+      "tree/?depth=3",
     ]);
   });
 });

@@ -29,7 +29,12 @@ import {
   memoryCatalogStore,
   registerCategoriesI18n,
 } from "../src/index.js";
-import type { CatalogStore, Category, CategoryFeature } from "../src/index.js";
+import type {
+  CatalogStore,
+  Category,
+  CategoryFeature,
+  CategoryTreeNode,
+} from "../src/index.js";
 
 /** The base every mock handler mounts on (mirrors `/categories/api/v1/`). */
 export const DEMO_BASE = "https://categories.demo.stapel.dev/categories/api/v1/";
@@ -87,6 +92,18 @@ const demoBundleEn: Record<string, string> = {
   "demo.category.home_and_garden": "Home and garden",
   "demo.category.hobby": "Hobbies and leisure",
   "demo.category.animals": "Animals",
+  "demo.category.cars": "Cars",
+  "demo.category.cars_new": "New",
+  "demo.category.cars_used": "Used",
+  "demo.category.phones_new": "New",
+  "demo.category.phones_used": "Used",
+  "demo.category.laptops_gaming": "Gaming laptops",
+  "demo.category.laptops_office": "Office laptops",
+  "demo.category.laptops_apple": "Apple laptops",
+  "demo.category.laptops_parts": "Laptop parts",
+  "demo.category.laptops_bags": "Bags and sleeves",
+  "demo.category.laptops_docks": "Docks",
+  "demo.category.laptops_screens": "Screens",
   "demo.quick_search.heading": "Find a car",
   "demo.quick_search.make": "Make and model",
   "demo.quick_search.price": "Price",
@@ -126,6 +143,9 @@ export interface DemoSeed {
   readonly features?: Readonly<Record<number, readonly CategoryFeature[]>>;
   /** The sync walk hit its page budget — the tree on screen is PARTIAL. */
   readonly truncated?: boolean;
+  /** The nested menu tree (`GET /tree/?depth=N`), keyed by the depth asked
+   * for — a menu seeded at three levels must not answer a two-level read. */
+  readonly tree?: { readonly depth: number; readonly nodes: readonly CategoryTreeNode[] };
 }
 
 function seedQueryClient(client: QueryClient, seed: DemoSeed): void {
@@ -153,6 +173,11 @@ function seedQueryClient(client: QueryClient, seed: DemoSeed): void {
           )
       );
     }
+  }
+  if (seed.tree !== undefined) {
+    client.setQueryData(categoriesQueryKeys.tree(seed.tree.depth), [
+      ...seed.tree.nodes,
+    ]);
   }
   if (seed.carousel !== undefined) {
     client.setQueryData(categoriesQueryKeys.carousel, [...seed.carousel]);

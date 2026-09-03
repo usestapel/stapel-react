@@ -55,14 +55,14 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + tree assembly + delta sync + hooks): no antd",
+      "name": "index — the headless pair (client + tree assembly + delta sync + hooks): no antd. 9 -> 9.5 KB for the browse-stage wave: the nested tree read (useCategoryTree + its key), browseStage, and categoryIconSrc. Three small pure additions the storefront needs on every catalogue page, 31 B over the old line - raised deliberately, not silently.",
       "path": "dist/index.js",
-      "limit": "9 KB"
+      "limit": "9.5 KB"
     },
     {
-      "name": "default — the antd skin (catalog, category page, carousel, picker, breadcrumbs) must stay out of the main bundle. 13.25 -> 13.5 KB when the compact-tile anatomy landed (density prop, centred icon-over-label variant, its own measure hook): the skin crossed the old line by 3 bytes, and a budget that fails on 3 B of a shipped feature is a gate proving nothing - raised deliberately, not silently.",
+      "name": "default — the antd skin (catalog, category page, carousel, picker, breadcrumbs) must stay out of the main bundle. 13.25 -> 13.5 KB when the compact-tile anatomy landed (density prop, centred icon-over-label variant, its own measure hook): the skin crossed the old line by 3 bytes, and a budget that fails on 3 B of a shipped feature is a gate proving nothing - raised deliberately, not silently. 13.5 -> 15.25 KB when the desktop mega-menu landed: a root rail with a roving-tabindex menu model, a pane of second-level columns with a capped third level, the outside-click and Escape wiring and the minWidth guard - one panel, 1.44 KB, and no part of it is carried by a host that imports only the headless entry.",
       "path": "dist/default/index.js",
-      "limit": "13.5 KB"
+      "limit": "15.25 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",

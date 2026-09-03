@@ -54,12 +54,16 @@ export { categoryListParams, createCategoriesApi } from "./api/categoriesApi.js"
 export type { CategoriesApi } from "./api/categoriesApi.js";
 export type {
   Category,
+  CategoryChildrenAs,
   CategoryFeature,
   CategoryFeatureConfig,
   CategoryFeatureType,
   CategoryListParams,
   CategoryPage as CategoryListPage,
+  CategoryPresentation,
   CategoryRevisions,
+  CategoryTreeNode,
+  CategoryTreeParams,
   FeatureConfig,
   MaxRevision,
   Schemas,
@@ -84,9 +88,12 @@ export {
 export type { CategoryVisibilityOptions } from "./catalog/browse.js";
 export {
   MAX_TILE_DEPTH,
+  categoryIconSrc,
   categoryOffersTileGrid,
   nodeOffersTileGrid,
 } from "./catalog/tiles.js";
+export { browseStage } from "./catalog/stage.js";
+export type { BrowseStage, BrowseStageInput } from "./catalog/stage.js";
 export {
   buildCategoryCascade,
   cascadeChainIds,
@@ -163,6 +170,7 @@ export type { SyncCatalogOptions, SyncCatalogResult } from "./model/catalogSync.
 export { catalogKeyOptions, categoriesQueryKeys } from "./model/queryKeys.js";
 export type { CatalogKeyOptions } from "./model/queryKeys.js";
 export {
+  DEFAULT_TREE_DEPTH,
   useCategoriesRevision,
   useCategory,
   useCategoryCarousel,
@@ -171,6 +179,7 @@ export {
   useCategoryFeatures,
   useCategoryLevels,
   useCategoryRows,
+  useCategoryTree,
 } from "./model/queries.js";
 export type {
   CategoryBrowseOptions,
@@ -178,6 +187,7 @@ export type {
   CategoryFanOut,
   UseCategoryCarouselOptions,
   UseCategoryCatalogOptions,
+  UseCategoryTreeOptions,
 } from "./model/queries.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────

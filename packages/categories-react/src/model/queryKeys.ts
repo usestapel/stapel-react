@@ -43,6 +43,9 @@ export const categoriesQueryKeys: {
   readonly carousel: readonly ["categories", "carousel"];
   features(id: number): readonly ["categories", "features", number];
   readonly revision: readonly ["categories", "revision"];
+  /** Keyed on DEPTH: two depths are two different answers, and a menu that
+   * asked for three levels must not be served the two a sibling cached. */
+  tree(depth: number): readonly ["categories", "tree", number];
 } = {
   all: [ROOT],
   catalog: (options) => [ROOT, "catalog", options],
@@ -51,4 +54,5 @@ export const categoriesQueryKeys: {
   carousel: [ROOT, "carousel"],
   features: (id) => [ROOT, "features", id],
   revision: [ROOT, "revision"],
+  tree: (depth) => [ROOT, "tree", depth],
 };

@@ -85,3 +85,35 @@ export function nodeOffersTileGrid(
 ): boolean {
   return categoryOffersTileGrid(node?.depth);
 }
+
+/**
+ * An icon reference that a tile may put in an `<img src>` AS IT STANDS, or
+ * `null`.
+ *
+ * The rule this pair has always held is "never a GUESSED url": the library
+ * does not know a deployment's CDN base, so it may not turn
+ * `catalog/electronics` into an address. That rule is about invention, not
+ * about `<img>` — and once the catalogue is seeded, `catalog_icon` holds the
+ * uploaded asset's own URL. Refusing to draw THAT would be refusing to show
+ * art the server already resolved.
+ *
+ * So: absolute (`https://…`), protocol-relative (`//…`) or root-relative
+ * (`/…`) is an address, and nothing else is. `catalog/electronics` stays an
+ * opaque reference for the host's `renderIcon` seam, and a reference the host
+ * cannot resolve still falls back to the glyph rather than to a broken image.
+ *
+ * A `data:` URI is deliberately NOT an address here: nothing in this contract
+ * sends one, and treating it as one would let a catalogue row put arbitrary
+ * inline content in a storefront's menu.
+ */
+export function categoryIconSrc(
+  reference: string | null | undefined
+): string | null {
+  if (reference === null || reference === undefined) return null;
+  const trimmed = reference.trim();
+  if (trimmed === "") return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("//")) return trimmed;
+  if (trimmed.startsWith("/")) return trimmed;
+  return null;
+}

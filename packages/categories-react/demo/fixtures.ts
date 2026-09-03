@@ -10,7 +10,12 @@
  */
 import type { FeatureDef } from "@stapel/attributes-react";
 import { categoryLabel } from "../src/index.js";
-import type { CarouselEntry, Category, CategoryListPage } from "../src/index.js";
+import type {
+  CarouselEntry,
+  Category,
+  CategoryListPage,
+  CategoryTreeNode,
+} from "../src/index.js";
 
 function row(
   id: number,
@@ -192,4 +197,78 @@ export const DEMO_FEATURES: readonly FeatureDef[] = [
     translate: "all",
     config: { type: "holo_signature" },
   },
+];
+
+// ── the nested tree (`GET /tree/?depth=3`) ─────────────────────────────────
+//
+// The mega-menu's whole data source, and a different shape from the rows
+// above: children inline, four fields per node, no sync bookkeeping. The
+// second level is deliberately uneven — one column runs past the five links a
+// column shows, so one photograph carries both a full column and the tail
+// link that stands in for the rest.
+
+function node(
+  id: number,
+  slug: string,
+  name: string,
+  path: string,
+  extra: Partial<CategoryTreeNode> = {}
+): CategoryTreeNode {
+  return { id, slug, name, path, catalog_icon: "", children_as: null, children: [], ...extra };
+}
+
+function leaves(
+  parentId: number,
+  parentPath: string,
+  names: readonly string[]
+): readonly CategoryTreeNode[] {
+  return names.map((name, i) =>
+    node(
+      parentId * 100 + i,
+      `${String(parentId)}-${String(i)}`,
+      name,
+      `${parentPath}/${String(parentId * 100 + i)}`
+    )
+  );
+}
+
+export const DEMO_TREE: readonly CategoryTreeNode[] = [
+  node(1, "electronics", "demo.category.electronics", "1", {
+    children_as: "tiles",
+    children: [
+      node(2, "phones", "demo.category.phones", "1/2", {
+        children_as: "chips",
+        children: leaves(2, "1/2", [
+          "demo.category.phones_new",
+          "demo.category.phones_used",
+        ]),
+      }),
+      node(3, "laptops", "demo.category.laptops", "1/3", {
+        children_as: "tiles",
+        children: leaves(3, "1/3", [
+          "demo.category.laptops_gaming",
+          "demo.category.laptops_office",
+          "demo.category.laptops_apple",
+          "demo.category.laptops_parts",
+          "demo.category.laptops_bags",
+          "demo.category.laptops_docks",
+          "demo.category.laptops_screens",
+        ]),
+      }),
+    ],
+  }),
+  node(5, "vehicles", "demo.category.vehicles", "5", {
+    children_as: "tiles",
+    children: [
+      node(51, "cars", "demo.category.cars", "5/51", {
+        children_as: "chips",
+        children: leaves(51, "5/51", [
+          "demo.category.cars_new",
+          "demo.category.cars_used",
+        ]),
+      }),
+    ],
+  }),
+  node(11, "jobs", "demo.category.jobs", "11", { children_as: "tiles" }),
+  node(13, "realty", "demo.category.realty", "13", { children_as: "tiles" }),
 ];

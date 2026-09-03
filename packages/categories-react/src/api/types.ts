@@ -26,6 +26,39 @@ import type { components } from "./generated/schema.js";
 export type Schemas = components["schemas"];
 
 /**
+ * How a category's children are PRESENTED — the resolved value, never `auto`.
+ *
+ * - `tiles` — the children are real subcategories (they diverge in attribute
+ *   schema, or have children of their own): a tile grid, no feed.
+ * - `chips` — the children are a PARTITION of one template, the same attribute
+ *   set split by a value the child name expresses (new/used, buy/sell/rent):
+ *   the parent renders a feed with a single-select chip row.
+ *
+ * The stored field is `auto | tiles | chips`; `auto` is resolved server-side by
+ * a derivation command and an authored value wins over it, so this pair only
+ * ever sees the two resolved values. A `chips` parent's children keep their
+ * ids, paths and URLs — only the presentation changes.
+ */
+export type CategoryChildrenAs = "tiles" | "chips";
+
+/**
+ * The presentation fields the serializer adds beyond the pinned schema.
+ *
+ * A type ALIAS, not an interface, and that is load-bearing: an interface has
+ * no implicit index signature, so intersecting one into {@link Category} would
+ * stop the row being readable as a `Record<string, unknown>` — which is how
+ * `catalog/browse.ts` reads the undeclared `is_test` flag off the wire.
+ */
+export type CategoryPresentation = {
+  /**
+   * The RESOLVED presentation of this row's children. Absent on a build whose
+   * server does not send it yet, and `null` where the row has no children to
+   * present — {@link browseStage} reads both as "no chip row".
+   */
+  readonly children_as?: CategoryChildrenAs | null;
+}
+
+/**
  * One category row, exactly as the list / children / carousel endpoints send
  * it (`CategorySerializer`).
  *
@@ -44,7 +77,7 @@ export type Schemas = components["schemas"];
  *   is exactly what makes the delta protocol work and exactly what shows a
  *   deleted category in a menu if nobody filters.
  */
-export type Category = Schemas["Category"];
+export type Category = Schemas["Category"] & CategoryPresentation;
 
 /** The `{pagination, revisions, results}` envelope of `RevisionPagination`. */
 export type CategoryPage = Schemas["PaginatedCategoryList"];
@@ -92,6 +125,45 @@ export type CategoryFeatureConfig = Schemas["FeatureConfig"];
  * ten registered types by `test/contract.test.ts`.
  */
 export type CategoryFeatureType = CategoryFeatureConfig["type"];
+
+/**
+ * One node of `GET /categories/api/v1/tree/?depth=N` — the NESTED shape, and
+ * the only endpoint in this contract that sends children inline.
+ *
+ * A narrow row on purpose: the menu this feeds needs a name, a link, a picture
+ * and the presentation of the level below, and nothing else. It is NOT a
+ * {@link Category} — no revision, no ancestry string, no `active`, no
+ * tombstone — because the server already applied the visibility rule and the
+ * client has nothing left to filter here.
+ *
+ * `children` is CUT AT `depth`. A node whose `children` is empty is therefore
+ * "no children within the depth asked for", not "a leaf" — the distinction
+ * {@link CategoryPresentation.children_as} keeps honest, and the reason
+ * `browseStage` prefers a row's own `tn_children_pks` when it has one.
+ */
+export interface CategoryTreeNode {
+  readonly id: number;
+  readonly slug: string;
+  /** A translation KEY unless `translatable` is false — the same rule as
+   * {@link Category.name}, and no serializer resolves it. */
+  readonly name: string;
+  /** Ancestor ids root→self, `/`-joined (`"141/151/166"`) — the exact form
+   * the search query's `category` parameter takes, which is why a menu link
+   * can hand it straight to the feed. */
+  readonly path: string;
+  /** An opaque CDN reference, or `""` where nobody has uploaded art. */
+  readonly catalog_icon?: string;
+  readonly translatable?: boolean;
+  readonly children_as?: CategoryChildrenAs | null;
+  /** Cut at the requested depth; absent and `[]` mean the same thing. */
+  readonly children?: readonly CategoryTreeNode[];
+}
+
+/** Query parameters of `GET /categories/api/v1/tree/`. */
+export interface CategoryTreeParams {
+  /** Levels to return, the roots counting as level 1. Server-capped. */
+  readonly depth?: number;
+}
 
 /** Query parameters of `GET /categories/api/v1/categories/`. */
 export interface CategoryListParams {

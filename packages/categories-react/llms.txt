@@ -1,6 +1,6 @@
 # @stapel/categories-react 0.14.0
 
-Headless React flow pair for stapel-categories (contract >=0.14 <0.15) — business + state, zero visual opinion.
+Headless React flow pair for stapel-categories (contract >=0.19 <0.20) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -53,6 +53,7 @@ Paths are relative to `/categories/api/v1/`.
 - categories_api_v1_features_retrieve: GET /features/{id}/
 - categories_api_v1_features_revision_retrieve: GET /features/revision/
 - categories_api_v1_features_update: PUT /features/{id}/
+- categories_api_v1_tree_list: GET /tree/
 - collect_translation_keys: GET /categories/translation-keys/
 
 ## Query hooks (server state; keys come only from the key factory)
@@ -62,6 +63,7 @@ Paths are relative to `/categories/api/v1/`.
 - useCategoryCatalog (query) → —
 - useCategoryChildren (query) → children
 - useCategoryFeatures (query) → features
+- useCategoryTree (query) → tree
 
 ## Errors (render t(code, params); UX from remediation)
 64 keys (full catalog: manifest.json §errors). By remediation: fix_input 37 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
@@ -122,6 +124,7 @@ const { tracked } = useTracked();
 - categories.catalog → <CatalogPage> [browse|no icons|empty catalogue|outage]  demo/CatalogPage.demo.tsx
 - categories.category → <CategoryPage> [composed|unfilled slot|leaf with its schema|no such category|outage]  demo/CategoryPage.demo.tsx
 - categories.features → <CategoryFeatureList> [schema|no extra details|outage]  demo/CategoryFeatureList.demo.tsx
+- categories.mega-menu → <CategoryMegaMenu> [open|tight cap|empty catalogue|outage]  demo/CategoryMegaMenu.demo.tsx
 - categories.picker → <CategoryPickerField> [on a phone|the closed trigger|inline|too general|chosen|outage]  demo/CategoryPickerField.demo.tsx
 - categories.quick-search → <CategoryQuickSearchPanel> [counted|counting|a floor, not a total|no fields]  demo/CategoryQuickSearchPanel.demo.tsx
 - categories.search-hits → <CategorySearchHits> [ranked|one hit|nothing matched]  demo/CategorySearchHits.demo.tsx

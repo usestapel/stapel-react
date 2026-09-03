@@ -74,6 +74,9 @@ export const categoriesI18nBundleEs: I18nDictionary = {
 
   "categories.tiles.all": "Todo",
 
+  "categories.mega_menu.label": "Todas las categorías",
+  "categories.mega_menu.more": "{count} más",
+
   "categories.search.hits_title": "Categorías que coinciden con «{query}»",
 
   "categories.quick_search.cta": "Ver anuncios",

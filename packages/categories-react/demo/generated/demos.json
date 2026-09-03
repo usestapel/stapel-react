@@ -271,6 +271,51 @@
       }
     },
     {
+      "id": "categories.mega-menu",
+      "title": "Category mega menu",
+      "description": "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below 1024px.",
+      "component": "CategoryMegaMenu",
+      "covers": [
+        "useCategoryTree"
+      ],
+      "tokens": [
+        "surface-overlay",
+        "brand-subtle",
+        "border-subtle",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "open",
+          "description": "The first root disclosed. One column is short, one runs past the cap and ends in the tail link.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "tight cap",
+          "description": "maxLinksPerColumn={2} — the tail link in every column, so the shape is readable in one frame.",
+          "viewport": "desktop",
+          "step": "ready-capped"
+        },
+        {
+          "id": "empty catalogue",
+          "description": "A real configuration, said out loud instead of an empty panel.",
+          "viewport": "desktop",
+          "step": "empty"
+        },
+        {
+          "id": "outage",
+          "description": "The read refuses, with the retry beside the bad news.",
+          "viewport": "desktop",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/CategoryMegaMenu.demo.tsx",
+        "line": 32
+      }
+    },
+    {
       "id": "categories.picker",
       "title": "Category picker",
       "description": "Drill down or search; either way the options come out of the tree already in memory, so typing issues no request per keystroke and the control works offline once the catalogue has synced. A non-leaf selection is refused WITH ITS REASON: a listing filed under 'Electronics' instead of 'Electronics › Phones' inherits a different feature set, so the form then asks the wrong questions.",

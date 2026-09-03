@@ -1,0 +1,3 @@
+{
+  "CategoryMegaMenu": "Has no phone frame to photograph, by construction: below `minWidth` (default 1024) this component renders nothing at all, because a phone's door into the catalogue is the tile grid and a mega-menu there would cover the page it navigates. A phone variant would photograph an empty box and call it coverage. The phone surface for the same job IS photographed — categories.tile-grid, variants `tiles` / `no art`."
+}

@@ -4,6 +4,8 @@ import type {
   CategoryFeature,
   CategoryListParams,
   CategoryPage,
+  CategoryTreeNode,
+  CategoryTreeParams,
   MaxRevision,
 } from "./types.js";
 
@@ -136,6 +138,21 @@ export interface CategoriesApi {
   revision(options?: {
     readonly signal?: AbortSignal;
   }): Promise<MaxRevision>;
+
+  /**
+   * The first `depth` levels of the tree, NESTED, active rows only, ordered —
+   * the one read a mega-menu makes, and the only endpoint that answers a whole
+   * subtree in one round trip.
+   *
+   * It is not a cheaper `list()`: it carries four fields per node and no sync
+   * bookkeeping at all, so it can neither seed nor advance the catalogue
+   * snapshot. A menu wants three levels of names and pictures; the delta sync
+   * wants every row and its revision. Two questions, two reads.
+   */
+  tree(
+    params?: CategoryTreeParams,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<readonly CategoryTreeNode[]>;
 }
 
 /**
@@ -195,6 +212,15 @@ export function createCategoriesApi(client: StapelClient): CategoriesApi {
 
     revision: (options) =>
       client.get("/categories/revision/", {
+        ...(options?.signal !== undefined ? { signal: options.signal } : {}),
+      }),
+
+    // Mounted beside the router, not on the category viewset: the path is
+    // `<baseUrl>tree/`, per the browse-stages contract §4.
+    tree: (params, options) =>
+      client.get("/tree/", {
+        query:
+          params?.depth === undefined ? {} : { depth: params.depth },
         ...(options?.signal !== undefined ? { signal: options.signal } : {}),
       }),
   };

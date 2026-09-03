@@ -154,11 +154,13 @@ The same `bag.features` is what `@stapel/search-react`'s facet panel takes as
 | `createCategoriesRuntime` / `CategoriesProvider` | wiring |
 | `useCategoryCatalog` | the delta-synced tree, one hook, mounted once |
 | `useCategoryChildren` / `useCategoryCarousel` / `useCategoryFeatures` / `useCategoriesRevision` | the four direct reads |
+| `useCategoryTree(depth = 3)` | the nested menu tree — one cached call, `GET /tree/?depth=N` |
+| `browseStage(category)` | which page the category gets: `"tiles"` or `"feed"` |
 | `buildCategoryTree` / `resolveCategorySlug` / `categoryBreadcrumbs` / `parseTreenodePks` | pure tree assembly |
 | `applyCategoryPage` / `firstPageRequest` / `nextPageRequest` / `syncCatalog` | the delta protocol, testable without React |
 | `categoryLabel` / `featureLabel` / `featureCommentLabel` / `renderCategoryLabel` | the translation-key answer |
 | `<CategoryTree>` `<CategoryBreadcrumbs>` `<CategoryCarousel>` `<CategoryPicker>` `<CategoryFeatures>` | headless bags |
-| `/default`: `CatalogPage` `CategoryPage` `CategoryTreePane` `CategoryBreadcrumbsBar` `CategoryCarouselStrip` `CategoryPickerField` `CategoryFeatureList` | the antd skin |
+| `/default`: `CatalogPage` `CategoryPage` `CategoryTreePane` `CategoryBreadcrumbsBar` `CategoryCarouselStrip` `CategoryTileGrid` `CategoryMegaMenu` `CategoryPickerField` `CategoryFeatureList` | the antd skin |
 
 Nav entries: `categories.catalog` → `/c`, `categories.category` → `/c/:slug`,
 both `surface: "public"`. `/` is **not** claimed — the storefront's landing is
@@ -189,6 +191,74 @@ sheet rather than an inline list: a drill-down is a journey, and a journey
 rendered inline in a long compose form moves every field under it. Pass
 `surface="inline" | "sheet"` to pin the shape for a host that is not the
 viewport.
+
+## Two page shapes, and the field that decides: `children_as`
+
+Every category node carries a RESOLVED presentation of its children. `tiles`
+means the children are real subcategories — they diverge in attribute schema,
+or have children of their own — and the category's page is a grid of them.
+`chips` means the children are a **partition of one template**: the same
+attribute set split by a value their name expresses (new/used, buy/sell/rent,
+boys/girls), so the category's page is a FEED with a single-select chip row
+rather than a level of the tree. The children keep their ids, their paths and
+their URLs and stay the placement target of a listing; only the presentation
+changes.
+
+`browseStage(category)` folds that into the two shapes a storefront actually
+renders:
+
+```ts
+browseStage(node)          // "tiles" | "feed"
+// chips → "feed"   ·   childless → "feed"   ·   otherwise → "tiles"
+```
+
+It takes anything carrying the fields — a flat `Category` row or a
+`CategoryTreeNode` — and reads `tn_children_pks` before the nested `children`
+array, because a depth-capped tree read empties the array on its last level
+and reading that as "leaf" would give a whole level of the catalogue the wrong
+page.
+
+The server sends the resolved value; `auto` is derived at import time and
+never reaches the wire.
+
+## The desktop mega-menu: one call, three levels
+
+`useCategoryTree(depth)` is `GET /tree/?depth=N` — active nodes, ordered,
+nested, with `id`, `slug`, `name`, `path`, `catalog_icon`, `children_as` and
+`children` per node. One request, cached on the server against the tree's own
+revision. The alternatives it replaces are one request per branch (roots plus
+a `children` read each) or the whole catalogue table before the first name can
+be drawn.
+
+```tsx
+<CategoryMegaMenu linkComponent={RouterLink} onClose={close} />
+```
+
+Roots on the left with their `catalog_icon`, the chosen root's second-level
+headers on the right, five third-level links under each and `Ещё N` pointing
+at the header when there are more. Hover, focus and the arrow keys all select
+a root; `ArrowRight` steps into the pane and `ArrowLeft` comes back; Escape
+and a click outside call `onClose` — the panel never hides itself, because a
+closed panel and a trigger that still reads "open" are two answers to one
+question.
+
+`minWidth` (default 1024) is a **guard, not a policy**: the storefront decides
+when to mount the panel, and below that width it renders nothing and asks for
+nothing. A phone's door into the catalogue is the tile grid, with no drawer.
+
+`node.path` is `"141/151/166"` — the exact form the search query's `category`
+parameter takes, so a host that routes categories through its feed passes its
+own `href` builder and hands the path straight over.
+
+## Tiles draw `catalog_icon` when it is already an address
+
+A tile's art has three arms, in this order: the host's `renderIcon` (a
+storefront with its own root glyphs keeps them), then `catalog_icon` when the
+row already carries a URL — a seeded catalogue writes the uploaded asset's
+address there — and then the category's initial as a monogram. The library
+still never BUILDS a URL out of an opaque reference like
+`catalog/electronics`, which is what `categoryIconSrc` decides and what keeps
+a broken image off every deployment that resolves its CDN differently.
 
 ## Category chrome inside a SPA: `linkComponent`
 

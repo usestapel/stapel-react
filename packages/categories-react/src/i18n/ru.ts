@@ -92,6 +92,9 @@ export const categoriesI18nBundleRu: I18nDictionary = {
 
   "categories.tiles.all": "Все",
 
+  "categories.mega_menu.label": "Все категории",
+  "categories.mega_menu.more": "Ещё {count}",
+
   "categories.search.hits_title": "Категории по запросу «{query}»",
 
   "categories.quick_search.cta": "Показать объявления",

@@ -77,6 +77,15 @@ export const CATEGORIES_I18N_KEYS = {
   /** The leading tile, which links the catalogue root rather than a category. */
   tilesAll: "categories.tiles.all",
 
+  // ── mega menu (the desktop three-level catalogue panel) ──────────────────
+  /** The panel's accessible name — it is a menu of the whole catalogue, so it
+   * says that rather than naming whichever root is highlighted. */
+  megaMenuLabel: "categories.mega_menu.label",
+  /** The tail of a truncated third level, linking the second-level node that
+   * holds the rest. NOT a plural family: it counts links, and the languages
+   * this pair ships spell that with one invariable word plus a number. */
+  megaMenuMore: "categories.mega_menu.more",
+
   // ── category hits for a free-text query ──────────────────────────────────
   /**
    * The heading over the categories a search query reached. Carries `{query}`,
@@ -231,6 +240,9 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.carousel.empty": "No categories are featured right now",
 
   "categories.tiles.all": "All",
+
+  "categories.mega_menu.label": "All categories",
+  "categories.mega_menu.more": "{count} more",
 
   "categories.search.hits_title": "Categories matching “{query}”",
 

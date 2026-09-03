@@ -33,6 +33,8 @@ export { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 export type { CategoryBreadcrumbsBarProps } from "./CategoryBreadcrumbsBar.js";
 export { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
+export { CategoryMegaMenu } from "./CategoryMegaMenu.js";
+export type { CategoryMegaMenuProps } from "./CategoryMegaMenu.js";
 export { CategoryTileGrid } from "./CategoryTileGrid.js";
 export type { CategoryTileGridProps, TileDensity } from "./CategoryTileGrid.js";
 /** Re-exported here because `<CategoryTileGrid>`'s `entries` and `renderIcon`

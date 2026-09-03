@@ -16,14 +16,15 @@
  * ── The image seam is the strip's seam, unchanged ──────────────────────────
  *
  * `carousel_icon` / `catalog_icon` are OPAQUE STRINGS the backend deliberately
- * does not resolve. This skin builds no URL and renders no `<img>`: it hands
- * the reference to the host through `renderIcon` — the SAME contract
+ * does not resolve, so this skin never BUILDS one: it hands the reference to
+ * the host through `renderIcon` — the SAME contract
  * `<CategoryCarouselStrip>` takes, so a storefront wires its CDN resolver once
- * and both surfaces draw art. What is new here is the ABSENCE arm: a tile with
- * nothing in its art corner reads as a broken tile, so an unresolved reference
- * (no `renderIcon`, or no reference on the row) draws the category's own
- * initial as {@link TileMonogram}. Never a guessed URL, and therefore never a
- * broken image.
+ * and both surfaces draw art. Where the reference already IS an address (a
+ * seeded catalogue writes the uploaded asset's URL into `catalog_icon`) the
+ * tile draws it, and where it is neither the tile draws the category's own
+ * initial as {@link TileMonogram} — a tile with nothing in its art corner
+ * reads as a broken tile. Never a guessed URL, and therefore never a broken
+ * image; the order and the reasoning are on {@link tileArt}.
  *
  * ── Two sources of rows, one geometry ──────────────────────────────────────
  *
@@ -61,7 +62,7 @@ import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
-import { categoryOffersTileGrid } from "../catalog/tiles.js";
+import { categoryIconSrc, categoryOffersTileGrid } from "../catalog/tiles.js";
 import { CategoryCarousel } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
@@ -306,6 +307,57 @@ function TileMonogram(props: { readonly label: string }): ReactElement {
   );
 }
 
+/**
+ * The seeded catalogue's art: `catalog_icon` when it already holds an address.
+ *
+ * Three arms, in this order, and the order is the contract: the host's
+ * `renderIcon` first (a storefront that hardcodes its own root glyphs keeps
+ * them), then the server's own URL, then the monogram. So the picture appears
+ * on a deployment whose catalogue has been seeded and nowhere else, and no
+ * arm was taken away from anybody.
+ *
+ * 3:2 and `contain`: the generated art is 3:2 on a soft ground, and `contain`
+ * is what keeps a differently-proportioned upload whole instead of cropping
+ * its subject. `loading="lazy"` because a mega-menu or a long landing draws
+ * dozens of these below the fold. The alt text is the category's own name —
+ * the tile's label is beside it, so the two agree by construction.
+ */
+function TileImage(props: {
+  readonly src: string;
+  readonly label: string;
+}): ReactElement {
+  return (
+    <img
+      src={props.src}
+      alt={props.label}
+      loading="lazy"
+      decoding="async"
+      data-stapel-tile-art="image"
+      style={{
+        width: "100%",
+        aspectRatio: "3 / 2",
+        objectFit: "contain",
+      }}
+    />
+  );
+}
+
+/** The art of one tile: host resolver, then a server-sent address, then the
+ * monogram. `renderIcon` stays first so a storefront's own glyphs win. */
+function tileArt(
+  reference: string | null,
+  label: string,
+  entry: CarouselEntry,
+  renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode
+): ReactNode {
+  if (reference !== null && renderIcon !== undefined) {
+    return renderIcon(reference, entry);
+  }
+  const src = categoryIconSrc(reference);
+  if (src !== null) return <TileImage src={src} label={label} />;
+  return <TileMonogram label={label} />;
+}
+
 /** The one character a monogram shows: the label's first letter, uppercased
  * in the label's OWN locale rules — `toLocaleUpperCase` and not
  * `toUpperCase`, so a Turkish `i` becomes `İ` rather than `I`. */
@@ -467,13 +519,7 @@ function TileRow(props: {
             slug={entry.category.slug}
             categoryId={entry.category.id}
             label={label}
-            art={
-              entry.icon !== null && props.renderIcon !== undefined ? (
-                props.renderIcon(entry.icon, entry)
-              ) : (
-                <TileMonogram label={label} />
-              )
-            }
+            art={tileArt(entry.icon, label, entry, props.renderIcon)}
           />
         );
       })}
