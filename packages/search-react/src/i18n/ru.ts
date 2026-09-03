@@ -100,6 +100,14 @@ export const searchI18nBundleRu: I18nDictionary = {
     "Счётчики приблизительные — подходящих объявлений слишком много, чтобы пересчитать все.",
   "search.facets.skipped":
     "Эти фильтры для текущего поиска не посчитаны: {slugs}",
+  "search.facets.withheld.one":
+    "Ещё {count} фильтр подходит слишком малой части результатов",
+  "search.facets.withheld.few":
+    "Ещё {count} фильтра подходят слишком малой части результатов",
+  "search.facets.withheld.many":
+    "Ещё {count} фильтров подходят слишком малой части результатов",
+  "search.facets.withheld.other":
+    "Ещё {count} фильтра подходят слишком малой части результатов",
   "search.facets.not_counted": "не посчитано",
   "search.facets.drill_down_hint":
     "Рядом с каждым значением — сколько будет, если выбрать его вместо текущего.",
@@ -156,12 +164,14 @@ export const searchI18nBundleRu: I18nDictionary = {
 
   "search.geo.title": "Где искать",
   "search.geo.radius_km": "В радиусе {km} км",
+  "search.geo.radius_km_short": "{km} км",
   "search.geo.radius_label": "Радиус, км",
   "search.geo.clear": "Везде",
   "search.geo.near_me": "Рядом со мной",
   "search.geo.everywhere": "Ищем везде",
   "search.geo.box": "В показанной области",
   "search.geo.chosen_place": "Выбранное место на карте",
+  "search.geo.near_you": "Рядом с вами",
 
   "search.url.issues_title": "Часть этой ссылки прочитать не удалось",
   "search.url.issue.not_a_number":
@@ -172,6 +182,8 @@ export const searchI18nBundleRu: I18nDictionary = {
     "область на карте в этой ссылке указана не полностью, поэтому она пропущена",
   "search.url.issue.range_malformed":
     "диапазону «{param}» в этой ссылке не хватает чисел, поэтому он пропущен",
+  "search.url.issue.radius_without_place":
+    "в ссылке задан радиус, но не задано место, поэтому пока ничего не сузилось — выберите место, и применится именно этот радиус",
 
   "search.degraded.title": "Что этот поиск не смог сделать",
   "search.degraded.typo_tolerance":
@@ -182,6 +194,8 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.degraded.exact_facet_counts": "Счётчики фильтров приблизительные.",
   "search.degraded.category_rollup":
     "В выдаче могут отсутствовать подкатегории — сервис категорий не ответил.",
+  "search.degraded.facet_plan_evidence":
+    "Не удалось определить, какие фильтры подходят этим результатам, — их может быть больше, чем показано.",
   "search.degraded.scorer":
     "Параметр ранжирования «{scorer}» не применялся — используемый движок не умеет его считать.",
   "search.degraded.unknown":

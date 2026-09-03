@@ -51,8 +51,10 @@ export {
   suggestTerms,
 } from "./api/types.js";
 export type {
+  FacetCategoryCount,
   FacetMeta,
   FacetSelection,
+  FacetWithheldGroup,
   RankingResponse,
   Scorer,
   SearchDegradation,
@@ -95,6 +97,7 @@ export type {
 } from "./state/urlState.js";
 
 export {
+  FACET_PLAN_EVIDENCE,
   countIsEstimate,
   countKind,
   degradationAudience,

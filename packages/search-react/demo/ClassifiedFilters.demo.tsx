@@ -83,7 +83,7 @@ function shapeGroups(): readonly FacetGroup[] {
       candidates: 142,
       counted: Object.keys(SHAPE_FACETS),
       skipped: [],
-      dropped_filters: [], core_ranges: [],
+      dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
     },
     state: parseSearchState(new URLSearchParams(`type=${DEMO_TYPE}&f.condition=used&f.body=sedan`), {
       defaultType: DEMO_TYPE,

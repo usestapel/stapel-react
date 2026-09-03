@@ -135,6 +135,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description One partition of the answer — a heading, never a filter over it. */
+        BandSummary: {
+            id: components["schemas"]["IdEnum"];
+            /** @description How many rows are in this band. `null` when the engine cannot say. The two counts add up to the top-level `count`, which is the machine-checkable form of 'nothing is hidden by distance'. */
+            count: number | null;
+            /** @description True when `count` is a floor (a capped count). Render 'N+'. */
+            count_is_lower_bound: boolean;
+            /**
+             * Format: double
+             * @description Present on `nearby` only: the edge, in km, the band was cut at. `all` has no edge — it is everything else, which is the promise.
+             */
+            radius_km?: number;
+        };
         /** @description One destination in the dropdown, ready to render and ready to follow. */
         CategorySuggestion: {
             /** @description Category id. A `listings`-graded row derives it from the path's leaf segment. */
@@ -149,6 +162,17 @@ export interface components {
             category: string;
             /** @description Live listings a buyer would see under this category, descendants included — the same number the SERP reports for it. On a `listings`-graded row: how many of them match the typed query, which is the count a `?q=…&category=…` tap will show. */
             count: number;
+            /**
+             * @description What `count` counted. `category`: everything live under this category, the typed text ignored — the row is a PLACE. `query_in_category`: only the documents matching the typed text, which is what a `listings`-graded row is about. The two are different numbers about different pages, which is why the row says which one it is instead of leaving a storefront to guess.
+             *
+             *     * `category` - category
+             *     * `query_in_category` - query_in_category
+             */
+            count_scope: components["schemas"]["CountScopeEnum"];
+            /** @description The /query parameters this row's `count` was computed for — send them VERBATIM (plus your own `type`/`lang`/paging) when the buyer follows the row. Always carries `category`; carries `q` only when `count_scope` is `query_in_category`. Assembling these yourself re-opens the defect this field exists to close: a place row followed with the typed text opens an empty page while its count promised stock. */
+            query: {
+                [key: string]: string;
+            };
             /** @description Number of segments in `path`. */
             depth: number;
             /**
@@ -162,6 +186,28 @@ export interface components {
              *     * `vector` - vector
              */
             match: components["schemas"]["MatchEnum"];
+        };
+        /**
+         * @description * `category` - category
+         *     * `query_in_category` - query_in_category
+         * @enum {string}
+         */
+        CountScopeEnum: "category" | "query_in_category";
+        /** @description One filter the query's own words produced, ready to be replayed. */
+        ExtractedFilter: {
+            slug: string;
+            value: string;
+            label: string;
+            value_label: string;
+            method: components["schemas"]["MethodEnum"];
+            /** Format: double */
+            confidence: number;
+            /** @description `[start, end)` into the RAW query, so a UI can underline the words that became this chip. */
+            span: number[];
+            /** @description The literal query parameter this filter IS — e.g. `f.color=krasnyy`. Re-send it verbatim to KEEP the chip, omit it to remove it, and send `qu=off` alongside so the server does not extract it again. Nothing about extraction is remembered server-side, which is why the parameter has to be complete. */
+            param: string;
+            /** @description True when this filter actually narrowed the answer. A false one still contributed to each row's `match_count`. */
+            applied: boolean;
         };
         /** @description Captions for one slug's option codes. */
         FacetLabels: {
@@ -183,6 +229,16 @@ export interface components {
             dropped_filters: string[];
             /** @description Range slugs that address a core document column rather than an attribute (`r.price`). Offer them as filters unconditionally: they exist for every document in every category, which is why they are not in the category's own plan. */
             core_ranges: string[];
+            /** @description Where the plan came from. `category` — the queried category's own authored schema. `evidence` — the categories the CANDIDATE SET actually contains, used when that schema did not fill MAX_FACET_FIELDS, which is every branch category and every text query (`categories.features` resolves own + ANCESTOR-inherited features, so a branch owns no axes; its leaves do). */
+            plan: string;
+            /** @description `{slug, coverage, candidates}` for groups that were counted and then withheld because they describe too little of the result set (FACET_MIN_COVERAGE). Present so a panel can say «3 filters apply to too few of these» instead of «no filters» — the second is false whenever this list is not empty. Only slugs the evidence plan borrowed from another category are ever here, and never one the reader has already filtered on. */
+            withheld: {
+                [key: string]: unknown;
+            }[];
+            /** @description `{category, count}` — the categories this answer's candidate set is made of, busiest first, `category` being the same slash-joined id path the `category` filter takes. The evidence the plan was drawn from, and what a panel needs to offer the CATEGORY itself as the first filter on a text search. Empty when the plan is the queried category's own. */
+            categories: {
+                [key: string]: unknown;
+            }[];
         };
         HealthResponse: {
             backend: string;
@@ -197,6 +253,12 @@ export interface components {
             stale_reason?: string;
         };
         /**
+         * @description * `nearby` - nearby
+         *     * `all` - all
+         * @enum {string}
+         */
+        IdEnum: "nearby" | "all";
+        /**
          * @description * `exact` - exact
          *     * `prefix` - prefix
          *     * `word` - word
@@ -206,6 +268,24 @@ export interface components {
          * @enum {string}
          */
         MatchEnum: "exact" | "prefix" | "word" | "substring" | "listings" | "vector";
+        /**
+         * @description * `exact` - exact
+         *     * `translit` - translit
+         *     * `alias` - alias
+         *     * `vector` - vector
+         * @enum {string}
+         */
+        MethodEnum: "exact" | "translit" | "alias" | "vector";
+        /** @description What a free-text query turned out to be ABOUT, beside its words. */
+        QueryUnderstanding: {
+            filters: components["schemas"]["ExtractedFilter"][];
+            category_path: string[];
+            /** Format: double */
+            category_confidence: number;
+            /** @description The query with every extracted span removed — the text the engine still had to match. Empty is normal and correct: «красный» is entirely a filter, and the answer is then the filters' set. */
+            residual: string;
+            degraded: string[];
+        };
         /** @description The P2B Art. 5 disclosure, generated from the scorer registry. */
         RankingResponse: {
             doc_type: string;
@@ -252,10 +332,14 @@ export interface components {
             promoted: boolean;
             /**
              * Format: double
-             * @description Great-circle distance from the searched centre.
+             * @description Great-circle distance from the searched centre, in km. For an ANONYMOUS reader it is measured from the same ~1.1km grid point the card publishes and floored to that grid's quantum (the cell's diagonal, ~1.574km): a distance finer than the position it came from is the position, three requests away. The listing's own owner, staff and the service transport get the exact number. Coarse is enough for what it drives — a card saying «12 км» does not need metres — and it never overstates proximity, being floored rather than rounded.
              */
             distance_km: number | null;
-            /** @description Stored row fields, so a result page costs one query. */
+            /** @description `nearby` | `all` | `""`. Which partition this row sits in, present only under `geo_mode=rank`. A LABEL, never a filter: `all` carries every remaining row, including rows with no coordinates at all, so a query never returns fewer results because of distance. `""` means the request ranked by proximity but gave no centre, which is not an error. */
+            band?: string;
+            /** @description How many of the filters the QUERY's own words produced this row satisfies — including the soft ones that were not applied as filters. Orders rows within a band, strongest first. Present only when the query produced signals. */
+            match_count?: number;
+            /** @description Stored row fields, so a result page costs one query. For an ANONYMOUS reader the card never carries full-precision coordinates, on every path and whatever the flags: a key naming half a pair (`lat`, `latitude`, `lon`, `lng`, `*_lat`…) is rewritten onto the ~1.1km public grid from the row's own columns, and a key carrying a position this module cannot turn into an area (`geohash`, `location`, `coordinates`…) is removed rather than truncated — two differently-aligned areas around one point intersect down to a sliver. `geo_precision_km` says how wide the area is: draw a CIRCLE, never a marker. Under `geo_mode=rank` the pair is ADDED even to a card that carried no position at all. */
             card: {
                 [key: string]: unknown;
             };
@@ -263,6 +347,10 @@ export interface components {
         /** @description The query envelope: AnchorPagination's keys, plus what search owes. */
         SearchResponse: {
             items: components["schemas"]["SearchItem"][];
+            /** @description Per-band counts in render order — `nearby` («Объявления поблизости») then `all` («Все объявления»). Present only under `geo_mode=rank`; empty when no centre was given. The rows themselves carry `band`; this is the summary a heading needs. The top-level `count` remains the WHOLE matching total, never the nearby one. */
+            bands?: components["schemas"]["BandSummary"][];
+            /** @description What the query's words became. Absent entirely while QUERY_UNDERSTANDING is off or `qu=off` was sent. */
+            query_understanding?: components["schemas"]["QueryUnderstanding"];
             /** @description {slug: {value: count}}, counted with the slug's own filter removed. */
             facets: {
                 [key: string]: {
@@ -338,7 +426,7 @@ export interface operations {
             query: {
                 /** @description Opaque keyset cursor from a previous answer. */
                 anchor?: string;
-                /** @description minLat,minLon,maxLat,maxLon. minLon > maxLon means the box crosses +/-180. */
+                /** @description minLat,minLon,maxLat,maxLon. minLon > maxLon means the box crosses +/-180. For an anonymous caller the rectangle is grown OUTWARD to whole ~1.1km cells of the public geo grid, so it can only ever ask about the area a public card publishes: a box EXCLUDES rows, and halving one around a listing would otherwise converge on the seller's pin in a few dozen requests. */
                 bbox?: string;
                 /** @description root/leaf path; a prefix filter, so a parent finds its descendants. */
                 category?: string;
@@ -348,6 +436,8 @@ export interface operations {
                 "f.<slug>"?: string;
                 /** @description on | off | comma-separated slugs. Default is the category's plan. */
                 facets?: string;
+                /** @description rank | filter. What `radius_km` means. `rank` PARTITIONS: the answer comes back as `nearby` (inside the radius) then `all` (every remaining row), nothing is withheld, and `count` stays the whole matching total — a query can never come back empty because of distance. `filter` is the historical hard cut, for a caller that genuinely wants only what is within N km. `rank` is the default inside the feature; while STAPEL_SEARCH['GEO_BANDS'] is off this parameter is inert and `radius_km` filters as it always has. */
+                geo_mode?: string;
                 /** @description Language of the query: selects the analyzer AND narrows the corpus. Omit it and only the analyzer is chosen (from Accept-Language) — a header must not hide a catalogue. */
                 lang?: string;
                 /** @description Centre latitude (with lon). */
@@ -359,9 +449,11 @@ export interface operations {
                 owner?: string;
                 /** @description Free text. Dictionary-normalized here; morphology belongs to the engine. */
                 q?: string;
+                /** @description auto | off. Whether the query's own words may become filters. `auto` (the default while QUERY_UNDERSTANDING is on) extracts and reports what it extracted under `query_understanding`; each filter carries the literal `param` to replay. Send `qu=off` with those replayed params afterwards — extraction is stateless, so without it a removed chip comes straight back. */
+                qu?: string;
                 /** @description Range filter, `from..to`; either end may be omitted. */
                 "r.<slug>"?: string;
-                /** @description Radius around the centre. */
+                /** @description Distance around the centre, in km. Its MEANING is `geo_mode`'s: under `rank` it is the edge of the `nearby` band and excludes nothing; under `filter` it is a hard cut. Defaults to NEAR_BAND_RADIUS_KM under `rank`. */
                 radius_km?: number;
                 /** @description relevance | newest | price_asc | price_desc | distance. An explicit sort never receives a promotional boost. */
                 sort?: string;

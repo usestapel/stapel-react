@@ -4,7 +4,7 @@
   "version": "0.20.0",
   "backend": {
     "module": "stapel-search",
-    "contract": ">=0.10 <0.11"
+    "contract": ">=0.14 <0.15"
   },
   "layers": [
     "api",
@@ -744,6 +744,7 @@
     "search.degraded.category_rollup",
     "search.degraded.exact_facet_counts",
     "search.degraded.exact_total",
+    "search.degraded.facet_plan_evidence",
     "search.degraded.phrase_synonyms",
     "search.degraded.scorer",
     "search.degraded.title",
@@ -779,6 +780,9 @@
     "search.facets.show_less",
     "search.facets.skipped",
     "search.facets.title",
+    "search.facets.withheld",
+    "search.facets.withheld.one",
+    "search.facets.withheld.other",
     "search.filters.all",
     "search.filters.apply",
     "search.filters.chip_more",
@@ -798,7 +802,9 @@
     "search.geo.clear",
     "search.geo.everywhere",
     "search.geo.near_me",
+    "search.geo.near_you",
     "search.geo.radius_km",
+    "search.geo.radius_km_short",
     "search.geo.radius_label",
     "search.geo.title",
     "search.language.any",
@@ -860,6 +866,7 @@
     "search.url.issue.bbox_malformed",
     "search.url.issue.geo_incomplete",
     "search.url.issue.not_a_number",
+    "search.url.issue.radius_without_place",
     "search.url.issue.range_malformed",
     "search.url.issues_title",
     "search.view.grid",
@@ -869,6 +876,7 @@
   "exports": {
     "runtime": [
       "FACETABLE_FEATURE_TYPES",
+      "FACET_PLAN_EVIDENCE",
       "FILTER_PREFIX",
       "FacetPanel",
       "RANGE_FEATURE_TYPES",
@@ -949,6 +957,7 @@
       "BuildFacetGroupsInput",
       "BuildRangeGroupsInput",
       "CreateSearchRuntimeOptions",
+      "FacetCategoryCount",
       "FacetGroup",
       "FacetLabelRequest",
       "FacetLabelResolver",
@@ -956,6 +965,7 @@
       "FacetOption",
       "FacetPanelBag",
       "FacetSelection",
+      "FacetWithheldGroup",
       "ParseSearchStateOptions",
       "ParsedSearchState",
       "RangeGroup",

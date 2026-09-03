@@ -71,6 +71,21 @@ export interface SearchStateBag {
    * Draw it as an invitation ("near me"), never as state.
    */
   readonly geoOffer: SearchGeo | undefined;
+  /**
+   * Whether the location this search is USING is the one the host offered —
+   * i.e. the visitor pressed "near me" (or followed a link built by somebody
+   * who did) and has not moved the pin since.
+   *
+   * A fact about provenance, and only the provider holds it: `state.geo` is a
+   * centre and a radius, and every way of arriving at a centre produces the
+   * same three numbers. Without it a summary line has to guess, and the guess
+   * it shipped was "a chosen place on the map" — said to a person who had
+   * pressed a button and never opened a map.
+   *
+   * `false` whenever there is no offer to compare against, which includes
+   * every search on a host that offers none.
+   */
+  readonly geoIsOffer: boolean;
 
   setText(q: string): void;
   setSort(sort: string | null): void;
@@ -90,6 +105,29 @@ export interface SearchStateBag {
   /** Escape hatch for a host control this pair does not ship. Goes through
    * `patchSearchState`, so it drops the cursor like every other change. */
   patch(patch: SearchStatePatch): void;
+}
+
+/**
+ * How close two coordinates have to be to be the same place, in degrees.
+ *
+ * The applied location makes a round trip through the query string, so the
+ * numbers that come back are the ones `String(lat)` produced rather than the
+ * float the device handed over. 1e-6 degrees is ~11cm — far below any
+ * position a browser reports and far above any rounding the codec introduces.
+ */
+const SAME_PLACE_EPSILON = 1e-6;
+
+/** Is the applied location the offered one? See {@link SearchStateBag.geoIsOffer}. */
+function sameCenter(
+  applied: SearchGeo | undefined,
+  offered: SearchGeo | undefined
+): boolean {
+  if (applied === undefined || offered === undefined) return false;
+  if (applied.kind !== "center" || offered.kind !== "center") return false;
+  return (
+    Math.abs(applied.lat - offered.lat) < SAME_PLACE_EPSILON &&
+    Math.abs(applied.lon - offered.lon) < SAME_PLACE_EPSILON
+  );
 }
 
 const StateContext = createContext<SearchStateBag | null>(null);
@@ -178,6 +216,23 @@ export function SearchStateProvider(
 
   const bag = useMemo<SearchStateBag>(() => {
     const state = parsed.state;
+    /**
+     * The offer, carrying the radius the URL already asked for.
+     *
+     * `?radius_km=300` with no `lat`/`lon` narrows nothing — there is no
+     * point to measure from — but it IS a number the person typed, and the
+     * offer used to ignore it twice over: the button advertised the host's
+     * own 25km, and pressing it wrote 25 into the address over the 300 that
+     * was already there. Three things now agree, which is the whole of the
+     * fix: what the link asked for, what the button says, and what pressing
+     * it does. A bbox offer is left alone — a box has no radius to carry.
+     */
+    const offer: SearchGeo | undefined =
+      geoOffer !== undefined &&
+      geoOffer.kind === "center" &&
+      parsed.orphanRadiusKm !== undefined
+        ? { ...geoOffer, radiusKm: parsed.orphanRadiusKm }
+        : geoOffer;
     const apply = (
       next: SearchQueryState,
       options?: { readonly replace?: boolean }
@@ -193,7 +248,8 @@ export function SearchStateProvider(
       // — there is nothing left to offer, and a control that kept drawing
       // "near me" beside an applied location would be inviting a person to
       // re-answer a question they can already see the answer to.
-      geoOffer: state.geo === undefined ? geoOffer : undefined,
+      geoOffer: state.geo === undefined ? offer : undefined,
+      geoIsOffer: sameCenter(state.geo, offer),
 
       // Typing replaces rather than pushes: one history entry per letter
       // would make Back useless, which is the control the spec's acceptance
@@ -209,10 +265,10 @@ export function SearchStateProvider(
         apply(patchSearchState(state, { geo }));
       },
       acceptGeoOffer: () => {
-        if (geoOffer === undefined || state.geo !== undefined) return;
+        if (offer === undefined || state.geo !== undefined) return;
         // A PUSH, like any other filter the person applies: Back takes the
         // narrowing off again, which is the same promise every chip makes.
-        apply(patchSearchState(state, { geo: geoOffer }));
+        apply(patchSearchState(state, { geo: offer }));
       },
       // A page size is a preference, not a step through the results.
       setLimit: (limit) => apply(patchSearchState(state, { limit }), { replace: true }),

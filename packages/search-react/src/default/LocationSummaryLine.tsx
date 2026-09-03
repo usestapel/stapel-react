@@ -94,6 +94,9 @@ import { GeoSheet, SUMMARY_GEO_TEST_IDS } from "./geoSheet.js";
 
 /** The class the row carries, for {@link locationLineCss}. */
 export const LOCATION_LINE_CLASS = "stapel-search-location-line";
+/** The class the ONE location control carries — the place and the offer,
+ * inside a single box. See {@link locationLineCss} for what it fixes. */
+export const LOCATION_LINE_GROUP_CLASS = "stapel-search-location-line-group";
 /** The class the shrinking half carries. */
 export const LOCATION_LINE_WHERE_CLASS = "stapel-search-location-line-where";
 /** The class the truncating label carries. */
@@ -117,6 +120,7 @@ export function locationLineCss(): string {
   const where = `.${LOCATION_LINE_WHERE_CLASS}`;
   const label = `.${LOCATION_LINE_LABEL_CLASS}`;
   const end = `.${LOCATION_LINE_END_CLASS}`;
+  const group = `.${LOCATION_LINE_GROUP_CLASS}`;
   return [
     // `min-width:0` on the row too: a flex item's default `min-width:auto`
     // is what makes a nested flex row refuse to shrink at all.
@@ -139,6 +143,35 @@ export function locationLineCss(): string {
       `text-overflow:ellipsis;white-space:nowrap}`,
     // The word a person is looking for never loses a pixel to a place name.
     `${end}{flex:0 0 auto}`,
+    // ── ONE control, not two red links at opposite ends of the page ────────
+    //
+    // Measured on a live 1440px leaf: the row is 992px wide, "📍 Searching
+    // everywhere" sat at x=370 and "Near me · Within 25 km" at x=776, both
+    // drawn in the same brand red, with ~400px of air between them and
+    // nothing — no border, no ground, no heading — saying they were about the
+    // same thing. Two identical-looking links at opposite ends of a strip are
+    // read as two unrelated controls, which is what they looked like.
+    //
+    // So the place and the offer share ONE box with a border and a ground,
+    // sitting together at the leading edge, with a hairline between them: the
+    // eye gets a single object that says where this search is looking and
+    // offers the one move that would change it. The border comes from the
+    // role token, so it is right in both themes by construction.
+    // `min-inline-size:0` explicitly, and `flex-shrink` on the box rather
+    // than on its contents: a flex item's `min-width:auto` refuses to go
+    // below its own content, so without this the group pushed the filters
+    // door off the end of a 390px row instead of letting the place name give
+    // way — which is the half that can.
+    `${group}{display:flex;align-items:stretch;flex:0 1 auto;min-inline-size:0;` +
+      `border:1px solid ${cssVar("border")};border-radius:${String(radii.md)}px;` +
+      `background:${cssVar("surface-raised")};overflow:hidden}`,
+    // The two halves are separated by the box's own line, never by a gap: a
+    // gap inside a bordered group reads as two groups again.
+    `${group}>*+*{border-inline-start:1px solid ${cssVar("border")}}`,
+    `${group}>*{border-radius:0}`,
+    // Both halves pay for their own breathing room; the antd Button's inline
+    // padding is zeroed above so the box, not the button, sets the measure.
+    `${group}>*{padding-inline:${String(spacing[2])}px}`,
   ].join("");
 }
 
@@ -149,7 +182,9 @@ const ROW: CSSProperties = { width: "100%" };
 /** The shrinking half. The flex rules it needs live in the hoisted sheet
  * (they have to reach antd's own wrapper span); this is the chrome. */
 const LOCATION: CSSProperties = {
-  paddingInline: 0,
+  // No `paddingInline` here: the group's sheet sets it for both halves, and
+  // an inline style would beat the sheet and leave one half flush against the
+  // border while the other breathed.
   textAlign: "start",
 };
 
@@ -159,7 +194,7 @@ const PIN: CSSProperties = { flex: "0 0 auto", display: "inline-flex" };
 
 /** The offer. It never shrinks: it is three words and a number, and half of
  * "Near me" is not an offer. */
-const OFFER: CSSProperties = { flex: "0 0 auto", paddingInline: 0 };
+const OFFER: CSSProperties = { flex: "0 0 auto" };
 
 /**
  * The count, IN the flow.
@@ -239,7 +274,8 @@ export function LocationSummaryLine(
   props: LocationSummaryLineProps
 ): ReactElement {
   const t = useT();
-  const { state, activeFilters, geoOffer, acceptGeoOffer } = useSearchState();
+  const { state, activeFilters, geoOffer, geoIsOffer, acceptGeoOffer } =
+    useSearchState();
   const [open, setOpen] = useState(false);
   const geo = state.geo;
 
@@ -257,13 +293,25 @@ export function LocationSummaryLine(
   // the question), so this row never shows an offer beside a place.
   const offerRadius =
     geoOffer !== undefined && geoOffer.kind === "center" && geoOffer.radiusKm !== undefined
-      ? t(SEARCH_I18N_KEYS.geoRadiusKm, { km: geoOffer.radiusKm })
+      ? t(SEARCH_I18N_KEYS.geoRadiusKmShort, { km: geoOffer.radiusKm })
       : undefined;
 
+  // What the line CALLS the place it is looking at.
+  //
+  // The host's name wins — it is the only one that can be checked by a reader
+  // — then the fact the provider holds, and only then the shape of the
+  // constraint. The middle arm is D184's second half: pressing "Near me"
+  // turned this line into "A chosen place on the map" for a person who had
+  // never opened a map. `geoIsOffer` is the provider reporting how the search
+  // came to be here, rather than this file inferring it from three numbers
+  // that look the same whatever produced them.
   const where: ReactNode =
     geo === undefined
       ? t(SEARCH_I18N_KEYS.geoEverywhere)
-      : (props.geoLabel ?? geoSummaryFallback(geo, t));
+      : (props.geoLabel ??
+        (geoIsOffer
+          ? t(SEARCH_I18N_KEYS.geoNearYou)
+          : geoSummaryFallback(geo, t)));
 
   return (
     <>
@@ -279,60 +327,73 @@ export function LocationSummaryLine(
         data-testid="search-location-summary"
         data-geo={geo === undefined ? "off" : "on"}
       >
-        {/* The glyph is rendered as a CHILD rather than through antd's `icon`
-            prop: the icon slot sits outside the wrapper span, so the label
-            beside it could not be given a min-width of its own — and a label
-            that cannot shrink is a label that overflows. */}
-        <Button
-          type="link"
-          style={LOCATION}
-          className={LOCATION_LINE_WHERE_CLASS}
-          data-testid="search-location-open"
-          data-analytics="none"
-          data-analytics-reason="opening the location sheet is a read, not a flow step"
-          onClick={() => {
-            setOpen(true);
-          }}
+        {/* ONE control: where this search is looking, and — while the
+            question is still open — the one move that would change it. See
+            `locationLineCss` for the measurement that made them one box. */}
+        <div
+          className={LOCATION_LINE_GROUP_CLASS}
+          data-testid="search-location-group"
         >
-          <span style={PIN}>
-            <PinGlyph />
-          </span>
-          <span
-            className={LOCATION_LINE_LABEL_CLASS}
-            data-testid="search-location-label"
-          >
-            {where}
-            {radius !== undefined && (
-              <span data-testid="search-location-radius">
-                {" · "}
-                {radius}
-              </span>
-            )}
-          </span>
-        </Button>
+          {/* The glyph is rendered as a CHILD rather than through antd's
+              `icon` prop: the icon slot sits outside the wrapper span, so the
+              label beside it could not be given a min-width of its own — and
+              a label that cannot shrink is a label that overflows.
 
-        {/* The offer, and nothing is applied until it is pressed. Drawn only
-            when the host has a position to offer AND the search carries no
-            location of its own — the provider enforces the second half, so
-            this is one condition, not two that could disagree. */}
-        {geoOffer !== undefined && (
+              `type="text"`, not `type="link"`: this half is a STATEMENT about
+              where the search is looking, and painting it the brand colour
+              made it indistinguishable from the offer beside it. The offer
+              keeps the colour, because the offer is the action. */}
           <Button
-            type="link"
-            style={OFFER}
-            data-testid="search-location-offer"
+            type="text"
+            style={LOCATION}
+            className={LOCATION_LINE_WHERE_CLASS}
+            data-testid="search-location-open"
             data-analytics="none"
-            data-analytics-reason="applying a filter the person pressed is search state, and search state is the URL"
-            onClick={acceptGeoOffer}
+            data-analytics-reason="opening the location sheet is a read, not a flow step"
+            onClick={() => {
+              setOpen(true);
+            }}
           >
-            {t(SEARCH_I18N_KEYS.geoNearMe)}
-            {offerRadius !== undefined && (
-              <span data-testid="search-location-offer-radius">
-                {" · "}
-                {offerRadius}
-              </span>
-            )}
+            <span style={PIN}>
+              <PinGlyph />
+            </span>
+            <span
+              className={LOCATION_LINE_LABEL_CLASS}
+              data-testid="search-location-label"
+            >
+              {where}
+              {radius !== undefined && (
+                <span data-testid="search-location-radius">
+                  {" · "}
+                  {radius}
+                </span>
+              )}
+            </span>
           </Button>
-        )}
+
+          {/* The offer, and nothing is applied until it is pressed. Drawn only
+              when the host has a position to offer AND the search carries no
+              location of its own — the provider enforces the second half, so
+              this is one condition, not two that could disagree. */}
+          {geoOffer !== undefined && (
+            <Button
+              type="link"
+              style={OFFER}
+              data-testid="search-location-offer"
+              data-analytics="none"
+              data-analytics-reason="applying a filter the person pressed is search state, and search state is the URL"
+              onClick={acceptGeoOffer}
+            >
+              {t(SEARCH_I18N_KEYS.geoNearMe)}
+              {offerRadius !== undefined && (
+                <span data-testid="search-location-offer-radius">
+                  {" · "}
+                  {offerRadius}
+                </span>
+              )}
+            </Button>
+          )}
+        </div>
 
         {/* "Filters", not "All filters": this end of the row shares 390px
             with a place name that can run to fifteen characters, and the word

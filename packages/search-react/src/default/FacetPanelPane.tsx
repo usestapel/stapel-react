@@ -91,6 +91,7 @@ import { featureName } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchGeo } from "../api/types.js";
 import { FacetPanel } from "../headless/FacetPanel.js";
+import type { FacetPanelBag } from "../headless/FacetPanel.js";
 import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { useAppliedCount } from "../headless/useAppliedCount.js";
@@ -421,6 +422,40 @@ function skippedNames(
     .join(", ");
 }
 
+/**
+ * The empty arm of the panel — the ONE place "this search offers no filters"
+ * may be said, and the two answers that forbid it (D175).
+ *
+ * A group list of zero is not the same claim. `withheld` names groups the
+ * counter counted and then held back for describing too little of the result
+ * set: they exist, so the honest line is how many. `planUnavailable` means
+ * the server could not work a plan out at all — the reader hears that from
+ * `<DegradationNotice>`, and this arm's only job is to not contradict it.
+ *
+ * A COMPONENT rather than a ternary inline in `empty=`, because `LoadList`
+ * reads a nullish `empty` as "no arm given" and draws its own default, which
+ * is the sentence again. An element that renders `null` says nothing; a
+ * `null` prop says it louder.
+ */
+function FacetsEmptyArm(props: { readonly bag: FacetPanelBag }): ReactElement | null {
+  const t = useT();
+  const tPlural = useTPlural();
+  const withheld = props.bag.withheld.length;
+  if (withheld > 0) {
+    return (
+      <EmptyState
+        compact
+        title={tPlural(SEARCH_I18N_KEYS.facetsWithheld, { count: withheld })}
+        testId="facets-withheld"
+      />
+    );
+  }
+  if (props.bag.planUnavailable) return null;
+  return (
+    <EmptyState compact title={t(SEARCH_I18N_KEYS.facetsEmpty)} testId="facets-empty" />
+  );
+}
+
 export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
   const t = useT();
   const { state } = useSearchState();
@@ -566,7 +601,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               state={bag.state}
               testId="facets"
               skeletonRows={4}
-              empty={<EmptyState compact title={t(SEARCH_I18N_KEYS.facetsEmpty)} testId="facets-empty" />}
+              empty={<FacetsEmptyArm bag={bag} />}
               failed={(error) => (
                 <ErrorAlert
                   testId="facets-failed"

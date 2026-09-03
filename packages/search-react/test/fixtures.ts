@@ -38,7 +38,7 @@ export function searchResponse(
       candidates: 25,
       counted: ["brand", "condition"],
       skipped: [],
-      dropped_filters: [], core_ranges: ["price"],
+      dropped_filters: [], core_ranges: ["price"], plan: "category", withheld: [], categories: [],
     },
     facet_labels: {
       condition: {

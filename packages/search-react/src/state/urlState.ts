@@ -74,19 +74,45 @@ export type SearchStateIssueCode =
   /** `bbox` was not four numbers. */
   | "bbox_malformed"
   /** `r.<slug>` was not `from..to`. */
-  | "range_malformed";
+  | "range_malformed"
+  /**
+   * `radius_km` with nothing to measure it FROM — no `lat`/`lon`, no `bbox`.
+   *
+   * Not malformed: `radius_km=300` is a perfectly good number, and the search
+   * that ran is the honest one (a radius with no centre narrows nothing, so
+   * the count is the full count). What was wrong was the SILENCE. The URL said
+   * 300km, the results were unnarrowed, and the location control went on
+   * advertising its own default — measured on a live leaf as "300 in the
+   * address bar, 25 on the screen" with no way for a person to tell which one
+   * the page had used. Neither number is dropped and neither is rewritten;
+   * the disagreement is simply stated.
+   */
+  | "radius_without_place";
 
 const ISSUE_KEY: Readonly<Record<SearchStateIssueCode, string>> = {
   not_a_number: "search.url.issue.not_a_number",
   geo_incomplete: "search.url.issue.geo_incomplete",
   bbox_malformed: "search.url.issue.bbox_malformed",
   range_malformed: "search.url.issue.range_malformed",
+  radius_without_place: "search.url.issue.radius_without_place",
 };
 
 /** What {@link parseSearchState} answers: the state, plus what it could not read. */
 export interface ParsedSearchState {
   readonly state: SearchQueryState;
   readonly issues: readonly SearchStateIssue[];
+  /**
+   * A `radius_km` the URL carries with no place to measure it from.
+   *
+   * NOT part of the state — a radius with no centre is not a filter and
+   * nothing is sent to the server — but it is a number the person typed, and
+   * dropping it on the floor is how the control and the address ended up
+   * disagreeing: `?radius_km=300`, a button offering "within 25 km", and a
+   * press that silently rewrote 300 to 25. Whoever draws the offer reads this
+   * so that what the button SAYS, what pressing it DOES, and what the link
+   * ASKED FOR are one number.
+   */
+  readonly orphanRadiusKm?: number;
 }
 
 export interface ParseSearchStateOptions {
@@ -122,10 +148,16 @@ function num(
   return value;
 }
 
+/** Where `parseGeo` leaves a radius it could not attach to anything. */
+interface GeoParse {
+  readonly geo: SearchGeo | undefined;
+  readonly orphanRadiusKm?: number;
+}
+
 function parseGeo(
   params: URLSearchParams,
   issues: SearchStateIssue[]
-): SearchGeo | undefined {
+): GeoParse {
   const bbox = params.get(SEARCH_PARAM.bbox);
   if (bbox !== null) {
     const parts = bbox.split(",");
@@ -135,7 +167,7 @@ function parseGeo(
         code: "bbox_malformed",
         messageKey: ISSUE_KEY.bbox_malformed,
       });
-      return undefined;
+      return { geo: undefined };
     }
     const values = parts.map((p) => Number(p));
     if (values.some((v) => !Number.isFinite(v))) {
@@ -144,43 +176,64 @@ function parseGeo(
         code: "bbox_malformed",
         messageKey: ISSUE_KEY.bbox_malformed,
       });
-      return undefined;
+      return { geo: undefined };
     }
     // `minLon > maxLon` is LEGAL — it means the box crosses the antimeridian
     // (`stapel-search/query.py`). Normalizing it here would silently turn a
     // Pacific search into the rest of the world.
     return {
+      geo: {
       kind: "bbox",
       minLat: values[0] as number,
       minLon: values[1] as number,
       maxLat: values[2] as number,
       maxLon: values[3] as number,
+      },
     };
   }
 
   const rawLat = params.get(SEARCH_PARAM.lat);
   const rawLon = params.get(SEARCH_PARAM.lon);
-  if (rawLat === null && rawLon === null) return undefined;
+  if (rawLat === null && rawLon === null) {
+    // A radius parked in the URL with no point to measure it from. See
+    // `radius_without_place`: the search below is correct, the screen was the
+    // liar.
+    const orphan = params.get(SEARCH_PARAM.radiusKm);
+    if (orphan !== null) {
+      issues.push({
+        param: SEARCH_PARAM.radiusKm,
+        code: "radius_without_place",
+        messageKey: ISSUE_KEY.radius_without_place,
+      });
+      const km = Number(orphan);
+      if (Number.isFinite(km) && km > 0) {
+        return { geo: undefined, orphanRadiusKm: km };
+      }
+    }
+    return { geo: undefined };
+  }
   if (rawLat === null || rawLon === null) {
     issues.push({
       param: rawLat === null ? SEARCH_PARAM.lat : SEARCH_PARAM.lon,
       code: "geo_incomplete",
       messageKey: ISSUE_KEY.geo_incomplete,
     });
-    return undefined;
+    return { geo: undefined };
   }
   const lat = num(rawLat, SEARCH_PARAM.lat, issues);
   const lon = num(rawLon, SEARCH_PARAM.lon, issues);
-  if (lat === undefined || lon === undefined) return undefined;
+  if (lat === undefined || lon === undefined) return { geo: undefined };
 
   const rawRadius = params.get(SEARCH_PARAM.radiusKm);
   const radiusKm =
     rawRadius === null ? undefined : num(rawRadius, SEARCH_PARAM.radiusKm, issues);
   return {
-    kind: "center",
-    lat,
-    lon,
-    ...(radiusKm !== undefined ? { radiusKm } : {}),
+    geo: {
+      kind: "center",
+      lat,
+      lon,
+      ...(radiusKm !== undefined ? { radiusKm } : {}),
+    },
   };
 }
 
@@ -246,6 +299,8 @@ export function parseSearchState(
   const direction: "next" | "prev" | undefined =
     rawDirection === null ? undefined : rawDirection === "prev" ? "prev" : "next";
 
+  const geoParse = parseGeo(params, issues);
+
   const state: SearchQueryState = {
     type: params.get(SEARCH_PARAM.type) ?? options.defaultType,
     q: params.get(SEARCH_PARAM.q) ?? options.defaultQ ?? "",
@@ -257,7 +312,7 @@ export function parseSearchState(
       params.get(SEARCH_PARAM.category) ?? options.defaultCategory
     ),
     ...optional(SEARCH_PARAM.owner, params.get(SEARCH_PARAM.owner) ?? undefined),
-    ...optional("geo", parseGeo(params, issues)),
+    ...optional("geo", geoParse.geo),
     ...optional(
       SEARCH_PARAM.sort,
       params.get(SEARCH_PARAM.sort) ?? options.defaultSort
@@ -268,7 +323,11 @@ export function parseSearchState(
     ...optional("limit", limit),
   };
 
-  return { state, issues };
+  return {
+    state,
+    issues,
+    ...optional("orphanRadiusKm", geoParse.orphanRadiusKm),
+  };
 }
 
 /** `exactOptionalPropertyTypes` makes `{k: undefined}` and "absent" different

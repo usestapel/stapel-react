@@ -13,17 +13,59 @@ import type { components } from "./generated/schema.js";
 /** The generated schema table — the one source of truth for wire shapes. */
 export type Schemas = components["schemas"];
 
-/** `GET /query` 200 — the whole envelope. */
-export type SearchResponse = Schemas["SearchResponse"];
+/** `GET /query` 200 — the whole envelope. Corrected in one place: see
+ * {@link FacetMeta}. */
+export type SearchResponse = Omit<Schemas["SearchResponse"], "facet_meta"> & {
+  readonly facet_meta: FacetMeta;
+};
 
 /** One result row. `promoted` is present on EVERY item under EVERY sort — a
  * mandatory marking (DSA Art. 26), not an optional field, which is why the
  * card slot's contract carries it and why the default skin renders it. */
 export type SearchItem = Schemas["SearchItem"];
 
-/** The honesty block beside the counts: `approximate`, `candidates`,
- * `counted`, `skipped`. Rendered, never swallowed (spec §4.2). */
-export type FacetMeta = Schemas["FacetMeta"];
+/**
+ * One group the counter COUNTED and then held back, because its buckets
+ * describe too little of the result set (`FACET_MIN_COVERAGE`).
+ *
+ * The existence of this list is what makes "this search offers no filters"
+ * a false sentence whenever it is not empty (D175).
+ */
+export interface FacetWithheldGroup {
+  readonly slug: string;
+  /** Sum of that group's bucket counts — how much of the set it describes. */
+  readonly coverage: number;
+  /** Size of the candidate set `coverage` is a fraction of. */
+  readonly candidates: number;
+}
+
+/** One category the candidate set is made of. */
+export interface FacetCategoryCount {
+  /** The slash-joined id path (`"32/149/163"`) — the SAME string the
+   * `category` filter and `SearchQueryState.category` already take, so a
+   * panel can offer it as a filter without translating anything. */
+  readonly category: string;
+  readonly count: number;
+}
+
+/**
+ * The honesty block beside the counts: `approximate`, `candidates`,
+ * `counted`, `skipped`, and (stapel-search 0.12.0+) where the facet plan came
+ * from. Rendered, never swallowed (spec §4.2).
+ *
+ * WHAT THE GENERATOR LOST: drf-spectacular describes `withheld` and
+ * `categories` as bare `object` arrays, so the generated members are
+ * `{[key: string]: unknown}[]` — the two fields a panel has to read
+ * field-by-field are the two it cannot. Both are corrected here to the
+ * documented row shapes; nothing else about `FacetMeta` is hand-written.
+ */
+export type FacetMeta = Omit<
+  Schemas["FacetMeta"],
+  "withheld" | "categories"
+> & {
+  readonly withheld: readonly FacetWithheldGroup[];
+  readonly categories: readonly FacetCategoryCount[];
+};
 
 /** `GET /suggest` 200, as the CURRENT generated schema describes it. */
 export type SuggestResponse = Schemas["SuggestResponse"];
@@ -259,6 +301,10 @@ export type SearchDegradationKind =
   | "exact_total"
   | "exact_facet_counts"
   | "category_rollup"
+  /** The engine has no `category_counts` verb, so the categories the result
+   * set is made of are unknown and no evidence facet plan could be drawn.
+   * An empty filter panel then means "we do not know", not "there are none". */
+  | "facet_plan_evidence"
   | "scorer"
   | "unknown";
 

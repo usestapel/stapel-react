@@ -17,12 +17,26 @@ import type { SearchDegradation, SearchDegradationKind } from "../api/types.js";
 
 const SCORER_PREFIX = "scorer:";
 
+/**
+ * "This answer's facet plan could not be drawn from evidence."
+ *
+ * Named rather than inlined because the FACET PANEL reads the raw literal
+ * off the envelope: whether "this search offers no filters" is a true
+ * sentence is a question about THIS answer, not about the banner, and the
+ * panel must not have to parse the whole list to ask it.
+ */
+export const FACET_PLAN_EVIDENCE = "facet_plan_evidence";
+
 const KNOWN: Readonly<Record<string, SearchDegradationKind>> = {
   typo_tolerance: "typo_tolerance",
   phrase_synonyms: "phrase_synonyms",
   exact_total: "exact_total",
   exact_facet_counts: "exact_facet_counts",
   category_rollup: "category_rollup",
+  // Reader-facing by omission from OPERATOR_KINDS below, and deliberately:
+  // it changes what an empty filter panel MEANS, which is the one thing on
+  // the page a buyer can act on (widen, or filter by category instead).
+  [FACET_PLAN_EVIDENCE]: "facet_plan_evidence",
 };
 
 /** i18n key per kind (`search.degraded.*`). */

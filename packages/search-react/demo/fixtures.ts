@@ -164,7 +164,7 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
     dropped_filters: [],
     // The core axes stapel-search 0.4.0 declares per answer. `price` is why
     // the demo panel has a money range above the attribute rows at all.
-    core_ranges: ["price"],
+    core_ranges: ["price"], plan: "category", withheld: [], categories: [],
   },
   facet_labels: {
     condition: {
@@ -199,7 +199,7 @@ export const DEMO_EMPTY_RESPONSE: SearchResponse = {
   ...DEMO_SEARCH_RESPONSE,
   items: [],
   facets: {},
-  facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [] },
+  facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
   next_anchor: null,
   prev_anchor: null,
   has_next: false,

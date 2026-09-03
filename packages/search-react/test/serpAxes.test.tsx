@@ -211,7 +211,7 @@ describe("a facet bucket reads as words", () => {
         candidates: 3,
         counted: ["brand"],
         skipped: [],
-        dropped_filters: [], core_ranges: [],
+        dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       facetLabels: {
         brand: { translatable: true, values: { apple: "b.apple" } },

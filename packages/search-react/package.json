@@ -61,12 +61,12 @@
     {
       "name": "index — the headless pair (client + hooks + URL codec + facet model incl. the facetability rule and the host label seam): no antd, no react-router",
       "path": "dist/index.js",
-      "limit": "11 KB"
+      "limit": "11.5 KB"
     },
     {
       "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking) must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "22 KB"
+      "limit": "22.5 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",

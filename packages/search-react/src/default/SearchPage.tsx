@@ -426,6 +426,11 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const filtersEmpty =
     facets.state.status === "ready" &&
     facets.state.data.length === 0 &&
+    // Zero groups is not zero filters: `withheld` names groups the server
+    // counted and held back for covering too little of the result set, and
+    // the panel's job is to say how many (D175). Skipping the column would
+    // put that sentence nowhere.
+    facets.withheld.length === 0 &&
     facets.activeFilters === 0 &&
     ranges.length === 0 &&
     state.category === undefined &&

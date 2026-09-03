@@ -75,6 +75,10 @@ export const searchI18nBundleEs: I18nDictionary = {
     "Los recuentos son aproximados: había demasiados candidatos para contarlos todos.",
   "search.facets.skipped":
     "Estos filtros no se contaron para esta búsqueda: {slugs}",
+  "search.facets.withheld.one":
+    "{count} filtro se aplica a muy pocos de estos resultados",
+  "search.facets.withheld.other":
+    "{count} filtros se aplican a muy pocos de estos resultados",
   "search.facets.not_counted": "sin contar",
   "search.facets.drill_down_hint":
     "Cada recuento es lo que obtendrías eligiendo ese valor en lugar del actual.",
@@ -125,12 +129,14 @@ export const searchI18nBundleEs: I18nDictionary = {
 
   "search.geo.title": "Ubicación",
   "search.geo.radius_km": "A menos de {km} km",
+  "search.geo.radius_km_short": "{km} km",
   "search.geo.radius_label": "Radio, km",
   "search.geo.clear": "En cualquier lugar",
   "search.geo.near_me": "Cerca de mí",
   "search.geo.everywhere": "Buscando en todas partes",
   "search.geo.box": "Dentro del área mostrada",
   "search.geo.chosen_place": "Un lugar elegido en el mapa",
+  "search.geo.near_you": "Cerca de ti",
 
   "search.url.issues_title": "Parte de este enlace no se pudo leer",
   "search.url.issue.not_a_number":
@@ -141,6 +147,8 @@ export const searchI18nBundleEs: I18nDictionary = {
     "el área del mapa de este enlace está incompleta, así que se ignoró",
   "search.url.issue.range_malformed":
     "al rango «{param}» de este enlace le faltan números, así que se ignoró",
+  "search.url.issue.radius_without_place":
+    "este enlace pide un radio pero no nombra ningún lugar, así que aún no se acota nada — elige un lugar y se aplicará ese mismo radio",
 
   "search.degraded.title": "Lo que esta búsqueda no pudo hacer",
   "search.degraded.typo_tolerance":
@@ -151,6 +159,8 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.degraded.exact_facet_counts": "Los recuentos de filtros son aproximados.",
   "search.degraded.category_rollup":
     "Pueden faltar subcategorías en estos resultados: el servicio de categorías no respondió.",
+  "search.degraded.facet_plan_evidence":
+    "No pudimos determinar qué filtros encajan con estos resultados, así que puede haber más de los que muestra el panel.",
   "search.degraded.scorer":
     "El parámetro de ranking «{scorer}» no se aplicó: el motor configurado no puede evaluarlo.",
   "search.degraded.unknown":

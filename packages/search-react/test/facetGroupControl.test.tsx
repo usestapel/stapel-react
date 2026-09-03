@@ -40,7 +40,7 @@ function groupsFor(
       approximate: false,
       candidates: 30,
       counted: Object.keys(facets),
-      skipped: [], dropped_filters: [], core_ranges: [],
+      skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
     },
     state: parseSearchState(new URLSearchParams(search), OPTIONS).state,
     categoryFeatures: CLASSIFIED_FEATURES,
@@ -89,7 +89,7 @@ describe("the shape is derived from the schema, never configured at the call sit
   it("falls back to checkboxes when the host passed NO schema at all", () => {
     const [group] = buildFacetGroups({
       facets: { colour: { red: 2, blue: 9 } },
-      meta: { approximate: false, candidates: 11, counted: ["colour"], skipped: [], dropped_filters: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 11, counted: ["colour"], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
       state: parseSearchState(new URLSearchParams("type=listing"), OPTIONS).state,
     });
     expect(group).toBeDefined();
@@ -452,7 +452,7 @@ describe("a slug the server skipped still says so, in every shape", () => {
         approximate: false,
         candidates: 0,
         counted: [],
-        skipped: ["condition"], dropped_filters: [], core_ranges: [],
+        skipped: ["condition"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       state: parseSearchState(
         new URLSearchParams("type=listing&f.condition=new"),

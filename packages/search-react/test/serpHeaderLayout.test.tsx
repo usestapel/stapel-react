@@ -89,11 +89,15 @@ describe("the row is one flex line, so its two halves cannot intersect", () => {
     expect(getComputedStyle(row).display).toBe("flex");
     expect(getComputedStyle(row).flexWrap).not.toBe("wrap");
     // Both halves are CHILDREN of that row: a flex line places its items one
-    // after another, and nothing outside the line can be pushed into it.
-    const where = screen.getByTestId("search-location-open");
+    // after another, and nothing outside the line can be pushed into it. The
+    // leading half is now the GROUP — the place and the offer inside one box
+    // (D184: as two bare links at opposite ends of a 992px strip they read as
+    // two unrelated controls) — and the group is what takes the line's slot.
+    const group = screen.getByTestId("search-location-group");
     const end = screen.getByTestId("search-location-filters-badge");
-    expect(where.parentElement).toBe(row);
+    expect(group.parentElement).toBe(row);
     expect(end.parentElement).toBe(row);
+    expect(screen.getByTestId("search-location-open").parentElement).toBe(group);
   });
 
   it("gives the growth and the shrink to the place, and none to the word", () => {

@@ -116,6 +116,17 @@ export const SEARCH_I18N_KEYS = {
   facetsClearAll: "search.facets.clear_all",
   facetsApproximate: "search.facets.approximate",
   facetsSkipped: "search.facets.skipped",
+  /**
+   * "N filters apply to too few of these results" — the sentence that
+   * REPLACES {@link facetsEmpty} whenever `facet_meta.withheld` is not
+   * empty. A PLURAL FAMILY: it counts a noun in words.
+   *
+   * D175: a branch category holding 46 phones that all carry a manufacturer
+   * printed "this search offers no filters". The groups were counted and
+   * then withheld for covering too little of the set — so "there are none"
+   * was false, and the honest sentence is this one, with the number in it.
+   */
+  facetsWithheld: "search.facets.withheld",
   /** Shown INSTEAD of a count for a slug the server did not count. */
   facetsNotCounted: "search.facets.not_counted",
   facetsDrillDownHint: "search.facets.drill_down_hint",
@@ -217,6 +228,19 @@ export const SEARCH_I18N_KEYS = {
   // ── geo ──────────────────────────────────────────────────────────────────
   geoTitle: "search.geo.title",
   geoRadiusKm: "search.geo.radius_km",
+  /**
+   * The same number, said in the fewest words that still say it — for the
+   * OFFER, where the sentence shares a 390px line with a place name and the
+   * word "Filters".
+   *
+   * Measured at 390: "Near me · Within 25 km" made the control 272px wide
+   * against 231px of room, so the offer was cut mid-word by the group's own
+   * clip and the filters door overlapped it by 52px. Dropping the number
+   * instead was not an option — a button that says only "near me" asks a
+   * person to accept a radius they cannot see, which is the whole reason the
+   * offer states one. So the PREPOSITION goes and the number stays.
+   */
+  geoRadiusKmShort: "search.geo.radius_km_short",
   geoRadiusLabel: "search.geo.radius_label",
   geoClear: "search.geo.clear",
   geoNearMe: "search.geo.near_me",
@@ -243,6 +267,18 @@ export const SEARCH_I18N_KEYS = {
    * `geoLabel` and this sentence never appears.
    */
   geoChosenPlace: "search.geo.chosen_place",
+  /**
+   * What the line says when the applied location IS the position the host
+   * offered — the visitor pressed "Near me" and nothing else has moved since.
+   *
+   * Measured on a live leaf: pressing the offer turned the line into "A chosen
+   * place on the map", to a person who had never opened a map. The sentence
+   * was not wrong about the mechanism (a centre with a radius is what a map
+   * pick produces); it was wrong about the only thing the reader can check —
+   * how the search came to be looking there. The provider reports the fact
+   * (`geoIsOffer`) rather than this file guessing at it.
+   */
+  geoNearYou: "search.geo.near_you",
 
   // ── the URL that could not be read ───────────────────────────────────────
   urlIssuesTitle: "search.url.issues_title",
@@ -250,6 +286,8 @@ export const SEARCH_I18N_KEYS = {
   urlIssueGeoIncomplete: "search.url.issue.geo_incomplete",
   urlIssueBboxMalformed: "search.url.issue.bbox_malformed",
   urlIssueRangeMalformed: "search.url.issue.range_malformed",
+  /** A radius with no point to measure it from — see `urlState.ts`. */
+  urlIssueRadiusWithoutPlace: "search.url.issue.radius_without_place",
 
   // ── degradations (the envelope's `degraded[]`) ───────────────────────────
   degradedTitle: "search.degraded.title",
@@ -258,6 +296,10 @@ export const SEARCH_I18N_KEYS = {
   degradedExactTotal: "search.degraded.exact_total",
   degradedExactFacetCounts: "search.degraded.exact_facet_counts",
   degradedCategoryRollup: "search.degraded.category_rollup",
+  /** The engine cannot say which categories the results are in, so no facet
+   * plan could be drawn from them — a READER-facing sentence, because the
+   * consequence is a filter panel that is thinner than the catalogue. */
+  degradedFacetPlanEvidence: "search.degraded.facet_plan_evidence",
   degradedScorer: "search.degraded.scorer",
   degradedUnknown: "search.degraded.unknown",
 
@@ -329,6 +371,7 @@ export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
   SEARCH_I18N_KEYS.filtersShowCountAtLeast,
   SEARCH_I18N_KEYS.boxCategoryCount,
   SEARCH_I18N_KEYS.facetsMatchCount,
+  SEARCH_I18N_KEYS.facetsWithheld,
 ];
 
 /**
@@ -401,6 +444,10 @@ export const searchI18nBundleEn: Record<string, string> = {
     "Counts are approximate — there were too many candidates to count them all.",
   "search.facets.skipped":
     "These filters were not counted for this search: {slugs}",
+  "search.facets.withheld.one":
+    "{count} filter applies to too few of these results",
+  "search.facets.withheld.other":
+    "{count} filters apply to too few of these results",
   "search.facets.not_counted": "not counted",
   "search.facets.drill_down_hint":
     "Each count is what you would get by choosing that value instead of the one you have.",
@@ -452,11 +499,13 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.geo.title": "Location",
   "search.geo.near_me": "Near me",
   "search.geo.radius_km": "Within {km} km",
+  "search.geo.radius_km_short": "{km} km",
   "search.geo.radius_label": "Radius, km",
   "search.geo.clear": "Anywhere",
   "search.geo.everywhere": "Searching everywhere",
   "search.geo.box": "Inside the shown area",
   "search.geo.chosen_place": "A chosen place on the map",
+  "search.geo.near_you": "Near you",
 
   "search.url.issues_title": "Part of this link could not be read",
   "search.url.issue.not_a_number": "“{param}” in this link is not a number, so it was ignored",
@@ -466,6 +515,8 @@ export const searchI18nBundleEn: Record<string, string> = {
     "the map area in this link is incomplete, so it was ignored",
   "search.url.issue.range_malformed":
     "the range “{param}” in this link needs two numbers, so it was ignored",
+  "search.url.issue.radius_without_place":
+    "this link asks for a radius but names no place, so nothing is narrowed yet — choose a place and this radius is the one that applies",
 
   "search.degraded.title": "What this search could not do",
   "search.degraded.typo_tolerance":
@@ -476,6 +527,8 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.degraded.exact_facet_counts": "The filter counts are approximate.",
   "search.degraded.category_rollup":
     "Subcategories may be missing from these results — the category service did not answer.",
+  "search.degraded.facet_plan_evidence":
+    "We could not work out which filters fit these results, so there may be more than the panel shows.",
   "search.degraded.scorer":
     "The ranking parameter “{scorer}” was not applied — the search engine in use cannot evaluate it.",
   "search.degraded.unknown":

@@ -490,4 +490,80 @@ describe("a location filter is never applied without the person asking", () => {
     });
     expect(server.lastQuery("/query")?.get("radius_km")).toBe("25");
   });
+
+  it("names the place the way the person got there, not the way it is stored", async () => {
+    // D184, second half. Pressing "Near me" turned the summary into "A chosen
+    // place on the map" — said to somebody who had never opened a map. The
+    // fallback is not wrong about the MECHANISM (a centre with a radius is
+    // what a map pick produces); it is wrong about the only thing the reader
+    // can check. `geoIsOffer` is the provider reporting provenance rather
+    // than this line inferring it from three numbers that look identical
+    // whatever produced them.
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    function Page(): ReactElement {
+      const adapter = useTestParams("type=listing");
+      return (
+        <SearchPage adapter={adapter} defaultType="listing" geoOffer={MOSCOW} />
+      );
+    }
+    render(
+      <TestProviders server={server}>
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-location-offer")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("search-location-offer"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("search-location-offer")).toBeNull();
+    });
+    const label = screen.getByTestId("search-location-label").textContent ?? "";
+    expect(label).toContain("Near you");
+    expect(label).not.toContain("map");
+  });
+
+  it("says out loud that a radius with no place narrowed nothing", async () => {
+    // D187. `?radius_km=300` with no lat/lon: the search that ran was the
+    // honest one (a radius with no centre applies to nothing, and the count
+    // stayed the full count), and the control went on advertising its own
+    // 25km default. Two numbers on one screen, and nothing saying which one
+    // the page had used. Neither is rewritten; the disagreement is named,
+    // through the same notice every other unreadable parameter goes through.
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    function Page(): ReactElement {
+      const adapter = useTestParams("type=listing&radius_km=300");
+      return (
+        <SearchPage adapter={adapter} defaultType="listing" geoOffer={MOSCOW} />
+      );
+    }
+    render(
+      <TestProviders server={server}>
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-url-issues")).toBeTruthy();
+    });
+    expect(screen.getByTestId("search-url-issues").textContent).toContain(
+      "names no place"
+    );
+    // …and the search itself is untouched: the URL is not rewritten and no
+    // location reaches the wire.
+    expect(server.lastQuery("/query")?.get("radius_km")).toBeNull();
+    expect(server.lastQuery("/query")?.get("lat")).toBeNull();
+
+    // D170: the offer now CARRIES the number the link asked for. It used to
+    // advertise the host's own 25 and, on the press, write 25 into the
+    // address over the 300 that was already there — the one place the URL was
+    // rewritten behind the visitor.
+    expect(
+      screen.getByTestId("search-location-offer-radius").textContent
+    ).toContain("300");
+    fireEvent.click(screen.getByTestId("search-location-offer"));
+    await waitFor(() => {
+      expect(server.lastQuery("/query")?.get("lat")).toBe("55.756");
+    });
+    expect(server.lastQuery("/query")?.get("radius_km")).toBe("300");
+  });
 });

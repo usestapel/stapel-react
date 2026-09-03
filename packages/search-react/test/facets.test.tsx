@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { buildFacetGroups, facetOptionLabel, parseSearchState } from "../src/index.js";
+import {
+  FacetPanel,
+  buildFacetGroups,
+  facetOptionLabel,
+  parseSearchState,
+} from "../src/index.js";
+import type { FacetPanelBag } from "../src/index.js";
 import { FacetPanelPane } from "../src/default/index.js";
 import { FEATURES, searchResponse } from "./fixtures.js";
 import { TestHarness, mockServer } from "./harness.js";
@@ -36,7 +42,7 @@ describe("drill-down: a facet is counted with its own filter removed", () => {
     // reshuffled by count is a size chart that moves on every click.
     const groups = buildFacetGroups({
       facets: { brand: { makita: 9, bosch: 12, interskol: 0 } },
-      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
       state: stateOf("type=listing"),
       categoryFeatures: FEATURES,
     });
@@ -50,7 +56,7 @@ describe("drill-down: a facet is counted with its own filter removed", () => {
   it("orders an unlabelled (open) set by count", () => {
     const groups = buildFacetGroups({
       facets: { colour: { red: 2, blue: 9, green: 5 } },
-      meta: { approximate: false, candidates: 16, counted: ["colour"], skipped: [], dropped_filters: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 16, counted: ["colour"], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
       state: stateOf("type=listing"),
     });
     expect(groups[0]?.options.map((o) => o.value)).toEqual(["blue", "green", "red"]);
@@ -65,7 +71,7 @@ describe("a skipped slug says 'not counted', never 0", () => {
         approximate: false,
         candidates: 12,
         counted: ["brand"],
-        skipped: ["power_w"], dropped_filters: [], core_ranges: [],
+        skipped: ["power_w"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       state: stateOf("type=listing&f.power_w=750"),
     });
@@ -80,7 +86,7 @@ describe("a skipped slug says 'not counted', never 0", () => {
     // Otherwise the filter is a constraint with no control to remove it.
     const groups = buildFacetGroups({
       facets: {},
-      meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
       state: stateOf("type=listing&f.brand=bosch"),
       categoryFeatures: FEATURES,
     });
@@ -102,7 +108,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 12,
         counted: ["brand"],
-        skipped: ["condition"], dropped_filters: [], core_ranges: [],
+        skipped: ["condition"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       state: stateOf("type=listing"),
       categoryFeatures: FEATURES,
@@ -124,7 +130,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 3,
         counted: [],
-        skipped: ["condition"], dropped_filters: [], core_ranges: [],
+        skipped: ["condition"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       state: stateOf("type=listing&f.condition=used"),
       categoryFeatures: FEATURES,
@@ -145,7 +151,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 4,
         counted: [],
-        skipped: ["make_ref"], dropped_filters: [], core_ranges: [],
+        skipped: ["make_ref"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       state: stateOf("type=listing"),
       categoryFeatures: [
@@ -166,7 +172,7 @@ describe("an uncounted facet is still a FILTER", () => {
         approximate: false,
         candidates: 4,
         counted: [],
-        skipped: ["colour"], dropped_filters: [], core_ranges: [],
+        skipped: ["colour"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
       },
       state: stateOf("type=listing"),
       facetLabels: {
@@ -193,7 +199,7 @@ describe("labels come from the category schema (@stapel/attributes-react)", () =
   it("resolves the group name and the option captions", () => {
     const groups = buildFacetGroups({
       facets: { brand: { bosch: 12, makita: 9 } },
-      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 21, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
       state: stateOf("type=listing"),
       categoryFeatures: FEATURES,
       t,
@@ -206,7 +212,7 @@ describe("labels come from the category schema (@stapel/attributes-react)", () =
     // No labels invented: raw values are the honest answer, blanks are not.
     const groups = buildFacetGroups({
       facets: { brand: { bosch: 12 } },
-      meta: { approximate: false, candidates: 12, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [] },
+      meta: { approximate: false, candidates: 12, counted: ["brand"], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
       state: stateOf("type=listing"),
     });
     expect(groups[0]?.label).toBe("brand");
@@ -244,7 +250,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: true,
             candidates: 15000,
             counted: ["brand"],
-            skipped: ["power_w", "colour"], dropped_filters: [], core_ranges: [],
+            skipped: ["power_w", "colour"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
           },
         }),
       },
@@ -274,7 +280,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: true,
             candidates: 15000,
             counted: ["brand"],
-            skipped: ["power_w", "colour"], dropped_filters: [], core_ranges: [],
+            skipped: ["power_w", "colour"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
           },
         }),
       },
@@ -299,7 +305,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: false,
             candidates: 12,
             counted: ["brand"],
-            skipped: [], dropped_filters: [], core_ranges: [],
+            skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
           },
         }),
       },
@@ -326,7 +332,7 @@ describe("the panel renders the server's honesty flags", () => {
             approximate: false,
             candidates: 12,
             counted: ["brand"],
-            skipped: ["power_w"], dropped_filters: [], core_ranges: [],
+            skipped: ["power_w"], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
           },
         }),
       },
@@ -362,7 +368,7 @@ describe("the panel renders the server's honesty flags", () => {
       "/query": {
         body: searchResponse({
           facets: {},
-          facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [] },
+          facet_meta: { approximate: false, candidates: 0, counted: [], skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [] },
         }),
       },
     });
@@ -375,5 +381,144 @@ describe("the panel renders the server's honesty flags", () => {
       expect(screen.getByTestId("facets-empty")).toBeTruthy();
     });
     expect(screen.queryByTestId("facets-failed")).toBeNull();
+  });
+});
+
+/**
+ * D175 — "this search offers no filters" over 46 phones that all carry a
+ * manufacturer. The backend half is `facet_meta.plan: "evidence"`; this is
+ * the half that decides whether the sentence is still allowed to be printed.
+ * `search.facets.empty` is a CLAIM about the answer, and there are two ways
+ * for it to be false while the group list is empty: the server counted
+ * groups and held them back (`withheld`), or it could not work a plan out at
+ * all (`degraded: ["facet_plan_evidence"]`).
+ */
+describe("«no filters» is a claim, and the answer can contradict it", () => {
+  const META_BASE = {
+    approximate: false,
+    candidates: 46,
+    counted: [],
+    skipped: [],
+    dropped_filters: [],
+    core_ranges: [],
+    plan: "evidence",
+    withheld: [],
+    categories: [],
+  };
+
+  it("says how many filters were left out, never «no filters»", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          facets: {},
+          facet_meta: {
+            ...META_BASE,
+            withheld: [
+              { slug: "manufacturer", coverage: 4, candidates: 46 },
+              { slug: "model", coverage: 2, candidates: 46 },
+            ],
+            categories: [{ category: "32/149/163", count: 46 }],
+          },
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("facets-withheld")).toBeTruthy();
+    });
+    // The count is the whole point: two filters exist and describe too little
+    // of this result set. Saying "none" is the lie D175 was.
+    expect(screen.getByTestId("facets-withheld").textContent).toContain("2");
+    expect(screen.queryByTestId("facets-empty")).toBeNull();
+  });
+
+  it("still says «no filters» when the answer really offers none", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({ facets: {}, facet_meta: { ...META_BASE, candidates: 0 } }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("facets-empty")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("facets-withheld")).toBeNull();
+  });
+
+  it("claims nothing when the server could not work the plan out", async () => {
+    // `facet_plan_evidence` means the engine has no `category_counts` verb,
+    // so there IS no evidence plan. "This search offers no filters" is then
+    // a statement the answer does not support — the degradation notice is
+    // what tells the reader, and the panel's job is to not contradict it.
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          facets: {},
+          facet_meta: { ...META_BASE, candidates: 0 },
+          degraded: ["facet_plan_evidence"],
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-stapel-load-state="empty"]')
+      ).toBeTruthy();
+    });
+    expect(screen.getByTestId("search-facets")).toBeTruthy();
+    expect(screen.queryByTestId("facets-empty")).toBeNull();
+    expect(screen.queryByTestId("facets-withheld")).toBeNull();
+  });
+
+  it("projects facet_meta.categories onto the bag, busiest first", async () => {
+    // What a host needs to build the counted category filter that a text
+    // search has no other way to offer: the `category` string is the same
+    // slash-joined id path the filter and the URL state already take.
+    const categories = [
+      { category: "32/149/163", count: 46 },
+      { category: "32/149/164", count: 3 },
+    ];
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          facets: {},
+          facet_meta: {
+            ...META_BASE,
+            categories,
+            withheld: [{ slug: "manufacturer", coverage: 4, candidates: 46 }],
+          },
+        }),
+      },
+    });
+    let seen: FacetPanelBag | undefined;
+    render(
+      <TestHarness server={server}>
+        <FacetPanel>
+          {(bag) => {
+            seen = bag;
+            return <div data-testid="bag">{bag.plan}</div>;
+          }}
+        </FacetPanel>
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("bag").textContent).toBe("evidence");
+    });
+    expect(seen?.categories).toEqual(categories);
+    expect(seen?.withheld).toEqual([
+      { slug: "manufacturer", coverage: 4, candidates: 46 },
+    ]);
   });
 });

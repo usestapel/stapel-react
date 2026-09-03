@@ -2,9 +2,15 @@ import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad, useT } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import type { FeatureDef } from "@stapel/attributes-react";
-import type { FacetMeta, SearchRange } from "../api/types.js";
+import type {
+  FacetCategoryCount,
+  FacetMeta,
+  FacetWithheldGroup,
+  SearchRange,
+} from "../api/types.js";
 import { useSearchQuery } from "../model/queries.js";
 import { buildFacetGroups } from "../state/facets.js";
+import { FACET_PLAN_EVIDENCE } from "../state/degradations.js";
 import type { FacetGroup } from "../state/facets.js";
 import { useHostFacetLabels } from "./useFacetLabels.js";
 import type { FacetLabelResolver } from "./useFacetLabels.js";
@@ -51,6 +57,34 @@ export interface FacetPanelBag {
   readonly currency: string | undefined;
   /** Size of the largest counted set — the number `approximate` is about. */
   readonly candidates: number;
+  /**
+   * Groups the counter COUNTED and then held back, because their buckets
+   * describe too little of the result set. Not empty means the panel may
+   * NOT say "this search offers no filters" — it says how many, instead.
+   */
+  readonly withheld: readonly FacetWithheldGroup[];
+  /**
+   * The categories this answer's candidate set is made of, busiest first —
+   * the evidence the plan was drawn from, and the counted category filter a
+   * text search has no other way to offer. Empty when the plan is the
+   * queried category's own. `category` is the same slash-joined id path
+   * `SearchQueryState.category` takes.
+   */
+  readonly categories: readonly FacetCategoryCount[];
+  /**
+   * Where the plan came from: `"category"` (the queried category's own
+   * authored schema) or `"evidence"` (the categories the candidate set
+   * actually contains).
+   */
+  readonly plan: string;
+  /**
+   * True when the server could not work out a plan AT ALL — the engine has
+   * no `category_counts` verb (`degraded: ["facet_plan_evidence"]`). An
+   * empty panel then means "we do not know", so a skin must not print
+   * "there are no filters" over it; the degradation notice is what tells
+   * the reader.
+   */
+  readonly planUnavailable: boolean;
   /** Facet values + ranges + geo currently applied. */
   readonly activeFilters: number;
 
@@ -67,6 +101,9 @@ const EMPTY_META: FacetMeta = {
   skipped: [],
   dropped_filters: [],
   core_ranges: [],
+  plan: "category",
+  withheld: [],
+  categories: [],
 };
 
 /**
@@ -174,6 +211,17 @@ export function useFacetPanel(props: {
             ?.card?.["currency"] as string | undefined
         : undefined,
     candidates: meta.candidates,
+    withheld: meta.withheld ?? [],
+    categories: meta.categories ?? [],
+    plan: meta.plan ?? "category",
+    // Read off the raw list rather than through `parseDegradations`: the
+    // question is whether THIS answer supports the sentence "no filters",
+    // and the banner's own parsing is a different job on a different
+    // surface. Guarded on the READY state, never flattened — a query still
+    // in flight has not said anything about its facet plan.
+    planUnavailable:
+      envelope.status === "ready" &&
+      envelope.data.degraded.includes(FACET_PLAN_EVIDENCE),
     activeFilters,
     toggle: toggleFilter,
     setRange,
