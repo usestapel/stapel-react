@@ -1,4 +1,4 @@
-# @stapel/search-react 0.18.1
+# @stapel/search-react 0.19.0
 
 Headless React flow pair for stapel-search (contract >=0.10 <0.11) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,

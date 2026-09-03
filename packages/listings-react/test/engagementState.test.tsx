@@ -190,6 +190,27 @@ describe("the view count on the listing page", () => {
     expect(screen.getByTestId("listings-detail-views").textContent).toBe("1284");
   });
 
+  it("reads on the page's meta line and NOT as a row of the specs table", async () => {
+    await pane({ view_count: 1284 });
+    // Where it spent a release: a `<Descriptions.Item>` between "Colour" and
+    // "Where it is", two screens below the fold, read as a property of the
+    // GOODS (walker D106). A view count is a fact about the page.
+    const views = screen.getByTestId("listings-detail-views");
+    expect(views.closest(".ant-descriptions")).toBeNull();
+    // …and it sits with the title, above the price, where a reader looks for
+    // how much company they have.
+    const meta = screen.getByTestId("listings-detail-meta");
+    expect(meta.contains(views)).toBe(true);
+    const title = screen.getByTestId("listings-detail-title");
+    expect(
+      title.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    const price = screen.getByTestId("listings-detail-price");
+    expect(
+      meta.compareDocumentPosition(price) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
   it("shows a real zero — 'nobody yet' is a fact a seller can act on", async () => {
     await pane({ view_count: 0 });
     expect(screen.getByTestId("listings-detail-views").textContent).toBe("0");

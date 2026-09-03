@@ -1,5 +1,19 @@
 # @stapel/search-react
 
+## 0.19.0
+
+### Minor Changes
+
+- 9c8ee74: search: the filter rail ranks by evidence like the chip row already did, and a host can scope the results the pane drew
+
+  **The rail was ordered by the catalogue importer.** The rail redesign gave it disclosures, an evidence-ranked set of OPEN groups, a panel search and a sticky footer. It never touched the SEQUENCE, which stayed whatever `buildFacetGroups` and `buildRangeGroups` emitted. On the deployed mobile-phones leaf that read: Category, Where to look, Price, then battery health, parcel weight, parcel length, parcel height, parcel width, minimum order count and packing count — 908px of parcel logistics — and only then brand, model and colour.
+
+  The rail is sticky, viewport-tall and scrolls internally, so what that order costs is not a longer page. At 1440x900 the brand facet sat at y about 1500 and entered the viewport at no page scroll at all: a buyer on the phones leaf was offered seven ways to filter by shipping weight and no way to filter by brand (walker D120/D121 on the desktop, D74 on the phone). The filters themselves were fine — a programmatic click still narrowed correctly — which is why the pass reported it as a layout fault. It is an ordering fault.
+
+  The chip row has ranked exactly this since D16. Its comparator now lives in `state/facets.ts` as `compareFacetsByEvidence` / `orderFacetGroups`, and both surfaces use the one definition: answered axes first, then coverage — the answer's own evidence of which axes this corpus actually fills — with ties keeping the authored order. The panel additionally splits its numeric rows the way `CHIP_BAND_ORDER` already states: the CORE ranges the server declares for every document (the price) render above the facets, and the category's own numeric attributes render below them, in `search-ranges-attributes`. Nothing is deleted — a buyer who wants a shipping-weight bound still has one, in the place the evidence puts it.
+
+  **`wrapResults`, the slot around the results.** A container that needs to publish something over the rows the pane just drew — a per-reader overlay, an observer, an analytics boundary — needs the rows AND the pane's grid, and `renderResults` only offered the first at the price of the second. The measured cost: a storefront that dims already-seen listings could open its engagement scope on its own landing feed and not on `/s` or `/c/:slug`, which reach the pane through `SearchPage` and its internal `SearchStateProvider` — so the feature worked on one of the three screens a buyer scrolls and silently did nothing on the other two (walker D105). `wrapResults(rows, results)` is on `SearchResultsPane` and forwarded by `SearchPage`; it is called on the loaded arm only, so the pane keeps all four of its load sentences.
+
 ## 0.18.1
 
 ### Patch Changes

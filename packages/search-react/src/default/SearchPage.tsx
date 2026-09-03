@@ -86,6 +86,7 @@ import { FilterChips } from "./FilterChips.js";
 import { PageSizeSelect } from "./PageSizeSelect.js";
 import { SearchBox } from "./SearchBox.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
+import type { SearchResultsWrapper } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
 import { SEARCH_BUILTIN_VIEWS, ViewSwitch, resolveView } from "./ViewSwitch.js";
 import type { SearchView } from "./ViewSwitch.js";
@@ -293,6 +294,13 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly breadcrumb?: ReactNode;
   /**
+   * Wrap the results the page drew — a provider, an observer, an analytics
+   * boundary — without taking over the arrangement. Handed straight to
+   * `<SearchResultsPane wrapResults>`; see {@link SearchResultsWrapper} for
+   * why a host cannot do this with `views`/`renderResults` alone.
+   */
+  readonly wrapResults?: SearchResultsWrapper;
+  /**
    * The arrangements the view switch offers. Default: the pair's own list and
    * grid. A deployment adds its own — `{ id: "map", labelKey, icon, render }`
    * — and the switch treats it like the two that ship; see {@link SearchView}.
@@ -345,6 +353,7 @@ interface SearchPageBodyProps {
   readonly defaultFiltersOpen?: boolean;
   readonly pageSize?: boolean;
   readonly breadcrumb?: ReactNode;
+  readonly wrapResults?: SearchResultsWrapper;
   readonly views?: readonly SearchView[];
   readonly defaultView?: string;
   readonly onViewChange?: (id: string) => void;
@@ -503,6 +512,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(phoneToolbar ? { header: "compact" as const } : {})}
       headingLevel={props.resultsHeadingLevel ?? 1}
       {...(view.render !== undefined ? { renderResults: view.render } : {})}
+      {...(props.wrapResults !== undefined ? { wrapResults: props.wrapResults } : {})}
       {...(view.layout !== undefined ? { layout: view.layout } : {})}
       {...(props.renderCard !== undefined ? { renderCard: props.renderCard } : {})}
       {...(props.footer !== undefined ? { footer: props.footer } : {})}
@@ -643,6 +653,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     defaultFiltersOpen,
     pageSize,
     breadcrumb,
+    wrapResults,
     views,
     defaultView,
     onViewChange,
@@ -676,6 +687,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(pageSize !== undefined ? { pageSize } : {})}
           {...(breadcrumb !== undefined ? { breadcrumb } : {})}
+          {...(wrapResults !== undefined ? { wrapResults } : {})}
           {...(views !== undefined ? { views } : {})}
           {...(defaultView !== undefined ? { defaultView } : {})}
           {...(onViewChange !== undefined ? { onViewChange } : {})}

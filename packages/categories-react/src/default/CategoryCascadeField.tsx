@@ -29,13 +29,22 @@
  * rather than the `category.` translation key underneath it
  * (`catalog/labels.ts`).
  *
- * ── The trail, and popping it ──────────────────────────────────────────────
+ * ── The trail is gone, and the selects absorbed its one job ───────────────
  *
- * A closable tag per answered level, above the selects. Redundant with the
- * selects by construction and kept anyway, for one reason: on a filter chip
- * the tags are what fits, and closing one is a single tap where re-opening a
- * select and picking its blank entry is three. `onClose` pops to that level —
- * every level below goes with it, because that is what the ladder does.
+ * There used to be a row of closable tags above the selects — one per
+ * answered level. It was redundant with the selects BY CONSTRUCTION, which
+ * this file said out loud and kept anyway, on the argument that popping a tag
+ * is one tap where re-opening a select and picking its blank entry is three.
+ *
+ * That argument had already expired: every rung carries `allowClear`, so the
+ * × inside the select pops that level in exactly one tap, from the control
+ * that is already showing the answer. What the tags actually bought was a
+ * second printing of the path, and the measurement is what settled it — the
+ * phone's filter sheet opened on the chosen leaf's three names, and then the
+ * same three names again in the selects under them: half a screen spent
+ * restating one fact before the first control (walker D103; the composer's
+ * step 3 was the same shape, D89). One path, printed once, in the controls
+ * that can change it.
  *
  * ── What it does NOT draw ─────────────────────────────────────────────────
  *
@@ -44,7 +53,7 @@
  * and why an invented number is worse than none.
  */
 import type { ReactElement } from "react";
-import { Flex, Select, Tag, Typography } from "antd";
+import { Flex, Select, Typography } from "antd";
 import { useT } from "@stapel/core";
 import type { TranslateFn } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
@@ -115,8 +124,6 @@ export function CategoryCascadeField(
             data-testid="categories-cascade"
             data-at-leaf={bag.atLeaf ? "true" : "false"}
           >
-            <Trail bag={bag} t={t} />
-
             <LoadBoundary
               state={bag.state}
               testId="categories-cascade"
@@ -260,32 +267,6 @@ function Level(props: {
           bag.choose(step.depth, chosen);
         }}
       />
-    </Flex>
-  );
-}
-
-/** The answered levels as closable tags — the poppable trail. */
-function Trail(props: {
-  readonly bag: CategoryCascadeBag;
-  readonly t: TranslateFn;
-}): ReactElement | null {
-  const { bag, t } = props;
-  if (bag.trail.length === 0) return null;
-  return (
-    <Flex gap={spacing[1]} wrap data-testid="categories-cascade-trail">
-      {bag.trail.map((category, depth) => (
-        <Tag
-          key={category.id}
-          closable
-          data-testid={`categories-cascade-crumb-${String(category.id)}`}
-          onClose={(event) => {
-            event.preventDefault();
-            bag.clearFrom(depth);
-          }}
-        >
-          {renderCategoryLabel(categoryLabel(category), t)}
-        </Tag>
-      ))}
     </Flex>
   );
 }

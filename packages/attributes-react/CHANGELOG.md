@@ -1,5 +1,17 @@
 # @stapel/attributes-react
 
+## 0.14.1
+
+### Patch Changes
+
+- 9c8ee74: attributes: a collapsed feature section is dressed by the design system, not by the user agent
+
+  `groupCollapse="auto"` renders each named group as a native `<details>`, which is the right anatomy — the keyboard, the screen reader and find-in-page all behave without this component owning any of it — and it shipped wearing the browser's own black triangle and nothing else. On the deployed composer that produced a step whose entire contents were five bold words with five user-agent triangles beside them and not one visible field label (walker D69).
+
+  The `<summary>` now sets `list-style: none`, which is what removes the user agent's marker, and draws the disclosure's own chevron: an inline SVG in `currentColor`, rotated by the open state, so it needs no second asset for the dark theme and none for "open". It is `aria-hidden` — the `<summary>` already announces its expanded state — and the heading row gets the fleet's 44px touch height, because on a phone the heading IS the press target.
+
+  Also in here: a raw NUL byte in a string literal made this source file BINARY to `grep`, `file(1)` and every review tool that samples for one. Same character, written as an escape.
+
 ## 0.14.0
 
 ### Minor Changes

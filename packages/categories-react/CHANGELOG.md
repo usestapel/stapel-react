@@ -1,5 +1,17 @@
 # @stapel/categories-react
 
+## 0.13.0
+
+### Minor Changes
+
+- 9c8ee74: categories: tile captions stop hyphenating, and the cascade prints the chosen path once
+
+  **`hyphens: auto` was a licence the browser took everywhere.** The argument for it was that a word wider than a 70px tile should break like a book word rather than clip. On the deployed phone landing it hyphenated the four longest root captions mid-word, set a nine-letter one in three lines and a four-word one in six (walker D90, four passes, twice reported as fixed). A hyphen inside a NAVIGATION LABEL is not typesetting: it is a word the reader has to reassemble before deciding whether to tap it, and the three-line clamp already answers the case hyphenation was defending against. Now `hyphens: manual`, which still honours a soft hyphen a catalogue author writes into a name on purpose, and `overflow-wrap: break-word` rather than `anywhere`, so the browser stops preferring a mid-word break to a perfectly good space earlier in the line.
+
+  **The cascade's trail is gone.** A row of closable tags above the selects, one per answered level — redundant with the selects by construction, which this component said out loud and kept anyway, on the argument that popping a tag is one tap where re-opening a select and picking its blank entry is three. That argument had already expired: every rung carries `allowClear`, so the clear button inside the select pops that level in exactly one tap, from the control that is already showing the answer. What the tags bought was a second printing of the path — on the phone's filter sheet, half a screen restating one fact before the first control (walker D103; the composer's step 3 was the same shape, D89). One path, printed once, in the controls that can change it.
+
+  `bag.trail` and `bag.clearFrom` are untouched: the headless answer is unchanged and a host that wants its own trail still has one. What changed is that the default skin no longer draws a second one. `categories-cascade-trail` and `categories-cascade-crumb-<id>` are no longer in the DOM.
+
 ## 0.12.1
 
 ### Patch Changes

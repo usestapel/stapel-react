@@ -63,6 +63,29 @@ export type SearchResultsRenderer = (
 ) => ReactNode;
 
 /**
+ * A wrapper AROUND the results the pane drew, rather than a replacement for
+ * them. It receives the loaded rows and the pane's own rendered arrangement,
+ * and returns whatever should stand in its place — normally a provider with
+ * the arrangement still inside it.
+ *
+ * ```tsx
+ * wrapResults={(rows, results) => (
+ *   <ListingEngagementScope ids={rows.map((row) => Number(row.key))}>
+ *     {results}
+ *   </ListingEngagementScope>
+ * )}
+ * ```
+ *
+ * Called only on the LOADED arm: there are no rows to scope while a search is
+ * in flight, has failed, or found nothing, and the pane's four load arms stay
+ * the pane's own sentences.
+ */
+export type SearchResultsWrapper = (
+  items: readonly SearchItem[],
+  results: ReactNode
+) => ReactNode;
+
+/**
  * The widest a column of results is allowed to get.
  *
  * Off the spacing scale and named for it: it is a MEASURE, the reading-width
@@ -128,6 +151,24 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * when the container's arrangement is not "cards in a grid".
    */
   readonly renderResults?: SearchResultsRenderer;
+  /**
+   * The scope slot: WRAPS the arrangement instead of replacing it.
+   *
+   * A container that needs to publish something over the rows the pane just
+   * drew — a per-reader overlay, an intersection observer, an analytics
+   * boundary — needs the rows AND the pane's own grid, and `renderResults`
+   * only offers the first at the price of the second.
+   *
+   * The measured cost of not having it: a storefront that dims already-seen
+   * listings could open its engagement scope on its own landing feed (which
+   * mounts the pane directly) and NOT on `/s` or `/c/:slug`, which reach the
+   * pane through `<SearchPage>` and its internal `<SearchStateProvider>` —
+   * so the feature worked on one of the three screens a buyer scrolls and
+   * silently did nothing on the other two (walker D105). Re-implementing the
+   * grid to get the rows was the only way through, and a host's copy of this
+   * pane's grid is a copy that stops tracking it.
+   */
+  readonly wrapResults?: SearchResultsWrapper;
   /**
    * Rendered beside the count in the heading row — the sort control, a view
    * switch. The pane owns the heading, so a screen that composes it hands its
@@ -284,7 +325,7 @@ function Pager(props: { bag: SearchResultsBag }): ReactElement | null {
 
 export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   const t = useT();
-  const { renderCard, renderResults } = props;
+  const { renderCard, renderResults, wrapResults } = props;
   const scorerName = useScorerNames();
   const maxWidth = props.maxWidth === undefined ? RESULTS_MAX_WIDTH : props.maxWidth;
 
@@ -377,9 +418,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                 );
               }}
             >
-              {(items) => (
-                <div data-testid="search-results">
-                  {renderResults !== undefined ? (
+              {(items) => {
+                const arrangement =
+                  renderResults !== undefined ? (
                     renderResults(items)
                   ) : (
                     <div
@@ -397,9 +438,15 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              )}
+                  );
+                return (
+                  <div data-testid="search-results">
+                    {wrapResults !== undefined
+                      ? wrapResults(items, arrangement)
+                      : arrangement}
+                  </div>
+                );
+              }}
             </LoadList>
 
             <Pager bag={bag} />

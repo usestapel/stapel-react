@@ -46,6 +46,7 @@ export { SearchResultsPane, RESULTS_MAX_WIDTH } from "./SearchResultsPane.js";
 export type {
   SearchResultsPaneProps,
   SearchResultsRenderer,
+  SearchResultsWrapper,
 } from "./SearchResultsPane.js";
 
 export {

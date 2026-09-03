@@ -205,11 +205,24 @@ const labelStyle: CSSProperties = {
   // label, not a paragraph, and the saved height is what keeps the art corner
   // inside the tile at the measured 129×97 phone geometry.
   lineHeight: 1.3,
-  // A word wider than the tile breaks like a book word instead of clipping:
-  // `hyphens` under the document's own `lang`, and `overflow-wrap` as the
-  // floor for a browser without that language's dictionary.
-  hyphens: "auto",
-  overflowWrap: "anywhere",
+  // NOT `hyphens: auto`. The argument for it was that a word wider than the
+  // tile should break like a book word rather than clip — and on a 70px
+  // phone tile the browser took that permission everywhere: the deployed
+  // home screen hyphenated its four longest root captions mid-word, set a
+  // nine-letter one in three lines and a four-word one in six (walker D90,
+  // four passes). A hyphen inside a NAVIGATION LABEL is not
+  // typesetting, it is a word the reader has to reassemble before they can
+  // decide whether to tap it, and the clamp below already answers the case
+  // hyphenation was defending against.
+  //
+  // `manual` still honours a soft hyphen a catalogue author writes into the
+  // name on purpose; it just stops the browser inventing its own.
+  hyphens: "manual",
+  // `break-word` and not `anywhere`: a long word may still break rather than
+  // push the art out of the tile, but the browser stops preferring that
+  // break to a perfectly good space earlier in the line — which is what put
+  // a five-line caption on a two-line tile.
+  overflowWrap: "break-word",
 };
 
 const labelCompact: CSSProperties = {

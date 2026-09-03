@@ -133,7 +133,7 @@ import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import type { RangeGroup } from "../state/ranges.js";
-import { facetCoverage } from "../state/facets.js";
+import { compareFacetsByEvidence } from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
@@ -251,8 +251,13 @@ export function orderChipFilters(
     // plumbing, and schema order put them ahead of the brand). A group the
     // server did not count sums to zero and trails every counted one; ties
     // keep the authored order because the sort is stable.
+    //
+    // The comparator lives in `state/facets.ts` because the RAIL needs the
+    // same one and did not have it: this row ranked by evidence and the panel
+    // rendered schema order, so the two surfaces disagreed about which axes
+    // matter on the same search (D120/D121).
     if (a.band === "facet" && b.band === "facet") {
-      return facetCoverage(b.facet) - facetCoverage(a.facet);
+      return compareFacetsByEvidence(a.facet, b.facet);
     }
     return 0;
   });

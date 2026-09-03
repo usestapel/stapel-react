@@ -147,6 +147,34 @@ export function facetCoverage(group: FacetGroup): number {
   return total;
 }
 
+/**
+ * The order two surfaces put COUNTED facet groups in: what the person has
+ * already answered, then what the corpus has evidence for.
+ *
+ * Stated once, because it was stated twice and the second surface never got
+ * it. The chip row has ranked by coverage since D16; the RAIL rendered
+ * `buildFacetGroups`' output in schema order, and on the deployed phones leaf
+ * that put battery health, four parcel dimensions and two wholesale packing
+ * counts above the brand — so a buyer looking at the category page's 280px
+ * rail saw seven axes of parcel logistics and not one brand (walker D120/D121
+ * on the desktop, D74 on the phone).
+ *
+ * Stable by construction: equal-ranked groups keep the order
+ * `buildFacetGroups` gave them, so a closed set's authored order survives.
+ */
+export function compareFacetsByEvidence(a: FacetGroup, b: FacetGroup): number {
+  const answered = Number(b.selected.length > 0) - Number(a.selected.length > 0);
+  if (answered !== 0) return answered;
+  return facetCoverage(b) - facetCoverage(a);
+}
+
+/** {@link compareFacetsByEvidence}, applied. Never mutates the input. */
+export function orderFacetGroups(
+  groups: readonly FacetGroup[]
+): readonly FacetGroup[] {
+  return [...groups].sort(compareFacetsByEvidence);
+}
+
 export interface BuildFacetGroupsInput {
   /** The envelope's `facets`: `{slug: {value: count}}`. */
   readonly facets: Readonly<Record<string, Readonly<Record<string, number>>>>;

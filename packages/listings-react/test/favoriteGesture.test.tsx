@@ -274,3 +274,103 @@ describe("the standing caption does not come back", () => {
     expect(heart).toHaveProperty("disabled", false);
   });
 });
+
+/**
+ * ── 3. The disclosure the gesture opened, and the same gesture's hover-out ──
+ *
+ * The two tests above proved the click OPENS it. The deployed phone proved
+ * that is not the same as a person seeing it, and the timeline is the whole
+ * defect (walker D72, pass 7):
+ *
+ *   +0 ms    tap → `click` → the overlay loses `ant-popover-hidden`
+ *   +10 ms   the finger lifts; the emulated hover ends; `mouseleave`
+ *   +110 ms  antd's `mouseLeaveDelay` expires → close
+ *   +260 ms  the leave motion finishes; `ant-popover-hidden` is back
+ *
+ * A quarter of a second is not a disclosure, it is a flash, and six walker
+ * passes in a row read it as "tapping the heart does nothing". The old
+ * monotonic-activation flag could not see it: it lived for one microtask and
+ * the closer is a TIMER a fifth of a second behind the gesture.
+ *
+ * So activation PINS, and these are the tests for what a pin must and must
+ * not do.
+ */
+describe("an activated disclosure survives the gesture that opened it", () => {
+  it("stays open after the tap's own hover ends — the D72 timeline", async () => {
+    render(visitor(<ListingFeedCard listing={CARD} href="/l/7" signIn={{ href: DOOR }} />));
+    const heart = screen.getByTestId("listings-feed-favorite");
+
+    tap(heart);
+    await settle();
+    expect(disclosed()).toBe(true);
+
+    // The finger lifts. On a phone this is unavoidable and immediate.
+    fireEvent.mouseLeave(heart);
+    // Well past antd's 0.1s leave delay AND its leave motion.
+    await settle(500);
+
+    expect(disclosed()).toBe(true);
+    expect(
+      screen.getByTestId("listings-feed-favorite-sign-in").getAttribute("href")
+    ).toBe(DOOR);
+  });
+
+  it("a hover that was never clicked still closes on the way out", async () => {
+    render(visitor(<ListingFeedCard listing={CARD} href="/l/7" signIn={{ href: DOOR }} />));
+    const heart = screen.getByTestId("listings-feed-favorite");
+
+    // No click: this is a cursor passing over the control, and the pin has no
+    // claim on it. Pinning a hover would leave a trail of open popovers behind
+    // a mouse crossing a grid of twenty-four cards.
+    fireEvent.mouseEnter(heart);
+    await settle();
+    expect(disclosed()).toBe(true);
+
+    fireEvent.mouseLeave(heart);
+    await settle(500);
+    expect(disclosed()).toBe(false);
+  });
+
+  it("a pointer down outside it dismisses it", async () => {
+    render(visitor(<ListingFeedCard listing={CARD} href="/l/7" signIn={{ href: DOOR }} />));
+    tap(screen.getByTestId("listings-feed-favorite"));
+    await settle();
+    expect(disclosed()).toBe(true);
+
+    // Refusing antd's own outside-click close is what makes this the pin's
+    // job. A panel with no way out would be a worse defect than the flash.
+    await act(async () => {
+      fireEvent.pointerDown(document.body);
+    });
+    await settle(500);
+    expect(disclosed()).toBe(false);
+  });
+
+  it("Escape dismisses it, for the keyboard", async () => {
+    render(visitor(<ListingFeedCard listing={CARD} href="/l/7" signIn={{ href: DOOR }} />));
+    tap(screen.getByTestId("listings-feed-favorite"));
+    await settle();
+    expect(disclosed()).toBe(true);
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+    await settle(500);
+    expect(disclosed()).toBe(false);
+  });
+
+  it("a pointer down INSIDE it does not — the door has to survive its own press", async () => {
+    render(visitor(<ListingFeedCard listing={CARD} href="/l/7" signIn={{ href: DOOR }} />));
+    tap(screen.getByTestId("listings-feed-favorite"));
+    await settle();
+
+    const door = screen.getByTestId("listings-feed-favorite-sign-in");
+    await act(async () => {
+      fireEvent.pointerDown(door);
+    });
+    await settle(300);
+    // Dismissing on the overlay's own pointerdown would take the link away
+    // between the press and the click that follows it.
+    expect(disclosed()).toBe(true);
+  });
+});

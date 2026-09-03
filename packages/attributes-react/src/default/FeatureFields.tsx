@@ -495,6 +495,46 @@ function resolveHints(
  * The same root is the column whose WIDTH decides the touch floor — see
  * {@link TOUCH_FLOOR_BELOW}.
  */
+/**
+ * The press target a collapsed section's heading gets on a phone. The fleet's
+ * touch floor; a heading set in a title size is otherwise ~22px tall.
+ */
+const SUMMARY_TOUCH_HEIGHT = 44;
+
+/**
+ * The disclosure's own chevron, drawn rather than inherited.
+ *
+ * `currentColor` and a rotation, so it takes the heading's colour in both
+ * themes and needs no second asset for the open state. `aria-hidden`: the
+ * `<summary>` already announces its expanded state, and a second voice saying
+ * "triangle" is noise.
+ */
+function SectionChevron(props: { readonly open: boolean }): ReactElement {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      aria-hidden="true"
+      focusable="false"
+      style={{
+        flex: "none",
+        transform: props.open ? "rotate(90deg)" : "none",
+        transition: "transform 120ms ease",
+      }}
+    >
+      <path
+        d="M4 2.5 L8 6 L4 9.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   const t = useT();
   const errors = props.errors ?? {};
@@ -565,7 +605,7 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
     for (const feature of features) {
       const parent = dependencyParentOf(feature);
       if (parent === undefined || !defined.has(parent)) continue;
-      const canon = stringify(values[parent]).join(" ");
+      const canon = stringify(values[parent]).join("\u0000");
       const seen = seenParents.current.get(feature.slug);
       seenParents.current.set(feature.slug, canon);
       if (seen === undefined || seen === canon) continue;
@@ -740,10 +780,29 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
             const inside = (
               <>
                 {collapsible ? (
+                  // `listStyle: "none"` is what removes the browser's own
+                  // black ▶. A disclosure inside a design system that
+                  // draws its own chevron must not also carry the user
+                  // agent's, and the deployed composer showed five of them
+                  // stacked down one step with nothing else on the screen
+                  // (walker D69). The chevron below is the affordance, and it
+                  // rotates with the state, so the section reads open or shut
+                  // without the person pressing it to find out.
                   <summary
-                    style={{ cursor: "pointer", marginBottom: spacing[1] }}
+                    style={{
+                      cursor: "pointer",
+                      marginBottom: spacing[1],
+                      listStyle: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: spacing[2],
+                      // The heading is the whole press target on a phone, so
+                      // it gets a phone-sized one and not the text's height.
+                      minHeight: SUMMARY_TOUCH_HEIGHT,
+                    }}
                     data-testid={`${featureSectionTestId(section.group)}-summary`}
                   >
+                    <SectionChevron open={open} />
                     {heading}
                   </summary>
                 ) : (

@@ -27,7 +27,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import type { ReactElement } from "react";
 import { FacetPanelPane, SearchPage } from "../src/default/index.js";
 import type { SearchParamsAdapter } from "../src/index.js";
-import { searchResponse } from "./fixtures.js";
+import {
+  PHONE_FACETS,
+  PHONE_RANGE_FEATURES,
+  searchResponse,
+} from "./fixtures.js";
 import {
   DESKTOP_WIDTH,
   PHONE_WIDTH,
@@ -319,5 +323,118 @@ describe("the rail's inner scroll is visible, and its floor answers back", () =>
       expect(screen.getByTestId("facet-group-price_band")).toBeTruthy()
     );
     expect(screen.queryByTestId("facets-footer-bar")).toBeNull();
+  });
+});
+
+/**
+ * ── The rail's ORDER, which is the half the redesign did not carry ─────────
+ *
+ * Openness was ranked by evidence; the SEQUENCE was left as `buildFacetGroups`
+ * and `buildRangeGroups` emitted it, i.e. the catalogue importer's. On the
+ * deployed mobile-phones leaf that read, top to bottom: Category, Where to
+ * look, Price, then battery health, parcel weight, parcel length, parcel
+ * height, parcel width, minimum order count and packing count — 908px of
+ * parcel logistics — and only THEN brand, model and colour.
+ *
+ * The rail is sticky and viewport-tall with its own inner scroll, so what that
+ * order actually costs is not "a longer page": at 1440×900 the brand facet sat
+ * at y≈1500 and never entered the viewport at any page scroll. A buyer on the
+ * phones leaf saw seven ways to filter by shipping weight and no way to filter
+ * by brand (walker D120/D121 on the desktop, D74 on the phone).
+ *
+ * The chip row has ranked exactly this since D16. The panel now shares its
+ * comparator rather than holding a second opinion.
+ */
+describe("the rail ranks by evidence, not by schema order", () => {
+  function phoneServer(): ReturnType<typeof mockServer> {
+    return mockServer({
+      "/query": {
+        body: searchResponse({
+          facets: PHONE_FACETS,
+          facet_meta: {
+            approximate: false,
+            candidates: 43,
+            counted: Object.keys(PHONE_FACETS),
+            skipped: [],
+            dropped_filters: [],
+            core_ranges: ["price"],
+          },
+        }),
+      },
+      "/suggest": { body: { items: [], backend: "postgres" } },
+    });
+  }
+
+  async function mountPhoneLeaf(initial = "type=listing"): Promise<HTMLElement> {
+    const { container } = render(
+      <TestHarness server={phoneServer()} initialSearch={initial}>
+        <FacetPanelPane categoryFeatures={PHONE_RANGE_FEATURES} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-group-vendor")).toBeTruthy()
+    );
+    return container;
+  }
+
+  /** Every facet group and range row the panel drew, in DOM order. */
+  function railOrder(container: HTMLElement): readonly string[] {
+    return [
+      ...container.querySelectorAll(
+        '[data-testid^="facet-group-"],[data-testid^="facet-range-"]'
+      ),
+    ].map((node) => node.getAttribute("data-testid") ?? "");
+  }
+
+  it("puts the price and the counted facets above every numeric attribute", async () => {
+    const container = await mountPhoneLeaf();
+    const order = railOrder(container);
+    const at = (id: string): number => order.indexOf(id);
+
+    // The core axis leads.
+    expect(at("facet-range-price")).toBe(0);
+    // The brand — the axis a buyer of a phone narrows by — is above ALL seven
+    // parcel/wholesale numbers. It used to be below every one of them.
+    for (const slug of [
+      "akb",
+      "weight_for_delivery",
+      "length_for_delivery",
+      "height_for_delivery",
+      "width_for_delivery",
+      "wholesale_min_order_count",
+      "wholesale_packing_count",
+    ]) {
+      expect(at("facet-group-vendor"), slug).toBeLessThan(
+        at(`facet-range-${slug}`)
+      );
+    }
+    // …and the counted facets rank among themselves by coverage: condition
+    // (43 across two options) over vendor (32 across three).
+    expect(at("facet-group-condition")).toBeLessThan(at("facet-group-vendor"));
+  });
+
+  it("keeps the numeric tail — it is ranked, not deleted", async () => {
+    const container = await mountPhoneLeaf();
+    const order = railOrder(container);
+    // A buyer who genuinely wants a shipping-weight bound still has one, in
+    // its own block below the facets.
+    expect(
+      screen.getByTestId("search-ranges-attributes").contains(
+        screen.getByTestId("facet-range-weight_for_delivery")
+      )
+    ).toBe(true);
+    expect(order).toContain("facet-range-wholesale_packing_count");
+  });
+
+  it("an ANSWERED axis outranks a better-evidenced unanswered one", async () => {
+    // A constraint the person set must never sink below the fold of a
+    // viewport-tall rail: the control that removes it is the one they came for.
+    // `vendor` (32) ranks below `condition` (43) on evidence alone, and above
+    // it the moment somebody chooses a brand.
+    const container = await mountPhoneLeaf("type=listing&f.vendor=apple");
+    const order = railOrder(container);
+    expect(order.indexOf("facet-group-vendor")).toBeLessThan(
+      order.indexOf("facet-group-condition")
+    );
   });
 });

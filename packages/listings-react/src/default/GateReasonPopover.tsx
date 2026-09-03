@@ -26,7 +26,7 @@
  * screen (see `ListingCardBlockedReason`). The rule's disables below are the
  * documented decision §2.4 asks for, not a hole.
  *
- * ── Why the disclosure is CONTROLLED: hover opened it, the click shut it ───
+ * ── Why the disclosure is CONTROLLED, and why activation PINS it ──────────
  *
  * An uncontrolled popover triggered by hover AND click treats the click as a
  * TOGGLE, so the natural pointer gesture — rest on the control, then press it
@@ -35,24 +35,38 @@
  * the one control that was supposed to explain itself and watched it go
  * blank. Reproduced in jsdom and gated by `test/favoriteGesture.test.tsx`.
  *
- * It needs the DELAY to reproduce, which is the interesting part: antd opens
- * a hover popover after 0.1s, so two events fired back to back (a thumb's
- * emulated `mouseenter` + `click`) land while nothing is open yet and the
- * click opens it correctly. A cursor that lingers is past the delay, and its
- * click closes what the hover opened. The suite was green throughout because
- * every existing test fired `click` alone — a synthetic click carries no
- * hover in front of it, so it exercised the one ordering that worked.
+ * So `open` is this component's own state. The first version of that made
+ * activation MONOTONIC for the duration of the click's own dispatch — a flag
+ * set in the capture phase and dropped a microtask later — and it closed the
+ * toggle, which was the half of the problem a synthetic click can show.
  *
- * So `open` is this component's own state and activation is MONOTONIC: a
- * click may only open the disclosure, never close it. Hover-out, blur and a
- * click outside still close it, because those arrive as an `onOpenChange`
- * that no activation is claiming.
+ * It was not the half a THUMB meets, and the deployed measurement (walker
+ * D72, pass 7, the whole timeline in `logs-fp8/fp8-d72-diag3.json`) is
+ * unambiguous about which half that is. A real tap DOES open this: the
+ * overlay loses `ant-popover-hidden` 7 ms after `click`. Then the emulated
+ * hover the tap carried ENDS — a finger that has lifted is hovering nothing —
+ * `mouseleave` arrives ~10 ms later, antd's `mouseLeaveDelay` runs its 0.1 s,
+ * the leave motion runs, and the overlay is hidden again ~260 ms after it
+ * appeared. A quarter-second flash on a phone is indistinguishable from a
+ * control that did nothing, which is exactly how six passes read it. The
+ * microtask flag could not see this: the closer is not the click's toggle,
+ * it is a TIMER two hundred milliseconds behind the gesture.
+ *
+ * A disclosure that a person deliberately opened therefore PINS: once
+ * activated it stays open until it is dismissed, and hover-out, blur and the
+ * trigger's own toggle may no longer close it. Dismissal is the two gestures
+ * that mean "I am done reading" — a pointer down outside the control and
+ * outside the overlay, or `Escape` — and this component listens for both
+ * itself, because refusing antd's close is what takes them away.
+ *
+ * Hover keeps its old, unpinned behaviour: a cursor that rests on the control
+ * opens it and a cursor that leaves closes it, with no click involved.
  *
  * Deliberately NOT exported from `src/default/index.ts`: it is how this
  * pair's own gated hearts speak, not a control a host composes with — the
  * same standing `favorite.tsx` has.
  */
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Flex, Typography } from "antd";
 // eslint-disable-next-line stapel/no-tooltip-in-skin -- interaction disclosure, not a hover: opens on click/tap and focus too, anchored to a non-disabled control, with the reason kept in the a11y tree via aria-describedby (see this file's header)
@@ -87,26 +101,57 @@ export interface GateReasonPopoverProps {
 export function GateReasonPopover(props: GateReasonPopoverProps): ReactElement {
   const reasonId = useId();
   const [open, setOpen] = useState(false);
-  // Set in the capture phase of a click, i.e. BEFORE the popover's own
-  // handler runs on the same event, and dropped once that event is fully
-  // dispatched. While it is set, "close" is the tap's own toggle and is
-  // refused; see the file header.
-  const activating = useRef(false);
+  // Set by an ACTIVATION and cleared only by a dismissal. While it is set,
+  // every close antd asks for — the click's own toggle, the hover-out timer,
+  // a blur — is refused; see the file header.
+  const pinned = useRef(false);
+  // The two regions a dismissing gesture must NOT land in: the control itself
+  // (pressing it again restates the refusal) and the overlay (the sign-in
+  // door lives in there, and closing on its own pointerdown would take the
+  // link away before the click that follows it).
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  const dismiss = useCallback((): void => {
+    pinned.current = false;
+    setOpen(false);
+  }, []);
 
   const handleOpenChange = useCallback((next: boolean): void => {
-    if (!next && activating.current) return;
+    if (!next && pinned.current) return;
     setOpen(next);
   }, []);
 
   const activate = useCallback((): void => {
-    activating.current = true;
+    pinned.current = true;
     setOpen(true);
-    // A microtask runs after the whole event dispatch, so the flag covers
-    // exactly this gesture and no later hover-out.
-    queueMicrotask(() => {
-      activating.current = false;
-    });
   }, []);
+
+  // Antd closes an unpinned popover on an outside click of its own; a pinned
+  // one has to be given those gestures back, or it would be a panel with no
+  // way out on the one device that most needs the pin.
+  useEffect(() => {
+    if (!open) return undefined;
+    const doc = anchorRef.current?.ownerDocument ?? document;
+    const outside = (target: EventTarget | null): boolean =>
+      target instanceof Node &&
+      anchorRef.current?.contains(target) !== true &&
+      overlayRef.current?.contains(target) !== true;
+    const onPointerDown = (event: Event): void => {
+      if (outside(event.target)) dismiss();
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") dismiss();
+    };
+    // Capture, so a handler that stops propagation on its own container
+    // cannot leave this stuck open.
+    doc.addEventListener("pointerdown", onPointerDown, true);
+    doc.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      doc.removeEventListener("pointerdown", onPointerDown, true);
+      doc.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [open, dismiss]);
 
   return (
     <>
@@ -122,10 +167,12 @@ export function GateReasonPopover(props: GateReasonPopoverProps): ReactElement {
         open={open}
         onOpenChange={handleOpenChange}
         content={
-          <Flex vertical gap={spacing[1]} data-testid={props.testId}>
-            <Typography.Text>{props.reason}</Typography.Text>
-            <SignInLink cta={props.cta} testId={props.signInTestId} />
-          </Flex>
+          <div ref={overlayRef}>
+            <Flex vertical gap={spacing[1]} data-testid={props.testId}>
+              <Typography.Text>{props.reason}</Typography.Text>
+              <SignInLink cta={props.cta} testId={props.signInTestId} />
+            </Flex>
+          </div>
         }
       >
         {/* A plain wrapper takes the props Popover clones onto its direct
@@ -141,6 +188,7 @@ export function GateReasonPopover(props: GateReasonPopoverProps): ReactElement {
             `aria-disabled` in every engine. Capture, so they run before the
             popover's own toggle sees the same event. */}
         <div
+          ref={anchorRef}
           onClickCapture={activate}
           onKeyDownCapture={(event) => {
             if (event.key === "Enter" || event.key === " ") activate();

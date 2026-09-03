@@ -1,5 +1,23 @@
 # @stapel/listings-react
 
+## 0.20.0
+
+### Minor Changes
+
+- 9c8ee74: listings: the gated heart's reason survives the gesture that opened it, and the view count leaves the specs table
+
+  **The anonymous heart, seventh pass, and the first one with a timeline.** Six walker passes read "tap the heart, nothing happens". The disclosure was there and correct — a popover carrying "Sign in to do this" and the door — and it was, in fact, opening on the tap. The instrumented run on the deployed build says so to the millisecond: `click` at +0 ms, `ant-popover-hidden` dropped at +7 ms, the finger lifts and the emulated hover ends at +10 ms, antd's `mouseLeaveDelay` expires at +110 ms, the leave motion finishes and the overlay is hidden again at +260 ms. A quarter-second flash on a phone is not a disclosure.
+
+  The previous fix made activation MONOTONIC for the duration of the click's own dispatch — a flag set in the capture phase and dropped one microtask later. That is the right rule against the click's own toggle, which is the failure a synthetic click can reproduce, and it is blind to this one: the closer is not part of the gesture, it is a timer a fifth of a second behind it.
+
+  So an activated disclosure now PINS. Once a click, a tap, Enter or Space has opened it, hover-out, blur and the trigger's own toggle may no longer close it; only a dismissal does, and because refusing antd's close takes those away, the component listens for them itself — a pointer down outside both the control and the overlay, or `Escape`. A pointer down INSIDE the overlay does not dismiss, or the sign-in link would be gone between the press and the click that follows it. A hover that was never clicked keeps its old, unpinned behaviour, so a cursor crossing a grid of twenty-four cards does not leave a trail of open popovers behind it.
+
+  Five tests, and the first of them fails on the previous implementation with the deployed symptom.
+
+  **The view count is a fact about the page, not a property of the goods.** It rendered as a `Descriptions.Item` in the same table as the location and the stock — on the measured phone page that put "Views 6" between the colour attribute and "Where it is", roughly 1600px down, read as a characteristic of the phone (walker D106). It now reads on a meta line under the title and above the price, where a reader looks for how much company they have. `data-testid="listings-detail-views"` still holds the bare number; the line around it is `listings-detail-meta`.
+
+  Two consequences worth stating. The specs table renders nothing at all when the listing carries neither stock nor a location — the view count used to hide that empty table by almost always being present. And there is still no favourite COUNT anywhere, because the wire has none: `is_favorited` is a per-reader boolean and the schema carries no aggregate, which the existing contract test pins under all five spellings.
+
 ## 0.19.0
 
 ### Minor Changes

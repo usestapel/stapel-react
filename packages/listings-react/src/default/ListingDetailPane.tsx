@@ -344,6 +344,33 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                       .join(" · ")}
                   </Typography.Text>
                 ) : null}
+
+                {/* How many people opened it — the listing's own meta line,
+                    under the title, where a reader looks for how much company
+                    they have. It spent one release as a row of the
+                    `<Descriptions>` below (walker D106): wedged between the
+                    colour attribute and the location row, two screens down,
+                    read as a PROPERTY OF THE GOODS rather than a fact about
+                    the page. A view count is not a characteristic of a phone.
+
+                    `bag.viewCount` is `undefined` when the response carries
+                    no such field, and then there is no line at all — never a
+                    zero standing in for an absence. There is no favourite
+                    count beside it because the wire has none: the schema
+                    carries `is_favorited`, a per-reader boolean, and no
+                    aggregate anywhere (asserted in test/engagementState). */}
+                {bag.viewCount !== undefined ? (
+                  <Typography.Text
+                    type="secondary"
+                    data-testid="listings-detail-meta"
+                    style={{ display: "block" }}
+                  >
+                    {t(LISTINGS_I18N_KEYS.detailViews)}:{" "}
+                    <span data-testid="listings-detail-views">
+                      {bag.viewCount}
+                    </span>
+                  </Typography.Text>
+                ) : null}
               </>
             );
 
@@ -586,37 +613,35 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               </>
             );
 
-            const meta = (
+            const hasStock = listing.stock_quantity != null;
+            const hasPlace =
+              listing.location_label !== undefined &&
+              listing.location_label.length > 0;
+
+            // Both rows absent draws an empty table, which the view count used
+            // to hide by almost always being there. Nothing is nothing.
+            const meta = !hasStock && !hasPlace ? null : (
               <Descriptions size="small" column={1}>
                 {/* Label cell and value cell, which is what a `<Descriptions>`
                     row IS: the label key carries no `{count}` (it did, and the
                     page printed the placeholder), the quantity is the value. */}
-                {listing.stock_quantity != null ? (
+                {hasStock ? (
                   <Descriptions.Item label={t(LISTINGS_I18N_KEYS.detailStock)}>
                     <span data-testid="listings-detail-stock">
                       {listing.stock_quantity}
                     </span>
                   </Descriptions.Item>
                 ) : null}
-                {listing.location_label !== undefined &&
-                listing.location_label.length > 0 ? (
+                {hasPlace ? (
                   <Descriptions.Item
                     label={t(LISTINGS_I18N_KEYS.composeLocationLabel)}
                   >
                     {listing.location_label}
                   </Descriptions.Item>
                 ) : null}
-                {/* How many people opened it. `bag.viewCount` is `undefined`
-                    for a response that carries no such field — which is every
-                    response today — so this row simply is not there, and no
-                    zero stands in for the absence. */}
-                {bag.viewCount !== undefined ? (
-                  <Descriptions.Item label={t(LISTINGS_I18N_KEYS.detailViews)}>
-                    <span data-testid="listings-detail-views">
-                      {bag.viewCount}
-                    </span>
-                  </Descriptions.Item>
-                ) : null}
+                {/* The view count used to be a third row here. It is a fact
+                    about the PAGE, not a property of the goods, so it now
+                    reads on the meta line under the title — see `heading`. */}
               </Descriptions>
             );
 

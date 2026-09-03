@@ -87,7 +87,7 @@ import { FacetPanel } from "../headless/FacetPanel.js";
 import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { useAppliedCount } from "../headless/useAppliedCount.js";
-import { facetCoverage } from "../state/facets.js";
+import { facetCoverage, orderFacetGroups } from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
@@ -561,6 +561,13 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
             ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
             t,
           });
+          // The band split, and it is the whole of D120/D121: `RangeGroup.core`
+          // is the server's own declaration that an axis exists for every
+          // document in every category (the price). Everything else is a
+          // number this category happens to declare, which on an imported
+          // classified catalogue means parcel weight and wholesale packing.
+          const coreRanges = ranges.filter((group) => group.core);
+          const attributeRanges = ranges.filter((group) => !group.core);
           return (
           <Flex vertical gap={spacing[3]} data-testid="search-facets">
             {/* In a 280px rail this row laid the word "Filters" out in a
@@ -616,14 +623,20 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               {...(props.geoLabel !== undefined ? { label: props.geoLabel } : {})}
             />
 
-            {/* Price first. Every numeric row below it is an ATTRIBUTE the
-                category happens to declare — on the phone board this was
-                measured against, all seven of them were parcel dimensions
-                and wholesale packing. The one number a buyer narrows by is
-                the price, and `buildRangeGroups` puts the core axes first. */}
-            {ranges.length > 0 && (
+            {/* Price, and only the CORE axes — the ones the server declares
+                for every document in every category.
+
+                Every other numeric row is an ATTRIBUTE the category happens
+                to declare, and on the deployed phones leaf all seven were
+                parcel dimensions and wholesale packing. They used to render
+                here, immediately under the price, which put 908px of
+                shipping-weight and packing-count rows between the buyer and
+                the brand (D120/D121).
+                They now render AFTER the facets, which is the band order the
+                chip row has used since D16 — see `CHIP_BAND_ORDER`. */}
+            {coreRanges.length > 0 && (
               <Flex vertical gap={spacing[3]} data-testid="search-ranges">
-                {ranges.map((group) => (
+                {coreRanges.map((group) => (
                   <RangeFilterRow
                     key={group.slug}
                     group={group}
@@ -633,7 +646,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               </Flex>
             )}
 
-            {ranges.length > 0 && <Divider style={{ margin: 0 }} />}
+            {coreRanges.length > 0 && <Divider style={{ margin: 0 }} />}
 
             {/* Honesty flags, not failures: the counts ARE approximate and
                 those slugs WERE skipped, and a red box would teach a person
@@ -678,8 +691,12 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 // case: a `ref_select` whose config is a bare pointer into
                 // a vocabulary this pair cannot read. A heading with no
                 // control under it names nothing, so it is not drawn.
-                const drawable = groups.filter(
-                  (group) => group.options.length > 0
+                // Evidence order, the chip row's rule applied to the rail:
+                // answered axes first, then the ones this corpus actually
+                // fills. Schema order is the catalogue importer's, and an
+                // imported catalogue's is alphabetical-by-accident.
+                const drawable = orderFacetGroups(
+                  groups.filter((group) => group.options.length > 0)
                 );
                 // Which groups OPEN — see the module note. Chosen groups are
                 // open unconditionally below; here the answer's evidence
@@ -761,6 +778,34 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 );
               }}
             </LoadList>
+
+            {/* The numeric tail, below the axes people actually narrow by.
+                On the deployed mobile-phones leaf this block is 908px of
+                battery health, four parcel dimensions and two wholesale
+                packing counts — and while it
+                rendered directly under the price it was the ONLY thing a
+                buyer could see in a viewport-tall rail (D120/D121, D74 on the
+                phone). It is a real filter for the person who wants it, so it
+                is not deleted; it is ranked where the chip row already ranks
+                it. */}
+            {attributeRanges.length > 0 && (
+              <>
+                <Divider style={{ margin: 0 }} />
+                <Flex
+                  vertical
+                  gap={spacing[3]}
+                  data-testid="search-ranges-attributes"
+                >
+                  {attributeRanges.map((group) => (
+                    <RangeFilterRow
+                      key={group.slug}
+                      group={group}
+                      onApply={bag.setRange}
+                    />
+                  ))}
+                </Flex>
+              </>
+            )}
 
             {props.footerBar === true && (
               <RailFooterBar

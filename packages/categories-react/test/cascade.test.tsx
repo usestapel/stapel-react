@@ -498,12 +498,12 @@ describe("<CategoryCascadeField>", () => {
     });
   });
 
-  it("mounted at a leaf, it reports the leaf and every crumb above it", async () => {
+  it("mounted at a leaf, each rung carries its own answer and nothing restates the path", async () => {
     const server = mockServer({
       "/categories/": { body: FULL_PAGE },
       ...rowRoutes(ROWS),
     });
-    render(
+    const { container } = render(
       <TestProviders server={server}>
         <CategoryCascadeField commit="leaf" value={4} store={testStore()} />
       </TestProviders>
@@ -512,8 +512,33 @@ describe("<CategoryCascadeField>", () => {
       expect(screen.getByTestId("categories-cascade-selected")).toBeTruthy();
     });
     expect(screen.getByTestId("categories-cascade").dataset["atLeaf"]).toBe("true");
-    expect(screen.getByTestId("categories-cascade-crumb-1")).toBeTruthy();
-    expect(screen.getByTestId("categories-cascade-crumb-2")).toBeTruthy();
-    expect(screen.getByTestId("categories-cascade-crumb-4")).toBeTruthy();
+
+    // Every answered level reads its answer in the control that can CHANGE
+    // it — one rung, one printing.
+    for (const [depth, caption] of [
+      [0, "category.electronics"],
+      [1, "category.phones"],
+      [2, "category.used_phones"],
+    ] as const) {
+      expect(
+        screen
+          .getByTestId(`categories-cascade-level-${String(depth)}`)
+          .textContent
+      ).toContain(caption);
+    }
+
+    // …and NOTHING above them says it a second time. There used to be a row of
+    // closable crumb tags here, redundant with the selects by construction: on
+    // the phone's filter sheet it printed the chosen path and then the selects
+    // printed it again, half a screen spent on one fact before the first
+    // control (walker D103, and D89 in the composer). The clear button inside
+    // each select pops a level in the same one tap the tag was kept for.
+    expect(screen.queryByTestId("categories-cascade-trail")).toBeNull();
+    expect(
+      container.querySelectorAll('[data-testid^="categories-cascade-crumb-"]')
+    ).toHaveLength(0);
+    expect(
+      container.querySelectorAll(".ant-select-allow-clear").length
+    ).toBeGreaterThanOrEqual(3);
   });
 });
