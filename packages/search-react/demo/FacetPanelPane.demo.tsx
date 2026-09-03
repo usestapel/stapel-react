@@ -11,16 +11,15 @@
  * quieter version of the warning, it is a different defect.
  *
  * The second variant shows the same panel narrowed by a shared link: the
- * category and the location arrived in the URL, and each one has a control
- * that WIDENS it again even though no host filled either slot.
+ * category arrived in the URL, and it has a control that WIDENS it again even
+ * though no host filled the slot.
  *
- * That location is also where this panel refuses to show its work. The URL
- * carries `lat=55.75&lon=37.62`, and the summary line under the heading says
- * "Tverskaya, Moscow" — the name the HOST resolved, passed in as `geoLabel`.
- * A panel printing `55.750, 37.620` there (which is what it did until this
- * release) hands a shopper two numbers they cannot check in place of the one
- * fact they can. Without a `geoLabel` the line reads "A chosen place on the
- * map"; it never reads a coordinate.
+ * THE LOCATION IS NOT IN HERE, and its absence is the point. A place is not a
+ * filter — a coordinate pair is the machine form of somewhere, and a "Location"
+ * group in this list is what let a live landing report "clear all filters (2)"
+ * over an empty page with two constraints that had no name. The place, its
+ * radius and the way off are one control of their own: see the
+ * `search.location-summary-line` demo.
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
@@ -38,10 +37,6 @@ const NARROWED_SEARCH =
 
 const LANGUAGES: readonly string[] = ["ru", "en"];
 
-/** What the host's geocoder called the point in `NARROWED_SEARCH`. A demo,
- * like a deployment, is the one that knows this — the panel has two numbers. */
-const GEO_LABEL = "Tverskaya, Moscow";
-
 function Panel(props: { phone?: boolean; search: string }): ReactElement {
   return (
     <SearchSkinHarness
@@ -52,7 +47,6 @@ function Panel(props: { phone?: boolean; search: string }): ReactElement {
       <FacetPanelPane
         categoryFeatures={DEMO_FEATURES}
         languages={LANGUAGES}
-        geoLabel={GEO_LABEL}
       />
     </SearchSkinHarness>
   );
@@ -76,7 +70,6 @@ function Rail(): ReactElement {
         <FacetPanelPane
           categoryFeatures={DEMO_FEATURES}
           languages={LANGUAGES}
-          geoLabel={GEO_LABEL}
         />
       </SearchSkinHarness>
     </div>
