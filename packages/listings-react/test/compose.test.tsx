@@ -35,10 +35,17 @@ function server(overrides: Record<string, unknown> = {}) {
  * a submit before that would be publishing over content the form has not read
  * yet, which is exactly what the gate prevents. */
 async function seeded(): Promise<void> {
+  // The readiness signal is the GATE's own stamp, not the button's html
+  // `disabled`. It used to be the latter, and that stopped meaning anything
+  // when the substrate made every gated control live: `disabled` is now
+  // permanently false, so this helper returned before the draft had loaded
+  // and every assertion after it read an unseeded composer.
   await waitFor(() => {
     expect(
-      screen.getByTestId("listings-composer-publish").hasAttribute("disabled")
-    ).toBe(false);
+      screen
+        .getByTestId("listings-composer-publish-gate")
+        .getAttribute("data-stapel-gated")
+    ).toBe("available");
   });
 }
 
@@ -324,7 +331,15 @@ describe("every blocked publish states which reason it is", () => {
     );
     chooseCategory();
     const button = screen.getByTestId("listings-composer-publish");
-    expect(button.hasAttribute("disabled")).toBe(true);
+    // Blocked, and NOT inert: the substrate keeps a gated control focusable
+    // and clickable and refuses the action itself, so the reason below is
+    // reachable by the gesture that asked for it.
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(
+      screen
+        .getByTestId("listings-composer-publish-gate")
+        .getAttribute("data-stapel-gated")
+    ).toBe("blocked");
     expect(publishReason()).toBe(
       "Sign in to do this"
     );

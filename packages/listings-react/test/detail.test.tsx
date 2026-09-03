@@ -332,8 +332,10 @@ describe("the favourite control is blocked, never hidden", () => {
     );
     await waitFor(() => {
       expect(
-        screen.getByTestId("listings-detail-favorite").hasAttribute("disabled")
-      ).toBe(false);
+        screen
+          .getByTestId("listings-detail-favorite-gate")
+          .getAttribute("data-stapel-gated")
+      ).toBe("available");
     });
     await act(async () => {
       fireEvent.click(screen.getByTestId("listings-detail-favorite"));

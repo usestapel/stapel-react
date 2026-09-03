@@ -144,8 +144,10 @@ describe("a refused save is read on the control, not as a wall", () => {
     composer();
     await waitFor(() => {
       expect(
-        screen.getByTestId("listings-composer-publish").hasAttribute("disabled")
-      ).toBe(false);
+        screen
+          .getByTestId("listings-composer-publish-gate")
+          .getAttribute("data-stapel-gated")
+      ).toBe("available");
     });
     await act(async () => {
       fireEvent.click(screen.getByTestId("listings-composer-save"));
@@ -176,8 +178,10 @@ describe("a refused save is read on the control, not as a wall", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByTestId("listings-composer-publish").hasAttribute("disabled")
-      ).toBe(false);
+        screen
+          .getByTestId("listings-composer-publish-gate")
+          .getAttribute("data-stapel-gated")
+      ).toBe("available");
     });
     await act(async () => {
       fireEvent.click(screen.getByTestId("listings-composer-save"));

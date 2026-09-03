@@ -379,8 +379,10 @@ describe("a refused field replaces its hint instead of stacking on it", () => {
     refusingComposer();
     await waitFor(() => {
       expect(
-        screen.getByTestId("listings-composer-save").hasAttribute("disabled")
-      ).toBe(false);
+        screen
+          .getByTestId("listings-composer-save-gate")
+          .getAttribute("data-stapel-gated")
+      ).toBe("available");
     });
     await act(async () => {
       fireEvent.click(screen.getByTestId("listings-composer-save"));

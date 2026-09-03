@@ -346,12 +346,13 @@ describe("row actions are gated by the server's own transition table", () => {
     });
     // draft → sold is not in LISTING_TRANSITIONS, so the mirror blocks it —
     // and the 409 stays the verdict if the table ever moves.
+    // Refused on activation rather than inert — see `compose.test.tsx`.
     expect(
-      screen.getByTestId("listings-mine-complete").hasAttribute("disabled")
-    ).toBe(true);
+      screen.getByTestId("listings-mine-complete").getAttribute("aria-disabled")
+    ).toBe("true");
     expect(
-      screen.getByTestId("listings-mine-archive").hasAttribute("disabled")
-    ).toBe(false);
+      screen.getByTestId("listings-mine-archive").getAttribute("aria-disabled")
+    ).toBeNull();
   });
 
   it("switches off delete for a listing that is on sale", async () => {
@@ -363,8 +364,8 @@ describe("row actions are gated by the server's own transition table", () => {
     );
     await waitFor(() => {
       expect(
-        screen.getByTestId("listings-mine-delete").hasAttribute("disabled")
-      ).toBe(true);
+        screen.getByTestId("listings-mine-delete").getAttribute("aria-disabled")
+      ).toBe("true");
     });
   });
 
