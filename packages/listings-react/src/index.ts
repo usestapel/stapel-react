@@ -91,6 +91,7 @@ export type {
   ListingFeatureView,
   ListingLifecycleStatus,
   ListingModerationStatus,
+  ListingOwnerTransition,
   ListingPageParams,
   ListingStatusInfo,
   MyCounters,
@@ -120,7 +121,13 @@ export type {
   ModerationNotice,
   MyListingsTab,
 } from "./model/status.js";
-export { LISTING_TRANSITIONS, canDelete, canTransition } from "./model/transitions.js";
+export {
+  LISTING_TRANSITIONS,
+  OWNER_TRANSITIONS,
+  canDelete,
+  canTransition,
+  ownerMoves,
+} from "./model/transitions.js";
 
 // ── model: the owner's own rows ──────────────────────────────────────────────
 export { defaultMyListingsSource } from "./model/mineSource.js";
@@ -219,8 +226,13 @@ export {
   useFavoriteListing,
   usePublishListing,
   useSaveDraft,
+  useTransitionListing,
 } from "./model/mutations.js";
-export type { FavoriteInput, SaveDraftInput } from "./model/mutations.js";
+export type {
+  FavoriteInput,
+  ListingTransitionInput,
+  SaveDraftInput,
+} from "./model/mutations.js";
 
 // ── flows (zero-flow shim — stapel-listings annotates none) ──────────────────
 export { LISTINGS_FLOWS, flowEndpoints } from "./flows/registry.js";
@@ -275,7 +287,11 @@ export type {
   UseFavoritesOptions,
 } from "./headless/Favorites.js";
 export { useListingActions } from "./headless/ListingActions.js";
-export type { ListingActionsBag } from "./headless/ListingActions.js";
+export type {
+  ListingActionsBag,
+  ListingMove,
+  UseListingActionsOptions,
+} from "./headless/ListingActions.js";
 
 // ── nav manifest (the pair's public surface declaration) ─────────────────────
 export { ACCOUNT_ROOT_ID, navEntries } from "./nav/manifest.js";

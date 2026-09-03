@@ -38,7 +38,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "error.404.listing_not_found": "No se encontró el anuncio",
   "error.409.already_favorited": "El anuncio ya está en favoritos",
   "error.409.invalid_listing_transition":
-    "Un anuncio en estado «{from_status}» no se puede mover así",
+    "Desde su estado actual, el anuncio no se puede mover así",
   "error.409.listing_cannot_delete_active":
     "Archívalo primero — un anuncio a la venta no se puede borrar",
 
@@ -194,6 +194,12 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.archive": "Archivar",
   "listings.mine.complete": "Marcar como vendido",
   "listings.mine.delete": "Borrar",
+  "listings.mine.move.published": "Publicar de nuevo",
+  "listings.mine.move.pending": "Enviar a revisión",
+  "listings.mine.move.paused": "Pausar",
+  "listings.mine.move.draft": "Volver a borradores",
+  "listings.mine.move.renew": "Renovar",
+  "listings.mine.view": "Ver",
   "listings.mine.delete_confirm_title": "¿Borrar este anuncio?",
   "listings.mine.delete_confirm_body":
     "Desaparece de tu panel y no se puede recuperar. Archivarlo lo conserva.",
@@ -219,7 +225,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.blocked.mandate_unknown":
     "No pudimos comprobar tu cuenta, así que no adivinamos si puedes hacerlo",
   "listings.blocked.transition":
-    "Un anuncio en estado «{from_status}» no se puede mover así",
+    "Desde su estado actual, el anuncio no se puede mover así",
   "listings.blocked.delete_active":
     "Archívalo primero — un anuncio a la venta no se puede borrar",
   "listings.blocked.in_flight": "Un momento — eso ya está en marcha",

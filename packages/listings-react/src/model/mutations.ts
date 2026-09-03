@@ -7,6 +7,7 @@ import type {
   ListingActionResponse,
   ListingDraft,
   ListingDraftPatch,
+  ListingOwnerTransition,
   PublishResponse,
 } from "../api/types.js";
 import { useListingsApi } from "./context.js";
@@ -158,6 +159,46 @@ export function useCompleteListing(): UseMutationResult<
     retry: false,
     onSuccess: (_data, id) => {
       invalidateListing(queryClient, id);
+    },
+  });
+}
+
+/** What a lifecycle move carries: the row, and where it is going. */
+export interface ListingTransitionInput {
+  readonly id: number;
+  readonly to: ListingOwnerTransition;
+}
+
+/**
+ * Move a listing along ONE edge of the seller's half of the state machine
+ * (`POST listings/{id}/transition/`, stapel-listings 0.20.0).
+ *
+ * The generalisation of {@link useArchiveListing} and
+ * {@link useCompleteListing}, and the reason it exists is that those two were
+ * the whole owner API for two releases: both are EXITS, so a listing that
+ * reached SOLD, ARCHIVED, PAUSED or EXPIRED had no call that would move it
+ * again and a cabinet honestly had nothing to offer but Delete. The way back
+ * — SOLD or PAUSED to PUBLISHED, ARCHIVED to DRAFT, EXPIRED renewed — was in
+ * `LISTING_TRANSITIONS` the entire time and simply had no route.
+ *
+ * Same 409 as the two named exits (`error.409.invalid_listing_transition`
+ * with `params.from_status`), and the same invalidation: a move changes which
+ * tab the row belongs to, so the counters and every `my/listings` page go
+ * with it.
+ */
+export function useTransitionListing(): UseMutationResult<
+  ListingActionResponse,
+  StapelApiError,
+  ListingTransitionInput
+> {
+  const api = useListingsApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ListingTransitionInput) =>
+      api.transition(input.id, input.to),
+    retry: false,
+    onSuccess: (_data, input) => {
+      invalidateListing(queryClient, input.id);
     },
   });
 }

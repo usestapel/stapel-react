@@ -17,6 +17,7 @@ import {
   SKIN_CAROUSEL_CLASS,
   SKIN_CAROUSEL_DOT_CLASS,
   SKIN_CAROUSEL_PEEK,
+  SKIN_CAROUSEL_DOTS_CLASS,
   SKIN_CAROUSEL_SLIDE_CLASS,
   SKIN_CAROUSEL_STRIP_CLASS,
   SKIN_CAROUSEL_STYLE_HREF,
@@ -191,6 +192,64 @@ describe("peek — the edge of the next slide is the affordance", () => {
 });
 
 describe("aspect ratio — a photo well does not change height as images load", () => {
+  it("keeps the indicator OFF the height when the shape is declared", () => {
+    // The other half of the same defect. Below the strip, the dots add their
+    // own row — so a two-photo tile stood 16px taller than the one-photo tile
+    // beside it and the row of tiles was ragged again, this time from
+    // underneath. A declared ratio is a promise about the box's height, so
+    // there the indicator rides on the picture.
+    render(
+      <SkinCarousel label={LABEL} aspectRatio="4 / 3" dots data-testid="carousel">
+        {slides(3)}
+      </SkinCarousel>
+    );
+    expect(root().style.getPropertyValue("--skin-carousel-dots-pos")).toBe(
+      "absolute"
+    );
+    expect(
+      root()
+        .querySelector(`.${SKIN_CAROUSEL_DOTS_CLASS}`)
+        ?.getAttribute("data-over")
+    ).toBe("true");
+    cleanup();
+    // With no ratio the strip is as tall as its content and there is no
+    // promise to keep, so the dots stay in the flow.
+    render(
+      <SkinCarousel label={LABEL} dots data-testid="carousel">
+        {slides(3)}
+      </SkinCarousel>
+    );
+    expect(root().style.getPropertyValue("--skin-carousel-dots-pos")).toBe("");
+    expect(
+      root()
+        .querySelector(`.${SKIN_CAROUSEL_DOTS_CLASS}`)
+        ?.getAttribute("data-over")
+    ).toBe("false");
+    expect(skinCarouselCss()).toContain(
+      `.${SKIN_CAROUSEL_DOTS_CLASS}{position:var(--skin-carousel-dots-pos,static)`
+    );
+  });
+
+  it("puts the ratio on the STRIP, so a peek cannot shorten it", () => {
+    // The defect this closes, measured on a live 1440px feed: a 4:3 card with
+    // ONE photo drew a 200px picture and the same card with TWO drew 184 —
+    // because a peeking slide is `100% - peek` wide and the ratio was on the
+    // slide, so the strip's height came out `(100% - peek) / ratio`. The row
+    // of tiles then had a ragged bottom edge decided by how many photographs
+    // each seller had uploaded.
+    const css = skinCarouselCss();
+    const strip = css
+      .split("\n")
+      .find((rule) => rule.startsWith(`.${SKIN_CAROUSEL_STRIP_CLASS}{`));
+    expect(strip).toBeDefined();
+    expect(strip).toContain("aspect-ratio:var(--skin-carousel-ratio,auto)");
+    const slide = css
+      .split("\n")
+      .find((rule) => rule.startsWith(`.${SKIN_CAROUSEL_SLIDE_CLASS}{`));
+    expect(slide).toBeDefined();
+    expect(slide).not.toContain("aspect-ratio");
+  });
+
   it("sets the ratio property only when the caller asked for one", () => {
     render(
       <SkinCarousel label={LABEL} aspectRatio="4 / 3" data-testid="carousel">

@@ -260,6 +260,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/listings/api/v1/listings/{id}/transition/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Move the listing to ``to``, if that is a move its OWNER may make.
+         *
+         *     The seller's way forward, as one route instead of one endpoint per
+         *     edge. ``archive`` and ``complete`` were the only two the API ever
+         *     offered, and both of them are exits — so a listing that reached
+         *     ARCHIVED, PAUSED, EXPIRED, SOLD, REJECTED or BLOCKED had no call left
+         *     that would move it, and the cabinet correctly showed its owner
+         *     nothing but «удалить».
+         *
+         *     Which moves exist is ``models.OWNER_TRANSITIONS``, and it is the same
+         *     list ``available_transitions`` puts on the card — the point of routing
+         *     every edge through one allowlist is that the set a client is offered
+         *     and the set the server accepts are one object, not two that agree
+         *     today.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["listings_api_v1_listings_transition_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/listings/api/v1/listings/{id}/unfavorite/": {
         parameters: {
             query?: never;
@@ -437,6 +471,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        AvailableTransitionsEnum: "draft" | "pending" | "published" | "paused" | "expired" | "sold" | "rejected" | "blocked" | "archived";
         /** @description Serializer for boolean feature DAO. */
         BoolDao: {
             name?: string | null;
@@ -815,6 +851,11 @@ export interface components {
             lat?: string | null;
             /** Format: decimal */
             lon?: string | null;
+            /**
+             * Format: double
+             * @description How wide the area `lat`/`lon` describe, in kilometres. On a PUBLIC read this is ~1.113 (the pair is rounded to two decimals and `geohash` comes back empty): draw a CIRCLE, never a marker — the listing is somewhere in it, and for a private seller the true point is a home address. `0` means the exact point, which only the listing's own owner, staff and the service transport get. Proximity itself is unaffected: `distance_km` on a search hit is computed server-side from the true coordinates.
+             */
+            readonly geo_precision_km: number;
             countable?: boolean;
             /** Format: int64 */
             stock_quantity?: number | null;
@@ -845,6 +886,11 @@ export interface components {
             lat?: string | null;
             /** Format: decimal */
             lon?: string | null;
+            /**
+             * Format: double
+             * @description How wide the area `lat`/`lon` describe, in kilometres. On a PUBLIC read this is ~1.113 (the pair is rounded to two decimals and `geohash` comes back empty): draw a CIRCLE, never a marker — the listing is somewhere in it, and for a private seller the true point is a home address. `0` means the exact point, which only the listing's own owner, staff and the service transport get. Proximity itself is unaffected: `distance_km` on a search hit is computed server-side from the true coordinates.
+             */
+            readonly geo_precision_km: number;
             readonly features: (components["schemas"]["FeatureDao"] | {
                 slug?: string;
                 type?: string;
@@ -981,13 +1027,29 @@ export interface components {
             owner_id: string;
         };
         /**
-         * @description * `pending` - Pending Review
+         * @description The body of ``POST listings/{id}/transition/``: where to move it.
+         *
+         *     A ``ChoiceField`` over the whole lifecycle rather than over the moves this
+         *     particular listing has, because the two refusals are different sentences
+         *     and a client should be able to tell them apart: a status that does not
+         *     exist is a 400 (the caller is confused about the vocabulary), a status
+         *     that exists but is not this listing's to reach is a 409 with
+         *     ``from_status`` (the caller is confused about the row). Narrowing the
+         *     field to the per-row set would collapse both into 400 and lose the
+         *     ``from_status`` that tells a storefront what to re-render.
+         */
+        ListingTransitionRequest: {
+            to: components["schemas"]["ToEnum"];
+        };
+        /**
+         * @description * `not_submitted` - Not submitted for review
+         *     * `pending` - Pending Review
          *     * `approved` - Approved
          *     * `rejected` - Rejected
          *     * `needs_review` - Needs Manual Review
          * @enum {string}
          */
-        ModerationStatusEnum: "pending" | "approved" | "rejected" | "needs_review";
+        ModerationStatusEnum: "not_submitted" | "pending" | "approved" | "rejected" | "needs_review";
         /** @description Listing counts by tab for the current user. */
         MyCountersResponse: {
             active: number;
@@ -1059,6 +1121,11 @@ export interface components {
             lat?: string | null;
             /** Format: decimal */
             lon?: string | null;
+            /**
+             * Format: double
+             * @description How wide the area `lat`/`lon` describe, in kilometres. On a PUBLIC read this is ~1.113 (the pair is rounded to two decimals and `geohash` comes back empty): draw a CIRCLE, never a marker — the listing is somewhere in it, and for a private seller the true point is a home address. `0` means the exact point, which only the listing's own owner, staff and the service transport get. Proximity itself is unaffected: `distance_km` on a search hit is computed server-side from the true coordinates.
+             */
+            readonly geo_precision_km: number;
             countable?: boolean;
             /** Format: int64 */
             stock_quantity?: number | null;
@@ -1067,6 +1134,7 @@ export interface components {
             readonly viewed: boolean | null;
             readonly view_count: number;
             moderation_status?: components["schemas"]["ModerationStatusEnum"];
+            readonly available_transitions: components["schemas"]["AvailableTransitionsEnum"][];
             title_draft?: string;
             /** Format: decimal */
             price_draft?: string | null;
@@ -1286,6 +1354,19 @@ export interface components {
          * @enum {string}
          */
         StyleEnum: "l" | "m";
+        /**
+         * @description * `draft` - Draft
+         *     * `pending` - Pending Moderation
+         *     * `published` - Published
+         *     * `paused` - Paused
+         *     * `expired` - Expired
+         *     * `sold` - Sold
+         *     * `rejected` - Rejected
+         *     * `blocked` - Blocked (moderation takedown)
+         *     * `archived` - Archived
+         * @enum {string}
+         */
+        ToEnum: "draft" | "pending" | "published" | "paused" | "expired" | "sold" | "rejected" | "blocked" | "archived";
         /**
          * @description * `convertible_unit` - convertible_unit
          * @enum {string}
@@ -1660,6 +1741,48 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ListingStatus"];
                 };
+            };
+        };
+    };
+    listings_api_v1_listings_transition_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this listing. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingTransitionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ListingTransitionRequest"];
+                "multipart/form-data": components["schemas"]["ListingTransitionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingActionResponse"];
+                };
+            };
+            /** @description No response body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

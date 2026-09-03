@@ -29,17 +29,21 @@
 import { describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
+import { SKIN_CAROUSEL_SLIDE_CLASS } from "@stapel/tokens-antd/skin";
 import { ListingCard, ListingSerpCard } from "../src/default/index.js";
 import {
   CARD_BLEED_CLASS,
   CARD_FRAME_CLASS,
+  CARD_HOVER_CLASS,
   CARD_MAIN_CLASS,
   CARD_MEDIA_CLASS,
   CARD_QUERY_CLASS,
+  CARD_TARGET_CLASS,
   LISTING_CARD_ROW_MEDIA,
   LISTING_CARD_ROW_MIN,
   cardTargetCss,
 } from "../src/default/ListingCard.js";
+import { PHOTO_LINK_CLASS } from "../src/default/ListingPhoto.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { CARD } from "./fixtures.js";
 
@@ -136,14 +140,32 @@ describe("the rule text — the row arm a browser applies", () => {
     // A media query would make the same card wrong in a grid on a wide
     // screen: a 300px column inside a 1440px viewport is not a row.
     expect(css).toContain(`@container (min-width:${String(LISTING_CARD_ROW_MIN)}px)`);
-    // A WIDTH media query is the defect — it asks the window. The one
-    // `@media` this sheet does carry is `prefers-reduced-motion`, which asks
-    // the person.
+    // A WIDTH media query is the defect — it asks the WINDOW. Both `@media`
+    // rules this sheet carries ask the PERSON and their device instead:
+    // whether they want motion, and whether their pointer can hover at all.
     expect(css).not.toContain("@media (min-width");
     expect(css).not.toContain("@media (max-width");
-    expect(css.match(/@media/g) ?? []).toEqual(["@media"]);
+    // Three, and every one of them asks the person or their hardware:
+    // reduced motion (twice — the card's lift and the target's press) and
+    // whether the pointer can hover at all.
+    expect(css.match(/@media/g) ?? []).toHaveLength(3);
     expect(css).toContain("@media (prefers-reduced-motion:reduce)");
+    expect(css).toContain("@media (hover:hover)");
     expect(css).toContain(`.${CARD_QUERY_CLASS}{container-type:inline-size}`);
+  });
+
+  it("answers a FINGER, which has no hover to give (Д176)", () => {
+    // Swept on the live phone: one `:hover` rule for the card and zero
+    // `:active`, with `matchMedia("(hover: hover)")` answering false. So on
+    // the device this product is mostly used on, pressing a card gave no
+    // feedback at all until the next screen arrived — and the hover rule,
+    // unguarded, latched on after the tap.
+    expect(css).toContain(`.${CARD_HOVER_CLASS}:active{`);
+    expect(css).toContain(`.${PHOTO_LINK_CLASS}:active{`);
+    // …and on the TARGET, which is the one element all three card surfaces
+    // share: the feed tile is a bare div with this anchor over it and no card
+    // chrome for a frame rule to reach.
+    expect(css).toContain(`.${CARD_TARGET_CLASS}:active{transform:`);
   });
 
   it("stacks below the threshold and lays a row above it", () => {
@@ -153,12 +175,32 @@ describe("the rule text — the row arm a browser applies", () => {
 
   it("bounds the photograph so several rows fit a screen", () => {
     // 974x731 was a card that kept its stacked proportions in a full-page
-    // track. The row arm fixes the media's basis AND its maximum.
+    // track. The row arm fixes the media's basis AND its maximum — and gives
+    // it the card's own corner on all four sides, because beside the text the
+    // photo is a block rather than the top of one.
     expect(css).toContain(
       `.${CARD_MEDIA_CLASS}{flex:0 0 ${String(LISTING_CARD_ROW_MEDIA)}px;` +
+        `border-radius:var(--listing-card-radius);` +
         `max-inline-size:${String(LISTING_CARD_ROW_MEDIA)}px}`
     );
     expect(LISTING_CARD_ROW_MEDIA).toBeLessThan(LISTING_CARD_ROW_MIN / 2);
+  });
+
+  it("cuts the photo to the card's OWN corner, and squares the slides", () => {
+    // D180. A multi-photo tile drew a rounded sliver of the NEXT photograph
+    // in the corner where the card's curve should be — measured on every row
+    // of the live feed, in both themes, and read from a distance as a set of
+    // pictures with a torn right edge. The card owns one radius and hands it
+    // to the box that holds the pictures; the slides inside it are square,
+    // because the well is what has the shape.
+    expect(css).toContain(
+      `.${CARD_MEDIA_CLASS}{min-inline-size:0;overflow:hidden;` +
+        `border-start-start-radius:var(--listing-card-radius);` +
+        `border-start-end-radius:var(--listing-card-radius)}`
+    );
+    expect(css).toContain(
+      `.${CARD_MEDIA_CLASS} .${SKIN_CAROUSEL_SLIDE_CLASS}{border-radius:0}`
+    );
   });
 
   it("lets the reading column take what is left, and shrink", () => {

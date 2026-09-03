@@ -39,7 +39,7 @@ describe("the API surface is this pair's SLICE of the contract", () => {
     createStapelClient({ baseUrl: BASE, fetch: mockServer({}).fetch })
   );
 
-  it("exposes the sixteen operations a storefront calls", () => {
+  it("exposes the seventeen operations a storefront calls", () => {
     const methods = Object.keys(api).filter((key) => key !== "client").sort();
     expect(methods).toEqual([
       "archive",
@@ -59,6 +59,11 @@ describe("the API surface is this pair's SLICE of the contract", () => {
       "retrieve",
       "saveDraft",
       "status",
+      // ONE route for every edge of the seller's half of the state machine
+      // (stapel-listings 0.20.0). `archive` and `complete` stay because they
+      // are still on the contract; between them they covered two edges, both
+      // exits, which is why a cabinet had no way back out of SOLD.
+      "transition",
       "unfavorite",
       "validateDraft",
     ]);

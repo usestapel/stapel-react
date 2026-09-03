@@ -207,6 +207,36 @@ function ConversationRow(props: {
   return openRow(inside, row.id, openHref, onOpen);
 }
 
+/** The class the whole-row control carries, for {@link conversationRowCss}. */
+export const ROW_OPEN_CLASS = "stapel-chat-row-open";
+
+/** The `href` the hoisted row stylesheet is deduplicated by. */
+const ROW_STYLE_HREF = "stapel-chat-conversation-row";
+
+/**
+ * The one rule an inline style cannot state: `:focus-visible`.
+ *
+ * The row IS the control, and D65 made it so by wrapping the whole row in an
+ * anchor (or a `role="button"` div) styled `color: inherit; text-decoration:
+ * none` — a hit area with no chrome of its own. What went with the chrome was
+ * the focus ring: a keyboard walk of the live inbox landed on this element
+ * and, measured, reported `outline-style: none` and no box-shadow, so a
+ * person tabbing through their conversations could not see which one Enter
+ * would open. The whole row is also the largest focus target on the screen,
+ * which makes an unringed one the most conspicuously missing.
+ *
+ * `--stapel-focus-ring` is the design system's own role token, the same one
+ * every other ringed control in the fleet reads; the radius follows antd's
+ * `List.Item` so the ring hugs the row instead of cutting its corners.
+ */
+export function conversationRowCss(): string {
+  const row = `.${ROW_OPEN_CLASS}`;
+  return [
+    `${row}:focus-visible{outline:2px solid var(--stapel-focus-ring);` +
+      `outline-offset:-2px;border-radius:8px}`,
+  ].join("");
+}
+
 /**
  * THE WHOLE ROW IS THE CONTROL (D65).
  *
@@ -228,23 +258,34 @@ function openRow(
   const cover = { display: "block", color: "inherit", textDecoration: "none" };
   if (openHref) {
     return (
+      <>
+      <style href={ROW_STYLE_HREF} precedence="default">
+        {conversationRowCss()}
+      </style>
       <a
         href={openHref(conversationId)}
         style={cover}
+        className={ROW_OPEN_CLASS}
         data-chat-row-open=""
         data-analytics="none"
         data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
       >
         {inside}
       </a>
+      </>
     );
   }
   if (onOpen) {
     return (
+      <>
+      <style href={ROW_STYLE_HREF} precedence="default">
+        {conversationRowCss()}
+      </style>
       <div
         role="button"
         tabIndex={0}
         style={{ ...cover, cursor: "pointer" }}
+        className={ROW_OPEN_CLASS}
         data-chat-row-open=""
         data-analytics="none"
         data-analytics-reason="navigation into a thread — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture"
@@ -261,6 +302,7 @@ function openRow(
       >
         {inside}
       </div>
+      </>
     );
   }
   return inside;

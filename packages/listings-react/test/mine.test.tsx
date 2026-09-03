@@ -333,46 +333,116 @@ describe("the owner's own rows come off the contract's own route", () => {
   });
 });
 
-describe("row actions are gated by the server's own transition table", () => {
-  it("switches off 'mark sold' for a draft and says why", async () => {
-    const srv = mockServer(dashboard(myPage([myCard({ status: "draft" })])));
+describe("the row draws the moves the SERVER offers, and only those", () => {
+  /**
+   * D182, the one-way door. Measured on a live stand: "Mark sold" moved a
+   * listing to SOLD and into the Archive tab, where the row went on offering
+   * the same four buttons — "Mark sold" on something already sold and
+   * "Archive" on something already archived, both no-ops, and nothing at all
+   * that would put it back on sale. A misclick cost the seller the listing:
+   * 78 seconds and 26 clicks to enter it again.
+   *
+   * The moves are `available_transitions` (stapel-listings 0.20.0) — the
+   * server reporting `OWNER_TRANSITIONS` for this row, and the same list
+   * `POST {id}/transition/` validates against.
+   */
+  const rowMoves = (): readonly string[] =>
+    [...document.querySelectorAll("[data-listing-move]")].map(
+      (el) => el.getAttribute("data-listing-move") ?? ""
+    );
+
+  async function renderRow(card: Parameters<typeof myCard>[0]) {
+    const srv = mockServer(dashboard(myPage([myCard(card)])));
     render(
       <TestProviders server={srv}>
         <MyListingsPane />
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("listings-mine-complete")).toBeTruthy();
+      expect(screen.getByTestId("listings-mine-row")).toBeTruthy();
     });
-    // draft → sold is not in LISTING_TRANSITIONS, so the mirror blocks it —
-    // and the 409 stays the verdict if the table ever moves.
-    // Refused on activation rather than inert — see `compose.test.tsx`.
-    expect(
-      screen.getByTestId("listings-mine-complete").getAttribute("aria-disabled")
-    ).toBe("true");
-    expect(
-      screen.getByTestId("listings-mine-archive").getAttribute("aria-disabled")
-    ).toBeNull();
+    return srv;
+  }
+
+  it("offers a SOLD listing the way back, and never the move it already made", async () => {
+    await renderRow({
+      status: "sold",
+      available_transitions: ["published", "archived"],
+    });
+    expect(rowMoves()).toEqual(["published", "archived"]);
+    // The two that used to be here and did nothing.
+    expect(screen.queryByTestId("listings-mine-move-sold")).toBeNull();
+    expect(screen.getByTestId("listings-mine-move-published")).toBeTruthy();
   });
 
-  it("switches off delete for a listing that is on sale", async () => {
-    const srv = mockServer(dashboard());
+  it("offers an ARCHIVED listing the way back, and not 'archive' again", async () => {
+    await renderRow({
+      status: "archived",
+      available_transitions: ["draft"],
+    });
+    expect(rowMoves()).toEqual(["draft"]);
+    expect(screen.queryByTestId("listings-mine-move-archived")).toBeNull();
+  });
+
+  it("never offers a DRAFT the move it cannot make", async () => {
+    await renderRow({
+      status: "draft",
+      available_transitions: ["pending", "archived"],
+    });
+    // draft → sold is in neither table, and it is not drawn switched off with
+    // an explanation: it is simply not a thing this row can do.
+    expect(screen.queryByTestId("listings-mine-move-sold")).toBeNull();
+    expect(rowMoves()).toEqual(["pending", "archived"]);
+  });
+
+  it("takes the card's own list over the mirror, edge for edge", async () => {
+    // A deployment that narrows the seller's half further is describing its
+    // own rule; a pair that re-derived the table would draw a button the
+    // route then 409s on.
+    await renderRow({
+      status: "published",
+      available_transitions: ["archived"],
+    });
+    expect(rowMoves()).toEqual(["archived"]);
+  });
+
+  it("falls back to the mirror for a row that carries no list", async () => {
+    // A row read before stapel-listings 0.20.0. Offering nothing would be the
+    // one-way door again, this time by omission.
+    const card = myCard({ status: "sold" }) as Record<string, unknown>;
+    delete card["available_transitions"];
+    const srv = mockServer(dashboard(myPage([card as never])));
     render(
       <TestProviders server={srv}>
         <MyListingsPane />
       </TestProviders>
     );
     await waitFor(() => {
-      expect(
-        screen.getByTestId("listings-mine-delete").getAttribute("aria-disabled")
-      ).toBe("true");
+      expect(screen.getByTestId("listings-mine-move-published")).toBeTruthy();
+    });
+    expect(rowMoves()).toEqual(["published", "archived"]);
+  });
+
+  it("sends the move through the ONE route, naming where it goes", async () => {
+    const srv = await renderRow({
+      status: "sold",
+      available_transitions: ["published", "archived"],
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("listings-mine-move-published"));
+    });
+    await waitFor(() => {
+      expect(srv.matching("/listings/7/transition/")).toHaveLength(1);
+    });
+    expect(srv.matching("/listings/7/transition/")[0]?.body).toEqual({
+      to: "published",
     });
   });
 
   it("renders the 409 as the named refusal it is", async () => {
     const srv = mockServer({
-      ...dashboard(),
-      "/listings/7/archive/": {
+      ...dashboard(myPage([myCard({ status: "sold", available_transitions: ["published", "archived"] })])),
+      "/listings/7/transition/": {
         status: 409,
         body: {
           localizable_error: "error.409.invalid_listing_transition",
@@ -387,16 +457,131 @@ describe("row actions are gated by the server's own transition table", () => {
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("listings-mine-archive")).toBeTruthy();
+      expect(screen.getByTestId("listings-mine-move-published")).toBeTruthy();
     });
     await act(async () => {
-      fireEvent.click(screen.getByTestId("listings-mine-archive"));
+      fireEvent.click(screen.getByTestId("listings-mine-move-published"));
     });
     await waitFor(() => {
-      expect(srv.matching("/listings/7/archive/")).toHaveLength(1);
+      expect(srv.matching("/listings/7/transition/")).toHaveLength(1);
     });
     await waitFor(() => {
       expect(screen.getByTestId("listings-mine-action-error")).toBeTruthy();
+    });
+  });
+});
+
+describe("a seller can open their own listing", () => {
+  /**
+   * D183. Measured on a live cabinet: `a[href^="/l/"]` — ZERO. The title was
+   * bold text and the thumbnail was a picture, so the one move a person makes
+   * straight after publishing ("did that come out right?") could only be made
+   * by typing a URL.
+   */
+  const listingHref = (id: number): string => `/l/${String(id)}`;
+
+  it("links the title and the thumbnail at the listing's own page", async () => {
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane listingHref={listingHref} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-open")).toBeTruthy();
+    });
+    expect(screen.getByTestId("listings-mine-open").getAttribute("href")).toBe(
+      "/l/7"
+    );
+    expect(screen.getByTestId("listings-mine-thumb-link").getAttribute("href")).toBe(
+      "/l/7"
+    );
+  });
+
+  it("leaves a never-published draft unlinked", async () => {
+    // `title`/`price`/`images` are the PUBLISHED fields, so a draft's public
+    // page is a blank one. A link to nothing is worse than no link, and the
+    // predicate is the SERVER's own — DRAFT and NOT_SUBMITTED, the pair the
+    // 0.20.0 migration used to mean "nobody ever pressed publish".
+    const srv = mockServer(
+      dashboard(
+        myPage([
+          myCard({
+            status: "draft",
+            moderation_status: "not_submitted",
+            title: "",
+            title_draft: "Half-written",
+            available_transitions: ["pending", "archived"],
+          }),
+        ])
+      )
+    );
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane listingHref={listingHref} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-row")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("listings-mine-open")).toBeNull();
+  });
+
+  it("links a draft that HAS been published before", async () => {
+    // Restored from the archive, or taken down for an edit: its public half
+    // exists and its owner may read it. Withholding the link here was the
+    // shape the first cut of this rule had — it asked which half of the twin
+    // the row was SHOWING, which is a different question.
+    const srv = mockServer(
+      dashboard(
+        myPage([
+          myCard({
+            status: "draft",
+            moderation_status: "approved",
+            available_transitions: ["pending", "archived"],
+          }),
+        ])
+      )
+    );
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane listingHref={listingHref} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-open")).toBeTruthy();
+    });
+  });
+
+  it("draws no link at all when the host has no listing page", async () => {
+    // ABSENT IS A REAL ANSWER — a deployment whose listings have no public
+    // page has nothing to link to. What it must not be is this file's
+    // decision for everybody, which is what it was.
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-title")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("listings-mine-open")).toBeNull();
+  });
+});
+
+describe("row actions are gated by the server's own transition table", () => {
+  it("switches off delete for a listing that is on sale", async () => {
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("listings-mine-delete").getAttribute("aria-disabled")
+      ).toBe("true");
     });
   });
 });

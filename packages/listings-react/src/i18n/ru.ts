@@ -53,8 +53,12 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "error.403.listing_not_owner": "Это не ваше объявление",
   "error.404.listing_not_found": "Объявление не найдено",
   "error.409.already_favorited": "Объявление уже в избранном",
+  // No `{from_status}`: what landed in that slot was the wire value
+  // ('draft', 'archived'), and the status is already named in the reader's
+  // own words beside the control. See the note on this pair of keys in
+  // keys.ts.
   "error.409.invalid_listing_transition":
-    "Объявление в статусе «{from_status}» так перевести нельзя",
+    "Из текущего состояния объявление так перевести нельзя",
   "error.409.listing_cannot_delete_active":
     "Сначала снимите объявление с публикации — активное удалить нельзя",
 
@@ -213,6 +217,12 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.archive": "В архив",
   "listings.mine.complete": "Отметить проданным",
   "listings.mine.delete": "Удалить",
+  "listings.mine.move.published": "Опубликовать снова",
+  "listings.mine.move.pending": "Отправить на проверку",
+  "listings.mine.move.paused": "Снять с публикации",
+  "listings.mine.move.draft": "Вернуть в черновики",
+  "listings.mine.move.renew": "Продлить",
+  "listings.mine.view": "Посмотреть",
   "listings.mine.delete_confirm_title": "Удалить объявление?",
   "listings.mine.delete_confirm_body":
     "Оно исчезнет из кабинета, и вернуть его будет нельзя. Архив сохраняет его.",
@@ -240,7 +250,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.blocked.mandate_unknown":
     "Не удалось проверить ваш аккаунт, поэтому мы не угадываем, можно ли вам это",
   "listings.blocked.transition":
-    "Объявление в статусе «{from_status}» так перевести нельзя",
+    "Из текущего состояния объявление так перевести нельзя",
   "listings.blocked.delete_active":
     "Сначала уберите в архив — объявление в продаже удалить нельзя",
   "listings.blocked.in_flight": "Секунду — это уже выполняется",

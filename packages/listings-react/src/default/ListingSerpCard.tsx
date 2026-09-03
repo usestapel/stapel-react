@@ -99,6 +99,7 @@ import {
   CARD_MEDIA_CLASS,
   CARD_QUERY_CLASS,
   CARD_TARGET_STYLE_HREF,
+  CARD_HOVER_CLASS,
   CARD_VIEWED_CLASS,
   CardTarget,
   cardTargetCss,
@@ -247,11 +248,23 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
         {...(status !== undefined
           ? { "data-listing-status": status.status }
           : {})}
-        {...(viewed
-          ? { className: CARD_VIEWED_CLASS, "data-listing-viewed": "true" }
-          : {})}
+        // THE PHONE CARD SAYS IT IS A TARGET, TOO (D176). It carried no
+        // hover and no pressed state at all, and the device this card exists
+        // for answers `matchMedia("(hover: hover)")` with false — so a tap
+        // gave no feedback whatever until the next screen arrived. The shared
+        // class is one rule for a pointer that hovers and one for a finger
+        // that presses; `cardTargetCss` states both.
+        className={
+          viewed ? `${CARD_HOVER_CLASS} ${CARD_VIEWED_CLASS}` : CARD_HOVER_CLASS
+        }
+        {...(viewed ? { "data-listing-viewed": "true" } : {})}
         styles={{ body: { minWidth: 0, padding: token.paddingSM } }}
-        style={{ ["--listing-card-focus" as string]: token.colorPrimary }}
+        style={{
+          ["--listing-card-focus" as string]: token.colorPrimary,
+          // The corner the media well is cut to — see `cardTargetCss` (D180).
+          ["--listing-card-radius" as string]: `${String(token.borderRadiusLG)}px`,
+          ["--listing-card-hover-shadow" as string]: token.boxShadowSecondary,
+        }}
       >
         <div className={CARD_QUERY_CLASS}>
           <div className={CARD_FRAME_CLASS} style={{ gap: spacing[3] }}>

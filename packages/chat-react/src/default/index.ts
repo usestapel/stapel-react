@@ -12,7 +12,11 @@
  * } from "@stapel/chat-react/default";
  * ```
  */
-export { ConversationListPanel } from "./ConversationListPanel.js";
+export {
+  ConversationListPanel,
+  ROW_OPEN_CLASS,
+  conversationRowCss,
+} from "./ConversationListPanel.js";
 export type { ConversationListPanelProps } from "./ConversationListPanel.js";
 export { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 export type { ConversationThreadPanelProps } from "./ConversationThreadPanel.js";

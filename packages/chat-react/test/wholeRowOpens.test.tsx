@@ -13,7 +13,11 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { ConversationListPanel } from "../src/default/index.js";
+import {
+  ConversationListPanel,
+  ROW_OPEN_CLASS,
+  conversationRowCss,
+} from "../src/default/index.js";
 import type { Conversation } from "../src/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 import { BUYER, conversation, conversationPage } from "./fixtures.js";
@@ -71,6 +75,26 @@ describe("a conversation row is one control, not a small button inside a big box
     expect(focusable).toBe(true);
     fireEvent.keyDown(control, { key: "Enter" });
     await waitFor(() => expect(opened).toHaveBeenCalledWith("c-anna"));
+  });
+
+  it("the control that IS the row shows a focus ring", async () => {
+    // D181. D65 made the whole row the control by wrapping it in an element
+    // styled `color: inherit; text-decoration: none` — a hit area with no
+    // chrome. What went with the chrome was the ring: a keyboard walk of the
+    // live inbox landed here and measured `outline-style: none`, no
+    // box-shadow, so a person tabbing their conversations could not see which
+    // one Enter would open. The largest focus target on the screen was the
+    // one with nothing to show for it.
+    const opened = vi.fn();
+    renderInbox(opened);
+    const row = await screen.findByTestId("chat-conversation-row");
+    const control = row.closest("[data-chat-row-open]");
+    expect(control).not.toBeNull();
+    expect(control?.className).toContain(ROW_OPEN_CLASS);
+    // The rule itself, since jsdom paints no :focus-visible.
+    const css = conversationRowCss();
+    expect(css).toContain(`.${ROW_OPEN_CLASS}:focus-visible{outline:`);
+    expect(css).toContain("var(--stapel-focus-ring)");
   });
 
   it("an href row still renders a real anchor over the whole row — right-clickable", async () => {

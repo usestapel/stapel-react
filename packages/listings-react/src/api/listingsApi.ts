@@ -7,6 +7,7 @@ import type {
   ListingEngagementBatch,
   ListingDraft,
   ListingDraftPatch,
+  ListingOwnerTransition,
   ListingPageParams,
   ListingStatusInfo,
   MyCounters,
@@ -204,6 +205,29 @@ export interface ListingsApi {
   /** Mark SOLD. Same 409 contract as {@link archive}. */
   complete(id: number): Promise<ListingActionResponse>;
 
+  /**
+   * Move the listing to `to` — ONE route for every edge a seller owns
+   * (`POST listings/{id}/transition/`, stapel-listings 0.20.0).
+   *
+   * {@link archive} and {@link complete} are still here and still work; they
+   * are two named exits, and for two releases they were the ONLY two the
+   * owner API had. That is what made a cabinet a one-way door: every status a
+   * seller could put a listing INTO — SOLD, ARCHIVED, PAUSED, EXPIRED — was
+   * one no call could get it out of, and `DELETE` was the only answer left.
+   *
+   * The set this accepts is `models.OWNER_TRANSITIONS`, which is the same set
+   * `MyListingCard.available_transitions` reports, deliberately: the moves a
+   * client is offered and the moves the server takes are one object rather
+   * than two that agree today. Two refusals, and they are different
+   * sentences — a status that does not exist is a 400, a status that exists
+   * but is not this row's to reach is `error.409.invalid_listing_transition`
+   * with `params.from_status`.
+   */
+  transition(
+    id: number,
+    to: ListingOwnerTransition
+  ): Promise<ListingActionResponse>;
+
   /** Favourite a listing. Idempotent server-side (`get_or_create`). */
   favorite(id: number): Promise<FavoriteToggleResponse>;
 
@@ -305,6 +329,9 @@ export function createListingsApi(client: StapelClient): ListingsApi {
     archive: (id) => client.post(`${listingPath(id)}archive/`),
 
     complete: (id) => client.post(`${listingPath(id)}complete/`),
+
+    transition: (id, to) =>
+      client.post(`${listingPath(id)}transition/`, { to }),
 
     favorite: (id) => client.post(`${listingPath(id)}favorite/`),
 

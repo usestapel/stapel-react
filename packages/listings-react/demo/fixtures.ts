@@ -68,6 +68,9 @@ export const DEMO_CARD: ListingCard = {
   features_title: TITLE_FEATURES,
   features_badges: BADGES,
   location_label: "Kazan",
+  // The public card states an AREA (~1.1km), never the seller's door
+  // (stapel-listings 0.21.0).
+  geo_precision_km: 1.113,
   status: "published",
   is_favorited: false,
 };
@@ -89,6 +92,10 @@ export function demoMyCard(
   return {
     ...DEMO_CARD,
     moderation_status: "approved",
+    // The moves the SERVER offers this row's owner (`OWNER_TRANSITIONS`,
+    // stapel-listings 0.20.0) — the third axis, and the one the dashboard
+    // draws its buttons from.
+    available_transitions: ["paused", "sold", "archived"],
     title_draft: "",
     price_draft: null,
     images_draft: [],
@@ -156,6 +163,10 @@ export const DEMO_DETAIL: ListingDetailData = {
   images: ["image/9f2c1a", "image/71b0dd"],
   location_id: "ru-kzn",
   location_label: "Kazan",
+  // The OWNER's read keeps the exact point — `geo_precision_km: 0` — which
+  // is what `fromDetail` loads into the composer. A public reader of the
+  // same listing gets ~1.1km and a blank geohash.
+  geo_precision_km: 0,
   geohash: "ucsu5uh",
   lat: "55.796100",
   lon: "49.106400",

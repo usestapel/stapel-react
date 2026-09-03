@@ -107,7 +107,12 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
-import { ErrorAlert, GatedControl, SkinTheme } from "@stapel/tokens-antd/skin";
+import {
+  ErrorAlert,
+  GatedControl,
+  SKIN_CAROUSEL_SLIDE_CLASS,
+  SkinTheme,
+} from "@stapel/tokens-antd/skin";
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -305,11 +310,37 @@ export function cardTargetCss(): string {
   return [
     `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
     `.${CARD_TARGET_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
+    // A PRESS, answered where the press lands (D176). The rule is on the
+    // TARGET rather than on the card's frame because that is the one element
+    // all three surfaces share: the feed tile is a bare div with this anchor
+    // over it and no card chrome at all, so a rule written for the frame
+    // reached the two surfaces that have one and missed the phone's home
+    // screen entirely. `matchMedia("(hover: hover)")` is false on that
+    // device, which makes this the ONLY feedback a finger ever gets between
+    // touching a tile and the next screen arriving.
+    `.${CARD_TARGET_CLASS}{transition:transform 90ms ease}`,
+    `.${CARD_TARGET_CLASS}:active{transform:scale(0.985)}`,
+    `@media (prefers-reduced-motion:reduce){.${CARD_TARGET_CLASS}{transition:none}` +
+      `.${CARD_TARGET_CLASS}:active{transform:none;opacity:0.9}}`,
     // The card asks about its OWN width, not the window's — see
     // `LISTING_CARD_ROW_MIN`.
     `${q}{container-type:inline-size}`,
     `${frame}{display:flex;flex-direction:column;min-inline-size:0}`,
-    `${media}{min-inline-size:0}`,
+    // THE MEDIA WELL IS CLIPPED TO THE CARD'S OWN CORNER (D180).
+    //
+    // The photo strip runs edge to edge at the top of a stacked card, so the
+    // card's rounded corner is the corner of the PICTURE. It was not being
+    // cut to it: the well was a square box inside a rounded card, and each
+    // carousel slide carried a radius of its own — so a multi-photo tile drew
+    // a rounded sliver of the next photograph in the corner where the card's
+    // curve should be, and every row of tiles on the live feed read as a set
+    // of pictures with a torn right edge. One radius, stated by the card,
+    // applied to the box that holds the pictures; the slides inside it are
+    // square because the well is what has the shape.
+    `${media}{min-inline-size:0;overflow:hidden;` +
+      `border-start-start-radius:var(--listing-card-radius);` +
+      `border-start-end-radius:var(--listing-card-radius)}`,
+    `${media} .${SKIN_CAROUSEL_SLIDE_CLASS}{border-radius:0}`,
     `${main}{display:flex;flex-direction:column;flex:1 1 auto;min-inline-size:0}`,
     // The row arm. `align-items:flex-start` so a short text column does not
     // stretch the photo, and a fixed media basis so the picture cannot grow
@@ -317,6 +348,9 @@ export function cardTargetCss(): string {
     `@container (min-width:${String(LISTING_CARD_ROW_MIN)}px){` +
       `${frame}{flex-direction:row;align-items:flex-start}` +
       `${media}{flex:0 0 ${String(LISTING_CARD_ROW_MEDIA)}px;` +
+      // Inset on every side in the row arm, so the photo is a rounded block
+      // beside the text rather than two rounded corners and two square ones.
+      `border-radius:var(--listing-card-radius);` +
       `max-inline-size:${String(LISTING_CARD_ROW_MEDIA)}px}` +
       // A full-bleed stacked card has no padding of its own to give the row
       // arm, so the row arm states its own; the reading column's padding is
@@ -333,8 +367,24 @@ export function cardTargetCss(): string {
     // tokens, and a transition that a person who asked for less motion does
     // not get.
     `.${hover}{transition:box-shadow 160ms ease,border-color 160ms ease}`,
-    `.${hover}:hover{box-shadow:var(--listing-card-hover-shadow);` +
-      `border-color:var(--listing-card-focus)}`,
+    // HOVER IS FOR A POINTER THAT HAS ONE. Measured on the phone this loop
+    // walks: `matchMedia("(hover: hover)")` is false, and an unguarded
+    // `:hover` on a touch device is worse than absent — it latches after a
+    // tap and leaves one tile lit until something else is touched.
+    `@media (hover:hover){.${hover}:hover{` +
+      `box-shadow:var(--listing-card-hover-shadow);` +
+      `border-color:var(--listing-card-focus)}}`,
+    // PRESSED, and not the same thing as hovered. The card had a hover state
+    // and nothing at all on the way down, so a tap on a phone — where there
+    // is no hover to begin with — gave no feedback between the finger landing
+    // and the next screen arriving. The lift is TAKEN AWAY rather than
+    // increased: a pressed card is a card pushed into the page, which is the
+    // one direction a shadow can say without a second token.
+    `.${hover}:active{box-shadow:none;border-color:var(--listing-card-focus)}`,
+    // The photo is the largest target on the tile and is its own link, so it
+    // answers a press on its own — the card behind it may not be under the
+    // finger at all.
+    `.${PHOTO_LINK_CLASS}:active{opacity:0.88}`,
     `@media (prefers-reduced-motion:reduce){.${hover}{transition:none}}`,
     // Already seen. The photo and everything inside the card's anchor dim
     // together; the heart is outside the anchor and stays as it was — see
@@ -578,9 +628,23 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         />
       ) : null}
 
+      {/* ONE line, and it truncates (D185). Measured on a live 1440px feed:
+          a two-part city-and-district name wrapped, the text block grew
+          104 -> 128px, and the two cards on either side of it stood 24px
+          shorter — a row of tiles with a ragged bottom edge and a heart
+          hanging below the line it belongs to. The place is a subtitle, not
+          prose: which city it is reads from the first words, and the tile's
+          height must be a property of the GRID rather than of how long this
+          particular neighbourhood is called. The full string stays in the
+          title attribute the way `ellipsis` puts it there, so nothing is
+          lost — it is one hover, or the listing's own page. */}
       {listing.location_label !== undefined &&
       listing.location_label.length > 0 ? (
-        <Typography.Text type="secondary" data-testid="listings-card-location">
+        <Typography.Text
+          type="secondary"
+          ellipsis={{ tooltip: listing.location_label }}
+          data-testid="listings-card-location"
+        >
           {listing.location_label}
         </Typography.Text>
       ) : null}
@@ -617,6 +681,10 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         style={{
           ["--listing-card-focus" as string]: token.colorPrimary,
           ["--listing-card-inset" as string]: `${String(token.paddingSM)}px`,
+          // The card's OWN corner, handed to the media well so the picture is
+          // cut to the same curve the card is drawn with — in whatever theme,
+          // at whatever radius a deployment retuned it to.
+          ["--listing-card-radius" as string]: `${String(token.borderRadiusLG)}px`,
           // The theme's own elevation, so the lift is the same one every
           // raised surface in the skin uses and it is right in both modes.
           ["--listing-card-hover-shadow" as string]: token.boxShadowSecondary,

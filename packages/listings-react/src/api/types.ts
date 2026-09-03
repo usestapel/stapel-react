@@ -140,8 +140,27 @@ export type ListingDetail = WithOptionalEngagement<Schemas["ListingDetail"]>;
  * type, for data no one can supply; it is precisely the case
  * `<ListingEngagementScope>` exists to answer. A deployment running a server
  * older than 0.16 is the same shape of fact.
+ *
+ * `geo_precision_km` is relaxed for the same reason and by the same argument.
+ * stapel-listings 0.21.0 puts it on every card this module serves — how wide
+ * an area `lat`/`lon` describe, so a reader draws a circle instead of pinning
+ * a private seller's front door with a marker — and the SEARCH document does
+ * not carry it, because stapel-search coarsens its own card independently
+ * (`CARD_COORD_PRECISION`, the same ~1.1km). Requiring it on the prop would
+ * make the pair's primary consumer unable to satisfy its own type for a
+ * number nobody in that path holds. A reader that needs the precision must
+ * treat its absence as UNSTATED and never as `0`: `0` means the exact point,
+ * which is the one reading that could publish an address.
  */
-export type ListingCard = WithOptionalEngagement<Schemas["ListingCard"]>;
+type WithOptionalPrecision<Row extends { geo_precision_km?: number }> = Omit<
+  Row,
+  "geo_precision_km"
+> &
+  Partial<Pick<Schemas["ListingCard"], "geo_precision_km">>;
+
+export type ListingCard = WithOptionalPrecision<
+  WithOptionalEngagement<Schemas["ListingCard"]>
+>;
 
 /** `POST /listings/` request+response and `POST /{pk}/save-draft/` response —
  * the draft twin. Every user-editable field is a `*_draft` one, promoted onto
@@ -197,7 +216,9 @@ export type PaginatedListingCards = Omit<
  *    tab keyed off them is a column of blank rows. `myListingTitle` /
  *    `myListingPrice` (`model/mine.ts`) are the one place the fallback lives.
  */
-export type MyListingCard = WithOptionalEngagement<Schemas["MyListingCard"]>;
+export type MyListingCard = WithOptionalPrecision<
+  WithOptionalEngagement<Schemas["MyListingCard"]>
+>;
 
 /** The keyset envelope `GET /listings/my/listings/` comes back in — the same
  * `IDAnchorPagination` shape as {@link PaginatedListingCards}, over the owner
@@ -232,9 +253,33 @@ export const LISTING_STATUSES: readonly ListingLifecycleStatus[] = [
  * only one (`models.py`: "no visibility-reads-moderation_status coupling"). */
 export type ListingLifecycleStatus = Schemas["StatusD41Enum"];
 
+/**
+ * One move the OWNER of a listing may make from where it is now — the third
+ * axis, and the one stapel-listings 0.20.0 added because the first two cannot
+ * answer it.
+ *
+ * `status` says where the listing IS and `moderation_status` says what is
+ * being waited on. Neither says *what can I do about it*, and a dashboard
+ * that works it out for itself is re-implementing `models.OWNER_TRANSITIONS`
+ * from the outside — which is how a cabinet ends up drawing "Mark sold" on a
+ * listing that is already sold, and drawing no way back at all.
+ *
+ * The values are lifecycle states (the DESTINATION of a move), so this is
+ * `ListingLifecycleStatus` narrowed by the server rather than a second
+ * vocabulary.
+ */
+export type ListingOwnerTransition = Schemas["AvailableTransitionsEnum"];
+
 /** The four content-moderation states, as `models.ModerationStatus` declares
  * them. Independent of the lifecycle: see `model/status.ts`. */
 export const MODERATION_STATUSES: readonly ListingModerationStatus[] = [
+  // NOBODY HAS ASKED YET, and it is the DEFAULT (stapel-listings 0.20.0).
+  // Before it, a draft was born `pending` and every dashboard row announced a
+  // moderation decision that no case existed behind — one live stand held 167
+  // of them. The distinction lives in the data because every reader asks the
+  // same question and would each otherwise re-derive "…unless it was never
+  // submitted" from a second column.
+  "not_submitted",
   "pending",
   "approved",
   "rejected",

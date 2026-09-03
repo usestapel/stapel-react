@@ -273,6 +273,34 @@ describe("a search hit carries almost nothing, and the card still reads", () => 
     expect(screen.queryByTestId("listings-card-badges")).toBeNull();
   });
 
+  it("keeps the place to ONE line, whatever it is called", () => {
+    // D185. Measured on a live 1440px feed: a two-part city-and-district
+    // name wrapped, the text block grew 104 -> 128px, and the two cards
+    // beside it in the same row stood 24px shorter — a row of tiles with a
+    // ragged bottom edge and a heart hanging below the line. A tile's height
+    // is a property of the grid, not of how long this particular
+    // neighbourhood happens to be called.
+    render(
+      providers(
+        <ListingCard
+          listing={{
+            ...SEARCH_HIT,
+            location_label: "Санкт-Петербург, Дворцовый округ",
+          }}
+          href="/l/7"
+        />
+      )
+    );
+    const place = screen.getByTestId("listings-card-location");
+    // antd renders `ellipsis` as its own single-line class; what matters is
+    // that the element declares it cannot wrap.
+    expect(place.className).toContain("ellipsis");
+    // Nothing is lost: the full name is still readable.
+    expect(place.getAttribute("title") ?? place.textContent).toContain(
+      "Дворцовый"
+    );
+  });
+
   it("shows no location line when the hit has no place", () => {
     render(
       providers(

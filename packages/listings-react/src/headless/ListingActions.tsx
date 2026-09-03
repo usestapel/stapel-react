@@ -4,32 +4,81 @@ import {
   firstBlock,
 } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import type { ListingLifecycleStatus } from "../api/types.js";
+import type {
+  ListingLifecycleStatus,
+  ListingOwnerTransition,
+} from "../api/types.js";
 import {
   useArchiveListing,
   useCompleteListing,
   useDeleteListing,
+  useTransitionListing,
 } from "../model/mutations.js";
-import { canDelete, canTransition } from "../model/transitions.js";
+import { canDelete, canTransition, ownerMoves } from "../model/transitions.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { useMandateGate } from "./useMandateGate.js";
 
 /**
- * The three lifecycle moves an owner can actually request, each behind a gate
- * that states its reason.
+ * The lifecycle moves an owner can actually request, each behind a gate that
+ * states its reason.
+ *
+ * ── The server says what is offerable; nothing here re-derives it ──────────
+ *
+ * `MyListingCard.available_transitions` (stapel-listings 0.20.0) is the
+ * seller's half of the state machine, reported for ONE row by the module that
+ * owns the machine — and it is the same list `POST {id}/transition/`
+ * validates against, so the set a person is offered and the set the server
+ * takes are one object rather than two that agree today.
+ *
+ * Before it, this hook offered a FIXED three (archive, complete, delete) and
+ * gated them against a local copy of the table. That shipped two defects at
+ * once, and both were live:
+ *
+ *  - **Buttons that did nothing.** `canTransition(from, to)` answers true for
+ *    `from === to` — correctly, since the server returns early on a
+ *    same-status move — so a SOLD row's "Mark sold" and an ARCHIVED row's
+ *    "Archive" were enabled, clickable and inert. Two of four controls on
+ *    every archived row.
+ *  - **No way back.** The whole vocabulary was `archive` and `complete`, and
+ *    both are EXITS. A seller who marked something sold by a misclick could
+ *    not un-sell it: `SOLD → PUBLISHED` was in the machine and had no route,
+ *    so the honest answer the cabinet had left was Delete and start again.
+ *
+ * {@link ListingActionsBag.moves} is now the whole answer for a dashboard:
+ * whatever it holds is drawn, and a control that would be a no-op is not in
+ * it. `ownerMoves` supplies the fallback for a surface that holds a bare
+ * `status` (a detail pane, a row read before 0.20.0) — never as a second
+ * opinion where the card carries the field.
  *
  * ── The mirror is UX, the 409 is the verdict ───────────────────────────────
  *
- * `LISTING_TRANSITIONS` (`model/transitions.ts`) is a copy of the server's
- * whitelist, and it exists so a control can be switched off WITH a sentence:
- * "a listing that is sold cannot be archived that way" beats a toast after
- * the click. The server still decides — `transition_to` raises and the view
- * answers 409 `error.409.invalid_listing_transition` with
- * `params.from_status` — and that refusal is rendered as the named thing it
- * is. The mirror may never block what the server would allow, which is why it
- * is a copy of the table and not a summary of it.
+ * The server still decides — `transition_to` raises and the view answers 409
+ * `error.409.invalid_listing_transition` with `params.from_status` — and that
+ * refusal is rendered as the named thing it is.
  */
+
+/** One move a seller may make from where the listing is now. */
+export interface ListingMove {
+  /** Where it lands. The vocabulary `available_transitions` speaks. */
+  readonly to: ListingOwnerTransition;
+  /** The caption's i18n KEY — never a literal; this is a headless hook. */
+  readonly labelKey: string;
+  /** Mandate and in-flight only: the move itself is offered, or it would not
+   * be in this list. */
+  readonly gate: ActionAvailability;
+  /** A stable hook for a skin's `data-testid`, so a test names the MOVE
+   * rather than the position of a button in a wrapping row. */
+  readonly testId: string;
+  run(): void;
+}
+
 export interface ListingActionsBag {
+  /**
+   * Every move this listing's owner may make, in drawing order, and NOTHING
+   * else. Empty is a real answer (a row mid-load, a status with no owner
+   * edges) and a skin draws no action row for it.
+   */
+  readonly moves: readonly ListingMove[];
   readonly archive: ActionAvailability;
   readonly complete: ActionAvailability;
   readonly remove: ActionAvailability;
@@ -49,20 +98,73 @@ export interface ListingActionsBag {
   doComplete(): void;
   doRemove(): void;
   readonly inFlight: boolean;
-  /** The last refusal from any of the three, in the one error dialect. */
+  /** The last refusal from any of them, in the one error dialect. */
   readonly error: unknown;
+}
+
+/** What a caption says, keyed by where the move lands. */
+const MOVE_LABEL: Readonly<Record<ListingOwnerTransition, string>> = {
+  published: LISTINGS_I18N_KEYS.moveToPublished,
+  pending: LISTINGS_I18N_KEYS.moveToPending,
+  paused: LISTINGS_I18N_KEYS.moveToPaused,
+  draft: LISTINGS_I18N_KEYS.moveToDraft,
+  // These two edges have had buttons since this pane existed. They keep their
+  // captions: renaming them now would be a change of wording dressed as a
+  // change of capability.
+  sold: LISTINGS_I18N_KEYS.mineComplete,
+  archived: LISTINGS_I18N_KEYS.mineArchive,
+  // In the vocabulary because the enum is the whole lifecycle; not in any
+  // seller's offered set (`rejected` and `blocked` are moderation's verdicts,
+  // `expired` is the clock's). Named anyway rather than left to a lookup that
+  // could return undefined.
+  rejected: LISTINGS_I18N_KEYS.statusRejected,
+  blocked: LISTINGS_I18N_KEYS.statusBlocked,
+  expired: LISTINGS_I18N_KEYS.statusExpired,
+};
+
+/**
+ * The caption for moving from *from* to *to*.
+ *
+ * One edge earns a second sentence: `EXPIRED → PENDING` is the same move as
+ * "send for review" asked at a different moment — nothing is wrong with the
+ * listing, its time simply ran out — and "Renew" is what a person came to the
+ * dashboard to do.
+ */
+function moveLabelKey(
+  from: ListingLifecycleStatus,
+  to: ListingOwnerTransition
+): string {
+  if (from === "expired" && to === "pending") {
+    return LISTINGS_I18N_KEYS.moveRenew;
+  }
+  return MOVE_LABEL[to];
+}
+
+export interface UseListingActionsOptions {
+  /**
+   * The row's own `available_transitions`, when the caller has a
+   * {@link MyListingCard} rather than a bare status. THE answer where it is
+   * present; see this file's header.
+   */
+  readonly available?: readonly ListingOwnerTransition[] | undefined;
 }
 
 export function useListingActions(
   id: number,
-  status: ListingLifecycleStatus | undefined
+  status: ListingLifecycleStatus | undefined,
+  options: UseListingActionsOptions = {}
 ): ListingActionsBag {
   const mandate = useMandateGate();
   const archive = useArchiveListing();
   const complete = useCompleteListing();
   const remove = useDeleteListing();
+  const move = useTransitionListing();
 
-  const inFlight = archive.isPending || complete.isPending || remove.isPending;
+  const inFlight =
+    archive.isPending ||
+    complete.isPending ||
+    remove.isPending ||
+    move.isPending;
   const busy: ActionAvailability = inFlight
     ? actionBlocked(LISTINGS_I18N_KEYS.blockedInFlight)
     : actionAvailable();
@@ -94,7 +196,26 @@ export function useListingActions(
       : actionAvailable()
   );
 
+  // Mandate and in-flight, and nothing else: a move that is IN this list is
+  // one the server has said it will take, so there is no third gate to
+  // consult. The whole point of `available_transitions` is that "may I?" was
+  // answered before the button was drawn.
+  const moveGate = firstBlock(mandate, busy);
+  const moves: readonly ListingMove[] =
+    status === undefined
+      ? []
+      : ownerMoves(status, options.available).map((to) => ({
+          to,
+          labelKey: moveLabelKey(status, to),
+          gate: moveGate,
+          testId: `listings-mine-move-${to}`,
+          run: () => {
+            if (moveGate.available) move.mutate({ id, to });
+          },
+        }));
+
   return {
+    moves,
     archive: archiveGate,
     complete: completeGate,
     remove: removeGate,
@@ -115,6 +236,6 @@ export function useListingActions(
       if (removeGate.available) remove.mutate(id);
     },
     inFlight,
-    error: archive.error ?? complete.error ?? remove.error,
+    error: archive.error ?? complete.error ?? move.error ?? remove.error,
   };
 }

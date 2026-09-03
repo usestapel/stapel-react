@@ -211,6 +211,26 @@ export const LISTINGS_I18N_KEYS = {
   mineArchive: "listings.mine.archive",
   mineComplete: "listings.mine.complete",
   mineDelete: "listings.mine.delete",
+  /**
+   * One caption per MOVE the seller may make, keyed by where the move lands
+   * — the vocabulary `available_transitions` speaks.
+   *
+   * `archived` and `sold` reuse the two captions above, because those two
+   * edges have had buttons since this pane existed and renaming them now
+   * would be a change of wording pretending to be a change of capability.
+   * The rest are the way BACK, which had no route until stapel-listings
+   * 0.20.0 and therefore no caption: a seller who marked something sold by
+   * mistake could only start again.
+   */
+  moveToPublished: "listings.mine.move.published",
+  moveToPending: "listings.mine.move.pending",
+  moveToPaused: "listings.mine.move.paused",
+  moveToDraft: "listings.mine.move.draft",
+  /** EXPIRED → PENDING is the same edge as "submit", asked at a different
+   * moment: nothing is wrong with the listing, its time simply ran out. */
+  moveRenew: "listings.mine.move.renew",
+  /** Open this listing the way a buyer sees it. */
+  mineView: "listings.mine.view",
   /** Deleting is irreversible, so it asks — through the shared SkinConfirm,
    * which is a bottom sheet on a phone. */
   mineDeleteConfirmTitle: "listings.mine.delete_confirm_title",
@@ -423,6 +443,12 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.archive": "Archive",
   "listings.mine.complete": "Mark sold",
   "listings.mine.delete": "Delete",
+  "listings.mine.move.published": "Publish again",
+  "listings.mine.move.pending": "Send for review",
+  "listings.mine.move.paused": "Pause",
+  "listings.mine.move.draft": "Move back to drafts",
+  "listings.mine.move.renew": "Renew",
+  "listings.mine.view": "View",
   "listings.mine.delete_confirm_title": "Delete this listing?",
   "listings.mine.delete_confirm_body":
     "It disappears from your dashboard and cannot be brought back. Archiving keeps it.",
@@ -441,8 +467,33 @@ export const listingsI18nBundleEn: Record<string, string> = {
     "Your account cannot do this yet — finish setting it up first",
   "listings.blocked.mandate_unknown":
     "We could not check your account, so we are not guessing whether you may do this",
+  /**
+   * THE REFUSAL DOES NOT QUOTE THE STATE'S CODE NAME.
+   *
+   * Both sentences below used to carry `{from_status}`, and what landed in
+   * that slot was the wire value: a live cabinet told a seller, in Russian,
+   * that "a listing in status 'draft' cannot be moved that way" — and then
+   * the same sentence with 'archived' — while the row's own status tag, two
+   * lines above, said "Draft" and "Archived" in the reader's own words.
+   * The translation existed; it simply was not the thing being interpolated.
+   *
+   * The placeholder is gone rather than fed a translated value, because it
+   * was never adding information the screen did not already carry: the status
+   * is named, in words, beside every control this refusal appears under. What
+   * the reader needs is which MOVE is impossible, and that is the control
+   * they are looking at.
+   *
+   * The SERVER's own 409 (`error.409.invalid_listing_transition`) carries the
+   * same placeholder and is reworded in the ru and es bundles beside this
+   * one, where a real reader met it. It is deliberately NOT overridden in the
+   * English bundle: that bundle spreads the generated backend texts whole,
+   * and a hand-written entry for one error code makes this pair's catalogue
+   * claim a namespace it does not own — `stapel/i18n-locale-parity` says so
+   * and is right. The refusal is in any case now close to unreachable: the
+   * dashboard offers only the moves the server declared.
+   */
   "listings.blocked.transition":
-    "A listing that is {from_status} cannot be moved that way",
+    "This listing cannot be moved that way from where it is",
   "listings.blocked.delete_active":
     "Archive it first — a listing that is on sale cannot be deleted",
   "listings.blocked.in_flight": "One moment — that is already under way",

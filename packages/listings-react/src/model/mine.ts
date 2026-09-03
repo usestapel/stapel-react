@@ -68,3 +68,26 @@ export function myListingImages(row: MyListingCard): readonly string[] {
 export function showsDraft(row: MyListingCard): boolean {
   return empty(row.title) && !empty(row.title_draft);
 }
+
+/**
+ * Has this listing ever been in front of anybody?
+ *
+ * The server's own predicate, and it is the one that decides whether a row
+ * has a page to link to: `moderation_status` defaults to `NOT_SUBMITTED`
+ * (stapel-listings 0.20.0) and `publish_listing` sets `PENDING`
+ * unconditionally, so DRAFT + NOT_SUBMITTED means "nobody has ever pressed
+ * publish on this" and every other combination means somebody has.
+ *
+ * NOT {@link showsDraft}: that asks which HALF of the twin a row is showing,
+ * which is a different question and answers `false` for an empty draft that
+ * has no `title_draft` either — a row with no title at all would have been
+ * given a link to a page that does not exist.
+ *
+ * A row from a server older than 0.20.0 has no `moderation_status` of
+ * `not_submitted` to report, so it falls on the "has been submitted" side and
+ * keeps its link: an extra link to a draft its owner can read is a smaller
+ * harm than withholding one from a listing that is live.
+ */
+export function neverSubmitted(row: MyListingCard): boolean {
+  return row.status === "draft" && row.moderation_status === "not_submitted";
+}

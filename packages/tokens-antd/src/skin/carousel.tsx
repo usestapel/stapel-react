@@ -116,14 +116,28 @@ export function skinCarouselCss(): string {
   const dots = `.${SKIN_CAROUSEL_DOTS_CLASS}`;
   const dot = `.${SKIN_CAROUSEL_DOT_CLASS}`;
   return [
-    `${root}{display:flex;flex-direction:column;gap:${String(spacing[2])}px}`,
+    // `position:relative` so the indicator can ride ON the photo — see the
+    // dots rule below for when it does and why it has to.
+    `${root}{position:relative;display:flex;flex-direction:column;` +
+      `gap:${String(spacing[2])}px}`,
     // The scroller. `mandatory` (not `proximity`) because a photo strip that
     // can rest halfway between two photos is the defect people call "it
     // doesn't snap"; `overscroll-behavior-inline: contain` so a flick past the
     // last slide does not hand the gesture to the page behind it.
+    // `aspect-ratio` is the STRIP's, not the slide's, and that is a fix
+    // rather than a tidy-up. A peeking slide is `100% - peek` WIDE, so a
+    // ratio on the slide made the strip `(100% - peek) / ratio` TALL: on a
+    // 4:3 card grid, a one-photo tile's picture measured 200px and a
+    // two-photo tile's measured 184, because the second one peeks. The
+    // height of a row of tiles then depended on how many photographs each
+    // seller had uploaded — the ragged bottom edge the visual pass keeps
+    // measuring. The strip's box does not move with the peek, so the height
+    // no longer does either, and `align-items:stretch` fills every slide to
+    // it.
     `${strip}{display:flex;flex-wrap:nowrap;align-items:stretch;` +
       `gap:var(--skin-carousel-gap);margin:0;padding:0;list-style:none;` +
       `overflow-x:auto;overflow-y:hidden;` +
+      `aspect-ratio:var(--skin-carousel-ratio,auto);` +
       `scroll-snap-type:x mandatory;scroll-behavior:smooth;` +
       `overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;` +
       `scrollbar-width:none;-ms-overflow-style:none}`,
@@ -134,15 +148,36 @@ export function skinCarouselCss(): string {
     // — on a gallery every slide is a destination, not a waypoint.
     `${slide}{flex:0 0 var(--skin-carousel-slide);min-inline-size:0;` +
       `scroll-snap-align:start;scroll-snap-stop:always;` +
-      `aspect-ratio:var(--skin-carousel-ratio,auto);` +
       `overflow:hidden;border-radius:var(--skin-carousel-radius);position:relative}`,
     // A slide is a WELL: whatever is in it fills it, and an image is cropped
     // to it rather than letterboxed inside it.
     `${slide}>*{inline-size:100%;block-size:100%}`,
     `${slide}>img,${slide}>picture>img,${slide}>video{display:block;` +
       `inline-size:100%;block-size:100%;object-fit:cover}`,
-    `${dots}{display:flex;justify-content:center;align-items:center;` +
+    // THE INDICATOR MUST NOT DECIDE HOW TALL THE STRIP IS.
+    //
+    // Below the strip it adds its own row, so a two-photo tile stood 16px
+    // taller than the one-photo tile beside it and a grid of them had a
+    // ragged bottom edge — the same defect the ratio move above just took out
+    // of the picture, reappearing under it. A carousel with a DECLARED shape
+    // is a photo well whose height is a promise to whatever laid it out, so
+    // there the dots ride on the picture (`--skin-carousel-dots-pos:
+    // absolute`, set by the component when `aspectRatio` is given). Without a
+    // ratio the strip is as tall as its content and there is no promise to
+    // keep, so they stay in the flow — `position: static` ignores the offsets
+    // below, which is why one rule serves both.
+    `${dots}{position:var(--skin-carousel-dots-pos,static);` +
+      `inset-inline:0;bottom:${String(spacing[2])}px;` +
+      `display:flex;justify-content:center;align-items:center;` +
       `gap:${String(spacing[1])}px}`,
+    // A pill under them, and ONLY when they are over a photograph: two grey
+    // dots on an arbitrary image are two grey dots nobody can see. Mixed from
+    // the surface role rather than written as a colour, so it is right in
+    // both themes for the same reason every other value here is.
+    `${dots}[data-over="true"]{inline-size:fit-content;margin-inline:auto;` +
+      `padding:${String(spacing[1])}px ${String(spacing[2])}px;` +
+      `border-radius:${String(radii.full)}px;` +
+      `background:var(--skin-carousel-dots-scrim)}`,
     `${dot}{inline-size:${String(DOT_SIZE)}px;block-size:${String(DOT_SIZE)}px;` +
       `border-radius:${String(radii.full)}px;background:var(--skin-carousel-dot);` +
       `transition:inline-size 160ms ease,background-color 160ms ease}`,
@@ -175,10 +210,18 @@ export interface SkinCarouselProps {
    */
   readonly peek?: boolean | string;
   /**
-   * The shape of ONE slide well, as a CSS `aspect-ratio` value (`"4 / 3"`,
-   * `"1"`, `"16 / 9"`). Absent, a slide is as tall as its content — which is
-   * right for text slides and wrong for photos, where an unconstrained well
-   * makes the strip's height jump per image as they load.
+   * The shape of the STRIP, as a CSS `aspect-ratio` value (`"4 / 3"`, `"1"`,
+   * `"16 / 9"`). Absent, the strip is as tall as its content — which is right
+   * for text slides and wrong for photos, where an unconstrained well makes
+   * the height jump per image as they load.
+   *
+   * The strip and not the slide, deliberately: a peeking slide is narrower
+   * than the strip, so a ratio applied to the slide made a peeking carousel
+   * SHORTER than a one-slide one by exactly the peek — the same 4:3 card
+   * measuring 200px tall with one photo and 184 with two. Slides stretch to
+   * the strip, so each one is very slightly taller than the stated ratio and
+   * crops accordingly; a height that changes with the photo count is the
+   * worse of the two.
    */
   readonly aspectRatio?: string;
   /**
@@ -316,7 +359,16 @@ export function SkinCarousel(props: SkinCarouselProps): ReactElement {
     ["--skin-carousel-dot" as string]: cssVar("border"),
     ["--skin-carousel-dot-active" as string]: cssVar("text-muted"),
     ...(props.aspectRatio !== undefined
-      ? { ["--skin-carousel-ratio" as string]: props.aspectRatio }
+      ? {
+          ["--skin-carousel-ratio" as string]: props.aspectRatio,
+          // A strip with a declared shape has promised its height to whatever
+          // laid it out, so the indicator rides ON the picture instead of
+          // adding a row under it. See the dots rule in `skinCarouselCss`.
+          ["--skin-carousel-dots-pos" as string]: "absolute",
+          ["--skin-carousel-dots-scrim" as string]: `color-mix(in srgb, ${cssVar(
+            "surface-raised"
+          )} 72%, transparent)`,
+        }
       : {}),
     ...props.style,
   };
@@ -361,6 +413,7 @@ export function SkinCarousel(props: SkinCarouselProps): ReactElement {
         <div
           className={SKIN_CAROUSEL_DOTS_CLASS}
           data-stapel-carousel-dots=""
+          data-over={props.aspectRatio !== undefined ? "true" : "false"}
           aria-hidden="true"
         >
           {dotKeys(count).map((key, index) => (

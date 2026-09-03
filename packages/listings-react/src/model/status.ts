@@ -168,6 +168,11 @@ export function moderationNotice(
     return undefined;
   }
 
+  // NOTHING HAS BEEN SUBMITTED, so there is nothing for moderation to say.
+  // The lifecycle already calls this row a draft, and a second line beside
+  // that word can only add a claim the data does not support.
+  if (moderationStatus === "not_submitted") return undefined;
+
   if (moderationStatus === "pending") {
     if (live) {
       return {
@@ -207,15 +212,28 @@ export function moderationNotice(
     };
   }
 
-  // rejected — and it matters whether the lifecycle followed the verdict.
-  return {
-    moderationStatus,
-    messageKey: live
-      ? LISTINGS_I18N_KEYS.moderationRejectedStillLive
-      : LISTINGS_I18N_KEYS.moderationRejected,
-    tone: "warning",
-    liveDuringReview: live,
-  };
+  if (moderationStatus === "rejected") {
+    // …and it matters whether the lifecycle followed the verdict.
+    return {
+      moderationStatus,
+      messageKey: live
+        ? LISTINGS_I18N_KEYS.moderationRejectedStillLive
+        : LISTINGS_I18N_KEYS.moderationRejected,
+      tone: "warning",
+      liveDuringReview: live,
+    };
+  }
+
+  // AN UNKNOWN VALUE SAYS NOTHING. This used to be the `rejected` branch's
+  // fallthrough, which made "not one of the three I know" mean "a moderator
+  // turned this down" — and then stapel-listings 0.20.0 added a fourth value
+  // and made it the DEFAULT, so every freshly created draft in the cabinet
+  // was announced as "A moderator turned this listing down. Fix it and send
+  // it again." to a person who had submitted nothing (D166). A row read from a
+  // server newer than this pair must degrade to silence, never to a verdict:
+  // the lifecycle caption beside it is still true, and an accusation is the
+  // one thing a client must not invent.
+  return undefined;
 }
 
 /** Both halves at once — what a dashboard row and a detail header render. */

@@ -56,6 +56,10 @@ export const CARD: ListingCard = {
   features_title: TITLE_DAOS,
   features_badges: BADGE_DAOS,
   location_label: "Kazan",
+  // The public read's AREA, not its point (stapel-listings 0.21.0): the
+  // card is served to strangers, so the coordinates are rounded to ~1.1km
+  // and `geohash` comes back blank.
+  geo_precision_km: 1.113,
   status: "published",
   is_favorited: false,
 };
@@ -80,6 +84,11 @@ export function myCard(overrides: Partial<MyListingCard> = {}): MyListingCard {
   return {
     ...CARD,
     moderation_status: "approved",
+    // What the SERVER says this row's owner may do with it
+    // (`OWNER_TRANSITIONS`, 0.20.0). A published listing may be paused,
+    // marked sold or archived — and nothing else: publishing is
+    // moderation's decision, not the seller's.
+    available_transitions: ["paused", "sold", "archived"],
     title_draft: "",
     price_draft: null,
     images_draft: [],
@@ -127,6 +136,7 @@ export function detail(
     images: ["image/9f2c1a"],
     location_id: "ru-kzn",
     location_label: "Kazan",
+    geo_precision_km: 0,
     geohash: "ucsu5uh",
     lat: "55.796100",
     lon: "49.106400",

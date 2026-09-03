@@ -161,13 +161,46 @@ describe("the dashboard tabs are the SERVER's grouping", () => {
 });
 
 describe("the moderation vocabulary matches the backend enum", () => {
-  it("carries exactly the four states", () => {
+  it("carries exactly the five states", () => {
     const expected: readonly ListingModerationStatus[] = [
+      // The DEFAULT since stapel-listings 0.20.0. Before it a draft was born
+      // `pending` and every dashboard announced a decision no case existed
+      // behind.
+      "not_submitted",
       "pending",
       "approved",
       "rejected",
       "needs_review",
     ];
     expect([...MODERATION_STATUSES].sort()).toEqual([...expected].sort());
+  });
+
+  it("says nothing about a listing nobody has submitted", () => {
+    // D166. `moderationNotice`'s last branch used to be an unlabelled
+    // fallthrough onto "rejected", so the value 0.20.0 added — and made the
+    // default — turned every freshly created draft in the cabinet into
+    // "A moderator turned this listing down. Fix it and send it again." for a
+    // person who had submitted nothing at all.
+    expect(moderationNotice("draft", "not_submitted")).toBeUndefined();
+    expect(
+      listingStatusView("draft", "not_submitted").moderation
+    ).toBeUndefined();
+    // The lifecycle still speaks: the row reads "Draft", which is true.
+    expect(listingStatusView("draft", "not_submitted").lifecycle.labelKey).toBe(
+      "listings.status.draft"
+    );
+  });
+
+  it("degrades an unknown verdict to silence, never to an accusation", () => {
+    // A row from a server newer than this pair. Saying nothing costs a
+    // sentence; guessing "rejected" costs the reader their listing's
+    // reputation with them.
+    const unknown = "some_future_verdict" as ListingModerationStatus;
+    expect(moderationNotice("draft", unknown)).toBeUndefined();
+    expect(moderationNotice("published", unknown)).toBeUndefined();
+    // …and the one it must still say is still said.
+    expect(moderationNotice("draft", "rejected")?.messageKey).toBe(
+      "listings.moderation.rejected"
+    );
   });
 });
