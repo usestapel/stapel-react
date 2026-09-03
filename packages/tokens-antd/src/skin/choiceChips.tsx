@@ -31,7 +31,10 @@
  * `aria-describedby` pointing at it — the same shape `GatedControl` and
  * `PaneGate` use, for the same reason: a disabled control receives no pointer
  * events, so a tooltip on it is an explanation nobody can read
- * (`stapel/no-tooltip-in-skin`). It does NOT route through `GatedControl`
+ * (`stapel/no-tooltip-in-skin`). And for the same reason the chip is
+ * `aria-disabled` rather than html-`disabled`: it stays focusable and keeps
+ * firing, so the sentence reaches a keyboard and a screen reader, while the
+ * click handler is the thing that refuses the answer. It does NOT route through `GatedControl`
  * itself, because that component's contract is an `ActionAvailability` whose
  * `code` is an i18n KEY, and a chip's reason is copy the caller has already
  * translated; feeding a finished sentence to `t()` would be a lie in the one
@@ -243,12 +246,18 @@ export function ChoiceChips(props: ChoiceChipsProps): ReactElement {
                 : {})}
               type="button"
               aria-pressed={selected}
-              disabled={disabled}
+              // `aria-disabled`, never html `disabled` — the same correction
+              // `GatedControl` carries: an html-disabled chip fires nothing,
+              // so it cannot take focus and the sentence its
+              // `aria-describedby` points at is never announced with it. The
+              // answer is withheld in the handler instead.
+              {...(disabled ? { "aria-disabled": true as const } : {})}
               data-stapel-chip={option.value}
               data-analytics="none"
               data-analytics-reason="passthrough — the caller's onChange carries the tracked answer"
               {...(reason !== undefined ? { "aria-describedby": reasonId(reason) } : {})}
               onClick={() => {
+                if (disabled) return;
                 choose(option.value, selected);
               }}
               style={chipStyle(selected, disabled)}

@@ -499,17 +499,26 @@ describe("<ProfileSettings/> (default skin) — data-driven (§66, docs/pending/
 
     // Untouched draft: Save is off, and Enter — the keyboard path to the same
     // commit — writes nothing either.
-    expect(screen.getByText("Save changes").closest("button")?.disabled).toBe(true);
+    // The gate's stamp, not html `disabled`: Save is `aria-disabled` and alive
+    // so it can say "nothing has changed", and a wait keyed on `disabled`
+    // would pass instantly in BOTH states.
+    expect(
+      screen.getByTestId("profile-field-save-gate").getAttribute("data-stapel-gated")
+    ).toBe("blocked");
     fireEvent.keyDown(dialogInput, { key: "Enter", code: "Enter", keyCode: 13 });
 
     // Typing and reverting comes back to the same "nothing to write" state.
     fireEvent.change(dialogInput, { target: { value: "Ada C. Lovelace" } });
     await waitFor(() =>
-      expect(screen.getByText("Save changes").closest("button")?.disabled).toBe(false)
+      expect(
+        screen.getByTestId("profile-field-save-gate").getAttribute("data-stapel-gated")
+      ).toBe("available")
     );
     fireEvent.change(dialogInput, { target: { value: "Ada Lovelace" } });
     await waitFor(() =>
-      expect(screen.getByText("Save changes").closest("button")?.disabled).toBe(true)
+      expect(
+        screen.getByTestId("profile-field-save-gate").getAttribute("data-stapel-gated")
+      ).toBe("blocked")
     );
 
     // A real edit still saves, and the dialog still closes on the way out.

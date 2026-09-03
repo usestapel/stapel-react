@@ -46,7 +46,10 @@
  *    {@link LoadList} — the loading / failed / empty arms are designed once;
  *    "empty" is reachable only from a load that succeeded.
  *  - {@link GatedControl} / {@link GatedButton} — a switched-off control
- *    states its reason as visible text beside it, never in a tooltip.
+ *    states its reason as visible text beside it, never in a tooltip, and
+ *    stays ALIVE while it does: `aria-disabled` and focusable, never html
+ *    `disabled`, so the gesture that used to fall into a hole reaches the
+ *    reason and the door behind it.
  *  - {@link PaneGate} — a pane-level refusal is rendered once for the pane,
  *    and per-control reasons inside an available pane are pooled, one copy
  *    per distinct sentence.
@@ -158,7 +161,12 @@ export type {
   PermissionGateProps,
   PermissionCopy,
 } from "./skin/permission.js";
-export { GatedControl, GatedButton, GateReasonScopeContext } from "./skin/gated.js";
+export {
+  GatedControl,
+  GatedButton,
+  GateReasonScopeContext,
+  useBlockedButtonClassName,
+} from "./skin/gated.js";
 export type {
   GatedControlProps,
   GatedControlBinding,

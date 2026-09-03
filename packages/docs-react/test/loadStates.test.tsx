@@ -115,18 +115,17 @@ describe("document list — loading / empty / failed are three different screens
 });
 
 describe("'Empty trash' — a switched-off control states its reason", () => {
-  function emptyTrashButton(): HTMLButtonElement {
-    const button = screen.getByTestId("docs-trash-empty");
-    if (!(button instanceof HTMLButtonElement)) {
-      throw new Error("empty-trash button not rendered");
-    }
-    return button;
-  }
-
   /** The whole gated wrapper's copy: the reason sentence AND the technical
    * detail beside it, which `GatedControl` renders as two nodes. */
   function emptyTrashGateText(): string {
     return screen.getByTestId("docs-trash-empty-gate").textContent ?? "";
+  }
+
+  /** `"blocked"` / `"available"` — the gate's own stamp, and the ONLY sound
+   * readiness signal for a gated control: it is `aria-disabled` rather than
+   * html-disabled, so `.disabled` is false whether it is on or off. */
+  function emptyTrashGateState(): string | null {
+    return screen.getByTestId("docs-trash-empty-gate").getAttribute("data-stapel-gated");
   }
 
   it("failed read: disabled WITH the load-failure sentence, not the empty-trash one", async () => {
@@ -139,7 +138,7 @@ describe("'Empty trash' — a switched-off control states its reason", () => {
     await waitFor(() =>
       expect(screen.getByTestId("docs-trash-failed")).toBeDefined()
     );
-    expect(emptyTrashButton().disabled).toBe(true);
+    expect(emptyTrashGateState()).toBe("blocked");
     const reason = emptyTrashGateText();
     expect(reason).toContain("We could not load what this needs.");
     // The technical detail support quotes, beside the sentence — not inside it.
@@ -158,7 +157,7 @@ describe("'Empty trash' — a switched-off control states its reason", () => {
     render(wrap(runtime, <TrashPane workspaceId="ws-1" />));
 
     await waitFor(() => expect(screen.getByText("Trash is empty.")).toBeDefined());
-    expect(emptyTrashButton().disabled).toBe(true);
+    expect(emptyTrashGateState()).toBe("blocked");
     expect(emptyTrashGateText()).toContain(
       "There is nothing in the trash to delete."
     );
@@ -195,7 +194,7 @@ describe("'Empty trash' — a switched-off control states its reason", () => {
     render(wrap(runtime, <TrashPane workspaceId="ws-1" />));
 
     await waitFor(() => expect(screen.getByText("Deleted draft")).toBeDefined());
-    expect(emptyTrashButton().disabled).toBe(false);
+    expect(emptyTrashGateState()).toBe("available");
     expect(
       screen
         .getByTestId("docs-trash-empty-gate")
@@ -240,7 +239,7 @@ describe("FileCard download — a URL that could not be minted says so", () => {
     // The document itself loaded fine — only the download is blocked.
     expect(screen.getByText("Contract.pdf")).toBeDefined();
     const button = screen.getByTestId("docs-file-download");
-    expect(button instanceof HTMLButtonElement && button.disabled).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     expect(
       screen.getByTestId("docs-file-download-gate").textContent
     ).toContain("We could not load what this needs.");
@@ -256,12 +255,13 @@ describe("FileCard download — a URL that could not be minted says so", () => {
     const runtime = createDocsRuntime({ baseUrl: BASE });
     render(wrap(runtime, <DocSurface documentId="d-3" />));
 
-    const button = await waitFor(() => {
+    await waitFor(() => {
       const el = screen.getByTestId("docs-file-download");
       if (!(el instanceof HTMLButtonElement)) throw new Error("not mounted");
-      return el;
     });
-    expect(button.disabled).toBe(false);
+    expect(
+      screen.getByTestId("docs-file-download-gate").getAttribute("data-stapel-gated")
+    ).toBe("available");
     expect(
       screen
         .getByTestId("docs-file-download-gate")

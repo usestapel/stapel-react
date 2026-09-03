@@ -122,8 +122,7 @@ function SettingsForm(props: {
             {(bind) => (
               <Switch
                 checked={enabled}
-                disabled={bind.disabled}
-                aria-describedby={bind["aria-describedby"]}
+                {...bind}
                 aria-label={t(BILLING_I18N_KEYS.walletAutoRecharge)}
                 data-testid="billing-wallet-auto-recharge"
                 data-analytics="none"

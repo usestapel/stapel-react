@@ -59,7 +59,7 @@ describe("keyset paging, forwards and back", () => {
     // `GatedButton` wrapper and the button points at it with
     // `aria-describedby`).
     const prev = screen.getByTestId("search-prev") as HTMLButtonElement;
-    expect(prev.disabled).toBe(true);
+    expect(prev.getAttribute("aria-disabled")).toBe("true");
     expect(prev.getAttribute("title")).toBeNull();
     const prevGate = screen.getByTestId("search-prev-gate");
     expect(prevGate.getAttribute("data-stapel-gated")).toBe("blocked");
@@ -74,15 +74,52 @@ describe("keyset paging, forwards and back", () => {
     expect(server.lastQuery("/query")?.get("direction")).toBe("next");
 
     await waitFor(() => {
-      expect((screen.getByTestId("search-prev") as HTMLButtonElement).disabled).toBe(
-        false
-      );
+      expect(
+        screen.getByTestId("search-prev-gate").getAttribute("data-stapel-gated")
+      ).toBe("available");
     });
     fireEvent.click(screen.getByTestId("search-prev"));
     await waitFor(() => {
       expect(server.lastQuery("/query")?.get("anchor")).toBe("a1");
     });
     expect(server.lastQuery("/query")?.get("direction")).toBe("prev");
+  });
+
+  it("a blocked pager button takes the tap, keeps the focus, and DISCLOSES its reason", async () => {
+    // The consumer-level proof of the substrate's corrected gate: a control
+    // the gate has shut is still reached by a thumb and by a keyboard, and
+    // the sentence is what it hands back. Before, it was html-`disabled`:
+    // the tap landed on nothing and a screen reader never got to it.
+    const server = pagedServer();
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    const prev = screen.getByTestId("search-prev") as HTMLButtonElement;
+    const queriesBefore = server.calls.length;
+
+    // Semantically off, physically alive.
+    expect(prev.getAttribute("aria-disabled")).toBe("true");
+    expect(prev.disabled).toBe(false);
+
+    // Reachable without a pointer, and the sentence is wired to the control
+    // that has the focus — this is the whole disclosure, on a keyboard.
+    prev.focus();
+    expect(document.activeElement).toBe(prev);
+    const reason = document.getElementById(prev.getAttribute("aria-describedby") ?? "");
+    expect(reason?.textContent).toContain("This is the first page");
+
+    // The gesture ARRIVES — and pages nothing.
+    fireEvent.click(prev);
+    fireEvent.keyDown(prev, { key: "Enter" });
+    expect(server.calls.length).toBe(queriesBefore);
+    expect(screen.getByTestId("search-prev-gate").getAttribute("data-stapel-gated")).toBe(
+      "blocked"
+    );
   });
 
   it("blocks Next at the last page WITH a reason, never a bare disabled button", async () => {
@@ -107,7 +144,7 @@ describe("keyset paging, forwards and back", () => {
       expect(screen.getByTestId("search-results")).toBeTruthy();
     });
     const next = screen.getByTestId("search-next") as HTMLButtonElement;
-    expect(next.disabled).toBe(true);
+    expect(next.getAttribute("aria-disabled")).toBe("true");
     expect(next.getAttribute("title")).toBeNull();
     expect(screen.getByTestId("search-next-gate").textContent).toContain(
       "This is the last page"
@@ -186,9 +223,9 @@ describe("keyset paging, forwards and back", () => {
       </TestHarness>
     );
     await waitFor(() => {
-      expect((screen.getByTestId("search-prev") as HTMLButtonElement).disabled).toBe(
-        false
-      );
+      expect(
+        screen.getByTestId("search-prev-gate").getAttribute("data-stapel-gated")
+      ).toBe("available");
     });
     fireEvent.click(screen.getByTestId("search-prev"));
     await waitFor(() => {

@@ -121,12 +121,9 @@ export function PushToggleBody(props: {
           <Flex align="center" gap={spacing[3]}>
             <Switch
               checked={bag.state === "on"}
-              disabled={bind.disabled}
               loading={bag.busy || bag.state === "loading"}
               aria-label={t(NOTIFICATIONS_I18N_KEYS.pushToggleLabel)}
-              {...(bind["aria-describedby"] !== undefined
-                ? { "aria-describedby": bind["aria-describedby"] }
-                : {})}
+              {...bind}
               onChange={(next) => {
                 if (next) bag.enable();
                 else bag.disable();

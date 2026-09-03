@@ -80,6 +80,9 @@ export function AvailabilityPane(props: AvailabilityPaneProps): ReactElement {
               <Flex gap={spacing["2"]} align="flex-end" wrap>
                 <GatedControl
                   gate={bag.slotMinutesValid}
+                  // A validity verdict, not a refusal: the number stays
+                  // editable, because editing it is how the reason goes away.
+                  whenBlocked="annotate"
                   testId={`${testId}-slot-gate`}
                 >
                   {(bind) => (
@@ -91,7 +94,7 @@ export function AvailabilityPane(props: AvailabilityPaneProps): ReactElement {
                         value={slotMinutes}
                         aria-label={t(CALENDAR_I18N_KEYS.availabilitySlotLength)}
                         aria-describedby={bind["aria-describedby"]}
-                        aria-invalid={bind.disabled}
+                        aria-invalid={bind["aria-describedby"] !== undefined}
                         data-testid={`${testId}-slot-minutes`}
                         onChange={(next) => {
                           setSlotMinutes(typeof next === "number" ? next : 0);

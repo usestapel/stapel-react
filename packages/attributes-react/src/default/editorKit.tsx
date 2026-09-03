@@ -140,6 +140,12 @@ export function Lockable(props: {
   return (
     <GatedControl
       gate={actionBlocked(ATTRIBUTES_I18N_KEYS.lockedByConfig)}
+      // `inert` on purpose, and the one place in this pair that asks for it:
+      // a catalogue lock is not a door anybody can open from this screen, and
+      // `Lockable` re-emits its OWN binding to editors that only speak
+      // `disabled`. Forwarding the live binding through that contract is a
+      // change to every editor's signature, not a spread — tracked separately.
+      whenBlocked="inert"
       testId="attributes-locked"
     >
       {(bind) => props.children({ disabled: true, "aria-describedby": bind["aria-describedby"] })}

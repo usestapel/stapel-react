@@ -136,7 +136,9 @@ export function SortSelect(props: SortSelectProps): ReactElement {
   }
 
   return (
-    <GatedControl gate={distance} testId="search-sort-gate">
+    // `annotate`: the gate judges ONE option, not the control. Suppressing
+    // the select would take away every sort, which is not what is blocked.
+    <GatedControl gate={distance} whenBlocked="annotate" testId="search-sort-gate">
       {(bind) => (
         <Flex gap={spacing[2]} align="center">
           <Typography.Text type="secondary" aria-hidden="true">

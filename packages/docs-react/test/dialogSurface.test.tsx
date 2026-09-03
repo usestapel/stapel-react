@@ -235,15 +235,17 @@ describe("<RevisionsModal/> — rollback is per-revision, and not offered on the
 
     await waitFor(() => expect(screen.getByText("first draft")).toBeDefined());
     // The head read decides which row is the current one — wait for it.
-    await waitFor(() => expect(rollbackButton("rev-head").disabled).toBe(true));
+    await waitFor(() =>
+      expect(rollbackButton("rev-head").getAttribute("aria-disabled")).toBe("true")
+    );
     // Off with the reason ON SCREEN: a disabled control gets no pointer
     // events, so a tooltip would be a reason nobody can read.
     expect(rollbackReason("rev-head")).toBe(
       "This is the document's current version."
     );
     // …and real history is still rollback-able.
-    expect(rollbackButton("rev-mid").disabled).toBe(false);
-    expect(rollbackButton("rev-old").disabled).toBe(false);
+    expect(rollbackButton("rev-mid").getAttribute("aria-disabled")).toBeNull();
+    expect(rollbackButton("rev-old").getAttribute("aria-disabled")).toBeNull();
   });
 
   it("one rollback spins ONLY its own row's button", async () => {
@@ -280,16 +282,18 @@ describe("<MoveDialog/> — the folder it is already in is not a destination", (
     // Opens preselected on the document's current parent (the workspace
     // root, for an unfiled document) — "move it where it already is".
     expect(
-      (screen.getByTestId("docs-move-confirm") as HTMLButtonElement).disabled
-    ).toBe(true);
+      screen.getByTestId("docs-move-confirm").getAttribute("aria-disabled")
+    ).toBe("true");
 
     fireEvent.mouseDown(combobox);
     fireEvent.click(await screen.findByTitle("Q3"));
 
+    // The readiness signal is the gate's stamp. Waiting on html `disabled`
+    // would return at once — it is false in both states now.
     await waitFor(() =>
       expect(
-        (screen.getByTestId("docs-move-confirm") as HTMLButtonElement).disabled
-      ).toBe(false)
+        screen.getByTestId("docs-move-confirm-gate").getAttribute("data-stapel-gated")
+      ).toBe("available")
     );
   });
 });

@@ -188,7 +188,7 @@ describe("the row commits on Apply, and says why when it will not", () => {
     expect(reason?.textContent?.length).toBeGreaterThan(0);
     const button = screen.getByTestId("facet-range-price-apply");
     expect(button.getAttribute("aria-describedby")).toBe(reason?.getAttribute("id"));
-    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
   });
 
   it("offers a Clear only while the slug is actually constrained", async () => {

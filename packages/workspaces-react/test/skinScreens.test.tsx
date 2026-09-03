@@ -279,8 +279,10 @@ describe("MemberResponse.is_self gates the self-refusing controls", () => {
 
     const remove = await screen.findByTestId(`member-remove-${VIEWER}`);
     const reset = await screen.findByTestId(`member-reset-password-${VIEWER}`);
-    expect((remove as HTMLButtonElement).disabled).toBe(true);
-    expect((reset as HTMLButtonElement).disabled).toBe(true);
+    // `aria-disabled`, never html `disabled` — a row action that fires
+    // nothing cannot carry the sentence beside it to anyone.
+    expect(remove.getAttribute("aria-disabled")).toBe("true");
+    expect(reset.getAttribute("aria-disabled")).toBe("true");
     // The reason is BESIDE the control, and it is the reason a person can act
     // on — not "forbidden".
     expect(
@@ -301,8 +303,8 @@ describe("MemberResponse.is_self gates the self-refusing controls", () => {
 
     const remove = await screen.findByTestId(`member-remove-${OTHER}`);
     const reset = await screen.findByTestId(`member-reset-password-${OTHER}`);
-    expect((remove as HTMLButtonElement).disabled).toBe(false);
-    expect((reset as HTMLButtonElement).disabled).toBe(false);
+    expect(remove.getAttribute("aria-disabled")).toBeNull();
+    expect(reset.getAttribute("aria-disabled")).toBeNull();
   });
 
   /**
@@ -333,7 +335,7 @@ describe("MemberResponse.is_self gates the self-refusing controls", () => {
     render(wrap(<MembersManager workspaceId={WS} />));
 
     const reset = await screen.findByTestId(`member-reset-password-${VIEWER}`);
-    expect((reset as HTMLButtonElement).disabled).toBe(false);
+    expect(reset.getAttribute("aria-disabled")).toBeNull();
   });
 });
 
@@ -494,7 +496,7 @@ describe("a screen states each fact once", () => {
     const revoke = screen.getByTestId(
       "invitation-revoke-0192c000-0000-4000-8000-000000000004"
     ) as HTMLButtonElement;
-    expect(revoke.disabled).toBe(true);
+    expect(revoke.getAttribute("aria-disabled")).toBe("true");
     expect(revoke.getAttribute("aria-describedby")).toBe(
       screen.getByTestId("invitation-blocked-0192c000-0000-4000-8000-000000000004").id
     );
@@ -521,7 +523,7 @@ describe("a screen states each fact once", () => {
     // than carrying a second copy of the news.
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     const create = screen.getByTestId("workspaces-create-open") as HTMLButtonElement;
-    expect(create.disabled).toBe(true);
+    expect(create.getAttribute("aria-disabled")).toBe("true");
     expect(create.getAttribute("aria-describedby")).not.toBeNull();
     // The status is the alert's own muted support handle and appears exactly
     // there — once. Twice meant the disabled control had grown a second copy

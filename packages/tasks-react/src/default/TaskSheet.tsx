@@ -367,7 +367,9 @@ function TaskBody(props: TaskBodyProps): ReactElement {
                 onChange: (next) => {
                   void bag.assign(next);
                 },
-                disabled: bind.disabled,
+                // A host slot renders its own control, out of reach of the
+                // gate's suppression — so this one stays a plain verdict.
+                disabled: bind["aria-disabled"] === true || bind.disabled,
               })
             }
           </GatedControl>

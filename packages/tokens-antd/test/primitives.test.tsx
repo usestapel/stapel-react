@@ -239,7 +239,10 @@ describe("RowActions — wrap between buttons, overflow into a sheet on a phone"
       </Host>
     );
     const button = screen.getByRole("button", { name: "Hide" }) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+    // Semantically off, interactively alive — an html-disabled row action
+    // could not disclose the sentence beside it, nor open a door.
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByText("You are not a moderator of this item.")).toBeTruthy();
   });
 });
@@ -290,7 +293,8 @@ describe("PaneGate — one refusal per pane, pooled reasons (NC-GATEDNOISE / VC-
     const sentence = screen.getByText("You are not a moderator of this item.");
     for (const id of ["a", "b", "c"]) {
       const button = screen.getByTestId(`hide-${id}`);
-      expect((button as HTMLButtonElement).disabled).toBe(true);
+      expect((button as HTMLButtonElement).disabled).toBe(false);
+      expect(button.getAttribute("aria-disabled")).toBe("true");
       expect(button.getAttribute("aria-describedby")).toBe(sentence.getAttribute("id"));
     }
     expect(screen.getByTestId("ok").getAttribute("aria-describedby")).toBeNull();

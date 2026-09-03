@@ -481,8 +481,10 @@ describe("<DataExportPanel> — the cooldown is a rule, not an error", () => {
     // reason node the control points `aria-describedby` at.
     await waitFor(() =>
       expect(
-        screen.getByTestId("gdpr-export-request").closest("button")?.disabled
-      ).toBe(true)
+        screen
+          .getByTestId("gdpr-export-request-gate")
+          .getAttribute("data-stapel-gated")
+      ).toBe("blocked")
     );
     const reason = gateReason();
     expect(reason?.textContent).toContain("once every 30 days");
@@ -519,7 +521,14 @@ describe("<DataExportPanel> — one archive at a time, refused BEFORE the reques
     });
     mount(server, <DataExportPanel />);
     const button = await screen.findByTestId("gdpr-export-request");
-    await waitFor(() => expect(button.closest("button")?.disabled).toBe(true));
+    // The gate's own stamp, not html `disabled`: a blocked control is
+    // `aria-disabled` and still alive, so `disabled` is permanently false and
+    // a wait keyed on it would hang (or, waiting for false, return at once).
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("gdpr-export-request-gate").getAttribute("data-stapel-gated")
+      ).toBe("blocked")
+    );
 
     // …and the reason is READABLE, as text beside the control. A disabled
     // button receives no pointer events, so a tooltip here would be a reason
@@ -537,8 +546,8 @@ describe("<DataExportPanel> — one archive at a time, refused BEFORE the reques
     mount(server, <DataExportPanel />);
     await screen.findByTestId("gdpr-export-status");
     expect(
-      screen.getByTestId("gdpr-export-request").closest("button")?.disabled
-    ).toBe(false);
+      screen.getByTestId("gdpr-export-request-gate").getAttribute("data-stapel-gated")
+    ).toBe("available");
     expect(gateReason()).toBeNull();
     expect(
       screen

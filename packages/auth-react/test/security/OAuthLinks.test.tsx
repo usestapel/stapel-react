@@ -99,7 +99,7 @@ describe("<OAuthLinks/>", () => {
     render(wrap(runtime, <OAuthLinks />));
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Connect" })).toHaveLength(2));
     for (const btn of screen.getAllByRole("button", { name: "Connect" })) {
-      expect((btn as HTMLButtonElement).disabled).toBe(true);
+      expect(btn.getAttribute("aria-disabled")).toBe("true");
     }
   });
 

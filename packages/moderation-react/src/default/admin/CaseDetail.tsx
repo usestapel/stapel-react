@@ -336,8 +336,7 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
             {(bind) => (
               <Checkbox
                 checked={draft.withSanction && draft.sanctionAllowed.available}
-                disabled={bind.disabled}
-                aria-describedby={bind["aria-describedby"]}
+                {...bind}
                 data-testid={`${testId}-sanction-toggle`}
                 onChange={(event) => {
                   draft.setWithSanction(event.target.checked);

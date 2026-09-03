@@ -287,12 +287,11 @@ describe("an erased response", () => {
     renderPane(ERASED_ROUTES, JSDOM_WIDTH);
     await openRow(ERASED_SUBMITTED_AT);
 
-    expect(screen.getByTestId("forms-resend")).toHaveProperty("disabled", true);
-    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", true);
-    expect(screen.getByTestId("forms-resend-override")).toHaveProperty(
-      "disabled",
-      true
-    );
+    expect(screen.getByTestId("forms-resend").getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByTestId("forms-delete").getAttribute("aria-disabled")).toBe("true");
+    expect(
+      screen.getByTestId("forms-resend-override").getAttribute("aria-disabled")
+    ).toBe("true");
 
     // The reason is READABLE, beside the controls — a disabled button gets no
     // pointer events, so a tooltip would be a reason nobody can reach. It is
@@ -322,8 +321,8 @@ describe("an erased response", () => {
   it("leaves both writes live on a response that was NOT erased", async () => {
     renderPane(BASE_ROUTES, JSDOM_WIDTH);
     await openRow("2026-08-21T11:00:00+00:00");
-    expect(screen.getByTestId("forms-resend")).toHaveProperty("disabled", false);
-    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+    expect(screen.getByTestId("forms-resend").getAttribute("aria-disabled")).toBeNull();
+    expect(screen.getByTestId("forms-delete").getAttribute("aria-disabled")).toBeNull();
     expect(writeGateReason()).toBeNull();
   });
 });
@@ -360,12 +359,11 @@ describe("the responses.manage capability", () => {
     renderPane(BASE_ROUTES, JSDOM_WIDTH, ["forms.view", "forms.responses.view"]);
     await openRow(OPEN_ROW);
 
-    expect(screen.getByTestId("forms-resend")).toHaveProperty("disabled", true);
-    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", true);
-    expect(screen.getByTestId("forms-resend-override")).toHaveProperty(
-      "disabled",
-      true
-    );
+    expect(screen.getByTestId("forms-resend").getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByTestId("forms-delete").getAttribute("aria-disabled")).toBe("true");
+    expect(
+      screen.getByTestId("forms-resend-override").getAttribute("aria-disabled")
+    ).toBe("true");
     // Naming the string is the whole point: a person told WHICH permission
     // they lack can go and ask for it. "You may not" cannot be acted on.
     expect(writeGateReason()?.textContent).toContain("forms.responses.manage");
@@ -374,7 +372,7 @@ describe("the responses.manage capability", () => {
   it("leaves them live when the grant IS held", async () => {
     renderPane(BASE_ROUTES, JSDOM_WIDTH, ["forms.responses.manage"]);
     await openRow(OPEN_ROW);
-    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+    expect(screen.getByTestId("forms-delete").getAttribute("aria-disabled")).toBeNull();
     expect(writeGateReason()).toBeNull();
   });
 
@@ -384,7 +382,7 @@ describe("the responses.manage capability", () => {
     // `forms.*` matches the DEEPER `forms.responses.manage`, exactly as
     // stapel-workspaces' capability_matches does. A client that refused here
     // would hide a control the server would have honoured.
-    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+    expect(screen.getByTestId("forms-delete").getAttribute("aria-disabled")).toBeNull();
   });
 
   it("does NOT guess a refusal when the host declared nothing", async () => {
@@ -393,7 +391,7 @@ describe("the responses.manage capability", () => {
     // The contract projects which capability gates the route, never the
     // caller's grants. With no host declaration the honest answer is "ask the
     // server", and a guessed "you may not" is the same defect as a dead button.
-    expect(screen.getByTestId("forms-delete")).toHaveProperty("disabled", false);
+    expect(screen.getByTestId("forms-delete").getAttribute("aria-disabled")).toBeNull();
     expect(writeGateReason()).toBeNull();
   });
 

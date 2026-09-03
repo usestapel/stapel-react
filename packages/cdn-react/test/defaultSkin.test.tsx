@@ -106,7 +106,9 @@ describe("<MediaGalleryField/>", () => {
       </TestHarness>
     );
 
-    expect(screen.getByTestId("cdn-gallery-drop-pick")).toHaveProperty("disabled", true);
+    expect(
+      screen.getByTestId("cdn-gallery-drop-pick").getAttribute("aria-disabled")
+    ).toBe("true");
     // The reason is TEXT beside the control (GatedControl), and it names the
     // ceiling without a counted noun — `useActionGate` resolves a block's code
     // with `t`, which cannot select a plural form.

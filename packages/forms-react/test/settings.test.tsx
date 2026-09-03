@@ -183,8 +183,8 @@ describe("the save gate", () => {
     await screen.findByTestId("forms-settings-form");
     expect(saveReason()).toBe("Nothing has changed since the last save.");
     expect(
-      screen.getByTestId("forms-settings-save").hasAttribute("disabled")
-    ).toBe(true);
+      screen.getByTestId("forms-settings-save").getAttribute("aria-disabled")
+    ).toBe("true");
   });
 
   it("refuses a form with no name, and says which", async () => {

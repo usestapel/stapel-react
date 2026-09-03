@@ -202,7 +202,7 @@ describe("<PasskeysManager/>", () => {
     const runtime = createAuthRuntime({ baseUrl: BASE });
     const { container } = render(wrap(runtime, <PasskeysManager />));
     const add = await screen.findByRole("button", { name: "Add a passkey" });
-    expect(add.hasAttribute("disabled")).toBe(true);
+    expect(add.getAttribute("aria-disabled")).toBe("true");
     // The reason is rendered BESIDE the control by the shared `GatedButton`,
     // with `aria-describedby` pointing at it — not in a tooltip a disabled
     // button can never raise. `data-stapel-gated-reason` is the substrate's

@@ -104,9 +104,8 @@ export function RsvpControl(props: RsvpControlProps): ReactElement {
                       // ONE primary: accepting is what an invitation asks for.
                       // The answer on record is marked, not re-coloured.
                       type={rsvp === "accepted" ? "primary" : "default"}
-                      disabled={bind.disabled}
+                      {...bind}
                       data-disabled-reason="the gate's reason is rendered by GatedControl beside these buttons"
-                      aria-describedby={bind["aria-describedby"]}
                       aria-pressed={selected}
                       aria-label={label}
                       loading={bag.isResponding}

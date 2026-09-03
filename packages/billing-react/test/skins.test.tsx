@@ -349,7 +349,10 @@ describe("<BuyOptions/> — the comparison, and the plan you already hold", () =
       expect(screen.getByTestId("billing-offer-current-team")).toBeTruthy()
     );
     const button = screen.getByTestId("billing-offer-buy-team") as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+    // `aria-disabled`, not html `disabled` — the button has to stay alive to
+    // disclose the sentence it points at. Readiness waits key on the
+    // `data-stapel-gated` stamp, never on `disabled`.
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     // The reason is TEXT beside the control, and the control points at it.
     const describedBy = button.getAttribute("aria-describedby");
     expect(describedBy).toBeTruthy();
@@ -358,24 +361,24 @@ describe("<BuyOptions/> — the comparison, and the plan you already hold", () =
     );
     // The package column is untouched — a plan holder may still top up.
     expect(
-      (screen.getByTestId("billing-offer-buy-credits-500") as HTMLButtonElement).disabled
-    ).toBe(false);
+      screen.getByTestId("billing-offer-buy-credits-500").getAttribute("aria-disabled")
+    ).toBeNull();
   });
 
   it("a cancelled subscription is NOT 'the plan you are on' — re-subscribing stays open", async () => {
     shop({ "GET /subscription": { body: SUBSCRIPTION_CANCELLED } });
     await waitFor(() => expect(screen.getByTestId("billing-offer-team")).toBeTruthy());
     expect(
-      (screen.getByTestId("billing-offer-buy-team") as HTMLButtonElement).disabled
-    ).toBe(false);
+      screen.getByTestId("billing-offer-buy-team").getAttribute("aria-disabled")
+    ).toBeNull();
   });
 
   it("a public pricing page can say 'nobody is signed in' and skip the question", async () => {
     shop({ "GET /subscription": { body: SUBSCRIPTION_ACTIVE } }, null);
     await waitFor(() => expect(screen.getByTestId("billing-offer-team")).toBeTruthy());
     expect(
-      (screen.getByTestId("billing-offer-buy-team") as HTMLButtonElement).disabled
-    ).toBe(false);
+      screen.getByTestId("billing-offer-buy-team").getAttribute("aria-disabled")
+    ).toBeNull();
   });
 
   it("keeps the 'Best value' badge INSIDE the card, not hanging off its edge", async () => {
@@ -501,7 +504,7 @@ describe("<SubscriptionCard/> — four states, and a quiet way out", () => {
       /runs until/i
     );
     const cancel = screen.getByTestId("billing-subscription-cancel") as HTMLButtonElement;
-    expect(cancel.disabled).toBe(true);
+    expect(cancel.getAttribute("aria-disabled")).toBe("true");
     const describedBy = cancel.getAttribute("aria-describedby");
     expect(document.getElementById(describedBy ?? "")?.textContent).toMatch(
       /already cancelled/i
@@ -579,7 +582,7 @@ describe("<WalletSettings/> — auto-recharge, with both refusals in words", () 
       expect(screen.getByTestId("billing-wallet-auto-recharge")).toBeTruthy()
     );
     const toggle = screen.getByTestId("billing-wallet-auto-recharge") as HTMLButtonElement;
-    expect(toggle.disabled).toBe(true);
+    expect(toggle.getAttribute("aria-disabled")).toBe("true");
     const describedBy = toggle.getAttribute("aria-describedby");
     expect(document.getElementById(describedBy ?? "")?.textContent).toMatch(
       /nothing to buy automatically/i
@@ -626,11 +629,11 @@ describe("<WalletSettings/> — auto-recharge, with both refusals in words", () 
       expect(screen.getByTestId("billing-wallet-auto-recharge")).toBeTruthy()
     );
     expect(
-      (screen.getByTestId("billing-wallet-auto-recharge") as HTMLButtonElement).disabled
-    ).toBe(false);
+      screen.getByTestId("billing-wallet-auto-recharge").getAttribute("aria-disabled")
+    ).toBeNull();
     expect(
-      (screen.getByTestId("billing-wallet-save") as HTMLButtonElement).disabled
-    ).toBe(false);
+      screen.getByTestId("billing-wallet-save").getAttribute("aria-disabled")
+    ).toBeNull();
   });
 
   it("refuses to save auto-recharge ON with no package chosen, and says so", async () => {
@@ -643,7 +646,7 @@ describe("<WalletSettings/> — auto-recharge, with both refusals in words", () 
       await Promise.resolve();
     });
     const save = screen.getByTestId("billing-wallet-save") as HTMLButtonElement;
-    expect(save.disabled).toBe(true);
+    expect(save.getAttribute("aria-disabled")).toBe("true");
     const describedBy = save.getAttribute("aria-describedby");
     expect(document.getElementById(describedBy ?? "")?.textContent).toMatch(
       /choose the package/i

@@ -15,7 +15,7 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Avatar, Button, Flex, Tag, Typography } from "antd";
 import { STAPEL_UI_KEYS, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import { ErrorAlert } from "@stapel/tokens-antd/skin";
+import { ErrorAlert, useBlockedButtonClassName } from "@stapel/tokens-antd/skin";
 import { spacing, fontSize } from "@stapel/tokens";
 
 /** The muted sentence that sits under a control or beside a value. */
@@ -204,6 +204,7 @@ export function RowActions(props: {
 }): ReactElement {
   const t = useT();
   const reasonId = useId();
+  const blockedLook = useBlockedButtonClassName();
 
   const collected: string[] = [];
   if (props.reason !== undefined) {
@@ -228,11 +229,17 @@ export function RowActions(props: {
             type="link"
             size="small"
             danger={action.danger === true}
-            disabled={!action.gate.available}
+            // `aria-disabled` and painted unavailable, never html `disabled`:
+            // an inert button fires nothing, so it cannot be focused, cannot
+            // be described to the screen reader that never reaches it, and
+            // cannot acknowledge the tap. The action is withheld by not
+            // wiring `onClick`, which is this row's own suppression.
+            {...(action.gate.available
+              ? { onClick: action.onClick }
+              : { "aria-disabled": true as const, className: blockedLook })}
             {...(anyBlocked && !action.gate.available
               ? { "aria-describedby": reasonId }
               : {})}
-            onClick={action.onClick}
             data-analytics="none"
             data-analytics-reason="passthrough — the caller's onClick carries the tracked action"
             {...(action.testId !== undefined ? { "data-testid": action.testId } : {})}

@@ -37,6 +37,7 @@ import {
   LoadList,
   SkinDialog,
   SkinTheme,
+  useBlockedButtonClassName,
 } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import { WorkspaceList } from "../headless/WorkspaceList.js";
@@ -100,6 +101,7 @@ function PageBody(props: {
   // this screen, and the button points at it.
   const listState = loadStateFromQuery(listQuery);
   const listFailed = listState.status === "failed";
+  const blockedLook = useBlockedButtonClassName();
   const createGate = requireLoaded(listState, (loaded) =>
     loaded.can_create_workspace === true
       ? actionAvailable()
@@ -129,7 +131,12 @@ function PageBody(props: {
           {listFailed ? (
             <Button
               type="primary"
-              disabled
+              // `aria-disabled` + antd's own unavailable paint, never html
+              // `disabled`: the button has to stay focusable for the
+              // `aria-describedby` below to be announced at all, and it
+              // carries no `onClick`, so there is nothing to suppress.
+              aria-disabled
+              className={blockedLook}
               aria-describedby={failureId}
               data-disabled-reason="the roster read failed; the alert below says so once and carries the retry"
               data-analytics="none"

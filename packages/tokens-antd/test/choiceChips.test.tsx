@@ -164,7 +164,12 @@ describe("ChoiceChips — a chip that cannot be chosen says why", () => {
     const reason = screen.getByText("Not sold in this region.");
     expect(chip("used").getAttribute("aria-describedby")).toBe(reason.id);
     expect(chip("parts").getAttribute("aria-describedby")).toBe(reason.id);
-    expect(chip("used").disabled).toBe(true);
+    // `aria-disabled` and alive — the chip has to keep firing for the
+    // sentence it points at to reach a keyboard. The TAP is what is refused.
+    expect(chip("used").getAttribute("aria-disabled")).toBe("true");
+    expect(chip("used").disabled).toBe(false);
+    chip("used").focus();
+    expect(document.activeElement).toBe(chip("used"));
     fireEvent.click(chip("used"));
     expect(onChange).not.toHaveBeenCalled();
   });

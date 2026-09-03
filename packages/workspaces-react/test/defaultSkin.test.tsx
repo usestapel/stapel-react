@@ -126,9 +126,15 @@ describe("<WorkspaceSettings/> (default skin)", () => {
     render(wrap(runtime, <WorkspaceSettings workspaceId={WS} />));
 
     await waitFor(() => expect(screen.getByTestId("workspace-delete")).toBeDefined());
-    expect((screen.getByTestId("workspace-delete") as HTMLButtonElement).disabled).toBe(
-      true
-    );
+    // `aria-disabled`, never html `disabled`: the control has to keep firing
+    // to disclose the sentence below. `data-stapel-gated` is the stamp a
+    // readiness wait keys on — html `disabled` no longer means anything here.
+    expect(
+      screen.getByTestId("workspace-delete").getAttribute("aria-disabled")
+    ).toBe("true");
+    expect(
+      screen.getByTestId("workspace-delete-gate").getAttribute("data-stapel-gated")
+    ).toBe("blocked");
     // The reason is the generated bundle's sentence for the code the DELETE
     // would have answered — not a raw key, and not a shrug. This is the half
     // that was untranslatable until the error bundle was regenerated.
@@ -150,9 +156,9 @@ describe("<WorkspaceSettings/> (default skin)", () => {
     render(wrap(runtime, <WorkspaceSettings workspaceId={WS} />));
 
     await waitFor(() => expect(screen.getByTestId("workspace-delete")).toBeDefined());
-    expect((screen.getByTestId("workspace-delete") as HTMLButtonElement).disabled).toBe(
-      false
-    );
+    expect(
+      screen.getByTestId("workspace-delete-gate").getAttribute("data-stapel-gated")
+    ).toBe("available");
     expect(
       screen
         .getByTestId("workspace-delete-gate")
@@ -335,11 +341,11 @@ describe("<MembersManager/> — a control never offers what the backend would re
     const [ownerRemove, adminRemove] = screen.getAllByRole("button", { name: "Remove" });
     // The sole owner: off, and the reason is TEXT beside it — a disabled
     // button receives no pointer events, so a tooltip would be unreadable.
-    expect((ownerRemove as HTMLButtonElement).disabled).toBe(true);
+    expect(ownerRemove.getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByText(LAST_OWNER_REASON)).toBeDefined();
     // Everyone else is untouched: the gate is about the last owner, not about
     // switching the column off.
-    expect((adminRemove as HTMLButtonElement).disabled).toBe(false);
+    expect(adminRemove.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("leaves Remove on when a second owner exists", async () => {
@@ -356,7 +362,7 @@ describe("<MembersManager/> — a control never offers what the backend would re
 
     await waitFor(() => expect(screen.getByText("grace@example.com")).toBeDefined());
     for (const button of screen.getAllByRole("button", { name: "Remove" })) {
-      expect((button as HTMLButtonElement).disabled).toBe(false);
+      expect(button.getAttribute("aria-disabled")).toBeNull();
     }
     expect(screen.queryByText(LAST_OWNER_REASON)).toBeNull();
   });
@@ -376,9 +382,9 @@ describe("<MembersManager/> — a control never offers what the backend would re
     render(wrap(runtime, <MembersManager workspaceId={WS} />));
 
     await waitFor(() => expect(screen.getByText("owner@example.com")).toBeDefined());
-    expect((screen.getByRole("button", { name: "Remove" }) as HTMLButtonElement).disabled).toBe(
-      false
-    );
+    expect(
+      screen.getByRole("button", { name: "Remove" }).getAttribute("aria-disabled")
+    ).toBeNull();
     expect(screen.queryByText(LAST_OWNER_REASON)).toBeNull();
   });
 

@@ -200,7 +200,7 @@ describe("<PushNotificationToggle/> — the switch draws the server's answer", (
     expect(
       screen.getByTestId("push-toggle").getAttribute("data-stapel-gated")
     ).toBe("blocked");
-    expect(screen.getByRole("switch").hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("switch").getAttribute("aria-disabled")).toBe("true");
   });
 
   it("a REFUSED permission prompt is a visible message — the rejection is not swallowed", async () => {
@@ -299,7 +299,7 @@ describe("<PushNotificationToggle/> — the switch draws the server's answer", (
     await waitFor(() =>
       expect(screen.getByText("This browser can't receive push")).toBeDefined()
     );
-    expect(screen.getByRole("switch").hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("switch").getAttribute("aria-disabled")).toBe("true");
   });
 });
 
@@ -594,7 +594,7 @@ describe("read state — the dot, the count, and the two roads to read", () => {
     render(wrap(createNotificationsRuntime({ baseUrl: BASE }), <NotificationFeedList />));
     await feedReady(null);
     const button = screen.getByTestId("notification-feed-mark-all");
-    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     // The reason is TEXT beside the control (never a tooltip — a disabled
     // button takes no pointer events) and the control points at it.
     const reason =
@@ -617,8 +617,10 @@ describe("read state — the dot, the count, and the two roads to read", () => {
     // request whose only possible answer is `marked: 0`.
     await waitFor(() =>
       expect(
-        screen.getByTestId("notification-feed-mark-all").hasAttribute("disabled")
-      ).toBe(true)
+        screen
+          .getByTestId("notification-feed-mark-all-gate")
+          .getAttribute("data-stapel-gated")
+      ).toBe("blocked")
     );
   });
 

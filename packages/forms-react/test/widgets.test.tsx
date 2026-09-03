@@ -139,7 +139,12 @@ describe("the loud fallback", () => {
     expect(
       screen.getByTestId("forms-submit").getAttribute("aria-describedby")
     ).toBe(blocked?.id);
-    expect(screen.getByTestId("forms-submit").hasAttribute("disabled")).toBe(true);
+    expect(screen.getByTestId("forms-submit").getAttribute("aria-disabled")).toBe(
+      "true"
+    );
+    // NOT html-disabled: a submit that fires nothing cannot say why it will
+    // not submit. The gate swallows the click instead.
+    expect(screen.getByTestId("forms-submit").hasAttribute("disabled")).toBe(false);
   });
 });
 

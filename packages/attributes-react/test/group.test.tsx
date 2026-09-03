@@ -124,7 +124,9 @@ describe("add and remove", () => {
     const rows = [1, 2, 3, 4, 5].map((n) => ({ quantity: n * 10, discount: n }));
     renderGroup(GROUP_FEATURE, rows);
     expect(rowNodes()).toHaveLength(5);
-    expect(screen.getByRole("button", { name: "Add row" }).hasAttribute("disabled")).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Add row" }).getAttribute("aria-disabled")
+    ).toBe("true");
   });
 
   it("emits the table with one more row when the add button is pressed", () => {

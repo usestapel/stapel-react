@@ -96,8 +96,11 @@ describe("a short closed list is chips", () => {
     // `maxSelected: 3`, three chosen. The fourth chip is not merely absent
     // from the answer — it cannot be pressed, and the row says why.
     const { onChange } = renderOne(MULTI_SELECT_FEATURE, ["abs", "esp", "ac"]);
-    const spare = screen.getByText("Sunroof");
-    expect(spare.hasAttribute("disabled")).toBe(true);
+    const spare = screen.getByText("Sunroof").closest("button") as HTMLButtonElement;
+    // `aria-disabled` and alive: a chip at the cap keeps firing so the row's
+    // sentence reaches a keyboard. The TAP is what is refused, below.
+    expect(spare.getAttribute("aria-disabled")).toBe("true");
+    expect(spare.disabled).toBe(false);
     expect(screen.getAllByText("Choose at most 3.").length).toBeGreaterThan(0);
     fireEvent.click(spare);
     expect(onChange).not.toHaveBeenCalled();
@@ -246,14 +249,18 @@ describe("a row cap keeps its button and states itself", () => {
     const full = [1, 2, 3, 4, 5].map((n) => ({ quantity: n * 10, discount: n }));
     renderOne(GROUP_FEATURE, full);
     const add = screen.getByRole("button", { name: "Add row" });
-    expect(add.hasAttribute("disabled")).toBe(true);
+    // `aria-disabled` and alive: the cap's sentence is a thing to read, and a
+    // control nobody can reach cannot be read from.
+    expect(add.getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByTestId("attributes-group-at-max")).toBeDefined();
     expect(screen.getByText("This detail takes at most 5 rows.")).toBeDefined();
   });
 
   it("says nothing while there is room", () => {
     renderOne(GROUP_FEATURE, [{ quantity: 10, discount: 5 }]);
-    expect(screen.getByRole("button", { name: "Add row" }).hasAttribute("disabled")).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Add row" }).getAttribute("aria-disabled")
+    ).toBeNull();
     expect(screen.queryByTestId("attributes-group-at-max")).toBeNull();
   });
 });

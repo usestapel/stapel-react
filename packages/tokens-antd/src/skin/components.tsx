@@ -70,8 +70,11 @@ import type { DialogSurface } from "./dialogSurface.js";
  *  - forward every `data-*` and `aria-*` prop onto that element — pair tests
  *    find buttons by `data-testid`, and `GatedControl` links its visible
  *    reason via `aria-describedby`;
- *  - honour `disabled` (a gate's verdict) and `loading` (an in-flight
- *    confirm refuses a second click);
+ *  - honour `disabled` and `loading` (an in-flight confirm refuses a second
+ *    click) — and `aria-disabled`, which is how a GATE now spells its
+ *    verdict: the button must look unavailable while staying focusable and
+ *    still firing its events, so `GatedControl` can suppress the action and
+ *    disclose the reason (an html-disabled button fires nothing at all);
  *  - render `children` as the visible label and call `onClick`;
  *  - pass `ref` through to the interactive element (`SkinConfirm` places
  *    initial focus with it);

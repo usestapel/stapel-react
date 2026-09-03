@@ -83,7 +83,9 @@ import {
   PHONE_CONTROL_HEIGHT,
   SkinNumberField,
   SkinTheme,
+  useBlockedButtonClassName,
 } from "@stapel/tokens-antd/skin";
+import type { GatedControlBinding } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { resolveValueEditor } from "../registry.js";
@@ -617,6 +619,7 @@ const GroupEditor: ValueEditor = (props: ValueEditorProps) => {
   const t = useT();
   const cfg = configOf(props);
   const touch = useTouchFloor();
+  const blockedLook = useBlockedButtonClassName();
   const children = useMemo(() => groupChildren(cfg), [cfg]);
   const [minRows, maxRows] = groupRowBounds(cfg);
   const repeatable = cfg["repeat"] !== null && cfg["repeat"] !== undefined;
@@ -660,19 +663,17 @@ const GroupEditor: ValueEditor = (props: ValueEditorProps) => {
   const canAdd = repeatable && !disabled && !atMax;
   const canRemove = repeatable && !disabled && rows.length > Math.max(minRows, 1);
 
-  const addButton = (bind?: {
-    readonly disabled: boolean;
-    readonly "aria-describedby": string | undefined;
-  }): ReactElement => (
+  const addButton = (bind?: GatedControlBinding): ReactElement => (
     <Button
       size="small"
-      disabled={bind === undefined ? !canAdd : bind.disabled}
       data-analytics="none"
       data-analytics-reason="local form edit — the funnel step is the submit, not a row"
       style={{ minHeight: touch ? PHONE_CONTROL_HEIGHT : undefined }}
-      {...(bind?.["aria-describedby"] !== undefined
-        ? { "aria-describedby": bind["aria-describedby"] }
-        : {})}
+      // Ungated: the form itself is off, and that is a real `disabled`. Gated:
+      // the binding decides, and the button stays alive so the cap's sentence
+      // is reachable — painted unavailable by antd's own class.
+      {...(bind === undefined ? { disabled: !canAdd } : bind)}
+      {...(bind?.["aria-disabled"] === true ? { className: blockedLook } : {})}
       onClick={() => emit([...rows, EMPTY_ROW])}
     >
       {t(ATTRIBUTES_I18N_KEYS.groupAddRow)}
