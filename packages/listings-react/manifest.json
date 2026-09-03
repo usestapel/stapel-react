@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.19 <0.20"
+    "contract": ">=0.21 <0.22"
   },
   "layers": [
     "api",
@@ -120,6 +120,13 @@
       "tag": "listings",
       "request": null,
       "response": "ListingStatus"
+    },
+    "listings_api_v1_listings_transition_create": {
+      "method": "POST",
+      "path": "/listings/api/v1/listings/{id}/transition/",
+      "tag": "listings",
+      "request": "ListingTransitionRequest",
+      "response": "ListingActionResponse"
     },
     "listings_api_v1_listings_unfavorite_create": {
       "method": "POST",
@@ -262,6 +269,10 @@
     "useSaveDraft": {
       "kind": "mutation",
       "operation": "saveDraft"
+    },
+    "useTransitionListing": {
+      "kind": "mutation",
+      "operation": "transition"
     },
     "useValidateDraft": {
       "kind": "query",
@@ -1058,11 +1069,17 @@
     "listings.mine.live_under_review",
     "listings.mine.load_failed",
     "listings.mine.loading",
+    "listings.mine.move.draft",
+    "listings.mine.move.paused",
+    "listings.mine.move.pending",
+    "listings.mine.move.published",
+    "listings.mine.move.renew",
     "listings.mine.retry",
     "listings.mine.tab.active",
     "listings.mine.tab.archived",
     "listings.mine.tab.drafts",
     "listings.mine.title",
+    "listings.mine.view",
     "listings.moderation.first_review",
     "listings.moderation.live_edit_pending",
     "listings.moderation.live_needs_review",
@@ -1123,6 +1140,7 @@
       "MY_LISTINGS_TAB_STATUSES",
       "MY_LISTINGS_UNTABBED_STATUSES",
       "MyListings",
+      "OWNER_TRANSITIONS",
       "PRICE_FIELD",
       "TITLE_FIELD",
       "asFeatureDaoList",
@@ -1164,6 +1182,7 @@
       "myListingPrice",
       "myListingTitle",
       "navEntries",
+      "ownerMoves",
       "pageKey",
       "publishRefusal",
       "registerListingsI18n",
@@ -1199,6 +1218,7 @@
       "useMyListings",
       "usePublishListing",
       "useSaveDraft",
+      "useTransitionListing",
       "useValidateDraft",
       "withEngagement"
     ],
@@ -1241,11 +1261,14 @@
       "ListingLifecycleStatus",
       "ListingLocation",
       "ListingModerationStatus",
+      "ListingMove",
+      "ListingOwnerTransition",
       "ListingPageKey",
       "ListingPageParams",
       "ListingStatusInfo",
       "ListingStatusTone",
       "ListingStatusView",
+      "ListingTransitionInput",
       "ListingsApi",
       "ListingsErrorCode",
       "ListingsErrorSpec",
@@ -1269,6 +1292,7 @@
       "SaveDraftInput",
       "Schemas",
       "UseFavoritesOptions",
+      "UseListingActionsOptions",
       "UseListingComposerOptions",
       "UseListingDetailOptions",
       "UseListingEngagementOverlayOptions",

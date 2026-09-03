@@ -1,5 +1,93 @@
 # @stapel/search-react
 
+## 0.21.0
+
+### Minor Changes
+
+- 3059411: The location control is one control, it says how the search got there, and a radius in the URL means something
+
+  Three measurements on a live results page, and each one is a different way of
+  the same line not saying what is true.
+
+  - **Two red links at opposite ends of a 992px strip.** "Searching everywhere"
+    sat at x=370 and "Near me · Within 25 km" at x=776, both in the brand colour,
+    with 400px of air between them and nothing saying they were about the same
+    thing. They now share one bordered box at the leading edge, split by a
+    hairline; the place half is ordinary type because it is a STATEMENT, and the
+    offer keeps the colour because it is the action. The offer states its radius
+    compactly (`search.geo.radius_km_short`) — at 390px the long form made the
+    control 272px wide against 231px of room, so it was cut by the group's own
+    clip and the filters door overlapped it by 52px.
+  - **"A chosen place on the map", said to somebody who pressed a button.**
+    `SearchStateBag.geoIsOffer` is the provider reporting PROVENANCE — the one
+    fact a summary line cannot infer, because every way of arriving at a centre
+    produces the same three numbers.
+  - **`?radius_km=300` with no place.** The search that ran was the honest one (a
+    radius with no centre narrows nothing) and the control went on advertising
+    its own 25, with nothing on screen saying which number the page had used —
+    and pressing the offer then wrote 25 over the 300 the person had typed, the
+    one place the URL was rewritten behind a visitor. The codec now reports
+    `radius_without_place` through the same notice every other unreadable
+    parameter goes through, and the offer CARRIES that radius: what the link
+    asked for, what the button says, and what pressing it does are one number.
+
+  The `index` and `default` size caps move to 11.5 KB and 22.5 KB, and the
+  measurement is the reason rather than the aftermath. Re-measured on a clean
+  tree, this package's own `src` reverted to the previous commit with every
+  dependency held constant: `index` 10.70 -> 11.14 KB, `default` 21.64 -> 22.27
+  KB. Both were already through the old 11/22 caps before the caps were touched.
+
+  The ~250 B of new i18n sentences is not what did it. Collapsing all six new
+  English strings to a single character — the floor of what shrinking the copy
+  could ever buy — leaves `index` at 11.04 and `default` at 22.14, both still
+  over. The copy is worth ~100 B and ~130 B brotlied; the rest is the facet plan
+  reading `facet_meta`, the location control's one-box rewrite and the widened
+  response types. So the caps move, and the sentences keep their words.
+
+### Patch Changes
+
+- 5604f1a: A facet group nothing in the result set carries is not drawn
+
+  Measured on the deployed phones leaf: `sim_config`, `device_history` and `set`
+  are authored `select` features that no listing in the leaf fills. All three
+  were drawn as full groups — a heading in the rail, a chip on a 390px row, and
+  between them seven checkboxes each guaranteed to return nothing. A buyer can
+  tap every one of them.
+
+  They are not a counting bug. The server's `fill_zero_options` creates the slug
+  and zero-fills every authored option on purpose, and the coverage floor that
+  would have withheld them (`FACET_MIN_COVERAGE`) governs only the slugs an
+  evidence plan BORROWED from sibling leaves — a slug the queried category
+  authored is exempt, because "a closed option set answering with its zeros is a
+  shipped decision". That is right about an OPTION and wrong about a GROUP: a
+  size chart showing `XL — 0` beside `M — 12` is telling the truth about a shape
+  worth seeing whole, while a group whose every option is 0 is not a shape at
+  all. Nothing on the wire separates the two — the client has to sum the buckets
+  itself, which is what `facetCoverage` already does for the chip row's order
+  and the rail's disclosures.
+
+  So `buildFacetGroups` now drops a group that is COUNTED and sums to zero, by
+  that same measure — the module already refuses to emit an empty group, on the
+  stated grounds that an empty group is still a heading and still a chip, and
+  this is the same defect with checkboxes in it. Three exemptions, each with a
+  test:
+
+  - an UNCOUNTED group sums to zero for the opposite reason — its options carry
+    `count: null`, nobody looked, and `/query` accepts `f.<slug>` regardless.
+    Dropping on that is the regression the `MAX_FACET_FIELDS` branch exists to
+    prevent (a live cars leaf: 26 facetable features declared, 12 counted).
+  - a group the reader has already filtered on, whatever its counts say, or the
+    URL narrows the search with no control left to widen it.
+  - a zero option beside a live one, which is drill-down working as designed.
+
+  A counted group that came back with no buckets at all (`video_file_url: {}` on
+  that same leaf) is dropped by the same rule rather than by each skin filtering
+  the model's output again downstream.
+
+  This does not fix the catalogue. A leaf declaring three features that nothing
+  in it fills is a category-authoring defect; this stops it reaching a buyer as
+  a dead control, on every leaf and every host, and it needs no server release.
+
 ## 0.20.0
 
 ### Minor Changes

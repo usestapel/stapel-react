@@ -1,6 +1,6 @@
-# @stapel/listings-react 0.21.0
+# @stapel/listings-react 0.22.0
 
-Headless React flow pair for stapel-listings (contract >=0.19 <0.20) — business + state, zero visual opinion.
+Headless React flow pair for stapel-listings (contract >=0.21 <0.22) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -36,6 +36,7 @@ Paths are relative to `/listings/api/v1/`.
 - listings_api_v1_listings_retrieve: GET /listings/{id}/
 - listings_api_v1_listings_save_draft_create: POST /listings/{id}/save-draft/
 - listings_api_v1_listings_status_retrieve: GET /listings/{id}/status/
+- listings_api_v1_listings_transition_create: POST /listings/{id}/transition/
 - listings_api_v1_listings_unfavorite_create: POST /listings/{id}/unfavorite/
 - listings_api_v1_listings_update: PUT /listings/{id}/
 - listings_api_v1_listings_validate_draft_retrieve: GET /listings/{id}/validate-draft/
@@ -54,6 +55,7 @@ Paths are relative to `/listings/api/v1/`.
 - useMyFavorites (query) → myFavorites
 - usePublishListing (mutation) → publish
 - useSaveDraft (mutation) → saveDraft
+- useTransitionListing (mutation) → transition
 - useValidateDraft (query) → validateDraft
 
 ## Errors (render t(code, params); UX from remediation)
