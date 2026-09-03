@@ -218,11 +218,15 @@ const labelStyle: CSSProperties = {
   // `manual` still honours a soft hyphen a catalogue author writes into the
   // name on purpose; it just stops the browser inventing its own.
   hyphens: "manual",
-  // `break-word` and not `anywhere`: a long word may still break rather than
-  // push the art out of the tile, but the browser stops preferring that
-  // break to a perfectly good space earlier in the line — which is what put
-  // a five-line caption on a two-line tile.
-  overflowWrap: "break-word",
+  // `anywhere` STAYS, and it is what makes `hyphens: manual` an improvement
+  // rather than a trade. Without it a caption too wide for the column stops
+  // breaking at all and the clamp ellipsizes it on its first line — measured
+  // on the 128px compact tile, which turned the longest root name into nine
+  // letters and a dot. `overflow-wrap` breaks the same word in the same place
+  // hyphenation would have, and prints no character that was never in the
+  // name: the whole caption is readable, and nothing in it can be mistaken
+  // for punctuation the catalogue author wrote.
+  overflowWrap: "anywhere",
 };
 
 const labelCompact: CSSProperties = {

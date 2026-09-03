@@ -541,4 +541,41 @@ describe("<CategoryCascadeField>", () => {
       container.querySelectorAll(".ant-select-allow-clear").length
     ).toBeGreaterThanOrEqual(3);
   });
+
+  it("prints each name in the path exactly once", async () => {
+    // The count, not the shape — because the shape kept changing while the
+    // count stayed at three. Crumb tags were one printing and the selects a
+    // second; removing the tags left the third, which is subtler and was what
+    // the phone actually showed: every rung below the top labelled itself with
+    // its PARENT's name, and the parent is the rung above's chosen value. So a
+    // three-level path read "Electronics / Electronics / Phones / Phones /
+    // Mobile phones" (walker D103, D89).
+    const server = mockServer({
+      "/categories/": { body: FULL_PAGE },
+      ...rowRoutes(ROWS),
+    });
+    render(
+      <TestProviders server={server}>
+        <CategoryCascadeField
+          commit="leaf"
+          verdict={false}
+          value={4}
+          store={testStore()}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("categories-cascade").dataset["atLeaf"]
+      ).toBe("true");
+    });
+    const text = screen.getByTestId("categories-cascade").textContent ?? "";
+    for (const caption of [
+      "category.electronics",
+      "category.phones",
+      "category.used_phones",
+    ]) {
+      expect(text.split(caption).length - 1, caption).toBe(1);
+    }
+  });
 });

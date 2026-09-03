@@ -154,13 +154,14 @@ export function CategoryCascadeField(
                     vertical={!inline}
                     wrap={inline ? "wrap" : undefined}
                   >
-                    {steps.map((step) => (
+                    {steps.map((step, index) => (
                       <Level
                         key={step.depth}
                         step={step}
                         bag={bag}
                         t={t}
                         grow={inline}
+                        first={index === 0}
                       />
                     ))}
                   </Flex>
@@ -182,6 +183,8 @@ function Level(props: {
   readonly bag: CategoryCascadeBag;
   readonly t: TranslateFn;
   readonly grow: boolean;
+  /** The topmost rung. Only its heading names something no other rung shows. */
+  readonly first: boolean;
 }): ReactElement {
   const { step, bag, t } = props;
   // The heading names what is being CHOSEN FROM, which is the parent. At the
@@ -198,9 +201,22 @@ function Level(props: {
   // dropped from the SCREEN and kept in the accessibility tree — the same
   // distinction `<CategoryPickerField>` draws, and the same reason: a select
   // whose only name is its value announces "Electronics, combobox" with
-  // nothing saying what Electronics is a choice OF. A rung with a real parent
-  // keeps its heading, because there the word is not a duplicate of anything.
-  const headingHidden = step.parentLabel === null;
+  // nothing saying what Electronics is a choice OF.
+  //
+  // Every rung BELOW the first is hidden for the same reason with a different
+  // word: its parent's name is, by construction, the chosen value of the rung
+  // directly above it — visible, one control away, in a bigger type size. The
+  // phone's filter sheet printed the consequence in full: "Electronics /
+  // Electronics / Phones / Phones / Mobile phones", five lines for a
+  // three-level path, before the first control (walker D103; the composer's
+  // step 3 was the same shape, D89). Removing the crumb tags took the path
+  // from three printings to two; this takes it to one.
+  //
+  // Only the FIRST rung of a ROOTED cascade keeps a visible heading, because
+  // there the parent is the root the tiles handed over at — a category no rung
+  // is showing, so the word is information rather than an echo. The rest keep
+  // it in `aria-label`, where it was never the duplicate.
+  const headingHidden = step.parentLabel === null || !props.first;
 
   const caption = (category: Category): string =>
     renderCategoryLabel(categoryLabel(category), t);
