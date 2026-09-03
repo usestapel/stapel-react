@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.10 <0.11"
@@ -797,6 +797,7 @@
     "search.geo.chosen_place",
     "search.geo.clear",
     "search.geo.everywhere",
+    "search.geo.near_me",
     "search.geo.radius_km",
     "search.geo.radius_label",
     "search.geo.title",

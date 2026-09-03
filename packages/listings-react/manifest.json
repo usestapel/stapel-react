@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.17 <0.18"
+    "contract": ">=0.19 <0.20"
   },
   "layers": [
     "api",
