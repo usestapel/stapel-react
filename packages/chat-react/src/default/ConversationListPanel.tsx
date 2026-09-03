@@ -210,8 +210,12 @@ function ConversationRow(props: {
 /** The class the whole-row control carries, for {@link conversationRowCss}. */
 export const ROW_OPEN_CLASS = "stapel-chat-row-open";
 
-/** The `href` the hoisted row stylesheet is deduplicated by. */
-const ROW_STYLE_HREF = "stapel-chat-conversation-row";
+/**
+ * The `href` the hoisted row stylesheet is deduplicated by. It IS the class
+ * name: the key only has to be stable and unique to this sheet, and the class
+ * already is both, so a second string bought nothing.
+ */
+const ROW_STYLE_HREF = ROW_OPEN_CLASS;
 
 /**
  * The one rule an inline style cannot state: `:focus-visible`.
@@ -230,11 +234,10 @@ const ROW_STYLE_HREF = "stapel-chat-conversation-row";
  * `List.Item` so the ring hugs the row instead of cutting its corners.
  */
 export function conversationRowCss(): string {
-  const row = `.${ROW_OPEN_CLASS}`;
-  return [
-    `${row}:focus-visible{outline:2px solid var(--stapel-focus-ring);` +
-      `outline-offset:-2px;border-radius:8px}`,
-  ].join("");
+  return (
+    `.${ROW_OPEN_CLASS}:focus-visible{outline:2px solid var(--stapel-focus-ring);` +
+    `outline-offset:-2px;border-radius:8px}`
+  );
 }
 
 /**
@@ -256,12 +259,18 @@ function openRow(
   onOpen: ((conversationId: string) => void) | undefined
 ): ReactElement {
   const cover = { display: "block", color: "inherit", textDecoration: "none" };
+  // One element, not one per branch: only one branch ever renders, and React
+  // dedupes the hoist by `href` anyway, so writing it twice bought two
+  // identical `jsx()` calls in the bundle and nothing else.
+  const rowStyle = (
+    <style href={ROW_STYLE_HREF} precedence="default">
+      {conversationRowCss()}
+    </style>
+  );
   if (openHref) {
     return (
       <>
-      <style href={ROW_STYLE_HREF} precedence="default">
-        {conversationRowCss()}
-      </style>
+      {rowStyle}
       <a
         href={openHref(conversationId)}
         style={cover}
@@ -278,9 +287,7 @@ function openRow(
   if (onOpen) {
     return (
       <>
-      <style href={ROW_STYLE_HREF} precedence="default">
-        {conversationRowCss()}
-      </style>
+      {rowStyle}
       <div
         role="button"
         tabIndex={0}
