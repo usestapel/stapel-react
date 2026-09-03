@@ -362,6 +362,9 @@ export function facetOptionLabel(
  * a chip in the row. The APPLIED-filter clause outranks the type rule: a
  * constraint the URL carries always gets its control back, whatever the schema
  * now says about it, or a person is left holding a filter they cannot clear.
+ *
+ * A COUNTED group with zero coverage goes the same way, and for the same
+ * reason — see {@link keepsAnAxisOpen}.
  */
 export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGroup[] {
   const bySlug = new Map<string, FeatureDef>();
@@ -462,5 +465,48 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
         selected: selected.includes(value),
       })),
     };
-  });
+  }).filter(keepsAnAxisOpen);
+}
+
+/**
+ * Is this group an axis a person can actually move along?
+ *
+ * The coverage floor stops at the queried category's own schema, on the
+ * server, on purpose: `FACET_MIN_COVERAGE` governs only the slugs an
+ * evidence plan BORROWED from sibling leaves, because "a closed option set
+ * answering with its zeros is a shipped decision". That is right about an
+ * option and wrong about a GROUP. A size chart showing `XL — 0` beside
+ * `M — 12` is telling the truth about a shape the reader wants to see whole;
+ * a group whose every option is 0 is not a shape, it is three checkboxes that
+ * are each guaranteed to return nothing, and it costs a heading in the rail
+ * and a chip on a 390px row to say so.
+ *
+ * Measured on the deployed phones leaf: `sim_config`, `device_history` and
+ * `set` are authored `select` features that no listing in the leaf fills.
+ * The server's `fill_zero_options` creates the slug and zero-fills every
+ * authored option, so all three arrive counted, complete and dead, and the
+ * withholding loop never looks at them because an authored plan has no
+ * `evidence`. Nothing on the wire marks them: the client has to sum the
+ * buckets itself, which is exactly what {@link facetCoverage} already does
+ * for two other surfaces.
+ *
+ * Three things this must NOT drop, which is why the predicate is this narrow:
+ *
+ *  - an UNCOUNTED group (`counted: false`). Its options carry `count: null`,
+ *    so it sums to zero for the opposite reason — nobody looked. "We did not
+ *    count this" and "there are none" are different sentences, and dropping
+ *    on the first is the regression the `MAX_FACET_FIELDS` branch below
+ *    exists to prevent (a live cars leaf: 26 facetable features declared, 12
+ *    counted, and `/query` accepts `f.<slug>` for all 26).
+ *  - a group the reader has ALREADY filtered on, whatever its counts say —
+ *    the same clause that outranks the type rule. Withholding that group
+ *    leaves a constraint applied with no control to undo it.
+ *  - a group with any non-zero option. A zero option beside a live one is
+ *    drill-down working as designed: it reports what swapping to that value
+ *    would get you, and the answer being "nothing" is information.
+ */
+function keepsAnAxisOpen(group: FacetGroup): boolean {
+  if (!group.counted) return true;
+  if (group.selected.length > 0) return true;
+  return facetCoverage(group) > 0;
 }

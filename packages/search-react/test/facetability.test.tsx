@@ -18,10 +18,15 @@
  *    row for every host that never threaded the schema through;
  *  - a slug the URL already filters on is KEPT whatever its type says, or a
  *    person is left holding a constraint with no control to remove it.
+ *
+ * The second half of the file is the other way a group can fail to be a
+ * filter: the type is right and the RESULT SET is empty of it. See
+ * `keepsAnAxisOpen`.
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
+import type { FeatureDef } from "@stapel/attributes-react";
 import {
   FACETABLE_FEATURE_TYPES,
   buildFacetGroups,
@@ -111,12 +116,11 @@ describe("the two edge cases the rule has to name", () => {
       },
       state: stateOf("type=listing"),
     });
-    expect(groups.map((g) => g.slug)).toEqual([
-      "condition",
-      "vendor",
-      "imei",
-      "video_file_url",
-    ]);
+    // `video_file_url` counted to `{}` and is dropped by the COVERAGE rule
+    // below, not by the type rule — with no def there is no type to judge it
+    // by. What this test is about is the three that survive: an absent def
+    // never decides a group away.
+    expect(groups.map((g) => g.slug)).toEqual(["condition", "vendor", "imei"]);
     expect(isFacetableFeature(undefined)).toBe(true);
   });
 
@@ -183,5 +187,90 @@ describe("the chip row on the deployed (pre-0.4.0) server", () => {
     expect(screen.getByTestId("search-chip-vendor")).toBeTruthy();
     expect(screen.queryByTestId("search-chip-imei")).toBeNull();
     expect(screen.queryByTestId("search-chip-video_file_url")).toBeNull();
+  });
+});
+
+describe("a counted axis nothing in the result set carries is not a filter", () => {
+  // The coverage floor stops at the queried category's own schema, on the
+  // server: `FACET_MIN_COVERAGE` governs only the slugs an evidence plan
+  // borrowed from sibling leaves. On the deployed phones leaf that leaves
+  // `sim_config`, `device_history` and `set` — authored `select` features no
+  // listing fills — arriving counted, zero-filled by `fill_zero_options`,
+  // complete and dead: a heading in the rail and a chip on a 390px row for
+  // three checkboxes each guaranteed to return nothing.
+  const DEAD_FEATURES: readonly FeatureDef[] = [
+    ...PHONE_FEATURES,
+    {
+      slug: "sim_config",
+      name: "test.feature.sim",
+      config: {
+        type: "select",
+        translatable_options: false,
+        options: [
+          { value: "esim", label: "eSIM" },
+          { value: "nano", label: "nano-SIM" },
+        ],
+      },
+    },
+  ];
+
+  function slugsFor(
+    facets: Readonly<Record<string, Readonly<Record<string, number>>>>,
+    search = "type=listing",
+    skipped: readonly string[] = []
+  ): readonly string[] {
+    return buildFacetGroups({
+      facets,
+      meta: {
+        approximate: false,
+        candidates: 43,
+        counted: Object.keys(facets),
+        skipped: [...skipped],
+        dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
+      },
+      state: stateOf(search),
+      categoryFeatures: DEAD_FEATURES,
+    }).map((group) => group.slug);
+  }
+
+  it("drops an authored group the server zero-filled to nothing", () => {
+    const slugs = slugsFor({ ...PHONE_FACETS, sim_config: { esim: 0, nano: 0 } });
+    expect(slugs).not.toContain("sim_config");
+    // and has not taken the live axes with it
+    expect(slugs).toEqual(["condition", "vendor"]);
+  });
+
+  it("drops a counted group that came back with no buckets at all", () => {
+    // `video_file_url: {}` — counted, and empty. Same death, one step earlier:
+    // the model used to hand this out and every skin filtered it again.
+    expect(slugsFor(PHONE_FACETS)).not.toContain("video_file_url");
+  });
+
+  it("KEEPS a zero option beside a live one — that is drill-down working", () => {
+    // The distinction the whole rule turns on. `novoe: 0` says what swapping
+    // to it would get you, and "nothing" is information; the group still
+    // narrows, because `b-u` does.
+    const slugs = slugsFor({ ...PHONE_FACETS, condition: { "b-u": 31, novoe: 0 } });
+    expect(slugs).toContain("condition");
+  });
+
+  it("KEEPS an UNCOUNTED group, which sums to zero for the opposite reason", () => {
+    // A skipped slug's options carry `count: null` — nobody looked. Dropping
+    // on that is the regression the `MAX_FACET_FIELDS` branch exists to
+    // prevent: `/query` accepts `f.<slug>` whether or not it counted it.
+    const { condition, ...rest } = PHONE_FACETS;
+    void condition;
+    const slugs = slugsFor(rest, "type=listing", ["condition"]);
+    expect(slugs).toContain("condition");
+  });
+
+  it("KEEPS a dead group the reader has already filtered on", () => {
+    // Otherwise the URL narrows the search to nothing and the control that
+    // would widen it again is gone.
+    const slugs = slugsFor(
+      { ...PHONE_FACETS, sim_config: { esim: 0, nano: 0 } },
+      "type=listing&f.sim_config=esim"
+    );
+    expect(slugs).toContain("sim_config");
   });
 });

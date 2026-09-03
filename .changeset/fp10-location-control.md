@@ -28,3 +28,16 @@ the same line not saying what is true.
   `radius_without_place` through the same notice every other unreadable
   parameter goes through, and the offer CARRIES that radius: what the link
   asked for, what the button says, and what pressing it does are one number.
+
+The `index` and `default` size caps move to 11.5 KB and 22.5 KB, and the
+measurement is the reason rather than the aftermath. Re-measured on a clean
+tree, this package's own `src` reverted to the previous commit with every
+dependency held constant: `index` 10.70 -> 11.14 KB, `default` 21.64 -> 22.27
+KB. Both were already through the old 11/22 caps before the caps were touched.
+
+The ~250 B of new i18n sentences is not what did it. Collapsing all six new
+English strings to a single character — the floor of what shrinking the copy
+could ever buy — leaves `index` at 11.04 and `default` at 22.14, both still
+over. The copy is worth ~100 B and ~130 B brotlied; the rest is the facet plan
+reading `facet_meta`, the location control's one-box rewrite and the widened
+response types. So the caps move, and the sentences keep their words.
