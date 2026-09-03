@@ -1,6 +1,6 @@
 {
   "name": "@stapel/billing-react",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Headless React flow pair for stapel-billing: typed API client, TanStack Query hooks, flow machines, headless components, and i18n keys. A balance is a set of credit lots with expiry dates, so `useWallet` hands out `lots`, `holds`, the server's `expiringSoon` and (since stapel-billing 0.11.0) `debts`/`debtOutstanding` as LoadStates — a failed wallet read can never be drawn as a wallet with no credits, and neither the spend order nor the deadline nor the debt total is recomputed on the client. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin: <WalletPanel/> states the TWO credit pools separately (bought credits that never expire vs plan credits with a deadline — never one sum), what the wallet owes and what the next purchase will settle, the subscription with its next date, both ways to buy with the price per credit under each, automatic top-up, and the credit ledger.",
   "license": "MIT",
   "repository": {

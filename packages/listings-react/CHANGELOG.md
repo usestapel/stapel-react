@@ -1,5 +1,46 @@
 # @stapel/listings-react
 
+## 0.19.0
+
+### Minor Changes
+
+- a9dbe3e: listings: the heart reports its own outcome, a gated heart discloses on the gesture, and an already-seen card is dimmed — with the engagement overlay that makes any of it visible on a search-served grid
+
+  Three defects measured on a live deployment, plus the engagement axis and the batch read that carries it.
+
+  **The heart gave no feedback.** A signed-in person tapped it and nothing moved: the write went out and the invalidation landed, but the row a card draws from is a prop owned by a list query further up, so the icon kept showing the state from before the tap until that query refetched. `useFavoriteToggle` and `useListingDetail` now predict the next state on the gesture, replace the prediction with the server's own `favorited` when the write lands, and roll it back when the write fails — with the failure stated through the pair's existing `ErrorAlert` rather than left silent. The prediction is tagged with the listing id, because a virtualised grid reuses a hook instance across rows. Saved now draws as a filled accent heart and unsaved as an outline, on the cards and on the listing page.
+
+  `is_favorited: null` — "nobody asked on this person's behalf", which is what every anonymous read sends — renders as the not-favorited outline and never as a third look, while staying distinguishable underneath: `FavoriteToggleBag.known` and `ListingDetailBag.favoriteKnown` are what a caller asks before treating the row as authoritative. `ListingDetailBag.isFavorited` is now `boolean` rather than `boolean | undefined`.
+
+  The wire carries `is_favorited` and no favourite COUNT, so none is drawn. A test asserts that against the generated schema, so the day one lands, rendering it is a decision rather than an invention.
+
+  **An anonymous person's heart was a dead button.** Two causes wearing one symptom. The favourite control is no longer html-`disabled` in any volume on any surface: it carries `aria-disabled` with a live handler and refuses on activation, because an inert button takes no focus, receives no pointer events, and can explain itself to nobody. And `GateReasonPopover` is now a controlled disclosure whose activation is monotonic — an uncontrolled popover triggered by hover and click treated the click as a toggle, so a pointer that rested on the heart and then pressed it closed the only explanation the control had. The existing tests never caught it because a synthetic `click` carries no hover in front of it.
+
+  `<ListingFeedCard>` was the last surface still printing the standing "sign in" caption over its photograph; it now takes `signIn` and `blockedReason` and defaults to the interaction disclosure, since a two-column tile has no line to put a sentence on. A host that wants the standing sentence asks for it with `blockedReason="text"`.
+
+  **A viewed state.** The engagement fields are read through `model/engagement.ts` (`isListingViewed`, `listingViewCount`) and declared as an optional `ListingEngagementFields` extension beside the generated schema, which is emitted from the pinned sibling and not ours to hand-edit. All three cards dim an already-seen listing through one rule in the stylesheet they already share — opacity, so it needs no second colour for dark mode — and the listing page prints the view count when there is one. Absent and `null` are a silent no-op: no dimming, no count, no console noise, no layout shift.
+
+  The flag is `viewed` (stapel-listings 0.16.0/0.17.0 settled it; an earlier draft of this work read `is_viewed` as well, and that hedge is gone). `null` means an anonymous caller — nothing is remembered for a stranger, and `false` would be a claim rather than an absence — so it draws the undimmed card and never claims "not seen".
+
+  **The engagement overlay, which is the half that makes the state visible at all.** On this module's own card list and on the listing page the flags arrive on the row. On the two surfaces a buyer actually scrolls they never do: a storefront's home feed and its SERP are drawn from the SEARCH index, whose stored document can carry neither a flag that differs per reader nor a counter that moves faster than a re-index. Without this, every card on exactly the screens the feature was asked for renders undimmed with an outline heart, and nothing anywhere reports a fault.
+
+  So the pair now speaks `GET /listings/engagement/?ids=…` — one call per page, `{id: {view_count, viewed, is_favorited}}`, `AllowAny` so a signed-out grid is not a second code path. `useListingEngagement` is the read; `<ListingEngagementScope ids={…}>` runs it once and publishes the answer; every card inside looks itself up through `useEngagedListing` and merges the entry over its own row. The cost is per page and the reader is per card, which is why it is a scope and not a prop: an `engagement` prop on the card would make each card responsible for its own answer, and the shortest way to satisfy that is forty requests for a decoration.
+
+  Every failure mode is a silent no-op, deliberately: no scope, an empty page, an id the answer did not carry, a read still in flight, and a read that **failed** all leave the card drawing from its row, with no retry and no error surface. A grid that renders is worth more than a flag. Ids are normalized (sorted, de-duplicated, capped at the server's own `ENGAGEMENT_BATCH_LIMIT`) before both the request and its cache key, so a re-ordered page cannot buy a second request.
+
+  **The contract pin caught up, and the mirrors are gone.** `contract-pins.json` now pins stapel-listings at the 0.17.0 line, so the generated schema carries `viewed`, `view_count`, `ListingEngagement`, `ListingEngagementBatch` and the engagement endpoint. The hand-written mirrors this pair carried while the pin lagged have been deleted: `ListingEngagement` and `ListingEngagementBatch` are now aliases of `Schemas[…]`, and `ListingEngagementFields` picks its field NAMES off `Schemas["ListingCard"]`, so a rename upstream is a compile error here rather than a grid that quietly stops dimming. The test that asserted the schema still lacked the surface — the mirrors' expiry — has been rewritten to assert the derivation instead.
+
+  One deliberate divergence from the generated row survives, and it is load-bearing: the engagement fields are REQUIRED on `Schemas["ListingCard"]` and OPTIONAL on this pair's `ListingCard`, `ListingDetail`, `MyListingCard` and the two pagination envelopes. A generated type is a promise about the contract, not about the bytes a deployment sends — and the pair's most important card source, the search index reached through `renderCard`, cannot supply them at all. Requiring them on the card prop would make the primary consumer unable to satisfy its own type for data no one can produce, which is the very case the overlay exists to answer.
+
+  **Also carried in by the pin bump**, all additive and fixed here rather than left for the next wave:
+
+  - Two new publish refusals, `error.400.listing_location_required` and `error.400.listing_zero_price_not_allowed` (a price of 0 is an empty field, not "free"), now with Russian and Spanish sentences. They arrived English-only and the i18n suite is what caught them; the registry assertion moves 66 → 68.
+  - `ListingPriceProps.amount` widens to `string | null | undefined`. `price` is now spelled `string | null` in the schema (D51: a blank price stays null server-side), which is what the component's own `hasAmount` guard has been defending against from the start — the type now says what the runtime already knew.
+
+  **Adopted the substrate's new gate binding.** `@stapel/tokens-antd`'s `GatedControl` now owns "a gated control is never inert" for the whole fleet: it supplies `aria-disabled` in the binding, keeps html `disabled` false, and suppresses the action itself in a capture-phase wrapper. No `tabIndex` rides in the binding and none is needed here: dropping html `disabled` is what restores focus on a native control, and every control this pair gates is one. This pair's three hearts and its composer spread that binding whole instead of deriving `aria-disabled` from `bind.disabled`. Several of this package's tests had been using html `disabled` as a READINESS signal ("wait until the publish button is enabled"), which stopped meaning anything the moment `disabled` became permanently false — they now wait on the gate's own `data-stapel-gated="available"` stamp, which is what they were always trying to ask.
+
+  Bundle budgets move: the headless entry 13 → 14 KB (measured 13.0, for the overlay read, its key and its scope) and the skin 20 → 21 KB (measured 20.38). Both arguments are in `package.json`.
+
 ## 0.18.2
 
 ### Patch Changes

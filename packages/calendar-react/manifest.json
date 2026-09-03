@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/calendar-react",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "backend": {
     "module": "stapel-calendar",
     "contract": ">=0.6 <0.7"

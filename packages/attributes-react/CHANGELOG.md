@@ -1,5 +1,128 @@
 # @stapel/attributes-react
 
+## 0.13.0
+
+### Minor Changes
+
+- a9dbe3e: Requiredness and emptiness are verdicts about the current ANSWERS, and a host
+  can now ask for both.
+
+  A composer that walks a category in steps had to re-derive two things by hand,
+  and read them off the schema: whether a block still asks anything (a block
+  whose fields are all rule-hidden produced a step with a heading and nothing
+  under it) and what the person still owes (a "Next" that refused over a field
+  that was not on screen, with no way past it but a false answer). New on the
+  main entry, all evaluated against the values:
+
+  - **`missingRequiredFeatures(features, values)`** — the required-and-still-blank
+    rows. Requiredness is the evaluated rule state, so an unmatched `require`
+    rule is not required, and it is the SAME predicate the asterisk and the
+    mirror use.
+  - **`visibleFeatures(features, values)`** — the rows `<FeatureFields>` will
+    draw, both gates composed (rules `show`/`hide` and progressive disclosure).
+  - **`visibleFeatureGroups(features, values)`** — those rows as blocks, in the
+    skin's own order, with every block that asks nothing dropped: the step ladder,
+    ready to walk. Headings do not count as questions.
+  - **`hasVisibleFields(features, values)`** — the one-line form of the same
+    question.
+  - **`featureRequiredUnder(feature, state)`** — the requiredness predicate
+    itself, now public. `<FeatureFields>` had its own copy beside the mirror's;
+    the marker and the refusal are one function call again, so they cannot drift.
+
+  Fixed with them: `mirrorValidate` no longer reports a field that progressive
+  disclosure has not revealed as `mandatory_missing`. `toFeaturesDto` already
+  drops such a value as "not part of the declaration", so the mirror was refusing
+  a payload it had built itself and naming a control the person could not see.
+  The open question there is the parent.
+
+- a9dbe3e: A reference picker draws the server's popular band.
+
+  A live stand's phone catalogue holds 529 vendors, and the `ref_select` sheet
+  opened on `3Q, 4Good, 8848, A1, Aceline, Acer` — the only order this side could
+  produce. `stapel-vocabularies` 0.2.0 gives the level a band and publishes where
+  it ends; this is the rendering half. The fields read, both exactly as that
+  release names them:
+
+  - **`band: "popular" | "all"` on each term row** — carried on `VocabularyTerm`.
+  - **`popular_count` on the page** — how many LEADING rows of `results` are in
+    the band.
+
+  `VocabularyClient.search` may now answer with the endpoint's page
+  (`{results, popular_count?, total?}`) as well as a bare array. The page shape
+  exists for the one fact a row cannot carry, and a client that keeps returning
+  an array keeps working — it draws one plain list.
+
+  **The count is the authority; the rows' own tag is only a fallback.** Under a
+  `q` search the server ranks by prefix FIRST and the band second, so a page can
+  legitimately read `[popular+prefix, all+prefix, popular, all]` — two rows
+  tagged `popular` of which only the first leads. Splitting on the tag would lift
+  the third row over the second and destroy the typeahead ranking, which is why
+  the endpoint publishes a count and tells clients not to scan. The split is a
+  SLICE at `popular_count`; neither band's order is this package's opinion. When
+  no count is given (an array answer, a service older than 0.2.0) the fallback is
+  the leading run of `band === "popular"` — the server's own algorithm, whose
+  worst case is a run of zero and therefore one plain list. It can under-report a
+  band; it can never reorder one.
+
+  What it draws:
+
+  - **a band** → the popular rows first under their own heading, a rule, then the
+    rest of the level under a heading of its own;
+  - **no band** (`popular_count: 0` — a level nobody has ranked, a page past the
+    boundary, or a search whose top hit is a plain prefix match) → exactly what
+    it drew before: one plain list, no heading, no rule;
+  - **search** re-reads the boundary from each response, so a query that keeps
+    the band keeps the two-band shape and one that does not collapses back to the
+    plain list. A band with nothing in it is never emitted, so no heading can
+    stand over nothing;
+  - **paging** extends the band by a later page's leading run rather than
+    restarting it, so a host on a small `limit` that pages THROUGH the boundary
+    does not drop the tail of the band under "All options".
+
+  The bands are the picker sheet's own groups — headings are never focusable or
+  pickable, and arrow-key traversal crosses the rule unchanged.
+
+  New on the main entry: `termPageOf` (normalize an answer to rows + boundary),
+  `splitPopularBand`, `isPopularTerm`, and the `VocabularyTermPage` /
+  `VocabularyTermAnswer` types. New copy in all three catalogues:
+  `attributes.picker.recommended`, `attributes.picker.all_options` — the heading
+  reads "Recommended" while the wire calls the band `popular`, deliberately: the
+  key names a sentence a person reads, and "Popular" is a claim about other
+  people's behaviour this package cannot substantiate at the point of rendering.
+
+### Patch Changes
+
+- f79bdc3: tokens-antd: a gated control is semantically off and interactively ALIVE — it can be tapped, focused, and can say why it will not do the thing
+
+  `GatedControl` handed callers `bind.disabled` and its own JSDoc told them to spread it straight onto the control. That produced an html-`disabled` element, which fires no events in any browser: it cannot be clicked, cannot take focus, cannot be described to a screen reader that never reaches it, and cannot carry the one gesture that mattered — the tap that should open the sign-in door standing behind the gate. Every gated control across the ~20 pairs using it was inert, and the wrong instruction was half the defect: the docs taught the shape that broke it.
+
+  Measured on a live deployment: an anonymous visitor taps the favourite heart and nothing happens at all — no sentence, no tooltip, no door (walker defects D45/D72).
+
+  **The corrected contract.** While the gate is shut a control is now `aria-disabled="true"` and NOT html-disabled, so it stays focusable and keeps receiving events. The ACTION is suppressed by `GatedControl` itself, in a capture-phase wrapper (`display: contents`, so no pair's layout moves by a pixel): the caller's `onClick`, keyboard activation, typing, IME input, paste and drop are swallowed before the control sees them. Callers write their handlers exactly as if the gate did not exist. The activation comes back as the new `onBlockedActivate`, which is where a pair opens its door. The reason stays where it was — visible text wired by `aria-describedby` — and where a `PaneGate` pools it into one footnote, the gesture now brings a `role="status"` copy of the sentence back to the control it belongs to. A blocked `GatedButton` keeps antd's exact disabled paint (its own `-disabled` class, which sets no `pointer-events`), so nothing about any screen looks different.
+
+  `GatedControlProps.whenBlocked` holds the two deliberate opt-outs, neither of them the default:
+
+  - `"inert"` — html `disabled`, for the rare control that must be switched off at the browser level. `attributes-react`'s catalogue lock is the one place in the fleet that asks for it, and now says so.
+  - `"annotate"` — the control stays fully usable and only gains the sentence, for a gate that judges the VALUE rather than refusing the person: `calendar-react`'s slot-length field must stay editable, because editing it is how the reason goes away, and `search-react`'s sort must still pick the options that are not the blocked one.
+
+  `useBlockedButtonClassName()` is exported for render-prop call sites that paint their own button and want the same unavailable look rather than a second grey.
+
+  **⚠️ The readiness-signal hazard, and its cure.** `element.disabled` is now permanently `false` on every gated control in the fleet. Any test using it as a readiness signal — `await waitFor(() => expect(save.disabled).toBe(false))`, meaning "wait until this is allowed" — returns instantly and mis-times SILENTLY: every assertion after it reads an unseeded component, and the failure looks like broken product logic rather than a gate that had not opened. One pair's suite went green → 21 failures across unrelated files on exactly this. Wait on the stamp instead, which is what such a wait was always asking:
+
+  ```ts
+  await waitFor(() =>
+    expect(
+      screen.getByTestId("save-gate").getAttribute("data-stapel-gated")
+    ).toBe("available")
+  );
+  ```
+
+  `data-stapel-gated="available" | "blocked"` is on the wrapper of every gated control in all three modes (`GatedButton` names it `<testId>-gate`). For a point assertion on one element, read `aria-disabled`. Never `disabled`.
+
+  **ChoiceChips** carried the same defect on its own chips and is fixed the same way: a chip at the cap is `aria-disabled` and focusable, and the tap is refused in the handler, so the row's sentence reaches a keyboard.
+
+  **The consumers.** Every `GatedButton` call site (64 imports across 20 pairs) is fixed with no code change — the correction is in the substrate. The render-prop call sites that consumed the binding field-by-field now spread it whole: `billing-react`'s auto-recharge switch, `calendar-react`'s RSVP buttons, `moderation-react`'s sanction checkbox, `notifications-react`'s push switch, `attributes-react`'s at-max add button. `tasks-react`'s assignee picker is a host slot rendering its own control out of reach of the suppression, so it is handed a plain verdict on purpose. `workspaces-react` had two hand-rolled gates that never went through `GatedControl` at all — a row-action column and the create button on a failed roster read — and both now use the same anatomy.
+
 ## 0.12.1
 
 ### Patch Changes

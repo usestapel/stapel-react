@@ -1,4 +1,4 @@
-# @stapel/vocabularies-react 0.4.0
+# @stapel/vocabularies-react 0.5.0
 
 Headless React flow pair for stapel-vocabularies (contract >=0.2 <0.3) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
