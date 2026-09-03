@@ -141,6 +141,69 @@ the raw value; a value nobody names keeps printing itself. `renderCategoryFilter
 also becomes the leading chip of the phone filter row, which is where the
 catalogue's deeper levels are chosen on a result list.
 
+## A heading is named by the server, or it is marked
+
+Group headings and option captions resolve in one order and one only:
+`facet_labels` from the answer → the category feature definition → the raw
+slug. The last arm is not a fallback anyone ships: it renders (a heading a
+person cannot read still beats options with no heading), and it renders
+**marked** — `labelSource: "none"` on the group, `data-label-source="none"` on
+the drawn control, and one `console.warn` per slug outside production. A
+storefront's own test asserts on that attribute; measured on a live cars branch
+the whole rail was raw slugs and the complaint that came back was "I cannot
+pick a make".
+
+Every `FacetGroup` and every `FacetOption` carries `labelSource:
+"server" | "schema" | "host" | "none"`, so "did anybody actually name this?" is
+answerable without looking at the string.
+
+## A vocabulary is a dictionary, not a checkbox list
+
+Past eight **evidence buckets** a `ref_select` group (or an untyped group that
+long — the live case, where no schema was threaded through) stops being a list
+and becomes a dictionary: the busiest values, a search box that filters them
+locally, and the chosen values pinned above the box so a filter is never
+invisible. The box matches **across alphabets** — `тойота` finds `Toyota`,
+`тимберленд` finds `Timberland`, `ровер` finds `Land Rover` — by a prefix rule
+over two keys per word, a transliteration and its consonant skeleton
+(`translitPrefixMatch`, `translitKey`, `consonantKey`; table-driven, no
+dependency). No request per keystroke: the whole bucket list is already in the
+answer — stapel-search caps a vocabulary-backed group at
+`MAX_FACET_VALUES_VOCABULARY` (1000, raised from the shared 200 for exactly
+this), so a 418-term make dictionary arrives whole and the box has everything
+it filters.
+
+```tsx
+facetGroupShape(group)   // "segmented" | "nested" | "checkbox" | "dictionary"
+isDictionaryFacet(group) // > FACET_DICTIONARY_THRESHOLD counted buckets
+```
+
+## Two browse surfaces the page places
+
+Both are exported from `./default` and neither lays itself out — where they
+belong on a category page is the storefront's decision.
+
+`<PopularValues>` prints the busiest values of one group as a multi-column
+`Toyota 802` list that applies the filter on click — a table of contents for a
+category, from the same drill-down counts the panel shows. `hidden` is a prop,
+not a media query: whether a 390px screen has room is a fact about the page.
+
+```tsx
+<PopularValues group={firstRefSelect} onApply={toggle} hidden={isPhone}
+               onShowAll={openPanel} />
+```
+
+`<PartitionChips>` is the single-select row a `chips` category draws instead of
+a tile grid: `Все | child…` from `{id, path, name}`, controlled (the choice is
+a `category` in the URL), a real `radiogroup` with roving tabindex and arrow
+keys — because exactly one of them is true at a time, and `aria-pressed`
+toggles say the opposite.
+
+```tsx
+<PartitionChips items={children} value={state.category ?? null}
+                onChange={(path) => patch({ category: path })} />
+```
+
 ## What the server admits, the screen repeats
 
 | The envelope says | The page says |
@@ -191,10 +254,10 @@ the configured engine cannot evaluate.
 | Layer | Exports |
 |---|---|
 | api | `createSearchApi`, `searchQueryParams`, `SEARCH_SORTS`, wire types |
-| state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `facetOptionLabel` |
+| state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `facetOptionLabel`, `translitPrefixMatch`, `translitKey`, `consonantKey` |
 | model | `createSearchRuntime`, `searchQueryKeys`, `useSearchQuery`, `useRankingDisclosure` |
 | headless | `SearchProvider`, `SearchStateProvider`/`useSearchState`, `SearchResults`, `FacetPanel`, `RankingDisclosure` |
-| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
+| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `facetGroupShape`, `isDictionaryFacet` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
 | `./router` | `useRouterSearchParams` |
 | i18n | `registerSearchI18n` (+ `./i18n/ru`, `./i18n/es`) |
 | errors | `SEARCH_ERRORS`, `explainSearchError`, `SEARCH_WINDOW_EXCEEDED`, `SEARCH_BACKEND_UNAVAILABLE` |

@@ -344,6 +344,60 @@
       }
     },
     {
+      "id": "search.partition-chips",
+      "title": "Partition chips",
+      "description": "A single-select row of the parent plus its children, where the first chip is the parent itself rather than a way of clearing the others — searching the parent IS the union of its children. It is a real radiogroup with roving tabindex: Tab reaches the row once and lands on the chosen chip, the arrow keys move along it and choose as they go. A row of aria-pressed toggles would announce the opposite — independent switches, with no reason why pressing one released another.",
+      "component": "PartitionChips",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "parent",
+          "description": "Nothing narrowed: the parent's own chip is the chosen one, and the feed below is the union of every child.",
+          "viewport": "desktop",
+          "step": "partition-all"
+        },
+        {
+          "id": "child",
+          "description": "A shared link into one child, at 390px: the row wraps rather than scrolls, and the chosen chip is the single Tab stop.",
+          "viewport": "phone",
+          "step": "partition-child"
+        }
+      ],
+      "source": {
+        "file": "demo/PartitionChips.demo.tsx",
+        "line": 43
+      }
+    },
+    {
+      "id": "search.popular-values",
+      "title": "Popular values",
+      "description": "The head of one facet as a multi-column list of value + count, each line applying that filter. The numbers are the answer's own drill-down counts — the same ones the checkbox rows carry — so a value cannot read 802 here and 93 in the panel. Values with no evidence behind them are dropped rather than printed with a blank where the number belongs: the block IS the numbers. Whether a phone has room for it is the page's decision and arrives as the `hidden` prop, never as a media query inside.",
+      "component": "PopularValues",
+      "covers": [],
+      "tokens": [
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "desktop",
+          "description": "Twelve makes in three columns with a link into the full control — the shape a desktop feed page draws under its heading.",
+          "viewport": "desktop",
+          "step": "popular-desktop"
+        },
+        {
+          "id": "narrow-column",
+          "description": "A page with less room says so: six values in two columns and no link, because a link that goes nowhere is worse than a block that stops.",
+          "viewport": "phone",
+          "step": "popular-narrow"
+        }
+      ],
+      "source": {
+        "file": "demo/PopularValues.demo.tsx",
+        "line": 74
+      }
+    },
+    {
       "id": "search.range-filter-row",
       "title": "Numeric range filter",
       "description": "A range row per numeric feature of the category schema, plus any slug the URL already constrains — because a constraint that is active must always have a control that removes it, even when the schema no longer explains it. Bounds and step come from the schema; the unit is shown in the field's accessible name.",

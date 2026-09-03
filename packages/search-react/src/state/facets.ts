@@ -8,9 +8,12 @@
  *    they would have if you swapped to them. A panel that greys the siblings
  *    out has silently converted a drill-down facet into a naive one, and the
  *    e2e leg in the spec (§7.2) exists to catch exactly that.
- * 2. **Option LABELS have one stated order: ANSWER, then schema, then the
- *    raw value** — with a host resolver between the last two, applied by
- *    `useHostFacetLabels` on what this module could not name.
+ * 2. **LABELS have one stated order: ANSWER, then schema, then the raw
+ *    term** — for the group's heading and for every option alike, with a host
+ *    resolver between the last two for options, applied by
+ *    `useHostFacetLabels` on what this module could not name. The bottom of
+ *    that order is not a label and is marked as such: `labelSource: "none"`,
+ *    a warning in development, and a data attribute on the drawn group.
  *
  *    The answer leads because it is the only source that always exists and
  *    the only one that has RESOLVED anything: `categoryFeatures` is an
@@ -50,12 +53,48 @@
 import {
   VOCABULARY_BACKED_TYPES,
   featureConfig,
-  featureName,
   featureType,
   formatFeatureValue,
 } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
-import type { FacetMeta, SearchQueryState } from "../api/types.js";
+import type { FacetLabelsMap, FacetMeta, SearchQueryState } from "../api/types.js";
+
+/**
+ * Where a caption came from — the group's heading and every option carry it,
+ * because "did anybody actually name this?" is a question two surfaces have
+ * to answer and neither can answer by looking at the string.
+ *
+ * `"none"` is the honest bottom: the raw slug for a heading, the raw index
+ * term for an option. It is not a label, it is what is printed when there is
+ * none, and it is the one value a storefront's own test asserts against.
+ */
+export type FacetLabelSource = "server" | "schema" | "host" | "none";
+
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
+
+/** Slugs already complained about — one warning per slug per page load, not
+ * one per render. */
+const warnedSlugs = new Set<string>();
+
+/**
+ * A heading nobody named, said once, in development only.
+ *
+ * A raw slug in a filter panel is a wiring fault — the category has no
+ * feature definition for the slug and the server sent no label — and it is
+ * invisible to everyone but the buyer who meets it. The group still renders,
+ * because a heading a person cannot read still beats options with no heading
+ * at all; `FacetGroup.labelSource` is how a surface marks it up for a test.
+ */
+function warnUnnamedGroup(slug: string): void {
+  const env = typeof process === "undefined" ? undefined : process.env;
+  if (env?.NODE_ENV === "production") return;
+  if (warnedSlugs.has(slug)) return;
+  warnedSlugs.add(slug);
+  console.warn(
+    `[search-react] facet group "${slug}" has no label: the answer sent none ` +
+      `and no category feature defines it, so the heading is the raw slug.`
+  );
+}
 
 /**
  * Value types whose values are a BOUNDED OPTION SET — the only kind of
@@ -111,14 +150,22 @@ export interface FacetOption {
   readonly count: number | null;
   /** Resolved through the category schema; the raw value when there is none. */
   readonly label: string;
+  /** Which of the three sources named it — `"none"` means {@link label} IS
+   * the raw index term. The host seam reads this rather than comparing the
+   * two strings. */
+  readonly labelSource: FacetLabelSource;
   readonly selected: boolean;
 }
 
 /** One facet slug, with its options. */
 export interface FacetGroup {
   readonly slug: string;
-  /** The feature's display name (translated when it is a key), else the slug. */
+  /** The group's heading: the answer's own `label`, else the feature's
+   * display name, else — with a dev warning — the raw slug. */
   readonly label: string;
+  /** Which source named the heading. `"none"` is the slug standing in for a
+   * name nobody has; a surface marks it so a storefront test can fail on it. */
+  readonly labelSource: FacetLabelSource;
   /** The category-schema entry behind the slug, when the host supplied one. */
   readonly feature: FeatureDef | undefined;
   /** `false` when the server skipped this slug — counts are `null`. */
@@ -199,17 +246,17 @@ export interface BuildFacetGroupsInput {
    *    `apple` or `chernyy`. The server read that vocabulary against the
    *    snapshot the documents were written with.
    *
+   * Each entry also carries the GROUP's own `label` — the heading, resolved
+   * from the feature definition server-side and localized like everything
+   * else. It leads for the same two reasons, and it is what a category whose
+   * host passed no feature list has instead of a rail full of index slugs.
+   *
    * ABSENT on a server older than 0.4.0 — absent, not empty — which is why
    * every read of it here is optional-chained and every option falls through
    * to the schema and then to its raw self. No labels are invented at any
    * step.
    */
-  readonly facetLabels?: Readonly<
-    Record<
-      string,
-      { readonly translatable: boolean; readonly values: Readonly<Record<string, string>> }
-    >
-  >;
+  readonly facetLabels?: FacetLabelsMap;
   /** Translator for label keys. */
   readonly t?: (key: string) => string;
   /** BCP-47 tag, forwarded to `formatFeatureValue` for `date` options. */
@@ -287,11 +334,49 @@ function resolveLabel(
   slug: string,
   value: string,
   labelOptions: { t?: (key: string) => string; locale?: string }
-): string {
-  return (
-    serverLabel(input.facetLabels, slug, value, input.t) ??
-    facetOptionLabel(feature, value, labelOptions)
-  );
+): { readonly label: string; readonly labelSource: FacetLabelSource } {
+  const answer = serverLabel(input.facetLabels, slug, value, input.t);
+  if (answer !== undefined) return { label: answer, labelSource: "server" };
+  const schema = facetOptionLabel(feature, value, labelOptions);
+  // `facetOptionLabel` hands back the value unchanged for an option it
+  // cannot name, and that identity is the whole test — a formatter that
+  // returned the term is a formatter that named nothing.
+  return schema === value
+    ? { label: value, labelSource: "none" }
+    : { label: schema, labelSource: "schema" };
+}
+
+/**
+ * The group's HEADING, in the one order the fleet states: the answer, then
+ * the category schema, then the slug under a dev warning.
+ *
+ * The answer leads because it is the only source that always exists. The
+ * schema slot is optional, and at a live classified's cars branch the
+ * storefront passed an empty feature list, so every heading in the rail was
+ * a raw index slug — the make group was on screen, unlabelled, and the
+ * complaint that came back was "I cannot pick a make".
+ *
+ * The slug is not a fallback anyone may ship: it renders, because a heading
+ * beats no heading, and it renders MARKED — `labelSource: "none"`, a warning
+ * in development, and a data attribute on the drawn group.
+ */
+function resolveGroupLabel(
+  input: BuildFacetGroupsInput,
+  feature: FeatureDef | undefined,
+  slug: string
+): { readonly label: string; readonly labelSource: FacetLabelSource } {
+  const answer = input.facetLabels?.[slug]?.label;
+  if (typeof answer === "string" && answer.length > 0) {
+    return { label: translate(input.t, answer), labelSource: "server" };
+  }
+  // `featureName` falls back to the slug itself, so the def has to be asked
+  // for a NAME rather than for a name-or-slug: a def with none names nothing.
+  const declared = feature?.name;
+  if (typeof declared === "string" && declared.length > 0) {
+    return { label: translate(input.t, declared), labelSource: "schema" };
+  }
+  warnUnnamedGroup(slug);
+  return { label: slug, labelSource: "none" };
 }
 
 /**
@@ -446,22 +531,17 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
 
     return {
       slug,
-      label:
-        feature === undefined
-          ? slug
-          : translate(input.t, featureName(feature)),
+      ...resolveGroupLabel(input, feature, slug),
       feature,
       counted,
       selected,
       options: values.map((value) => ({
         value,
         count: counted ? (counts[value] ?? 0) : null,
-        // The host's schema first when it actually resolves the value, the
-        // answer's caption when it does not (or when there is no schema at
-        // all), the raw value when neither knows. `facetOptionLabel` returns
-        // the value unchanged for an option it cannot name, which is what
-        // makes "did it resolve?" answerable without a second lookup.
-        label: resolveLabel(input, feature, slug, value, labelOptions),
+        // The answer's caption first, then the schema's own option table,
+        // then the raw value — and the source is carried rather than
+        // re-derived, so "did it resolve?" needs no second lookup.
+        ...resolveLabel(input, feature, slug, value, labelOptions),
         selected: selected.includes(value),
       })),
     };

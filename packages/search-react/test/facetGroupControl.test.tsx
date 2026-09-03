@@ -259,17 +259,20 @@ function handBuiltGroup(options: {
     value: `c-${String(i)}`,
     count: 20 - i,
     label: `c-${String(i)}`,
+    labelSource: "none" as const,
     selected: selected.includes(`c-${String(i)}`),
   }));
   const uncountedOptions = Array.from({ length: options.uncounted }, (_, i) => ({
     value: `u-${String(i)}`,
     count: null,
     label: `u-${String(i)}`,
+    labelSource: "none" as const,
     selected: selected.includes(`u-${String(i)}`),
   }));
   return {
     slug: "make",
     label: "Make",
+    labelSource: "schema" as const,
     feature: undefined,
     counted: options.counted > 0,
     // Interleaved on purpose: two uncounted options BEFORE the counted ones,

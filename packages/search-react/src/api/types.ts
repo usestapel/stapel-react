@@ -13,10 +13,36 @@ import type { components } from "./generated/schema.js";
 /** The generated schema table — the one source of truth for wire shapes. */
 export type Schemas = components["schemas"];
 
-/** `GET /query` 200 — the whole envelope. Corrected in one place: see
- * {@link FacetMeta}. */
-export type SearchResponse = Omit<Schemas["SearchResponse"], "facet_meta"> & {
+/**
+ * One slug's captions: the GROUP's own name, and the words for its values.
+ *
+ * `label` is the group heading the server resolved from the category's
+ * feature definition, in the request's own language. It is the only source
+ * that always exists — `categoryFeatures` is an optional slot a live
+ * classified board never filled, and without it every heading in the panel
+ * was the raw index slug. `null` is the server saying it has no name for the
+ * slug either; ABSENT is a server too old to send one, and both read the same
+ * way here (fall through to the schema).
+ *
+ * WHAT THE GENERATOR LOST: the field is newer than this pair's pinned
+ * `schema.json`, so it is declared here as optional-and-nullable rather than
+ * regenerated into a shape a deployed older server does not send.
+ */
+export type FacetLabels = Schemas["FacetLabels"] & {
+  readonly label?: string | null;
+};
+
+/** `facet_labels` as a whole: `{slug: {label, translatable, values}}`. */
+export type FacetLabelsMap = Readonly<Record<string, FacetLabels>>;
+
+/** `GET /query` 200 — the whole envelope. Corrected in two places: see
+ * {@link FacetMeta} and {@link FacetLabels}. */
+export type SearchResponse = Omit<
+  Schemas["SearchResponse"],
+  "facet_meta" | "facet_labels"
+> & {
   readonly facet_meta: FacetMeta;
+  readonly facet_labels: FacetLabelsMap;
 };
 
 /** One result row. `promoted` is present on EVERY item under EVERY sort — a

@@ -78,7 +78,13 @@ describe("a skipped slug says 'not counted', never 0", () => {
     const skipped = groups.find((g) => g.slug === "power_w");
     expect(skipped?.counted).toBe(false);
     expect(skipped?.options).toEqual([
-      { value: "750", count: null, label: "750", selected: true },
+      {
+        value: "750",
+        count: null,
+        label: "750",
+        labelSource: "none",
+        selected: true,
+      },
     ]);
   });
 

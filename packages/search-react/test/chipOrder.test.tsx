@@ -295,12 +295,14 @@ describe("within the facet band, coverage leads (D16 reopen)", () => {
     return {
       slug,
       label: slug,
+      labelSource: "none" as const,
       feature: undefined,
       counted: counts.some((count) => count !== null),
       options: counts.map((count, index) => ({
         value: `v${String(index)}`,
         count,
         label: `v${String(index)}`,
+        labelSource: "none" as const,
         selected: selected.includes(`v${String(index)}`),
       })),
       selected,

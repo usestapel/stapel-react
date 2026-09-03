@@ -52,6 +52,8 @@ export {
 } from "./api/types.js";
 export type {
   FacetCategoryCount,
+  FacetLabels,
+  FacetLabelsMap,
   FacetMeta,
   FacetSelection,
   FacetWithheldGroup,
@@ -120,8 +122,15 @@ export {
 export type {
   BuildFacetGroupsInput,
   FacetGroup,
+  FacetLabelSource,
   FacetOption,
 } from "./state/facets.js";
+
+export {
+  consonantKey,
+  translitKey,
+  translitPrefixMatch,
+} from "./state/translit.js";
 
 export {
   RANGE_FEATURE_TYPES,

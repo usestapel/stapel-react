@@ -158,6 +158,24 @@ export const SEARCH_I18N_KEYS = {
    * here the filters exist and the query missed. */
   facetsSearchEmpty: "search.facets.search_empty",
   /**
+   * The box inside ONE dictionary group — 418 car makes are not a list a
+   * person scrolls. Distinct from `facetsSearch`, which finds a GROUP among
+   * forty headings: one narrows the panel, the other narrows one axis of it,
+   * and a translator handed one string for both has to pick which surface to
+   * be wrong on.
+   */
+  facetsDictionarySearch: "search.facets.dictionary_search",
+  /** The dictionary box matched no value of this group. Not `facetsEmpty`,
+   * and not `facetsSearchEmpty`: the group exists and its values exist. */
+  facetsDictionaryEmpty: "search.facets.dictionary_empty",
+  /** Over the values already chosen, which stay visible whatever the box
+   * says — a filter a person cannot see is a filter they cannot remove. */
+  facetsDictionaryChosen: "search.facets.dictionary_chosen",
+  /** The way from the "popular values" block into the whole control. The
+   * block is a shortcut over the busiest values, so the link has to say that
+   * the rest exist. */
+  facetsPopularAll: "search.facets.popular_all",
+  /**
    * The rail's sticky footer: what the applied filters LEFT — "N listings
    * match". A PLURAL FAMILY: it counts a noun in words. Desktop filters
    * apply instantly, so this is feedback, not an apply button; the floor
@@ -191,6 +209,20 @@ export const SEARCH_I18N_KEYS = {
   /** The chip standing in for the row's capped tail — opens the full panel.
    * `{count}` is how many chips it hides (D16). */
   filtersChipOverflow: "search.filters.chips_overflow",
+
+  // ── a partition: one template split by a value its children name ─────────
+  /**
+   * The first chip of a partition row — the parent itself, unnarrowed.
+   *
+   * Not `facetsPopularAll` reused: that one OPENS a control, this one is a
+   * CHOICE among the children (and the one that is selected by default). The
+   * two are the same word in English and stop being one the moment a
+   * translator reads either as an imperative.
+   */
+  partitionAll: "search.partition.all",
+  /** The accessible name of the chip row — a `radiogroup` with no name is
+   * announced as nothing at all. */
+  partitionLabel: "search.partition.label",
 
   // ── the way OUT of a search that found nothing ───────────────────────────
   /** Caption above the exit buttons. Not a second "nothing found" — that
@@ -462,6 +494,12 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.show_less": "Show fewer",
   "search.facets.search": "Find a filter",
   "search.facets.search_empty": "No filter matches this",
+  "search.facets.dictionary_search": "Find a value",
+  "search.facets.dictionary_empty": "No value matches this",
+  "search.facets.dictionary_chosen": "Chosen",
+  "search.facets.popular_all": "All",
+  "search.partition.all": "All",
+  "search.partition.label": "Section",
   "search.facets.match_count.one": "{count} listing matches",
   "search.facets.match_count.other": "{count} listings match",
   "search.facets.range_invalid":

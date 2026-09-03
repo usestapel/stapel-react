@@ -93,6 +93,12 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.facets.show_less": "Ver menos",
   "search.facets.search": "Buscar un filtro",
   "search.facets.search_empty": "Ningún filtro coincide con esto",
+  "search.facets.dictionary_search": "Buscar un valor",
+  "search.facets.dictionary_empty": "Ningún valor coincide con esto",
+  "search.facets.dictionary_chosen": "Elegido",
+  "search.facets.popular_all": "Todos",
+  "search.partition.all": "Todos",
+  "search.partition.label": "Sección",
   "search.facets.match_count.one": "{count} anuncio coincide",
   "search.facets.match_count.other": "{count} anuncios coinciden",
   "search.facets.range_invalid":

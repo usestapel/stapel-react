@@ -137,6 +137,29 @@ const demoBundleEn: Record<string, string> = {
   // a geocoder really returns, on a 390px line that also has to hold a radius
   // and the word "Filters".
   "demo.geo.long": "Voskresenskiye Vorota Passage, Tverskoy, Moscow",
+  // A vocabulary level, as the ANSWER names it: the group's heading plus a
+  // caption per bucket. Keys rather than words because the wire says
+  // `translatable: true` for this fixture, which is the arm a dictionary
+  // facet takes on a real deployment.
+  "demo.feature.vendor": "Make",
+  "demo.make.toyota": "Toyota",
+  "demo.make.bmw": "BMW",
+  "demo.make.honda": "Honda",
+  "demo.make.kia": "Kia",
+  "demo.make.mazda": "Mazda",
+  "demo.make.nissan": "Nissan",
+  "demo.make.audi": "Audi",
+  "demo.make.ford": "Ford",
+  "demo.make.timberland": "Timberland",
+  "demo.make.land_rover": "Land Rover",
+  "demo.make.mercedes": "Mercedes-Benz",
+  "demo.make.skoda": "Skoda",
+  // The children of a partitioned category — one template split by a value
+  // the child's own name expresses.
+  "demo.partition.new": "New",
+  "demo.partition.used": "Used",
+  "demo.partition.parts": "Parts",
+  "demo.partition.rent": "Rent",
   "search.scorer.relevance": "Text relevance",
   "search.scorer.geo": "Distance",
 };

@@ -19,6 +19,11 @@
  *  3. **A 60-option facet is not a list, it is a wall.** Every catalogue has
  *     one — brand, model, city — and printing all of it pushes every group
  *     under it off the screen.
+ *  4. **A vocabulary is not a long list, it is a DICTIONARY.** 418 car makes
+ *     behind "Show all (418)" is a control whose only mode is "read all of
+ *     it": the busiest values, a box, and the rest reachable by typing is the
+ *     only shape that answers "I want a Toyota" in one gesture. See
+ *     {@link isDictionaryFacet}.
  *
  * ── The presentation is DERIVED, never configured here ────────────────────
  *
@@ -59,12 +64,17 @@
  */
 import { useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
-import { Button, Checkbox, Flex, Typography } from "antd";
+import { Button, Checkbox, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
-import { featureConfig, featureType } from "@stapel/attributes-react";
+import {
+  VOCABULARY_BACKED_TYPES,
+  featureConfig,
+  featureType,
+} from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { FacetGroup, FacetOption } from "../state/facets.js";
+import { translitPrefixMatch } from "../state/translit.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
 /**
@@ -77,8 +87,19 @@ import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
  */
 export const FACET_VISIBLE_OPTIONS = 8;
 
-/** The three shapes a facet group takes. */
-export type FacetGroupShape = "segmented" | "nested" | "checkbox";
+/**
+ * From how many values a group stops being a list and becomes a DICTIONARY —
+ * the same eight, because it is the same fold: past it the group is drawn as
+ * its busiest values plus a box that searches the rest.
+ */
+export const FACET_DICTIONARY_THRESHOLD: number = FACET_VISIBLE_OPTIONS;
+
+/** The four shapes a facet group takes. */
+export type FacetGroupShape =
+  | "segmented"
+  | "nested"
+  | "checkbox"
+  | "dictionary";
 
 /** The option rows of a group, already nested where the schema nests them. */
 export interface FacetOptionNode {
@@ -126,17 +147,52 @@ function singleChoice(feature: FeatureDef | undefined): boolean {
 }
 
 /**
- * Which of the three shapes a group takes.
+ * Is this group a DICTIONARY — a vocabulary's level, too long to scroll?
+ *
+ * Two ways to be one, because the schema is an optional slot and the live
+ * case is the one where it is empty:
+ *
+ *  - the def types the slug `ref_select`/`ref_hierarchical_select`, i.e. its
+ *    config is a POINTER into a vocabulary and there was never an option
+ *    table to draw;
+ *  - there is NO def at all and the answer came back with more values than a
+ *    fold. At a live classified's cars branch the storefront passed an empty
+ *    feature list, so the 418 makes arrived as an unnamed, untyped group of
+ *    418 checkboxes behind "Show all (418)". A box is the only control that
+ *    answers that, and refusing to draw one because the schema is missing
+ *    punishes the buyer for the wiring.
+ *
+ * Either way it takes more than {@link FACET_DICTIONARY_THRESHOLD} EVIDENCE
+ * buckets — values the answer actually counted. A zero-filled option table or
+ * a schema-only tail is a list a person can already read, and a box over it
+ * would search for values no document carries.
+ */
+export function isDictionaryFacet(group: FacetGroup): boolean {
+  const buckets = group.options.filter(
+    (option) => option.count !== null && option.count > 0
+  ).length;
+  if (buckets <= FACET_DICTIONARY_THRESHOLD) return false;
+  const feature = group.feature;
+  if (feature === undefined) return true;
+  const type = featureType(feature);
+  return type !== undefined && VOCABULARY_BACKED_TYPES.includes(type);
+}
+
+/**
+ * Which of the four shapes a group takes.
  *
  * Order matters: a hierarchical facet is nested even when it is single-choice,
- * because losing the tree costs more than losing the pills.
+ * because losing the tree costs more than losing the pills; and a dictionary
+ * is a dictionary before it is a checkbox list, because the checkbox list is
+ * the shape it was drawn as when nobody could pick a make.
  */
 export function facetGroupShape(group: FacetGroup): FacetGroupShape {
   const feature = group.feature;
   if (feature !== undefined && featureType(feature) === "hierarchical_select") {
     return "nested";
   }
-  return singleChoice(feature) ? "segmented" : "checkbox";
+  if (singleChoice(feature)) return "segmented";
+  return isDictionaryFacet(group) ? "dictionary" : "checkbox";
 }
 
 /**
@@ -327,6 +383,142 @@ function ChevronGlyph(props: { readonly open: boolean }): ReactElement {
   );
 }
 
+/**
+ * The list a dictionary scrolls in. A vocabulary level is 418 makes: without
+ * a ceiling the group alone is longer than the rail, and the box that filters
+ * it scrolls off the top of the panel while you type into it.
+ */
+const DICTIONARY_LIST: CSSProperties = {
+  maxBlockSize: 320,
+  overflowY: "auto",
+  // The scroll must not clip a focus ring against the panel's edge.
+  paddingInlineEnd: spacing[1],
+};
+
+/**
+ * A dictionary group: what is CHOSEN, a box, and the busiest values.
+ *
+ * ── Why the chosen values are their own block ─────────────────────────────
+ *
+ * They are the only rows that are not free to leave. A person who filtered by
+ * `Toyota` and then typed `bmw` must still be able to see — and undo — the
+ * filter that is narrowing what they are reading; a checkbox that scrolls out
+ * of the fold takes its own off-switch with it. So the chosen rows sit above
+ * the box, out of the filtered list entirely, and the list below never
+ * repeats them.
+ *
+ * ── The box filters LOCALLY, and matches across alphabets ─────────────────
+ *
+ * The buckets are already on the client — they arrived with the answer — so
+ * the box is a filter over an array and not a request per keystroke.
+ * `translitPrefixMatch` is what makes it usable in a catalogue whose values
+ * are Latin and whose buyers type Cyrillic: a Cyrillic "timberlend" finds
+ * `Timberland`.
+ * It is presentation, exactly like the panel's own search: nothing here
+ * touches the URL, because what a person typed to FIND a filter is not part
+ * of the search they would share.
+ */
+function DictionaryBody(props: {
+  readonly group: FacetGroup;
+  readonly onToggle: (slug: string, value: string) => void;
+  /** How many values before the box has to be used. */
+  readonly visible: number;
+}): ReactElement {
+  const t = useT();
+  const { group } = props;
+  const [needle, setNeedle] = useState("");
+  const [expanded, setExpanded] = useState(false);
+
+  const chosen = group.options.filter((option) => option.selected);
+  const rest = [...group.options.filter((option) => !option.selected)].sort(
+    (a, b) => (b.count ?? 0) - (a.count ?? 0)
+  );
+  const query = needle.trim();
+  const matched =
+    query === ""
+      ? rest
+      : rest.filter(
+          (option) =>
+            translitPrefixMatch(query, option.label) ||
+            translitPrefixMatch(query, option.value)
+        );
+  // The fold only exists while nothing is typed: a query has already narrowed
+  // the list, and hiding its tail behind "Show all" would hide the answer.
+  const folded = query === "" && !expanded && matched.length > props.visible;
+  const shown = folded ? matched.slice(0, props.visible) : matched;
+
+  return (
+    <Flex vertical gap={spacing[1]} data-testid={`facet-dictionary-${group.slug}`}>
+      {chosen.length > 0 && (
+        <Flex
+          vertical
+          gap={spacing[1]}
+          data-testid={`facet-dictionary-chosen-${group.slug}`}
+        >
+          <Typography.Text type="secondary">
+            {t(SEARCH_I18N_KEYS.facetsDictionaryChosen)}
+          </Typography.Text>
+          {chosen.map((option) => (
+            <CheckboxRow
+              key={option.value}
+              group={group}
+              node={{ option, depth: 0 }}
+              onToggle={props.onToggle}
+            />
+          ))}
+        </Flex>
+      )}
+      <Input
+        allowClear
+        size="small"
+        value={needle}
+        placeholder={t(SEARCH_I18N_KEYS.facetsDictionarySearch)}
+        aria-label={t(SEARCH_I18N_KEYS.facetsDictionarySearch)}
+        data-testid={`facet-dictionary-search-${group.slug}`}
+        onChange={(event) => {
+          setNeedle(event.target.value);
+        }}
+      />
+      {shown.length === 0 ? (
+        <Typography.Text
+          type="secondary"
+          data-testid={`facet-dictionary-empty-${group.slug}`}
+        >
+          {t(SEARCH_I18N_KEYS.facetsDictionaryEmpty)}
+        </Typography.Text>
+      ) : (
+        <Flex vertical gap={spacing[1]} style={DICTIONARY_LIST}>
+          {shown.map((option) => (
+            <CheckboxRow
+              key={option.value}
+              group={group}
+              node={{ option, depth: 0 }}
+              onToggle={props.onToggle}
+            />
+          ))}
+        </Flex>
+      )}
+      {query === "" && matched.length > props.visible && (
+        <Button
+          type="link"
+          size="small"
+          style={{ alignSelf: "flex-start", paddingInline: 0 }}
+          data-testid={`facet-more-${group.slug}`}
+          data-analytics="none"
+          data-analytics-reason="expanding a filter group is a read, not a flow step"
+          onClick={() => {
+            setExpanded((was) => !was);
+          }}
+        >
+          {expanded
+            ? t(SEARCH_I18N_KEYS.facetsShowLess)
+            : t(SEARCH_I18N_KEYS.facetsShowAll, { count: matched.length })}
+        </Button>
+      )}
+    </Flex>
+  );
+}
+
 export interface FacetGroupControlProps {
   readonly group: FacetGroup;
   readonly onToggle: (slug: string, value: string) => void;
@@ -386,6 +578,11 @@ export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
       data-testid={`facet-group-${group.slug}`}
       data-counted={group.counted ? "true" : "false"}
       data-shape={shape}
+      // Who named this heading — `none` means the raw slug is on screen
+      // because the answer sent no label and the schema defines none. It is
+      // drawn (a heading a person cannot read still beats none) and it is
+      // MARKED, so a storefront's own test can refuse to ship it.
+      data-label-source={group.labelSource}
     >
       {props.heading !== false &&
         (disclosure ? (
@@ -421,7 +618,15 @@ export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
       {/* Closed means NOT RENDERED, not hidden: a hundred `display:none`
           checkboxes are still a hundred stops for a screen reader, and the
           measured rail held 118 of them. */}
-      {open && (
+      {open && shape === "dictionary" && (
+        <DictionaryBody
+          group={group}
+          onToggle={props.onToggle}
+          visible={limit ?? FACET_VISIBLE_OPTIONS}
+        />
+      )}
+
+      {open && shape !== "dictionary" && (
         <>
           {shape === "segmented" ? (
             <Flex wrap gap={spacing[2]}>

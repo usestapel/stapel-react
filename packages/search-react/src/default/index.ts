@@ -72,6 +72,8 @@ export {
   FacetGroupControl,
   facetGroupShape,
   facetOptionNodes,
+  isDictionaryFacet,
+  FACET_DICTIONARY_THRESHOLD,
   FACET_VISIBLE_OPTIONS,
 } from "./FacetGroupControl.js";
 export type {
@@ -79,6 +81,19 @@ export type {
   FacetGroupShape,
   FacetOptionNode,
 } from "./FacetGroupControl.js";
+
+// ── the browse surfaces a storefront PLACES (this pair does not lay them
+//    out: where a popular-values block or a partition row belongs on a
+//    category page is the page's decision) ──────────────────────────────────
+export {
+  PopularValues,
+  popularOptions,
+  POPULAR_VALUES_COLUMNS,
+  POPULAR_VALUES_LIMIT,
+} from "./PopularValues.js";
+export type { PopularValuesProps } from "./PopularValues.js";
+export { PartitionChips } from "./PartitionChips.js";
+export type { PartitionChild, PartitionChipsProps } from "./PartitionChips.js";
 
 export { FacetPanelPane } from "./FacetPanelPane.js";
 export type {

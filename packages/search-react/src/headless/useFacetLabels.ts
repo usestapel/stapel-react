@@ -32,7 +32,7 @@
  *   4. the raw value.
  *
  * `buildFacetGroups` has already applied 1 and 2 by the time this hook runs,
- * and it leaves an option it could not name with `label === value` — which is
+ * and it marks an option it could not name `labelSource: "none"` — which is
  * what makes "did anyone name this?" answerable without a second lookup. Only
  * those values are asked about, so the host is never called for a value the
  * server or the schema already captioned, and a resolver that returns nothing
@@ -98,7 +98,7 @@ const NO_REQUESTS: readonly FacetLabelRequest[] = [];
 /** The values of one group nobody has named — see the precedence note above. */
 function unresolvedValues(group: FacetGroup): readonly string[] {
   return group.options
-    .filter((option) => option.label === option.value)
+    .filter((option) => option.labelSource === "none")
     .map((option) => option.value)
     .sort((a, b) => a.localeCompare(b));
 }
@@ -157,14 +157,14 @@ export function useHostFacetLabels(
       return {
         ...group,
         options: group.options.map((option) => {
-          // Precedence again, enforced rather than assumed: an option whose
-          // label already differs from its value was named by the server or
-          // the schema, and the host does not get to overwrite either.
-          if (option.label !== option.value) return option;
+          // Precedence again, enforced rather than assumed: an option the
+          // server or the schema already named is not the host's to
+          // overwrite. The source says so; the strings cannot.
+          if (option.labelSource !== "none") return option;
           const caption = named[option.value];
           return caption === undefined || caption.length === 0
             ? option
-            : { ...option, label: caption };
+            : { ...option, label: caption, labelSource: "host" as const };
         }),
       };
     })
