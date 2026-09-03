@@ -334,6 +334,12 @@ export function ruleStateToJson(state: RuleState): {
 function condMatches(cond: Cond, strings: readonly string[]): boolean {
   if (cond.op === "filled") return strings.length > 0;
   if (cond.op === "empty") return strings.length === 0;
+  // A VALUE predicate is false of a value that is not there. "The answer is
+  // not X" is not something you can say truthfully about a field nobody has
+  // answered, and saying it starred a field whose stated precondition had not
+  // happened. `empty` / `filled` exist for the question about absence, and
+  // `any: [empty, not_in]` spells "unanswered, or not X" explicitly.
+  if (strings.length === 0) return false;
   const values = cond.values ?? [];
   const hit = strings.some((one) => values.includes(one));
   return cond.op === "in" ? hit : !hit;

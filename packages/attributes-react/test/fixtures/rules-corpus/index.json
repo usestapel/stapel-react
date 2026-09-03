@@ -325,6 +325,73 @@
           "required": false,
           "visible": true
         },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "any": [
+                  {
+                    "feature": "condition",
+                    "op": "empty"
+                  },
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "any-empty-or-not-in",
+      "note": "the explicit spelling of 'not answered yet, or not new' — what an author writes when they mean it",
+      "values": {}
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
         "min_order": {
           "forbidden_options": [],
           "max": null,
@@ -1227,6 +1294,70 @@
           "required": false,
           "visible": true
         },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "forbid_option",
+              "option": "banned",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "forbid-option-not-in-on-unanswered-controller",
+      "note": "an unmatched `forbid_option` bans nothing while the controller is unanswered",
+      "values": {}
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
         "delivery": {
           "forbidden_options": [
             "post"
@@ -1546,6 +1677,69 @@
           "new"
         ]
       }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "hide",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "hide-not-in-on-unanswered-controller",
+      "note": "an unmatched `hide` leaves the row visible while the controller is unanswered",
+      "values": {}
     },
     {
       "expect": {
@@ -1905,6 +2099,69 @@
           "broken"
         ]
       }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "in-on-unanswered-controller",
+      "note": "a value predicate is false of a value that is not there: `in` does not fire on an unanswered field",
+      "values": {}
     },
     {
       "expect": {
@@ -2283,6 +2540,72 @@
           "forbidden_options": [],
           "max": null,
           "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "max": 100,
+            "min": 0,
+            "type": "int"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "limit",
+              "max": 10,
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "limit-not-in-on-unanswered-controller",
+      "note": "an unmatched `limit` narrows nothing while the controller is unanswered",
+      "values": {}
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
           "required": true,
           "visible": true
         }
@@ -2392,6 +2715,321 @@
           "b"
         ]
       }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "not-in-on-answered-outside-the-list",
+      "note": "`not_in` fires on an answer the list does not name",
+      "values": {
+        "condition": "used"
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "not-in-on-empty-dto-envelope",
+      "note": "an envelope carrying a null value reads as unanswered, so `not_in` stays silent",
+      "values": {
+        "condition": {
+          "type": "select",
+          "value": null
+        }
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "not-in-on-empty-string-payload",
+      "note": "the empty string reads as unanswered, so `not_in` stays silent",
+      "values": {
+        "condition": ""
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": true,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "type": "bool"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "not-in-on-false-bool",
+      "note": "a false bool IS an answer (stringify -> ['false']), so `not_in ['true']` fires on it",
+      "values": {
+        "condition": false
+      }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "require",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "not-in-on-unanswered-controller",
+      "note": "the same for `not_in`: an unanswered field does not satisfy 'the answer is not new'",
+      "values": {}
     },
     {
       "expect": {
@@ -2709,7 +3347,7 @@
           "forbidden_options": [],
           "max": null,
           "min": null,
-          "required": true,
+          "required": false,
           "visible": true
         }
       },
@@ -2756,7 +3394,7 @@
         }
       ],
       "id": "require-when-not-in-empty-value",
-      "note": "not_in also fires when the controller is empty",
+      "note": "an unanswered controller satisfies no value predicate: `not_in` does NOT fire while the field is blank (write `any: [empty, not_in]` for 'unanswered, or not X')",
       "values": {}
     },
     {
@@ -2825,6 +3463,69 @@
           "used"
         ]
       }
+    },
+    {
+      "expect": {
+        "condition": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": true
+        },
+        "screen_state": {
+          "forbidden_options": [],
+          "max": null,
+          "min": null,
+          "required": false,
+          "visible": false
+        }
+      },
+      "features": [
+        {
+          "config": {
+            "maxSelected": 1,
+            "options": [
+              {
+                "label": "new",
+                "value": "new"
+              },
+              {
+                "label": "used",
+                "value": "used"
+              }
+            ],
+            "type": "select"
+          },
+          "slug": "condition"
+        },
+        {
+          "config": {
+            "type": "string"
+          },
+          "mandatory": false,
+          "rules": [
+            {
+              "effect": "show",
+              "when": {
+                "all": [
+                  {
+                    "feature": "condition",
+                    "op": "not_in",
+                    "values": [
+                      "new"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "slug": "screen_state"
+        }
+      ],
+      "id": "show-not-in-on-unanswered-controller",
+      "note": "an unmatched `show` leaves the gate shut while the controller is unanswered",
+      "values": {}
     },
     {
       "expect": {
