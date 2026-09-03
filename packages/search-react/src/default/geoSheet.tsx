@@ -1,12 +1,17 @@
 /**
  * The LOCATION sheet — one implementation, two doors.
  *
- * `<FilterChips>`'s geo chip opened it and `<LocationSummaryLine>` opens it
- * too: on the ref's SERP both controls say where the search is centred, one
- * on the summary row and one in the chip strip, and a person tapping either
- * must land in the same place. Two copies of a bottom sheet is two places for
- * "clear the location" to behave differently, so the sheet is a component and
- * the two surfaces are two `open` flags on it.
+ * ONE control, and this is the inside of it. `<LocationSummaryLine>` is the
+ * door: a place on the left, its radius beside it, and this sheet behind
+ * both.
+ *
+ * It used to be three doors — the chip row's geo chip, the facet panel's
+ * "Location" group, and the row — over one pair of numbers, with the radius
+ * living in the panel and the place in the sheet. That arrangement made a
+ * latitude look like a filter, which is what it is not: a coordinate pair is
+ * the machine form of a place, and a place with a radius is its own thing in
+ * the chrome, like the search box. The chip and the panel group are gone; the
+ * radius moved in here, beside the place it is a radius OF.
  *
  * ── What the sheet can do without a geocoder, and what it cannot ───────────
  *
@@ -25,7 +30,7 @@
  * the DOM, on either surface.
  */
 import type { ReactElement, ReactNode } from "react";
-import { Button, Flex, Typography } from "antd";
+import { Button, Flex, InputNumber, Typography } from "antd";
 import { SkinDialog } from "@stapel/tokens-antd/skin";
 import { SlotPlaceholder, useT, useTPlural } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -42,6 +47,7 @@ export interface GeoSheetTestIds {
   readonly apply: string;
   readonly slot: string;
   readonly summary: string;
+  readonly radius: string;
   readonly clear: string;
 }
 
@@ -53,6 +59,7 @@ export const CHIP_GEO_TEST_IDS: GeoSheetTestIds = {
   apply: "filter-chip-apply-geo",
   slot: "search-chip-geo-slot",
   summary: "search-chip-geo-summary",
+  radius: "search-chip-geo-radius",
   clear: "search-chip-geo-clear",
 };
 
@@ -63,6 +70,9 @@ export const SUMMARY_GEO_TEST_IDS: GeoSheetTestIds = {
   apply: "search-location-apply",
   slot: "search-location-slot",
   summary: "search-location-sheet-summary",
+  // The one radius control in the pair. It was `search-geo-radius` in the
+  // facet panel, which no longer draws a location group at all.
+  radius: "search-geo-radius",
   clear: "search-location-clear",
 };
 
@@ -142,6 +152,35 @@ export function GeoSheet(props: GeoSheetProps): ReactElement {
             <Typography.Text type="secondary" data-testid={props.testIds.summary}>
               {summary}
             </Typography.Text>
+            {/* HOW WIDE, beside WHERE. A radius means nothing without a place,
+                so this exists only once one is set and disappears with it —
+                and it lives here rather than in the filter panel, where it was
+                a number about a place the panel could not name. */}
+            {geo.kind === "center" && (
+              <Flex vertical gap={spacing[1]}>
+                <Typography.Text type="secondary">
+                  {t(SEARCH_I18N_KEYS.geoRadiusLabel)}
+                </Typography.Text>
+                <InputNumber
+                  min={1}
+                  style={{ alignSelf: "flex-start" }}
+                  value={geo.radiusKm ?? null}
+                  aria-label={t(SEARCH_I18N_KEYS.geoRadiusLabel)}
+                  data-testid={props.testIds.radius}
+                  onChange={(value) => {
+                    setGeo({
+                      kind: "center",
+                      lat: geo.lat,
+                      lon: geo.lon,
+                      ...(typeof value === "number" ? { radiusKm: value } : {}),
+                    });
+                  }}
+                />
+              </Flex>
+            )}
+            {/* One control off. Clearing the place clears the radius with it —
+                `setGeo(null)` drops both, because half a location is not a
+                state this search can be in. */}
             <Button
               style={{ alignSelf: "flex-start" }}
               data-testid={props.testIds.clear}

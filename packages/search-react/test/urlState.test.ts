@@ -163,7 +163,7 @@ describe("the cursor is dropped by every change that is not a page move", () => 
 });
 
 describe("clear-all keeps what identifies the search, drops what constrains it", () => {
-  it("keeps type, text, language and category; drops filters, ranges and geo", () => {
+  it("keeps type, text, language, category AND THE PLACE; drops filters and ranges", () => {
     const { state } = parse(
       "type=listing&q=drill&lang=ru&category=tools&f.brand=bosch&r.price=1..2&lat=55&lon=37"
     );
@@ -175,14 +175,22 @@ describe("clear-all keeps what identifies the search, drops what constrains it",
     expect(cleared.category).toBe("tools");
     expect(cleared.filters).toEqual({});
     expect(cleared.ranges).toEqual({});
-    expect(cleared.geo).toBeUndefined();
+    // The PLACE survives, because it is not one of the things this control
+    // counts and not one of the things it names. A person widening a price
+    // range did not ask to be moved back to the whole country; the location
+    // control has its own way off and it says which place it would remove.
+    expect(cleared.geo).toEqual({ kind: "center", lat: 55, lon: 37 });
   });
 
-  it("counts the constraints a person actually applied", () => {
+  it("counts the constraints a person actually applied — AND A LATITUDE IS NOT ONE", () => {
     const { state } = parse(
       "type=listing&f.brand=bosch&f.brand=makita&r.price=1..2&lat=55&lon=37"
     );
-    expect(activeFilterCount(state)).toBe(4);
+    // Three: two brands and a price range. The point used to add a fourth,
+    // which is how a live landing came to say "clear all filters (2)" over an
+    // empty page with two constraints that had no chip, no name and no row.
+    expect(activeFilterCount(state)).toBe(3);
+    expect(activeFilterCount(parse("type=listing&lat=55&lon=37").state)).toBe(0);
   });
 });
 

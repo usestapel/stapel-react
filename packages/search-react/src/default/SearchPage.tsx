@@ -83,6 +83,7 @@ import type {
   GeoFilterSlotProps,
 } from "./FacetPanelPane.js";
 import { FilterChips } from "./FilterChips.js";
+import { LocationSummaryLine } from "./LocationSummaryLine.js";
 import { PageSizeSelect } from "./PageSizeSelect.js";
 import { SearchBox } from "./SearchBox.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
@@ -370,7 +371,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const t = useT();
   const tPlural = useTPlural();
   const { categoryFeatures, locale, resolveFacetLabels, filtersHeader } = props;
-  const { state } = useSearchState();
+  const { state, geoOffer } = useSearchState();
   const facets = useFacetPanel({
     ...(categoryFeatures !== undefined ? { categoryFeatures } : {}),
     ...(locale !== undefined ? { locale } : {}),
@@ -430,7 +431,6 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     state.category === undefined &&
     state.lang === undefined &&
     props.renderCategoryFilter === undefined &&
-    props.renderGeoFilter === undefined &&
     (props.languages ?? []).length === 0;
   const showFilters = filtersHeader !== undefined || !filtersEmpty;
 
@@ -461,10 +461,6 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           {...(props.renderCategoryFilter !== undefined
             ? { renderCategoryFilter: props.renderCategoryFilter }
             : {})}
-          {...(props.renderGeoFilter !== undefined
-            ? { renderGeoFilter: props.renderGeoFilter }
-            : {})}
-          {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
           {...(props.skippedNotice !== undefined
             ? { skippedNotice: props.skippedNotice }
             : {})}
@@ -544,6 +540,38 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       )}
       <UrlIssueNotice />
 
+      {/* THE LOCATION CONTROL — a place, its radius, and the way to change
+          either. Mounted by the PAGE, not by each host, which is how a
+          category results page came to have no way to say where it was
+          looking while `/s` had one: the row was a slot every surface had to
+          remember to fill, and one of them did not.
+
+          Drawn when this deployment can resolve a place at all, or when the
+          address already carries one (a shared link must always be widenable
+          by whoever opens it). It is not a filter and it is not in the filter
+          count — see `activeFilterCount`.
+
+          Three reasons to draw it, and an offer is one of them: a deployment
+          that can place its visitor but ships no place picker still needs
+          somewhere for them to accept — otherwise the offer is a value with
+          no control, which is the same silence this pack is about. */}
+      {(props.renderGeoFilter !== undefined ||
+        state.geo !== undefined ||
+        geoOffer !== undefined) && (
+        <LocationSummaryLine
+          {...(props.renderGeoFilter !== undefined
+            ? { renderGeoFilter: props.renderGeoFilter }
+            : {})}
+          {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
+          // No door where the room is already open: the desktop column layout
+          // has the whole panel on screen beside this row.
+          filtersDoor={layout === "sheet"}
+          onOpenAll={() => {
+            setSheetOpen(true);
+          }}
+        />
+      )}
+
       {/* Above the chips in the sheet layout and above the columns in the
           other one — see {@link SearchPageProps.resultsHeader}. `?? null` is
           the written decision, not an oversight: a page with nothing to say
@@ -576,14 +604,6 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             {...(props.categoryLabel !== undefined
               ? { categoryLabel: props.categoryLabel }
               : {})}
-            {...(props.renderGeoFilter !== undefined
-              ? { renderGeoFilter: props.renderGeoFilter }
-              : {})}
-            {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
-            /* The row above already states the location and opens its own
-               sheet, so the chip would be the second control over one filter
-               — see `FilterChipsProps.geoChip`. */
-            {...(props.resultsHeader !== undefined ? { geoChip: false } : {})}
           />
           <SkinDialog
             open={sheetOpen}

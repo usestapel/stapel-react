@@ -444,15 +444,37 @@ export function setRangeValue(
  * would be removing something they never set.
  */
 export function clearFilters(state: SearchQueryState): SearchQueryState {
-  return patchSearchState(state, { filters: {}, ranges: {}, geo: null });
+  // The PLACE survives. It is not a filter (see `activeFilterCount`), it is
+  // not counted by the control that calls this, and a person who chose their
+  // city and then narrowed by price did not ask to be moved back to the whole
+  // country when they widen the price again. The location control has its own
+  // way off, and it says the name of the place it would remove.
+  return patchSearchState(state, { filters: {}, ranges: {} });
 }
 
-/** How many constraints the person has actually applied (facet values +
- * ranges + geo) — what a "clear all (N)" control counts. */
+/**
+ * How many constraints the person has actually applied — facet values and
+ * ranges, and NOTHING ELSE. What a "clear all (N)" control counts.
+ *
+ * ## A latitude is not a filter
+ *
+ * `lat`/`lon` used to add 1 to this, and a place chosen on a map is a real
+ * narrowing, so that looked right. What a person saw was not. On a live board
+ * a landing announced "clear all filters (2)" over an empty page, with two
+ * filters that had no chip, no name and no row in the panel — the owner's
+ * words were "two active filters I can't even look at". A count that names
+ * nothing is worse than no count: it tells a person that something is hiding
+ * their results and gives them nothing to press.
+ *
+ * A coordinate pair is not a filter a person picked, it is the machine form
+ * of a place. The place is stated by the location control, in words, beside
+ * the radius it comes with — its own thing in the chrome, like the search box,
+ * not a row in the filter list and not a number in this sum. So this counts
+ * facets and ranges, and the location says its own name.
+ */
 export function activeFilterCount(state: SearchQueryState): number {
   let count = 0;
   for (const values of Object.values(state.filters)) count += values.length;
   count += Object.keys(state.ranges).length;
-  if (state.geo !== undefined) count += 1;
   return count;
 }

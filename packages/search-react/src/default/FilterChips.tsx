@@ -138,12 +138,8 @@ import type { FacetGroup } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { RangeFilterRow } from "./RangeFilterRow.js";
-import { geoSummaryFallback } from "./FacetPanelPane.js";
-import type {
-  CategoryFilterSlotProps,
-  GeoFilterSlotProps,
-} from "./FacetPanelPane.js";
-import { CHIP_GEO_TEST_IDS, GeoSheet, useApplyLabel } from "./geoSheet.js";
+import type { CategoryFilterSlotProps } from "./FacetPanelPane.js";
+import { useApplyLabel } from "./geoSheet.js";
 
 /** The class the scroller carries, for {@link chipRowCss}. */
 export const CHIP_ROW_CLASS = "stapel-filter-chips";
@@ -179,26 +175,6 @@ const ROW: CSSProperties = {
 
 const CHIP: CSSProperties = { flex: "0 0 auto", borderRadius: radii.full };
 
-/**
- * The applied location's way OFF, sitting against the chip it removes.
- *
- * A sibling button rather than an "x" inside the chip: a button inside a
- * button is invalid HTML and the nested one is unreachable by keyboard in
- * several browsers. Two adjacent controls read as one pill because the gap
- * between them is `spacing[1]` and the chip's own trailing corner is squared
- * off against it.
- *
- * WHY THE LOCATION AND NOT EVERY CHIP: a facet chip states its own value
- * ("Apple 7"), so a person can see what to undo and the sheet is where they
- * undo it. A location chip states a place name the pair was HANDED, and the
- * filter behind it can empty a whole category page — which is exactly the
- * shape a person needs to be able to reverse without first learning that the
- * chip opens a sheet with a button called "Everywhere" in it.
- */
-const CHIP_CLEAR: CSSProperties = {
-  flex: "0 0 auto",
-  marginInlineStart: -spacing[1],
-};
 
 /** Which picker is open, if any. `null` closes everything. */
 type OpenChip = string | null;
@@ -344,19 +320,6 @@ export interface FilterChipsProps {
    * does not, and it is never invented.
    */
   readonly categoryLabel?: ReactNode;
-  /** The location control (`geo-react`), same slot the panel takes. Without
-   * it the location chip appears only when the URL already carries a point,
-   * so a shared link can still be widened. */
-  readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
-  /**
-   * What the current location constraint is CALLED — see
-   * {@link FacetPanelPaneProps.geoLabel}. The chip carries it as its own text,
-   * which is the whole point of a chip row: "Berlin Mitte" states the filter
-   * on the results page, where `55.756, 37.617` stated only that a machine was
-   * involved. Absent, the chip reads `search.geo.chosen_place`; never a
-   * coordinate, on either surface.
-   */
-  readonly geoLabel?: ReactNode;
   /** Open the whole panel — the leading chip's action. The page owns that
    * sheet, because the page is the surface it covers. */
   readonly onOpenAll: () => void;
@@ -367,16 +330,6 @@ export interface FilterChipsProps {
    * they are always drawn.
    */
   readonly maxRowChips?: number | null;
-  /**
-   * Draw the location chip. Default `true`.
-   *
-   * `false` for a surface that already states the location ABOVE this row —
-   * `<LocationSummaryLine>` is that surface, and the phone SERP mounts both.
-   * Together they printed two location controls one line apart — the summary
-   * sentence over the chip's own prompt — opening two different sheets over
-   * one filter, which is the same constraint asked about twice.
-   */
-  readonly geoChip?: boolean;
 }
 
 /**
@@ -419,7 +372,7 @@ export function categoryLeaf(path: string): string | undefined {
 
 export function FilterChips(props: FilterChipsProps): ReactElement | null {
   const t = useT();
-  const { state, setCategory, setGeo } = useSearchState();
+  const { state, setCategory } = useSearchState();
   const bag = useFacetPanel({
     ...(props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
@@ -515,18 +468,6 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
     props.maxRowChips === undefined ? CHIP_ROW_CAP : props.maxRowChips
   );
 
-  const geo = state.geo;
-  const showGeoChip =
-    props.geoChip !== false &&
-    (props.renderGeoFilter !== undefined || geo !== undefined);
-  // Nothing applied: the chip is the FILTER's name ("Location"), because there
-  // is no constraint to describe yet. Applied: the host's name for the place,
-  // and failing that the sentence that admits the pair does not know it.
-  const geoChipLabel: ReactNode =
-    geo === undefined
-      ? t(SEARCH_I18N_KEYS.geoTitle)
-      : (props.geoLabel ?? geoSummaryFallback(geo, t));
-
   /*
    * A row of one button is not a chip row.
    *
@@ -539,7 +480,7 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
    * there is nothing to state, the row states nothing and the surface above
    * keeps its own door.
    */
-  const hasChips = showCategoryChip || showGeoChip || ordered.length > 0;
+  const hasChips = showCategoryChip || ordered.length > 0;
   if (!hasChips) return null;
 
   return (
@@ -591,38 +532,6 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
           </Button>
         )}
 
-        {showGeoChip && (
-          <Button
-            style={CHIP}
-            shape="round"
-            type={geo !== undefined ? "primary" : "default"}
-            data-testid="search-chip-geo"
-            data-analytics="none"
-            data-analytics-reason="a filter is a read, not a flow step"
-            onClick={() => {
-              setOpen("geo");
-            }}
-          >
-            {geoChipLabel}
-          </Button>
-        )}
-        {/* Applied only. With nothing applied the chip beside this is an
-            invitation, and an invitation has nothing to cancel. */}
-        {showGeoChip && geo !== undefined && (
-          <Button
-            shape="circle"
-            size="small"
-            style={CHIP_CLEAR}
-            aria-label={t(SEARCH_I18N_KEYS.geoClear)}
-            icon={<ClearGlyph />}
-            data-testid="search-chip-geo-clear"
-            data-analytics="none"
-            data-analytics-reason="a filter is a read, not a flow step"
-            onClick={() => {
-              setGeo(null);
-            }}
-          />
-        )}
 
         {/* One list, in the row's stated order — see this module's ordering
             note. Rendering ranges and facets as two separate `.map`s is what
@@ -728,19 +637,6 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
                 <RangeFilterRow group={group} onApply={bag.setRange} />
               );
         })()}
-
-      {/* The LOCATION sheet is shared with `<LocationSummaryLine>` — the ref
-          puts a location control on both rows, and they must land in the same
-          place. See `geoSheet.tsx`. */}
-      <GeoSheet
-        open={open === "geo"}
-        onClose={close}
-        testIds={CHIP_GEO_TEST_IDS}
-        {...(props.renderGeoFilter !== undefined
-          ? { renderGeoFilter: props.renderGeoFilter }
-          : {})}
-        {...(props.geoLabel !== undefined ? { geoLabel: props.geoLabel } : {})}
-      />
     </>
   );
 }
@@ -748,26 +644,6 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
 /** The mark on the "all filters" chip: something is applied. Not a count —
  * the counts are on the chips beside it, and a number inside a 32px circle is
  * a number nobody reads. */
-/** The cross the location chip's neighbour carries — an inline monochrome
- * SVG in `currentColor`, the same house convention as every other glyph in
- * this pair. */
-function ClearGlyph(): ReactElement {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      role="img"
-      aria-hidden="true"
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
-}
 
 function ActiveDot(): ReactElement {
   return (

@@ -81,43 +81,66 @@ describe("the location filter says where in words, never in coordinates", () => 
   it("prints the host's name for the place instead of the point", async () => {
     mount({ search: LINK_WITH_GEO, geoLabel: "Berlin Mitte" });
     await waitFor(() => {
-      expect(screen.getByTestId("search-geo-summary").textContent).toBe(
-        "Berlin Mitte"
-      );
+      expect(
+        screen.getByTestId("search-location-label").textContent
+      ).toContain("Berlin Mitte");
     });
   });
 
   it("says a place is chosen when no host named one", async () => {
     mount({ search: LINK_WITH_GEO });
     await waitFor(() => {
-      expect(screen.getByTestId("search-geo-summary").textContent).toBe(
-        "A chosen place on the map"
-      );
+      expect(
+        screen.getByTestId("search-location-label").textContent
+      ).toContain("A chosen place on the map");
     });
   });
 
   it("keeps the bbox sentence, which describes an area without measuring it", async () => {
     mount({ search: "type=listing&bbox=52.4,13.3,52.6,13.5" });
     await waitFor(() => {
-      expect(screen.getByTestId("search-geo-summary").textContent).toBe(
-        "Inside the shown area"
-      );
+      expect(
+        screen.getByTestId("search-location-label").textContent
+      ).toContain("Inside the shown area");
     });
   });
 
-  it("the phone chip carries the same name, and so does the sheet under it", async () => {
-    mount({ search: LINK_WITH_GEO, geoLabel: "Berlin Mitte", phone: true });
+  it("ONE location control, on both layouts — no chip and no filter group beside it", async () => {
+    // The place used to be drawn three times: a chip in the row, a group in
+    // the facet panel, and this line. Three doors over one pair of numbers,
+    // and the panel's copy is what made a latitude look like a filter.
+    for (const phone of [false, true]) {
+      const view = render(
+        <TestProviders server={mockServer({ "/query": { body: searchResponse() } })}>
+          <Page search={LINK_WITH_GEO} geoLabel="Berlin Mitte" phone={phone} />
+        </TestProviders>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId("search-location-summary")).toBeTruthy();
+      });
+      expect(screen.queryByTestId("search-chip-geo")).toBeNull();
+      expect(screen.queryByTestId("search-geo")).toBeNull();
+      view.unmount();
+    }
+  });
+
+  it("the radius lives WITH the place, in the one sheet both layouts open", async () => {
+    // It used to live in the facet panel, as a number about a place the panel
+    // could not name — and it only exists at all once a place is set, because
+    // a radius with nothing to be around is not a control.
+    mount({ search: LINK_WITH_GEO, geoLabel: "Berlin Mitte" });
     await waitFor(() => {
-      expect(screen.getByTestId("search-chip-geo").textContent).toBe(
+      expect(screen.getByTestId("search-location-open")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("search-location-open"));
+    await waitFor(() => {
+      expect(screen.getByTestId("search-location-sheet-summary").textContent).toBe(
         "Berlin Mitte"
       );
     });
-    fireEvent.click(screen.getByTestId("search-chip-geo"));
-    await waitFor(() => {
-      expect(screen.getByTestId("search-chip-geo-summary").textContent).toBe(
-        "Berlin Mitte"
-      );
-    });
+    expect(screen.getByTestId("search-geo-radius")).toBeTruthy();
+    // …and the way off, which drops the place and the radius together.
+    expect(screen.getByTestId("search-location-clear")).toBeTruthy();
   });
 
   for (const phone of [false, true]) {
@@ -397,6 +420,54 @@ describe("a location filter is never applied without the person asking", () => {
     // issued two requests and aborted one — visible in a network log as a
     // permanent `ERR_ABORTED`, and invisible everywhere else.
     expect(server.calls.filter((c) => c.url.includes("/query"))).toHaveLength(1);
+  });
+
+  it("SITTING STILL: a page left alone does not navigate, rewrite itself, or empty its own results", async () => {
+    /*
+     * The owner's report, in his words: the landing "turns itself into a
+     * search with 0 listings after two seconds, with two active filters I
+     * can't even look at", and clearing them buys another two seconds before
+     * it happens again.
+     *
+     * Every half of that was this pair writing the URL on its own initiative
+     * after a browser permission resolved. So the property is stated the way
+     * he experienced it — nobody touches anything, and NOTHING moves: not the
+     * address, not the history, not the number of results on the page.
+     */
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    let latest: { search: string; history: readonly string[] } = {
+      search: "",
+      history: [],
+    };
+    function Page(): ReactElement {
+      const adapter = useTestParams("type=listing");
+      latest = { search: adapter.search, history: adapter.history };
+      return (
+        <SearchPage adapter={adapter} defaultType="listing" geoOffer={MOSCOW} />
+      );
+    }
+    render(
+      <TestProviders server={server}>
+        <Page />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-page")).toBeTruthy();
+    });
+    const before = latest.search;
+    const resultsBefore = server.lastQuery("/query");
+    expect(resultsBefore).not.toBeNull();
+
+    // Long enough for a browser prompt, an IP round trip and any effect that
+    // wanted to fire "in a moment" to have fired.
+    for (let i = 0; i < 20; i += 1) await settle();
+
+    expect(latest.search).toBe(before);
+    expect(latest.history).toHaveLength(1);
+    // Still ONE request. A second one is what emptied the page.
+    expect(server.calls.filter((c) => c.url.includes("/query"))).toHaveLength(1);
+    // And the offer is still standing, unaccepted.
+    expect(screen.getByTestId("search-location-offer")).toBeTruthy();
   });
 
   it("THE WIRE: the search a person narrowed themselves does carry it", async () => {

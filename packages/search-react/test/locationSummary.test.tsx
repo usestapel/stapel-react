@@ -95,14 +95,30 @@ describe("<LocationSummaryLine> — where, in words", () => {
 });
 
 describe("<LocationSummaryLine> — the filters end", () => {
-  it("counts the applied constraints, geo included", () => {
+  it("counts the applied constraints, and the PLACE is not one of them", () => {
     mount(NARROWED);
     const filters = screen.getByTestId("search-location-filters");
     expect(filters.getAttribute("data-active")).toBe("true");
-    // brand + condition + power range + geo.
+    // brand + condition + power range. The place is stated by this very row,
+    // in words, on its other end — counting it here would be the same fact
+    // twice, and as an anonymous number the second time.
     expect(
       screen.getByTestId("search-location-filters-badge").textContent
-    ).toContain("4");
+    ).toContain("3");
+  });
+
+  it("a place ALONE leaves the filters end quiet", () => {
+    mount(PLACED);
+    expect(
+      screen.getByTestId("search-location-filters").getAttribute("data-active")
+    ).toBe("false");
+    expect(
+      screen.queryByTestId("search-location-filters-count")
+    ).toBeNull();
+    // …and the row still says where it is looking.
+    expect(
+      screen.getByTestId("search-location-summary").getAttribute("data-geo")
+    ).toBe("on");
   });
 
   it("carries no count when nothing is applied", () => {

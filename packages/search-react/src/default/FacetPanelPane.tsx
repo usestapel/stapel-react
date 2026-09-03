@@ -22,19 +22,27 @@
  *    filters on a slug it never counted; the engine's own list of skipped
  *    slugs is a developer's note and lives behind `skippedNotice`.
  *
- * ── Two slots, and why they are slots ─────────────────────────────────────
+ * ── One slot, and why it is a slot ────────────────────────────────────────
  *
- * `renderCategoryFilter` and `renderGeoFilter` are filled by OTHER pairs:
- * choosing a category means walking the catalogue tree (`categories-react`),
- * and turning an address into a coordinate needs a geocoder and a map
- * (`geo-react`). Neither belongs in a search package, and importing either
- * would tie a storefront's search to a catalogue it might not have.
+ * `renderCategoryFilter` is filled by ANOTHER pair: choosing a category means
+ * walking the catalogue tree (`categories-react`), which does not belong in a
+ * search package, and importing it would tie a storefront's search to a
+ * catalogue it might not have.
+ *
+ * There used to be a second one, `renderGeoFilter`, and a "Location" group
+ * around it with the radius under it. Both are gone from this panel. A place
+ * is not a filter — a coordinate pair is the machine form of somewhere, and
+ * putting it in the filter list is what let a landing announce "clear all
+ * filters (2)" over an empty page with two constraints that had no name.
+ * The place and its radius are ONE control of their own
+ * (`<LocationSummaryLine>`), the way a search box is, and `<SearchPage>`
+ * still takes `renderGeoFilter` — it hands it there.
  *
  * What this panel does NOT do is pretend the slot is optional. An unfilled
  * slot renders `SlotPlaceholder` in development — a named, visible hole rather
  * than a silent absence — and, in every build, any constraint the URL already
  * carries gets a control that REMOVES it. A shared link that narrows to a
- * category or a point must never leave a person with no way to widen it again.
+ * category must never leave a person with no way to widen it again.
  *
  * ── The panel opens what the answer argues for, and closes the rest ────────
  *
@@ -68,11 +76,10 @@ import {
   Divider,
   Flex,
   Input,
-  InputNumber,
   Typography,
   theme,
 } from "antd";
-import { SlotPlaceholder, isDevBuild, useT, useTPlural } from "@stapel/core";
+import { SlotPlaceholder, useT, useTPlural } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
@@ -202,25 +209,6 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
   /** The catalogue picker (`categories-react`'s `CategoryPickerField`, bound
    * to a path). Unfilled, an active category still gets a "clear" control. */
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
-  /** The location control (`geo-react`). Unfilled, a location that arrived in
-   * the URL still gets its radius and a "clear" control. */
-  readonly renderGeoFilter?: (slot: GeoFilterSlotProps) => ReactNode;
-  /**
-   * What the current location constraint is CALLED, in words — the address or
-   * the city the host resolved.
-   *
-   * The panel owns `lat`/`lon`/`radius_km` as URL state and must never render
-   * them: a coordinate is what gets STORED, and storage is not a display
-   * concern. `55.756, 37.617` is unreadable to the one person who could have
-   * caught the mistake, so a wrong point looks as authoritative as a right one
-   * and a right one looks like machinery.
-   *
-   * Whoever turned an address into that point still has the address — the
-   * geocoder's own answer, the city an IP guess named, the label on the map
-   * pin — and hands it back here. Absent, the panel says a location is applied
-   * without pretending to name it (`search.geo.chosen_place`).
-   */
-  readonly geoLabel?: ReactNode;
   /** BCP-47 tags this deployment indexes — see {@link LanguageSelect}. */
   readonly languages?: readonly string[];
   /**
@@ -407,97 +395,6 @@ export function geoSummaryFallback(
     : t(SEARCH_I18N_KEYS.geoChosenPlace);
 }
 
-/**
- * The location constraint.
- *
- * SETTING a centre needs a geocoder, which is the deployment's and
- * `geo-react`'s. ADJUSTING one that already exists does not: the radius is a
- * number in the URL, and a link shared with `lat/lon/radius_km` is a link this
- * panel can widen, tighten and clear without knowing what a map is. That is the
- * difference between a slot and a hole.
- *
- * NAMING the centre is a third thing again, and it is the host's: this panel
- * has two numbers and no way to turn them into a place. So it either says the
- * name it was handed (`label`) or says that a place is chosen — never the
- * numbers themselves. See {@link FacetPanelPaneProps.geoLabel}.
- */
-function GeoFilter(props: {
-  render?: (slot: GeoFilterSlotProps) => ReactNode;
-  label?: ReactNode;
-}): ReactElement | null {
-  const t = useT();
-  const { state, setGeo } = useSearchState();
-  const geo = state.geo;
-
-  const slot =
-    props.render !== undefined
-      ? props.render({
-          value: geo,
-          onChange: (next) => {
-            setGeo(next);
-          },
-        })
-      : geo === undefined
-        ? <SlotPlaceholder name="renderGeoFilter" data-testid="search-geo-slot" />
-        : null;
-
-  if (geo === undefined) {
-    // An unfilled slot is a NAMED hole in development and nothing at all in a
-    // production build — so the heading has to follow the placeholder rather
-    // than outlive it. It did not, and the live desktop panel printed
-    // "Location" over empty space with no location control under it
-    // (class NC-ORPHANFIELD): a label is a promise that a control follows.
-    if (props.render === undefined && !isDevBuild()) return null;
-    return slot === null ? null : (
-      <Flex vertical gap={spacing[1]} data-testid="search-geo">
-        <Typography.Text strong>{t(SEARCH_I18N_KEYS.geoTitle)}</Typography.Text>
-        {slot}
-      </Flex>
-    );
-  }
-
-  return (
-    <Flex vertical gap={spacing[1]} data-testid="search-geo">
-      <Typography.Text strong>{t(SEARCH_I18N_KEYS.geoTitle)}</Typography.Text>
-      {slot}
-      <Typography.Text type="secondary" data-testid="search-geo-summary">
-        {props.label ?? geoSummaryFallback(geo, t)}
-      </Typography.Text>
-      {geo.kind === "center" && (
-        <Flex gap={spacing[2]} align="center" wrap>
-          <Typography.Text type="secondary" aria-hidden="true">
-            {t(SEARCH_I18N_KEYS.geoRadiusLabel)}
-          </Typography.Text>
-          <InputNumber
-            min={1}
-            value={geo.radiusKm ?? null}
-            aria-label={t(SEARCH_I18N_KEYS.geoRadiusLabel)}
-            data-testid="search-geo-radius"
-            onChange={(value) => {
-              setGeo({
-                kind: "center",
-                lat: geo.lat,
-                lon: geo.lon,
-                ...(typeof value === "number" ? { radiusKm: value } : {}),
-              });
-            }}
-          />
-        </Flex>
-      )}
-      <Button
-        style={{ alignSelf: "flex-start" }}
-        data-testid="search-geo-clear"
-        data-analytics="none"
-        data-analytics-reason="a filter is a read, not a flow step"
-        onClick={() => {
-          setGeo(null);
-        }}
-      >
-        {t(SEARCH_I18N_KEYS.geoClear)}
-      </Button>
-    </Flex>
-  );
-}
 
 /**
  * The slugs the server skipped, named the way the panel names everything else.
@@ -615,12 +512,6 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
             />
             <LanguageSelect
               {...(props.languages !== undefined ? { languages: props.languages } : {})}
-            />
-            <GeoFilter
-              {...(props.renderGeoFilter !== undefined
-                ? { render: props.renderGeoFilter }
-                : {})}
-              {...(props.geoLabel !== undefined ? { label: props.geoLabel } : {})}
             />
 
             {/* Price, and only the CORE axes — the ones the server declares

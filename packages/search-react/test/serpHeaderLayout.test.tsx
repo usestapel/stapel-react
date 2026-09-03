@@ -179,7 +179,9 @@ describe("the count rides in the line, not off its corner", () => {
     // out of the flow.
     expect(["absolute", "fixed"]).not.toContain(getComputedStyle(count).position);
     expect(count.closest('[data-testid="search-location-summary"]')).not.toBeNull();
-    expect(count.textContent).toBe("4");
+    // Three, not four: the place this row states in words on its other end is
+    // not also a number on this one.
+    expect(count.textContent).toBe("3");
   });
 
   it("has nothing positioned out of the flow anywhere in the row", () => {

@@ -201,6 +201,15 @@ export interface LocationSummaryLineProps {
    * because the surface is what it covers.
    */
   readonly onOpenAll: () => void;
+  /**
+   * Draw the trailing "Filters (N)" door. Default `true`.
+   *
+   * `false` where the panel is ALREADY on screen — a desktop column layout —
+   * because a door beside the room it opens is not a door, and the count it
+   * carries is printed again on the panel's own "clear all" a few hundred
+   * pixels to the left.
+   */
+  readonly filtersDoor?: boolean;
 }
 
 /** A map pin in `currentColor` — the house convention: an inline monochrome
@@ -332,6 +341,7 @@ export function LocationSummaryLine(
             door. */}
         {/* The count, not a dot: this row has the width to say how many — and
             it rides IN the line rather than floating off its corner. */}
+        {props.filtersDoor === false ? null : (
         <Flex
           align="center"
           gap={spacing[1]}
@@ -355,6 +365,7 @@ export function LocationSummaryLine(
             </span>
           )}
         </Flex>
+        )}
       </Flex>
 
       <GeoSheet

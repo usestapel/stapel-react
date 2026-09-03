@@ -202,28 +202,36 @@ describe("390px: the filters are a scrolling row of chips", () => {
     expect(screen.getByTestId("search-facets")).toBeTruthy();
   });
 
-  it("offers a location chip, and a way back out of a link that carries a point", async () => {
+  it("keeps the location OUT of the chip row, and offers the way back out on its own control", async () => {
     setViewport(PHONE_WIDTH);
     mount({ initial: "type=listing&lat=55.75&lon=37.62&radius_km=10", geo: true });
-    await waitFor(() => expect(screen.getByTestId("search-chip-geo")).toBeTruthy());
-    fireEvent.click(screen.getByTestId("search-chip-geo"));
     await waitFor(() =>
-      expect(screen.getByTestId("filter-chip-sheet-geo")).toBeTruthy()
+      expect(screen.getByTestId("search-location-summary")).toBeTruthy()
     );
-    const sheet = within(screen.getByTestId("filter-chip-sheet-geo"));
+    // Not a chip. A place is not a filter, and the chip row is the filter list.
+    expect(screen.queryByTestId("search-chip-geo")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("search-location-open"));
+    await waitFor(() =>
+      expect(screen.getByTestId("search-location-sheet")).toBeTruthy()
+    );
+    const sheet = within(screen.getByTestId("search-location-sheet"));
     expect(sheet.getByTestId("host-geo-control")).toBeTruthy();
+    // The radius, beside the place it is a radius OF.
+    expect(sheet.getByTestId("search-geo-radius")).toBeTruthy();
     // A shared link that narrows to a point must never leave a person with no
     // control that widens it again.
-    expect(sheet.getByTestId("search-chip-geo-clear")).toBeTruthy();
+    expect(sheet.getByTestId("search-location-clear")).toBeTruthy();
   });
 
-  it("shows no location chip at all when there is neither a slot nor a point", async () => {
+  it("shows no location control at all when there is neither a slot nor a point", async () => {
     setViewport(PHONE_WIDTH);
     mount();
     await waitFor(() =>
       expect(screen.getByTestId("search-filter-chips")).toBeTruthy()
     );
     expect(screen.queryByTestId("search-chip-geo")).toBeNull();
+    expect(screen.queryByTestId("search-location-summary")).toBeNull();
   });
 });
 
