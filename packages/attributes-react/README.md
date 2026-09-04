@@ -240,6 +240,13 @@ through the SAME channel: `unsupportedTypes(features, builtinTypes,
 { vocabularyClient })`. An empty dropdown would be a mandatory attribute a
 person cannot answer and is not told about.
 
+`ref_select.prefix`/`.postfix` (stapel-attributes 0.9.1) wrap the resolved term
+labels the same way `int`/`float`/`string` wrap their number or text — a
+`Floor` level whose terms are `"3"`/`"9"` sets `postfix: "attributes.floor.ea"`
+and reads "3 эт." rather than a bare "3". Both are translation keys, resolved
+by `formatFeatureValue` and shown beside the picker's chosen value in the
+editor.
+
 ## Display
 
 `formatFeatureValue` is React-free and lives in the main entry, so a result

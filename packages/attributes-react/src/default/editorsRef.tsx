@@ -67,6 +67,7 @@ import {
   str,
   useDisclosure,
 } from "./editorKit.js";
+import { configLabel } from "./labels.js";
 
 /** How long a person may keep typing before a search leaves. 250 ms is the
  * fleet's typeahead debounce; below it a 14 962-row level is searched on every
@@ -629,7 +630,16 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
     query,
   });
   const hasRows = groups.some((group) => group.options.length > 0);
-  const chosen = codes.map(labelOf).join(", ");
+  // `prefix`/`postfix` (stapel-attributes 0.9.1) beside the chosen value,
+  // exactly as `formatFeatureValue`'s `ref_select` branch wraps it for
+  // display — the trigger shows the same string a spec row would print.
+  const affixPrefix = configLabel(t, cfg["prefix"]);
+  const affixPostfix = configLabel(t, cfg["postfix"]);
+  const chosenLabels = codes.map(labelOf).join(", ");
+  const chosen =
+    chosenLabels.length > 0
+      ? `${affixPrefix}${chosenLabels}${affixPostfix ? ` ${affixPostfix}` : ""}`
+      : "";
 
   const pick = (picked: readonly string[]): void => {
     for (const code of picked) if (!codes.includes(code)) touch(code);

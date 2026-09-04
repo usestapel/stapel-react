@@ -72,6 +72,54 @@ describe("every builtin type formats", () => {
     ).toBe("2010");
   });
 
+  it("ref_select, from the DAO's label snapshot, with no affix by default", () => {
+    const floor = feature("floor", {
+      type: "ref_select",
+      optionsRef: { vocabulary: "buildings", level: "Floor" },
+    });
+    expect(
+      formatFeatureValue(floor, { type: "ref_select", value: ["3"], labels: ["3"] })
+    ).toBe("3");
+  });
+
+  it("ref_select with a postfix — a numeric vocabulary level needs its unit too (stapel-attributes 0.9.1)", () => {
+    const floor = feature("floor", {
+      type: "ref_select",
+      optionsRef: { vocabulary: "buildings", level: "Floor" },
+      postfix: "эт.",
+    });
+    expect(
+      formatFeatureValue(floor, { type: "ref_select", value: ["3"], labels: ["3"] })
+    ).toBe("3 эт.");
+  });
+
+  it("ref_select with both a prefix and a postfix", () => {
+    const floor = feature("floor", {
+      type: "ref_select",
+      optionsRef: { vocabulary: "buildings", level: "Floor" },
+      prefix: "~",
+      postfix: "эт.",
+    });
+    expect(
+      formatFeatureValue(floor, { type: "ref_select", value: ["3"], labels: ["3"] })
+    ).toBe("~3 эт.");
+  });
+
+  it("ref_select's prefix/postfix are TRANSLATION KEYS, resolved through the host's catalogue", () => {
+    const floor = feature("floor", {
+      type: "ref_select",
+      optionsRef: { vocabulary: "buildings", level: "Floor" },
+      postfix: "attributes.floor.short",
+    });
+    expect(
+      formatFeatureValue(
+        floor,
+        { type: "ref_select", value: ["3"], labels: ["3"] },
+        { t: (key) => (key === "attributes.floor.short" ? "эт." : key) }
+      )
+    ).toBe("3 эт.");
+  });
+
   it("hierarchical_select, as the path — the catalogue's LABELS, not the stored values", () => {
     expect(
       formatFeatureValue(HIERARCHICAL_FEATURE, {

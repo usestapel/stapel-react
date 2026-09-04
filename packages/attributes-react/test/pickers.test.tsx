@@ -448,3 +448,48 @@ describe("the codes a person picks come back to the top", () => {
     });
   });
 });
+
+// ── ref_select affixes (stapel-attributes 0.9.1) ────────────────────────────
+
+/** A numeric vocabulary level whose one term resolves to its own code as a
+ * label — the shape a `Floor` level takes (`"3"` → `"3"`). */
+function floorClient(): VocabularyClient {
+  return {
+    async search() {
+      return [{ code: "3", label: "3" }];
+    },
+    async resolve(_vocabulary, _level, codes) {
+      const out: Record<string, string> = {};
+      for (const code of codes) out[code] = code;
+      return out;
+    },
+  };
+}
+
+const FLOOR: FeatureDef = feature("floor", {
+  type: "ref_select",
+  optionsRef: { vocabulary: "buildings", level: "Floor" },
+  postfix: "эт.",
+  maxSelected: 1,
+});
+
+describe("ref_select's postfix rides beside the chosen value", () => {
+  it("shows the postfix on the picker trigger once the code resolves", async () => {
+    renderOne(FLOOR, ["3"], floorClient());
+    await waitFor(() =>
+      expect(screen.getByTestId("attributes-ref-trigger").textContent).toBe("3 эт.")
+    );
+  });
+
+  it("shows no affix at all when the config carries none", async () => {
+    const plain = feature("floor_plain", {
+      type: "ref_select",
+      optionsRef: { vocabulary: "buildings", level: "Floor" },
+      maxSelected: 1,
+    });
+    renderOne(plain, ["3"], floorClient());
+    await waitFor(() =>
+      expect(screen.getByTestId("attributes-ref-trigger").textContent).toBe("3")
+    );
+  });
+});

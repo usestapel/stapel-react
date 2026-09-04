@@ -10,6 +10,7 @@
  *   `bool`      → `trueLabel`, `falseLabel`      (`types/bool/type.py:117-123`)
  *   `int/float` → `prefix`, `postfix`, `postfix1000`  (`types/int/type.py:155-160`)
  *   `string`    → `prefix`, `postfix`            (`types/string/type.py:155-162`)
+ *   `ref_select` → `prefix`, `postfix`           (`types/ref_select/type.py`, since 0.9.1)
  *   `select`    → every option's `label`         (`types/select/type.py`)
  *   `hex_color` → every option's `label`         (`types/hex_color/type.py:281-289`)
  *   `hierarchical_select` → each option's `label` and `childrenTitle`
@@ -50,6 +51,7 @@ export const TRANSLATABLE_CONFIG_KEYS: Readonly<Record<string, readonly string[]
   int: ["prefix", "postfix", "postfix1000"],
   float: ["prefix", "postfix", "postfix1000"],
   string: ["prefix", "postfix"],
+  ref_select: ["prefix", "postfix"],
   select: ["options[].label"],
   hex_color: ["options[].label"],
   hierarchical_select: ["options[].label", "options[].childrenTitle"],

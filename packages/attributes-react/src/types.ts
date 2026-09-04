@@ -74,7 +74,21 @@ export type {
   FeatureDefConfig as FeatureConfig,
 } from "./generated/featureDef.js";
 
-import type { FeatureDef, FeatureDefConfig } from "./generated/featureDef.js";
+import type { FeatureDef, FeatureDefConfig, RefSelectConfig } from "./generated/featureDef.js";
+
+/**
+ * `RefSelectConfig.prefix` / `.postfix` — stapel-attributes 0.9.1 added them
+ * to `$defs.RefSelectConfig` in `feature-def.schema.json`, same semantics and
+ * translation convention as `IntConfig.prefix`/`.postfix` (a config string
+ * here is a TRANSLATION KEY, not literal copy; `get_translation_keys`
+ * returns them). Declared by hand ahead of the next contract-pins regen —
+ * the generated `RefSelectConfig` above will carry them itself once the pin
+ * bumps, at which point this can fold back into the bare re-export.
+ */
+export interface RefSelectAffixConfig extends RefSelectConfig {
+  readonly prefix?: string | null;
+  readonly postfix?: string | null;
+}
 
 /**
  * One submitted value: `{type, value}` plus whatever else the type's DTO

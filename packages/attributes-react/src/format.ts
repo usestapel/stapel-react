@@ -264,7 +264,13 @@ export function formatFeatureValue(
     }
     case "ref_select": {
       const codes = (Array.isArray(value) ? value : [value]).map(str);
-      return refLabels(config, dto, codes).join(", ");
+      const joined = refLabels(config, dto, codes).join(", ");
+      // `prefix`/`postfix` — stapel-attributes 0.9.1, same convention as
+      // `int`/`float`/`string`: translation keys, wrapped around the
+      // resolved labels exactly the way `formatNumber` wraps a number.
+      const prefix = translateConfig(options, config["prefix"]);
+      const postfix = translateConfig(options, config["postfix"]);
+      return `${prefix}${joined}${postfix ? ` ${postfix}` : ""}`;
     }
     case "ref_hierarchical_select": {
       const codes = (Array.isArray(value) ? value : [value]).map(str);
