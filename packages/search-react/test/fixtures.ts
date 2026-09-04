@@ -13,6 +13,7 @@ export function searchResponse(
   overrides: Partial<SearchResponse> = {}
 ): SearchResponse {
   return {
+    category_resolved: null,
     items: [
       {
         key: "l-1",

@@ -102,6 +102,9 @@ export const DEMO_PHOTO_REF_MISSING = "image/demo-gone";
 
 /** A page with a promoted row, approximate facet counts and one skipped slug. */
 export const DEMO_SEARCH_RESPONSE: SearchResponse = {
+  // stapel-search 0.14.4+ answers this on every page; null is "the query named
+  // no category", which is what this fixture is.
+  category_resolved: null,
   items: [
     {
       key: "l-1001",

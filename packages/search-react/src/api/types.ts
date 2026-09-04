@@ -24,11 +24,17 @@ export type Schemas = components["schemas"];
  * slug either; ABSENT is a server too old to send one, and both read the same
  * way here (fall through to the schema).
  *
- * WHAT THE GENERATOR LOST: the field is newer than this pair's pinned
- * `schema.json`, so it is declared here as optional-and-nullable rather than
- * regenerated into a shape a deployed older server does not send.
+ * WHY IT IS NOT THE GENERATED SHAPE: stapel-search 0.14.5's `schema.json`
+ * declares this field REQUIRED, but the contract this pair announces is
+ * `>=0.14 <0.15`, and a 0.14.0 server inside that range sends no `label` at
+ * all. The generated member is therefore `Omit`ted and re-declared here as
+ * optional-and-nullable — a type must not promise a field a server the pair
+ * says it supports does not send.
  */
-export type FacetLabels = Schemas["FacetLabels"] & {
+export type FacetLabels = Omit<
+  Schemas["FacetLabels"],
+  "label" | "label_translatable" | "url_key"
+> & {
   readonly label?: string | null;
   /**
    * Whether {@link label} is a translation KEY rather than a caption, the way
@@ -55,9 +61,11 @@ export type FacetLabels = Schemas["FacetLabels"] & {
    * accepted inside the scope, which is what lets a client write the short
    * one without a migration behind it.
    *
-   * WHAT THE GENERATOR LOST: newer than this pair's pinned `schema.json`,
-   * so it is declared here rather than regenerated into a shape a deployed
-   * older server does not send. Measured on a live answer 2026-09-04:
+   * WHY IT IS NOT THE GENERATED SHAPE: 0.14.5 declares it REQUIRED, and the
+   * announced contract is `>=0.14 <0.15` — a 0.14.0 server in that range
+   * states no `url_key`, and the codec's whole point is that such a link
+   * still works. `Omit`ted from the generated member and re-declared
+   * optional here. Measured on a live answer 2026-09-04:
    * `make_ref_select` → `make`, `fuel_type_ref_select` → `fuel_type`,
    * `model` → `model`.
    */
