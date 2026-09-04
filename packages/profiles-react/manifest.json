@@ -4,7 +4,7 @@
   "version": "0.20.0",
   "backend": {
     "module": "stapel-profiles",
-    "contract": ">=0.16 <0.17"
+    "contract": ">=0.18 <0.19"
   },
   "layers": [
     "api",
