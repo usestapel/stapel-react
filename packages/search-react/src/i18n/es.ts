@@ -119,6 +119,12 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.filters.short": "Filtros",
   "search.filters.chip_more": ", +{count}",
   "search.filters.chips_overflow": "Más · {count}",
+  "search.filters.applied_label": "Filtros aplicados",
+  "search.filters.chip_pair": "{name}: {value}",
+  "search.filters.chip_remove": "Quitar el filtro {filter}",
+  "search.filters.chip_range_between": "de {from} a {to}",
+  "search.filters.chip_range_from": "desde {from}",
+  "search.filters.chip_range_to": "hasta {to}",
 
   "search.empty.exits_title": "Prueba a ampliar la búsqueda",
   "search.empty.up_a_level": "Subir un nivel",

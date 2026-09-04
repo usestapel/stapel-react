@@ -242,6 +242,44 @@ brings the whole list back **with the bounds said in words** ("from 1900 to
 all, silently. A mileage (`1..1000000`) and the core price stay two typed
 fields.
 
+## The applied filters have a row of their own
+
+`<FilterChips>` has two modes. The default, `mode="openers"`, is the phone's
+row: one chip per axis, applied or not, each opening its own picker. Beside a
+desktop rail that shape is wrong twice — it prints the whole panel a second
+time, and no chip in it removes anything without a modal over the results.
+
+`mode="applied"` is the other row, and a page mounts it with one prop:
+
+```tsx
+<SearchPage adapter={adapter} appliedChips="desktop" categoryFeatures={features} />
+```
+
+`"desktop"` draws it only where the rail is on screen (on the phone the opener
+row below already states every applied filter on its own chip); `true` draws it
+in both layouts. `<FilterChips mode="applied" />` mounts the same row anywhere
+a host wants it.
+
+What it draws:
+
+- **one chip per applied VALUE and per applied numeric range**, never one per
+  axis — three chosen brands are three chips and three removals;
+- **each caption names the axis and the value** — "Brand: Bosch", "Price: from
+  100 to 500" — because beside a dozen axes a bare value names nothing. A core
+  money axis prints as money, in the currency the answer's own cards carry;
+- **each chip is a real `<button>`** whose press drops exactly that constraint
+  and whose accessible name says so (an antd `Tag closable` puts the removal in
+  a `<span>` with no tab stop: a constraint a keyboard can read and cannot
+  drop), plus the same clear-all the rail's footer runs;
+- **the label path of the rail**, stamped: `data-label-source` for the axis and
+  `data-value-label-source` for the value, both `server | schema | host | none`;
+- **nothing at all when nothing is applied**, and nothing before the answer
+  lands — a caption that renames itself under the reader is worse than one that
+  arrives a moment later.
+
+`buildAppliedChips`, `rangeChipText`, `rangeLabelSource` and
+`appliedChipTestId` are exported for a host composing its own row.
+
 ## The rail's scrollbar is in the gutter, not on the filters
 
 The rail scrolls on its own when it outgrows the window. `scrollbar-width:
@@ -335,7 +373,7 @@ the configured engine cannot evaluate.
 | state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `orderFacetGroupsBySchema`, `facetGroupIsDrawable`, `facetGroupHasEvidence`, `facetOptionLabel`, `translitPrefixMatch`, `translitKey`, `consonantKey` |
 | model | `createSearchRuntime`, `searchQueryKeys`, `useSearchQuery`, `useRankingDisclosure` |
 | headless | `SearchProvider`, `SearchStateProvider`/`useSearchState`, `SearchResults`, `FacetPanel`, `RankingDisclosure` |
-| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `RAIL_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
+| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `FilterChips` (`mode="openers" | "applied"`), `buildAppliedChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `RAIL_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
 | `./router` | `useRouterSearchParams` |
 | i18n | `registerSearchI18n` (+ `./i18n/ru`, `./i18n/es`) |
 | errors | `SEARCH_ERRORS`, `explainSearchError`, `SEARCH_WINDOW_EXCEEDED`, `SEARCH_BACKEND_UNAVAILABLE` |

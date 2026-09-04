@@ -240,7 +240,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * What the current category is CALLED — the chip's own text. The pair holds
    * a path of slugs and no way to turn one into a catalogue name; absent, the
    * chip states the path's last segment. See
-   * {@link FilterChipsProps.categoryLabel}.
+   * {@link FilterChipsOpenerProps.categoryLabel}.
    */
   readonly categoryLabel?: ReactNode;
   /** The location control slot (`geo-react`). */
@@ -305,6 +305,21 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * describes the whole page, not the results column of it.
    */
   readonly resultsHeader?: ReactNode;
+  /**
+   * Draw the APPLIED filter row in the results header — one chip per applied
+   * value and per applied range, each of which removes it
+   * (`<FilterChips mode="applied">`).
+   *
+   * `"desktop"` is the shape this exists for: where the rail is on screen a
+   * choice otherwise leaves no trace above the results and dropping one of
+   * two constraints means hunting its button back down the column, while on
+   * the phone the opener row below already states every applied filter on its
+   * own chips. `true` draws it in both layouts; omitted, nothing changes.
+   *
+   * It renders itself away when nothing is applied, so a host never has to
+   * ask.
+   */
+  readonly appliedChips?: boolean | "desktop";
   /** What this surface calls its result list. See
    * {@link SearchResultsPaneProps.heading}. */
   readonly resultsHeading?: ReactNode;
@@ -401,6 +416,7 @@ interface SearchPageBodyProps {
   readonly footer?: ReactNode;
   readonly filtersHeader?: ReactNode;
   readonly resultsHeader?: ReactNode;
+  readonly appliedChips?: boolean | "desktop";
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly filtersLayout?: SearchFiltersLayout;
@@ -637,6 +653,20 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         <div data-testid="search-results-header">{props.resultsHeader}</div>
       )}
 
+      {/* What the search is NARROWED to, above the results, each constraint
+          beside the control that drops it. Drawn in the same band as the
+          results header because that is where a host would otherwise hand-mount
+          it — and it draws nothing at all when nothing is applied. */}
+      {(props.appliedChips === true ||
+        (props.appliedChips === "desktop" && layout !== "sheet")) && (
+        <FilterChips
+          mode="applied"
+          {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
+          {...(locale !== undefined ? { locale } : {})}
+          {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
+        />
+      )}
+
       {showFilters && layout === "sheet" ? (
         <>
           {/* The phone's filter row. It REPLACES the full-width "Filters (3)"
@@ -732,6 +762,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     footer,
     filtersHeader,
     resultsHeader,
+    appliedChips,
     resultsHeading,
     degradationNotice,
     filtersLayout,
@@ -766,6 +797,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(footer !== undefined ? { footer } : {})}
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
           {...(resultsHeader !== undefined ? { resultsHeader } : {})}
+          {...(appliedChips !== undefined ? { appliedChips } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}

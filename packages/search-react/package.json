@@ -64,9 +64,9 @@
       "limit": "12.5 KB"
     },
     {
-      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking, the dictionary control for a vocabulary facet, the popular-values block, the partition row in both its chip and segmented variants, the select-style dictionary FIELD the desktop rail opens, the from/to pickers a bounded integer axis draws and the rail's own scrollbar sheet) must stay out of the main bundle. Raised 24.5 → 25.5 KB for those four controls",
+      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking, the dictionary control for a vocabulary facet, the popular-values block, the partition row in both its chip and segmented variants, the select-style dictionary FIELD the desktop rail opens, the from/to pickers a bounded integer axis draws and the rail's own scrollbar sheet) must stay out of the main bundle. Raised 24.5 → 25.5 KB for those four controls, then 25.5 → 26.25 KB for the chip row's APPLIED mode — one chip per applied value and per numeric bound, each removing that one constraint beside a rail that is already on screen (a storefront was carrying its own copy of it)",
       "path": "dist/default/index.js",
-      "limit": "25.5 KB"
+      "limit": "26.25 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",

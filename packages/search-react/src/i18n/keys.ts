@@ -232,6 +232,25 @@ export const SEARCH_I18N_KEYS = {
    * `{count}` is how many chips it hides (D16). */
   filtersChipOverflow: "search.filters.chips_overflow",
 
+  // ── the APPLIED row (`<FilterChips mode="applied">`) ─────────────────────
+  /** The accessible name of the applied row. Distinct from
+   * `filtersChipsLabel`: that row OPENS pickers, this one DROPS filters, and
+   * a screen reader announcing both as "Filters" states neither. */
+  filtersAppliedLabel: "search.filters.applied_label",
+  /** One applied chip's caption: the axis AND the value — "Brand: Bosch".
+   * A chip printing the value alone states a constraint without saying what
+   * it constrains, which beside a rail of a dozen axes names nothing. */
+  filtersChipPair: "search.filters.chip_pair",
+  /** The accessible name of an applied chip: pressing it REMOVES the filter,
+   * and the caption alone never says so. `{filter}` is the caption. */
+  filtersChipRemove: "search.filters.chip_remove",
+  /** A numeric constraint with both bounds, as one phrase. */
+  filtersChipRangeBetween: "search.filters.chip_range_between",
+  /** A lower bound alone. */
+  filtersChipRangeFrom: "search.filters.chip_range_from",
+  /** An upper bound alone. */
+  filtersChipRangeTo: "search.filters.chip_range_to",
+
   // ── a partition: one template split by a value its children name ─────────
   /**
    * The first chip of a partition row — the parent itself, unnarrowed.
@@ -542,6 +561,12 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.filters.short": "Filters",
   "search.filters.chip_more": ", +{count}",
   "search.filters.chips_overflow": "More · {count}",
+  "search.filters.applied_label": "Applied filters",
+  "search.filters.chip_pair": "{name}: {value}",
+  "search.filters.chip_remove": "Remove filter {filter}",
+  "search.filters.chip_range_between": "from {from} to {to}",
+  "search.filters.chip_range_from": "from {from}",
+  "search.filters.chip_range_to": "up to {to}",
 
   "search.empty.exits_title": "Try widening the search",
   "search.empty.up_a_level": "Go up a level",

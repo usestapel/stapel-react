@@ -61,12 +61,26 @@ export {
   CHIP_ROW_CAP,
   CHIP_ROW_CLASS,
   CHIP_ROW_STYLE_HREF,
+  appliedChipTestId,
+  buildAppliedChips,
   capChipRow,
   categoryLeaf,
   chipRowCss,
   orderChipFilters,
+  rangeChipText,
+  rangeLabelSource,
 } from "./FilterChips.js";
-export type { ChipBand, ChipSpec, FilterChipsProps } from "./FilterChips.js";
+export type {
+  AppliedChip,
+  AppliedChipTarget,
+  ChipBand,
+  ChipSpec,
+  FilterChipsAppliedProps,
+  FilterChipsCommonProps,
+  FilterChipsMode,
+  FilterChipsOpenerProps,
+  FilterChipsProps,
+} from "./FilterChips.js";
 export { EmptyExits, RADIUS_WIDEN_FACTOR, parentCategory } from "./EmptyExits.js";
 export type { EmptyExitsProps } from "./EmptyExits.js";
 

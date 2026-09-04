@@ -1,6 +1,42 @@
 /**
- * `<FilterChips>` — the phone's filter row: one horizontally scrolling line of
- * chips, each of which opens its OWN picker.
+ * `<FilterChips>` — the filter row, in its two modes.
+ *
+ * ## `mode="openers"` (the default): the phone's row
+ *
+ * One horizontally scrolling line of chips, each of which opens its OWN
+ * picker. Everything below this heading describes that mode.
+ *
+ * ## `mode="applied"`: the row a rail on screen needs
+ *
+ * Where the panel is already drawn — the desktop column — a row of openers is
+ * the wrong shape twice over: it prints the whole rail a second time, and no
+ * chip in it REMOVES anything without opening a modal over the results. A
+ * storefront hit exactly that (a 2377px filter column; picking two values left
+ * nothing between the header and the first card, and dropping one of them
+ * meant scrolling the rail until its button came back) and wrote its own row.
+ * This mode is that row, in the pair:
+ *
+ *  - one chip per applied facet VALUE and per applied numeric range, never per
+ *    axis — "Brand" with three values chosen is three chips, three removals;
+ *  - each chip names the axis AND the value ("Brand: Bosch", "Price: from 100
+ *    to 500"), because beside a dozen axes a bare value names nothing;
+ *  - each chip is a real `<button>` whose press removes THAT constraint, and
+ *    whose accessible name says so — not an antd `Tag closable`, whose close
+ *    icon is a `<span>` with no tab stop, i.e. a constraint a keyboard can
+ *    read and cannot drop;
+ *  - the same clear-all the rail's footer runs, beside the chips instead of a
+ *    column-height away;
+ *  - nothing applied, nothing drawn. An empty band above the results is
+ *    furniture, and this row's whole claim is that it is there only when it
+ *    has something to say.
+ *
+ * Both modes read the SAME bag (`useFacetPanel`, `buildRangeGroups` over the
+ * page's own state) the rail reads, so no two surfaces can disagree about what
+ * is applied or about what a value is called — including the label path:
+ * the answer's `facet_labels` first, the category schema second, the raw slug
+ * marked as such third. Every applied chip stamps `data-label-source` and
+ * `data-value-label-source` so a storefront's test fails on a raw index term
+ * rather than eyeballing one.
  *
  * ## What it replaces, and why the replacement is not cosmetic
  *
@@ -137,7 +173,7 @@ import {
   compareFacetsByEvidence,
   facetGroupIsDrawable,
 } from "../state/facets.js";
-import type { FacetGroup } from "../state/facets.js";
+import type { FacetGroup, FacetLabelSource } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { RangeFilterRow } from "./RangeFilterRow.js";
@@ -290,7 +326,11 @@ export function capChipRow(
   return { visible: specs.slice(0, cut), overflow: specs.length - cut };
 }
 
-export interface FilterChipsProps {
+/** What the row is FOR — see this module's opening note. */
+export type FilterChipsMode = "openers" | "applied";
+
+/** What both modes read the search through. */
+export interface FilterChipsCommonProps {
   /** The category's feature schema — the source of option labels, of which
    * slugs get a range chip, of which slugs are choosable at all, and of how
    * each group is drawn. */
@@ -302,6 +342,11 @@ export interface FilterChipsProps {
    * value cannot read one way on a chip and another way inside the sheet.
    */
   readonly resolveFacetLabels?: FacetLabelResolver;
+}
+
+export interface FilterChipsOpenerProps extends FilterChipsCommonProps {
+  /** The default. Every chip OPENS a picker; see the module note. */
+  readonly mode?: "openers";
   /**
    * The catalogue picker (`categories-react`), same slot the panel takes.
    *
@@ -334,6 +379,20 @@ export interface FilterChipsProps {
    */
   readonly maxRowChips?: number | null;
 }
+
+/**
+ * The applied row: one chip per constraint, each of which removes it.
+ *
+ * None of the opener props are here and that is the point — a row that draws
+ * only what is applied has no picker to open, no capped tail to stand in front
+ * of and no category chip (narrowing the category is a navigation, not a
+ * filter this row can drop).
+ */
+export interface FilterChipsAppliedProps extends FilterChipsCommonProps {
+  readonly mode: "applied";
+}
+
+export type FilterChipsProps = FilterChipsOpenerProps | FilterChipsAppliedProps;
 
 /**
  * The label a chip carries: the group's name alone when nothing is chosen,
@@ -373,7 +432,22 @@ export function categoryLeaf(path: string): string | undefined {
   return /^\d+$/.test(leaf) ? undefined : leaf;
 }
 
+/**
+ * The row, in whichever mode was asked for.
+ *
+ * Two components rather than one with a branch in it: the modes share the
+ * search they read and share nothing they DRAW, and a single body would have
+ * to run both sets of hooks on every render of either.
+ */
 export function FilterChips(props: FilterChipsProps): ReactElement | null {
+  return props.mode === "applied" ? (
+    <AppliedChipRow {...props} />
+  ) : (
+    <OpenerChipRow {...props} />
+  );
+}
+
+function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
   const t = useT();
   const { state, setCategory } = useSearchState();
   const bag = useFacetPanel({
@@ -641,6 +715,236 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
               );
         })()}
     </>
+  );
+}
+
+/* ── the applied row ────────────────────────────────────────────────────── */
+
+type Translate = (key: string, params?: Record<string, unknown>) => string;
+
+/** Which constraint one applied chip drops. */
+export type AppliedChipTarget =
+  | { readonly kind: "facet"; readonly slug: string; readonly value: string }
+  | { readonly kind: "range"; readonly slug: string };
+
+/** One applied constraint, resolved to the words it prints and what it drops. */
+export interface AppliedChip {
+  readonly key: string;
+  readonly target: AppliedChipTarget;
+  /** What the AXIS is called, and which source named it. */
+  readonly name: string;
+  readonly nameSource: FacetLabelSource;
+  /** What the VALUE is called, and which source named it. */
+  readonly value: string;
+  readonly valueSource: FacetLabelSource;
+}
+
+/** The chip's own test hook — the constraint it drops, spelled out. */
+export function appliedChipTestId(target: AppliedChipTarget): string {
+  return target.kind === "facet"
+    ? `search-applied-chip-${target.slug}-${target.value}`
+    : `search-applied-chip-range-${target.slug}`;
+}
+
+/**
+ * A numeric constraint as one phrase.
+ *
+ * The bounds print exactly as the URL carries them — the wire never promised a
+ * number and reformatting one would rewrite the link — except on a core MONEY
+ * axis, where the currency the answer's own cards carry turns "1000" into
+ * money, the same way the cards do.
+ */
+export function rangeChipText(range: RangeGroup, t: Translate): string {
+  const one = (bound: string): string => {
+    const n = Number(bound);
+    if (range.currency !== undefined && Number.isFinite(n)) {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: range.currency,
+        maximumFractionDigits: 0,
+      }).format(n);
+    }
+    return range.unit === undefined ? bound : `${bound} ${range.unit}`;
+  };
+  if (range.from !== undefined && range.to !== undefined) {
+    return t(SEARCH_I18N_KEYS.filtersChipRangeBetween, {
+      from: one(range.from),
+      to: one(range.to),
+    });
+  }
+  if (range.from !== undefined) {
+    return t(SEARCH_I18N_KEYS.filtersChipRangeFrom, { from: one(range.from) });
+  }
+  return t(SEARCH_I18N_KEYS.filtersChipRangeTo, { to: one(range.to ?? "") });
+}
+
+/**
+ * Where a range axis got its NAME — the same three-source question the facet
+ * groups answer for themselves, asked of the other half of the model.
+ *
+ * A core axis is named by the answer declaring it (`facet_meta.core_ranges`)
+ * and this package's own catalogue; a category attribute is named by the
+ * schema; a slug the URL constrains that neither explains prints as itself,
+ * and that is `"none"` — the same honest bottom the rail marks.
+ */
+export function rangeLabelSource(range: RangeGroup): FacetLabelSource {
+  if (range.core) return "server";
+  return range.feature === undefined ? "none" : "schema";
+}
+
+/**
+ * Every applied constraint of the current search, in the order the rail states
+ * them: the facet values first, in the order the groups came in, then the
+ * numeric ranges.
+ *
+ * Pure, and exported, because "one chip per VALUE" is the whole shape of the
+ * row — a build that collapsed three chosen brands into one chip would remove
+ * three filters with one press and no test that only counts chips would see
+ * it.
+ */
+export function buildAppliedChips(input: {
+  readonly groups: readonly FacetGroup[];
+  readonly ranges: readonly RangeGroup[];
+  readonly t: Translate;
+}): readonly AppliedChip[] {
+  const chips: AppliedChip[] = [];
+  for (const group of input.groups) {
+    for (const option of group.options) {
+      if (!option.selected) continue;
+      chips.push({
+        key: `f.${group.slug}=${option.value}`,
+        target: { kind: "facet", slug: group.slug, value: option.value },
+        name: group.label,
+        nameSource: group.labelSource,
+        value: option.label,
+        valueSource: option.labelSource,
+      });
+    }
+  }
+  for (const range of input.ranges) {
+    if (!range.active) continue;
+    const source = rangeLabelSource(range);
+    chips.push({
+      key: `r.${range.slug}`,
+      target: { kind: "range", slug: range.slug },
+      name: range.label,
+      nameSource: source,
+      value: rangeChipText(range, input.t),
+      // The bounds are the person's own numbers — nobody had to name them.
+      valueSource: source,
+    });
+  }
+  return chips;
+}
+
+/** The applied row wraps: it stands beside a rail, not on a 390px scroller,
+ * and a constraint pushed off the line is a constraint with no control. */
+const APPLIED_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: spacing[2],
+  flexWrap: "wrap",
+  // Room for the focus ring of the first chip, which a flush edge clips.
+  paddingBlock: spacing[1],
+};
+
+function AppliedChipRow(props: FilterChipsAppliedProps): ReactElement | null {
+  const t = useT();
+  const { state } = useSearchState();
+  const bag = useFacetPanel({
+    ...(props.categoryFeatures !== undefined
+      ? { categoryFeatures: props.categoryFeatures }
+      : {}),
+    ...(props.locale !== undefined ? { locale: props.locale } : {}),
+    ...(props.resolveFacetLabels !== undefined
+      ? { resolveFacetLabels: props.resolveFacetLabels }
+      : {}),
+  });
+  const ranges = buildRangeGroups({
+    state,
+    ...(props.categoryFeatures !== undefined
+      ? { categoryFeatures: props.categoryFeatures }
+      : {}),
+    coreRanges: bag.coreRanges,
+    ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
+    t,
+  });
+
+  /* NOTHING IS DRAWN UNTIL THE ANSWER LANDS.
+   *
+   * Both halves of a chip are named by the envelope: the heading path
+   * (`facet_labels[<slug>]`), and — for a range — the answer's own declaration
+   * of which axes are CORE columns (`facet_meta.core_ranges`). Before it, an
+   * `r.price` the URL carries is a slug this row has no name for, so it would
+   * draw a chip captioned with that slug and rename it a moment later. A
+   * caption that changes under the reader is worse than a caption that
+   * arrives; the panel is the control in the meantime.
+   */
+  const answered = bag.state.status === "ready";
+  const chips = buildAppliedChips({
+    groups: answered ? bag.state.data : [],
+    ranges: answered ? ranges : [],
+    t,
+  });
+  if (chips.length === 0) return null;
+
+  const remove = (target: AppliedChipTarget): void => {
+    if (target.kind === "facet") bag.toggle(target.slug, target.value);
+    else bag.setRange(target.slug, null);
+  };
+
+  return (
+    <div
+      style={APPLIED_ROW}
+      role="group"
+      aria-label={t(SEARCH_I18N_KEYS.filtersAppliedLabel)}
+      data-testid="search-applied-chips"
+    >
+      {chips.map((chip) => {
+        const text = t(SEARCH_I18N_KEYS.filtersChipPair, {
+          name: chip.name,
+          value: chip.value,
+        });
+        return (
+          <Button
+            key={chip.key}
+            shape="round"
+            size="small"
+            style={CHIP}
+            data-testid={appliedChipTestId(chip.target)}
+            /* The two halves of the caption, marked with what named each of
+               them. `[data-label-source="none"]` is the assertion that a raw
+               index term ever reached this row. */
+            data-label-source={chip.nameSource}
+            data-value-label-source={chip.valueSource}
+            data-analytics="none"
+            data-analytics-reason="dropping a filter is a read, not a flow step"
+            aria-label={t(SEARCH_I18N_KEYS.filtersChipRemove, { filter: text })}
+            onClick={() => {
+              remove(chip.target);
+            }}
+          >
+            <span>{text}</span>
+            <span aria-hidden="true">{"×"}</span>
+          </Button>
+        );
+      })}
+      {/* The SAME action the rail's own footer runs, beside the chips instead
+          of a column-height down the page. */}
+      <Button
+        type="link"
+        size="small"
+        style={{ paddingInline: 0 }}
+        data-testid="search-applied-chips-clear"
+        data-analytics="none"
+        data-analytics-reason="dropping the filters is a read, not a flow step"
+        onClick={() => {
+          bag.clearAll();
+        }}
+      >
+        {t(SEARCH_I18N_KEYS.facetsClearAll, { count: bag.activeFilters })}
+      </Button>
+    </div>
   );
 }
 

@@ -154,6 +154,12 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.filters.short": "Фильтры",
   "search.filters.chip_more": ", +{count}",
   "search.filters.chips_overflow": "Ещё {count}",
+  "search.filters.applied_label": "Выбранные фильтры",
+  "search.filters.chip_pair": "{name}: {value}",
+  "search.filters.chip_remove": "Убрать фильтр «{filter}»",
+  "search.filters.chip_range_between": "от {from} до {to}",
+  "search.filters.chip_range_from": "от {from}",
+  "search.filters.chip_range_to": "до {to}",
 
   "search.empty.exits_title": "Попробуйте расширить поиск",
   "search.empty.up_a_level": "Подняться на уровень выше",
