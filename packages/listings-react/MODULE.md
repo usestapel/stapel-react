@@ -294,6 +294,10 @@ the weight:
   save happens BEFORE the publish, a `ValidationBatchResult` lands on the
   control that caused it, and the two publish outcomes are told apart by what
   the server answered;
+- `draftBeforeCategory.test.tsx` — the row exists before the category does:
+  the first save POSTs `{}`, the publish still refuses and names
+  `category_id`, the category picked later is written by the next save, and
+  neither seed crashes on a `category_id: null`;
 - `detail.test.tsx` — four absences and four sentences, the owner-only
   moderation axis, and the favourite control blocked-but-visible for a
   visitor;

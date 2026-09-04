@@ -164,6 +164,17 @@ The flow is `create draft → save into it → publish`. The composer always sav
 before it publishes, because `publish` promotes the STORED draft: publishing
 without saving would promote whatever was there before the last keystroke.
 
+**The row comes before the category.** The first save creates the draft whether
+or not a category has been chosen — `category_id` is nullable on the draft half
+(stapel-listings 0.21.4) and the create body is simply `{}` — so anything
+addressed BY the draft id (a background analysis, an upload filed against it, a
+link back into an unfinished submission) has an id to be addressed by from the
+first save on. The category is a field written by whichever save follows the
+pick, and it is mandatory only to PUBLISH, which is where the gate and the
+server's own `publish_validation_failed` both keep it. `bag.stage ===
+"choosing_category"` therefore says nothing about whether the row exists; read
+`bag.listingId` for that.
+
 **Reopening a listing reads the draft twin.** `listingId` seeds the form from
 `GET /{pk}/draft/` (stapel-listings 0.21.1) — what was actually last typed,
 published or not — and falls back to the published half only when that read
@@ -228,6 +239,14 @@ not `20000`, and an engine volume reads `2,0 l` in Russian. **There is no
 stored row first and from `categoryFeatures` second. The second rung is what
 repairs a listing published before its category declared a unit; where
 nothing declares one, the bare number stands. No unit is invented.
+
+Grouping follows the unit, because a number without one is usually not a
+quantity: a year printed as `2 024` is the wrong reading, and so is a floor or
+a count of doors. A value is grouped when its feature carries a unit
+(`prefix`/`postfix`/`postfix1000`) or when it is at least 10 000 — a threshold
+no year or room count reaches, which is why no "does this slug look like a
+year" heuristic is needed. A unitless float still gets the reader's decimal
+mark; only the separator is switched off.
 
 ## Card badges say what they mean
 

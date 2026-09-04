@@ -57,11 +57,20 @@ import { useMandateGate } from "./useMandateGate.js";
  *
  * ── The steps, and why they are not a `@flow_step` funnel ──────────────────
  *
- *     pick a category → create the draft row → save into it → publish
+ *     create the draft row → save into it → pick a category → publish
  *
  * The server does not sequence these (see `flows/registry.ts`). What DOES
  * sequence them is here, and its stages are named so analytics can follow the
  * funnel without the backend having declared one.
+ *
+ * The row comes FIRST, and the category is a field saved into it like any
+ * other. That is not a preference: `category_id` is nullable on the draft half
+ * (stapel-listings 0.21.4) precisely so an id exists before the form is
+ * answerable, and everything addressed by that id — a background analysis of
+ * the first photo, an upload filed against the draft, a link back into an
+ * unfinished submission — cannot start until it does (D261). The category is
+ * mandatory to PUBLISH and nowhere earlier; the server says the same thing,
+ * refusing a publish with `publish_validation_failed` naming `category_id`.
  *
  * ── The three seams, and why none of them is an import ─────────────────────
  *
@@ -112,7 +121,16 @@ export interface ListingImagesBag {
   readonly settled: ActionAvailability;
 }
 
-/** Where the submission has got to. Named so a funnel can be measured. */
+/**
+ * Where the submission has got to. Named so a funnel can be measured.
+ *
+ * `choosing_category` says the category is not chosen yet and NOTHING about
+ * whether the row exists — since D261 the draft is created by the first save,
+ * category or no category, so `bag.listingId` can be a real id at this stage.
+ * A surface that needs "is there a row" must read `listingId`; reading it off
+ * the stage is what made a draft-addressed job wait for a step it did not
+ * depend on.
+ */
 export type ComposeStage =
   | "choosing_category"
   | "editing"
@@ -457,7 +475,16 @@ export function useListingComposer(
     ? actionBlocked(LISTINGS_I18N_KEYS.composeBlockedBusy)
     : actionAvailable();
 
-  const saveGate = firstBlock(mandate, categoryGate, busyGate);
+  // NO `categoryGate` here (D261). A draft is allowed to exist without a
+  // category — stapel-listings 0.21.4 made `category_id` nullable on the draft
+  // half and `save-draft` accepts a body without one — and holding the SAVE
+  // until a category was picked meant the row did not exist during the step
+  // before it. Everything addressed BY the draft id (an analysis job handed
+  // the id, an upload filed against it, a resumable link) therefore had no id
+  // to be addressed by, and the work never started. The category is still
+  // mandatory to PUBLISH, which is the gate below and the server's own
+  // `publish_validation_failed`.
+  const saveGate = firstBlock(mandate, busyGate);
 
   // The publish gate is the save gate PLUS everything that must be true for a
   // submission to be complete. Order is the order a person would be told:
@@ -490,10 +517,17 @@ export function useListingComposer(
       : actionAvailable()
   );
 
-  /** Create the row on demand: the id is what every other write needs. */
+  /**
+   * Create the row on demand: the id is what every other write needs.
+   *
+   * Created REGARDLESS of the category (D261). The create body carries the
+   * category when there is one and is `{}` when there is not — both are valid
+   * to `POST /listings/` since 0.21.4 — so the earliest save any surface makes
+   * produces an id, and a category picked afterwards is written by the next
+   * `save-draft` like any other field.
+   */
   const ensureListingId = useCallback(async (): Promise<number | undefined> => {
     if (listingId !== undefined && listingId > 0) return listingId;
-    if (effectiveValues.categoryId.length === 0) return undefined;
     const draft = await createDraft.mutateAsync(
       createDraftBody(effectiveValues.categoryId)
     );

@@ -171,7 +171,11 @@ export function draftValuesFromDetail(
 ): ListingDraftValues {
   const base = emptyDraftValues(options);
   return {
-    categoryId: detail.category_id,
+    // `text()` for the same reason as the draft seed above: 0.21.4 answers
+    // `category_id: null` for a row created before its category was chosen,
+    // and a seed that took it verbatim put `null` where a string is declared
+    // and crashed the first control that measured its length.
+    categoryId: text(detail.category_id),
     title: text(detail.title),
     description: text(detail.description),
     price: text(detail.price),
@@ -236,7 +240,11 @@ export function draftPatchFromValues(
   features: readonly FeatureDef[]
 ): ListingDraftPatch {
   return {
-    category_id: values.categoryId,
+    // Omitted while unchosen rather than sent as `""`: a draft is allowed to
+    // have no category (0.21.4), and `""` is not "no category" on the wire —
+    // it is an empty id the serializer refuses. The category is written by
+    // whichever save follows the pick.
+    ...(values.categoryId.length > 0 ? { category_id: values.categoryId } : {}),
     title_draft: values.title,
     description_draft: values.description,
     price_draft: values.price.length > 0 ? values.price : null,
@@ -261,16 +269,26 @@ export function draftPatchFromValues(
 }
 
 /**
- * The body for CREATING a draft: `category_id` and nothing else.
+ * The body for CREATING a draft: the category if there is one, `{}` if there
+ * is not.
  *
  * `perform_create` forces `owner` and `status`, and everything else has a
  * model default, so a create that also carried the form's current contents
  * would be a second write of data the very next `save-draft` sends anyway —
  * and would fail the whole submission on a field the person could still fix.
  * Create the row, then save into it.
+ *
+ * `{}` IS a valid create body since stapel-listings 0.21.4 made `category_id`
+ * nullable on a draft: a draft may exist before its category is chosen, and
+ * `publish` is where the category becomes mandatory (`publish_validation
+ * _failed` naming `category_id`). Not being able to create the row first is
+ * what left an analysis job addressed by the draft id with no id to start
+ * from (D261).
  */
-export function createDraftBody(categoryId: string): ListingDraftPatch {
-  return { category_id: categoryId };
+export function createDraftBody(categoryId?: string): ListingDraftPatch {
+  return categoryId !== undefined && categoryId.length > 0
+    ? { category_id: categoryId }
+    : {};
 }
 
 /**

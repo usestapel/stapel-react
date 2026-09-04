@@ -198,3 +198,96 @@ describe("a number carries its unit and groups its digits", () => {
     expect(text.length).toBeGreaterThan(0);
   });
 });
+
+/**
+ * D307: the card printed a model year as "2 024".
+ *
+ * Grouping is for quantities. A year, a floor, a count of doors is an
+ * identifier spelled in digits, and grouping it is the wrong reading rather
+ * than an over-eager nicety. The rule under test is the catalogue's own fact —
+ * does the feature carry a unit — plus a magnitude no identifier reaches.
+ */
+const YEAR = {
+  slug: "year",
+  type: "int" as const,
+  value: 2024,
+  name: "Year",
+  order: 0,
+};
+const DOORS = {
+  slug: "doors",
+  type: "int" as const,
+  value: 4,
+  name: "Doors",
+  order: 1,
+};
+const AREA = {
+  slug: "area",
+  type: "int" as const,
+  value: 42,
+  name: "Area",
+  order: 2,
+  postfix: "m²",
+};
+/** Unitless, but far past anything a year or a room count can be. */
+const POPULATION = {
+  slug: "population",
+  type: "int" as const,
+  value: 150000,
+  name: "Population",
+  order: 3,
+};
+
+function specText(slug: string): string {
+  return screen.getByTestId(`listings-spec-value-${slug}`).textContent ?? "";
+}
+
+describe("digits are grouped only where they measure something", () => {
+  it("prints a year as four digits, in the locale that grouped it", async () => {
+    render(pane([YEAR], <ListingDetailPane id={7} />, "ru"));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-spec-value-year")).toBeTruthy();
+    });
+    // Exactly "2024" — not "2 024", and not "2,024" in the other direction.
+    expect(specText("year")).toBe("2024");
+  });
+
+  it("leaves a unitless count alone", async () => {
+    render(pane([DOORS], <ListingDetailPane id={7} />, "ru"));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-spec-value-doors")).toBeTruthy();
+    });
+    expect(specText("doors")).toBe("4");
+  });
+
+  it("keeps a small measurement's unit and adds no separator it does not need", async () => {
+    render(pane([AREA], <ListingDetailPane id={7} />, "ru"));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-spec-value-area")).toBeTruthy();
+    });
+    expect(specText("area")).toBe("42 m²");
+  });
+
+  it("groups a measurement, unit and all", async () => {
+    render(pane([MILEAGE], <ListingDetailPane id={7} />, "ru"));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-spec-value-mileage")).toBeTruthy();
+    });
+    const text = specText("mileage");
+    expect(text).not.toContain("20000");
+    expect(text.replace(/[^0-9a-z]/gi, "")).toBe("20000km");
+  });
+
+  it("groups a unitless number too big to be an identifier", async () => {
+    // The threshold, stated: 10 000 is past every year and every room count,
+    // so a large plain number still reads at a glance without a "does this
+    // slug look like a year" heuristic that a non-English slug defeats.
+    render(pane([POPULATION], <ListingDetailPane id={7} />, "ru"));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-spec-value-population")).toBeTruthy();
+    });
+    const text = specText("population");
+    expect(text).not.toContain("150000");
+    expect(text.replace(/[^0-9]/g, "")).toBe("150000");
+  });
+});

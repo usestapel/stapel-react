@@ -43,6 +43,28 @@
  * the same answer typeset — same value, same precision rule, same
  * `postfix1000` switch at a thousand, same translated unit, with the digits
  * run through `Intl.NumberFormat` instead of `String()`.
+ *
+ * ── Which numbers are grouped, and which are not (D307) ────────────────────
+ *
+ * Grouping every number is how a card came to read "2 024" for a model year.
+ * A year is not a quantity: it is an identifier spelled in digits, and so is
+ * a house number, a floor, a room count. Grouping them is not a nicety
+ * applied too widely, it is the wrong reading.
+ *
+ * The rule is the one fact the catalogue already states, plus a magnitude no
+ * identifier reaches:
+ *
+ *  - a feature that carries a UNIT (`prefix`, `postfix`, `postfix1000`) is a
+ *    measurement — "20 000 km", "173 hp", "42 m²" — and is grouped;
+ *  - a unitless value is grouped only from 10 000 up. A year is four digits
+ *    for the next eight thousand of them and a count of doors is one, so the
+ *    threshold sorts years from counts WITHOUT a "does this slug look like a
+ *    year" heuristic — which is guesswork the moment a deployment names the
+ *    slug in its own language.
+ *
+ * Grouping is switched off through `Intl` rather than around it, so a unitless
+ * float still gets the reader's DECIMAL MARK ("2,5", not "2.5"): the two are
+ * separate defects and only one of them is being repaired here.
  */
 import type { FeatureDef, FeatureValueDto, FormatOptions } from "@stapel/attributes-react";
 import { featureConfig, featureType, formatFeatureValue } from "@stapel/attributes-react";
@@ -102,15 +124,40 @@ export function featureUnit(
  * because a host passed `"en_US"` would be a worse outcome than an ungrouped
  * number — so the caller falls back rather than the page failing.
  */
-function grouped(value: number, digits: number, locale: string | undefined): string | undefined {
+function localized(
+  value: number,
+  digits: number,
+  locale: string | undefined,
+  useGrouping: boolean
+): string | undefined {
   try {
     return new Intl.NumberFormat(locale, {
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
+      useGrouping,
     }).format(value);
   } catch {
     return undefined;
   }
+}
+
+/** Digits below which a unitless number is an identifier rather than a
+ * quantity — see the module header. */
+const GROUPING_FLOOR = 10_000;
+
+/**
+ * Does this feature measure something?
+ *
+ * The RAW config, not the translated unit: whether a value is a measurement
+ * is a fact about the catalogue, and it must not change because a host's
+ * message catalogue happens to resolve a unit key to an empty string.
+ */
+function hasUnit(config: Readonly<Record<string, unknown>>): boolean {
+  return (
+    str(config["prefix"]).length > 0 ||
+    str(config["postfix"]).length > 0 ||
+    str(config["postfix1000"]).length > 0
+  );
 }
 
 /**
@@ -150,7 +197,8 @@ function formatNumeric(
   if (postfix1000.length > 0 && Math.abs(parsed) >= 1000) {
     const scaled = Number((parsed / 1000).toFixed(digits));
     const body =
-      grouped(scaled, decimalsOf(scaled, digits), options?.locale) ?? String(scaled);
+      localized(scaled, decimalsOf(scaled, digits), options?.locale, true) ??
+      String(scaled);
     return join(prefix, body, translated(options, postfix1000));
   }
 
@@ -160,7 +208,11 @@ function formatNumeric(
   // a year field and the card read "2024.0").
   const value = kind === "int" ? Math.trunc(parsed) : parsed;
   const fraction = kind === "int" ? 0 : digits;
-  const body = grouped(value, fraction, options?.locale) ?? value.toFixed(fraction);
+  // A measurement is grouped; a unitless number is an identifier until it is
+  // too big to be one (D307 — the card read "2 024" for a model year).
+  const group = hasUnit(config) || Math.abs(value) >= GROUPING_FLOOR;
+  const body =
+    localized(value, fraction, options?.locale, group) ?? value.toFixed(fraction);
   return join(prefix, body, translated(options, config["postfix"]));
 }
 

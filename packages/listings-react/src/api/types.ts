@@ -171,9 +171,28 @@ type WithStoredFeatures<Row> = Omit<Row, StoredFeatureColumn> & {
   readonly [K in Extract<keyof Row, StoredFeatureColumn>]: readonly ListingFeatureRow[];
 };
 
+/**
+ * A draft may exist before its category is chosen (stapel-listings 0.21.4),
+ * so every READ of a listing can answer `category_id: null`.
+ *
+ * Declared by hand rather than regenerated: the generated schema still spells
+ * the field a required `string`, and a reader that trusted that put `null`
+ * where a string was declared — which is a crash in the first control that
+ * measures its length, not a missing value it renders as blank. Sending is
+ * unaffected: `PatchedListingDraft.category_id` is already optional, and
+ * `createDraftBody`/`draftPatchFromValues` omit it rather than sending `""`.
+ *
+ * This is a RELAXATION of a read, so it stays honest against an older backend
+ * too: a server that always answers a category satisfies the wider type.
+ */
+type WithNullableCategory<Row extends { category_id: string }> = Omit<
+  Row,
+  "category_id"
+> & { readonly category_id: string | null };
+
 /** `GET /listings/{pk}/` 200 — everything a detail page reads. */
 export type ListingDetail = WithStoredFeatures<
-  WithOptionalEngagement<Schemas["ListingDetail"]>
+  WithNullableCategory<WithOptionalEngagement<Schemas["ListingDetail"]>>
 >;
 
 /**
@@ -215,7 +234,7 @@ export type ListingCard = WithStoredFeatures<
 /** `POST /listings/` request+response and `POST /{pk}/save-draft/` response —
  * the draft twin. Every user-editable field is a `*_draft` one, promoted onto
  * its published sibling by `publish`. */
-export type ListingDraft = Schemas["ListingDraft"];
+export type ListingDraft = WithNullableCategory<Schemas["ListingDraft"]>;
 
 /** The partial body a `save-draft` write sends. */
 export type ListingDraftPatch = Schemas["PatchedListingDraft"];
