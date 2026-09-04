@@ -553,6 +553,27 @@ describe("a seller can open their own listing", () => {
     });
   });
 
+  it("hands listingHref the row itself, title included, as a second argument", async () => {
+    // The storefront ask: a host that addresses listings as
+    // `/l/<id>-<title-slug>` cannot build the slug from an id alone.
+    const seen: Array<{ id: number; title: string }> = [];
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane
+          listingHref={(id, row) => {
+            seen.push({ id, title: row.title });
+            return `/l/${String(id)}`;
+          }}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-open")).toBeTruthy();
+    });
+    expect(seen).toContainEqual({ id: 7, title: "Bosch GSB 1200" });
+  });
+
   it("draws no link at all when the host has no listing page", async () => {
     // ABSENT IS A REAL ANSWER — a deployment whose listings have no public
     // page has nothing to link to. What it must not be is this file's
@@ -632,6 +653,25 @@ describe("favourites", () => {
       ).toContain("Sign in to do this");
     });
     expect(srv.matching("/listings/my/favorites/")).toHaveLength(0);
+  });
+
+  it("hands hrefFor the row itself, title included, as a second argument", async () => {
+    const seen: Array<{ id: number; title: string }> = [];
+    const srv = mockServer({ "/listings/my/favorites/": { body: PAGE } });
+    render(
+      <TestProviders server={srv} resolveImage>
+        <FavoritesPane
+          hrefFor={(id, row) => {
+            seen.push({ id, title: row.title });
+            return `/l/${String(id)}`;
+          }}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-card")).toHaveLength(1);
+    });
+    expect(seen).toContainEqual({ id: 7, title: "Bosch GSB 1200" });
   });
 
   it("renders the saved cards through the same card the search slot gets", async () => {

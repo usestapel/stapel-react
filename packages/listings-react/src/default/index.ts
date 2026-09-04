@@ -88,11 +88,12 @@ export type {
   ComposerLocationPickerProps,
 } from "./ListingComposerPage.js";
 export { MyListingsPane } from "./MyListingsPane.js";
-export type { MyListingsPaneProps } from "./MyListingsPane.js";
+export type { MyListingsPaneProps, MyListingHrefRow } from "./MyListingsPane.js";
 export { FavoritesPane, FAVORITES_CARD_MIN } from "./FavoritesPane.js";
 export type {
   FavoritesPaneProps,
   FavoritesPaneOpenProps,
+  FavoritesHrefRow,
 } from "./FavoritesPane.js";
 
 export { LifecycleTag, ListingStatusBlock, ModerationNote } from "./StatusTags.js";

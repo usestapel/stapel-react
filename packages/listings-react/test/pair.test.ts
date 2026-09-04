@@ -39,12 +39,17 @@ describe("the API surface is this pair's SLICE of the contract", () => {
     createStapelClient({ baseUrl: BASE, fetch: mockServer({}).fetch })
   );
 
-  it("exposes the seventeen operations a storefront calls", () => {
+  it("exposes the eighteen operations a storefront calls", () => {
     const methods = Object.keys(api).filter((key) => key !== "client").sort();
     expect(methods).toEqual([
       "archive",
       "complete",
       "createDraft",
+      // The draft twin, read back (stapel-listings 0.21.1) — what finally
+      // lets a reopened listing seed from what was actually typed instead of
+      // the published half. Hand-authored: ahead of this pair's pinned
+      // schema, the way `children_as` was in categories-react.
+      "draft",
       // The per-viewer overlay for a page of cards. It is on the list because
       // a storefront's feed and SERP come from the search index and this is
       // the only way the engagement flags reach them at all.
@@ -83,6 +88,7 @@ describe("the API surface is this pair's SLICE of the contract", () => {
     const server = mockServer({
       "/listings/7/validate-draft/": { body: { valid: true, results: [] } },
       "/listings/7/save-draft/": { body: DRAFT },
+      "/listings/7/draft/": { body: DRAFT },
       "/listings/7/publish/": { body: { published: true, listing_id: 7, status: "pending" } },
       "/listings/7/archive/": { body: { success: true, status: "archived" } },
       "/listings/7/complete/": { body: { success: true, status: "sold" } },
@@ -104,6 +110,7 @@ describe("the API surface is this pair's SLICE of the contract", () => {
     await wired.myFavorites();
     await wired.createDraft({ category_id: "c" });
     await wired.saveDraft(7, { title_draft: "x" });
+    await wired.draft(7);
     await wired.validateDraft(7);
     await wired.publish(7);
     await wired.archive(7);
@@ -120,6 +127,7 @@ describe("the API surface is this pair's SLICE of the contract", () => {
       "GET listings/my/favorites/",
       "POST listings/",
       "POST listings/7/save-draft/",
+      "GET listings/7/draft/",
       "GET listings/7/validate-draft/",
       "POST listings/7/publish/",
       "POST listings/7/archive/",

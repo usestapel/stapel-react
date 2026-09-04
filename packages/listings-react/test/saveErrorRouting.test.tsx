@@ -62,6 +62,7 @@ function composer(overrides: Record<string, unknown> = {}) {
   const srv = mockServer({
     "/listings/42/save-draft/": { status: 400, body: OVER_PRECISE },
     "/listings/42/": { body: detail({ id: 42, status: "draft" }) },
+    "/listings/42/draft/": { status: 404, body: {} },
     "/listings/": { body: DRAFT },
     ...overrides,
   });

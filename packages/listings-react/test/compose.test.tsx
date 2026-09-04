@@ -26,6 +26,10 @@ function server(overrides: Record<string, unknown> = {}) {
       body: { published: true, listing_id: 42, status: "pending" },
     },
     "/listings/42/": { body: detail({ id: 42, status: "draft" }) },
+    // No draft-twin read by default — the composer falls back to the
+    // detail seed, exactly the pre-0.21.1 backend this suite otherwise
+    // exercises. `test/composerDraftRead.test.ts` covers the read itself.
+    "/listings/42/draft/": { status: 404, body: {} },
     "/listings/": { body: DRAFT },
     ...overrides,
   });
@@ -219,6 +223,7 @@ describe("a publish refusal lands on the control that caused it", () => {
         },
       },
       "/listings/42/": { body: detail({ id: 42, status: "draft" }) },
+      "/listings/42/draft/": { status: 404, body: {} },
     });
 
     render(
@@ -261,6 +266,7 @@ describe("the two publish outcomes come from the server's answer", () => {
         body: { published: true, listing_id: 42, status: "pending" },
       },
       "/listings/42/": { body: detail({ id: 42, status: "draft" }) },
+      "/listings/42/draft/": { status: 404, body: {} },
     });
     render(
       <TestProviders server={srv}>
@@ -294,6 +300,7 @@ describe("the two publish outcomes come from the server's answer", () => {
         body: { published: true, listing_id: 42, status: "published" },
       },
       "/listings/42/": { body: detail({ id: 42, status: "published" }) },
+      "/listings/42/draft/": { status: 404, body: {} },
     });
     render(
       <TestProviders server={srv}>

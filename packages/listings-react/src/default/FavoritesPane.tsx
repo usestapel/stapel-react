@@ -43,6 +43,16 @@ import { ListingCard } from "./ListingCard.js";
 import type { ListingCardOpenProps } from "./ListingCard.js";
 import { SignInLink } from "./SignInLink.js";
 import type { ThemeModeProp } from "./types.js";
+import type { ListingCard as ListingCardRow } from "../api/types.js";
+
+/**
+ * The row `hrefFor` is called with as its second argument — the same
+ * {@link ListingCardRow} the grid renders each card from. `title` is
+ * guaranteed present here: a favourite is always a PUBLISHED listing (a
+ * draft has nothing to favourite), so the public card's `title` is never the
+ * blank the wire allows for an unpublished one.
+ */
+export type FavoritesHrefRow = ListingCardRow & { title: string };
 
 /** The narrowest a card may get before the grid drops a column — the same
  * element-relative rule the detail gallery uses. It was `width: 240`, which
@@ -59,8 +69,13 @@ export const FAVORITES_MEASURE = "72rem";
  * card no longer allows. */
 export type FavoritesPaneOpenProps =
   | {
-      /** Where a card leads. The container owns routing. */
-      readonly hrefFor: (id: number) => string;
+      /**
+       * Where a card leads. The container owns routing. Called with the
+       * row's id and the row itself ({@link FavoritesHrefRow}, `title`
+       * guaranteed present) — a container that only needs the id keeps
+       * working unchanged.
+       */
+      readonly hrefFor: (id: number, row: FavoritesHrefRow) => string;
       /** The host's `<Link>`, so a click stays inside the SPA. */
       readonly linkComponent?: LinkComponent;
       readonly onOpen?: undefined;
@@ -95,10 +110,10 @@ export type FavoritesPaneProps = ThemeModeProp &
 /** The card's own open props for one row. One arm, never two. */
 function cardOpenProps(
   props: FavoritesPaneOpenProps,
-  id: number
+  row: FavoritesHrefRow
 ): ListingCardOpenProps {
   if (props.hrefFor !== undefined) {
-    const href = props.hrefFor(id);
+    const href = props.hrefFor(row.id, row);
     return props.linkComponent !== undefined
       ? { href, linkComponent: props.linkComponent }
       : { href };
@@ -180,7 +195,7 @@ export function FavoritesPane(props: FavoritesPaneProps): ReactElement {
                       listing={row}
                       blockedReason="line"
                       {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
-                      {...cardOpenProps(props, row.id)}
+                      {...cardOpenProps(props, row as FavoritesHrefRow)}
                     />
                   ))}
                 </div>

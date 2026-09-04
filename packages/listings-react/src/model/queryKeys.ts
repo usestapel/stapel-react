@@ -63,6 +63,10 @@ export const listingsQueryKeys: {
   allMine(): readonly ["listings", "my", "listings"];
   /** `GET /{pk}/validate-draft/` — the dry run of a publish. */
   validateDraft(id: number): readonly ["listings", "validate-draft", number];
+  /** `GET /{pk}/draft/` — the draft twin read back (stapel-listings 0.21.1).
+   * A separate entry from `detail`: the two answer different questions about
+   * the same id and a write to one must not evict the other's cache. */
+  draft(id: number): readonly ["listings", "draft", number];
   /** Every favourites PAGE, for an invalidation after a toggle — the cursor
    * is not known at the write, so the prefix is what a write can target. */
   allFavorites(): readonly ["listings", "my", "favorites"];
@@ -91,6 +95,7 @@ export const listingsQueryKeys: {
   mineUntabbed: () => [ROOT, "my", "listings", "untabbed"],
   allMine: () => [ROOT, "my", "listings"],
   validateDraft: (id) => [ROOT, "validate-draft", id],
+  draft: (id) => [ROOT, "draft", id],
   allFavorites: () => [ROOT, "my", "favorites"],
   allLists: () => [ROOT, "list"],
   engagement: (ids) => [ROOT, "engagement", engagementIds(ids).join(",")],

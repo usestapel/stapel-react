@@ -94,6 +94,10 @@ const RouterLink: LinkComponent = ({ href, children, ...rest }) => (
 
 `<FavoritesPane>` takes the same union (`hrefFor` / `onOpen` / `linkComponent`),
 so a pane cannot re-introduce upstream what the card no longer allows.
+`hrefFor` receives the row itself as a second argument — `(id, row) =>
+\`/l/${id}-${slugify(row.title)}\`` — for a host whose routes carry a slug and
+would otherwise have no way to build one from an id alone; `(id) => ...`
+still works unchanged for a host that does not need it.
 
 ### The heart a visitor can see, read, and act on
 
@@ -160,6 +164,12 @@ The flow is `create draft → save into it → publish`. The composer always sav
 before it publishes, because `publish` promotes the STORED draft: publishing
 without saving would promote whatever was there before the last keystroke.
 
+**Reopening a listing reads the draft twin.** `listingId` seeds the form from
+`GET /{pk}/draft/` (stapel-listings 0.21.1) — what was actually last typed,
+published or not — and falls back to the published half only when that read
+404s: nothing was ever saved into it, or the backend predates the route. A
+build on an older backend keeps working exactly as it did before.
+
 ### Every switched-off publish button says which of six reasons it is
 
 sign in · choose a category · we could not load what this category asks for ·
@@ -199,13 +209,14 @@ card carries `title_draft` / `price_draft` / `images_draft` too and
 `model/mine.ts` holds the one rule: the published value when there is one, the
 draft otherwise — and the row says which it is showing.
 
-## What this pair cannot do, and why
+**A row links to its own page.** `listingHref` builds it: `(id) =>
+\`/l/${id}\`` for a storefront that only needs the id, or `(id, row) =>
+\`/l/${id}-${slugify(row.title)}\`` for one whose routes carry a slug — `row`
+is the same `MyListingCard` the row renders from, `title` guaranteed present
+(a never-submitted row draws no link at all, so `listingHref` is never called
+for one). Absent, the title and thumbnail stay plain text and a picture.
 
-**Reopen an abandoned draft in the composer.** The DETAIL read still returns
-the published fields only, so a draft reopened in a later session comes back
-empty and the composer says so. Editing a LIVE listing works completely (the
-published half IS the listing), and the dashboard LIST is unaffected — its
-rows carry the twins.
+## What this pair cannot do, and why
 
 **Write through `PUT` / `PATCH`.** They are on the contract and absent from
 `ListingsApi`. That began as a safety decision — until 0.6.2 both were the

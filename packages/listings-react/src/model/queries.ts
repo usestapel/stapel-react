@@ -5,6 +5,7 @@ import type { StapelApiError } from "@stapel/core";
 import type { ValidationBatchResult } from "@stapel/attributes-react";
 import type {
   ListingDetail,
+  ListingDraft,
   ListingEngagementBatch,
   ListingPageParams,
   ListingStatusInfo,
@@ -50,6 +51,30 @@ export function useListing(
   return useQuery({
     queryKey: listingsQueryKeys.detail(id ?? -1),
     queryFn: ({ signal }) => api.retrieve(id as number, { signal }),
+    enabled: (options?.enabled ?? true) && id !== undefined,
+    retry: false,
+  });
+}
+
+/**
+ * The draft twin, read back (`GET /{pk}/draft/`, stapel-listings 0.21.1) —
+ * what `useListingComposer` seeds a reopened listing from.
+ *
+ * `retry: false` for the same reason as {@link useListing}: a 404 here is
+ * either "no draft was ever saved" or "this build predates the route", and
+ * three retries only delay the moment the composer can fall back to the
+ * detail seed. It is a separate query from `useListing` (own cache key),
+ * because a host that only reads the detail must not pay for this round
+ * trip, and a write to one must not evict the other.
+ */
+export function useListingDraft(
+  id: number | undefined,
+  options?: { readonly enabled?: boolean }
+): UseQueryResult<ListingDraft, StapelApiError> {
+  const api = useListingsApi();
+  return useQuery({
+    queryKey: listingsQueryKeys.draft(id ?? -1),
+    queryFn: ({ signal }) => api.draft(id as number, { signal }),
     enabled: (options?.enabled ?? true) && id !== undefined,
     retry: false,
   });

@@ -120,6 +120,19 @@ function myListingsCss(): string {
 }
 
 /**
+ * The row `listingHref` is called with as its second argument — the same
+ * object the row renders from, with `title` guaranteed present.
+ *
+ * `MyListingCard.title` is the PUBLISHED field and is `""`/absent on a
+ * listing nobody has ever submitted (`model/mine.ts`'s header) — but
+ * {@link RowLink} never calls `href` for such a row (`neverSubmitted` bails
+ * out first), so every row that reaches a `listingHref` call has a real
+ * title. The cast below is that guarantee made structural rather than
+ * re-checked at each call site.
+ */
+export type MyListingHrefRow = MyListingCard & { title: string };
+
+/**
  * The row's title and thumbnail, as a link to the listing's own page when the
  * host has one.
  *
@@ -141,7 +154,7 @@ function myListingsCss(): string {
  */
 function RowLink(props: {
   listing: MyListingCard;
-  href: ((id: number) => string) | undefined;
+  href: ((id: number, row: MyListingHrefRow) => string) | undefined;
   linkComponent: LinkComponent | undefined;
   children: ReactNode;
   testId: string;
@@ -149,7 +162,7 @@ function RowLink(props: {
 }): ReactElement {
   const { href, listing } = props;
   if (href === undefined || neverSubmitted(listing)) return <>{props.children}</>;
-  const target = href(listing.id);
+  const target = href(listing.id, listing as MyListingHrefRow);
   const Link = props.linkComponent;
   const shared = {
     href: target,
@@ -171,7 +184,7 @@ function MyListingRow(props: {
   listing: MyListingCard;
   onEdit?: ((id: number) => void) | undefined;
   onAskRemove: (id: number) => void;
-  listingHref?: ((id: number) => string) | undefined;
+  listingHref?: ((id: number, row: MyListingHrefRow) => string) | undefined;
   linkComponent?: LinkComponent | undefined;
 }): ReactElement {
   const t = useT();
@@ -353,7 +366,12 @@ export interface MyListingsPaneProps extends ThemeModeProp, SignInCtaProp {
   readonly onEdit?: (id: number) => void;
   /**
    * Where a listing's own page lives, given its id — `(id) => \`/l/${id}\``
-   * for a storefront.
+   * for a storefront that only needs the id, or
+   * `(id, row) => \`/l/${id}-${slugify(row.title)}\`` for one whose routes
+   * carry a slug. The second argument is the same {@link MyListingCard} the
+   * row renders from, narrowed to {@link MyListingHrefRow} (`title`
+   * guaranteed present) — a host that ignores it keeps the id-only form
+   * working exactly as before.
    *
    * Absent, the row's title and thumbnail are plain text and a picture, which
    * is what this pane shipped: a live cabinet held zero links to a listing,
@@ -362,7 +380,7 @@ export interface MyListingsPaneProps extends ThemeModeProp, SignInCtaProp {
    * have no public page has nothing to link TO — but it is now a decision the
    * host makes rather than one this file made for everyone.
    */
-  readonly listingHref?: (id: number) => string;
+  readonly listingHref?: (id: number, row: MyListingHrefRow) => string;
   /**
    * The router's link, so those two targets are client-side navigations. A
    * plain `<a href>` otherwise — right-clickable and correct, just a full page

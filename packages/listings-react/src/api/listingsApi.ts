@@ -170,6 +170,33 @@ export interface ListingsApi {
   saveDraft(id: number, body: ListingDraftPatch): Promise<ListingDraft>;
 
   /**
+   * The draft twin, read back — `GET {id}/draft/` (stapel-listings 0.21.1),
+   * owner-only. Answers the exact `ListingDraftSerializer` shape `save-draft`
+   * does, which is what finally lets a reopened listing seed from what was
+   * actually typed rather than from the published half (see
+   * `headless/ListingComposer.tsx`'s header on why that used to be
+   * impossible).
+   *
+   * A stranger's id 403s; an absent one 404s — same as every other owner
+   * read here. A build against an OLDER backend also 404s (the route did not
+   * exist yet), and a caller cannot tell the two apart from the response
+   * alone; `useListingComposer` treats either as "fall back to the detail
+   * seed" rather than surfacing a hard failure, because a reopened draft is
+   * strictly better served by the published half than by an error banner.
+   *
+   * Hand-authored: `stapel-listings` 0.21.1 has not been regenerated into
+   * this pair's pinned schema yet, so there is no `Schemas["..."]` for this
+   * operation to bind to. The response shape is declared by hand against
+   * {@link ListingDraft} — the same type `save-draft` already returns — the
+   * way `@stapel/categories-react` hand-declares `children_as` ahead of its
+   * own pin.
+   */
+  draft(
+    id: number,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<ListingDraft>;
+
+  /**
    * Ask what publishing WOULD say, without publishing. Same validator as
    * `publish` (`services.publish.validate_draft`), so the two cannot disagree
    * — including on an unknown feature slug, which 0.6.0's M-7 convergence
@@ -320,6 +347,9 @@ export function createListingsApi(client: StapelClient): ListingsApi {
     createDraft: (body) => client.post(COLLECTION, body),
 
     saveDraft: (id, body) => client.post(`${listingPath(id)}save-draft/`, body),
+
+    draft: (id, options) =>
+      client.get(`${listingPath(id)}draft/`, signal(options)),
 
     validateDraft: (id, options) =>
       client.get(`${listingPath(id)}validate-draft/`, signal(options)),

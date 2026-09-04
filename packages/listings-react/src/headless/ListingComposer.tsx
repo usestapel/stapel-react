@@ -22,7 +22,7 @@ import type {
   PublishResponse,
 } from "../api/types.js";
 import { useListingsRuntime } from "../model/context.js";
-import { useListing } from "../model/queries.js";
+import { useListing, useListingDraft } from "../model/queries.js";
 import {
   useCreateDraft,
   usePublishListing,
@@ -32,6 +32,7 @@ import {
   createDraftBody,
   draftPatchFromValues,
   draftValuesFromDetail,
+  draftValuesFromWire,
   droppedFeatureSlugs,
   emptyDraftValues,
   retainKnownFeatureValues,
@@ -82,17 +83,23 @@ import { useMandateGate } from "./useMandateGate.js";
  *    the headless half must judge renderability without importing a skin, so
  *    the skin's `BUILTIN_VALUE_EDITOR_TYPES` is passed IN.
  *
- * ── Reopening a draft is NOT possible on stapel-listings 0.6.0 ─────────────
+ * ── Reopening a draft, before and after stapel-listings 0.21.1 ─────────────
  *
- * No read returns the `*_draft` twin: `GET /{pk}/` serializes the PUBLISHED
- * fields (`ListingDetailSerializer`), and `ListingDraftSerializer` appears
- * only as the RESPONSE of create / save-draft. So editing a live listing
- * works completely — the composer seeds from the published half, which is
- * exactly what the person sees on the page — while a draft abandoned and
- * reopened later comes back empty. The composer says so
- * (`draftNotReadable`) instead of showing a blank form as if nothing had been
- * typed. Upstream ask, recorded in MODULE.md: put the draft twin on the
- * retrieve, or add `GET /{pk}/draft/`.
+ * `GET /{pk}/` serializes the PUBLISHED fields only (`ListingDetailSerializer`)
+ * and, before 0.21.1, `ListingDraftSerializer` appeared only as the RESPONSE
+ * of create / save-draft — no read returned the `*_draft` twin at all. So a
+ * draft abandoned and reopened came back empty, and a live listing's edit
+ * seeded from the published half instead (`draftValuesFromDetail`), which is
+ * what the person could actually see but not necessarily what they had last
+ * typed and not yet republished.
+ *
+ * 0.21.1 added the owner-only `GET /{pk}/draft/`, the exact `save-draft`
+ * response shape. The seeding effect now tries it first
+ * (`draftValuesFromWire`) for every reopened listing, live or not, and falls
+ * back to the published-half seed only when that read 404s — either nothing
+ * was ever saved, or the backend predates the route. `draftNotReadable`
+ * narrows to exactly that fallback case: the draft read failed AND the
+ * published half is empty too, so there is truly nothing to show.
  */
 
 /** The two members of `@stapel/cdn-react`'s upload bag this composer needs.
@@ -264,6 +271,7 @@ export function useListingComposer(
   const [saveRequest, setSaveRequest] = useState(0);
 
   const existing = useListing(options.listingId);
+  const listingDraft = useListingDraft(options.listingId);
   const createDraft = useCreateDraft();
   const saveDraft = useSaveDraft();
   const publishListing = usePublishListing();
@@ -272,21 +280,33 @@ export function useListingComposer(
   // dependency guard because re-seeding on a refetch would throw away
   // everything typed since — a background invalidation must never rewrite a
   // form somebody is in the middle of.
+  //
+  // The draft-twin read (`GET {id}/draft/`, 0.21.1) is tried FIRST
+  // (`draftValuesFromWire`); the published-half seed (`draftValuesFromDetail`)
+  // is the fallback, taken once that read has settled to anything other than
+  // success — a 404 because nothing was ever saved, a 404 because this
+  // backend predates the route, or any other failure a composer must not
+  // hang on. Waiting for `listingDraft` to settle too (not only `existing`)
+  // is what stops a live listing with unpublished edits from flashing its
+  // published content before the true draft lands.
   const seeded = useRef(false);
   useEffect(() => {
     if (seeded.current) return;
     const detail = existing.data;
     if (detail === undefined) return;
+    if (listingDraft.status === "pending") return;
     seeded.current = true;
     setListingId(detail.id);
     setValues(
-      draftValuesFromDetail(
-        detail,
-        featuresDtoFromDaoList(asFeatureDaoList(detail.features)) as FeaturesDto,
-        { currency: runtime.currency }
-      )
+      listingDraft.status === "success"
+        ? draftValuesFromWire(listingDraft.data, { currency: runtime.currency })
+        : draftValuesFromDetail(
+            detail,
+            featuresDtoFromDaoList(asFeatureDaoList(detail.features)) as FeaturesDto,
+            { currency: runtime.currency }
+          )
     );
-  }, [existing.data, runtime.currency]);
+  }, [existing.data, listingDraft.status, listingDraft.data, runtime.currency]);
 
   // Pruning and SEEDING both run on the SCHEMA arriving, one render after the
   // category changed: `setCategory` cannot prune against features it has not
@@ -368,9 +388,14 @@ export function useListingComposer(
   );
 
   const isLiveEdit = existing.data?.status === "published";
+  // Narrowed to the fallback case: the draft-twin read did not land (see the
+  // seeding effect above), and the published half is empty too, so there is
+  // truly nothing to show. A build on stapel-listings 0.21.1+ only reaches
+  // this when the row has genuinely never been saved into.
   const draftNotReadable =
     existing.data !== undefined &&
     existing.data.status !== "published" &&
+    listingDraft.status !== "success" &&
     (existing.data.title ?? "").length === 0 &&
     (existing.data.description ?? "").length === 0;
 
