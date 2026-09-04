@@ -633,6 +633,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/categories/api/v1/tree/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The active category tree, nested, ordered by `tn_priority` descending at every level. One call, one query, cached.
+         *
+         *     **Permissions:** `ReadOnlyOrStaff`
+         */
+        get: operations["categories_api_v1_tree_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -713,6 +734,8 @@ export interface components {
             carousel_enabled?: boolean;
             /** @description Whether this category is active */
             active?: boolean;
+            /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             readonly features: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -794,6 +817,14 @@ export interface components {
          *     the two projections structurally one serializer: a field added to the
          *     public set is automatically part of this one, and this one can never lose
          *     a public field silently.
+         *
+         *     ``children_as_authored`` is the same split, one field further: the
+         *     inherited ``children_as`` stays the RESOLVED read (an operator wants to
+         *     see what a visitor sees), and the raw authoring column — ``auto``
+         *     included — gets its own key, writable. Without it "an authored value wins
+         *     over derivation" would be reachable only from the admin or a DB console.
+         *     ``children_as_derived`` rides along read-only so an operator can tell an
+         *     inherited decision from their own.
          */
         CategoryStaff: {
             readonly id: number;
@@ -807,6 +838,8 @@ export interface components {
             carousel_enabled?: boolean;
             /** @description Whether this category is active */
             active?: boolean;
+            /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             readonly features: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -827,7 +860,60 @@ export interface components {
             external_id?: string;
             /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
             external_source?: string;
+            /**
+             * @description Authoring value: `auto` leaves it to `derive_children_as`, `tiles`/`chips` pin it.
+             *
+             *     * `auto` - Auto (derive)
+             *     * `tiles` - Tiles
+             *     * `chips` - Chips
+             */
+            children_as_authored?: components["schemas"]["ChildrenAsAuthoredEnum"];
+            readonly children_as_derived: string;
         };
+        /**
+         * @description One node of ``GET /categories/api/v1/tree/`` — schema, not machinery.
+         *
+         *     The endpoint assembles plain dicts from a single flat ``values()`` read
+         *     (a nested serializer over model instances would be one query per level),
+         *     so this class exists to give the emitted contract a named shape rather
+         *     than to run.
+         *
+         *     ``children`` is declared as a list of objects instead of recursing into
+         *     this same serializer: the nesting is depth-capped at request time, and a
+         *     self-referential component makes a generator that inlines definitions
+         *     recur until it gives up. The element shape is this one.
+         *
+         *     Provenance (``external_id``/``external_source``) is absent here for the
+         *     reason :class:`CategorySerializer` states — this is an anonymous read.
+         */
+        CategoryTreeNode: {
+            id: number;
+            slug: string;
+            name: string;
+            /** @description Ancestor ids root->self, `/`-joined (e.g. `141/151/166`) — the form the search query's `category` parameter takes. */
+            path: string;
+            catalog_icon: string;
+            /**
+             * @description `null` when the node has no children.
+             *
+             *     * `tiles` - tiles
+             *     * `chips` - chips
+             */
+            children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
+            /** @description Nodes of this same shape; empty at the requested depth. */
+            children: {
+                [key: string]: unknown;
+            }[];
+        };
+        /**
+         * @description * `auto` - Auto (derive)
+         *     * `tiles` - Tiles
+         *     * `chips` - Chips
+         * @enum {string}
+         */
+        ChildrenAsAuthoredEnum: "auto" | "tiles" | "chips";
+        /** @enum {string} */
+        ChildrenAsEnum: "tiles" | "chips";
         /**
          * @description * `keep` - keep
          *     * `add` - add
@@ -1543,6 +1629,14 @@ export interface components {
          *     the two projections structurally one serializer: a field added to the
          *     public set is automatically part of this one, and this one can never lose
          *     a public field silently.
+         *
+         *     ``children_as_authored`` is the same split, one field further: the
+         *     inherited ``children_as`` stays the RESOLVED read (an operator wants to
+         *     see what a visitor sees), and the raw authoring column — ``auto``
+         *     included — gets its own key, writable. Without it "an authored value wins
+         *     over derivation" would be reachable only from the admin or a DB console.
+         *     ``children_as_derived`` rides along read-only so an operator can tell an
+         *     inherited decision from their own.
          */
         PatchedCategoryStaff: {
             readonly id?: number;
@@ -1556,6 +1650,8 @@ export interface components {
             carousel_enabled?: boolean;
             /** @description Whether this category is active */
             active?: boolean;
+            /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            readonly children_as?: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             readonly features?: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -1576,6 +1672,15 @@ export interface components {
             external_id?: string;
             /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
             external_source?: string;
+            /**
+             * @description Authoring value: `auto` leaves it to `derive_children_as`, `tiles`/`chips` pin it.
+             *
+             *     * `auto` - Auto (derive)
+             *     * `tiles` - Tiles
+             *     * `chips` - Chips
+             */
+            children_as_authored?: components["schemas"]["ChildrenAsAuthoredEnum"];
+            readonly children_as_derived?: string;
         };
         /** @description Serializer for creating/updating features with polymorphic config. */
         PatchedFeatureCreateUpdate: {
@@ -2728,6 +2833,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MaxRevision"];
+                };
+            };
+        };
+    };
+    categories_api_v1_tree_list: {
+        parameters: {
+            query?: {
+                /** @description Levels to return, 1..4 (default 3). Out-of-range values are clamped, not refused. */
+                depth?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryTreeNode"][];
                 };
             };
         };

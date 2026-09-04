@@ -31,6 +31,9 @@ export function categoryRow(
     carousel_icon: "",
     carousel_enabled: false,
     active: true,
+    // The 0.19 contract sends it on every row; `null` is "no children to
+    // present", which is what a fixture built without an `extra` describes.
+    children_as: null,
     features: [],
     translatable: true,
     tn_parent: parent,

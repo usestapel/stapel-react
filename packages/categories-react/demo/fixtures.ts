@@ -34,6 +34,7 @@ function row(
     carousel_icon: "",
     carousel_enabled: false,
     active: true,
+    children_as: null,
     features: [],
     translatable: true,
     tn_parent: parent,

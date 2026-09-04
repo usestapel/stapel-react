@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.14 <0.15"
@@ -572,6 +572,31 @@
         "off-ladder"
       ],
       "source": "demo/PageSizeSelect.demo.tsx"
+    },
+    {
+      "id": "search.partition-chips",
+      "title": "Partition chips",
+      "description": "A single-select row of the parent plus its children, where the first chip is the parent itself rather than a way of clearing the others — searching the parent IS the union of its children. It is a real radiogroup with roving tabindex: Tab reaches the row once and lands on the chosen chip, the arrow keys move along it and choose as they go. A row of aria-pressed toggles would announce the opposite — independent switches, with no reason why pressing one released another.",
+      "component": "PartitionChips",
+      "variants": [
+        "parent",
+        "child"
+      ],
+      "source": "demo/PartitionChips.demo.tsx"
+    },
+    {
+      "id": "search.popular-values",
+      "title": "Popular values",
+      "description": "The head of one facet as a multi-column list of value + count, each line applying that filter. The numbers are the answer's own drill-down counts — the same ones the checkbox rows carry — so a value cannot read 802 here and 93 in the panel. Values with no evidence behind them are dropped rather than printed with a blank where the number belongs: the block IS the numbers. Whether a phone has room for it is the page's decision and arrives as the `hidden` prop, never as a media query inside.",
+      "component": "PopularValues",
+      "tokens": [
+        "text-muted"
+      ],
+      "variants": [
+        "desktop",
+        "narrow-column"
+      ],
+      "source": "demo/PopularValues.demo.tsx"
     },
     {
       "id": "search.range-filter-row",
