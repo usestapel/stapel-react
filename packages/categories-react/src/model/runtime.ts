@@ -35,5 +35,17 @@ export type CreateCategoriesRuntimeOptions = CreateModuleRuntimeOptions;
 export function createCategoriesRuntime(
   options: CreateCategoriesRuntimeOptions
 ): CategoriesRuntime {
-  return createModuleRuntime((client) => createCategoriesApi(client), options);
+  return createModuleRuntime(
+    (client) =>
+      createCategoriesApi(client, {
+        ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
+        ...(options.credentials !== undefined
+          ? { credentials: options.credentials }
+          : {}),
+        ...(options.defaultHeaders !== undefined
+          ? { defaultHeaders: options.defaultHeaders }
+          : {}),
+      }),
+    options
+  );
 }

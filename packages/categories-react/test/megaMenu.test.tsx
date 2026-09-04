@@ -236,4 +236,55 @@ describe("<CategoryMegaMenu>", () => {
       expect(screen.getByTestId("categories-mega-menu-failed")).toBeTruthy();
     });
   });
+
+  it("fires onSelect for a root, a column header (child) and a third-level link (grandchild)", async () => {
+    const onSelect = vi.fn();
+    await mountMenu({ onSelect });
+
+    // Root: fired beside the existing hover/arrow selection, not instead of
+    // it — the rail still opens electronics' own pane.
+    fireEvent.click(screen.getByTestId("categories-mega-menu-root-1"));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1 }),
+      "root"
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-mega-menu-column-2")).toBeTruthy();
+    });
+
+    // Child: the column's own header link (phones, id 2).
+    const header = document.querySelector('[data-category-id="2"]');
+    expect(header).not.toBeNull();
+    fireEvent.click(header as Element);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 2 }),
+      "child"
+    );
+
+    // Grandchild: a third-level link under it (used-phones, id 4).
+    const grandchild = document.querySelector('[data-category-id="4"]');
+    expect(grandchild).not.toBeNull();
+    fireEvent.click(grandchild as Element);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 4 }),
+      "grandchild"
+    );
+  });
+
+  it("fires onSelect for the 'N more' tail link, naming the SAME node as its header", async () => {
+    // TREE_PARTS (transport's own second root, mounted by default) has seven
+    // children against the default cap of five, which is what makes the tail
+    // link exist at all.
+    const onSelect = vi.fn();
+    await mountMenu({ onSelect });
+    const column = screen.getByTestId("categories-mega-menu-column-161");
+    const links = column.querySelectorAll("a");
+    const tail = links[links.length - 1] as HTMLElement;
+    expect(tail.textContent).toBe("2 more");
+    fireEvent.click(tail);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 161 }),
+      "child"
+    );
+  });
 });

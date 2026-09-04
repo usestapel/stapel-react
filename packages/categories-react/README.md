@@ -147,6 +147,39 @@ rows over unmodified:
 The same `bag.features` is what `@stapel/search-react`'s facet panel takes as
 `categoryFeatures` to caption facet values.
 
+### A `chips` parent with no features of its own: `effectiveFrom` and `divergent`
+
+Since stapel-categories 0.20.1, a `chips` parent that declares no features
+answers the **effective** schema instead of an empty one: the intersection of
+its children's, so the parent — which renders the feed and the chip row for
+all of them — has something to draw before a chip narrows the choice. The
+response says which schema it sent with an `X-Effective-From` header, which
+`StapelClient.get` cannot see; this pair reads it over a small `fetch`
+carve-out (`api/featuresRaw.ts`, the one legal home of `fetch` per
+`stapel/no-raw-fetch`) and hands it back as `bag.effectiveFrom`:
+
+```tsx
+<CategoryFeatures categoryId={id}>
+  {(bag) => /* bag.effectiveFrom: "own" | "children" */}
+</CategoryFeatures>
+```
+
+A feature only some children carry, or one whose config, `mandatory` or rules
+disagree between them, carries `divergent: true` — its `config` is already the
+widest the children accept. Drawing it before a chip is picked offers a
+control that means something different depending which chip gets chosen, so
+`visibleFeatures` hides it until then:
+
+```tsx
+import { visibleFeatures } from "@stapel/categories-react";
+
+const shown = visibleFeatures(bag.features, { chipPicked: partitionChild !== null });
+```
+
+`chipPicked: true` is a no-op — pass it once the person has picked a
+partition child, and every row (divergent or not) shows. `partitionChild`
+comes from the cascade: see the commit-rule section below.
+
 ## Surface
 
 | Export | What it is |
@@ -160,6 +193,7 @@ The same `bag.features` is what `@stapel/search-react`'s facet panel takes as
 | `applyCategoryPage` / `firstPageRequest` / `nextPageRequest` / `syncCatalog` | the delta protocol, testable without React |
 | `categoryLabel` / `featureLabel` / `featureCommentLabel` / `renderCategoryLabel` | the translation-key answer |
 | `<CategoryTree>` `<CategoryBreadcrumbs>` `<CategoryCarousel>` `<CategoryPicker>` `<CategoryFeatures>` | headless bags |
+| `visibleFeatures(features, { chipPicked })` | hides a `divergent: true` row until a chip is picked |
 | `useCategoryCascade` / `<CategoryCascade>` | the ladder of child selects the tile cap hands over to — one `children/` per rung, three commit rules |
 | `/default`: `CatalogPage` `CategoryPage` `CategoryTreePane` `CategoryBreadcrumbsBar` `CategoryCarouselStrip` `CategoryTileGrid` `CategoryMegaMenu` `CategoryPickerField` `CategoryCascadeField` `CategoryFeatureList` | the antd skin |
 
@@ -361,6 +395,29 @@ cursor, not a value. `blockedReason` says why no value came back:
 `"has_subcategories"` (the `"stage"` one). Keyboard and aria are the same
 control in all three.
 
+The partition child itself is the host's own select, drawn beside the cascade
+out of the stopped category's own children — the cascade never fetches or
+chooses it. Pass the host's current pick as `partitionChild` and the bag
+echoes it straight back, so one bag (not two pieces of state kept in step by
+hand) tells the rest of the screen whether a chip is picked:
+
+```tsx
+const { partitionChild, ...cascade } = useCategoryCascade({ commit: "stage", partitionChild: chip });
+const shown = visibleFeatures(features, { chipPicked: partitionChild !== null });
+```
+
+## The mega-menu's `onSelect`
+
+`<CategoryMegaMenu onSelect={(node, kind) => …}>` fires on click (and on
+Enter — a link and the rail's own buttons both dispatch a native `click` for
+that) of any item in the panel: `kind` is `"root"` for a rail entry, `"child"`
+for a column's own header link (the tail `N more` link included — it leads to
+the same node), and `"grandchild"` for one of its third-level links. It is
+additive: the row still navigates through `href` / `linkComponent` exactly as
+before, and closing the panel is still the host's job (`onClose`). Before this
+the only way to learn which row was pressed was reading `data-category-id`
+back off the DOM through a delegated listener.
+
 ## The category page's title: `heading`
 
 `<CategoryPage>` renders the category's own translated name as its heading.
@@ -380,6 +437,11 @@ title above the page's and leaving two headings in one outline.
 `count` is the number of SUB-CATEGORIES the page has in hand — the only count
 this pair owns. A results count belongs to the listings pair and is already in
 the host's state, which is why the slot takes a node rather than a template.
+
+The page's content column defaults to `CATEGORY_MEASURE` (`64rem`) wide; pass
+`measure` (anything CSS `max-width` takes — `"72rem"`, `960`, `"100%"`) for a
+host that wants a different one, instead of overriding it from outside with
+`!important` against a value it could not read back.
 
 ## Category chrome inside a SPA: `linkComponent`
 

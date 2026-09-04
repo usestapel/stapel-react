@@ -25,7 +25,7 @@
  */
 export { CatalogPage } from "./CatalogPage.js";
 export type { CatalogPageProps } from "./CatalogPage.js";
-export { CategoryPage } from "./CategoryPage.js";
+export { CATEGORY_MEASURE, CategoryPage } from "./CategoryPage.js";
 export type {
   CategoryHeading,
   CategoryHeadingContext,

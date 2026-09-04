@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import { featureType } from "@stapel/attributes-react";
-import type { CategoryFeature } from "../api/types.js";
+import type {
+  CategoryFeature,
+  CategoryFeaturesEffectiveFrom,
+} from "../api/types.js";
 import { featureLabel, featureOptionsAreKeys } from "../catalog/labels.js";
 import type { CategoryLabel } from "../catalog/labels.js";
 import { useCategoryFeatures } from "../model/queries.js";
@@ -20,6 +23,10 @@ export interface CategoryFeatureEntry {
   /** Are this feature's option labels translation keys? Only under
    * `translate: "all"` and while `translatable_options` is not false. */
   readonly optionsAreKeys: boolean;
+  /** `feature.divergent === true`, normalized like `mandatory` above. Only
+   * ever true under {@link CategoryFeaturesBag.effectiveFrom} `"children"` —
+   * see `visibleFeatures`. */
+  readonly divergent: boolean;
 }
 
 export interface CategoryFeaturesBag {
@@ -41,8 +48,45 @@ export interface CategoryFeaturesBag {
   readonly badges: readonly CategoryFeature[];
   /** Only the features marked `show_at_title` — the generated title parts. */
   readonly titleParts: readonly CategoryFeature[];
+  /**
+   * `"own"` — `features` is this category's own resolved schema, exactly as
+   * every build before stapel-categories 0.20.1 answered. `"children"` — this
+   * category is a `chips` parent declaring none of its own: `features` is the
+   * INTERSECTION of its children's, and any row's `divergent: true` means the
+   * children disagree on it. Defaults to `"own"` while the read is not yet
+   * `ready` and whenever the server sends no `X-Effective-From` header at all
+   * (a build older than 0.20.1).
+   */
+  readonly effectiveFrom: CategoryFeaturesEffectiveFrom;
   readonly isFetching: boolean;
   refetch(): void;
+}
+
+/**
+ * Hides a `divergent: true` row until a chip is picked.
+ *
+ * `effectiveFrom: "children"` (see {@link CategoryFeaturesBag}) can carry a
+ * feature only some children declare, or one whose config, `mandatory` or
+ * `rules` disagree between them — the row's `config` is already the WIDEST
+ * of theirs, so drawing it before a chip narrows to one child offers a
+ * control that means something different depending which chip gets picked.
+ * Once a chip IS picked (a `CategoryCascade` `commit: "stage"` stop's own
+ * partition select — see `headless/CategoryCascade.tsx`) the row means
+ * exactly what that child says, and it is safe to show.
+ *
+ * `chipPicked: true` is a no-op (every row passes) — a leaf or a `tiles`
+ * parent's `effectiveFrom: "own"` schema never carries `divergent` at all, so
+ * the filter has nothing to remove there either way.
+ *
+ * The composer (`@stapel/listings-react`) and the facet rail
+ * (`@stapel/search-react`) both call this; neither host is wired to it here.
+ */
+export function visibleFeatures(
+  features: readonly CategoryFeature[],
+  options: { readonly chipPicked: boolean }
+): readonly CategoryFeature[] {
+  if (options.chipPicked) return features;
+  return features.filter((feature) => feature.divergent !== true);
 }
 
 export interface CategoryFeaturesProps {
@@ -77,21 +121,23 @@ export function CategoryFeatures(props: CategoryFeaturesProps): ReactNode {
     props.enabled !== undefined ? { enabled: props.enabled } : {}
   );
   const state = loadStateFromQuery(query);
-  const features = state.status === "ready" ? state.data : [];
+  const features = state.status === "ready" ? state.data.features : [];
 
   return props.children({
-    state: mapLoad(state, (rows) =>
-      rows.map((feature) => ({
+    state: mapLoad(state, (result) =>
+      result.features.map((feature) => ({
         feature,
         label: featureLabel(feature),
         type: featureType(feature),
         mandatory: feature.mandatory === true,
         optionsAreKeys: featureOptionsAreKeys(feature),
+        divergent: feature.divergent === true,
       }))
     ),
     features,
     badges: features.filter((f) => f.show_as_badge === true),
     titleParts: features.filter((f) => f.show_at_title === true),
+    effectiveFrom: query.data?.effectiveFrom ?? "own",
     isFetching: query.isFetching,
     refetch: () => {
       void query.refetch();

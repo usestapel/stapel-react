@@ -13,9 +13,9 @@ import {
   unsupportedTypes,
 } from "@stapel/attributes-react";
 import { BUILTIN_VALUE_EDITOR_TYPES } from "@stapel/attributes-react/default";
-import { CategoryFeatures } from "../src/index.js";
+import { CategoryFeatures, visibleFeatures } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
-import { FEATURES, FEATURE_POWER } from "./fixtures.js";
+import { FEATURES, FEATURES_EFFECTIVE, FEATURE_POWER } from "./fixtures.js";
 
 function Probe(props: { id: number | null }): ReactElement {
   return (
@@ -23,6 +23,7 @@ function Probe(props: { id: number | null }): ReactElement {
       {(bag) => (
         <div>
           <span data-testid="status">{bag.state.status}</span>
+          <span data-testid="effective-from">{bag.effectiveFrom}</span>
           <span data-testid="slugs">
             {bag.state.status === "ready"
               ? bag.state.data.map((e) => e.feature.slug).join(",")
@@ -31,6 +32,14 @@ function Probe(props: { id: number | null }): ReactElement {
           <span data-testid="types">
             {bag.state.status === "ready"
               ? bag.state.data.map((e) => e.type ?? "untyped").join(",")
+              : ""}
+          </span>
+          <span data-testid="divergent">
+            {bag.state.status === "ready"
+              ? bag.state.data
+                  .filter((e) => e.divergent)
+                  .map((e) => e.feature.slug)
+                  .join(",")
               : ""}
           </span>
           <span data-testid="badges">
@@ -164,5 +173,82 @@ describe("config arrives VERBATIM — defaults are attributes-react's job", () =
 
   it("a name still falls back to the slug the way the server does", () => {
     expect(featureName({ slug: "bare", config: {} })).toBe("bare");
+  });
+});
+
+describe("effectiveFrom — the X-Effective-From header (stapel-categories 0.20.1)", () => {
+  it("reads 'own' off an ordinary answer", async () => {
+    const server = mockServer({
+      "/features/": { body: FEATURES, headers: { "X-Effective-From": "own" } },
+    });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    expect(screen.getByTestId("effective-from").textContent).toBe("own");
+    expect(screen.getByTestId("divergent").textContent).toBe("");
+  });
+
+  it("reads 'children' off a chips parent's intersected answer, and surfaces divergent rows", async () => {
+    const server = mockServer({
+      "/features/": {
+        body: FEATURES_EFFECTIVE,
+        headers: { "X-Effective-From": "children" },
+      },
+    });
+    render(
+      <TestProviders server={server}>
+        <Probe id={3} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    expect(screen.getByTestId("effective-from").textContent).toBe("children");
+    expect(screen.getByTestId("divergent").textContent).toBe("screen_size");
+  });
+
+  it("defaults to 'own' when the server sends no header at all", async () => {
+    // No `headers` on the route at all — a build older than 0.20.1.
+    const server = mockServer({ "/features/": { body: FEATURES } });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    expect(screen.getByTestId("effective-from").textContent).toBe("own");
+  });
+
+  it("defaults to 'own' before the read has answered", () => {
+    const server = mockServer({ "/features/": { body: FEATURES } });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    expect(screen.getByTestId("effective-from").textContent).toBe("own");
+  });
+});
+
+describe("visibleFeatures — hides a divergent row until a chip is picked", () => {
+  it("hides divergent rows when no chip is picked", () => {
+    const visible = visibleFeatures(FEATURES_EFFECTIVE, { chipPicked: false });
+    expect(visible.map((f) => f.slug)).toEqual(["power_w"]);
+  });
+
+  it("shows every row once a chip is picked", () => {
+    const visible = visibleFeatures(FEATURES_EFFECTIVE, { chipPicked: true });
+    expect(visible.map((f) => f.slug)).toEqual(["power_w", "screen_size"]);
+  });
+
+  it("is a no-op over an 'own' schema, which never carries divergent rows", () => {
+    expect(visibleFeatures(FEATURES, { chipPicked: false })).toEqual(FEATURES);
   });
 });

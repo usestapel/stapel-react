@@ -1,13 +1,24 @@
 import type { StapelClient } from "@stapel/core";
+import { fetchCategoryFeatures } from "./featuresRaw.js";
+import type { CategoriesRawTransport } from "./featuresRaw.js";
 import type {
   Category,
-  CategoryFeature,
+  CategoryFeaturesResult,
   CategoryListParams,
   CategoryPage,
   CategoryTreeNode,
   CategoryTreeParams,
   MaxRevision,
 } from "./types.js";
+
+/** Options `createCategoriesApi` needs beyond the JSON client, forwarded from
+ * the runtime — see `api/featuresRaw.ts` for why `features()` needs its own
+ * transport at all. */
+export interface CategoriesApiOptions {
+  readonly fetch?: typeof globalThis.fetch;
+  readonly credentials?: RequestCredentials;
+  readonly defaultHeaders?: Record<string, string>;
+}
 
 /**
  * The pair's typed operation surface — one method per stapel-categories
@@ -123,11 +134,18 @@ export interface CategoriesApi {
    * `@stapel/attributes-react` and what labels a search facet. `config`
    * arrives verbatim — defaults are the reader's job, and attributes-react
    * owns them.
+   *
+   * Since stapel-categories 0.20.1 a `chips` parent with no features of its
+   * own answers the EFFECTIVE schema instead — the intersection of its
+   * children's, `divergent: true` beside a feature they disagree on — and
+   * says which schema it sent via `X-Effective-From`. That header rides
+   * outside `StapelClient`'s reach, so this one read goes over the raw
+   * carve-out in `api/featuresRaw.ts` rather than `client.get`.
    */
   features(
     id: number,
     options?: { readonly signal?: AbortSignal }
-  ): Promise<readonly CategoryFeature[]>;
+  ): Promise<CategoryFeaturesResult>;
 
   /**
    * The table's current maximum revision, without transferring any rows.
@@ -180,7 +198,20 @@ export function categoryListParams(
   return query;
 }
 
-export function createCategoriesApi(client: StapelClient): CategoriesApi {
+export function createCategoriesApi(
+  client: StapelClient,
+  options: CategoriesApiOptions = {}
+): CategoriesApi {
+  const rawTransport: CategoriesRawTransport = {
+    baseUrl: client.baseUrl,
+    ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
+    ...(options.credentials !== undefined
+      ? { credentials: options.credentials }
+      : {}),
+    ...(options.defaultHeaders !== undefined
+      ? { headers: options.defaultHeaders }
+      : {}),
+  };
   return {
     client,
 
@@ -205,10 +236,7 @@ export function createCategoriesApi(client: StapelClient): CategoriesApi {
         ...(options?.signal !== undefined ? { signal: options.signal } : {}),
       }),
 
-    features: (id, options) =>
-      client.get(`/categories/${String(id)}/features/`, {
-        ...(options?.signal !== undefined ? { signal: options.signal } : {}),
-      }),
+    features: (id, options) => fetchCategoryFeatures(rawTransport, id, options),
 
     revision: (options) =>
       client.get("/categories/revision/", {

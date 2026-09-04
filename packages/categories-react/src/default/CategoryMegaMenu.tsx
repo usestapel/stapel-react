@@ -219,6 +219,22 @@ export interface CategoryMegaMenuProps extends ThemeModeProp, LinkComponentProp 
    * component never hides itself, because a panel that closed on its own and a
    * button that still reads "open" are two answers to one question. */
   readonly onClose?: () => void;
+  /**
+   * Fired on click (or Enter — a link and this panel's rail buttons both
+   * dispatch a native `click` for that) of ANY item: a rail root, a column's
+   * own header link, or one of its third-level links. `kind` says which rung.
+   *
+   * Before this the only way a host learned WHICH row was picked was reading
+   * `data-category-id`/`data-testid` back off the DOM through a delegated
+   * listener of its own — this replaces that with the seam every other
+   * `onSelect` in the fleet takes. Additive: the row still navigates through
+   * `href`/`linkComponent` exactly as before, and a host still owns closing
+   * the panel (this never calls `onClose` itself).
+   */
+  readonly onSelect?: (
+    node: CategoryTreeNode,
+    kind: "root" | "child" | "grandchild"
+  ) => void;
 }
 
 /** A node's own name, translated. Tree nodes carry no `translatable` flag, and
@@ -246,6 +262,7 @@ function Column(props: {
   readonly href: (node: CategoryTreeNode) => string;
   readonly maxLinks: number;
   readonly linkComponent?: LinkComponentProp["linkComponent"];
+  readonly onSelect?: CategoryMegaMenuProps["onSelect"];
 }): ReactElement {
   const t = useT();
   const linkProps =
@@ -255,6 +272,7 @@ function Column(props: {
   const children = props.node.children ?? [];
   const shown = children.slice(0, props.maxLinks);
   const hidden = children.length - shown.length;
+  const onSelect = props.onSelect;
   return (
     <li style={columnStyle} data-testid={`categories-mega-menu-column-${String(props.node.id)}`}>
       <CategoryLink
@@ -263,6 +281,11 @@ function Column(props: {
         slug={props.node.slug}
         categoryId={props.node.id}
         style={headerLinkStyle}
+        onClick={() => {
+          onSelect?.(props.node, "child");
+        }}
+        data-analytics="none"
+        data-analytics-reason="a category link the host tracks itself once it navigates; onSelect only names which row was pressed"
       >
         {nodeLabel(props.node, t)}
       </CategoryLink>
@@ -274,6 +297,11 @@ function Column(props: {
           slug={child.slug}
           categoryId={child.id}
           style={childLinkStyle}
+          onClick={() => {
+            onSelect?.(child, "grandchild");
+          }}
+          data-analytics="none"
+          data-analytics-reason="a category link the host tracks itself once it navigates; onSelect only names which row was pressed"
         >
           {nodeLabel(child, t)}
         </CategoryLink>
@@ -285,6 +313,13 @@ function Column(props: {
           slug={props.node.slug}
           categoryId={props.node.id}
           style={moreLinkStyle}
+          onClick={() => {
+            // The tail link leads to the SAME node its header does — one
+            // more way to pick the column's own category, not a third rung.
+            onSelect?.(props.node, "child");
+          }}
+          data-analytics="none"
+          data-analytics-reason="a category link the host tracks itself once it navigates; onSelect only names which row was pressed"
         >
           {t(CATEGORIES_I18N_KEYS.megaMenuMore, { count: hidden })}
         </CategoryLink>
@@ -300,6 +335,7 @@ function Panel(props: {
   readonly maxLinks: number;
   readonly linkComponent?: LinkComponentProp["linkComponent"];
   readonly onClose?: () => void;
+  readonly onSelect?: CategoryMegaMenuProps["onSelect"];
 }): ReactElement {
   const t = useT();
   const roots = props.nodes;
@@ -409,6 +445,7 @@ function Panel(props: {
             }}
             onClick={() => {
               focusRoot(position);
+              props.onSelect?.(root, "root");
             }}
           >
             <RailIcon node={root} />
@@ -431,6 +468,9 @@ function Panel(props: {
             maxLinks={props.maxLinks}
             {...(props.linkComponent !== undefined
               ? { linkComponent: props.linkComponent }
+              : {})}
+            {...(props.onSelect !== undefined
+              ? { onSelect: props.onSelect }
               : {})}
           />
         ))}
@@ -468,6 +508,7 @@ export function CategoryMegaMenu(
       ? { linkComponent: props.linkComponent }
       : {}),
     ...(props.onClose !== undefined ? { onClose: props.onClose } : {}),
+    ...(props.onSelect !== undefined ? { onSelect: props.onSelect } : {}),
   };
   const empty = (
     <EmptyState

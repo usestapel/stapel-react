@@ -186,6 +186,9 @@ export interface CategoryCascadeBag {
   readonly trail: readonly Category[];
   /** The ladder finished on a category nothing lives under. */
   readonly atLeaf: boolean;
+  /** The host's {@link UseCategoryCascadeOptions.partitionChild}, echoed back
+   * — see there. */
+  readonly partitionChild: Category | null;
   /** A rung below the ones on screen is still in flight. */
   readonly isFetching: boolean;
   /** Why the cascade will not hand a value back yet, or `null`. */
@@ -291,6 +294,20 @@ export interface UseCategoryCascadeOptions
    * package — see this file's header.
    */
   readonly counts?: ReadonlyMap<number, number>;
+  /**
+   * The chip picked on a `commit: "stage"` stop's OWN partition select — the
+   * one the host draws beside this cascade, out of the stopped category's own
+   * children (see this file's header: it is a required select, not a rung of
+   * the ladder, so this hook never fetches or chooses it itself).
+   *
+   * Echoed back unchanged as {@link CategoryCascadeBag.partitionChild}, so one
+   * bag tells a composer or a facet rail whether a chip is picked — which is
+   * exactly what `visibleFeatures`'s `chipPicked` needs
+   * (`bag.partitionChild !== null`) — instead of the host keeping that fact in
+   * a second piece of state that can drift from this one. `null`/absent: no
+   * chip picked yet (or the ladder is not stopped on a partition at all).
+   */
+  readonly partitionChild?: Category | null;
 }
 
 /**
@@ -309,6 +326,7 @@ export function useCategoryCascade(
     commit,
     counts,
     roots,
+    partitionChild = null,
     includeDeleted,
     includeInactive,
     includeTest,
@@ -593,6 +611,7 @@ export function useCategoryCascade(
     selected,
     trail: cascadeTrail(levels),
     atLeaf,
+    partitionChild,
     isFetching: levelQueries.isPending && levels.length > 0,
     blockedReason:
       selected === null

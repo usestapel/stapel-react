@@ -4,7 +4,7 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
   Category,
-  CategoryFeature,
+  CategoryFeaturesResult,
   CategoryTreeNode,
   MaxRevision,
 } from "../api/types.js";
@@ -404,11 +404,18 @@ export function useCategoryCarousel(
  * This is the payload `@stapel/attributes-react` draws (the compose form) and
  * labels facets from (the search pair's `categoryFeatures` slot). It changes
  * only when the catalogue is edited, hence the same generous `staleTime`.
+ *
+ * Since stapel-categories 0.20.1 the answer also carries `effectiveFrom`:
+ * `"own"` (this row's own resolved schema, as always) or `"children"` (a
+ * `chips` parent with none of its own — the intersection of its children's,
+ * `divergent: true` beside a feature they disagree on). See
+ * `headless/CategoryFeatures.tsx`'s `visibleFeatures` for what a renderer
+ * does with a divergent row.
  */
 export function useCategoryFeatures(
   id: number | null | undefined,
   options?: { readonly enabled?: boolean; readonly staleTime?: number }
-): UseQueryResult<readonly CategoryFeature[], StapelApiError> {
+): UseQueryResult<CategoryFeaturesResult, StapelApiError> {
   const api = useCategoriesApi();
   return useQuery({
     queryKey: categoriesQueryKeys.features(id ?? -1),

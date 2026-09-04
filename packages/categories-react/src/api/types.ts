@@ -122,9 +122,35 @@ export type MaxRevision = Schemas["MaxRevision"];
  * default", never "off". attributes-react owns those defaults; this pair does
  * not re-state them.
  */
-export type CategoryFeature = FeatureDef;
+/**
+ * `divergent` is stapel-categories 0.20.1's extension, declared here by hand
+ * rather than folded into the generated `FeatureDef` — that type is a
+ * cross-package canon (`@stapel/attributes-react`'s §68 schema, checked
+ * against the Python dataclass and stapel-categories' own payload), not this
+ * pair's to widen. Present and `true` only on a `chips` parent's EFFECTIVE
+ * schema ({@link CategoryFeaturesEffectiveFrom} `"children"`), for a feature
+ * whose children disagree on config, `mandatory` or `rules` — see
+ * `visibleFeatures`.
+ */
+export type CategoryFeature = FeatureDef & { readonly divergent?: true };
 
 export type { FeatureConfig };
+
+/**
+ * `own` — this row's resolved schema (own + inherited), byte-for-byte what
+ * every build before stapel-categories 0.20.1 answered. `children` — this row
+ * is a `chips` parent declaring no features of its own, so the answer is the
+ * INTERSECTION of its children's, off the `X-Effective-From` response header.
+ * A server predating 0.20.1 sends no such header, which reads as `"own"` —
+ * the byte-for-byte answer it always sent.
+ */
+export type CategoryFeaturesEffectiveFrom = "own" | "children";
+
+/** `GET {id}/features/`'s full answer: the rows plus which schema they are. */
+export interface CategoryFeaturesResult {
+  readonly features: readonly CategoryFeature[];
+  readonly effectiveFrom: CategoryFeaturesEffectiveFrom;
+}
 
 /**
  * The wire's feature-config union, straight from the generated schema: ten

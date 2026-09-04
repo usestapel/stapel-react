@@ -183,7 +183,10 @@ function seedQueryClient(client: QueryClient, seed: DemoSeed): void {
     client.setQueryData(categoriesQueryKeys.carousel, [...seed.carousel]);
   }
   for (const [id, features] of Object.entries(seed.features ?? {})) {
-    client.setQueryData(categoriesQueryKeys.features(Number(id)), [...features]);
+    client.setQueryData(categoriesQueryKeys.features(Number(id)), {
+      features: [...features],
+      effectiveFrom: "own",
+    });
   }
 }
 

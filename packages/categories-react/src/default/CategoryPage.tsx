@@ -138,9 +138,11 @@ import type { LinkComponentProp } from "./CategoryLink.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
- * How wide a catalogue screen may get. Without one, a 1280px window put the
- * "2 subcategories" chip ~2,300px from the label it counts and left more than
- * 90% of the page empty.
+ * How wide a catalogue screen may get, by default. Without one, a 1280px
+ * window put the "2 subcategories" chip ~2,300px from the label it counts and
+ * left more than 90% of the page empty. A host that wants a different measure
+ * passes {@link CategoryPageProps.measure} rather than overriding this value's
+ * `max-width` from outside with `!important`.
  */
 export const CATEGORY_MEASURE = "64rem";
 
@@ -273,6 +275,17 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * arm. See `CategoryIconResolver`.
    */
   readonly resolveIconSrc?: CategoryIconResolver;
+  /**
+   * How wide the page's own content column may get — the `max-width` this
+   * file's header explains ({@link CATEGORY_MEASURE}'s own default).
+   *
+   * Without a prop a host that wanted a different measure had to override it
+   * with `!important` from outside, against a value it could not read back —
+   * this is that knob, taking anything CSS `max-width` takes (`"72rem"`,
+   * `960`, `"100%"`). Default {@link CATEGORY_MEASURE}, so no existing host
+   * changes shape.
+   */
+  readonly measure?: number | string;
 }
 
 /**
@@ -567,7 +580,7 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
       <Flex
         vertical
         gap={spacing[4]}
-        style={{ padding: spacing[4], maxWidth: CATEGORY_MEASURE }}
+        style={{ padding: spacing[4], maxWidth: props.measure ?? CATEGORY_MEASURE }}
         data-testid="categories-category-page"
       >
         {/* The page owns the outage and the dead address; the bar under

@@ -163,6 +163,7 @@ function Probe(props: {
   readonly value?: number | null;
   readonly roots?: readonly Category[];
   readonly onChange?: (id: number | null) => void;
+  readonly partitionChild?: Category | null;
 }): null {
   props.onBag(
     useCategoryCascade({
@@ -172,6 +173,9 @@ function Probe(props: {
       ...(props.value !== undefined ? { value: props.value } : {}),
       ...(props.roots !== undefined ? { roots: props.roots } : {}),
       ...(props.onChange !== undefined ? { onChange: props.onChange } : {}),
+      ...(props.partitionChild !== undefined
+        ? { partitionChild: props.partitionChild }
+        : {}),
     })
   );
   return null;
@@ -188,6 +192,7 @@ async function mountProbe(props: {
   readonly value?: number | null;
   readonly roots?: readonly Category[];
   readonly onChange?: (id: number | null) => void;
+  readonly partitionChild?: Category | null;
   /** What `GET /categories/carousel/` answers. Omitted, the route does not
    * exist at all — a deployment with no curated strip, which is the case the
    * catalogue-sync fallback is for. */
@@ -643,6 +648,27 @@ describe('useCategoryCascade — commit: "stage"', () => {
     expect(
       server.calls.filter((call) => call.url.includes("/51/children/"))
     ).toHaveLength(0);
+  });
+
+  it("echoes back the host's own partition pick, unfetched and unchosen", async () => {
+    // The stop drops the request for `cars`'s own children (the assertion
+    // above) — so a chip picked from the host's OWN select over those rows
+    // has nowhere else to land. `partitionChild` is pure pass-through: no
+    // extra request, no change to the ladder or `blockedReason`.
+    const { bag: bagWithNone } = await mountProbe({
+      roots: [CARS, ELECTRONICS],
+      commit: "stage",
+      rows: STAGE_ROWS,
+    });
+    expect(bagWithNone().partitionChild).toBeNull();
+
+    const { bag: bagWithPick } = await mountProbe({
+      roots: [CARS, ELECTRONICS],
+      commit: "stage",
+      rows: STAGE_ROWS,
+      partitionChild: CARS_NEW,
+    });
+    expect(bagWithPick().partitionChild).toEqual(CARS_NEW);
   });
 
   it("offers the rung under a TILES parent and refuses to commit it", async () => {

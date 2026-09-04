@@ -18,7 +18,7 @@
  */
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { CategoryPage } from "../src/default/index.js";
+import { CATEGORY_MEASURE, CategoryPage } from "../src/default/index.js";
 import {
   DESKTOP_WIDTH,
   TestProviders,
@@ -166,5 +166,39 @@ describe('the "pane" arm on the id path', () => {
     // would have answered the same question 36 requests later.
     const paths = server.calls.map((call) => new URL(call.url).pathname);
     expect(paths.filter((p) => p.endsWith(CATALOG_LIST))).toEqual([]);
+  });
+});
+
+describe("the page's content measure", () => {
+  it("defaults to CATEGORY_MEASURE", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage categoryId={ELECTRONICS.id} subcategories="pane" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-category-page")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("categories-category-page").style.maxWidth
+    ).toBe(CATEGORY_MEASURE);
+  });
+
+  it("takes a host's own measure instead of forcing an override from outside", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage
+          categoryId={ELECTRONICS.id}
+          subcategories="pane"
+          measure="80rem"
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-category-page")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("categories-category-page").style.maxWidth
+    ).toBe("80rem");
   });
 });

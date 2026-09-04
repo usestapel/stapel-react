@@ -46,6 +46,20 @@ export interface CategoryLinkProps {
   /** Inline styles for the anchor — how a list row makes the WHOLE row the
    * target instead of a 24px word inside it. */
   readonly style?: CSSProperties;
+  /**
+   * Fired on click — and, for a plain anchor or a router `<Link>` alike, on
+   * Enter, since both dispatch a native `click` for a focused link with no
+   * extra listener. Additive: navigation still happens, this never calls
+   * `preventDefault`. The seam a host uses to learn WHICH row was chosen
+   * without reading it back off the DOM (`data-category-id`, a delegated
+   * listener) — see `<CategoryMegaMenu onSelect>`.
+   */
+  readonly onClick?: () => void;
+  /** `stapel/clickable-needs-event` opt-out for `onClick` above, when the
+   * click itself is the navigation and not a second outcome — see the two
+   * callers in `CategoryMegaMenu.tsx` and `§3.2`'s own escape hatch. */
+  readonly "data-analytics"?: "none";
+  readonly "data-analytics-reason"?: string;
 }
 
 export function CategoryLink(props: CategoryLinkProps): ReactElement {
@@ -56,6 +70,13 @@ export function CategoryLink(props: CategoryLinkProps): ReactElement {
       ? {}
       : { "data-category-id": String(props.categoryId) }),
     ...(props.style === undefined ? {} : { style: props.style }),
+    ...(props.onClick === undefined ? {} : { onClick: props.onClick }),
+    ...(props["data-analytics"] === undefined
+      ? {}
+      : { "data-analytics": props["data-analytics"] }),
+    ...(props["data-analytics-reason"] === undefined
+      ? {}
+      : { "data-analytics-reason": props["data-analytics-reason"] }),
   };
   return Link !== undefined ? (
     <Link href={props.href} {...attributes}>

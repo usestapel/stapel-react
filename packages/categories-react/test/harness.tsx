@@ -34,6 +34,9 @@ export interface RecordedCall {
 export interface HandlerResult {
   readonly status?: number;
   readonly body?: unknown;
+  /** Extra response headers (e.g. `X-Effective-From`) — merged over the
+   * default `content-type`. */
+  readonly headers?: Record<string, string>;
 }
 
 export type Handler = (call: RecordedCall) => HandlerResult;
@@ -78,7 +81,7 @@ export function mockServer(
       const result = typeof route === "function" ? route({ url, method }) : route;
       return new Response(JSON.stringify(result.body ?? {}), {
         status: result.status ?? 200,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...result.headers },
       });
     }
     return new Response("{}", {

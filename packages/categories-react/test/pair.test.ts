@@ -90,12 +90,17 @@ describe("the API surface is the PUBLIC half of the contract", () => {
       "/categories/": { body: FULL_PAGE },
     });
     const wired = createCategoriesApi(
-      createStapelClient({ baseUrl: BASE, fetch: server.fetch })
+      createStapelClient({ baseUrl: BASE, fetch: server.fetch }),
+      { fetch: server.fetch }
     );
     await wired.list();
     await wired.children(1);
     await wired.carousel();
-    await wired.features(1);
+    const features = await wired.features(1);
+    // `features()` is the one read whose answer is not the bare body — the
+    // raw carve-out (`api/featuresRaw.ts`) reads `X-Effective-From` off the
+    // response, which `client.get` cannot see at all.
+    expect(features).toEqual({ features: FEATURES, effectiveFrom: "own" });
     await wired.revision();
     await wired.tree({ depth: 3 });
     expect(server.calls.map((c) => c.url.replace(BASE, ""))).toEqual([

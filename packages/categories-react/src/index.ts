@@ -51,12 +51,16 @@
 
 // ── api ──────────────────────────────────────────────────────────────────────
 export { categoryListParams, createCategoriesApi } from "./api/categoriesApi.js";
-export type { CategoriesApi } from "./api/categoriesApi.js";
+export type { CategoriesApi, CategoriesApiOptions } from "./api/categoriesApi.js";
+export { EFFECTIVE_FROM_HEADER, fetchCategoryFeatures } from "./api/featuresRaw.js";
+export type { CategoriesRawTransport } from "./api/featuresRaw.js";
 export type {
   Category,
   CategoryChildrenAs,
   CategoryFeature,
   CategoryFeatureConfig,
+  CategoryFeaturesEffectiveFrom,
+  CategoryFeaturesResult,
   CategoryFeatureType,
   CategoryListParams,
   CategoryPage as CategoryListPage,
@@ -225,7 +229,7 @@ export type {
   CategoryCascadeStep,
   UseCategoryCascadeOptions,
 } from "./headless/CategoryCascade.js";
-export { CategoryFeatures } from "./headless/CategoryFeatures.js";
+export { CategoryFeatures, visibleFeatures } from "./headless/CategoryFeatures.js";
 export type {
   CategoryFeatureEntry,
   CategoryFeaturesBag,

@@ -10,6 +10,7 @@
 import type { FeatureDef } from "@stapel/attributes-react";
 import type {
   Category,
+  CategoryFeature,
   CategoryListPage,
   CategoryTreeNode,
 } from "../src/index.js";
@@ -239,6 +240,24 @@ export const FEATURES: readonly FeatureDef[] = [
   FEATURE_WARRANTY,
   FEATURE_CLOSED_SET,
   FEATURE_HOLO,
+];
+
+/** A row a `chips` parent's EFFECTIVE (`X-Effective-From: children`) schema
+ * carries because its children disagree on it — stapel-categories 0.20.1. */
+export const FEATURE_DIVERGENT: CategoryFeature = {
+  id: 16,
+  slug: "screen_size",
+  name: "feature.screen_size",
+  translate: "title",
+  config: { type: "int", min: 0, max: 20 },
+  divergent: true,
+};
+
+/** One `effectiveFrom: "children"` answer: an ordinary row plus a divergent
+ * one, exactly as a `chips` parent with no features of its own would send. */
+export const FEATURES_EFFECTIVE: readonly CategoryFeature[] = [
+  FEATURE_POWER,
+  FEATURE_DIVERGENT,
 ];
 
 // ── the NESTED tree (`GET /tree/?depth=N`) ─────────────────────────────────
