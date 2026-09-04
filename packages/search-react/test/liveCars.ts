@@ -260,7 +260,7 @@ export const LIVE_CARS_FEATURES: readonly FeatureDef[] = [
       "type": "ref_select",
       "optionsRef": {
         "level": "Make",
-        "vocabulary": "avito-autocatalog"
+        "vocabulary": "fleet-autocatalog"
       },
       "maxSelected": 1,
       "minSelected": 0
@@ -275,7 +275,7 @@ export const LIVE_CARS_FEATURES: readonly FeatureDef[] = [
       "type": "ref_select",
       "optionsRef": {
         "level": "Model",
-        "vocabulary": "avito-autocatalog",
+        "vocabulary": "fleet-autocatalog",
         "parentFeature": "make_ref_select"
       },
       "maxSelected": 1,
@@ -291,7 +291,7 @@ export const LIVE_CARS_FEATURES: readonly FeatureDef[] = [
       "type": "ref_select",
       "optionsRef": {
         "level": "Generation",
-        "vocabulary": "avito-autocatalog",
+        "vocabulary": "fleet-autocatalog",
         "parentFeature": "model"
       },
       "maxSelected": 1,
@@ -309,7 +309,7 @@ export const LIVE_CARS_FEATURES: readonly FeatureDef[] = [
       "type": "int",
       "optionsRef": {
         "level": "Year",
-        "vocabulary": "avito-autocatalog",
+        "vocabulary": "fleet-autocatalog",
         "parentFeature": "generation"
       }
     }
@@ -438,7 +438,7 @@ export const LIVE_CARS_FEATURES: readonly FeatureDef[] = [
       "type": "ref_select",
       "optionsRef": {
         "level": "BodyType",
-        "vocabulary": "avito-autocatalog",
+        "vocabulary": "fleet-autocatalog",
         "parentFeature": "modification"
       },
       "maxSelected": 1,
