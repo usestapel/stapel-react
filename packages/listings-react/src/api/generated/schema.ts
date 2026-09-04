@@ -934,7 +934,7 @@ export interface components {
             readonly id: number;
             /** Format: uuid */
             owner: string;
-            category_id: string;
+            category_id?: (string) | null;
             title?: string;
             description?: string;
             language?: string;
@@ -1041,7 +1041,7 @@ export interface components {
          */
         ListingDraft: {
             readonly id: number;
-            category_id: string;
+            category_id?: (string) | null;
             currency?: string;
             language?: string;
             title_draft?: string;
@@ -1271,7 +1271,7 @@ export interface components {
          */
         PatchedListingDraft: {
             readonly id?: number;
-            category_id?: string;
+            category_id?: (string) | null;
             currency?: string;
             language?: string;
             title_draft?: string;
@@ -1357,6 +1357,8 @@ export interface components {
             labels?: string[];
             vocabulary?: string | null;
             level?: string | null;
+            prefix?: string | null;
+            postfix?: string | null;
         };
         /** @description Serializer for the ref_select feature DTO. */
         RefSelectDto: {
@@ -1577,7 +1579,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["ListingDraft"];
                 "application/x-www-form-urlencoded": components["schemas"]["ListingDraft"];
@@ -1627,7 +1629,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["ListingDraft"];
                 "application/x-www-form-urlencoded": components["schemas"]["ListingDraft"];

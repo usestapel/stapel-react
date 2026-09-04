@@ -154,9 +154,11 @@ export interface ListingsApi {
   ): Promise<ListingEngagementBatch>;
 
   /**
-   * Start a draft. `category_id` is the only required member: the server
-   * forces `owner=request.user` and `status=draft` in `perform_create`, so a
-   * body that tried to set either is writing a field it does not own.
+   * Start a draft. Every member is optional — `{}` creates the row, since
+   * stapel-listings 0.21.4 made `category_id` nullable on the draft half — and
+   * the server forces `owner=request.user` and `status=draft` in
+   * `perform_create`, so a body that tried to set either is writing a field it
+   * does not own.
    */
   createDraft(body: ListingDraftPatch): Promise<ListingDraft>;
 
