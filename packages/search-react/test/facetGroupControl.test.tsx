@@ -124,7 +124,7 @@ function noSchemaGroup(
 
 describe("a schemaless 2-3-bucket axis is still guessed at, not always checkboxes", () => {
   it("draws a two-value condition axis as segmented, with no schema at all", () => {
-    // The avito branch (`/c/detskaya-odezhda-i-obuv`) this is measured
+    // A client fleet branch (`/c/detskaya-odezhda-i-obuv`) this is measured
     // against: `GET /categories/204/features/` answers `[]`, and the
     // condition axis still only ever carries one of its two values.
     expect(
