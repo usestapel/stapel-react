@@ -388,6 +388,13 @@ export type { SlotPlaceholderProps } from "./slotPlaceholder.js";
 export { fetchSite, SiteProvider, useSite, useOptionalSite } from "./site.js";
 export type { Site, SiteBrand, SiteProviderProps } from "./site.js";
 
+// slugify (slugify.ts): a URL-safe slug for a listing/catalogue title —
+// per-word Cyrillic transliteration (Russian, Ukrainian, Belarusian,
+// Kazakh), lowercase, digits kept, everything else dropped, no leading,
+// trailing or doubled hyphens, cut to `maxLength` on a word boundary.
+export { slugify } from "./slugify.js";
+export type { SlugifyOptions } from "./slugify.js";
+
 // NOTE: @stapel/core no longer exports a generated `paths`/`components`/
 // `operations` surface. Under the §17 per-module contract pipeline every
 // `@stapel/<module>-react` pair generates its OWN self-contained wire types

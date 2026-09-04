@@ -168,6 +168,31 @@ const analytics = createAnalytics({ /* providers, registry, piiGuard */ });
 // flow.<id>.<step> {phase} via trackFlowStep — funnels for free.
 ```
 
+## Slugify
+
+`slugify(text, { maxLength? })` turns a listing/catalogue title into a
+URL-safe slug: per-word transliteration of Cyrillic (Russian, plus the
+Ukrainian/Belarusian/Kazakh letters `ё`/`є`/`і`/`ї`/`ґ`/`ў`/`ә`/`ғ`/`қ`/`ң`/`ө`/`ұ`/`ү`/`һ`),
+lowercase, digits kept, everything else dropped, words joined with `-`, no
+leading, trailing or doubled hyphens.
+
+```tsx
+import { slugify } from "@stapel/core";
+
+slugify("Toyota Camry 2.5 AT, 2019"); // "toyota-camry-2-5-at-2019"
+slugify("Стол с электроподъёмом, светлый"); // "stol-s-elektropodyomom-svetlyy"
+slugify("iPhone 15 Pro Max 256 ГБ"); // "iphone-15-pro-max-256-gb"
+```
+
+Its Cyrillic table is chosen for a slug a person can read aloud (`ё` → "yo",
+`й`/`ы` → "y"), not for the fuzzy prefix match in
+[`search-react`'s `translit.ts`](../search-react/src/state/translit.ts) —
+same alphabet, a different job, so the tables differ on purpose.
+
+`maxLength` (default 60) cuts on a word boundary: a whole trailing word is
+dropped rather than chopped mid-token, unless the very first word alone
+already overruns the budget, in which case it is hard-cut.
+
 ## Quick start
 
 One `<StapelProvider>` composes the three core providers
