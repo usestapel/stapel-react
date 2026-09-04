@@ -30,6 +30,12 @@ import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import { useListingsRuntime } from "../model/context.js";
+import {
+  CARD_GALLERY_CLASS,
+  CARD_GALLERY_STYLE_HREF,
+  cardGalleryCss,
+  useCardGallery,
+} from "./cardGallery.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 
 
@@ -210,6 +216,9 @@ export function ListingPhotoStrip(props: {
   const t = useT();
   const { images, title } = props;
   const many = images.length > 1;
+  // Hover-scrub and swipe. Inert for a one-photo strip; see `cardGallery.ts`
+  // for the two gates and why the keyboard path is untouched.
+  const gallery = useCardGallery(images.length);
 
   /**
    * One slide, linked or not.
@@ -252,32 +261,51 @@ export function ListingPhotoStrip(props: {
   };
 
   return (
-    <SkinCarousel
-      label={t(LISTINGS_I18N_KEYS.cardPhotos)}
-      aspectRatio={LISTING_PHOTO_ASPECT}
-      peek={many}
-      dots={many}
-      data-testid={props.testId}
+    <div
+      ref={gallery.ref}
+      className={CARD_GALLERY_CLASS}
+      data-testid={`${props.testId}-gallery`}
+      data-gallery-photos={String(images.length)}
+      data-gallery-active={String(gallery.active)}
+      data-scrubbing={String(gallery.scrubbing)}
+      data-analytics="none"
+      data-analytics-reason="a look, not an outcome — scrubbing photographs navigates nowhere and changes no record"
+      onPointerMove={gallery.onPointerMove}
+      onPointerDown={gallery.onPointerDown}
+      onPointerUp={gallery.onPointerUp}
+      onPointerCancel={gallery.onPointerCancel}
+      onPointerLeave={gallery.onPointerLeave}
     >
-      {images.length === 0
-        ? slide(<ListingPhoto imageRef={undefined} alt={title} />, "empty")
-        : images.map((reference, index) =>
-            slide(
-              <ListingPhoto
-                key={reference}
-                imageRef={reference}
-                alt={
-                  many
-                    ? t(LISTINGS_I18N_KEYS.detailPhotoAlt, {
-                        index: index + 1,
-                        total: images.length,
-                      })
-                    : title
-                }
-              />,
-              reference
-            )
-          )}
-    </SkinCarousel>
+      <style href={CARD_GALLERY_STYLE_HREF} precedence="default">
+        {cardGalleryCss()}
+      </style>
+      <SkinCarousel
+        label={t(LISTINGS_I18N_KEYS.cardPhotos)}
+        aspectRatio={LISTING_PHOTO_ASPECT}
+        peek={many}
+        dots={many}
+        data-testid={props.testId}
+      >
+        {images.length === 0
+          ? slide(<ListingPhoto imageRef={undefined} alt={title} />, "empty")
+          : images.map((reference, index) =>
+              slide(
+                <ListingPhoto
+                  key={reference}
+                  imageRef={reference}
+                  alt={
+                    many
+                      ? t(LISTINGS_I18N_KEYS.detailPhotoAlt, {
+                          index: index + 1,
+                          total: images.length,
+                        })
+                      : title
+                  }
+                />,
+                reference
+              )
+            )}
+      </SkinCarousel>
+    </div>
   );
 }

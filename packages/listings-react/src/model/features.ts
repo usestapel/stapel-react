@@ -318,6 +318,64 @@ function selectOptions(
 }
 
 /**
+ * The config keys that carry a value's UNIT, in the order they belong to.
+ *
+ * There is no generic `unit` key anywhere in this contract — the unit of an
+ * `int`/`float` is its `postfix` (free text on the type's config, with
+ * `postfix1000` as the abbreviated unit the engine switches to at a
+ * thousand), and `convertible_unit` states its own with `unitType`/`unit_m`/
+ * `unit_i`. `prefix` rides along because it is the same fact on the other
+ * side of the number (a currency mark, a «~»).
+ *
+ * `precision` is deliberately NOT here. `dto_to_dao` writes it on every
+ * numeric row (defaulted, never absent), so it could only ever be adopted
+ * onto a row from some older server — where the stored value has already
+ * been ROUNDED to the precision it was written with, and re-rendering it at
+ * today's would print decimals the record does not contain.
+ */
+const UNIT_KEYS: readonly string[] = [
+  "prefix",
+  "postfix",
+  "postfix1000",
+  "unitType",
+  "unit_m",
+  "unit_i",
+];
+
+/**
+ * The unit the CATEGORY declares, for a stored row that carries none.
+ *
+ * Measured on the live listing page: "Power 173", "Mileage 20000" — bare
+ * numbers, in a deployment whose detail page holds the category's own feature
+ * defs and passes them in for exactly this kind of repair. `dto_to_dao`
+ * copies `postfix` at WRITE time, so a listing published before its category
+ * gained a unit keeps printing without one for the rest of its life, and so
+ * does every row written by a server that predates the key.
+ *
+ * Same rule as the option table two functions up, and for the same reason:
+ * the stored row wins wherever it said anything, because it is what the
+ * listing was published with, and the category fills only the silence. An
+ * empty string counts as silence — `dto_to_dao` writes `postfix=None` as
+ * absent, but a catalogue that once held `""` should not out-rank a
+ * catalogue that now holds "km".
+ */
+function adoptedUnits(
+  config: Readonly<Record<string, unknown>>,
+  categoryDef: FeatureDef | undefined
+): Readonly<Record<string, string>> | undefined {
+  const declared = categoryDef?.config;
+  if (declared === undefined) return undefined;
+  const out: Record<string, string> = {};
+  for (const key of UNIT_KEYS) {
+    const stored = config[key];
+    if (typeof stored === "string" && stored.length > 0) continue;
+    const value = (declared as Readonly<Record<string, unknown>>)[key];
+    if (typeof value === "string" && value.length > 0) out[key] = value;
+  }
+  return Object.keys(out).length === 0 ? undefined : out;
+}
+
+/**
  * The category's option TREE, adopted whole for a `hierarchical_select` that
  * stored none — see {@link TREE_VALUED}.
  *
@@ -365,6 +423,8 @@ function featureView(
   const options =
     selectOptions(dao, config, categoryDef) ?? adoptedTree(dao, config, categoryDef);
   if (options !== undefined) config["options"] = options;
+  const units = adoptedUnits(config, categoryDef);
+  if (units !== undefined) Object.assign(config, units);
 
   const visibility = storedVisibility(dao.visibility);
   const feature: FeatureDef = {

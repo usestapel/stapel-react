@@ -166,6 +166,21 @@ export {
   unreadableFeatureCount,
 } from "./model/features.js";
 export type { FeatureCopySource } from "./model/features.js";
+export { featureUnit, formatSpecValue } from "./model/featureText.js";
+
+// ── model: the card badge contract (stapel-listings 0.21.3) ──────────────────
+export {
+  badgePresentation,
+  badgeValueText,
+  cardBadgeText,
+  cardBadgeTexts,
+  hasCardBadgeContract,
+} from "./model/cardBadges.js";
+export type {
+  CardBadgeContract,
+  CardBadgePresentation,
+  CardBadgeRow,
+} from "./model/cardBadges.js";
 
 // ── model: the engagement axis (already-seen / view count / the overlay) ─────
 export {

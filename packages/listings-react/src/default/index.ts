@@ -104,6 +104,28 @@ export {
   LISTING_PHOTO_ASPECT,
 } from "./ListingPhoto.js";
 export type { ListingPhotoProps } from "./ListingPhoto.js";
+
+// ── the listing page's characteristics, and a card's badge line ──────────────
+export {
+  ListingSpecColumns,
+  ListingSpecList,
+  specListCss,
+} from "./ListingSpecList.js";
+export type { ListingSpecListProps } from "./ListingSpecList.js";
+export { CardBadges, CardSpecLine } from "./CardBadges.js";
+export type { CardBadgesProps } from "./CardBadges.js";
+
+// ── the card gallery's two gestures ─────────────────────────────────────────
+export {
+  SWIPE_AXIS_RATIO,
+  SWIPE_MIN_PX,
+  cardGalleryCss,
+  hasFinePointer,
+  segmentIndex,
+  swipeStep,
+  useCardGallery,
+} from "./cardGallery.js";
+export type { CardGallery } from "./cardGallery.js";
 export { SignInLink } from "./SignInLink.js";
 export type { SignInLinkProps } from "./SignInLink.js";
 export type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";

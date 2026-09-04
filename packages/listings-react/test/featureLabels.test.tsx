@@ -350,7 +350,7 @@ describe("the repair reaches the detail pane's spec table", () => {
     );
     await waitFor(() => {
       expect(
-        screen.getByTestId("attributes-value-list").textContent
+        screen.getByTestId("listings-spec-list").textContent
       ).toContain("b-u");
     });
   });
@@ -362,7 +362,7 @@ describe("the repair reaches the detail pane's spec table", () => {
       </TestProviders>
     );
     await waitFor(() => {
-      const text = screen.getByTestId("attributes-value-list").textContent ?? "";
+      const text = screen.getByTestId("listings-spec-list").textContent ?? "";
       expect(text).toContain("Second-hand");
       expect(text).not.toContain("b-u");
     });

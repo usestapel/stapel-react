@@ -116,15 +116,15 @@ import {
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
-import { FeatureBadges } from "@stapel/attributes-react/default";
 import type { ListingCard as ListingCardData } from "../api/types.js";
-import { asFeatureDaoList, featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
+import { asFeatureDaoList } from "../model/features.js";
 import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { isListingViewed } from "../model/engagement.js";
 import { useEngagedListing } from "../headless/Engagement.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+import { CardBadges, CardSpecLine } from "./CardBadges.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
 import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
@@ -539,13 +539,13 @@ export function ListingCard(props: ListingCardProps): ReactElement {
   const badgeDaos = asFeatureDaoList(listing.features_badges);
   // The category's own option table, when the surface has it: a stored
   // `select` carries no table of its own, so without this a badge prints the
-  // storage slug. Absent on a mixed grid, which is why it is optional.
+  // storage slug. Absent on a mixed grid, which is why it is optional. Read
+  // by the FALLBACK arm of `<CardBadges>` only — an element that speaks the
+  // card badge contract carries its own resolved copy.
   const copy: FeatureCopySource =
     props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
       : {};
-  const badgeFeatures = featuresFromDaoList(badgeDaos, copy);
-  const badgeValues = featuresDtoFromDaoList(badgeDaos);
   const titleDaos = asFeatureDaoList(listing.features_title);
 
   const status = listing.status === undefined ? undefined : lifecycleCaption(listing.status);
@@ -610,23 +610,9 @@ export function ListingCard(props: ListingCardProps): ReactElement {
 
       {/* The title features are a stored projection too — the seller's
           "1.5 TB, black" line, already ordered by the server. */}
-      {titleDaos.length > 0 ? (
-        <Typography.Text type="secondary" ellipsis>
-          <FeatureBadges
-            features={featuresFromDaoList(titleDaos, copy).map(
-              (view) => view.feature
-            )}
-            values={featuresDtoFromDaoList(titleDaos)}
-          />
-        </Typography.Text>
-      ) : null}
+      <CardSpecLine rows={titleDaos} copy={copy} testId="listings-card-specs" />
 
-      {badgeFeatures.length > 0 ? (
-        <FeatureBadges
-          features={badgeFeatures.map((view) => view.feature)}
-          values={badgeValues}
-        />
-      ) : null}
+      <CardBadges rows={badgeDaos} copy={copy} variant="badges" />
 
       {/* ONE line, and it truncates (D185). Measured on a live 1440px feed:
           a two-part city-and-district name wrapped, the text block grew

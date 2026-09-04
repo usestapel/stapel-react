@@ -185,18 +185,18 @@ describe("the detail pane", () => {
       </TestProviders>
     );
     await waitFor(() => {
-      expect(screen.getByTestId("attributes-value-list")).toBeDefined();
+      expect(screen.getByTestId("listings-spec-list")).toBeDefined();
     });
     const labels = [
       ...screen
-        .getByTestId("attributes-value-list")
-        .querySelectorAll(".ant-descriptions-item-label"),
+        .getByTestId("listings-spec-list")
+        .querySelectorAll("[data-testid^='listings-spec-label-']"),
     ].map((node) => node.textContent);
     expect(labels).toEqual(["Condition", "VIN", "Power"]);
-    expect(screen.getByTestId("attributes-value-provided").textContent).toBe(
-      "Provided by the seller"
-    );
-    const table = screen.getByTestId("attributes-value-list").textContent ?? "";
+    expect(
+      screen.getByTestId("listings-spec-value-vin").textContent
+    ).toBe("Provided by the seller");
+    const table = screen.getByTestId("listings-spec-list").textContent ?? "";
     expect(table).not.toContain("WVWZZZ");
     expect(table.toLowerCase()).not.toContain("verified");
   });

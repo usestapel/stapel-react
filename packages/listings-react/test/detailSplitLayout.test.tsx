@@ -183,7 +183,7 @@ describe("the split layout is the reference design's two columns", () => {
     // left list, so category declaration order survives the split.
     const lists = screen
       .getByTestId("listings-detail-specs-split")
-      .querySelectorAll("[data-testid='attributes-value-list']");
+      .querySelectorAll("[data-testid^='listings-spec-list']");
     expect(lists).toHaveLength(2);
     const left = lists[0]?.textContent ?? "";
     const right = lists[1]?.textContent ?? "";

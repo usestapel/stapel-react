@@ -187,6 +187,62 @@ which knows where its CDN serves from, and a pane without one says "photos
 cannot be shown here" instead of drawing a broken `<img>`. Inventing
 `${cdnBase}/${ref}` would be writing a contract nobody agreed to.
 
+## A card's photos answer a hover and a swipe
+
+A card with six photographs used to show one, and the other five needed a
+navigation. `<ListingPhotoStrip>` — the one gallery `<ListingCard>` and
+`<ListingSerpCard>` both draw — now adds the two gestures a classified is
+expected to have:
+
+- **hover scrub.** The media box is divided into as many equal segments as
+  there are photographs; the segment the cursor is over is the photograph on
+  screen, and the pointer leaving puts the first one back. Gated on
+  `(hover: hover) and (pointer: fine)` **and** on a `mouse` pointer type — a
+  touch laptop answers the media query and still delivers finger events.
+- **swipe.** A horizontal drag past 32px, and further across than down,
+  advances or rewinds one photograph. The strip declares `touch-action:
+  pan-y`, so the page's vertical scroll belongs to the browser and no handler
+  can take it; a diagonal thumb scrolling a feed changes no photograph.
+
+Neither gesture replaces the strip: both work by scrolling the same
+`<SkinCarousel>`, so it stays a focusable scroll container the arrow keys
+move, the slides stay in the document for a screen reader, the dots keep
+reporting the position — and the card stays ONE link with one accessible
+name, the heart outside it.
+
+## Characteristics read as sentences, with units
+
+The listing page's spec list is `<ListingSpecList>` (`<ListingSpecColumns>`
+for the two-column arm of `layout="split"`), and a row is a paragraph: a
+muted inline label, then the value in the same text flow. It was a two-column
+table, where a long answer wrapped inside a narrow value cell and stacked
+under itself. The split layout still puts two columns side by side — but they
+are columns of whole ROWS, cut by row count so the category's declaration
+order reads top-to-bottom, left column first.
+
+Values are typeset rather than stringified: the unit is appended and the
+digits are grouped by the reader's locale, so a mileage reads `20 000 km` and
+not `20000`, and an engine volume reads `2,0 l` in Russian. **There is no
+`unit` key on a feature definition anywhere in this fleet** — the unit of an
+`int`/`float` IS its `postfix` — so `formatSpecValue` reads that, from the
+stored row first and from `categoryFeatures` second. The second rung is what
+repairs a listing published before its category declared a unit; where
+nothing declares one, the bare number stands. No unit is invented.
+
+## Card badges say what they mean
+
+`features_badges` used to print its values and nothing else: a live card read
+`Brick · 3 · 9`. stapel-listings 0.21.3 adds `label`, `unit`, `name` and
+`presentation` to each element, and `presentation` is the server's decision —
+`value`, `value_unit`, `name_value` or `name` (the last for a true boolean,
+whose name IS the badge; a false one prints nothing). All three card surfaces
+render it through one function, `cardBadgeText`.
+
+An element that declares no `presentation` comes from a server older than
+0.21.3, and the whole projection then renders exactly as it did before —
+through `@stapel/attributes-react`'s `<FeatureBadges>`, off the stored DAO's
+own config. Nothing about the contract is required for a card to draw.
+
 ## The seller's dashboard
 
 **Your own listings, in every status.** `GET my/listings/` (stapel-listings

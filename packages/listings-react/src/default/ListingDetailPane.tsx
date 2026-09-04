@@ -69,13 +69,14 @@ import {
 } from "@stapel/core";
 import type { SignInCta } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
-import { FeatureValueList } from "@stapel/attributes-react/default";
-import { formatFeatureValue, isRedactedValue } from "@stapel/attributes-react";
+import { isRedactedValue } from "@stapel/attributes-react";
 import { useListingDetail } from "../headless/ListingDetail.js";
 import { useListingActions } from "../headless/ListingActions.js";
 import { asFeatureDaoList, featureValuesForDisplay } from "../model/features.js";
+import { formatSpecValue } from "../model/featureText.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
+import { ListingSpecColumns, ListingSpecList } from "./ListingSpecList.js";
 import { SignInLink } from "./SignInLink.js";
 import { HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
@@ -338,7 +339,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                       // leaked identifier would be read out loud.
                       .filter((view) => !isRedactedValue(view.value))
                       .map((view) =>
-                        formatFeatureValue(view.feature, view.value, { t, locale })
+                        formatSpecValue(view.feature, view.value, { t, locale })
                       )
                       .filter((text): text is string => text !== undefined)
                       .join(" · ")}
@@ -548,47 +549,22 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 ? { categoryFeatures: props.categoryFeatures }
                 : {}
             );
-            /* Two spec columns in the split, split by ROW COUNT and not by
-               `<FeatureValueList>` — the halves are cut HERE so the category's
-               declaration order survives: the first (larger) half fills the
-               left list, and the table reads top-to-bottom, left column
-               first, exactly as the one-column table read. */
-            const specHalf = Math.ceil(bag.features.length / 2);
+            /* Two spec columns in the split — a grid of whole ROWS, cut by
+               row count so the category's declaration order survives: the
+               first (larger) half fills the left list and the page reads
+               top-to-bottom, left column first, exactly as the one-column
+               list reads. The label is never a column of its own; see
+               `<ListingSpecList>` for the shape and why the table went. */
+            const specFeatures = bag.features.map((view) => view.feature);
             const specs =
               bag.features.length === 0 ? (
                 <Typography.Text type="secondary" data-testid="listings-detail-no-specs">
                   {t(LISTINGS_I18N_KEYS.detailNoSpecs)}
                 </Typography.Text>
               ) : split ? (
-                <div
-                  data-testid="listings-detail-specs-split"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    gap: spacing[4],
-                    alignItems: "start",
-                  }}
-                >
-                  <FeatureValueList
-                    features={bag.features
-                      .slice(0, specHalf)
-                      .map((view) => view.feature)}
-                    values={specValues}
-                  />
-                  {bag.features.length > specHalf ? (
-                    <FeatureValueList
-                      features={bag.features
-                        .slice(specHalf)
-                        .map((view) => view.feature)}
-                      values={specValues}
-                    />
-                  ) : null}
-                </div>
+                <ListingSpecColumns features={specFeatures} values={specValues} />
               ) : (
-                <FeatureValueList
-                  features={bag.features.map((view) => view.feature)}
-                  values={specValues}
-                />
+                <ListingSpecList features={specFeatures} values={specValues} />
               );
 
             const specsSection = (

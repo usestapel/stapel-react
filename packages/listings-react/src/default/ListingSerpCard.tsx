@@ -79,13 +79,8 @@ import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { SignInCta } from "@stapel/core";
 import { useT } from "@stapel/core";
 import { fontSize, spacing } from "@stapel/tokens";
-import { FeatureBadges } from "@stapel/attributes-react/default";
 import type { ListingCard as ListingCardData } from "../api/types.js";
-import {
-  asFeatureDaoList,
-  featuresDtoFromDaoList,
-  featuresFromDaoList,
-} from "../model/features.js";
+import { asFeatureDaoList } from "../model/features.js";
 import type { FeatureCopySource } from "../model/features.js";
 import { lifecycleCaption } from "../model/status.js";
 import { isListingViewed } from "../model/engagement.js";
@@ -93,6 +88,7 @@ import { useEngagedListing } from "../headless/Engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { PriceTrendIcon } from "./icons.js";
 import { FavoriteHeart } from "./favorite.js";
+import { CardBadges, CardSpecLine } from "./CardBadges.js";
 import {
   CARD_FRAME_CLASS,
   CARD_MAIN_CLASS,
@@ -188,8 +184,6 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
     props.categoryFeatures !== undefined
       ? { categoryFeatures: props.categoryFeatures }
       : {};
-  const badgeFeatures = featuresFromDaoList(badgeDaos, copy);
-  const badgeValues = featuresDtoFromDaoList(badgeDaos);
   // The fallback spec line when the host derived none: the row's own
   // `features_title` projection, exactly the line `ListingCard` draws.
   const titleDaos =
@@ -346,27 +340,15 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                       >
                         {props.specsLine}
                       </Typography.Text>
-                    ) : titleDaos.length > 0 ? (
-                      <Typography.Text
-                        type="secondary"
-                        ellipsis
-                        data-testid="listings-serp-specs"
-                      >
-                        <FeatureBadges
-                          features={featuresFromDaoList(titleDaos, copy).map(
-                            (view) => view.feature,
-                          )}
-                          values={featuresDtoFromDaoList(titleDaos)}
-                        />
-                      </Typography.Text>
-                    ) : null}
-
-                    {badgeFeatures.length > 0 ? (
-                      <FeatureBadges
-                        features={badgeFeatures.map((view) => view.feature)}
-                        values={badgeValues}
+                    ) : (
+                      <CardSpecLine
+                        rows={titleDaos}
+                        copy={copy}
+                        testId="listings-serp-specs"
                       />
-                    ) : null}
+                    )}
+
+                    <CardBadges rows={badgeDaos} copy={copy} variant="badges" />
                   </CardTarget>
 
                   {/* Outside the anchor, both of them: a seller line usually holds
