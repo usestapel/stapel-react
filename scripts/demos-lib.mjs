@@ -162,7 +162,11 @@ export function headlessExports(indexSrc) {
       if (!name) continue;
       const asMatch = name.match(/\bas\s+(\w+)$/);
       const publicName = asMatch ? asMatch[1] : name.split(/\s+/)[0];
-      if (/^[A-Z]\w*$/.test(publicName)) names.add(publicName);
+      // PascalCase only: a CONSTANT_CASE export is a tuning number, not a
+      // component, and no demo can render one. `OTHER_CATEGORIES_LIMIT` used
+      // to land here and demand a demo of an `8`.
+      if (/^[A-Z]\w*$/.test(publicName) && !/^[A-Z0-9_]+$/.test(publicName))
+        names.add(publicName);
     }
   }
   return [...names].sort();
