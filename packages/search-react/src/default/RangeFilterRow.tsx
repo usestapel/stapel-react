@@ -12,8 +12,12 @@
  * range is TWO fields, and committing each keystroke would run a search for
  * `1`, `10`, `100` on the way to `1000` — three wrong result pages, three
  * history entries' worth of churn, and a facet panel that reshuffles under the
- * hand still typing. So the row holds a draft and commits on Apply (or Enter),
- * which is also what makes "from > to" refusable instead of merely empty.
+ * hand still typing. So the row holds a draft and commits on Apply, Enter, or
+ * leaving the field (blur) — the picker bounds already committed on blur, and
+ * a typed bound doing nothing until a second, separate click is a surprise
+ * the picker never had — which is also what makes "from > to" refusable
+ * instead of merely empty. A blur that changed nothing sends nothing, and
+ * Enter followed by the blur it does not itself cause never double-commits.
  */
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
@@ -218,8 +222,14 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
   // results are no longer about.
   const applied = useRef<string>(`${toDraft(group.from)}..${toDraft(group.to)}`);
   const current = `${toDraft(group.from)}..${toDraft(group.to)}`;
+  // What the row last SENT — starts equal to the URL's own value, so a blur
+  // that never changed anything commits nothing. Enter and blur both go
+  // through {@link commit}, and both read this ref, so pressing Enter and
+  // then tabbing out of the same field fires the request once, not twice.
+  const lastSent = useRef<string>(current);
   if (applied.current !== current) {
     applied.current = current;
+    lastSent.current = current;
     if (from !== toDraft(group.from)) setFrom(toDraft(group.from));
     if (to !== toDraft(group.to)) setTo(toDraft(group.to));
   }
@@ -236,6 +246,9 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
 
   const commit = (): void => {
     if (!usable) return;
+    const draftKey = `${from}..${to}`;
+    if (draftKey === lastSent.current) return;
+    lastSent.current = draftKey;
     props.onApply(group.slug, empty ? null : draft);
   };
 
@@ -310,6 +323,7 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
             setFrom(value === null || value === undefined ? "" : String(value));
           }}
           onPressEnter={commit}
+          onBlur={commit}
         />
         <InputNumber
           value={to === "" ? null : Number(to)}
@@ -327,6 +341,7 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
             setTo(value === null || value === undefined ? "" : String(value));
           }}
           onPressEnter={commit}
+          onBlur={commit}
         />
         </>
         )}

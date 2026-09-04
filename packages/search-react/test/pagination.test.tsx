@@ -243,10 +243,15 @@ describe("the previous answer stays on screen while the next is in flight", () =
         const brand = new URL(call.url).searchParams.getAll("f.brand");
         return {
           body: searchResponse({
+            // `colour`, not `condition`: this is a checkbox-shaped second
+            // axis on purpose, so its testids are the plain per-option
+            // `facet-count-*` this test reads — `condition` is now a
+            // segmented axis on evidence alone even with no schema (see
+            // `looksSingleChoiceByEvidence` in `FacetGroupControl.tsx`).
             facets:
               brand.length === 0
-                ? { brand: { bosch: 12, makita: 9 }, condition: { new: 7, used: 18 } }
-                : { brand: { bosch: 12, makita: 9 }, condition: { new: 3, used: 9 } },
+                ? { brand: { bosch: 12, makita: 9 }, colour: { red: 7, blue: 18 } }
+                : { brand: { bosch: 12, makita: 9 }, colour: { red: 3, blue: 9 } },
           }),
         };
       },
@@ -266,10 +271,10 @@ describe("the previous answer stays on screen while the next is in flight", () =
     expect(screen.queryByTestId("facets-loading")).toBeNull();
 
     // And when the new answer lands, the sibling count is the drill-down one:
-    // `brand` keeps its own counts (its filter is removed), `condition`
+    // `brand` keeps its own counts (its filter is removed), `colour`
     // narrows to the candidates that are Bosch.
     await waitFor(() => {
-      expect(screen.getByTestId("facet-count-condition-new").textContent).toBe("3");
+      expect(screen.getByTestId("facet-count-colour-red").textContent).toBe("3");
     });
     expect(screen.getByTestId("facet-count-brand-makita").textContent).toBe("9");
   });

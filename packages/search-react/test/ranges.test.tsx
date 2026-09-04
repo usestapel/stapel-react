@@ -221,3 +221,70 @@ describe("the row commits on Apply, and says why when it will not", () => {
     expect(from.getAttribute("aria-label")).toContain("RUB");
   });
 });
+
+describe("a typed bound also commits on blur, like the picker path already does", () => {
+  it("writes the drafted bounds into the URL on blur, with no Apply click", async () => {
+    const { seen } = renderRows("type=listing");
+    fireEvent.change(screen.getByTestId("facet-range-price-from"), {
+      target: { value: "1000" },
+    });
+    fireEvent.blur(screen.getByTestId("facet-range-price-from"));
+
+    await waitFor(() => {
+      expect(new URLSearchParams(seen.search).get("r.price")).toBe("1000..");
+    });
+  });
+
+  it("does not double-commit when Enter fires and the field then blurs", async () => {
+    let history: readonly string[] = [];
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness
+        server={server}
+        initialSearch="type=listing"
+        onAdapter={(adapter) => {
+          history = adapter.history;
+        }}
+      >
+        <Rows features={NUMERIC} />
+      </TestHarness>
+    );
+    const from = screen.getByTestId("facet-range-price-from") as HTMLInputElement;
+    const to = screen.getByTestId("facet-range-price-to") as HTMLInputElement;
+    fireEvent.change(from, { target: { value: "1000" } });
+    fireEvent.change(to, { target: { value: "5000" } });
+    fireEvent.keyDown(from, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => {
+      expect(new URLSearchParams(history[history.length - 1]).get("r.price")).toBe(
+        "1000..5000"
+      );
+    });
+    const afterEnter = history.length;
+
+    fireEvent.blur(from);
+    fireEvent.blur(to);
+    // The values Enter already sent are unchanged — blur must add nothing.
+    expect(history.length).toBe(afterEnter);
+  });
+
+  it("does nothing on blur when the field's value never changed", async () => {
+    let history: readonly string[] = [];
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness
+        server={server}
+        initialSearch="type=listing&r.price=1000..5000"
+        onAdapter={(adapter) => {
+          history = adapter.history;
+        }}
+      >
+        <Rows features={NUMERIC} />
+      </TestHarness>
+    );
+    const before = history.length;
+    fireEvent.blur(screen.getByTestId("facet-range-price-from"));
+    fireEvent.blur(screen.getByTestId("facet-range-price-to"));
+    expect(history.length).toBe(before);
+  });
+});

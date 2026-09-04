@@ -146,6 +146,63 @@ function singleChoice(feature: FeatureDef | undefined): boolean {
 }
 
 /**
+ * Slugs a marketplace's own mapping conventionally normalizes an EITHER/OR
+ * axis to, whatever language the printed labels end up in — a scraped
+ * catalogue's own "condition" column, however it was captioned on the source
+ * site, becomes one `condition` slug upstream of this component, so the slug
+ * is the one part of a schemaless group that survives translation. `is_*`/
+ * `has_*` catches a bare boolean the same way.
+ */
+const EXCLUSIVE_AXIS_SLUGS: ReadonlySet<string> = new Set([
+  "condition",
+  "item_condition",
+  "product_condition",
+  "state",
+]);
+
+function looksLikeExclusiveAxisSlug(slug: string): boolean {
+  const normalized = slug.toLowerCase();
+  if (/^(is|has)_/.test(normalized)) return true;
+  return EXCLUSIVE_AXIS_SLUGS.has(normalized);
+}
+
+/**
+ * Does a SCHEMALESS group's evidence look like a closed EITHER/OR rather
+ * than an open list — "pick one of these two or three" rather than "tick any
+ * of these"?
+ *
+ * There is no authoritative answer to read: `facet_meta` reports `skipped`,
+ * `withheld`, `ranges`, `plan`, `categories` and nothing that marks an axis
+ * single-valued, so a group with no `feature` (no schema, no `maxSelected`)
+ * has no `single` hint to defer to today. Once the plan sends one, THIS
+ * FUNCTION IS THE PLACE TO PREFER IT over the guess below.
+ *
+ * Until then: 2–3 counted buckets under a slug that reads as a condition or
+ * a boolean ({@link looksLikeExclusiveAxisSlug}) draw as segmented pills, on
+ * the same reasoning `singleChoice` already applies to a typed def — a
+ * two-way "new/used" read as tick-any-of-these is the wrong control before
+ * the first click. Every other schemaless small group (`color`, `size`)
+ * stays checkboxes: nothing here says a person can only want one, and
+ * assuming so for every short option list would turn `color` into a radio
+ * button the moment nobody threaded its schema through.
+ *
+ * Stated honestly, this is a GUESS keyed on the slug alone — it will miss an
+ * axis mapped under a slug not in {@link EXCLUSIVE_AXIS_SLUGS} and it will
+ * fire wrongly if some catalogue really does mean "condition" as a
+ * multi-select. Both failures draw checkboxes for a true either/or or pills
+ * for a true multi-select respectively — a shape mismatch, not a filter that
+ * stops working, and one a real `facet_meta` hint replaces outright.
+ */
+function looksSingleChoiceByEvidence(group: FacetGroup): boolean {
+  if (group.feature !== undefined) return false;
+  if (!looksLikeExclusiveAxisSlug(group.slug)) return false;
+  const buckets = group.options.filter(
+    (option) => option.count !== null && option.count > 0
+  ).length;
+  return buckets >= 2 && buckets <= 3;
+}
+
+/**
  * Is this group a DICTIONARY — an axis whose values live in a vocabulary?
  *
  * Two ways to be one, and only the second one counts anything:
@@ -201,6 +258,11 @@ export function isDictionaryFacet(group: FacetGroup): boolean {
  *  - and a dictionary is a dictionary before it is a checkbox list, because
  *    the checkbox list is the shape it was drawn as when nobody could pick a
  *    make.
+ *
+ * A group with NO schema falls to {@link looksSingleChoiceByEvidence} for the
+ * segmented/checkbox call, since `singleChoice` has no `feature` to read
+ * `maxSelected` off of — see that function for what it checks and why it is
+ * a documented guess, not a fact read off the wire.
  */
 export function facetGroupShape(group: FacetGroup): FacetGroupShape {
   const feature = group.feature;
@@ -208,7 +270,8 @@ export function facetGroupShape(group: FacetGroup): FacetGroupShape {
     return "nested";
   }
   if (isDictionaryFacet(group)) return "dictionary";
-  return singleChoice(feature) ? "segmented" : "checkbox";
+  if (singleChoice(feature) || looksSingleChoiceByEvidence(group)) return "segmented";
+  return "checkbox";
 }
 
 /**

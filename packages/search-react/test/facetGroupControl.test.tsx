@@ -99,6 +99,81 @@ describe("the shape is derived from the schema, never configured at the call sit
   });
 });
 
+/**
+ * A group `buildFacetGroups` built with no `categoryFeatures` at all —
+ * `group.feature` is `undefined`, the exact shape a branch category with an
+ * empty `/features/` answer produces (`/c/detskaya-odezhda-i-obuv`).
+ */
+function noSchemaGroup(
+  slug: string,
+  buckets: Record<string, number>
+): FacetGroup {
+  const [group] = buildFacetGroups({
+    facets: { [slug]: buckets },
+    meta: {
+      approximate: false,
+      candidates: 30,
+      counted: [slug],
+      skipped: [], dropped_filters: [], core_ranges: [], plan: "category", withheld: [], categories: [],
+    },
+    state: parseSearchState(new URLSearchParams("type=listing"), OPTIONS).state,
+  });
+  if (group === undefined) throw new Error(`no group ${slug}`);
+  return group;
+}
+
+describe("a schemaless 2-3-bucket axis is still guessed at, not always checkboxes", () => {
+  it("draws a two-value condition axis as segmented, with no schema at all", () => {
+    // The avito branch (`/c/detskaya-odezhda-i-obuv`) this is measured
+    // against: `GET /categories/204/features/` answers `[]`, and the
+    // condition axis still only ever carries one of its two values.
+    expect(
+      facetGroupShape(noSchemaGroup("condition", { novoe: 12, "b-u": 31 }))
+    ).toBe("segmented");
+  });
+
+  it("draws a three-value state axis as segmented too, at the fold's edge", () => {
+    expect(
+      facetGroupShape(
+        noSchemaGroup("state", { new: 4, used: 9, for_parts: 2 })
+      )
+    ).toBe("segmented");
+  });
+
+  it("stays checkboxes past three buckets, even under an exclusive-looking slug", () => {
+    expect(
+      facetGroupShape(
+        noSchemaGroup("condition", { a: 1, b: 1, c: 1, d: 1 })
+      )
+    ).toBe("checkbox");
+  });
+
+  it("stays checkboxes for a small schemaless group under an ordinary slug", () => {
+    // `colour` is exactly the same shape (no schema, two counted buckets) —
+    // the slug is the only thing that tells `condition` and `colour` apart,
+    // and ticking two colours is an ordinary thing to want.
+    expect(
+      facetGroupShape(noSchemaGroup("colour", { red: 2, blue: 9 }))
+    ).toBe("checkbox");
+  });
+
+  it("renders the pills on screen for the schemaless condition axis", async () => {
+    mount(
+      <FacetGroupControl
+        group={noSchemaGroup("condition", { novoe: 12, "b-u": 31 })}
+        onToggle={() => undefined}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-group-condition")).toBeTruthy()
+    );
+    expect(
+      screen.getByTestId("facet-group-condition").getAttribute("data-shape")
+    ).toBe("segmented");
+    expect(screen.getByTestId("facet-option-condition-novoe")).toBeTruthy();
+  });
+});
+
 describe("a single-choice facet is pills, and the pills keep their counts", () => {
   it("renders each option as a pressed/unpressed toggle carrying its count", async () => {
     mount(

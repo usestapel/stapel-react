@@ -325,6 +325,15 @@ facetGroupIsVocabularyBacked(group) // the schema's type, else the answer's `voc
 `<SearchPage dictionaryMode>` overrides the per-layout default (`"field"` in
 the column, `"sheet"` in the phone filter sheet).
 
+A group with **no schema at all** (a branch category whose `/features/`
+answered `[]`) has no `maxSelected` to read, so `facetGroupShape` falls back
+to a guess: 2–3 counted buckets under a slug that reads as a condition or a
+boolean (`condition`, `state`, `is_*`, `has_*`) draw as segmented pills;
+every other small schemaless group stays checkboxes. There is no
+`facet_meta` hint for this today — stated plainly as a guess keyed on the
+slug, not a fact read off the wire, and the first thing to replace once the
+plan sends one.
+
 ## The ends of a from/to come from the answer
 
 stapel-search 0.14.7 measures every numeric axis of a page and reports it as
@@ -368,6 +377,12 @@ brings the whole list back **with the bounds said in words** ("from 1900 to
 2027"), because a year below the catalogue's floor otherwise does nothing at
 all, silently. A mileage (`1..1000000`) and the core price stay two typed
 fields.
+
+A typed bound commits on Apply, on Enter, and on **blur** — the picker path
+above already committed on blur, and a typed field doing nothing until a
+second click was the odd one out. Enter followed by the blur it triggers on
+its own never double-commits (the row tracks what it last sent), and a blur
+that changed nothing sends nothing.
 
 ## The attribute-range block reserves its box before it fills it
 
