@@ -188,7 +188,8 @@ comes from the cascade: see the commit-rule section below.
 | `useCategoryCatalog` | the delta-synced tree, one hook, mounted once |
 | `useCategoryChildren` / `useCategoryCarousel` / `useCategoryFeatures` / `useCategoriesRevision` | the four direct reads |
 | `useCategoryTree(depth = 3)` | the nested menu tree — one cached call, `GET /tree/?depth=N` |
-| `browseStage(category)` | which page the category gets: `"tiles"` or `"feed"` |
+| `browseStage(category)` | which page the category gets: `"tiles"` only for a root with children, `"feed"` otherwise |
+| `childControl(category)` | the filter a feed page's own rail gets for this category's children: `"none"` \| `"segmented"` \| `"list"` |
 | `buildCategoryTree` / `resolveCategorySlug` / `categoryBreadcrumbs` / `parseTreenodePks` | pure tree assembly |
 | `applyCategoryPage` / `firstPageRequest` / `nextPageRequest` / `syncCatalog` | the delta protocol, testable without React |
 | `categoryLabel` / `featureLabel` / `featureCommentLabel` / `renderCategoryLabel` | the translation-key answer |
@@ -227,34 +228,45 @@ rendered inline in a long compose form moves every field under it. Pass
 `surface="inline" | "sheet"` to pin the shape for a host that is not the
 viewport.
 
-## Two page shapes, and the field that decides: `children_as`
+## Tiles are two levels: `browseStage` and `childControl`
 
-Every category node carries a RESOLVED presentation of its children. `tiles`
-means the children are real subcategories — they diverge in attribute schema,
-or have children of their own — and the category's page is a grid of them.
-`chips` means the children are a **partition of one template**: the same
-attribute set split by a value their name expresses (new/used, buy/sell/rent,
-boys/girls), so the category's page is a FEED with a single-select chip row
-rather than a level of the tree. The children keep their ids, their paths and
-their URLs and stay the placement target of a listing; only the presentation
-changes.
-
-`browseStage(category)` folds that into the two shapes a storefront actually
-renders:
+**The stage answer changed** (2026-09-04, evening correction to the browse
+contract): tiles are the home screen and a root's own page, full stop. Every
+page below a root — no matter what its own children look like — is a FEED
+over its whole subtree. `children_as` no longer decides the stage; it decides
+the FILTER a feed page puts at the top of its rail.
 
 ```ts
-browseStage(node)          // "tiles" | "feed"
-// chips → "feed"   ·   childless → "feed"   ·   otherwise → "tiles"
+browseStage(node)    // "tiles" | "feed"
+// a ROOT with children → "tiles"   ·   everything else → "feed"
+
+childControl(node)   // "none" | "segmented" | "list"
+// childless → "none"
+// children_as === "chips" → "segmented" (a single-select chip row — the
+//   children are a PARTITION of one template, the same attribute set split by
+//   a value their name expresses: new/used, buy/sell/rent, boys/girls)
+// otherwise, with children → "list" (a single-select subcategory list with
+//   counts — the drill-down the search answer already carries)
 ```
 
-It takes anything carrying the fields — a flat `Category` row or a
-`CategoryTreeNode` — and reads `tn_children_pks` before the nested `children`
-array, because a depth-capped tree read empties the array on its last level
-and reading that as "leaf" would give a whole level of the catalogue the wrong
-page.
+A `chips` row's children keep their ids, their paths and their URLs and stay
+the placement target of a listing; only the presentation changes. Neither call
+cares whether the row it is handed is a root or not by counting depth itself —
+`browseStage` reads `tn_parent` / `tn_ancestors_pks` / a `CategoryTreeNode`'s
+own `path` (whichever the row carries) to answer "is this a root", and both
+calls read `tn_children_pks` before `children_as` before the nested `children`
+array to answer "does it have any" — because a depth-capped tree read empties
+the `children` array on its last level, and `children_as` survives that cut
+where the array does not (the server sends it `null` **only** where a row
+truly has nothing to present).
 
-The server sends the resolved value; `auto` is derived at import time and
-never reaches the wire.
+The superseded reading ("tiles end where the attribute schema begins", i.e.
+`children_as: "tiles"` draws a grid at ANY depth) put tile pages six levels
+deep on the imported tree, because schemas hang on the leaves. It is gone:
+`browseStage` never looks at `children_as` at all.
+
+The server sends the resolved `children_as`; `auto` is derived at import time
+and never reaches the wire.
 
 ## The desktop mega-menu: one call, three levels
 
@@ -378,7 +390,7 @@ catalogue. `commit` says what it reports to its host:
 |---|---|---|
 | `"any"` (default) | every choice, leaf or not | the FILTER — "everything under Cars" is a prefix match the index already answers |
 | `"leaf"` | only a category nothing lives under | the composer, as the TREE alone states it |
-| `"stage"` | the category that owns a feed — `browseStage(node) === "feed"`, i.e. a leaf **or** a `chips` parent | the composer, as the BROWSE CONTRACT states it |
+| `"stage"` | the category `childControl` would put no LIST filter under — `childControl(node) !== "list"`, i.e. a leaf (`"none"`) **or** a `chips` parent (`"segmented"`) | the composer, as the BROWSE CONTRACT states it |
 
 The difference between the last two is a partition. Under `"leaf"` a `chips`
 parent (`Cars`, with `New` and `Used` under it) is refused and the cascade goes

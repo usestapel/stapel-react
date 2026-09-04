@@ -111,7 +111,7 @@ import {
 import type { Category } from "../api/types.js";
 import { categoryAncestorChain } from "../catalog/cascade.js";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
-import { categoryOffersTileGrid } from "../catalog/tiles.js";
+import { browseStage } from "../catalog/stage.js";
 import { resolveCategorySlug } from "../catalog/tree.js";
 import { categoryTileEntry } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
@@ -499,9 +499,11 @@ function Subcategories(props: {
   if (props.form === "cascade") return cascade;
 
   if (props.form === "tiles") {
-    // Past the cap the tiles hand over to the ladder rather than to nothing —
+    // Past a root the tiles hand over to the ladder rather than to nothing —
     // see this file's header for the 2924 leaves that answer used to hide.
-    if (!categoryOffersTileGrid(props.depth)) return cascade;
+    // `browseStage` is the same call the browse contract's two-level rule
+    // names everywhere else, so this arm's own choice cannot drift from it.
+    if (browseStage(props.current) !== "tiles") return cascade;
     return (
       <Flex vertical gap={spacing[2]}>
         <Typography.Title level={5} style={{ margin: 0 }}>

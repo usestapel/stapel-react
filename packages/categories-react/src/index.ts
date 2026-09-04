@@ -96,8 +96,8 @@ export {
   categoryOffersTileGrid,
   nodeOffersTileGrid,
 } from "./catalog/tiles.js";
-export { browseStage } from "./catalog/stage.js";
-export type { BrowseStage, BrowseStageInput } from "./catalog/stage.js";
+export { browseStage, childControl } from "./catalog/stage.js";
+export type { BrowseStage, BrowseStageInput, ChildControl } from "./catalog/stage.js";
 export {
   buildCategoryCascade,
   cascadeChainIds,

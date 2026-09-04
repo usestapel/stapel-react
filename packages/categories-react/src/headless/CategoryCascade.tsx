@@ -113,7 +113,7 @@ import type {
   CategoryCascadeSource,
 } from "../catalog/cascade.js";
 import { categoryLabel } from "../catalog/labels.js";
-import { browseStage } from "../catalog/stage.js";
+import { childControl } from "../catalog/stage.js";
 import type { CategoryLabel } from "../catalog/labels.js";
 import { categoryChildIds } from "../catalog/tree.js";
 import {
@@ -232,8 +232,11 @@ export type CategoryCascadeBlockedReason =
  *
  * `"stage"` — the COMPOSER's rule as the BROWSE CONTRACT states it, and the
  * one a composer should use where the server resolves `children_as`. The
- * ladder ends at the category that owns a feed — {@link browseStage} `"feed"`,
- * i.e. a leaf OR a `chips` parent — and offers no rung below it.
+ * ladder ends where {@link childControl} would put no LIST filter on a feed
+ * page — i.e. a leaf (`"none"`) OR a `chips` parent (`"segmented"`) — and
+ * offers no rung below it. (Not {@link browseStage}: that answers a different
+ * question now — whether a ROOT's page is tiles — and a non-root `chips`
+ * parent three levels down is `"feed"` under it, same as everything else.)
  *
  * The difference is a partition. Under `"leaf"` a `chips` parent (`Cars`, with
  * `New` and `Used` under it) is refused and the cascade goes on asking for one
@@ -257,7 +260,7 @@ export type CategoryCascadeCommit = "any" | "leaf" | "stage";
  */
 function commits(category: Category, rule: CategoryCascadeCommit): boolean {
   if (rule === "any") return true;
-  if (rule === "stage") return browseStage(category) === "feed";
+  if (rule === "stage") return childControl(category) !== "list";
   return categoryChildIds(category).length === 0;
 }
 
@@ -437,12 +440,12 @@ export function useCategoryCascade(
    * level of the tree; the host draws them as its own required select instead
    * (see {@link CategoryCascadeCommit}).
    *
-   * A LEAF is deliberately not this case, even though {@link browseStage}
-   * calls it a feed too. Its speculative rung comes back empty, which is the
-   * server VERIFYING the leaf — the evidence `atLeaf` is made of — and an
-   * empty rung is never built into a select anyway. Skipping it would save
-   * one small request and cost the bag's only honest answer to "did the
-   * ladder finish".
+   * A LEAF is deliberately not this case, even though {@link childControl}
+   * calls it `"none"` under the same "not a list" test `commits` uses. Its
+   * speculative rung comes back empty, which is the server VERIFYING the
+   * leaf — the evidence `atLeaf` is made of — and an empty rung is never
+   * built into a select anyway. Skipping it would save one small request and
+   * cost the bag's only honest answer to "did the ladder finish".
    *
    * The cursor's row is the one row this hook already reads for its ancestry,
    * and a row the person just clicked was seeded into that cache on the way
@@ -453,7 +456,7 @@ export function useCategoryCascade(
     commitRule === "stage" &&
     cursorQuery.data !== undefined &&
     categoryChildIds(cursorQuery.data).length > 0 &&
-    browseStage(cursorQuery.data) === "feed";
+    childControl(cursorQuery.data) === "segmented";
   /**
    * One entry per rung that could exist. Under a stage stop the LAST one —
    * the speculative rung whose empty answer would discover a leaf — is
