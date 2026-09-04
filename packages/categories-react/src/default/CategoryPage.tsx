@@ -124,6 +124,7 @@ import {
 } from "../model/queries.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
+import type { CategoryCrumbInput } from "../headless/CategoryBreadcrumbs.js";
 import { CategoryCascadeField } from "./CategoryCascadeField.js";
 import { CategoryFeatureList } from "./CategoryFeatureList.js";
 import { CategoryTileGrid } from "./CategoryTileGrid.js";
@@ -293,8 +294,16 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * `false` mounts NOTHING — the bar is absent from the document rather than
    * covered — which is the same rule the sub-category arms follow and the only
    * version of this a test can check.
+   *
+   * An object form mounts the bar (like `true`) and forwards `unlink` to
+   * `<CategoryBreadcrumbsBar>` — a host that holds ancestry knowledge this
+   * page does not (a wrapper the catalogue itself cannot detect from
+   * `tn_children_pks` alone) states it here instead of overriding the bar's
+   * own default from outside. Supplied, the host's predicate REPLACES the
+   * bar's automatic transparent-wrapper check for every crumb; see
+   * `CategoryBreadcrumbsBarProps.unlink`.
    */
-  readonly breadcrumbs?: boolean;
+  readonly breadcrumbs?: boolean | { readonly unlink?: (crumb: CategoryCrumbInput) => boolean };
   /**
    * Which FORM the sub-categories take. Default `"pane"` — what this page has
    * always rendered, so no existing host changes behaviour.
@@ -662,6 +671,10 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                 : {})}
             basePath={base}
             onAbsent="quiet"
+            {...(typeof props.breadcrumbs === "object" &&
+            props.breadcrumbs.unlink !== undefined
+              ? { unlink: props.breadcrumbs.unlink }
+              : {})}
             {...link}
           />
         )}

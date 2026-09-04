@@ -13,6 +13,7 @@ import { Breadcrumb, Skeleton, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
 import { CategoryBreadcrumbs } from "../headless/CategoryBreadcrumbs.js";
+import type { CategoryCrumbInput } from "../headless/CategoryBreadcrumbs.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
@@ -38,6 +39,14 @@ export interface CategoryBreadcrumbsBarProps
    * unknown slug is not announced twice.
    */
   readonly onAbsent?: "state" | "quiet";
+  /**
+   * Which crumbs render as plain text instead of a link — see
+   * `CategoryCrumb.linked`. Forwarded verbatim to `<CategoryBreadcrumbs>`;
+   * omitted, a TRANSPARENT WRAPPER ancestor (`catalog/wrapper.ts`) is
+   * unlinked automatically. Supplied, this predicate is the only thing
+   * consulted — see `CategoryBreadcrumbsProps.unlink`.
+   */
+  readonly unlink?: (crumb: CategoryCrumbInput) => boolean;
 }
 
 export function CategoryBreadcrumbsBar(
@@ -77,6 +86,7 @@ export function CategoryBreadcrumbsBar(
         {...(props.categoryId !== undefined
           ? { categoryId: props.categoryId }
           : {})}
+        {...(props.unlink !== undefined ? { unlink: props.unlink } : {})}
       >
         {(bag) => (
           <LoadBoundary
@@ -120,15 +130,21 @@ export function CategoryBreadcrumbsBar(
                     ...crumbs.map((crumb) => ({
                       // The CURRENT crumb is where you already are: a label,
                       // never a link — the one item antd would happily render
-                      // as a link to the page under your feet.
-                      title: crumb.isCurrent
-                        ? renderCategoryLabel(crumb.label, t)
-                        : crumbLink(
-                            `${base}/${crumb.category.slug}`,
-                            renderCategoryLabel(crumb.label, t),
-                            crumb.category.slug,
-                            crumb.category.id
-                          ),
+                      // as a link to the page under your feet. A crumb marked
+                      // `linked: false` (a transparent wrapper, or the host's
+                      // own `unlink`) gets the same plain-text treatment —
+                      // same typography, no anchor — without touching
+                      // `aria-current`, which only ever belongs to the
+                      // current crumb above.
+                      title:
+                        crumb.isCurrent || !crumb.linked
+                          ? renderCategoryLabel(crumb.label, t)
+                          : crumbLink(
+                              `${base}/${crumb.category.slug}`,
+                              renderCategoryLabel(crumb.label, t),
+                              crumb.category.slug,
+                              crumb.category.id
+                            ),
                     })),
                   ]}
                 />

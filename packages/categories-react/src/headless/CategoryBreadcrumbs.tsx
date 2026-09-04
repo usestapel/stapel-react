@@ -39,6 +39,7 @@ import type { CategoryNode } from "../catalog/tree.js";
 import { categoryAncestorChain } from "../catalog/cascade.js";
 import { categoryLabel } from "../catalog/labels.js";
 import type { CategoryLabel } from "../catalog/labels.js";
+import { isWrapperAncestor } from "../catalog/wrapper.js";
 import {
   useCategory,
   useCategoryCatalog,
@@ -57,6 +58,17 @@ export interface CategoryCrumb {
   readonly label: CategoryLabel;
   /** `true` for the last crumb — the page you are on. */
   readonly isCurrent: boolean;
+  /**
+   * `false` when a skin must print this crumb as plain text — same
+   * typography, no anchor — instead of a link. Default `true`; the current
+   * crumb is always `true` here (`isCurrent` already keeps a skin from
+   * linking it, so this field never has to say so a second time).
+   *
+   * Decided per crumb by {@link isWrapperAncestor} against the trail's own
+   * rows unless {@link CategoryBreadcrumbsProps.unlink} is supplied, in which
+   * case the host's predicate is the ONLY thing consulted — see that prop.
+   */
+  readonly linked: boolean;
 }
 
 export interface CategoryBreadcrumbsBag {
@@ -70,6 +82,9 @@ export interface CategoryBreadcrumbsBag {
   refetch(): void;
 }
 
+/** A crumb's row and caption, before {@link CategoryCrumb.linked} is decided. */
+export type CategoryCrumbInput = Omit<CategoryCrumb, "linked">;
+
 export interface CategoryBreadcrumbsProps
   extends CategoryBrowseOptions,
     UseCategoryCatalogOptions {
@@ -77,7 +92,39 @@ export interface CategoryBreadcrumbsProps
   slug?: string;
   /** The fast path: one small read per crumb, no catalogue. */
   categoryId?: number | null;
+  /**
+   * Which crumbs to unlink, when the host holds knowledge the trail's own
+   * rows cannot supply. Return `true` to print a crumb as plain text.
+   *
+   * Supplied, this REPLACES the automatic {@link isWrapperAncestor} check for
+   * every crumb — a host that knows its own ancestry beats a guess made from
+   * `tn_children_pks` alone, and running both would leave two authorities
+   * disagreeing about the same crumb. Omitted, the automatic check runs.
+   */
+  unlink?: (crumb: CategoryCrumbInput) => boolean;
   children: (bag: CategoryBreadcrumbsBag) => ReactNode;
+}
+
+/**
+ * Attach {@link CategoryCrumb.linked} to an ordered root → current row list.
+ *
+ * The automatic check needs the PREVIOUS row in this same array — a crumb's
+ * parent, one step up the trail — which is why it is computed here, once,
+ * rather than by each caller re-deriving "the row before this one."
+ */
+function attachLinked(
+  rows: readonly CategoryCrumbInput[],
+  unlink: ((crumb: CategoryCrumbInput) => boolean) | undefined
+): readonly CategoryCrumb[] {
+  return rows.map((row, index) => {
+    if (row.isCurrent) return { ...row, linked: true };
+    const parent = index > 0 ? rows[index - 1] : undefined;
+    const hidden =
+      unlink !== undefined
+        ? unlink(row)
+        : parent !== undefined && isWrapperAncestor(parent.category, row.category);
+    return { ...row, linked: !hidden };
+  });
 }
 
 export function CategoryBreadcrumbs(
@@ -87,6 +134,7 @@ export function CategoryBreadcrumbs(
     slug,
     categoryId,
     children,
+    unlink,
     includeDeleted,
     includeInactive,
     includeTest,
@@ -119,21 +167,24 @@ export function CategoryBreadcrumbs(
           : current === null || ancestors.rows.some((row) => row === null)
             ? loadLoading()
             : loadReady(
-                [...ancestors.rows.filter((row): row is Category => row !== null), current]
-                  // An ancestor the storefront may not offer is not a crumb:
-                  // the trail must not link somewhere the visitor cannot go.
-                  // The CURRENT row is kept whatever it says — the caller
-                  // named it, and dropping it would blank the page's title.
-                  .filter(
-                    (row, index, all) =>
-                      index === all.length - 1 ||
-                      isBrowsableCategory(row, visibility)
-                  )
-                  .map((row, index, all) => ({
-                    category: row,
-                    label: categoryLabel(row),
-                    isCurrent: index === all.length - 1,
-                  }))
+                attachLinked(
+                  [...ancestors.rows.filter((row): row is Category => row !== null), current]
+                    // An ancestor the storefront may not offer is not a crumb:
+                    // the trail must not link somewhere the visitor cannot go.
+                    // The CURRENT row is kept whatever it says — the caller
+                    // named it, and dropping it would blank the page's title.
+                    .filter(
+                      (row, index, all) =>
+                        index === all.length - 1 ||
+                        isBrowsableCategory(row, visibility)
+                    )
+                    .map((row, index, all) => ({
+                      category: row,
+                      label: categoryLabel(row),
+                      isCurrent: index === all.length - 1,
+                    })),
+                  unlink
+                )
               );
     return children({
       state,
@@ -154,11 +205,14 @@ export function CategoryBreadcrumbs(
   return children({
     state: mapLoad(catalog, (data) => {
       const path = categoryBreadcrumbs(data.index, current?.id);
-      return path.map((node, i) => ({
-        category: node.category,
-        label: categoryLabel(node.category),
-        isCurrent: i === path.length - 1,
-      }));
+      return attachLinked(
+        path.map((node, i) => ({
+          category: node.category,
+          label: categoryLabel(node.category),
+          isCurrent: i === path.length - 1,
+        })),
+        unlink
+      );
     }),
     unknownSlug: catalog.status === "ready" && current === null,
     refetch: () => {

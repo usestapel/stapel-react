@@ -4,7 +4,7 @@
  * wrapper a tile page skips over to its grandchildren.
  */
 import { describe, expect, it } from "vitest";
-import { browseChildren, isTransparentWrapper } from "../src/index.js";
+import { browseChildren, isTransparentWrapper, isWrapperAncestor } from "../src/index.js";
 import { categoryRow, treeNode } from "./fixtures.js";
 
 describe("isTransparentWrapper — flat Category rows", () => {
@@ -102,5 +102,34 @@ describe("browseChildren", () => {
     });
     const drawn = browseChildren([wrapper], (child) => child.children);
     expect(drawn).toEqual([group1, group2]);
+  });
+});
+
+describe("isWrapperAncestor — the breadcrumb-trail question", () => {
+  it("is true for a parent/child step across a one-hop wrapper", () => {
+    // "Services" (141) -> "Services offer" (1410, one child) -> groups (1).
+    const root = categoryRow(141, "uslugi", "category.uslugi", null, "", "1410");
+    const wrapper = categoryRow(1410, "offer", "category.offer", 141, "141", "1");
+    expect(isWrapperAncestor(root, wrapper)).toBe(true);
+  });
+
+  it("is false when the parent has more than one child", () => {
+    const root = categoryRow(1, "electronics", "category.electronics", null, "", "2,3");
+    const phones = categoryRow(2, "phones", "category.phones", 1, "1", "4");
+    expect(isWrapperAncestor(root, phones)).toBe(false);
+  });
+
+  it("is false when the only child is itself a leaf", () => {
+    const parent = categoryRow(1, "root", "category.root", null, "", "2");
+    const leaf = categoryRow(2, "leaf", "category.leaf", 1, "1", "");
+    expect(isWrapperAncestor(parent, leaf)).toBe(false);
+  });
+
+  it("is false when the parent row carries no tn_children_pks at all", () => {
+    const parent = { slug: "root" } as unknown as Parameters<
+      typeof isWrapperAncestor
+    >[0];
+    const child = categoryRow(2, "leaf", "category.leaf", 1, "1", "3");
+    expect(isWrapperAncestor(parent, child)).toBe(false);
   });
 });

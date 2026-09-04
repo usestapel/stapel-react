@@ -47,6 +47,7 @@
  */
 import type { BrowseStageInput } from "./stage.js";
 import { hasChildren } from "./stage.js";
+import { parseTreenodePks } from "./pks.js";
 
 /**
  * A child's own children, however the caller's shape carries them.
@@ -102,4 +103,32 @@ export function browseChildren<C extends BrowseStageInput>(
   if (wrapper === undefined) return children;
   const grandchildren = grandchildrenOf(wrapper);
   return grandchildren ?? children;
+}
+
+/**
+ * Is `child` sitting where a transparent wrapper's ancestry slot would be —
+ * `parent`'s ONLY child, itself with children of its own?
+ *
+ * A BREADCRUMB TRAIL never holds a parent's full sibling array the way a tile
+ * page's `childRows` does — each ancestor is one fetched row, `id`-path and
+ * slug-path alike (`Category` either way, see `catalog/tree.ts`'s
+ * `CategoryNode.category`). `tn_children_pks` on that row already carries the
+ * COUNT {@link isTransparentWrapper}'s array-length check stands in for, so no
+ * second request buys the same answer: `parent` has exactly one child when
+ * its own column parses to one id, and {@link isTransparentWrapper} still
+ * answers whether that one child (`child`) has children of its own.
+ *
+ * `undefined` `tn_children_pks` (a row shape that never carried the column)
+ * answers `false` rather than guessing — the same "otherwise not a wrapper"
+ * default {@link isTransparentWrapper} takes for zero children.
+ */
+export function isWrapperAncestor<C extends BrowseStageInput>(
+  parent: C,
+  child: C
+): boolean {
+  if (typeof parent.tn_children_pks !== "string") return false;
+  return (
+    parseTreenodePks(parent.tn_children_pks).length === 1 &&
+    isTransparentWrapper([child])
+  );
 }

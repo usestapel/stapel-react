@@ -307,6 +307,15 @@ whichever rung a wrapper lands on, so a ladder never shows a one-option
 wrapper's own children appear at that rung instead, fetched eagerly the
 moment the wrapper is detected rather than only after a (pointless) click.
 
+The breadcrumb trail applies the same rule to itself: a wrapper's crumb
+(`Услуги → «Предложение услуг» → group`) prints as plain text — same
+typography, no anchor, `aria-current` untouched on the real current crumb —
+because the browse rule treats it as skipped over, not as a page a visitor
+should land on. `<CategoryBreadcrumbsBar>` detects it automatically from the
+trail's own rows (`isWrapperAncestor`, no extra request); an `unlink` prop —
+also `<CategoryPage breadcrumbs={{ unlink }}>` — lets a host say so instead,
+which REPLACES the automatic check rather than adding to it.
+
 ## The desktop mega-menu: one call, three levels
 
 `useCategoryTree(depth)` is `GET /tree/?depth=N` — active nodes, ordered,

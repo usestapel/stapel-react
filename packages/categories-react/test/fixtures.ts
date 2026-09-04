@@ -120,6 +120,52 @@ export const UNFLAGGED: Category = categoryRow(
   ""
 );
 
+/**
+ * A one-hop TRANSPARENT WRAPPER trail — `catalog/wrapper.ts`'s own "Services"
+ * census example, sized for a breadcrumb test: root -> wrapper (its ONE
+ * child) -> group (a real category with several services) -> current.
+ */
+export const USLUGI_ROOT: Category = categoryRow(
+  100,
+  "uslugi",
+  "category.uslugi",
+  null,
+  "",
+  "101"
+);
+// The wrapper's OWN children are the real 34 groups — more than one, so a
+// group crumb below it is a real destination, not a second wrapper hop.
+export const USLUGI_WRAPPER: Category = categoryRow(
+  101,
+  "predlozhenie-uslug",
+  "category.predlozhenie",
+  100,
+  "100",
+  "102,105"
+);
+export const USLUGI_GROUP: Category = categoryRow(
+  102,
+  "remont-obuvi",
+  "category.remont_obuvi",
+  101,
+  "100,101",
+  "103,104"
+);
+export const USLUGI_CURRENT: Category = categoryRow(
+  103,
+  "chistka-obuvi",
+  "category.chistka_obuvi",
+  102,
+  "100,101,102",
+  ""
+);
+export const USLUGI_ROWS: readonly Category[] = [
+  USLUGI_ROOT,
+  USLUGI_WRAPPER,
+  USLUGI_GROUP,
+  USLUGI_CURRENT,
+];
+
 export const ROWS: readonly Category[] = [
   ELECTRONICS,
   PHONES,
