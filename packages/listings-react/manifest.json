@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.22.1",
+  "version": "0.23.0",
   "backend": {
     "module": "stapel-listings",
     "contract": ">=0.21 <0.22"
@@ -223,6 +223,15 @@
         "listings",
         "list",
         "{page}"
+      ]
+    },
+    "useListingDraft": {
+      "kind": "query",
+      "operation": "draft",
+      "queryKey": [
+        "listings",
+        "draft",
+        "{id}"
       ]
     },
     "useListingEngagement": {
@@ -1205,6 +1214,7 @@
       "useListingCards",
       "useListingComposer",
       "useListingDetail",
+      "useListingDraft",
       "useListingEngagement",
       "useListingEngagementOverlay",
       "useListingEngagementScope",

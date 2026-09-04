@@ -110,6 +110,27 @@ function assertDirDerivable(pkgs) {
   }
 }
 
+/**
+ * The OTHER string that repeats on nearly every line. Nineteen of the
+ * described packages close their description with the same two facts — the
+ * main entry is headless, and whether an opt-in `/default` subpath ships a
+ * skin — spending ~475 tokens to say it nineteen times. Same treatment as the
+ * per-line path above: state the convention ONCE in the header, and keep only
+ * the bit that actually differs between packages (does a skin exist at all)
+ * as a marker. The full skin prose stays where a reader who cares is already
+ * being sent — the package's own llms.txt.
+ */
+const SKIN_TAIL = /\s*Zero visual opinion\b[\s\S]*$/;
+
+function indexLine(p) {
+  const full = p.description ?? "";
+  if (!full) return `- **${p.name}**`;
+  const tail = full.match(SKIN_TAIL)?.[0] ?? "";
+  const head = full.replace(SKIN_TAIL, "").trim() || full;
+  const marker = tail.includes("/default") ? " _(+ `/default` skin)_" : "";
+  return `- **${p.name}** — ${head}${marker}`;
+}
+
 function render(pkgs) {
   assertDirDerivable(pkgs);
   const described = pkgs.filter((p) => p.hasLlms);
@@ -135,6 +156,14 @@ function render(pkgs) {
       + "`packages/auth-react/llms.txt`."
   );
   L.push("");
+  L.push(
+    "Every package here is headless in its main entry — a line below says "
+      + "what the package does, never how it looks. "
+      + "``_(+ `/default` skin)_`` marks the ones that ALSO ship an opt-in antd "
+      + "skin on a `/default` subpath; which slots that skin fills, and any "
+      + "further subpath, is in that package's own llms.txt."
+  );
+  L.push("");
   L.push(`## Described (${described.length})`);
   if (described.length > 0) {
     for (const group of GROUP_ORDER) {
@@ -144,7 +173,7 @@ function render(pkgs) {
       L.push(`### ${group} (${rows.length})`);
       L.push("");
       for (const p of rows) {
-        L.push(p.description ? `- **${p.name}** — ${p.description}` : `- **${p.name}**`);
+        L.push(indexLine(p));
       }
     }
   } else {
