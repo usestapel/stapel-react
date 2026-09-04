@@ -194,6 +194,16 @@ export type {
 } from "./headless/useFacetLabels.js";
 export { useAppliedSort } from "./headless/useAppliedSort.js";
 export { offerableCategories, useSearchBox } from "./headless/useSearchBox.js";
+export {
+  OTHER_CATEGORIES_LIMIT,
+  OTHER_CATEGORIES_PHONE_LIMIT,
+  otherCategoryLeaf,
+  useOtherCategories,
+} from "./headless/useOtherCategories.js";
+export type {
+  OtherCategoriesBag,
+  OtherCategoryRow,
+} from "./headless/useOtherCategories.js";
 export type { SearchBoxBag, UseSearchBoxOptions } from "./headless/useSearchBox.js";
 export { countQueryState, useSearchCount } from "./headless/useSearchCount.js";
 export type {

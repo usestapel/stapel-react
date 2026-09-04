@@ -282,6 +282,33 @@ export const SEARCH_I18N_KEYS = {
   /** "Without {name}" — one applied filter, named as its own chip names it. */
   emptyDropFilter: "search.empty.drop_filter",
 
+  // ── the same query, in another section (one line, from the answer) ───────
+  /**
+   * The line's lead-in — "Search in other categories:". It ends in a colon
+   * because what follows is a list on the same line, and a translator who is
+   * shown the string without one has no way to know that.
+   *
+   * Not `search.box.categories` ("Sections", the type-ahead's group heading):
+   * that one titles a menu of destinations while a person types, this one
+   * introduces a row of narrowings beside a result list. Same noun, two
+   * surfaces, and the languages that decline it need both.
+   */
+  otherCategoriesLabel: "search.other_categories.label",
+  /**
+   * The accessible name of one entry. The visible caption is "Cars 12" — a
+   * name and a number, which says nothing about what pressing it DOES. This
+   * does: it narrows the search that is already on screen, and it keeps the
+   * query, which is why the number beside it stays true afterwards.
+   */
+  otherCategoriesNarrow: "search.other_categories.narrow",
+  /**
+   * The fold at the end of the line: how many sections it did not print.
+   * `{count}` is a bare number after a word, not a counted noun in a
+   * sentence, so this is not a plural family — the same shape as
+   * `facetsAllFilters` and `filtersChipOverflow`.
+   */
+  otherCategoriesMore: "search.other_categories.more",
+
   // ── category (a host slot, plus the control that removes it) ─────────────
   categoryTitle: "search.category.title",
   categoryClear: "search.category.clear",
@@ -573,6 +600,11 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.empty.widen_radius": "Search within {km} km",
   "search.empty.anywhere": "Search anywhere",
   "search.empty.drop_filter": "Without {name}",
+
+  "search.other_categories.label": "Search in other categories:",
+  "search.other_categories.narrow": "Search in {name}",
+  "search.other_categories.more": "{count} more",
+
   "search.category.title": "Category",
   "search.category.clear": "Search the whole catalogue",
   "search.category.current": "Searching inside {path}",

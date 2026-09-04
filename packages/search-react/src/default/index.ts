@@ -48,6 +48,19 @@ export {
 } from "./SearchPage.js";
 export type { SearchPageProps, SearchFiltersLayout } from "./SearchPage.js";
 
+export {
+  OtherCategoriesLine,
+  OTHER_CATEGORIES_CLASS,
+  OTHER_CATEGORIES_PHONE_ROWS,
+  OTHER_CATEGORIES_SLOT_MIN_HEIGHT,
+  OTHER_CATEGORIES_STYLE_HREF,
+  otherCategoriesCss,
+} from "./OtherCategoriesLine.js";
+export type {
+  OtherCategoriesLineProps,
+  OtherCategoryNamer,
+} from "./OtherCategoriesLine.js";
+
 export { SearchResultsPane, RESULTS_MAX_WIDTH } from "./SearchResultsPane.js";
 export type {
   SearchResultsPaneProps,

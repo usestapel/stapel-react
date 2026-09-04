@@ -166,6 +166,11 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.empty.widen_radius": "Искать в радиусе {km} км",
   "search.empty.anywhere": "Искать везде",
   "search.empty.drop_filter": "Без «{name}»",
+
+  // One line, out of the same answer the cards came from: section and count.
+  "search.other_categories.label": "Поиск в других категориях:",
+  "search.other_categories.narrow": "Искать в разделе «{name}»",
+  "search.other_categories.more": "ещё {count}",
   "search.category.title": "Категория",
   "search.category.clear": "Искать по всему каталогу",
   "search.category.current": "Ищем внутри {path}",

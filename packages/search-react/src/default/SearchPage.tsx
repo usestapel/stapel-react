@@ -86,6 +86,7 @@ import { FilterChips } from "./FilterChips.js";
 import { LocationSummaryLine } from "./LocationSummaryLine.js";
 import { PageSizeSelect } from "./PageSizeSelect.js";
 import { SearchBox } from "./SearchBox.js";
+import type { OtherCategoryNamer } from "./OtherCategoriesLine.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
 import type { SearchResultsWrapper } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
@@ -320,6 +321,25 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * ask.
    */
   readonly appliedChips?: boolean | "desktop";
+  /**
+   * Draw "Search in other categories: Cars 12 · Buses 3 · …" above the
+   * results — one line, from the SAME response the cards came from.
+   *
+   * It replaces the shape a storefront had built by hand: a full-width block
+   * of one row per category, fetched from `/suggest` after the page had
+   * settled and pushing everything below it when it landed. Here the rows are
+   * `facet_meta.categories`, which the answer already carried, so with results
+   * on screen the line costs no request and cannot arrive late. Only an EMPTY
+   * result set asks `/suggest`, into a slot whose height is reserved from the
+   * first frame.
+   *
+   * Opt-in, and `categoryName` is what makes it useful: the pair holds id
+   * paths and no catalogue — see {@link OtherCategoriesLineProps.categoryName}.
+   */
+  readonly otherCategories?: boolean;
+  /** What a category id path is CALLED, for the line above. The same question
+   * `categoryLabel` answers for the chip, asked once per row. */
+  readonly categoryName?: OtherCategoryNamer;
   /** What this surface calls its result list. See
    * {@link SearchResultsPaneProps.heading}. */
   readonly resultsHeading?: ReactNode;
@@ -417,6 +437,8 @@ interface SearchPageBodyProps {
   readonly filtersHeader?: ReactNode;
   readonly resultsHeader?: ReactNode;
   readonly appliedChips?: boolean | "desktop";
+  readonly otherCategories?: boolean;
+  readonly categoryName?: OtherCategoryNamer;
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly filtersLayout?: SearchFiltersLayout;
@@ -586,6 +608,12 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(view.layout !== undefined ? { layout: view.layout } : {})}
       {...(props.renderCard !== undefined ? { renderCard: props.renderCard } : {})}
       {...(props.footer !== undefined ? { footer: props.footer } : {})}
+      {...(props.otherCategories !== undefined
+        ? { otherCategories: props.otherCategories }
+        : {})}
+      {...(props.categoryName !== undefined
+        ? { categoryName: props.categoryName }
+        : {})}
       {...(props.resultsHeading !== undefined
         ? { heading: props.resultsHeading }
         : {})}
@@ -763,6 +791,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     filtersHeader,
     resultsHeader,
     appliedChips,
+    otherCategories,
+    categoryName,
     resultsHeading,
     degradationNotice,
     filtersLayout,
@@ -798,6 +828,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
           {...(resultsHeader !== undefined ? { resultsHeader } : {})}
           {...(appliedChips !== undefined ? { appliedChips } : {})}
+          {...(otherCategories !== undefined ? { otherCategories } : {})}
+          {...(categoryName !== undefined ? { categoryName } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}

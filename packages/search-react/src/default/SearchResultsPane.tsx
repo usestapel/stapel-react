@@ -46,6 +46,8 @@ import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { DegradationNotice } from "./DegradationNotice.js";
 import { EmptyExits } from "./EmptyExits.js";
 import type { DegradationNoticeVariant } from "./DegradationNotice.js";
+import { OtherCategoriesLine } from "./OtherCategoriesLine.js";
+import type { OtherCategoryNamer } from "./OtherCategoriesLine.js";
 import { SearchResultCard } from "./SearchResultCard.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
 import type { SearchResultsLayout } from "./ViewSwitch.js";
@@ -261,6 +263,20 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * this pair offers the slot and never the tree.
    */
   readonly renderEmptyExits?: () => ReactNode;
+  /**
+   * Draw "Search in other categories: Cars 12 · Buses 3 · …" above the
+   * results — the sections THIS answer is made of, one line, from the same
+   * response (`<OtherCategoriesLine>`).
+   *
+   * Opt-in, because the rows are id PATHS and naming them is the host's
+   * (`categoryName`): a deployment that passes neither gets the line only for
+   * the paths the server itself named, which on a slug-less catalogue is
+   * none. Where it is on, it costs no request while there are results.
+   */
+  readonly otherCategories?: boolean;
+  /** What a category id path is CALLED, for the line above — see
+   * {@link OtherCategoriesLineProps.categoryName}. */
+  readonly categoryName?: OtherCategoryNamer;
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -374,6 +390,18 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               variant={props.degradationNotice ?? "banner"}
               scorerName={scorerName}
             />
+
+            {/* ABOVE the results and in the SAME frame as them. Under them
+                and asynchronously is where it was, and both halves of that
+                pushed a page a person had started reading. */}
+            {props.otherCategories === true && (
+              <OtherCategoriesLine
+                {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}
+                {...(props.categoryName !== undefined
+                  ? { categoryName: props.categoryName }
+                  : {})}
+              />
+            )}
 
             <LoadList
               state={bag.state}

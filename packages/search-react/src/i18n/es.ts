@@ -131,6 +131,10 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.empty.widen_radius": "Buscar en un radio de {km} km",
   "search.empty.anywhere": "Buscar en todas partes",
   "search.empty.drop_filter": "Sin «{name}»",
+
+  "search.other_categories.label": "Buscar en otras categorías:",
+  "search.other_categories.narrow": "Buscar en {name}",
+  "search.other_categories.more": "{count} más",
   "search.category.title": "Categoría",
   "search.category.clear": "Buscar en todo el catálogo",
   "search.category.current": "Buscando dentro de {path}",

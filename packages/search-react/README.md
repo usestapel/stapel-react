@@ -291,6 +291,42 @@ real width and every colour a `--stapel-*` custom property, so it is the
 panel's own hairline in both themes. `railScrollbarCss()` and `RAIL_CLASS` are
 exported for a host that lays out its own column.
 
+## The other sections are a line, and they come with the results
+
+`<SearchPage otherCategories categoryName={...}>` draws
+
+> Search in other categories: **Cars 12** · **Buses 3** · **Motorhomes 1** · 5 more
+
+above the results, and every part of that sentence is already in the answer
+that drew the cards. `/query` returns `facet_meta.categories` — `{path, count}`
+for every section the candidate set contains — so the line renders in the SAME
+commit as the first card. There is no second request to arrive late and push
+the page, which is exactly what the shape it replaces did: a full-width block
+of one row per section, fetched from `/suggest` after the page had settled.
+
+One case still earns a request. An empty result set has no candidates, so the
+answer names no sections, and that is the screen where "this word exists in
+these sections" is worth the most — there `/suggest` is asked, into a slot
+whose height is reserved from the first frame (`OTHER_CATEGORIES_SLOT_MIN_HEIGHT`)
+so the answer lands without moving anything. `useOtherCategories()` says which
+case a page is in (`source`, `reserving`, `pending`) for a host drawing its own.
+
+Pressing an entry NARROWS the search on screen and keeps the query: the count
+beside a name is the count for this query in that section, and a link to the
+bare category feed would show a different number a click later.
+
+`categoryName` is what makes the line useful on a catalogue addressed by ids.
+The pair holds `"140/145"` and no tree — the same seam `categoryLabel` fills for
+the chip. Without it the line still draws every row the server itself named (a
+`/suggest` answer already in the cache names them for free) and every path whose
+last segment is a slug; a row nothing can name is dropped rather than printed as
+`163`.
+
+On the phone surface the cap halves (8 → 4) and the collapsed line is clamped to
+two rows besides, because it is name LENGTH and not entry count that turns a line
+back into a block. `otherCategoriesCss()` and `OTHER_CATEGORIES_CLASS` are
+exported for a host that hoists the sheet itself.
+
 ## Two browse surfaces the page places
 
 Both are exported from `./default` and neither lays itself out — where they
@@ -372,8 +408,8 @@ the configured engine cannot evaluate.
 | api | `createSearchApi`, `searchQueryParams`, `SEARCH_SORTS`, wire types |
 | state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `orderFacetGroupsBySchema`, `facetGroupIsDrawable`, `facetGroupHasEvidence`, `facetOptionLabel`, `translitPrefixMatch`, `translitKey`, `consonantKey` |
 | model | `createSearchRuntime`, `searchQueryKeys`, `useSearchQuery`, `useRankingDisclosure` |
-| headless | `SearchProvider`, `SearchStateProvider`/`useSearchState`, `SearchResults`, `FacetPanel`, `RankingDisclosure` |
-| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `FilterChips` (`mode="openers" | "applied"`), `buildAppliedChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `RAIL_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
+| headless | `SearchProvider`, `SearchStateProvider`/`useSearchState`, `SearchResults`, `FacetPanel`, `RankingDisclosure`, `useOtherCategories` |
+| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `OtherCategoriesLine`, `otherCategoriesCss`, `FilterChips` (`mode="openers" | "applied"`), `buildAppliedChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `RAIL_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
 | `./router` | `useRouterSearchParams` |
 | i18n | `registerSearchI18n` (+ `./i18n/ru`, `./i18n/es`) |
 | errors | `SEARCH_ERRORS`, `explainSearchError`, `SEARCH_WINDOW_EXCEEDED`, `SEARCH_BACKEND_UNAVAILABLE` |
