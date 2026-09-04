@@ -261,7 +261,7 @@ export default defineDemo({
     },
     "pickers — nothing answered yet": {
       description:
-        "The same five fields untouched. The required bool shows NEITHER chip pressed — a switch would draw “No” for a question nobody has answered and the asterisk beside it would contradict that until the submit was refused. The number's bounds are its placeholder and the line under it, never a clamp; the long help is folded into a disclosure instead of pushing the next question off the screen.",
+        "The same five fields untouched. The required bool shows NEITHER chip pressed — a switch would draw “No” for a question nobody has answered and the asterisk beside it would contradict that until the submit was refused. The number is the bounded control: the keypad stays primary and nothing typed is ever clamped or rewritten, a dropdown of the 0–1,000,000 range opens only as the recovery path for a value outside it, and the steppers walk by one and grey at the ends; the long help is folded into a disclosure instead of pushing the next question off the screen.",
       viewport: "phone",
       step: "empty",
       render: () => (

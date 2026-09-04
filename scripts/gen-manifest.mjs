@@ -18,6 +18,9 @@
 //   MANIFEST_MODULE    backend module name (default "stapel-auth")
 //   MANIFEST_TAGPREFIX operation path prefix filter (default "/auth/api/v1/")
 //   API_SCHEMA         source schema.json (default ../<MANIFEST_MODULE>/docs/schema.json)
+//   MANIFEST_NO_HTTP   "1" for an L1 library with a backend module/contract but
+//                      no HTTP surface (no schema.json ever) — generic render
+//   MANIFEST_LAYERS    comma-separated layer list (default api,model,flows,headless,i18n)
 //
 //   node scripts/gen-manifest.mjs      # generate
 //   pnpm gen:manifest                  # generate (root script)
@@ -50,6 +53,22 @@ const MODULE = process.env.MANIFEST_MODULE ?? "stapel-auth";
 // "generic runtime package" — same generator, same drift gate, no second
 // mechanism (badge-canon §3: chini generator, ne hand-author the artifact).
 const HAS_BACKEND = MODULE.trim().length > 0;
+// An L1 library with a real backend module (contract worth stating) but NO
+// HTTP surface of its own (today: stapel-attributes — a pure Python engine,
+// no DRF endpoints) sets `MANIFEST_NO_HTTP=1`. Unlike MANIFEST_MODULE="" this
+// keeps `backend.module`/`backend.contract` (still pinned against the
+// module's pyproject) but skips reading a schema.json that will never exist,
+// and renders with the generic (exports-catalog) narrative instead of the
+// operations/flows-driven one.
+const NO_HTTP = process.env.MANIFEST_NO_HTTP === "1";
+const USE_GENERIC_RENDER = !HAS_BACKEND || NO_HTTP;
+// The fixed api/model/flows/headless/i18n shape assumes an HTTP-calling pair;
+// a library without one names its own layers (attributes-react: headless,
+// default, i18n — no api/model/flows dirs exist).
+const LAYERS = (process.env.MANIFEST_LAYERS ?? "api,model,flows,headless,i18n")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 const PATH_PREFIX = process.env.MANIFEST_TAGPREFIX ?? "/auth/api/v1/";
 // §17-native per-module contract: the schema source is the backend module's
 // own committed docs/schema.json (default: the auth pair, matching the other
@@ -376,6 +395,13 @@ function renderLlmsGeneric(m, factories, eventsJson, demosJson) {
   L.push("");
   L.push(RUNTIME_BLURB);
   L.push("");
+  // A generic-render package MAY still have a real backend module + pinned
+  // contract (MANIFEST_NO_HTTP=1: an L1 library, not a substrate) — state it,
+  // since `backend` in manifest.json is the drift-gated source of truth.
+  if (m.backend) {
+    L.push(`Backend: ${m.backend.module} (contract ${m.backend.contract}).`);
+    L.push("");
+  }
   if (factories.length > 0) {
     L.push("## Factories (createFlowMachine-style; analytics funnel flow.<id>.<step>)");
     for (const f of factories) L.push(`- ${f}`);
@@ -434,7 +460,10 @@ async function main() {
   const pkg = JSON.parse(await readFile(resolve(PKG_DIR, "package.json"), "utf8"));
   // A backend-less package (@stapel/core today) has no OpenAPI schema to
   // read at all — there is no sibling Django module to generate one from.
-  const schema = HAS_BACKEND ? JSON.parse(await readFile(SCHEMA_PATH, "utf8")) : { paths: {} };
+  const schema =
+    HAS_BACKEND && !NO_HTTP
+      ? JSON.parse(await readFile(SCHEMA_PATH, "utf8"))
+      : { paths: {} };
   // Zero-flow pairs (slim wave §21/S3) carry no generated flows.json at all —
   // gen:flows skips emission for them; treat that as an empty flow list.
   let flows = [];
@@ -491,13 +520,13 @@ async function main() {
     // "layers" names a pair's fixed api/model/flows/headless/i18n shape — a
     // backend-less runtime package has no such pairing, so the key is simply
     // absent rather than a fabricated taxonomy (honest gap, not an invention).
-    ...(HAS_BACKEND ? { layers: ["api", "model", "flows", "headless", "i18n"] } : {}),
+    ...(HAS_BACKEND ? { layers: LAYERS } : {}),
     // `description` is the one-liner an agent reads FIRST — for a pair it is
-    // derived from backend.module in the render narrative below, but a
-    // backend-less package has no such narrative to derive it from, so its
-    // own (human-written, npm-facing) package.json description is the only
-    // honest source.
-    ...(HAS_BACKEND ? {} : { description: pkg.description ?? "" }),
+    // derived from backend.module in the render narrative below. A
+    // backend-less package (or a library with a backend but no HTTP surface)
+    // has no such narrative to derive it from, so its own (human-written,
+    // npm-facing) package.json description is the only honest source.
+    ...(USE_GENERIC_RENDER ? { description: pkg.description ?? "" } : {}),
     flows: flowsCatalog(flows),
     machines: factories,
     operations: operations(schema),
@@ -509,9 +538,9 @@ async function main() {
     exports: exportsCatalog,
   };
 
-  const llms = HAS_BACKEND
-    ? renderLlms(manifest, factories, eventsJson, demosJson)
-    : renderLlmsGeneric(manifest, factories, eventsJson, demosJson);
+  const llms = USE_GENERIC_RENDER
+    ? renderLlmsGeneric(manifest, factories, eventsJson, demosJson)
+    : renderLlms(manifest, factories, eventsJson, demosJson);
   const approxTokens = Math.ceil(llms.length / 4);
   if (approxTokens > LLMS_TOKEN_BUDGET) {
     throw new Error(

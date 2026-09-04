@@ -1,0 +1,160 @@
+# @stapel/attributes-react 0.15.0
+
+React value layer for stapel-attributes' dynamic feature types: a value-editor registry keyed on config.type (explicit registration > skin builtin > loud unsupported notice, with the submit blocked and the reason named), a client-side validation mirror that speaks the engine's own error.400.feature_* keys (pattern as fullmatch, string length in Unicode code points), DTO helpers for the {slug: {type, value}} wire shape, and display formatting. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd editors for all ten builtin types plus <FeatureFields> and <FeatureBadges>.
+
+No HTTP surface of its own — stapel-attributes is a pure Python engine (rules, validation, config types), no DRF endpoints. This is its React VALUE layer: a value-editor registry keyed on config.type, a client-side validation mirror speaking the engine’s own error.400.feature_* keys, DTO helpers for the {slug:{type,value}} wire shape, display formatting, and a rules-visibility engine mirroring the backend one-for-one.
+
+Backend: stapel-attributes (contract >=0.9 <0.10).
+
+## Exports (call these, never hand-roll the equivalent) — see full
+signatures/JSDoc in the package README and src/index.ts.
+### runtime
+- ATTRIBUTES_ERROR_BUNDLE_EN
+- ATTRIBUTES_I18N_KEYS
+- ERROR_CODE_TO_KEY
+- FEATURE_VISIBILITIES
+- FORMATTABLE_TYPES
+- FeatureRulesError
+- INVALID_RULES_FEATURE
+- RULE_CONNECTIVES
+- RULE_EFFECTS
+- RULE_OPERATORS
+- SIMPLE_COLORS
+- UNTYPED_FEATURE
+- VALIDATION_ERROR_CODES
+- VERIFICATION_VERIFIED
+- VISIBLE_STATE
+- VOCABULARY_BACKED_TYPES
+- VocabularyClientProvider
+- attributesI18nBundleEn
+- codePointLength
+- conditionSlugs
+- defaultFeatureValue
+- dependencyParentOf
+- evaluateRules
+- featureAnswerRequired
+- featureBounds
+- featureConfig
+- featureErrorsBySlug
+- featureName
+- featureRequiredUnder
+- featureRuleState
+- featureType
+- featureVisibility
+- firstCode
+- formatFeatureValue
+- fromFeaturesDto
+- hasVisibleFields
+- hexColorSwatch
+- initialFeatureValues
+- isBlank
+- isPopularTerm
+- isPublicFeature
+- isRedactedValue
+- isValuePresent
+- isValueVerified
+- mirrorValidate
+- missingRequiredFeatures
+- narrowConfig
+- narrowFeature
+- optionsRefOf
+- parseRules
+- patternFullMatch
+- registerAttributesI18n
+- registerValueEditor
+- registeredValueEditorTypes
+- resolveValueEditor
+- resultErrorKey
+- ruleErrors
+- ruleStateToJson
+- ruleWhenMatches
+- sameAnswer
+- soleAllowedValue
+- splitPopularBand
+- stringify
+- termPageOf
+- toFeaturesDto
+- undisclosedSlugs
+- unregisterValueEditor
+- unsupportedFeatureNames
+- unsupportedTypeGate
+- unsupportedTypes
+- useFeatureFields
+- useVocabularyClient
+- validateFeatureValue
+- valueVerification
+- visibleFeatureGroups
+- visibleFeatures
+
+### types
+- AttributesI18nKey
+- Cond
+- FeatureBounds
+- FeatureConfig
+- FeatureDef
+- FeatureFieldsState
+- FeatureValidationResult
+- FeatureValueDto
+- FeatureVerification
+- FeatureVisibility
+- FeaturesDto
+- FormatOptions
+- GroupConfig
+- GroupRepeat
+- Hint
+- OptionsRef
+- RefHierarchicalSelectConfig
+- RefSelectConfig
+- RenderabilityOptions
+- Rule
+- RuleState
+- RuleWhen
+- UseFeatureFieldsOptions
+- ValidationBatchResult
+- ValidationErrorCode
+- ValidationStatus
+- ValueEditor
+- ValueEditorProps
+- VisibleFeatureGroup
+- VocabularyClient
+- VocabularyTerm
+- VocabularyTermAnswer
+- VocabularyTermPage
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- attributes.display → <FeatureBadges> [badges|spec table|two kinds of absence|card and specs]  demo/FeatureBadges.demo.tsx
+- attributes.fields → <FeatureFields> [text and numbers|choices|dates and units|refused|rules — new|rules — used|sections|composite — filled|composite — on a phone|ref-select|ref-hierarchical|ref-select — waiting for the wire|no vocabulary source|pickers — answered|pickers — nothing answered yet|the sheet, open|chained reference — one rung at a time|composite — at its row cap|submitting]  demo/FeatureFields.demo.tsx
+- attributes.unsupported → <UnsupportedValueEditor> [unknown type|no type at all|submit blocked]  demo/UnsupportedValueEditor.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// One-provider setup (StapelConfigProvider + QueryClientProvider + I18nProvider).
+const client = createStapelClient({ baseUrl, getAccessToken });
+<StapelProvider client={client} queryClient={queryClient} i18n={i18n}>
+  <App />
+</StapelProvider>
+```
+```tsx
+// Error narrowing — never a cast (stapel/no-raw-error-shape).
+if (isStapelApiError(err)) return <Alert>{t(err.code, err.params)}</Alert>;
+```
