@@ -17,7 +17,7 @@
  */
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex, InputNumber, Select, Typography } from "antd";
+import { Button, Flex, InputNumber, Select, Skeleton, Typography } from "antd";
 import { actionAvailable, actionBlocked, useFormat, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { GatedButton } from "@stapel/tokens-antd/skin";
@@ -29,6 +29,49 @@ import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
 /** Floor width of one bound field, so two of them fit a 390px phone row. */
 export const RANGE_FIELD_MIN_WIDTH = 96;
+
+/**
+ * One row's reserved block-size — a label line plus one control row, the two
+ * lines every real row draws. Used both as the skeleton row's floor and as
+ * the whole reserve when the schema itself is not known yet (D361: a 53px
+ * jump inside the rail when the attribute-range block had no box to arrive
+ * into, because nothing reserved its height before the answer landed).
+ */
+export const RANGE_ROW_MIN_HEIGHT = 76;
+
+/** Floor width of the label placeholder in {@link RangeRowSkeleton} — a
+ * named one-off, not a spacing step: it bounds a text skeleton, not a gap. */
+const RANGE_SKELETON_LABEL_WIDTH = 160;
+
+/**
+ * The unrevealed shape of one range row — same two lines, same field widths,
+ * no numbers. Drawn for a slug the schema already names while the answer
+ * that would fill it (bounds, applied value, unit) has not landed yet, so
+ * the rail's box is the row's own final height from the first paint rather
+ * than growing into it once the real row replaces this one.
+ */
+export function RangeRowSkeleton(): ReactElement {
+  return (
+    <Flex
+      vertical
+      gap={spacing[1]}
+      aria-hidden="true"
+      data-testid="facet-range-skeleton"
+      style={{ minBlockSize: RANGE_ROW_MIN_HEIGHT }}
+    >
+      <Skeleton.Input
+        active
+        size="small"
+        style={{ maxWidth: RANGE_SKELETON_LABEL_WIDTH }}
+      />
+      <Flex gap={spacing[2]} align="center" wrap>
+        <Skeleton.Input active style={{ minWidth: RANGE_FIELD_MIN_WIDTH }} />
+        <Skeleton.Input active style={{ minWidth: RANGE_FIELD_MIN_WIDTH }} />
+        <Skeleton.Button active />
+      </Flex>
+    </Flex>
+  );
+}
 
 export interface RangeFilterRowProps {
   readonly group: RangeGroup;

@@ -338,6 +338,22 @@ brings the whole list back **with the bounds said in words** ("from 1900 to
 all, silently. A mileage (`1..1000000`) and the core price stay two typed
 fields.
 
+## The attribute-range block reserves its box before it fills it
+
+Measured on a category feed page at 1536px: the last layout shift on the
+page (CLS 0.054, over the 0.05 target) was a 53px jump inside the rail the
+instant `search-ranges-attributes` — the schema's own numeric axes, year,
+mileage, whatever the category declares — arrived, because nothing on the
+page had reserved its height beforehand.
+
+`<FacetPanelPane>` now reserves it from the first paint, sized by whatever
+is already known: with the category schema in hand it draws one skeleton row
+(`<RangeRowSkeleton>`) per range axis, each `RANGE_ROW_MIN_HEIGHT` tall like
+the real `<RangeFilterRow>` it becomes, so the swap costs no further height;
+without the schema yet — `categoryFeatures` itself still unresolved — it
+reserves one row's floor as `search-ranges-attributes-reserve`, a guess
+rather than nothing.
+
 ## The applied filters have a row of their own
 
 `<FilterChips>` has two modes. The default, `mode="openers"`, is the phone's

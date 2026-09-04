@@ -105,7 +105,7 @@ import { FacetGroupControl } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { LanguageSelect } from "./LanguageSelect.js";
-import { RangeFilterRow } from "./RangeFilterRow.js";
+import { RANGE_ROW_MIN_HEIGHT, RangeFilterRow, RangeRowSkeleton } from "./RangeFilterRow.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
@@ -876,23 +876,57 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 phone). It is a real filter for the person who wants it, so it
                 is not deleted; it is ranked where the chip row already ranks
                 it. */}
-            {attributeRanges.length > 0 && (
+            {/* The reservation, not just the rows (D361).
+                On a live category feed at 1536px this block's arrival was a
+                53px jump: `attributeRanges` draws from the CATEGORY SCHEMA
+                (`props.categoryFeatures`), and a host that fetches the
+                schema alongside the search answer had nothing here at all
+                until both landed — no host slot reserved the box, so the
+                rail grew under the reader's eye the instant it did.
+
+                Two things can be unknown at first paint, and each gets its
+                own reservation:
+                 - the SCHEMA itself (`categoryFeatures` undefined) — the
+                   axis count is unknown, so the fallback is one row's floor,
+                   a guess rather than nothing;
+                 - the ANSWER (`bag.state` not yet "ready") with a known
+                   schema — the axis COUNT is already certain from the
+                   schema, so the rail draws that many skeleton rows, each
+                   `RANGE_ROW_MIN_HEIGHT` tall like the real one it will
+                   become. Same count in both arms, so the swap from
+                   skeleton to `<RangeFilterRow>` costs no further height. */}
+            {props.categoryFeatures === undefined ? (
               <>
                 <Divider style={{ margin: 0 }} />
-                <Flex
-                  vertical
-                  gap={spacing[3]}
-                  data-testid="search-ranges-attributes"
-                >
-                  {attributeRanges.map((group) => (
-                    <RangeFilterRow
-                      key={group.slug}
-                      group={group}
-                      onApply={bag.setRange}
-                    />
-                  ))}
-                </Flex>
+                <div
+                  aria-hidden="true"
+                  data-testid="search-ranges-attributes-reserve"
+                  style={{ minBlockSize: RANGE_ROW_MIN_HEIGHT }}
+                />
               </>
+            ) : (
+              attributeRanges.length > 0 && (
+                <>
+                  <Divider style={{ margin: 0 }} />
+                  <Flex
+                    vertical
+                    gap={spacing[3]}
+                    data-testid="search-ranges-attributes"
+                  >
+                    {bag.state.status === "ready"
+                      ? attributeRanges.map((group) => (
+                          <RangeFilterRow
+                            key={group.slug}
+                            group={group}
+                            onApply={bag.setRange}
+                          />
+                        ))
+                      : attributeRanges.map((group) => (
+                          <RangeRowSkeleton key={group.slug} />
+                        ))}
+                  </Flex>
+                </>
+              )
             )}
 
             {footerBar !== "none" && (
