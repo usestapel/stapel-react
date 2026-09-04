@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.14 <0.15"
@@ -941,6 +941,7 @@
   ],
   "exports": {
     "runtime": [
+      "DEFAULT_HISTORY_MODE",
       "EMPTY_FACET_KEYS",
       "FACETABLE_FEATURE_TYPES",
       "FACET_PLAN_EVIDENCE",
@@ -1055,6 +1056,7 @@
       "FacetPanelBag",
       "FacetSelection",
       "FacetWithheldGroup",
+      "HistoryMode",
       "OtherCategoriesBag",
       "OtherCategoryRow",
       "ParseSearchStateOptions",
@@ -1078,6 +1080,7 @@
       "SearchGeo",
       "SearchGeoBox",
       "SearchGeoCenter",
+      "SearchHistoryKind",
       "SearchI18nKey",
       "SearchImageResolver",
       "SearchItem",
@@ -1100,7 +1103,8 @@
       "SuggestParams",
       "SuggestResponse",
       "UseSearchBoxOptions",
-      "UseSearchCountOptions"
+      "UseSearchCountOptions",
+      "WriteSearchStateDefaults"
     ]
   }
 }
