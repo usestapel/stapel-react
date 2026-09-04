@@ -1,5 +1,23 @@
 # @stapel/categories-react
 
+## 0.18.0
+
+### Minor Changes
+
+- 5734564: `GET {id}/features/` reads the two things stapel-categories 0.20.1 added: a `chips` parent with no features of its own answers the EFFECTIVE schema (the intersection of its children's), and says so via an `X-Effective-From` response header — outside `StapelClient.get`'s reach, so this one read goes over a small raw-`fetch` carve-out (`api/featuresRaw.ts`, the one legal home of `fetch` per `stapel/no-raw-fetch`). `useCategoryFeatures` now resolves to `{ features, effectiveFrom }` and `<CategoryFeatures>`'s bag gains `effectiveFrom: "own" | "children"` plus `divergent: boolean` on each entry; `CategoryFeature` gains an optional `divergent?: true` (declared by hand, ahead of the next contract-pins regen). The new `visibleFeatures(features, { chipPicked })` hides a `divergent: true` row until a chip is picked — exported for the composer and the facet rail, not wired to any host here.
+
+  `useCategoryCascade`/`<CategoryCascade>` (`commit: "stage"`, unchanged otherwise) takes a `partitionChild` option and echoes it back on the bag, so a host's own partition select (drawn beside the cascade, per the browse contract) can feed `visibleFeatures`'s `chipPicked` from the same bag instead of a second piece of state.
+
+  `<CategoryMegaMenu onSelect={(node, kind) => …}>` fires on click/Enter of any item — a rail root (`"root"`), a column's own header link including its `N more` tail (`"child"`), or a third-level link (`"grandchild"`) — additive to navigation, so a host no longer reads `data-category-id` back off the DOM through a delegated listener to learn which row was pressed.
+
+  `<CategoryPage measure>` sets the page's content column width (default `CATEGORY_MEASURE`, `64rem`, now exported from `/default`), replacing a host's `!important` override of a value it could not read back.
+
+- 851cd6b: **`browseStage`'s answer changed — this is a break in behavior, not just an API addition.** The founder's evening correction to the browse contract (2026-09-04) supersedes the earlier reading ("tiles end where the attribute schema begins", i.e. `children_as: "tiles"` draws a tile grid at any depth): tiles are now exactly two levels. `browseStage(category)` returns `"tiles"` **only** for a ROOT with children — reading `tn_parent` / `tn_ancestors_pks` / a `CategoryTreeNode`'s own `path`, whichever the row carries, never a depth number a caller computed elsewhere — and `"feed"` for everything else, including a non-root `chips` parent that the old rule sent to a tile grid. `children_as` no longer decides the stage at all.
+
+  New `childControl(category)` → `"none" | "segmented" | "list"` fills the gap: it is the FILTER a feed page's own rail should show for that category's children — `"none"` when childless, `"segmented"` when `children_as === "chips"` (a single-select chip row over a partition of one template), `"list"` otherwise (a single-select subcategory list with counts). Both functions read `tn_children_pks` before `children_as` before the nested `children` array to answer "does this row have children at all", because a depth-capped `/tree/` read empties `children` on its last level and `children_as` survives that cut where the array does not (the server sends it `null` only where a row truly has nothing to present).
+
+  `<CategoryPage subcategories="tiles">`'s own tiles-vs-cascade decision now calls `browseStage` directly instead of the depth-cap heuristic it used to re-derive, so it cannot drift from the exported rule. `useCategoryCascade`'s `commit: "stage"` (and `<CategoryCascadeField>` over it) is **unaffected in behavior** — it still stops at a leaf or a `chips` parent exactly as before — but now expresses that with `childControl(node) !== "list"` rather than `browseStage(node) === "feed"`, since the latter no longer means the same thing.
+
 ## 0.17.0
 
 ### Minor Changes

@@ -1,5 +1,14 @@
 # @stapel/showcase-viewer
 
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [62901b7]
+- Updated dependencies [bb6a6e6]
+  - @stapel/tokens-antd@0.17.0
+  - @stapel/core@0.25.1
+
 ## 0.0.36
 
 ### Patch Changes
