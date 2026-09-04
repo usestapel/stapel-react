@@ -46,13 +46,13 @@ export type Schemas = components["schemas"];
  * changes; a `transparent` node keeps its own id, slug and page too — see
  * `catalog/wrapper.ts`.
  *
- * `"transparent"` is declared here by hand, ahead of the pinned schema
- * (`Schemas["ChildrenAsEnum"]` still lists only `tiles | chips` —
- * stapel-categories 0.20.4 added the value server-side) — an extension, not a
- * widening of the generated union, so a regenerated schema that adds it
- * upstream only removes this local addition rather than conflicting with it.
+ * `"transparent"` was carried here as a hand-written extension while the pin
+ * predated it. The pin is now stapel-categories 0.20.5 and
+ * `Schemas["ChildrenAsEnum"]` states all three values itself, so the local
+ * addition is DELETED rather than left standing over a generated union that
+ * already covers it — one source for one key.
  */
-export type CategoryChildrenAs = Schemas["ChildrenAsEnum"] | "transparent";
+export type CategoryChildrenAs = Schemas["ChildrenAsEnum"];
 
 /**
  * The presentation fields the serializer adds beyond the pinned schema.
@@ -76,6 +76,23 @@ export type CategoryPresentation = {
    * `partitionAxisLabel` reads as the same thing: a chip row with no caption.
    */
   readonly children_axis_label?: string;
+  /**
+   * The ids of the children a READER can fetch — what
+   * `GET /categories/{id}/children/` returns, in the same order
+   * (stapel-categories 0.20.5).
+   *
+   * Not the same set as `tn_children_pks`: that is django-treenode's raw
+   * structure column and it counts soft-deleted and retired rows, so a rule
+   * built on it sees children nobody can open. Declared here, read nowhere in
+   * this pair YET — the readers still parse `tn_children_pks`, and moving
+   * them is its own round with its own fixtures. Declared and not consumed is
+   * the honest state; declared as REQUIRED would be the lie, which is why it
+   * sits in this alias beside the other two.
+   */
+  readonly children_pks?: readonly number[];
+  /** How many children a reader can see — `children_pks.length`
+   * (stapel-categories 0.20.5). Absent on a server that predates it. */
+  readonly children_count?: number;
 }
 
 /**
@@ -91,18 +108,22 @@ export type CategoryPresentation = {
  *   COMMA-JOINED PK STRINGS (`treenode/utils.py: PKS_SEPARATOR = ","`), typed
  *   `string` here because that is what arrives — `""` for a root. Parse them
  *   with `parseTreenodePks`, never with `JSON.parse` and never by assuming an
- *   array.
+ *   array. Since stapel-categories 0.20.5 there is a better source for the
+ *   children half — `children_pks`, live rows only — and the readers here
+ *   still parse the treenode column; the switch is its own round.
  * - `deleted` is a TOMBSTONE flag, not an absence: a soft-deleted row is still
  *   served (the list endpoint's `include_deleted` defaults to **true**), which
  *   is exactly what makes the delta protocol work and exactly what shows a
  *   deleted category in a menu if nobody filters.
  */
 /**
- * The two presentation keys are REQUIRED on the pinned schema and optional
- * here, so the intersection is over `Omit` rather than the row whole: a
- * generated type is a promise about the contract, and a storefront pointed at
- * a server older than 0.20 receives rows carrying neither. Every reader in
- * this pair already answers "absent" the way it answers `null`.
+ * Every key of {@link CategoryPresentation} is REQUIRED on the pinned schema
+ * and optional here, so the intersection is over `Omit` rather than the row
+ * whole: a generated type is a promise about the contract, and the announced
+ * range `>=0.20 <0.21` contains servers that send none of them — a 0.20.0
+ * server has no `children_pks`/`children_count` (0.20.5) and a pre-0.20 one
+ * no `children_as`/`children_axis_label` either. Every reader in this pair
+ * already answers "absent" the way it answers `null`.
  */
 export type Category = Omit<Schemas["Category"], keyof CategoryPresentation> &
   CategoryPresentation;

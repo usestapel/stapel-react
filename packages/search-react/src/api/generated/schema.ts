@@ -229,6 +229,10 @@ export interface components {
             values: {
                 [key: string]: string;
             };
+            /** @description The vocabulary name this group's options come from, when the feature is `ref_select` (or any host type pointing at a vocabulary the same way). `null` for a group with an inline option set — a client that only sees this answer, with no leaf schema of its own (a branch page, a text query), still needs this to draw a vocabulary-backed axis as its picker rather than as a plain checkbox list. */
+            vocabulary: string | null;
+            /** @description The vocabulary level `vocabulary` resolves against. Present only alongside a non-null `vocabulary`. */
+            level?: string;
         };
         FacetMeta: {
             /** @description True when counts came from a sample because the candidate set exceeded FACET_CANDIDATE_CAP. */
@@ -242,6 +246,10 @@ export interface components {
             dropped_filters: string[];
             /** @description Range slugs that address a core document column rather than an attribute (`r.price`). Offer them as filters unconditionally: they exist for every document in every category, which is why they are not in the category's own plan. */
             core_ranges: string[];
+            /** @description `{slug: {min, max}}` — the low and high bound of every numeric axis that HAS a number on this page, core columns (`price`) and attributes (`year`, `mileage`, `engine_volume`) alike. What a from/to picker is drawn from: a range axis has no values to enumerate, so `facets` says nothing about it and a client without these two numbers either draws no picker or draws one over a guess. Measured with the range filters REMOVED, so the ends are the domain the picker can be widened back to and not the ends of its own selection. An axis absent here has no numbers behind it in this candidate set — which is a different fact from a bound of zero. Not capped by MAX_FACET_FIELDS: the budget governs counting, and every bound is one aggregate. Empty, with `facet_ranges` in `degraded[]`, on an engine that does not implement the optional `ranges` verb. */
+            ranges: {
+                [key: string]: unknown;
+            };
             /** @description Where the plan came from. `category` — the queried category's own authored schema. `evidence` — the categories the CANDIDATE SET actually contains, used when that schema did not fill MAX_FACET_FIELDS, which is every branch category and every text query (`categories.features` resolves own + ANCESTOR-inherited features, so a branch owns no axes; its leaves do). */
             plan: string;
             /** @description `{slug, coverage, candidates}` for groups that were counted and then withheld because they describe too little of the result set (FACET_MIN_COVERAGE). Present so a panel can say «3 filters apply to too few of these» instead of «no filters» — the second is false whenever this list is not empty. Only slugs the evidence plan borrowed from another category are ever here, and never one the reader has already filtered on. */
@@ -372,7 +380,7 @@ export interface components {
                     [key: string]: number;
                 };
             };
-            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. */
+            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}, vocabulary, level}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. `vocabulary` names the vocabulary a `ref_select` axis reads its options from and is null for an inline `select` — the only way a client with no leaf schema of its own can tell the two apart. */
             facet_labels: {
                 [key: string]: components["schemas"]["FacetLabels"];
             };

@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.29.1",
+  "version": "0.30.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.14 <0.15"
@@ -948,6 +948,7 @@
       "EMPTY_FACET_KEYS",
       "FACETABLE_FEATURE_TYPES",
       "FACET_PLAN_EVIDENCE",
+      "FACET_RANGES",
       "FILTER_PREFIX",
       "FacetPanel",
       "OTHER_CATEGORIES_LIMIT",
@@ -1031,7 +1032,9 @@
       "useHostFacetLabels",
       "useOtherCategories",
       "usePublishFacetKeys",
+      "usePublishRangeAxes",
       "useRankingDisclosure",
+      "useRememberedRangeAxes",
       "useSearchAnalytics",
       "useSearchApi",
       "useSearchBox",
@@ -1057,6 +1060,8 @@
       "FacetMeta",
       "FacetOption",
       "FacetPanelBag",
+      "FacetRangeBounds",
+      "FacetRangesMap",
       "FacetSelection",
       "FacetWithheldGroup",
       "HistoryMode",
@@ -1064,6 +1069,7 @@
       "OtherCategoryRow",
       "ParseSearchStateOptions",
       "ParsedSearchState",
+      "RangeAxisMemory",
       "RangeGroup",
       "RankingDisclosureBag",
       "RankingResponse",

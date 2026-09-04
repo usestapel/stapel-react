@@ -734,10 +734,14 @@ export interface components {
             carousel_enabled?: boolean;
             /** @description Whether this category is active */
             active?: boolean;
-            /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            /** @description How this category's children are presented: `tiles` (real subcategories), `chips` (a partition of one attribute template) or `transparent` (browsing skips this node — its children appear where it would, and its own page is its parent's). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Name of the axis the children split on, for a `chips` row (e.g. a key rendering as 'Condition' over New | Used). A translation key, like `name` — empty when nobody named it. */
             readonly children_axis_label: string;
+            /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
+            readonly children_pks: number[];
+            /** @description How many children a reader can see — `len(children_pks)`. */
+            readonly children_count: number;
             readonly features: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -750,7 +754,7 @@ export interface components {
             tn_priority?: number;
             /** Ancestors pks */
             readonly tn_ancestors_pks: string;
-            /** Children pks */
+            /** @description django-treenode's raw structure column, `,`-joined. Counts soft-deleted and retired rows, so it is NOT the child set a reader can fetch — use `children_pks`. Kept because the revision-sync feed's consumers mirror the tree columns. */
             readonly tn_children_pks: string;
             readonly revision: number;
             deleted?: boolean;
@@ -840,9 +844,13 @@ export interface components {
             carousel_enabled?: boolean;
             /** @description Whether this category is active */
             active?: boolean;
-            /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            /** @description How this category's children are presented: `tiles` (real subcategories), `chips` (a partition of one attribute template) or `transparent` (browsing skips this node — its children appear where it would, and its own page is its parent's). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             children_axis_label?: string;
+            /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
+            readonly children_pks: number[];
+            /** @description How many children a reader can see — `len(children_pks)`. */
+            readonly children_count: number;
             readonly features: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -855,7 +863,7 @@ export interface components {
             tn_priority?: number;
             /** Ancestors pks */
             readonly tn_ancestors_pks: string;
-            /** Children pks */
+            /** @description django-treenode's raw structure column, `,`-joined. Counts soft-deleted and retired rows, so it is NOT the child set a reader can fetch — use `children_pks`. Kept because the revision-sync feed's consumers mirror the tree columns. */
             readonly tn_children_pks: string;
             readonly revision: number;
             deleted?: boolean;
@@ -864,11 +872,12 @@ export interface components {
             /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
             external_source?: string;
             /**
-             * @description Authoring value: `auto` leaves it to `derive_children_as`, `tiles`/`chips` pin it.
+             * @description Authoring value: `auto` leaves it to `derive_children_as`, `tiles`/`chips`/`transparent` pin it. `transparent` is authored only — derivation never produces it.
              *
              *     * `auto` - Auto (derive)
              *     * `tiles` - Tiles
              *     * `chips` - Chips
+             *     * `transparent` - Transparent (browsing skips this level)
              */
             children_as_authored?: components["schemas"]["ChildrenAsAuthoredEnum"];
             readonly children_as_derived: string;
@@ -897,14 +906,17 @@ export interface components {
             path: string;
             catalog_icon: string;
             /**
-             * @description `null` when the node has no children.
+             * @description `null` when the node has no children. `transparent` means a menu draws this node's children in its place.
              *
              *     * `tiles` - tiles
              *     * `chips` - chips
+             *     * `transparent` - transparent
              */
             children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Name of the axis the children split on, for a `chips` row. A translation key, like `name`; empty when nobody named it. */
             children_axis_label: string;
+            /** @description How many children this node HAS — live rows only, so it counts no soft-deleted or retired row. Not `len(children)`: at the requested depth `children` is empty and this still says whether there is another level to ask for. */
+            children_count: number;
             /** @description Nodes of this same shape; empty at the requested depth. */
             children: {
                 [key: string]: unknown;
@@ -914,11 +926,12 @@ export interface components {
          * @description * `auto` - Auto (derive)
          *     * `tiles` - Tiles
          *     * `chips` - Chips
+         *     * `transparent` - Transparent (browsing skips this level)
          * @enum {string}
          */
-        ChildrenAsAuthoredEnum: "auto" | "tiles" | "chips";
+        ChildrenAsAuthoredEnum: "auto" | "tiles" | "chips" | "transparent";
         /** @enum {string} */
-        ChildrenAsEnum: "tiles" | "chips";
+        ChildrenAsEnum: "tiles" | "chips" | "transparent";
         /**
          * @description * `keep` - keep
          *     * `add` - add
@@ -1714,9 +1727,13 @@ export interface components {
             carousel_enabled?: boolean;
             /** @description Whether this category is active */
             active?: boolean;
-            /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            /** @description How this category's children are presented: `tiles` (real subcategories), `chips` (a partition of one attribute template) or `transparent` (browsing skips this node — its children appear where it would, and its own page is its parent's). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as?: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             children_axis_label?: string;
+            /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
+            readonly children_pks?: number[];
+            /** @description How many children a reader can see — `len(children_pks)`. */
+            readonly children_count?: number;
             readonly features?: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -1729,7 +1746,7 @@ export interface components {
             tn_priority?: number;
             /** Ancestors pks */
             readonly tn_ancestors_pks?: string;
-            /** Children pks */
+            /** @description django-treenode's raw structure column, `,`-joined. Counts soft-deleted and retired rows, so it is NOT the child set a reader can fetch — use `children_pks`. Kept because the revision-sync feed's consumers mirror the tree columns. */
             readonly tn_children_pks?: string;
             readonly revision?: number;
             deleted?: boolean;
@@ -1738,11 +1755,12 @@ export interface components {
             /** @description Source catalogue `external_id` belongs to (blank = the single/default source). */
             external_source?: string;
             /**
-             * @description Authoring value: `auto` leaves it to `derive_children_as`, `tiles`/`chips` pin it.
+             * @description Authoring value: `auto` leaves it to `derive_children_as`, `tiles`/`chips`/`transparent` pin it. `transparent` is authored only — derivation never produces it.
              *
              *     * `auto` - Auto (derive)
              *     * `tiles` - Tiles
              *     * `chips` - Chips
+             *     * `transparent` - Transparent (browsing skips this level)
              */
             children_as_authored?: components["schemas"]["ChildrenAsAuthoredEnum"];
             readonly children_as_derived?: string;
@@ -1862,6 +1880,8 @@ export interface components {
             minSelected?: number;
             maxSelected?: number | null;
             uiStyle?: components["schemas"]["RefSelectConfigUiStyleEnum"];
+            prefix?: string | null;
+            postfix?: string | null;
         };
         /**
          * @description * `dropdown` - dropdown

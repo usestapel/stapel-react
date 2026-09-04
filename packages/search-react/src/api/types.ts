@@ -33,7 +33,7 @@ export type Schemas = components["schemas"];
  */
 export type FacetLabels = Omit<
   Schemas["FacetLabels"],
-  "label" | "label_translatable" | "url_key"
+  "label" | "label_translatable" | "url_key" | "vocabulary"
 > & {
   readonly label?: string | null;
   /**
@@ -79,6 +79,14 @@ export type FacetLabels = Omit<
    * category schema's own `optionsRef`, which a host that threaded no schema
    * does not have. Absent on every server that does not state it — absence
    * is not "inline", it is "unsaid", and the schema is asked next.
+   *
+   * WHY IT IS NOT THE GENERATED SHAPE: stapel-search 0.14.9 added it and
+   * declares it REQUIRED, and the announced contract is `>=0.14 <0.15` — a
+   * 0.14.0 server inside that range sends no `vocabulary` at all. Same
+   * treatment as `url_key` above: `Omit`ted from the generated member and
+   * re-declared optional here, because a type must not promise a field a
+   * server the pair says it supports does not send. `level` is generated
+   * optional already and is inherited unchanged.
    */
   readonly vocabulary?: string | null;
 };
@@ -162,17 +170,19 @@ export type FacetRangesMap = Readonly<Record<string, FacetRangeBounds>>;
  * field-by-field are the two it cannot. Both are corrected here to the
  * documented row shapes.
  *
- * `ranges` is hand-declared and OPTIONAL, an extension over the generated
- * shape rather than a correction of it: the pinned contract predates
- * stapel-search 0.14.7, and a storefront ships against whichever server is
- * running. Optional is the deployment truth — absent means "this server does
- * not measure bounds", and a required field would compile while reading
- * `undefined` from a key the compiler swore was there. It becomes generated,
- * and this declaration disappears, when the pin moves.
+ * `ranges` (stapel-search 0.14.7) is now GENERATED, and is corrected here for
+ * both of the reasons the two fields above are. The generator lost the row
+ * shape — `additionalProperties: {}` becomes `{[key: string]: unknown}`, so
+ * the map a slider reads two numbers out of arrives with no numbers in the
+ * type — and drf-spectacular declares it required while the announced
+ * contract is `>=0.14 <0.15`, inside which a 0.14.0..0.14.6 server measures
+ * no bounds at all. Optional is the deployment truth: absent means "this
+ * server does not measure bounds", and a required field would compile while
+ * reading `undefined` from a key the compiler swore was there.
  */
 export type FacetMeta = Omit<
   Schemas["FacetMeta"],
-  "withheld" | "categories"
+  "withheld" | "categories" | "ranges"
 > & {
   readonly withheld: readonly FacetWithheldGroup[];
   readonly categories: readonly FacetCategoryCount[];

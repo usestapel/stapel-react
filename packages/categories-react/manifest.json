@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "backend": {
     "module": "stapel-categories",
     "contract": ">=0.20 <0.21"
@@ -1014,6 +1014,9 @@
     "categories.quick_search.cta_count_at_least.other",
     "categories.search.hits_title",
     "categories.tiles.all",
+    "categories.tiles.all_no_matches",
+    "categories.tiles.all_search",
+    "categories.tiles.show_all",
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
@@ -1144,6 +1147,7 @@
       "isBrowsableCategory",
       "isEmptySnapshot",
       "isTestCategory",
+      "isTransparentNode",
       "isTransparentWrapper",
       "isWrapperAncestor",
       "memoryCatalogStore",
