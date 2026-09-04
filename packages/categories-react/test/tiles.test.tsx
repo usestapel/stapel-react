@@ -38,6 +38,7 @@ import {
   PHONES,
   ROWS,
   USED_PHONES,
+  categoryRow,
 } from "./fixtures.js";
 
 const OK = {
@@ -467,5 +468,56 @@ describe("<CategoryPage> lets the host say whether the trail belongs here", () =
     });
     expect(screen.queryByTestId("categories-breadcrumbs")).toBeNull();
     expect(screen.queryByTestId("categories-tree")).toBeNull();
+  });
+});
+
+/**
+ * A one-rung IMPORT WRAPPER at the root — `/c/uslugi`'s shape in miniature
+ * (the browse-stages SPEC's census addendum): a root whose only child exists
+ * purely to hold the real groups underneath it. The root's tile page must
+ * show the groups, never a single tile pointing at the wrapper.
+ */
+const WRAPPER_ROOT = categoryRow(200, "uslugi", "category.uslugi", null, "", "201");
+const WRAPPER = categoryRow(201, "offer", "category.offer", 200, "200", "202,203");
+const WRAPPER_GROUP_A = categoryRow(
+  202,
+  "group-a",
+  "category.group_a",
+  201,
+  "200,201",
+  ""
+);
+const WRAPPER_GROUP_B = categoryRow(
+  203,
+  "group-b",
+  "category.group_b",
+  201,
+  "200,201",
+  ""
+);
+const WRAPPER_OK = {
+  "/categories/carousel/": { body: [] },
+  "/categories/": { body: FULL_PAGE },
+  ...rowRoutes([WRAPPER_ROOT, WRAPPER, WRAPPER_GROUP_A, WRAPPER_GROUP_B]),
+};
+
+describe("the tiles arm skips a one-rung import wrapper", () => {
+  it("draws the wrapper's own children, not a single tile for the wrapper", async () => {
+    await renderCategoryPage({
+      subcategories: "tiles",
+      categoryId: WRAPPER_ROOT.id,
+      server: mockServer(WRAPPER_OK),
+    });
+    await waitFor(() => {
+      const hrefs = [
+        ...screen
+          .getByTestId("categories-tile-grid-list")
+          .querySelectorAll("a"),
+      ]
+        .map((a) => a.getAttribute("href"))
+        .filter((href) => href !== "/c");
+      expect(hrefs).toEqual(["/c/group-a", "/c/group-b"]);
+    });
+    expect(screen.queryByText("category.offer")).toBeNull();
   });
 });

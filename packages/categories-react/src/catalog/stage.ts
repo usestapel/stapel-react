@@ -119,8 +119,13 @@ function isRoot(category: BrowseStageInput): boolean {
  * children, and the honest default is "assume it has some" — a tile grid or a
  * chip row that turns out empty renders its own empty state one layer down,
  * which costs less than hiding a real subcategory.
+ *
+ * Exported so `catalog/wrapper.ts` can ask the same question of a single
+ * CHILD ("does it have children of its own") without a second copy of this
+ * fallback chain — a wrapper check reading `children_as` differently from a
+ * stage check would disagree with this file about the same row.
  */
-function hasChildren(category: BrowseStageInput): boolean {
+export function hasChildren(category: BrowseStageInput): boolean {
   if (typeof category.tn_children_pks === "string") {
     return parseTreenodePks(category.tn_children_pks).length > 0;
   }

@@ -736,3 +736,61 @@ describe('useCategoryCascade — commit: "stage"', () => {
     expect(bag().blockedReason).toBe("not_a_leaf");
   });
 });
+
+/**
+ * A one-rung IMPORT WRAPPER — the census addendum's `/c/uslugi` shape in
+ * miniature: a root whose only child («offer») exists purely to hold the
+ * real groups underneath it.
+ */
+const WRAPPER_ROOT = categoryRow(100, "uslugi", "category.uslugi", null, "", "101");
+const WRAPPER = categoryRow(101, "offer", "category.offer", 100, "100", "102,103");
+const WRAPPER_GROUP_A = categoryRow(
+  102,
+  "group-a",
+  "category.group_a",
+  101,
+  "100,101",
+  ""
+);
+const WRAPPER_GROUP_B = categoryRow(
+  103,
+  "group-b",
+  "category.group_b",
+  101,
+  "100,101",
+  ""
+);
+const WRAPPER_ROWS: readonly Category[] = [
+  ...ROWS,
+  WRAPPER_ROOT,
+  WRAPPER,
+  WRAPPER_GROUP_A,
+  WRAPPER_GROUP_B,
+];
+
+describe("useCategoryCascade — the one-rung import wrapper is invisible", () => {
+  it("a cold ladder shows the wrapper's own children, never the wrapper itself", async () => {
+    const { bag } = await mountProbe({ rootId: 100, rows: WRAPPER_ROWS });
+    // The wrapper's own children need one extra eager read the ordinary
+    // chain does not — wait for it to land rather than catching the first
+    // (transient) render, which still shows the one-option wrapper rung.
+    await waitFor(() => {
+      const state = bag().state;
+      const options = state.status === "ready" ? state.data[0]?.options : [];
+      expect(options?.map((o) => o.category.id)).toEqual([102, 103]);
+    });
+    expect(rungCount(bag())).toBe(1);
+  });
+
+  it("a ladder already past the wrapper shows one rung, not two", async () => {
+    const { bag } = await mountProbe({
+      rootId: 100,
+      value: 102,
+      rows: WRAPPER_ROWS,
+    });
+    expect(bag().trail.map((c) => c.id)).toEqual([102]);
+    expect(bag().selected?.id).toBe(102);
+    expect(bag().atLeaf).toBe(true);
+    expect(rungCount(bag())).toBe(1);
+  });
+});

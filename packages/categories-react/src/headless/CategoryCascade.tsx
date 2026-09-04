@@ -116,6 +116,7 @@ import { categoryLabel } from "../catalog/labels.js";
 import { childControl } from "../catalog/stage.js";
 import type { CategoryLabel } from "../catalog/labels.js";
 import { categoryChildIds } from "../catalog/tree.js";
+import { browseChildren, isTransparentWrapper } from "../catalog/wrapper.js";
 import {
   useCategory,
   useCategoryCarousel,
@@ -262,6 +263,60 @@ function commits(category: Category, rule: CategoryCascadeCommit): boolean {
   if (rule === "any") return true;
   if (rule === "stage") return childControl(category) !== "list";
   return categoryChildIds(category).length === 0;
+}
+
+/**
+ * Merge a one-rung IMPORT WRAPPER out of the fetched rungs — see
+ * `catalog/wrapper.ts`. The ladder still FETCHES every real rung (nothing
+ * here changes what `parentIds` asks the server for); this reshapes what a
+ * skin is SHOWN, so a wrapper is never presented as its own one-option rung.
+ *
+ * At most one merge, at the first rung {@link isTransparentWrapper} fires on:
+ * that rung's `options` become its own single child's children, and the rung
+ * that would otherwise have shown those same rows one level down — present
+ * only once the person has already navigated past the wrapper, since only
+ * then does the real ancestor chain reach that far — is dropped so the two
+ * do not both appear. `chainIds` loses the same slot, so `choose`/`clearFrom`
+ * (which index into the VISIBLE ladder) stay aligned with it.
+ *
+ * `wrapperChildren` is the eager fallback for a ladder that has NOT been
+ * navigated past the wrapper yet — the common case, since a wrapper is never
+ * chosen by a click. Whichever source supplies the rows, an `undefined`
+ * (neither fetched yet) leaves the wrapper's own one-item rung in place
+ * rather than merging into an empty one — the same "falls back, does not
+ * hide" contract `browseChildren` documents.
+ */
+function collapseWrapperRung(
+  sources: readonly CategoryCascadeSource[],
+  chainIds: readonly number[],
+  wrapperChildren: readonly Category[] | undefined
+): {
+  readonly sources: readonly CategoryCascadeSource[];
+  readonly chainIds: readonly number[];
+} {
+  const index = sources.findIndex((source) => isTransparentWrapper(source.options));
+  const target = index < 0 ? undefined : sources[index];
+  if (target === undefined) return { sources, chainIds };
+  const wrapperId = target.options[0]?.id;
+  const next = sources[index + 1];
+  // The next FETCHED rung counts only when it is really this wrapper's own
+  // children — `parentIds` builds sources top-down in lockstep with
+  // `chainIds`, so that is true exactly when the person's real ancestor
+  // chain already runs through the wrapper.
+  const consumesNext = next !== undefined && next.parentId === wrapperId;
+  const grandchildren = consumesNext ? next.options : wrapperChildren;
+  const merged = browseChildren(target.options, () => grandchildren);
+  if (merged === target.options) return { sources, chainIds };
+  return {
+    sources: [
+      ...sources.slice(0, index),
+      { ...target, options: merged },
+      ...sources.slice(index + (consumesNext ? 2 : 1)),
+    ],
+    chainIds: consumesNext
+      ? [...chainIds.slice(0, index), ...chainIds.slice(index + 1)]
+      : chainIds,
+  };
 }
 
 export interface UseCategoryCascadeOptions
@@ -526,9 +581,32 @@ export function useCategoryCascade(
     return out;
   }, [topOptions, rootId, rootQuery.data, parentIds, levelQueries.rows]);
 
+  /**
+   * The one extra rung a wrapper needs BEFORE anyone has clicked through
+   * it — see {@link collapseWrapperRung}. `sources` already carries the
+   * wrapper's children when the real ancestor chain runs through it (an
+   * ordinary rung, no extra request); this fan-out is only what a COLD
+   * ladder — nothing chosen yet — is missing to reveal them eagerly. At
+   * most one id, and `[]` (no request at all) once there is no wrapper to
+   * follow.
+   */
+  const wrapperId = useMemo(() => {
+    const wrapper = sources.find((source) => isTransparentWrapper(source.options));
+    return wrapper?.options[0]?.id ?? null;
+  }, [sources]);
+  const wrapperChildQueries = useCategoryLevels(
+    wrapperId === null ? [] : [wrapperId],
+    levelOptions
+  );
+
+  const collapsed = useMemo(
+    () => collapseWrapperRung(sources, chainIds, wrapperChildQueries.rows[0] ?? undefined),
+    [sources, chainIds, wrapperChildQueries.rows]
+  );
+
   const levels = useMemo<readonly CategoryCascadeLevel[]>(
-    () => buildCategoryCascade(sources, chainIds),
-    [sources, chainIds]
+    () => buildCategoryCascade(collapsed.sources, collapsed.chainIds),
+    [collapsed]
   );
 
   const steps = useMemo<readonly CategoryCascadeStep[]>(
@@ -551,7 +629,10 @@ export function useCategoryCascade(
   );
 
   const selected = cascadeSelection(levels);
-  const atLeaf = cascadeReachedLeaf(sources, chainIds);
+  // The VISIBLE pair, not the raw fetch: a wrapper merged away here must not
+  // reappear as "the rung under the deepest answer" when it is the rung this
+  // hook chose not to show at all.
+  const atLeaf = cascadeReachedLeaf(collapsed.sources, collapsed.chainIds);
 
   /**
    * The ladder's own load state, composed from the reads that produce the TOP
@@ -615,7 +696,9 @@ export function useCategoryCascade(
     trail: cascadeTrail(levels),
     atLeaf,
     partitionChild,
-    isFetching: levelQueries.isPending && levels.length > 0,
+    isFetching:
+      (levelQueries.isPending || wrapperChildQueries.isPending) &&
+      levels.length > 0,
     blockedReason:
       selected === null
         ? "nothing_selected"

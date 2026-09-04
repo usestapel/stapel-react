@@ -268,6 +268,45 @@ deep on the imported tree, because schemas hang on the leaves. It is gone:
 The server sends the resolved `children_as`; `auto` is derived at import time
 and never reaches the wire.
 
+## A one-rung import wrapper is invisible: `isTransparentWrapper` / `browseChildren`
+
+**Census addendum** to the browse-stages contract (2026-09-04): `/c/uslugi`
+has one child (an import-only "offer" category) whose own children are the
+real 34 groups — a level that exists only because the source catalogue
+nested a real level under a placeholder one. Browsing skips it: a root's
+tile page shows the wrapper's children directly, never a single tile
+pointing at the wrapper.
+
+```ts
+isTransparentWrapper(children) // boolean
+// true only for EXACTLY ONE child that itself has children — a leaf child,
+// or two-or-more children, is never a wrapper
+
+browseChildren(children, grandchildrenOf) // the rows a tile page should draw
+// not a wrapper           → children, unchanged
+// a wrapper, resolved      → grandchildrenOf(children[0])
+// a wrapper, not resolved yet (grandchildrenOf returns undefined)
+//                          → children — the ONE wrapper tile, until it lands
+```
+
+Both read the same fields `hasChildren`/`browseStage` already do — a flat
+row's `tn_children_pks`, then `children_as` surviving a depth cut — so
+detecting a wrapper never costs a request. Drawing its children does:
+`grandchildrenOf` is the caller's accessor, `(child) => child.children` for a
+nested `CategoryTreeNode`, or a small `useCategoryChildren` read gated on the
+one candidate id for flat rows. `<CategoryPage subcategories="tiles">` wires
+this itself (`TileSubcategories`); a host drawing its own tiles from
+`useCategoryTree()` calls `browseChildren` the same way.
+
+The rule fires **once**: a wrapper whose only child is itself a wrapper is
+not chased further — the addendum names one substitution, not a walk to the
+first branching descendant, and nothing on the imported tree has needed more
+than one hop. `<CategoryCascadeField>` applies the same one-hop merge to
+whichever rung a wrapper lands on, so a ladder never shows a one-option
+"click to continue" select for an import level nobody may act on — the
+wrapper's own children appear at that rung instead, fetched eagerly the
+moment the wrapper is detected rather than only after a (pointless) click.
+
 ## The desktop mega-menu: one call, three levels
 
 `useCategoryTree(depth)` is `GET /tree/?depth=N` — active nodes, ordered,

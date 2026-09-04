@@ -113,6 +113,7 @@ import { categoryAncestorChain } from "../catalog/cascade.js";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
 import { browseStage } from "../catalog/stage.js";
 import { resolveCategorySlug } from "../catalog/tree.js";
+import { browseChildren, isTransparentWrapper } from "../catalog/wrapper.js";
 import { categoryTileEntry } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
 import {
@@ -173,6 +174,80 @@ export interface CategoryHeadingContext {
 export type CategoryHeading =
   | ReactNode
   | ((ctx: CategoryHeadingContext) => ReactNode);
+
+/**
+ * The `"tiles"` arm's own rows: `childRows` unless they are a one-rung IMPORT
+ * WRAPPER (`catalog/wrapper.ts`) — a single child that itself has children,
+ * such as the "Services" root's import-only "Services offer" child — in
+ * which case the tile page draws the WRAPPER's children instead of a single
+ * tile pointing at it.
+ *
+ * A component rather than an inline call, for the same reason
+ * {@link SubcategoryLevelPane} is one: detecting a wrapper is free
+ * ({@link isTransparentWrapper} reads fields already on the rows in hand),
+ * but DRAWING its children needs one more small read
+ * (`GET {wrapperId}/children/`), and that read must mount only for the arm
+ * that can use it — never under `"pane"`, `"cascade"` or `"none"`.
+ */
+function TileSubcategories(props: {
+  readonly childRows: readonly Category[];
+  readonly basePath: string;
+  readonly depth: number;
+  readonly linkComponent?: LinkComponent;
+  readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  readonly resolveIconSrc?: CategoryIconResolver;
+  readonly tileDensity?: TileDensity;
+  readonly tileLayout?: TileLayout;
+  readonly tileMinWidth?: number;
+}): ReactElement {
+  const t = useT();
+  const link =
+    props.linkComponent !== undefined
+      ? { linkComponent: props.linkComponent }
+      : {};
+  const wrapper = isTransparentWrapper(props.childRows)
+    ? (props.childRows[0] ?? null)
+    : null;
+  const wrapperChildren = useCategoryChildren(wrapper?.id ?? null, {
+    enabled: wrapper !== null,
+  });
+  const entries = browseChildren(
+    props.childRows,
+    (child) => (child.id === wrapper?.id ? wrapperChildren.data : undefined)
+  );
+
+  return (
+    <Flex vertical gap={spacing[2]}>
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        {t(CATEGORIES_I18N_KEYS.categorySubcategories)}
+      </Typography.Title>
+      <CategoryTileGrid
+        {...link}
+        {...(props.tileDensity !== undefined
+          ? { density: props.tileDensity }
+          : {})}
+        {...(props.tileLayout !== undefined
+          ? { layout: props.tileLayout }
+          : {})}
+        {...(props.tileMinWidth !== undefined
+          ? { minTileWidth: props.tileMinWidth }
+          : {})}
+        {...(props.renderIcon !== undefined
+          ? { renderIcon: props.renderIcon }
+          : {})}
+        {...(props.resolveIconSrc !== undefined
+          ? { resolveIconSrc: props.resolveIconSrc }
+          : {})}
+        basePath={props.basePath}
+        categoryDepth={props.depth}
+        // Already inside a category: an "All" tile here points at the
+        // catalogue root the visitor has just come from.
+        allTile={false}
+        entries={entries.map((row) => categoryTileEntry(row, props.basePath))}
+      />
+    </Flex>
+  );
+}
 
 export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
   /**
@@ -505,37 +580,27 @@ function Subcategories(props: {
     // names everywhere else, so this arm's own choice cannot drift from it.
     if (browseStage(props.current) !== "tiles") return cascade;
     return (
-      <Flex vertical gap={spacing[2]}>
-        <Typography.Title level={5} style={{ margin: 0 }}>
-          {t(CATEGORIES_I18N_KEYS.categorySubcategories)}
-        </Typography.Title>
-        <CategoryTileGrid
-          {...link}
-          {...(props.tileDensity !== undefined
-            ? { density: props.tileDensity }
-            : {})}
-          {...(props.tileLayout !== undefined
-            ? { layout: props.tileLayout }
-            : {})}
-          {...(props.tileMinWidth !== undefined
-            ? { minTileWidth: props.tileMinWidth }
-            : {})}
-          {...(props.renderIcon !== undefined
-            ? { renderIcon: props.renderIcon }
-            : {})}
-          {...(props.resolveIconSrc !== undefined
-            ? { resolveIconSrc: props.resolveIconSrc }
-            : {})}
-          basePath={props.basePath}
-          categoryDepth={props.depth}
-          // Already inside a category: an "All" tile here points at the
-          // catalogue root the visitor has just come from.
-          allTile={false}
-          entries={props.childRows.map((row) =>
-            categoryTileEntry(row, props.basePath)
-          )}
-        />
-      </Flex>
+      <TileSubcategories
+        childRows={props.childRows}
+        basePath={props.basePath}
+        {...link}
+        {...(props.tileDensity !== undefined
+          ? { tileDensity: props.tileDensity }
+          : {})}
+        {...(props.tileLayout !== undefined
+          ? { tileLayout: props.tileLayout }
+          : {})}
+        {...(props.tileMinWidth !== undefined
+          ? { tileMinWidth: props.tileMinWidth }
+          : {})}
+        {...(props.renderIcon !== undefined
+          ? { renderIcon: props.renderIcon }
+          : {})}
+        {...(props.resolveIconSrc !== undefined
+          ? { resolveIconSrc: props.resolveIconSrc }
+          : {})}
+        depth={props.depth}
+      />
     );
   }
 
