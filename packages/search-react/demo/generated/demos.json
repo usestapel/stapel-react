@@ -276,6 +276,42 @@
       }
     },
     {
+      "id": "search.other-categories-line",
+      "title": "Other categories line",
+      "description": "The sections this query also reaches, with the count each one has FOR THIS QUERY, on one line under the results. Pressing an entry narrows the search that is already on screen rather than leaving it for the bare category feed, whose number would be a different and larger one — so every entry is a real button and none of them is a link.",
+      "component": "OtherCategoriesLine",
+      "covers": [
+        "OtherCategoriesLine"
+      ],
+      "tokens": [
+        "text-subtle"
+      ],
+      "variants": [
+        {
+          "id": "line",
+          "description": "Ten reachable sections on a desktop: eight print, the rest fold behind a marker that says how many are hidden. Drawn from the search response, so it is on screen in the first frame with the cards.",
+          "viewport": "desktop",
+          "step": "other-categories"
+        },
+        {
+          "id": "narrow",
+          "description": "The same ten at 390px with the sheet's own cap passed in: four entries plus the fold, because eight short names are a paragraph at this width and the requirement is a line. The collapsed line is clamped to two rows besides — a cap counts entries, and it is name length that makes a paragraph.",
+          "viewport": "phone",
+          "step": "other-categories-phone"
+        },
+        {
+          "id": "empty",
+          "description": "Nothing matched, which is the one screen where 'this word exists in these sections' is worth the most and the only one with a request behind it. The rows carry the server's own names, and the slot holds its height from the first frame so the answer lands without moving the page a second time.",
+          "viewport": "desktop",
+          "step": "other-categories-empty"
+        }
+      ],
+      "source": {
+        "file": "demo/OtherCategoriesLine.demo.tsx",
+        "line": 90
+      }
+    },
+    {
       "id": "search.page",
       "title": "Search page",
       "description": "The composed /s screen: the query box bound to setText, the filter panel (category and location slots, numeric ranges, drill-down facets), the sort and page-size toolbar, and one keyset page of cards with the DSA promoted marking explained in words rather than in a tooltip.",

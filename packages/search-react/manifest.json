@@ -538,6 +538,24 @@
       "source": "demo/LocationSummaryLine.demo.tsx"
     },
     {
+      "id": "search.other-categories-line",
+      "title": "Other categories line",
+      "description": "The sections this query also reaches, with the count each one has FOR THIS QUERY, on one line under the results. Pressing an entry narrows the search that is already on screen rather than leaving it for the bare category feed, whose number would be a different and larger one — so every entry is a real button and none of them is a link.",
+      "component": "OtherCategoriesLine",
+      "covers": [
+        "OtherCategoriesLine"
+      ],
+      "tokens": [
+        "text-subtle"
+      ],
+      "variants": [
+        "line",
+        "narrow",
+        "empty"
+      ],
+      "source": "demo/OtherCategoriesLine.demo.tsx"
+    },
+    {
       "id": "search.page",
       "title": "Search page",
       "description": "The composed /s screen: the query box bound to setText, the filter panel (category and location slots, numeric ranges, drill-down facets), the sort and page-size toolbar, and one keyset page of cards with the DSA promoted marking explained in words rather than in a tooltip.",
