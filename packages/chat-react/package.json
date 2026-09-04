@@ -81,7 +81,7 @@
     "@stapel/realtime": ">=0.1.1",
     "@stapel/tokens-antd": ">=0.8.0",
     "@tanstack/react-query": "^5.0.0",
-    "antd": ">=5.20.0 <7",
+    "antd": ">=6.0.0 <7",
     "react": ">=19"
   },
   "peerDependenciesMeta": {
