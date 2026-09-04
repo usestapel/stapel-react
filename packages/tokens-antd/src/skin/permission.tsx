@@ -178,7 +178,7 @@ export function PermissionSheet(props: PermissionSheetProps): ReactElement {
   const footer = blocked ? (
     dismissButton
   ) : surface === "sheet" ? (
-    <Space direction="vertical" size="small" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="small" style={{ width: "100%" }}>
       {allowButton}
       {dismissButton}
     </Space>

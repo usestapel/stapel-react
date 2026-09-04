@@ -139,7 +139,7 @@ export function ChatNotificationsPrompt(
       data-stapel-permission={status}
       title={t(CHAT_I18N_KEYS.notifyTitle)}
       description={
-        <Space direction="vertical" size={spacing[1]} style={{ display: "flex" }}>
+        <Space orientation="vertical" size={spacing[1]} style={{ display: "flex" }}>
           <span>
             {t(refused ? CHAT_I18N_KEYS.notifyDenied : CHAT_I18N_KEYS.notifyBody)}
           </span>

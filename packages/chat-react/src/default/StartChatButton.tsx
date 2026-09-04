@@ -47,7 +47,7 @@ function StartChatBody(props: {
   const gate = useActionGate(props.availability);
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
   return (
-    <Space direction="vertical" style={{ width: props.block ? "100%" : undefined }}>
+    <Space orientation="vertical" style={{ width: props.block ? "100%" : undefined }}>
       <Button
         type="primary"
         block={props.block ?? false}

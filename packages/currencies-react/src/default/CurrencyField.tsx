@@ -67,7 +67,7 @@ export function CurrencyField(props: CurrencyFieldProps): ReactElement {
         ? { "data-testid": props["data-testid"] }
         : {})}
     >
-      <Space direction="vertical" size="small" style={{ width: "100%" }}>
+      <Space orientation="vertical" size="small" style={{ width: "100%" }}>
         {/* A visible label, not only an aria one: a field whose name lives in
             the placeholder loses its name the moment someone types. */}
         <Typography.Text id={labelId}>

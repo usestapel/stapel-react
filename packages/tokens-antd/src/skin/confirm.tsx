@@ -137,7 +137,7 @@ export function SkinConfirm(props: SkinConfirmProps): ReactElement {
   // Modal: a right-aligned row, cancel first, the affirmative last.
   const footer =
     surface === "sheet" ? (
-      <Space direction="vertical" size="small" style={{ width: "100%" }}>
+      <Space orientation="vertical" size="small" style={{ width: "100%" }}>
         {confirmButton}
         {cancelButton}
       </Space>

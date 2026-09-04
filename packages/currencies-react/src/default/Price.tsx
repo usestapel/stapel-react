@@ -99,7 +99,7 @@ export function Price(props: PriceProps): ReactElement {
         ? { "data-testid": props["data-testid"] }
         : {})}
     >
-      <Space direction="vertical" size={0} data-stapel-price-state={price.state}>
+      <Space orientation="vertical" size={0} data-stapel-price-state={price.state}>
         {/* A price is display type. Set at body size it competed with the
             heading above it and read as one more line of prose. */}
         <Typography.Text

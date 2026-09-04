@@ -243,7 +243,7 @@ function ComposerBody(props: {
   const earned = useActionGate(props.visibleAvailability);
   const { t } = props;
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
+    <Space orientation="vertical" style={{ width: "100%" }}>
       {props.errorNode}
       <Input.TextArea
         value={props.value}
@@ -427,7 +427,7 @@ export function ConversationThreadPanel(
               />
             ),
             ready: (messages) => (
-              <Space direction="vertical" style={{ width: "100%" }}>
+              <Space orientation="vertical" style={{ width: "100%" }}>
                 {hasOlder ? (
                   <Button
                     loading={isLoadingOlder}
