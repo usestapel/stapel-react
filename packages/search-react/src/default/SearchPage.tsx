@@ -272,14 +272,18 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * the two frames want opposite shapes and only this component knows which
    * one it is drawing: the desktop rail gets `"field"` (a select-style «Any»
    * that opens the searchable list — a 418-value vocabulary held open in a
-   * 280px column is the whole column), the phone sheet gets `"inline"`
-   * (the sheet is already the disclosure). Set it to override both.
+   * 280px column is the whole column), the phone sheet gets `"sheet"` — the
+   * same trigger row, opening a nested picker with a search box, a
+   * recommended band and the rest.
    *
-   * It was unreachable through this component until now: the panel had the
-   * prop, `<SearchPage>` forwarded nothing, and a storefront that mounts the
-   * page rather than the pane could not get the field at all.
+   * The phone default was `"inline"`, which drew the axis as a wall of
+   * checkboxes with a "Find a value" box over it while the COMPOSER's picker
+   * for the very same vocabulary was a trigger and a sheet. One dictionary,
+   * two gestures, depending on which half of the product you were in. Set it
+   * to override both; `"inline"` is still there for a surface that is
+   * already devoted to one group.
    */
-  readonly dictionaryMode?: "field" | "inline";
+  readonly dictionaryMode?: "field" | "inline" | "sheet";
   /**
    * How many groups the rail draws before the rest fold behind "All filters"
    * — see {@link FacetPanelPaneProps.visibleGroups}.
@@ -455,7 +459,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
-  readonly dictionaryMode?: "field" | "inline";
+  readonly dictionaryMode?: "field" | "inline" | "sheet";
   readonly visibleGroups?: number | null;
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly renderEmptyExits?: () => ReactNode;
@@ -587,7 +591,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             : // STATIC, not sticky: the rail scrolls with the page, and a bar
               // pinned to the port's floor sat on top of the last groups.
               { footerBar: "static" as const })}
-          dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "inline" : "field")}
+          dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "sheet" : "field")}
           // `??` would treat an explicit `null` ("never fold") the same as
           // "not set": `visibleGroups` uses `null` as a real value, unlike
           // `dictionaryMode` above, so only `undefined` falls through.

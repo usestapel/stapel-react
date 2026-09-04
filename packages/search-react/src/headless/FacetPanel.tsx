@@ -89,6 +89,15 @@ export interface FacetPanelBag {
   readonly activeFilters: number;
 
   toggle(slug: string, value: string): void;
+  /**
+   * Write one slug's chosen values WHOLE — the bulk half of `toggle`.
+   *
+   * `toggle` reads the state it flips, so several of them in one tick
+   * collapse into the last. A control that holds a draft and applies it once
+   * — the phone's dictionary sheet — needs to say the whole list, and a
+   * storefront replaying a saved search needs the same call.
+   */
+  setValues(slug: string, values: readonly string[]): void;
   setRange(slug: string, range: SearchRange | null): void;
   clear(slug: string): void;
   clearAll(): void;
@@ -224,6 +233,7 @@ export function useFacetPanel(props: {
       envelope.data.degraded.includes(FACET_PLAN_EVIDENCE),
     activeFilters,
     toggle: toggleFilter,
+    setValues: setFilter,
     setRange,
     clear: (slug) => {
       setFilter(slug, []);

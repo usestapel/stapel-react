@@ -184,6 +184,21 @@ export const SEARCH_I18N_KEYS = {
    */
   facetsDictionaryAny: "search.facets.dictionary_any",
   /**
+   * The heading over a dictionary sheet's first band: the busiest values of
+   * this axis, which is the EVIDENCE the answer carries and not an editorial
+   * pick. Distinct from `facetsPopularValues`, which names a block on the
+   * results page rather than a section inside one picker.
+   */
+  facetsDictionaryRecommended: "search.facets.dictionary_recommended",
+  /** The heading over the rest of the dictionary sheet — everything the band
+   * did not take, alphabetically. Not `facetsShowAll`: that is a fold's
+   * button, this is a section a person scrolls into. */
+  facetsDictionaryAllValues: "search.facets.dictionary_all_values",
+  /** The dictionary sheet's commit. A multi-select sheet holds a draft and
+   * applies it once, so this word is the difference between keeping the
+   * ticks and dismissing them. */
+  facetsDictionaryDone: "search.facets.dictionary_done",
+  /**
    * The tail of the rail, folded: how many groups are behind one control.
    * `{count}` is a number in parentheses, not a counted noun, so this is not
    * a plural family — the same shape as `facetsClearAll`.
@@ -563,6 +578,9 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.dictionary_empty": "No value matches this",
   "search.facets.dictionary_chosen": "Chosen",
   "search.facets.dictionary_any": "Any",
+  "search.facets.dictionary_recommended": "Recommended",
+  "search.facets.dictionary_all_values": "All values",
+  "search.facets.dictionary_done": "Done",
   "search.facets.all_filters": "All filters ({count})",
   "search.facets.range_bounds": "from {min} to {max}",
   "search.facets.popular_all": "All",

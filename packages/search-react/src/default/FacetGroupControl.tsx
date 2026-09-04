@@ -62,10 +62,12 @@
  * them visible as before: folding everything would leave a heading over
  * nothing. Chosen options are always visible, wherever their count went.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Checkbox, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
+import { SkinPickerSheet } from "@stapel/tokens-antd/skin";
+import type { PickerGroup, PickerOption } from "@stapel/tokens-antd/skin";
 import { controls, cssVar, radii, spacing } from "@stapel/tokens";
 import { featureConfig, featureType } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
@@ -632,6 +634,246 @@ function DictionaryField(props: {
   );
 }
 
+/**
+ * How many values the sheet's «All values» band adds per page.
+ *
+ * Fifty is the vocabulary endpoint's own page size, and it is the number past
+ * which a phone list stops being scrolled and starts being searched. Reaching
+ * the end of the list asks for the next fifty, so a 418-make level is a
+ * scroll rather than 418 mounted rows.
+ */
+export const FACET_SHEET_PAGE = 50;
+
+/** One facet option as the shared picker reads it. The count rides along as
+ * the row's second line: a filter without its remaining count is the
+ * drill-down facet turned naive, and that rule does not stop at a sheet. */
+function pickerRow(option: FacetOption, notCounted: string): PickerOption {
+  return {
+    value: option.value,
+    label: option.label,
+    description: option.count === null ? notCounted : String(option.count),
+  };
+}
+
+/**
+ * A dictionary group on a PHONE: a trigger row, and a nested sheet.
+ *
+ * ── What the buyer was looking at ─────────────────────────────────────────
+ *
+ * The composer's own vocabulary picker (`@stapel/attributes-react`'s
+ * `ref_select` editor) is a trigger that opens a sheet with a search box, a
+ * recommended band and the rest — zero checkboxes. The buyer's filter sheet
+ * drew the SAME axis as a wall of eight checkboxes with a "Find a value" box
+ * and a "Show all (38)" under it, and no way to say "any". Two halves of one
+ * product teaching two different gestures for one dictionary is the defect;
+ * this mode is the half that moved.
+ *
+ * ── Why the shared `SkinPickerSheet` and not a local one ──────────────────
+ *
+ * It is the same component the composer's picker draws: the search box pinned
+ * above the list, the checkmarks, the commit button above the home indicator,
+ * the swipe/Esc/back dismissal, the skeleton and the empty arm. A pair that
+ * re-derives that gets a near-miss of it, which is exactly how the two halves
+ * drifted the first time.
+ *
+ * ── The two bands ─────────────────────────────────────────────────────────
+ *
+ * «Recommended» is the busiest values BY COUNT — the answer's own evidence,
+ * capped at {@link FACET_VISIBLE_OPTIONS} — with the chosen values in front
+ * of it, because a filter a person cannot see is a filter they cannot remove.
+ * «All values» is everything else, alphabetically, a page at a time. Once
+ * something is typed the bands collapse into one: a "Recommended" heading
+ * over rows that do not answer the box is the stale-list defect wearing a
+ * hat.
+ *
+ * The box filters LOCALLY and across alphabets (`translitPrefixMatch`, the
+ * same matcher the desktop field uses), so a Cyrillic spelling of a Latin
+ * make finds it. Nothing here touches the URL: what a person typed to FIND a
+ * filter is not part of the search they would share. The COMMIT does — the
+ * whole draft is written to the slug's URL key at once.
+ */
+function DictionarySheet(props: {
+  readonly group: FacetGroup;
+  readonly onSetValues: (slug: string, values: readonly string[]) => void;
+}): ReactElement {
+  const t = useT();
+  const { group } = props;
+  const [open, setOpen] = useState(false);
+  const [needle, setNeedle] = useState("");
+  const [page, setPage] = useState(FACET_SHEET_PAGE);
+
+  const chosen = group.options.filter((option) => option.selected);
+  const query = needle.trim();
+
+  const { groups, total } = useMemo(() => {
+    const notCounted = t(SEARCH_I18N_KEYS.facetsNotCounted);
+    const hit = (option: FacetOption): boolean =>
+      query === "" ||
+      translitPrefixMatch(query, option.label) ||
+      translitPrefixMatch(query, option.value);
+    const selected = group.options.filter((option) => option.selected);
+    const byCount = [...group.options].sort(
+      (a, b) => (b.count ?? 0) - (a.count ?? 0)
+    );
+
+    if (query !== "") {
+      // One band while the box holds something: the chosen values first (they
+      // are the ones with an off-switch to reach), then the evidence order.
+      const hits = [
+        ...selected.filter(hit),
+        ...byCount.filter((option) => !option.selected && hit(option)),
+      ];
+      return {
+        total: hits.length,
+        groups: [
+          {
+            key: "all",
+            label: t(SEARCH_I18N_KEYS.facetsDictionaryAllValues),
+            options: hits.slice(0, page).map((o) => pickerRow(o, notCounted)),
+          },
+        ] as readonly PickerGroup[],
+      };
+    }
+
+    // The band never drops a chosen value, however cold it is: its cap grows
+    // to hold them rather than pushing one of them into the alphabet.
+    const cap = Math.max(FACET_VISIBLE_OPTIONS, selected.length);
+    const band: FacetOption[] = [];
+    const banded = new Set<string>();
+    for (const option of [...selected, ...byCount]) {
+      if (banded.has(option.value) || band.length >= cap) continue;
+      band.push(option);
+      banded.add(option.value);
+    }
+    const rest = group.options
+      .filter((option) => !banded.has(option.value))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return {
+      total: band.length + Math.min(rest.length, page),
+      groups: [
+        {
+          key: "band",
+          label: t(SEARCH_I18N_KEYS.facetsDictionaryRecommended),
+          options: band.map((o) => pickerRow(o, notCounted)),
+        },
+        {
+          key: "all",
+          label: t(SEARCH_I18N_KEYS.facetsDictionaryAllValues),
+          options: rest.slice(0, page).map((o) => pickerRow(o, notCounted)),
+        },
+      ] as readonly PickerGroup[],
+    };
+  }, [group, query, page, t]);
+
+  // How many rows exist behind the current page — what "there is more" means.
+  const available = group.options.length;
+
+  const text =
+    chosen.length > 0
+      ? chosen.map((option) => option.label).join(", ")
+      : t(SEARCH_I18N_KEYS.facetsDictionaryAny);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={group.label}
+        style={DICTIONARY_FIELD}
+        data-testid={`facet-dictionary-trigger-${group.slug}`}
+        data-chosen={chosen.length}
+        data-analytics="none"
+        data-analytics-reason="opening a filter group is a read, not a flow step"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        <span style={DICTIONARY_FIELD_TEXT}>{text}</span>
+        {chosen.length > 0 && (
+          <Typography.Text
+            type="secondary"
+            data-testid={`facet-dictionary-trigger-count-${group.slug}`}
+          >
+            {chosen.length}
+          </Typography.Text>
+        )}
+        <ChevronGlyph open={open} />
+      </button>
+      <SkinPickerSheet
+        mode="multi"
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setNeedle("");
+          setPage(FACET_SHEET_PAGE);
+        }}
+        title={group.label}
+        testId={`facet-dictionary-sheet-${group.slug}`}
+        doneLabel={t(SEARCH_I18N_KEYS.facetsDictionaryDone)}
+        searchPlaceholder={t(SEARCH_I18N_KEYS.facetsDictionarySearch)}
+        emptyLabel={t(SEARCH_I18N_KEYS.facetsDictionaryEmpty)}
+        // The caller owns the filtering — the sheet's own local filter matches
+        // on the label only, and this axis is searched across alphabets.
+        searchValue={needle}
+        onSearchChange={(next) => {
+          setNeedle(next);
+          setPage(FACET_SHEET_PAGE);
+        }}
+        groups={groups}
+        // Everything handed over is drawn: the paging above is this
+        // component's, so the sheet's own row cap must not fold it again.
+        maxRows={Math.max(1, total)}
+        onEndReached={() => {
+          setPage((current) =>
+            current >= available ? current : current + FACET_SHEET_PAGE
+          );
+        }}
+        values={group.selected}
+        onChange={(values) => {
+          props.onSetValues(group.slug, values);
+        }}
+      />
+    </>
+  );
+}
+
+/**
+ * The three faces of one dictionary, chosen by mode.
+ *
+ * `"sheet"` without a bulk setter falls back to the FIELD rather than to the
+ * inline wall: a trigger that opens a list is the shape both surfaces are
+ * moving to, and the wall is the thing the pass named.
+ */
+function DictionaryControl(props: {
+  readonly group: FacetGroup;
+  readonly mode: "field" | "inline" | "sheet" | undefined;
+  readonly onToggle: (slug: string, value: string) => void;
+  readonly onSetValues?: (slug: string, values: readonly string[]) => void;
+  readonly visible: number;
+}): ReactElement {
+  const { onSetValues } = props;
+  if (props.mode === "sheet" && onSetValues !== undefined) {
+    return <DictionarySheet group={props.group} onSetValues={onSetValues} />;
+  }
+  if (props.mode === "field" || props.mode === "sheet") {
+    return (
+      <DictionaryField
+        group={props.group}
+        onToggle={props.onToggle}
+        visible={props.visible}
+      />
+    );
+  }
+  return (
+    <DictionaryBody
+      group={props.group}
+      onToggle={props.onToggle}
+      visible={props.visible}
+    />
+  );
+}
+
 export interface FacetGroupControlProps {
   readonly group: FacetGroup;
   readonly onToggle: (slug: string, value: string) => void;
@@ -652,13 +894,31 @@ export interface FacetGroupControlProps {
    * value only — the person owns the state after the first click. */
   readonly defaultOpen?: boolean;
   /**
-   * How a `"dictionary"` group is drawn. `"field"` is the desktop shape — a
-   * select-style field reading its chosen values or "Any", which opens the
-   * searchable list; `"inline"` (the default) keeps the list open, the shape
-   * a phone sheet wants because the sheet is already the disclosure.
-   * Meaningless for the other three shapes.
+   * How a `"dictionary"` group is drawn. Meaningless for the other three
+   * shapes.
+   *
+   *  - `"field"` — the desktop shape: a select-style field reading its chosen
+   *    values or "Any", which opens the searchable list under it;
+   *  - `"sheet"` — the PHONE shape: a trigger row reading the same sentence,
+   *    opening a nested picker sheet with a search box, a recommended band
+   *    and the rest. The same control the composer's vocabulary picker is, so
+   *    one dictionary is one gesture on both halves of the product. Needs
+   *    {@link FacetGroupControlProps.onSetValues} — the sheet commits a whole
+   *    draft at once, and a per-value toggle cannot apply one; without it the
+   *    group falls back to `"field"`;
+   *  - `"inline"` (the default) keeps the list open — a group that is already
+   *    the only thing on its surface, such as a per-chip sheet.
    */
-  readonly dictionaryMode?: "field" | "inline";
+  readonly dictionaryMode?: "field" | "inline" | "sheet";
+  /**
+   * Write a slug's chosen values in ONE go — `useFacetPanel`'s `setValues`.
+   *
+   * `onToggle` reads the current state to flip one value, so N toggles in one
+   * tick collapse into the last one; a sheet that commits a draft of several
+   * ticks needs the bulk write. Optional so no existing host changes, and
+   * only `dictionaryMode: "sheet"` reads it.
+   */
+  readonly onSetValues?: (slug: string, values: readonly string[]) => void;
 }
 
 export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
@@ -739,21 +999,17 @@ export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
       {/* Closed means NOT RENDERED, not hidden: a hundred `display:none`
           checkboxes are still a hundred stops for a screen reader, and the
           measured rail held 118 of them. */}
-      {open &&
-        shape === "dictionary" &&
-        (props.dictionaryMode === "field" ? (
-          <DictionaryField
-            group={group}
-            onToggle={props.onToggle}
-            visible={limit ?? FACET_VISIBLE_OPTIONS}
-          />
-        ) : (
-          <DictionaryBody
-            group={group}
-            onToggle={props.onToggle}
-            visible={limit ?? FACET_VISIBLE_OPTIONS}
-          />
-        ))}
+      {open && shape === "dictionary" && (
+        <DictionaryControl
+          group={group}
+          mode={props.dictionaryMode}
+          onToggle={props.onToggle}
+          {...(props.onSetValues !== undefined
+            ? { onSetValues: props.onSetValues }
+            : {})}
+          visible={limit ?? FACET_VISIBLE_OPTIONS}
+        />
+      )}
 
       {open && shape !== "dictionary" && (
         <>

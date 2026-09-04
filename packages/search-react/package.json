@@ -64,9 +64,9 @@
       "limit": "13.75 KB"
     },
     {
-      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking, the dictionary control for a vocabulary facet, the popular-values block, the partition row in both its chip and segmented variants, the select-style dictionary FIELD the desktop rail opens, the from/to pickers a bounded integer axis draws and the rail's own scrollbar sheet) must stay out of the main bundle. Raised 24.5 → 25.5 KB for those four controls, then 25.5 → 26.25 KB for the chip row's APPLIED mode — one chip per applied value and per numeric bound, each removing that one constraint beside a rail that is already on screen (a storefront was carrying its own copy of it), then 26.25 → 27 KB for the \"search in other categories\" LINE — which is a net deletion on the page that mounts it, replacing a full-width block of one row per section that arrived after the results and pushed them, then 27 → 27.75 KB for the two frames the page now tells apart: the dictionary FIELD reaching `<SearchPage>` at all (per-layout default, field in the rail and inline in the sheet) and the footer bar being static in a column and sticky in a sheet, where it used to be pinned over the last two groups everywhere, then 27.75 → 28.5 KB for `categoryHref` on the other-categories line — a real `<a href>` per row with a modifier-click left to the browser, instead of a `<button>` with no address a person could open in a new tab",
+      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking, the dictionary control for a vocabulary facet, the popular-values block, the partition row in both its chip and segmented variants, the select-style dictionary FIELD the desktop rail opens, the from/to pickers a bounded integer axis draws and the rail's own scrollbar sheet) must stay out of the main bundle. Raised 24.5 → 25.5 KB for those four controls, then 25.5 → 26.25 KB for the chip row's APPLIED mode — one chip per applied value and per numeric bound, each removing that one constraint beside a rail that is already on screen (a storefront was carrying its own copy of it), then 26.25 → 27 KB for the \"search in other categories\" LINE — which is a net deletion on the page that mounts it, replacing a full-width block of one row per section that arrived after the results and pushed them, then 27 → 27.75 KB for the two frames the page now tells apart: the dictionary FIELD reaching `<SearchPage>` at all (per-layout default, field in the rail and inline in the sheet) and the footer bar being static in a column and sticky in a sheet, where it used to be pinned over the last two groups everywhere, then 27.75 → 28.5 KB for `categoryHref` on the other-categories line — a real `<a href>` per row with a modifier-click left to the browser, instead of a `<button>` with no address a person could open in a new tab, then 28.5 → 29.25 KB for the phone's dictionary SHEET — a trigger row over the shared `SkinPickerSheet` with a recommended band, an alphabetical rest paged fifty at a time and a draft committed in one write, which is the control the composer's vocabulary picker already was while the buyer got a wall of checkboxes",
       "path": "dist/default/index.js",
-      "limit": "28.5 KB"
+      "limit": "29.25 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",
@@ -74,9 +74,9 @@
       "limit": "1 KB"
     },
     {
-      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry. Raised 4.75 → 5 KB for the dictionary sheet's three headings",
       "path": "dist/i18n/ru.js",
-      "limit": "4.75 KB"
+      "limit": "5 KB"
     },
     {
       "name": "i18n/es — the Spanish bundle is opt-in, not carried by the main entry. Raised 3.5 → 3.75 KB for the three strings of the other-categories line",

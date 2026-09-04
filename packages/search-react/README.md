@@ -295,8 +295,26 @@ On the **desktop rail** a dictionary is a select-style FIELD
 (`dictionaryMode="field"`, which `<SearchPage>` sets for the column layout):
 closed it reads the chosen values or *Any*, and it opens the searchable list —
 a real `role="combobox"` button, Enter/Space to open, ArrowDown to open,
-Escape to close. The phone sheet keeps the list inline, because the sheet is
-already the disclosure.
+Escape to close.
+
+On a **phone** it is a SHEET (`dictionaryMode="sheet"`, the filter sheet's
+default). The closed row reads *Any* or the chosen values with their count;
+tapping it opens a nested picker — the shared `SkinPickerSheet`, the very
+component the composer's vocabulary picker draws — with a search box, a
+**Recommended** band (the busiest values by count, capped at
+`FACET_VISIBLE_OPTIONS`, with anything chosen in front of it), **All values**
+(the rest alphabetically, `FACET_SHEET_PAGE` at a time as the list is
+scrolled), a checkmark per chosen row and one **Done** that writes the whole
+draft. Typing collapses the two bands into one, because a *Recommended*
+heading over rows that answer a query is a lie about which rows those are.
+Swipe, Esc, the grab handle and the back gesture all close it and discard the
+draft.
+
+That mode commits through `onSetValues` (`useFacetPanel`'s `setValues`, the
+bulk half of `toggle`): a draft of several ticks is one URL write, and N
+`toggle` calls in one tick would collapse into the last. Without it the group
+falls back to the field. `"inline"` is still there for a surface already
+devoted to one group — the per-chip sheet of `<FilterChips>`.
 
 ```tsx
 facetGroupShape(group)             // "segmented" | "nested" | "checkbox" | "dictionary"
@@ -305,7 +323,7 @@ facetGroupIsVocabularyBacked(group) // the schema's type, else the answer's `voc
 ```
 
 `<SearchPage dictionaryMode>` overrides the per-layout default (`"field"` in
-the column, `"inline"` in the sheet).
+the column, `"sheet"` in the phone filter sheet).
 
 ## A bounded integer is a picker, not a bare number
 

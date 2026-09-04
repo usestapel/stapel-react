@@ -315,10 +315,12 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
   /**
    * How a DICTIONARY group is drawn. `"field"` is the desktop shape — a
    * select-style field reading its chosen values or "Any", which opens the
-   * searchable list; `"inline"` (the default) keeps the list open, which is
-   * the phone sheet's shape because a sheet is already a disclosure.
+   * searchable list under it; `"sheet"` is the phone's — the same trigger
+   * row, opening a nested picker sheet with a search box, a recommended band
+   * and the rest, which is the control the composer's vocabulary picker
+   * already is; `"inline"` (the default) keeps the list open.
    */
-  readonly dictionaryMode?: "field" | "inline";
+  readonly dictionaryMode?: "field" | "inline" | "sheet";
 }
 
 /**
@@ -828,6 +830,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                         key={needle === "" ? group.slug : `${group.slug}:match`}
                         group={group}
                         onToggle={bag.toggle}
+                        onSetValues={bag.setValues}
                         collapsible
                         defaultOpen={
                           needle !== "" ||

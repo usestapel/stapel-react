@@ -107,6 +107,7 @@ export {
   facetOptionNodes,
   isDictionaryFacet,
   FACET_DICTIONARY_THRESHOLD,
+  FACET_SHEET_PAGE,
   FACET_VISIBLE_OPTIONS,
 } from "./FacetGroupControl.js";
 export type {
