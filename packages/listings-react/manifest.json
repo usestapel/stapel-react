@@ -44,6 +44,13 @@
       "request": null,
       "response": "DeleteResponse"
     },
+    "listings_api_v1_listings_draft_retrieve": {
+      "method": "GET",
+      "path": "/listings/api/v1/listings/{id}/draft/",
+      "tag": "listings",
+      "request": null,
+      "response": "ListingDraft"
+    },
     "listings_api_v1_listings_engagement_retrieve": {
       "method": "GET",
       "path": "/listings/api/v1/listings/engagement/",
@@ -501,6 +508,13 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.400.listing_draft_meta_too_large": {
+      "status": 400,
+      "params": [
+        "max_bytes"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.listing_feature_not_allowed": {
       "status": 400,
       "params": [
@@ -899,6 +913,27 @@
         "bare"
       ],
       "source": "demo/ListingSerpCard.demo.tsx"
+    },
+    {
+      "id": "listings.spec-parts",
+      "title": "Badges and specs",
+      "description": "A badge says which question it answers, and a spec sheet is a definition list rather than a table. Both are drawn by the SERVER's decision about presentation, not by a client-side heuristic: the right badge for a value depends on the category — '3 rooms' wants its name, 'Brick' is a boolean whose name IS the badge, and '20 000 km' wants its unit and no name at all.",
+      "component": "CardBadges",
+      "covers": [
+        "CardSpecLine",
+        "ListingSpecColumns",
+        "ListingSpecList"
+      ],
+      "tokens": [
+        "text-subtle"
+      ],
+      "variants": [
+        "contract",
+        "legacy",
+        "specs",
+        "specs-split"
+      ],
+      "source": "demo/ListingSpecParts.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -933,6 +968,7 @@
     "error.400.field.unique",
     "error.400.image_required",
     "error.400.invalid_ad_id",
+    "error.400.listing_draft_meta_too_large",
     "error.400.listing_feature_not_allowed",
     "error.400.listing_invalid_status_filter",
     "error.400.listing_location_required",
@@ -1153,8 +1189,12 @@
       "PRICE_FIELD",
       "TITLE_FIELD",
       "asFeatureDaoList",
+      "badgePresentation",
+      "badgeValueText",
       "canDelete",
       "canTransition",
+      "cardBadgeText",
+      "cardBadgeTexts",
       "createDraftBody",
       "createListingsApi",
       "createListingsRuntime",
@@ -1170,10 +1210,13 @@
       "explainListingsError",
       "failedResults",
       "featureFromDao",
+      "featureUnit",
       "featureValuesForDisplay",
       "featuresDtoFromDaoList",
       "featuresFromDaoList",
       "flowEndpoints",
+      "formatSpecValue",
+      "hasCardBadgeContract",
       "isBatchValid",
       "isListingViewed",
       "isPubliclyVisible",
@@ -1233,6 +1276,9 @@
       "withEngagement"
     ],
     "types": [
+      "CardBadgeContract",
+      "CardBadgePresentation",
+      "CardBadgeRow",
       "ComposeStage",
       "CreateListingsRuntimeOptions",
       "DeleteResponse",

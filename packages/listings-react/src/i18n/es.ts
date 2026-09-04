@@ -219,6 +219,9 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "error.400.listing_zero_price_not_allowed":
     "En esta categoría no se permite un precio de 0. Deja el precio vacío para «precio no indicado».",
 
+  "error.400.listing_draft_meta_too_large":
+    "El borrador es demasiado grande (máximo {max_bytes} bytes). Quita parte de los datos y guarda de nuevo.",
+
   "listings.blocked.sign_in": "Inicia sesión para hacer esto",
   "listings.blocked.guest":
     "Esta cuenta todavía no puede hacerlo — termina de configurarla primero",

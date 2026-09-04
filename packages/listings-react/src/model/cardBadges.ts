@@ -57,31 +57,42 @@
  * `@stapel/attributes-react`'s `<FeatureBadges>`, off the stored DAO's own
  * config. Nothing about this module is required for a card to draw.
  */
-import type { ListingFeatureDao } from "../api/types.js";
+import type { ListingCardBadgeElement, ListingFeatureDao } from "../api/types.js";
 
-/** Which parts of a badge element the server asked to be printed. */
-export type CardBadgePresentation = "value" | "value_unit" | "name_value" | "name";
+/**
+ * Which parts of a badge element the server asked to be printed.
+ *
+ * Read off the GENERATED element rather than spelled again here: the four
+ * readings are the server's enum, and a fifth added upstream must turn this
+ * build red instead of falling through {@link badgePresentation}'s default in
+ * silence.
+ */
+export type CardBadgePresentation = ListingCardBadgeElement["presentation"];
 
 /**
  * The keys stapel-listings 0.21.3 adds to a `features_badges` /
- * `features_title` element. All optional — an older server sends none.
+ * `features_title` element.
+ *
+ * The NAMES and their types come from the generated element; the optionality
+ * is this pair's own, and is the whole compatibility story — the contract
+ * makes them required, and a server that predates it sends none of them. Same
+ * argument as {@link ListingEngagementFields}, one file over: a generated type
+ * is a promise about the contract, not about the bytes a deployment sends.
  */
-export interface CardBadgeContract {
+export type CardBadgeContract = {
   /** The raw answer. Absent on a redacted row, which is why the renderers
-   * below all tolerate it. */
+   * below all tolerate it, and `unknown` because the DAO union types it per
+   * feature type and a badge prints whatever it was given. */
   readonly value?: unknown;
-  /** The answer's resolved copy, where the answer is an option — the server
-   * has the category's table in hand and this is it, already chosen. */
-  readonly label?: string | null;
-  /** What the number is measured in. Free text, already in the catalogue's
-   * own words (there is no `unit` key on a feature DEFINITION anywhere in
-   * this fleet — see `model/featureText.ts`). */
-  readonly unit?: string | null;
-  /** The question: the feature's display name. */
-  readonly name?: string | null;
-  /** Which of the above to print. See {@link CardBadgePresentation}. */
+} & {
+  readonly [K in "label" | "unit" | "name"]?: ListingCardBadgeElement[K] | null;
+} & {
+  /** Widened back to `string` on purpose: {@link badgePresentation} exists to
+   * REFUSE a reading it does not know, and a field typed as the four would
+   * make that refusal unreachable — and untestable — while a server is still
+   * free to send a fifth. */
   readonly presentation?: string | null;
-}
+};
 
 /** A stored badge row, with the contract's keys where the server sends them. */
 export type CardBadgeRow = ListingFeatureDao & CardBadgeContract;

@@ -123,8 +123,58 @@ export function engagementIds(ids: readonly number[]): readonly number[] {
   return [...seen].sort((a, b) => a - b).slice(0, LISTINGS_ENGAGEMENT_BATCH_LIMIT);
 }
 
+/**
+ * The stored-feature columns, restated as the runtime shape.
+ *
+ * `features`, `features_title` and `features_badges` are `JSONField`s (this
+ * file's header, note 2): what reaches the wire is what `build_features_list`
+ * stored, and the OpenAPI union beside them is a DESCRIPTION swapped in by an
+ * extension rather than a filter anything applies. stapel-listings 0.21.3
+ * makes that gap load-bearing: its union spells a badge element with `label`,
+ * `name` and `presentation` REQUIRED, so a row from a server that predates the
+ * contract — the fallback arm `<CardBadges>` exists for, and every row on
+ * every listing published before 0.21.3 — no longer satisfies the generated
+ * type although it is exactly what a card receives.
+ *
+ * So the columns are typed as {@link ListingFeatureDao}, the mirror that says
+ * what a stored row IS, and the contract keys are read off the generated
+ * element instead (`model/cardBadges.ts`) — a rename upstream still breaks the
+ * build, without the generated union refusing the older half of the wire.
+ */
+/**
+ * The badge element the CARD BADGE CONTRACT describes, as the generated schema
+ * spells it (stapel-listings 0.21.3).
+ *
+ * Taken off `Schemas` rather than the relaxed row above, because this is the
+ * one place the contract's own names and readings should still come from the
+ * wire: `model/cardBadges.ts` derives its keys from here, so a rename or a
+ * fifth `presentation` upstream turns this build red.
+ */
+export type ListingCardBadgeElement = Extract<
+  Schemas["ListingCard"]["features_badges"][number],
+  { presentation: unknown }
+>;
+
+type StoredFeatureColumn = "features" | "features_title" | "features_badges";
+
+/**
+ * A stored row AS IT ARRIVES: every key of the mirror, none of them promised.
+ *
+ * `slug` is required on {@link ListingFeatureDao} because a row without one is
+ * unusable — and a JSONField ships one anyway when the projection misses it,
+ * which `featureFromDao` reports rather than papering over with a synthesized
+ * index. `asFeatureDaoList` is the single narrowing point between the two.
+ */
+export type ListingFeatureRow = Partial<ListingFeatureDao>;
+
+type WithStoredFeatures<Row> = Omit<Row, StoredFeatureColumn> & {
+  readonly [K in Extract<keyof Row, StoredFeatureColumn>]: readonly ListingFeatureRow[];
+};
+
 /** `GET /listings/{pk}/` 200 — everything a detail page reads. */
-export type ListingDetail = WithOptionalEngagement<Schemas["ListingDetail"]>;
+export type ListingDetail = WithStoredFeatures<
+  WithOptionalEngagement<Schemas["ListingDetail"]>
+>;
 
 /**
  * One row of a card list (`GET /listings/`, `GET /listings/my/favorites/`) —
@@ -158,8 +208,8 @@ type WithOptionalPrecision<Row extends { geo_precision_km?: number }> = Omit<
 > &
   Partial<Pick<Schemas["ListingCard"], "geo_precision_km">>;
 
-export type ListingCard = WithOptionalPrecision<
-  WithOptionalEngagement<Schemas["ListingCard"]>
+export type ListingCard = WithStoredFeatures<
+  WithOptionalPrecision<WithOptionalEngagement<Schemas["ListingCard"]>>
 >;
 
 /** `POST /listings/` request+response and `POST /{pk}/save-draft/` response —
@@ -216,8 +266,8 @@ export type PaginatedListingCards = Omit<
  *    tab keyed off them is a column of blank rows. `myListingTitle` /
  *    `myListingPrice` (`model/mine.ts`) are the one place the fallback lives.
  */
-export type MyListingCard = WithOptionalPrecision<
-  WithOptionalEngagement<Schemas["MyListingCard"]>
+export type MyListingCard = WithStoredFeatures<
+  WithOptionalPrecision<WithOptionalEngagement<Schemas["MyListingCard"]>>
 >;
 
 /** The keyset envelope `GET /listings/my/listings/` comes back in — the same

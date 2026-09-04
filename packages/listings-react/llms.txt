@@ -25,6 +25,7 @@ Paths are relative to `/listings/api/v1/`.
 - listings_api_v1_listings_complete_create: POST /listings/{id}/complete/
 - listings_api_v1_listings_create: POST /listings/
 - listings_api_v1_listings_destroy: DELETE /listings/{id}/
+- listings_api_v1_listings_draft_retrieve: GET /listings/{id}/draft/
 - listings_api_v1_listings_engagement_retrieve: GET /listings/engagement/
 - listings_api_v1_listings_favorite_create: POST /listings/{id}/favorite/
 - listings_api_v1_listings_list: GET /listings/
@@ -60,7 +61,7 @@ Paths are relative to `/listings/api/v1/`.
 - useValidateDraft (query) → validateDraft
 
 ## Errors (render t(code, params); UX from remediation)
-68 keys (full catalog: manifest.json §errors). By remediation: fix_input 39 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+69 keys (full catalog: manifest.json §errors). By remediation: fix_input 40 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.description_too_long [400] → fix_input {max_length}
 - error.400.description_too_short [400] → fix_input {min_length}
@@ -86,6 +87,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
+- error.400.listing_draft_meta_too_large [400] → fix_input {max_bytes}
 - error.400.listing_feature_not_allowed [400] → fix_input {feature}
 - error.400.listing_invalid_status_filter [400] → fix_input {status}
 - error.409.invalid_listing_transition [409] → fix_input {from_status}
@@ -121,6 +123,7 @@ const { tracked } = useTracked();
 - listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
 - listings.photo-strip → <ListingPhotoStrip> [default|single|no photos]  demo/ListingPhotoStrip.demo.tsx
 - listings.serp-card → <ListingSerpCard> [default|trend|visitor|desktop row|bare]  demo/ListingSerpCard.demo.tsx
+- listings.spec-parts → <CardBadges> [contract|legacy|specs|specs-split]  demo/ListingSpecParts.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

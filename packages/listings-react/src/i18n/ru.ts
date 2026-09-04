@@ -244,6 +244,11 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "error.400.listing_zero_price_not_allowed":
     "В этой категории цена 0 недопустима. Оставьте поле пустым — это и есть «цена не указана».",
 
+  // stapel-listings 0.21.2: the composer's per-field provenance sidecar has a
+  // size ceiling, and the number is the server's own — never restated here.
+  "error.400.listing_draft_meta_too_large":
+    "Черновик слишком большой (не больше {max_bytes} байт). Уберите часть данных и сохраните ещё раз.",
+
   "listings.blocked.sign_in": "Войдите, чтобы сделать это",
   "listings.blocked.guest":
     "Этот аккаунт пока так не может — сначала завершите настройку",

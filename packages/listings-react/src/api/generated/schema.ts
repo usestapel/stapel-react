@@ -159,6 +159,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/listings/api/v1/listings/{id}/draft/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Read back the draft twins — the reopen half of ``save-draft``.
+         *
+         *     Every user-editable field on this module is a ``*_draft`` column
+         *     (``title_draft``, ``description_draft``, ``images_draft``,
+         *     ``features_draft``, the location trio, ...) and until now the only
+         *     call that ever returned one was the write itself: ``create``,
+         *     ``update`` and ``save-draft`` echo the bag back, and no READ did. So a
+         *     composer reopening a listing by id had exactly one source, the detail
+         *     read, which serves the PUBLISHED fields — empty on everything that has
+         *     never been published. The seller pressed «продолжить», got a blank
+         *     form, and their text and photos were sitting in the row the whole
+         *     time.
+         *
+         *     Deliberately a separate route rather than draft columns bolted onto
+         *     the detail read: the detail read is the PUBLIC one (a stranger and a
+         *     crawler read it without a session), and a shape whose key set depends
+         *     on who is asking is the shape a redaction bug hides in. Here the
+         *     answer is structural — ``_get_own`` is the module's one ownership
+         *     gate, 403 for someone else's listing, 404 for one that is absent or
+         *     soft-deleted — so no draft field can reach a non-owner by omission.
+         *
+         *     The payload is ``ListingDraftSerializer``, byte for byte what
+         *     ``save-draft`` returns, so a client reopens with the mapper it already
+         *     has for the write's response instead of a second one.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["listings_api_v1_listings_draft_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/listings/api/v1/listings/{id}/favorite/": {
         parameters: {
             query?: never;
@@ -284,6 +328,15 @@ export interface paths {
          *     every edge through one allowlist is that the set a client is offered
          *     and the set the server accepts are one object, not two that agree
          *     today.
+         *
+         *     One edge is not a lifecycle hop: ARCHIVED -> PUBLISHED is
+         *     «опубликовать снова», and it runs the publish service (validate,
+         *     promote, re-submit for review — see ``RESTORE_EDGES``). So it can
+         *     answer 400 when the draft is not publishable, and the ``status`` it
+         *     returns is where the deployment's moderation policy put the listing,
+         *     which under the default pre-moderation gate is ``pending`` and not the
+         *     ``published`` that was asked for. Read the status from the response,
+         *     never from the request.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -815,7 +868,13 @@ export interface components {
             price_base?: string | null;
             currency?: string;
             readonly images: string[] | null;
-            readonly features_title: (components["schemas"]["FeatureDao"] | {
+            readonly features_title: ((Omit<components["schemas"]["FeatureDao"], "type"> & {
+                label: string;
+                unit?: string;
+                name: string;
+                /** @enum {unknown} */
+                presentation: "value" | "value_unit" | "name_value" | "name";
+            }) | {
                 slug?: string;
                 type?: string;
                 name?: string | null;
@@ -830,7 +889,13 @@ export interface components {
                 redacted: true;
                 present: boolean;
             })[];
-            readonly features_badges: (components["schemas"]["FeatureDao"] | {
+            readonly features_badges: ((Omit<components["schemas"]["FeatureDao"], "type"> & {
+                label: string;
+                unit?: string;
+                name: string;
+                /** @enum {unknown} */
+                presentation: "value" | "value_unit" | "name_value" | "name";
+            }) | {
                 slug?: string;
                 type?: string;
                 name?: string | null;
@@ -906,7 +971,13 @@ export interface components {
                 redacted: true;
                 present: boolean;
             })[];
-            readonly features_title: (components["schemas"]["FeatureDao"] | {
+            readonly features_title: ((Omit<components["schemas"]["FeatureDao"], "type"> & {
+                label: string;
+                unit?: string;
+                name: string;
+                /** @enum {unknown} */
+                presentation: "value" | "value_unit" | "name_value" | "name";
+            }) | {
                 slug?: string;
                 type?: string;
                 name?: string | null;
@@ -921,7 +992,13 @@ export interface components {
                 redacted: true;
                 present: boolean;
             })[];
-            readonly features_badges: (components["schemas"]["FeatureDao"] | {
+            readonly features_badges: ((Omit<components["schemas"]["FeatureDao"], "type"> & {
+                label: string;
+                unit?: string;
+                name: string;
+                /** @enum {unknown} */
+                presentation: "value" | "value_unit" | "name_value" | "name";
+            }) | {
                 slug?: string;
                 type?: string;
                 name?: string | null;
@@ -982,6 +1059,7 @@ export interface components {
             features_draft?: {
                 [key: string]: components["schemas"]["FeatureDto"];
             } | null;
+            draft_meta?: unknown;
             auto_republish?: boolean;
             countable?: boolean;
             /** Format: int64 */
@@ -1085,7 +1163,13 @@ export interface components {
             price_base?: string | null;
             currency?: string;
             readonly images: string[] | null;
-            readonly features_title: (components["schemas"]["FeatureDao"] | {
+            readonly features_title: ((Omit<components["schemas"]["FeatureDao"], "type"> & {
+                label: string;
+                unit?: string;
+                name: string;
+                /** @enum {unknown} */
+                presentation: "value" | "value_unit" | "name_value" | "name";
+            }) | {
                 slug?: string;
                 type?: string;
                 name?: string | null;
@@ -1100,7 +1184,13 @@ export interface components {
                 redacted: true;
                 present: boolean;
             })[];
-            readonly features_badges: (components["schemas"]["FeatureDao"] | {
+            readonly features_badges: ((Omit<components["schemas"]["FeatureDao"], "type"> & {
+                label: string;
+                unit?: string;
+                name: string;
+                /** @enum {unknown} */
+                presentation: "value" | "value_unit" | "name_value" | "name";
+            }) | {
                 slug?: string;
                 type?: string;
                 name?: string | null;
@@ -1199,6 +1289,7 @@ export interface components {
             features_draft?: {
                 [key: string]: components["schemas"]["FeatureDto"];
             } | null;
+            draft_meta?: unknown;
             auto_republish?: boolean;
             countable?: boolean;
             /** Format: int64 */
@@ -1644,6 +1735,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListingActionResponse"];
+                };
+            };
+        };
+    };
+    listings_api_v1_listings_draft_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this listing. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingDraft"];
                 };
             };
         };

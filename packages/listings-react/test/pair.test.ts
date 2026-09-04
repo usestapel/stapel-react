@@ -162,6 +162,9 @@ describe("the runtime carries the deployment's knowledge", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
+    // 69 as of stapel-listings 0.21.2, whose draft_meta sidecar has a size
+    // ceiling: error.400.listing_draft_meta_too_large, with ru/es authored in
+    // this pair (the module is locale-exempt upstream).
     // 68 as of stapel-listings 0.17.0: the contract-pin bump brought two
     // publish checks with it — error.400.listing_location_required and
     // error.400.listing_zero_price_not_allowed (a price of 0 is an empty
@@ -172,8 +175,11 @@ describe("errors", () => {
     // vanishes from the registry is a contract change somebody should have to
     // notice, and a code that arrives without a ru/es sentence is caught by
     // the i18n suite next door — which is exactly how these two were found.
-    expect(LISTINGS_ERROR_CODES.length).toBe(68);
+    expect(LISTINGS_ERROR_CODES.length).toBe(69);
     expect(LISTINGS_ERROR_CODES).toContain("error.400.feature_invalid_rules");
+    expect(LISTINGS_ERROR_CODES).toContain(
+      "error.400.listing_draft_meta_too_large"
+    );
     expect(LISTINGS_ERROR_CODES).toContain("error.400.listing_location_required");
     expect(LISTINGS_ERROR_CODES).toContain(
       "error.400.listing_zero_price_not_allowed"
