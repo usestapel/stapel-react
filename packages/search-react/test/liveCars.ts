@@ -94,6 +94,7 @@ const LIVE = {
     "accident": {
       "label": "Состояние",
       "label_translatable": true,
+      "url_key": "accident",
       "translatable": false,
       "values": {
         "ne-bityy": "Не битый",
@@ -103,6 +104,7 @@ const LIVE = {
     "color": {
       "label": "Цвет",
       "label_translatable": true,
+      "url_key": "color",
       "translatable": false,
       "values": {
         "belyy": "Белый",
@@ -127,6 +129,7 @@ const LIVE = {
     "make_ref_select": {
       "label": "Марка",
       "label_translatable": false,
+      "url_key": "make",
       "translatable": false,
       "values": {
         "renault": "Renault",
@@ -137,6 +140,7 @@ const LIVE = {
     "model": {
       "label": "Модель",
       "label_translatable": false,
+      "url_key": "model",
       "translatable": false,
       "values": {
         "camry": "Camry",
@@ -147,6 +151,7 @@ const LIVE = {
     "generation": {
       "label": "Поколение",
       "label_translatable": false,
+      "url_key": "generation",
       "translatable": false,
       "values": {
         "xv80-2024-2026": "XV80 (2024—2026)"
@@ -155,6 +160,7 @@ const LIVE = {
     "modification": {
       "label": "Модификация",
       "label_translatable": false,
+      "url_key": "modification",
       "translatable": false,
       "values": {
         "2-0-cvt-173-l-s": "2.0 CVT (173 л.с.)"
@@ -163,6 +169,7 @@ const LIVE = {
     "complectation": {
       "label": "Комплектация",
       "label_translatable": false,
+      "url_key": "complectation",
       "translatable": false,
       "values": {
         "deluxe": "Deluxe"
@@ -171,6 +178,7 @@ const LIVE = {
     "fuel_type_ref_select": {
       "label": "Тип двигателя",
       "label_translatable": false,
+      "url_key": "fuel_type",
       "translatable": false,
       "values": {
         "benzin": "Бензин"
@@ -179,6 +187,7 @@ const LIVE = {
     "transmission": {
       "label": "Коробка передач",
       "label_translatable": false,
+      "url_key": "transmission",
       "translatable": false,
       "values": {
         "variator": "Вариатор"
@@ -187,6 +196,7 @@ const LIVE = {
     "engine_size": {
       "label": "Объём двигателя",
       "label_translatable": false,
+      "url_key": "engine_size",
       "translatable": false,
       "values": {
         "2-0": "2.0"
@@ -195,6 +205,7 @@ const LIVE = {
     "doors": {
       "label": "Количество дверей",
       "label_translatable": false,
+      "url_key": "doors",
       "translatable": false,
       "values": {
         "4": "4"
@@ -203,6 +214,7 @@ const LIVE = {
     "body_type_ref_select": {
       "label": "Тип кузова",
       "label_translatable": false,
+      "url_key": "body_type",
       "translatable": false,
       "values": {
         "sedan": "Седан"

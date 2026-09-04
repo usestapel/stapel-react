@@ -133,20 +133,15 @@ describe("a group the answer has EVIDENCE for is never dropped", () => {
     expect(groups).toEqual([]);
   });
 
-  it("names an axis it cannot draw instead of losing it silently", () => {
-    // The make with the server not counting it: a `ref_select` config is a
-    // bare `optionsRef`, so there is nothing to enumerate on either side and
-    // the panel will not draw a heading over nothing. That is the right call
-    // and it is a WIRING FAULT — the schema calls the axis required — so it
-    // is said out loud where a developer can see it.
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const skipped = buildFacetGroups({
+  /** One answer that counted nothing, for the two halves of the rule below. */
+  function uncounted(slugs: readonly string[]): ReturnType<typeof buildFacetGroups> {
+    return buildFacetGroups({
       facets: {},
       meta: {
         approximate: false,
         candidates: 3,
         counted: [],
-        skipped: ["make_ref_select"],
+        skipped: [...slugs],
         dropped_filters: [],
         core_ranges: [],
         plan: "evidence",
@@ -156,12 +151,73 @@ describe("a group the answer has EVIDENCE for is never dropped", () => {
       state: parseSearchState(new URLSearchParams("type=listing"), OPTIONS).state,
       categoryFeatures: LIVE_CARS_FEATURES,
     });
-    const make = skipped.find((group) => group.slug === "make_ref_select");
+  }
+
+  it("keeps a REQUIRED vocabulary axis the answer never counted — the field can still search it", () => {
+    // The make with the server not counting it: a `ref_select` config is a
+    // bare `optionsRef`, so there is nothing to enumerate from the answer or
+    // the schema. It is still drawn, because its control is a FIELD over a
+    // dictionary of four hundred makes and that box works with no buckets at
+    // all — which is exactly the case a leaf holding three cars produces.
+    const make = uncounted(["make_ref_select"]).find(
+      (group) => group.slug === "make_ref_select"
+    );
     expect(make?.options).toEqual([]);
-    expect(make === undefined ? null : facetGroupIsDrawable(make)).toBe(false);
-    expect(warn.mock.calls.flat().join(" ")).toContain("make_ref_select");
+    expect(make === undefined ? null : facetGroupIsDrawable(make)).toBe(true);
+    expect(make?.vocabulary).toBe("fleet-autocatalog");
+  });
+
+  it("drops an axis with no evidence and names it, instead of losing it silently", () => {
+    // `wheel_type` is an inline `select`: an option table with no evidence is
+    // a set of checkboxes each guaranteed to return nothing, and it costs a
+    // heading in a 280px rail to say so. The disappearance is still a WIRING
+    // FAULT worth stating — the schema calls the axis required — so it is
+    // said out loud where a developer can see it.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const wheel = uncounted(["wheel_type"]).find(
+      (group) => group.slug === "wheel_type"
+    );
+    expect(wheel === undefined ? null : facetGroupIsDrawable(wheel)).toBe(false);
+    expect(warn.mock.calls.flat().join(" ")).toContain("wheel_type");
     expect(warn.mock.calls.flat().join(" ")).toContain("REQUIRED");
     warn.mockRestore();
+  });
+});
+
+describe("the make is a DICTIONARY on a stand with three cars", () => {
+  it("draws the field, not three checkboxes", async () => {
+    // The live leaf holds three listings, so the make axis came back with
+    // three buckets — and the vocabulary behind it holds four hundred makes.
+    // The bucket count is a fact about the stand; the control has to answer
+    // the founder's "what if there are hundreds of options", which three checkboxes and no box do not.
+    await mountCarsRail(LIVE_CARS_FEATURES, { dictionaryMode: "field" });
+    expect(
+      screen
+        .getByTestId("facet-group-make_ref_select")
+        .getAttribute("data-shape")
+    ).toBe("dictionary");
+    const field = screen.getByTestId("facet-dictionary-field-make_ref_select");
+    expect(field.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(field);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("facet-dictionary-search-make_ref_select")
+      ).toBeTruthy()
+    );
+    expect(screen.getByTestId("facet-option-make_ref_select-toyota")).toBeTruthy();
+  });
+
+  it("leaves an inline option set alone, however the rail is drawn", async () => {
+    // `accident` is a single-choice `select` carrying its own two-row table:
+    // pills, the shape its own schema asks for. A dictionary is about where
+    // the values LIVE, so an inline table is never one.
+    await mountCarsRail(LIVE_CARS_FEATURES, { dictionaryMode: "field" });
+    expect(
+      screen.getByTestId("facet-group-accident").getAttribute("data-shape")
+    ).toBe("segmented");
+    expect(
+      screen.queryByTestId("facet-dictionary-field-accident")
+    ).toBeNull();
   });
 });
 
@@ -177,11 +233,16 @@ describe("the rail is in SCHEMA order, required first", () => {
     // FIRST, because on three listings the busiest axis is an accident.
     expect(slugs[0]).toBe("make_ref_select");
     expect(slugs.indexOf("model")).toBeLessThan(slugs.indexOf("accident"));
-    // `wheel_type` is required in this catalogue and `heating` is not, so
-    // optional one sorts behind every required axis.
-    expect(slugs.indexOf("wheel_type")).toBeLessThan(slugs.indexOf("heating"));
-    expect(slugs.indexOf("power_steering")).toBeGreaterThan(
-      slugs.indexOf("body_type_ref_select")
+    // `wheel_type`, `power_steering` and `heating` are not in this list at
+    // all any more: the answer counted none of them and none has a value any
+    // of the three cars carries, and an axis with no evidence is a heading
+    // rather than a filter (D249).
+    expect(slugs).not.toContain("heating");
+    expect(slugs).not.toContain("power_steering");
+    // An axis the SCHEMA does not name sorts behind every axis it does —
+    // there is no other order to give it.
+    expect(slugs.indexOf("body_type_ref_select")).toBeLessThan(
+      slugs.indexOf("transmission")
     );
   });
 
@@ -214,8 +275,9 @@ describe("the rail is in SCHEMA order, required first", () => {
     const more = screen.getByTestId("facets-all-filters");
     expect(more.textContent).toContain("All filters");
     fireEvent.click(more);
+    // The tail is the axes the schema does not name, in evidence order.
     await waitFor(() =>
-      expect(screen.getByTestId("facet-group-heating")).toBeTruthy()
+      expect(screen.getByTestId("facet-group-transmission")).toBeTruthy()
     );
   });
 

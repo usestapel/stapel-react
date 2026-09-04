@@ -67,12 +67,9 @@ import type { CSSProperties, ReactElement } from "react";
 import { Button, Checkbox, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { controls, cssVar, radii, spacing } from "@stapel/tokens";
-import {
-  VOCABULARY_BACKED_TYPES,
-  featureConfig,
-  featureType,
-} from "@stapel/attributes-react";
+import { featureConfig, featureType } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
+import { facetGroupIsVocabularyBacked } from "../state/facets.js";
 import type { FacetGroup, FacetOption } from "../state/facets.js";
 import { translitPrefixMatch } from "../state/translit.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
@@ -147,14 +144,21 @@ function singleChoice(feature: FeatureDef | undefined): boolean {
 }
 
 /**
- * Is this group a DICTIONARY — a vocabulary's level, too long to scroll?
+ * Is this group a DICTIONARY — an axis whose values live in a vocabulary?
  *
- * Two ways to be one, because the schema is an optional slot and the live
- * case is the one where it is empty:
+ * Two ways to be one, and only the second one counts anything:
  *
- *  - the def types the slug `ref_select`/`ref_hierarchical_select`, i.e. its
- *    config is a POINTER into a vocabulary and there was never an option
- *    table to draw;
+ *  - the axis is VOCABULARY-BACKED (`facetGroupIsVocabularyBacked`): the def
+ *    types it `ref_select`/`ref_hierarchical_select`, so its config is a
+ *    POINTER and there was never an option table to draw — or there is no def
+ *    and the answer named the vocabulary itself. **However many buckets came
+ *    back.** This threshold used to be counted against the answer's evidence,
+ *    and on a stand holding three cars the make axis has three buckets, drew
+ *    three checkboxes, and hid the other four hundred makes behind nothing at
+ *    all: the founder's "what if there are hundreds of options" is a question about the DICTIONARY,
+ *    and the dictionary is large whether or not this leaf has stock. The
+ *    field is also the only control that can search values the answer never
+ *    enumerated, which is exactly the case a thin stand produces;
  *  - there is NO def at all and the answer came back with more values than a
  *    fold. At a live classified's cars branch the storefront passed an empty
  *    feature list, so the 418 makes arrived as an unnamed, untyped group of
@@ -162,20 +166,20 @@ function singleChoice(feature: FeatureDef | undefined): boolean {
  *    answers that, and refusing to draw one because the schema is missing
  *    punishes the buyer for the wiring.
  *
- * Either way it takes more than {@link FACET_DICTIONARY_THRESHOLD} EVIDENCE
- * buckets — values the answer actually counted. A zero-filled option table or
- * a schema-only tail is a list a person can already read, and a box over it
- * would search for values no document carries.
+ * An INLINE option set is never one, whatever its length: a `select` carries
+ * its own table, that table is the whole of the axis, and a small one
+ * (≤ {@link FACET_DICTIONARY_THRESHOLD} options) is a list a person reads at
+ * a glance rather than types into.
  */
 export function isDictionaryFacet(group: FacetGroup): boolean {
+  if (facetGroupIsVocabularyBacked(group)) return true;
+  // A typed def that is not vocabulary-backed carries its options inline:
+  // checkboxes or pills, however many there are.
+  if (group.feature !== undefined) return false;
   const buckets = group.options.filter(
     (option) => option.count !== null && option.count > 0
   ).length;
-  if (buckets <= FACET_DICTIONARY_THRESHOLD) return false;
-  const feature = group.feature;
-  if (feature === undefined) return true;
-  const type = featureType(feature);
-  return type !== undefined && VOCABULARY_BACKED_TYPES.includes(type);
+  return buckets > FACET_DICTIONARY_THRESHOLD;
 }
 
 /**
@@ -189,9 +193,9 @@ export function isDictionaryFacet(group: FacetGroup): boolean {
  *    `maxSelected: 1` over a 418-value vocabulary, so "pick one" won and the
  *    control it produced was four hundred pills in a 280px rail — a wall
  *    with a different border radius. Above the fold the shape a person needs
- *    is a search box, whether or not they may tick two; below it,
- *    single-choice still means pills, because `isDictionaryFacet` requires
- *    more than {@link FACET_DICTIONARY_THRESHOLD} counted buckets;
+ *    is a search box, whether or not they may tick two. A single-choice axis
+ *    with an INLINE option table still means pills, because a dictionary is
+ *    now about where the values live and not about how many came back;
  *  - and a dictionary is a dictionary before it is a checkbox list, because
  *    the checkbox list is the shape it was drawn as when nobody could pick a
  *    make.

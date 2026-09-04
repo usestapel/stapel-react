@@ -138,12 +138,12 @@ describe("which groups open is decided by the answer's own evidence", () => {
     expect(screen.queryByTestId("facet-option-body-sedan")).toBeNull();
   });
 
-  it("collapses an unchosen skipped group instead of printing its uncounted wall", async () => {
-    // The walker's exact case: a skipped slug whose options are drawn from
-    // the CATEGORY SCHEMA, each row saying "not counted". With nothing
-    // chosen the group is a header, not a column of that phrase — an
-    // uncounted group has ZERO coverage and can never rank into the open
-    // five.
+  it("does not draw an unchosen group with no evidence at all (D249)", async () => {
+    // The walker's exact case, one release on: a skipped slug whose options
+    // are drawn from the CATEGORY SCHEMA, each row saying "not counted". It
+    // used to render as a collapsed header, and a live laptops leaf drew six
+    // of six groups that way — six headings a person can open and narrow
+    // nothing by. No evidence and nothing chosen is not a filter.
     render(
       <TestHarness server={wideServer()}>
         <FacetPanelPane
@@ -163,12 +163,12 @@ describe("which groups open is decided by the answer's own evidence", () => {
         />
       </TestHarness>
     );
+    // The counted groups of the same answer still arrive, so this is the
+    // panel drawing what it has rather than a panel that failed to load.
     await waitFor(() =>
-      expect(screen.getByTestId("facet-toggle-steering")).toBeTruthy()
+      expect(screen.getByTestId("facet-group-brand")).toBeTruthy()
     );
-    expect(
-      screen.getByTestId("facet-toggle-steering").getAttribute("aria-expanded")
-    ).toBe("false");
+    expect(screen.queryByTestId("facet-group-steering")).toBeNull();
     expect(screen.queryByTestId("facet-option-steering-left")).toBeNull();
   });
 });
@@ -266,16 +266,19 @@ describe("the rail's inner scroll is visible, and its floor answers back", () =>
     expect(rail.style.scrollbarGutter).toBe("stable");
   });
 
-  it("states the live count in a sticky footer inside the rail", async () => {
+  it("states the live count in a footer at the foot of the rail", async () => {
     setViewport(DESKTOP_WIDTH);
     mountPage();
     await waitFor(() =>
       expect(screen.getByTestId("facets-footer-bar")).toBeTruthy()
     );
     const bar = screen.getByTestId("facets-footer-bar");
-    expect(bar.style.position).toBe("sticky");
-    expect(bar.style.bottom).toBe("0px");
-    // Inside the rail, so it stays put while the panel scrolls under it.
+    // STATIC in the column layout. Pinned to the scroll port's floor it sat
+    // on top of the last two groups, which a storefront was lifting off with
+    // `!important`; the sheet, whose port IS the sheet, still pins it.
+    expect(bar.getAttribute("data-position")).toBe("static");
+    expect(bar.style.position).toBe("");
+    // Inside the rail, so it travels with the panel it belongs to.
     expect(
       screen.getByTestId("search-page-columns").firstElementChild?.contains(bar)
     ).toBe(true);

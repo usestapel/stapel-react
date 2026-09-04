@@ -77,11 +77,16 @@ export type {
 
 // ── state (pure: no React, no router) ────────────────────────────────────────
 export {
+  EMPTY_FACET_KEYS,
   FILTER_PREFIX,
   RANGE_PREFIX,
   SEARCH_PARAM,
   activeFilterCount,
+  buildFacetKeyMap,
   clearFilters,
+  facetKeyForSlug,
+  facetKeyMapFromLabels,
+  facetSlugForKey,
   ownsParam,
   parseSearchState,
   patchSearchState,
@@ -91,6 +96,7 @@ export {
   writeSearchState,
 } from "./state/urlState.js";
 export type {
+  FacetKeyMap,
   ParseSearchStateOptions,
   ParsedSearchState,
   SearchStateIssue,
@@ -118,6 +124,7 @@ export {
   buildFacetGroups,
   facetGroupHasEvidence,
   facetGroupIsDrawable,
+  facetGroupIsVocabularyBacked,
   facetOptionLabel,
   isFacetableFeature,
   orderFacetGroupsBySchema,
@@ -177,7 +184,12 @@ export { useRankingDisclosure, useSearchQuery, useSuggest } from "./model/querie
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { SearchProvider } from "./headless/SearchProvider.js";
-export { SearchStateProvider, useSearchState } from "./headless/SearchStateProvider.js";
+export {
+  SearchStateProvider,
+  useFacetKeys,
+  usePublishFacetKeys,
+  useSearchState,
+} from "./headless/SearchStateProvider.js";
 export type {
   SearchParamsAdapter,
   SearchStateBag,

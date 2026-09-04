@@ -2,17 +2,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useState,
 } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type {
+  FacetLabelsMap,
   SearchGeo,
   SearchQueryState,
   SearchRange,
 } from "../api/types.js";
 import {
+  EMPTY_FACET_KEYS,
   activeFilterCount,
   clearFilters,
+  facetKeyMapFromLabels,
   parseSearchState,
   patchSearchState,
   setFilterValues,
@@ -21,6 +26,7 @@ import {
   writeSearchState,
 } from "../state/urlState.js";
 import type {
+  FacetKeyMap,
   ParseSearchStateOptions,
   SearchStateIssue,
   SearchStatePatch,
@@ -132,6 +138,56 @@ function sameCenter(
 
 const StateContext = createContext<SearchStateBag | null>(null);
 
+/**
+ * WHERE THE SHORT KEYS COME FROM.
+ *
+ * `f.make` is a fact of the ANSWER (`facet_labels[slug].url_key`, resolved by
+ * the server inside the queried category's scope), and the codec that writes
+ * the address runs above the query that produces it. So the map is published
+ * upwards: whoever holds an answer hands it to this provider, which re-parses
+ * the URL with it and writes every subsequent address through it.
+ *
+ * Late by construction and correct at every moment in between: before the
+ * first answer the state holds whatever key the link carried, the request
+ * carries the same key, and the server resolves both forms. Nothing waits and
+ * nothing is rewritten behind the reader.
+ */
+interface FacetKeyRegistry {
+  readonly keys: FacetKeyMap;
+  publish(next: FacetKeyMap): void;
+}
+
+const FacetKeysContext = createContext<FacetKeyRegistry | null>(null);
+
+/** Two maps are the same map when they write the same keys — the read side is
+ * derived from the write side, so comparing one compares both. */
+function sameKeys(a: FacetKeyMap, b: FacetKeyMap): boolean {
+  const left = Object.keys(a.write);
+  const right = Object.keys(b.write);
+  if (left.length !== right.length) return false;
+  return left.every((slug) => a.write[slug] === b.write[slug]);
+}
+
+/**
+ * Publish an answer's short keys to the state provider above.
+ *
+ * A no-op outside `<SearchStateProvider>` and a no-op on a server that sends
+ * no `url_key`: both leave the address spelled in slugs, which is what it was
+ * spelled in before this existed.
+ */
+export function usePublishFacetKeys(labels: FacetLabelsMap | undefined): void {
+  const registry = useContext(FacetKeysContext);
+  useEffect(() => {
+    if (registry === null || labels === undefined) return;
+    registry.publish(facetKeyMapFromLabels(labels));
+  }, [registry, labels]);
+}
+
+/** The short-key map this search is currently writing its address with. */
+export function useFacetKeys(): FacetKeyMap {
+  return useContext(FacetKeysContext)?.keys ?? EMPTY_FACET_KEYS;
+}
+
 export interface SearchStateProviderProps extends ParseSearchStateOptions {
   readonly adapter: SearchParamsAdapter;
   /**
@@ -193,9 +249,27 @@ export function SearchStateProvider(
 
   const search = params.toString();
 
+  // The answer's short keys (`f.make`), published from below — see
+  // `FacetKeysContext`. Held here because this is where both directions of
+  // the codec run.
+  const [facetKeys, setFacetKeys] = useState<FacetKeyMap>(EMPTY_FACET_KEYS);
+  const registry = useMemo<FacetKeyRegistry>(
+    () => ({
+      keys: facetKeys,
+      publish: (next) => {
+        // Idempotent on purpose: this is called from an effect under a query
+        // whose data identity is stable, and a setState that always produced
+        // a new object would re-render the whole page per answer.
+        setFacetKeys((was) => (sameKeys(was, next) ? was : next));
+      },
+    }),
+    [facetKeys]
+  );
+
   const parsed = useMemo(
     () =>
       parseSearchState(new URLSearchParams(search), {
+        facetKeys,
         defaultType,
         ...(defaultQ !== undefined ? { defaultQ } : {}),
         ...(defaultSort !== undefined ? { defaultSort } : {}),
@@ -203,14 +277,26 @@ export function SearchStateProvider(
         ...(defaultCategory !== undefined ? { defaultCategory } : {}),
         ...(defaultLang !== undefined ? { defaultLang } : {}),
       }),
-    [search, defaultType, defaultQ, defaultSort, defaultLimit, defaultCategory, defaultLang]
+    [
+      search,
+      facetKeys,
+      defaultType,
+      defaultQ,
+      defaultSort,
+      defaultLimit,
+      defaultCategory,
+      defaultLang,
+    ]
   );
 
   const commit = useCallback(
     (next: SearchQueryState, options?: { readonly replace?: boolean }): void => {
-      setParams(writeSearchState(next, new URLSearchParams(search)), options);
+      setParams(
+        writeSearchState(next, new URLSearchParams(search), facetKeys),
+        options
+      );
     },
-    [setParams, search]
+    [setParams, search, facetKeys]
   );
 
 
@@ -280,7 +366,11 @@ export function SearchStateProvider(
   }, [parsed, commit, geoOffer]);
 
 
-  return <StateContext.Provider value={bag}>{children}</StateContext.Provider>;
+  return (
+    <FacetKeysContext.Provider value={registry}>
+      <StateContext.Provider value={bag}>{children}</StateContext.Provider>
+    </FacetKeysContext.Provider>
+  );
 }
 
 /**

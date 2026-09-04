@@ -261,6 +261,22 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   /** Facet slugs pinned above every other group — see
    * {@link FacetPanelPaneProps.pinnedFacets}. */
   readonly pinnedFacets?: readonly string[];
+  /**
+   * How a DICTIONARY group is drawn — see
+   * {@link FacetPanelPaneProps.dictionaryMode}.
+   *
+   * Defaulted PER LAYOUT rather than left to the panel's own default, because
+   * the two frames want opposite shapes and only this component knows which
+   * one it is drawing: the desktop rail gets `"field"` (a select-style «Any»
+   * that opens the searchable list — a 418-value vocabulary held open in a
+   * 280px column is the whole column), the phone sheet gets `"inline"`
+   * (the sheet is already the disclosure). Set it to override both.
+   *
+   * It was unreachable through this component until now: the panel had the
+   * prop, `<SearchPage>` forwarded nothing, and a storefront that mounts the
+   * page rather than the pane could not get the field at all.
+   */
+  readonly dictionaryMode?: "field" | "inline";
   /** Print the engine's list of uncounted facet slugs in the filter panel.
    * Default `false` — see {@link FacetPanelPaneProps.skippedNotice}. */
   readonly skippedNotice?: boolean;
@@ -422,6 +438,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
+  readonly dictionaryMode?: "field" | "inline";
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly renderEmptyExits?: () => ReactNode;
   readonly locale?: string;
@@ -545,7 +562,12 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           result count scrolled out of sight above the fold. */}
       {filtersEmpty ? null : (
         <FacetPanelPane
-          {...(layout === "sheet" ? { heading: null } : { footerBar: true })}
+          {...(layout === "sheet"
+            ? { heading: null }
+            : // STATIC, not sticky: the rail scrolls with the page, and a bar
+              // pinned to the port's floor sat on top of the last groups.
+              { footerBar: "static" as const })}
+          dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "inline" : "field")}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(props.renderEmptyExits !== undefined
             ? { renderEmptyExits: props.renderEmptyExits }
@@ -805,6 +827,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     onViewChange,
     resultsAction,
     resultsHeadingLevel,
+    dictionaryMode,
     mode,
     ...parseOptions
   } = props;
@@ -814,6 +837,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
       <SearchStateProvider adapter={adapter} geoOffer={geoOffer} {...parseOptions}>
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
+          {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}

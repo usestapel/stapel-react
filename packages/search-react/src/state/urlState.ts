@@ -20,6 +20,7 @@
  * both directions without a DOM.
  */
 import type {
+  FacetLabelsMap,
   FacetSelection,
   SearchGeo,
   SearchQueryState,
@@ -48,6 +49,113 @@ export const SEARCH_PARAM = {
 export const FILTER_PREFIX = "f.";
 /** Prefix of a range filter parameter (`r.price=100..500`). */
 export const RANGE_PREFIX = "r.";
+
+/**
+ * THE SHORT KEY IN THE ADDRESS — `f.make`, not `f.make_ref_select`.
+ *
+ * A feature's identity is its slug and stays its slug: nothing is renamed,
+ * nothing is stored, and the request this pair sends carries whatever key the
+ * state holds because the server accepts both forms inside a category scope
+ * (`stapel-search` 0.14.4, `facets.resolve_url_key`). What changes is only
+ * what a PERSON reads in their own address bar: `f.make_ref_select=toyota`
+ * says "make" once and "how the importer typed it" once, and the second half
+ * is noise a reader cannot act on.
+ *
+ * The map is the ANSWER's — `facet_labels[slug].url_key`, derived per request
+ * against the queried category's own feature list. This module never derives
+ * one by chopping suffixes off slugs: the same audit that produced the rule
+ * counted 181 suffixed slugs of which every one collides with a differently
+ * typed sibling once stripped catalogue-wide, so shortening is only safe
+ * inside a scope the server knows and this codec does not.
+ *
+ * Two directions, both needed and neither symmetric:
+ *
+ *  - {@link FacetKeyMap.write} is `slug → key`, applied by
+ *    {@link writeSearchState} so a click produces the short address;
+ *  - {@link FacetKeyMap.read} is `key → slug`, applied by
+ *    {@link parseSearchState} so the short address and the full one both land
+ *    on the same state, and a chip drawn from a group keyed by slug knows it
+ *    is selected.
+ */
+export interface FacetKeyMap {
+  /** `{slug: key to write}`. A slug with no short form is absent. */
+  readonly write: Readonly<Record<string, string>>;
+  /** `{key off the address: the slug it names}`. */
+  readonly read: Readonly<Record<string, string>>;
+}
+
+/** No short keys — a pre-0.14.4 server, or a query with no category scope. */
+export const EMPTY_FACET_KEYS: FacetKeyMap = { write: {}, read: {} };
+
+/**
+ * Normalize `{slug: url_key}` into the two directions, refusing anything
+ * ambiguous.
+ *
+ * The server already applies these rules; they are applied again here because
+ * this codec cannot verify which server answered, and the cost of getting it
+ * wrong is a filter that reads back as a different filter. A short form is
+ * used only when it is:
+ *
+ *  - not a real slug of the same answer — `f.make` in a scope declaring both
+ *    `make` and `make_ref_select` is the feature CALLED `make`, and the other
+ *    one keeps its full slug (the server's own rule, stated the same way);
+ *  - claimed by exactly one slug. Two slugs shortening to one key means
+ *    neither may use it: a collision keeps the slug on both sides.
+ */
+export function buildFacetKeyMap(
+  declared: Readonly<Record<string, string | null | undefined>>
+): FacetKeyMap {
+  const slugs = Object.keys(declared);
+  const real = new Set(slugs);
+  const claims = new Map<string, number>();
+  for (const slug of slugs) {
+    const key = declared[slug];
+    if (typeof key !== "string" || key.length === 0 || key === slug) continue;
+    claims.set(key, (claims.get(key) ?? 0) + 1);
+  }
+  const write: Record<string, string> = {};
+  const read: Record<string, string> = {};
+  for (const slug of slugs) {
+    const key = declared[slug];
+    if (
+      typeof key !== "string" ||
+      key.length === 0 ||
+      key === slug ||
+      real.has(key) ||
+      claims.get(key) !== 1
+    ) {
+      continue;
+    }
+    write[slug] = key;
+    read[key] = slug;
+  }
+  // A real slug always wins, whatever some other group shortened to. Written
+  // last so it overwrites a short form that collided with it.
+  for (const slug of slugs) read[slug] = slug;
+  return { write, read };
+}
+
+/** {@link buildFacetKeyMap} over an answer's `facet_labels`. */
+export function facetKeyMapFromLabels(
+  labels: FacetLabelsMap | undefined
+): FacetKeyMap {
+  if (labels === undefined) return EMPTY_FACET_KEYS;
+  const declared: Record<string, string | null | undefined> = {};
+  for (const [slug, entry] of Object.entries(labels)) declared[slug] = entry.url_key;
+  return buildFacetKeyMap(declared);
+}
+
+/** The slug an address key names. Unknown keys pass through unchanged — the
+ * server resolves what it recognises and 400s on what it does not, and a
+ * codec that dropped the key would lose a filter the answer can still honour. */
+export function facetSlugForKey(key: string, keys: FacetKeyMap | undefined): string {
+  return keys?.read[key] ?? key;
+}
+
+/** The address key a slug is written as. The slug itself when there is none. */
+export function facetKeyForSlug(slug: string, keys: FacetKeyMap | undefined): string {
+  return keys?.write[slug] ?? slug;
+}
 
 /**
  * Something in the URL this codec could not make sense of.
@@ -133,6 +241,18 @@ export interface ParseSearchStateOptions {
   readonly defaultCategory?: string;
   /** Applied when the URL carries no `lang`. */
   readonly defaultLang?: string;
+  /**
+   * The answer's short-key map (see {@link FacetKeyMap}), so `f.make` off the
+   * address becomes the state's `make_ref_select`.
+   *
+   * Optional and late by nature: the map is a property of the ANSWER, so the
+   * first parse of a cold link runs without it. That is not a failure — the
+   * short key goes to the server, which resolves it in the category scope and
+   * answers correctly — it only means the group's own selection is matched
+   * by key rather than by slug until the answer lands (`buildFacetGroups`
+   * matches both, so nothing flickers).
+   */
+  readonly facetKeys?: FacetKeyMap;
 }
 
 function num(
@@ -262,7 +382,10 @@ export function parseSearchState(
     if (key.startsWith(FILTER_PREFIX) && key.length > FILTER_PREFIX.length) {
       // `getAll` is the whole point: a repeated key is OR within the slug.
       const values = params.getAll(key).filter((v) => v.length > 0);
-      if (values.length > 0) filters[key.slice(FILTER_PREFIX.length)] = values;
+      if (values.length === 0) continue;
+      // Both forms read: `f.make` and `f.make_ref_select` land on one slug.
+      const slug = facetSlugForKey(key.slice(FILTER_PREFIX.length), options.facetKeys);
+      filters[slug] = [...(filters[slug] ?? []), ...values];
       continue;
     }
     if (key.startsWith(RANGE_PREFIX) && key.length > RANGE_PREFIX.length) {
@@ -279,7 +402,7 @@ export function parseSearchState(
       const from = raw.slice(0, separator);
       const to = raw.slice(separator + 2);
       if (from.length === 0 && to.length === 0) continue;
-      ranges[key.slice(RANGE_PREFIX.length)] = {
+      ranges[facetSlugForKey(key.slice(RANGE_PREFIX.length), options.facetKeys)] = {
         ...(from.length > 0 ? { from } : {}),
         ...(to.length > 0 ? { to } : {}),
       };
@@ -346,10 +469,15 @@ function optional<K extends string, V>(
  * is copied through untouched, so a host's own `?ref=`/`utm_*` survives a
  * facet click. Every parameter it DOES own is rewritten from the state, so a
  * removed filter actually leaves the URL instead of lingering as a stale key.
+ *
+ * `keys` is the answer's short-key map: a filter is written as its
+ * `url_key` when the answer states one and as its slug otherwise, so the two
+ * halves of a round trip agree without either side chopping at a string.
  */
 export function writeSearchState(
   state: SearchQueryState,
-  base?: URLSearchParams
+  base?: URLSearchParams,
+  keys?: FacetKeyMap
 ): URLSearchParams {
   const next = new URLSearchParams();
 
@@ -367,15 +495,19 @@ export function writeSearchState(
   if (state.owner !== undefined) next.set(SEARCH_PARAM.owner, state.owner);
 
   for (const slug of Object.keys(state.filters).sort()) {
+    const key = facetKeyForSlug(slug, keys);
     for (const value of state.filters[slug] ?? []) {
-      next.append(`${FILTER_PREFIX}${slug}`, value);
+      next.append(`${FILTER_PREFIX}${key}`, value);
     }
   }
   for (const slug of Object.keys(state.ranges).sort()) {
     const range = state.ranges[slug];
     if (range === undefined) continue;
     if (range.from === undefined && range.to === undefined) continue;
-    next.set(`${RANGE_PREFIX}${slug}`, `${range.from ?? ""}..${range.to ?? ""}`);
+    next.set(
+      `${RANGE_PREFIX}${facetKeyForSlug(slug, keys)}`,
+      `${range.from ?? ""}..${range.to ?? ""}`
+    );
   }
 
   if (state.geo !== undefined) {

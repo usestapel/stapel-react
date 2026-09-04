@@ -116,10 +116,39 @@ describe("which groups are dictionaries", () => {
     expect(facetGroupShape(group)).toBe("dictionary");
   });
 
-  it("a ref_select a person could read whole is not", () => {
+  it("a ref_select with three buckets is one TOO — the stand is thin, the dictionary is not", () => {
+    // The threshold used to be counted against the answer's evidence, so on
+    // a stand holding three cars the make axis drew three checkboxes and the
+    // other four hundred makes were reachable through nothing at all
+    // (the founder's "what if there are hundreds of options"). Where the values LIVE decides the
+    // control, not how many of them this leaf happens to have stock for.
     const group = vendorGroup({
       features: [VENDOR],
       counts: { toyota: 802, bmw: 611, honda: 540 },
+    });
+    expect(isDictionaryFacet(group)).toBe(true);
+    expect(facetGroupShape(group)).toBe("dictionary");
+  });
+
+  it("a small INLINE option set keeps its checkboxes", () => {
+    // A `select` carries its own table and that table is the whole axis:
+    // eight or fewer rows are a list a person reads at a glance, not a box
+    // they type into.
+    const group = vendorGroup({
+      features: [
+        {
+          slug: "vendor",
+          name: "Vendor",
+          config: {
+            type: "select",
+            options: [
+              { value: "toyota", label: "Toyota" },
+              { value: "bmw", label: "BMW" },
+            ],
+          },
+        },
+      ],
+      counts: { toyota: 802, bmw: 611 },
     });
     expect(isDictionaryFacet(group)).toBe(false);
     expect(facetGroupShape(group)).toBe("checkbox");

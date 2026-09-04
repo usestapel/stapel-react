@@ -55,9 +55,11 @@ import {
   featureConfig,
   featureType,
   formatFeatureValue,
+  optionsRefOf,
 } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { FacetLabelsMap, FacetMeta, SearchQueryState } from "../api/types.js";
+import { facetKeyMapFromLabels } from "./urlState.js";
 
 /**
  * Where a caption came from — the group's heading and every option carry it,
@@ -71,6 +73,21 @@ import type { FacetLabelsMap, FacetMeta, SearchQueryState } from "../api/types.j
 export type FacetLabelSource = "server" | "schema" | "host" | "none";
 
 declare const process: { readonly env: { readonly NODE_ENV?: string } };
+
+/**
+ * Is this a DEVELOPMENT build — i.e. may this module talk to the console?
+ *
+ * Asked as "is it dev", never as "is it not production", because the second
+ * form fails open: a browser bundle with no `process` shim leaves `NODE_ENV`
+ * undefined, `undefined !== "production"` is true, and a buyer's console gets
+ * `facet group "complectation" has no values to draw` on every page load of a
+ * live board. A warning nobody who can fix it will ever read is noise in
+ * somebody else's browser.
+ */
+function inDevelopment(): boolean {
+  const env = typeof process === "undefined" ? undefined : process.env;
+  return env?.NODE_ENV === "development" || env?.NODE_ENV === "test";
+}
 
 /** Slugs already complained about — one warning per slug per page load, not
  * one per render. */
@@ -86,8 +103,7 @@ const warnedSlugs = new Set<string>();
  * at all; `FacetGroup.labelSource` is how a surface marks it up for a test.
  */
 function warnUnnamedGroup(slug: string): void {
-  const env = typeof process === "undefined" ? undefined : process.env;
-  if (env?.NODE_ENV === "production") return;
+  if (!inDevelopment()) return;
   if (warnedSlugs.has(slug)) return;
   warnedSlugs.add(slug);
   console.warn(
@@ -118,20 +134,20 @@ const warnedUndrawable = new Set<string>();
  * category's schema), and neither of them can see it from the page.
  */
 function warnUndrawableGroup(group: FacetGroup): void {
-  const env = typeof process === "undefined" ? undefined : process.env;
-  if (env?.NODE_ENV === "production") return;
+  if (!inDevelopment()) return;
   if (warnedUndrawable.has(group.slug)) return;
   warnedUndrawable.add(group.slug);
   console.warn(
-    `[search-react] facet group "${group.slug}" has no values to draw: the ` +
-      `answer did not count it${
-        group.feature === undefined
-          ? " and the category schema passed to this page does not define it"
-          : " and its config carries a vocabulary pointer, not an option table"
-      }, so the group is not rendered.` +
-      (group.feature?.mandatory === true
-        ? " The schema marks this axis REQUIRED — a buyer cannot narrow by a" +
-          " field every seller had to fill."
+    `[search-react] facet group "${group.slug}" is not drawn: no candidate in ` +
+      `this answer carries any of its values${
+        group.options.length === 0
+          ? " and it has no options at all (the answer did not count it and " +
+            "the schema passed to this page enumerates nothing for it)"
+          : ` (${String(group.options.length)} options, every count zero or null)`
+      }, and nothing is selected on it.` +
+      (group.feature?.mandatory === true && !facetGroupIsVocabularyBacked(group)
+        ? " The schema marks this axis REQUIRED — a required axis with no" +
+          " evidence is a plan or a schema fault, not an empty shelf."
         : "")
   );
 }
@@ -200,6 +216,29 @@ export interface FacetOption {
 /** One facet slug, with its options. */
 export interface FacetGroup {
   readonly slug: string;
+  /**
+   * What this axis is called in the ADDRESS — the answer's own `url_key`, the
+   * slug when it states none.
+   *
+   * Carried on the group rather than looked up per surface: the chip row, the
+   * rail, the popular-values block and the applied chips all act by slug and
+   * all end up in the same query string, and a second place that decides how
+   * to spell a key is a second place that can disagree with the codec.
+   *
+   * OPTIONAL so a hand-built group (a demo, a fixture, a host's own list)
+   * still type-checks; `buildFacetGroups` always sets it.
+   */
+  readonly urlKey?: string;
+  /**
+   * The vocabulary this axis draws its values from, when anything says so —
+   * the answer's `vocabulary`, else the schema's `optionsRef`.
+   *
+   * The difference between a list and a DICTIONARY, and the reason a group
+   * with three buckets on a thin stand still gets a search field: what is
+   * behind it is the catalogue's hundreds, not the three the stand happens to
+   * hold. `undefined` means nobody said, not "inline".
+   */
+  readonly vocabulary?: string;
   /** The group's heading: the answer's own `label`, else the feature's
    * display name, else — with a dev warning — the raw slug. */
   readonly label: string;
@@ -276,27 +315,83 @@ export function facetGroupHasEvidence(group: FacetGroup): boolean {
 }
 
 /**
+ * Is this axis one a person can SEARCH even with no evidence behind it — an
+ * axis whose values live in a VOCABULARY?
+ *
+ * The one thing a zero-evidence group can still be. A `ref_select` whose
+ * config is a pointer into a vocabulary is a dictionary of hundreds; the
+ * control for it is a field with a search box, and that box searches the
+ * DICTIONARY, not the buckets — so it is worth opening on a leaf holding one
+ * listing exactly as it is on one holding thirty thousand. The stand being
+ * thin is a fact about the stand.
+ *
+ * `mandatory` is deliberately NOT asked. It was, for one round, and on the
+ * live laptops leaf not one of `vendor`, `model`, `screen_size` is marked
+ * required — so the rule that was meant to save the make picker deleted the
+ * vendor picker one category over. What makes the field usable is the
+ * dictionary behind it; whether the composer forces a seller to fill the
+ * field says nothing about that.
+ */
+function isSearchableVocabularyAxis(group: FacetGroup): boolean {
+  return facetGroupIsVocabularyBacked(group);
+}
+
+/**
+ * Does this axis draw its values from a VOCABULARY rather than an inline
+ * option table?
+ *
+ * Asked of the schema first (`ref_select`/`ref_hierarchical_select` — the
+ * types whose whole config is an `optionsRef` pointer), and of the answer
+ * when there is no schema to ask: a host that threaded no feature list still
+ * gets the right control if the server named the vocabulary. A def of any
+ * other type is a NO however it is configured — a bounded `int` carrying an
+ * `optionsRef` (the live cars `year`) is a range, and a range is not a
+ * dictionary.
+ */
+export function facetGroupIsVocabularyBacked(group: FacetGroup): boolean {
+  const type = group.feature === undefined ? undefined : featureType(group.feature);
+  if (type !== undefined) return VOCABULARY_BACKED_TYPES.includes(type);
+  return group.vocabulary !== undefined;
+}
+
+/**
  * Is there anything for a surface to DRAW here?
  *
  * Shared by the rail and the chip row, which each used to hold their own
  * `options.length > 0` — one predicate, or the two surfaces drift into two
  * opinions about what an empty group is.
  *
- * A group with no options is a heading over nothing: after
- * {@link buildFacetGroups} learned to read the schema, what is left in that
- * state is a `ref_select` whose config is a bare `optionsRef` pointer and
- * which the server did not count — nothing to enumerate from either side. It
- * is not drawn, and in development it is NAMED: a required axis (the make on
- * cars leaf) disappearing out of a rail is exactly the fault this pair spent
- * a release chasing, and it must not disappear silently a second time.
+ * ── An axis with no evidence is not a filter, it is a heading ─────────────
  *
- * A group the reader has already FILTERED on is drawn whatever its options
- * say — a constraint with no control to remove it is worse than a bare
- * heading.
+ * The predicate used to ask `options.length > 0`, and on a live laptops leaf
+ * (D249, `/c/noutbuki`) that drew six of six groups as accordions with
+ * nothing a person could narrow by: the answer counted every axis and gave
+ * every bucket a zero, and the axes the budget skipped kept their authored
+ * option tables with `count: null` on every row. Six headings, no filter, and
+ * the results below them unchanged whichever box was ticked.
+ *
+ * So the question is EVIDENCE, not option count: at least one value some
+ * candidate in this result set actually carries. Three exemptions, and they
+ * are the whole rule:
+ *
+ *  - a group the reader has already FILTERED on, whatever its counts say —
+ *    a constraint with no control to remove it is worse than a bare heading;
+ *  - a vocabulary-backed axis (see {@link isSearchableVocabularyAxis}): its
+ *    control is a FIELD, the field searches a dictionary the answer never
+ *    enumerated, and it works with no buckets at all — this is the make on a
+ *    cars leaf with three cars and the vendor on a laptops leaf with one;
+ *  - nothing else. An authored `select` with no evidence is three checkboxes
+ *    guaranteed to return nothing, and it costs a heading in a 280px rail and
+ *    a chip on a 390px row to say so.
+ *
+ * A dropped axis is NAMED in development — a required axis disappearing out
+ * of a rail is a fault this pair spent a release chasing, and it must not
+ * disappear silently a second time.
  */
 export function facetGroupIsDrawable(group: FacetGroup): boolean {
   if (group.selected.length > 0) return true;
-  if (group.options.length > 0) return true;
+  if (facetGroupHasEvidence(group)) return true;
+  if (isSearchableVocabularyAxis(group)) return true;
   warnUndrawableGroup(group);
   return false;
 }
@@ -499,6 +594,30 @@ function resolveLabel(
  * beats no heading, and it renders MARKED — `labelSource: "none"`, a warning
  * in development, and a data attribute on the drawn group.
  */
+/**
+ * Which vocabulary an axis draws from: the answer's word for it, then the
+ * schema's `optionsRef`. Neither invents one — `undefined` is "nobody said".
+ */
+/** `exactOptionalPropertyTypes` makes an absent key and an `undefined` one
+ * different types; this spreads to nothing when nobody named a vocabulary. */
+function optionalVocabulary(
+  vocabulary: string | undefined
+): { vocabulary?: string } {
+  return vocabulary === undefined ? {} : { vocabulary };
+}
+
+function resolveVocabulary(
+  input: BuildFacetGroupsInput,
+  feature: FeatureDef | undefined,
+  slug: string
+): string | undefined {
+  const stated = input.facetLabels?.[slug]?.vocabulary;
+  if (typeof stated === "string" && stated.length > 0) return stated;
+  if (feature === undefined) return undefined;
+  const ref = optionsRefOf(featureConfig(feature));
+  return ref === undefined || ref.vocabulary.length === 0 ? undefined : ref.vocabulary;
+}
+
 function resolveGroupLabel(
   input: BuildFacetGroupsInput,
   feature: FeatureDef | undefined,
@@ -594,13 +713,24 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
   const bySlug = new Map<string, FeatureDef>();
   for (const feature of input.categoryFeatures ?? []) bySlug.set(feature.slug, feature);
 
+  // The answer's address keys, so a URL carrying `f.make` selects the group
+  // called `make_ref_select` instead of inventing a second one beside it.
+  // Both forms are read here whatever the codec did upstream: a cold link is
+  // parsed before any answer exists, so the state can legitimately hold the
+  // short key while the groups are keyed by slug.
+  const keys = facetKeyMapFromLabels(input.facetLabels);
+  const applied = (slug: string): readonly string[] =>
+    input.state.filters[slug] ??
+    input.state.filters[keys.write[slug] ?? slug] ??
+    [];
+
   const skipped = new Set(input.meta.skipped);
   const slugs: string[] = [];
   const seen = new Set<string>();
   for (const slug of [
     ...Object.keys(input.facets),
     ...input.meta.skipped,
-    ...Object.keys(input.state.filters),
+    ...Object.keys(input.state.filters).map((key) => keys.read[key] ?? key),
   ]) {
     if (seen.has(slug)) continue;
     seen.add(slug);
@@ -619,8 +749,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     // for a schema that says nothing about it. That is the live case; a
     // wrong-schema case where some other category types `make_ref_select` as
     // free text is not one this pair can tell apart from a real `imei`.
-    const applied = (input.state.filters[slug] ?? []).length > 0;
-    if (!applied && !isFacetableFeature(bySlug.get(slug))) continue;
+    if (applied(slug).length === 0 && !isFacetableFeature(bySlug.get(slug))) continue;
     slugs.push(slug);
   }
 
@@ -628,7 +757,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     const feature = bySlug.get(slug);
     const counts = input.facets[slug] ?? {};
     const counted = !skipped.has(slug) && slug in input.facets;
-    const selected = input.state.filters[slug] ?? [];
+    const selected = applied(slug);
 
     // The authored option order, from whichever copy of the category config
     // this page has. An authored list reshuffled by count is a size chart
@@ -683,6 +812,8 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
 
     return {
       slug,
+      urlKey: keys.write[slug] ?? slug,
+      ...optionalVocabulary(resolveVocabulary(input, feature, slug)),
       ...resolveGroupLabel(input, feature, slug),
       feature,
       counted,
@@ -740,5 +871,17 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
 function keepsAnAxisOpen(group: FacetGroup): boolean {
   if (!group.counted) return true;
   if (group.selected.length > 0) return true;
-  return facetCoverage(group) > 0;
+  // A vocabulary axis survives its own zero: its control is a field over a
+  // dictionary the answer never enumerated, so "this stand holds no Toyotas
+  // yet" is not a reason to take the make picker off the page. Same
+  // clause as `facetGroupIsDrawable`'s, or the rail would ask a question the
+  // builder had already answered by deleting the group.
+  if (isSearchableVocabularyAxis(group)) return true;
+  if (facetCoverage(group) > 0) return true;
+  // Said here as well as in `facetGroupIsDrawable`, because a group withheld
+  // at BUILD time never reaches a surface to be named there — and a counted
+  // axis whose every bucket is zero is exactly the shape the laptops leaf
+  // arrived in. One warning per slug per page load either way.
+  warnUndrawableGroup(group);
+  return false;
 }

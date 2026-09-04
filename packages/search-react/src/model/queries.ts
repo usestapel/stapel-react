@@ -9,6 +9,7 @@ import type {
   SuggestAnswer,
 } from "../api/types.js";
 import { SUGGEST_MAX_LIMIT, SUGGEST_MIN_CHARS } from "../state/limits.js";
+import { usePublishFacetKeys } from "../headless/SearchStateProvider.js";
 import { useSearchApi } from "./context.js";
 import { searchQueryKeys } from "./queryKeys.js";
 
@@ -53,13 +54,22 @@ export function useSearchQuery(
 ): UseQueryResult<SearchResponse, StapelApiError> {
   const api = useSearchApi();
   const params = searchQueryParams(state);
-  return useQuery({
+  const query = useQuery<SearchResponse, StapelApiError>({
     queryKey: searchQueryKeys.query(params),
     queryFn: ({ signal }) => api.query(state, { signal }),
     enabled: (options?.enabled ?? true) && state.type.length > 0,
     placeholderData: keepPreviousData,
     retry: false,
   });
+  // The answer states what each axis is called IN THE ADDRESS
+  // (`facet_labels[slug].url_key`); the codec that writes the address sits
+  // above this hook, so the map is handed up. Every surface reads through
+  // this one hook, so there is exactly one place the address learns its own
+  // spelling — and outside a `<SearchStateProvider>` it is a no-op.
+  usePublishFacetKeys(
+    query.data === undefined ? undefined : query.data.facet_labels
+  );
+  return query;
 }
 
 /**

@@ -11,7 +11,7 @@
  *    "Results" printed underneath it a moment later.
  */
 import { describe, expect, it } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { SearchPage } from "../src/default/index.js";
 import type { SearchParamsAdapter } from "../src/index.js";
@@ -235,5 +235,85 @@ describe("the filter sheet is a state the page can open in", () => {
     expect(
       screen.getByTestId("search-filters-open").getAttribute("data-active")
     ).toBe("true");
+  });
+});
+
+/**
+ * The DESKTOP shape of a vocabulary axis, reachable through the page.
+ *
+ * `<FacetPanelPane>` has had `dictionaryMode` since 0.23, and `<SearchPage>`
+ * forwarded nothing — so a storefront that mounts the page (all of them) got
+ * the phone's permanently-open list in a 280px rail and could not ask for the
+ * field. The default is now per LAYOUT, because only this component knows
+ * which frame it is drawing.
+ */
+describe("a dictionary axis is a FIELD on the desktop rail", () => {
+  const VENDOR = [
+    {
+      slug: "vendor",
+      name: "Vendor",
+      mandatory: true,
+      config: {
+        type: "ref_select",
+        maxSelected: 1,
+        optionsRef: { level: "Vendor", vocabulary: "fleet-autocatalog" },
+      },
+    },
+  ];
+
+  function VendorPage(props: {
+    readonly layout?: "column" | "sheet";
+    readonly dictionaryMode?: "field" | "inline";
+  }): ReactElement {
+    const adapter: SearchParamsAdapter = useTestParams("type=listing");
+    return (
+      <SearchPage
+        adapter={adapter}
+        defaultType="listing"
+        categoryFeatures={VENDOR}
+        {...(props.layout !== undefined ? { filtersLayout: props.layout } : {})}
+        {...(props.dictionaryMode !== undefined
+          ? { dictionaryMode: props.dictionaryMode }
+          : {})}
+      />
+    );
+  }
+
+  function mountVendor(props: {
+    readonly layout?: "column" | "sheet";
+    readonly dictionaryMode?: "field" | "inline";
+  }): void {
+    render(
+      <TestProviders server={serverWith({ vendor: { apple: 3, lenovo: 2 } }, ["vendor"])}>
+        <VendorPage {...props} />
+      </TestProviders>
+    );
+  }
+
+  it("draws the «Any» field in the column layout", async () => {
+    mountVendor({ layout: "column" });
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-dictionary-field-vendor")).toBeTruthy()
+    );
+    // Closed: the list is behind the field, not stacked under a heading.
+    expect(screen.queryByTestId("facet-option-vendor-apple")).toBeNull();
+  });
+
+  it("keeps the list open in the phone sheet, which is already a disclosure", async () => {
+    mountVendor({ layout: "sheet" });
+    await waitFor(() => expect(screen.getByTestId("search-chip-vendor")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("search-chip-vendor"));
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-dictionary-vendor")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("facet-dictionary-field-vendor")).toBeNull();
+  });
+
+  it("lets a host override both", async () => {
+    mountVendor({ layout: "column", dictionaryMode: "inline" });
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-dictionary-vendor")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("facet-dictionary-field-vendor")).toBeNull();
   });
 });

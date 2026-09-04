@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   activeFilterCount,
+  buildFacetKeyMap,
+  facetKeyMapFromLabels,
   clearFilters,
   ownsParam,
   parseSearchState,
@@ -11,6 +13,7 @@ import {
   toggleFilterValue,
   writeSearchState,
 } from "../src/index.js";
+import { liveCarsResponse } from "./liveCars.js";
 
 const OPTIONS = { defaultType: "listing" } as const;
 
@@ -218,5 +221,110 @@ describe("state → wire query", () => {
     expect(searchQueryParams(setFilterValues(state, "brand", []))).toEqual({
       type: "listing",
     });
+  });
+});
+
+/**
+ * SHORT FEATURE KEYS — `f.make`, not `f.make_ref_select`.
+ *
+ * The map is the ANSWER's (`facet_labels[slug].url_key`, derived by the
+ * server inside the queried category's scope); this codec never chops a
+ * suffix off a slug of its own accord. Both forms READ, one form WRITES, and
+ * anything ambiguous keeps the slug on both sides.
+ */
+describe("short feature keys in the address", () => {
+  // The live cars leaf, 2026-09-04: `make_ref_select` is addressed as `make`,
+  // `model` has no suffix to drop and stays itself.
+  const CARS = buildFacetKeyMap({
+    make_ref_select: "make",
+    model: "model",
+    year: "year",
+  });
+
+  it("WRITES the url_key the answer states", () => {
+    const { state } = parse("type=listing");
+    const written = writeSearchState(
+      setRangeValue(setFilterValues(state, "make_ref_select", ["toyota"]), "year", {
+        from: "2015",
+        to: "2020",
+      }),
+      undefined,
+      CARS
+    );
+    expect(written.getAll("f.make")).toEqual(["toyota"]);
+    expect(written.get("r.year")).toBe("2015..2020");
+    expect(written.get("f.make_ref_select")).toBeNull();
+  });
+
+  it("READS the short form back onto the slug", () => {
+    const { state } = parseSearchState(
+      new URLSearchParams("type=listing&f.make=toyota&r.year=2015.."),
+      { ...OPTIONS, facetKeys: CARS }
+    );
+    expect(state.filters).toEqual({ make_ref_select: ["toyota"] });
+    expect(state.ranges).toEqual({ year: { from: "2015" } });
+  });
+
+  it("READS the full slug too — an old link keeps working", () => {
+    const { state } = parseSearchState(
+      new URLSearchParams("type=listing&f.make_ref_select=toyota"),
+      { ...OPTIONS, facetKeys: CARS }
+    );
+    expect(state.filters).toEqual({ make_ref_select: ["toyota"] });
+  });
+
+  it("writes the SLUG when the answer states no url_key for it", () => {
+    // A pre-0.14.4 server, a text query, a branch node: no scope, no short
+    // form, and the address is exactly what it always was.
+    const { state } = parse("type=listing");
+    const written = writeSearchState(
+      setFilterValues(state, "make_ref_select", ["toyota"]),
+      undefined,
+      buildFacetKeyMap({ make_ref_select: null })
+    );
+    expect(written.getAll("f.make_ref_select")).toEqual(["toyota"]);
+  });
+
+  it("a COLLISION keeps the slug on both sides", () => {
+    // Two slugs shortening to one key, and a short form that IS another
+    // slug of the same scope. Neither may take it: the reader would get one
+    // filter back for another. (The server applies the same rule; this is
+    // the client refusing to trust that it did.)
+    const keys = buildFacetKeyMap({
+      make_ref_select: "make",
+      make_select: "make",
+      color_ref_select: "color",
+      color: "color",
+    });
+    expect(keys.write).toEqual({});
+    expect(keys.read["make"]).toBeUndefined();
+    // A real slug always resolves to itself.
+    expect(keys.read["color"]).toBe("color");
+    const { state } = parse("type=listing");
+    expect(
+      writeSearchState(
+        setFilterValues(state, "make_ref_select", ["toyota"]),
+        undefined,
+        keys
+      ).getAll("f.make_ref_select")
+    ).toEqual(["toyota"]);
+  });
+
+  it("reads an unknown key unchanged instead of dropping the filter", () => {
+    const { state } = parseSearchState(
+      new URLSearchParams("type=listing&f.mystery=x"),
+      { ...OPTIONS, facetKeys: CARS }
+    );
+    expect(state.filters).toEqual({ mystery: ["x"] });
+  });
+
+  it("takes the map straight off an answer's facet_labels", () => {
+    const keys = facetKeyMapFromLabels(liveCarsResponse().facet_labels);
+    expect(keys.write["make_ref_select"]).toBe("make");
+    expect(keys.write["fuel_type_ref_select"]).toBe("fuel_type");
+    // A slug with no suffix to drop writes itself.
+    expect(keys.write["model"]).toBeUndefined();
+    expect(keys.read["make"]).toBe("make_ref_select");
+    expect(keys.read["model"]).toBe("model");
   });
 });

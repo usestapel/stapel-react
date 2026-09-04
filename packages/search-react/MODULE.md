@@ -209,15 +209,27 @@ one value.
 
 **The gap the seam does not close: EXISTENCE.** `resolveFacetLabels` names
 values; it does not enumerate them. A `ref_select` group the server did not
-count therefore has no options from either side — the answer counted nothing,
-the schema holds a pointer — and `facetGroupIsDrawable` refuses to draw a
-heading over nothing. Measured on a live cars leaf, that is exactly the set a
-buyer misses (make, model, generation, body type) while every `select`-typed
-option keeps its schema table. The client cannot invent the values, so the fix
-is on the other side — the facet plan must count a required vocabulary axis —
-and until it does, the disappearance is reported: one `console.warn` per slug
-outside production, naming the axis, the missing side, and whether the schema
-marks it required.
+count has no options from either side — the answer counted nothing, the schema
+holds a pointer. Since 0.26 that is no longer a reason to take a
+vocabulary-backed axis off the page: its control is a searchable field, the
+field works over a dictionary the answer never enumerated, and a leaf holding
+three cars is a fact about the stand rather than about the make axis. The rule
+does not ask `mandatory` — the live laptops leaf marks none of vendor, model
+and screen size required, and gating on it would have deleted the vendor
+picker to save the make one. What the
+client still cannot do is fill the list — so the fix on the other side stands
+(the facet plan must count a required vocabulary axis, and stapel-search 0.14.5
+now spends `MAX_FACET_FIELDS` in schema order, required first), and a host that
+wants values in that field before the plan counts them wires
+`resolveFacetLabels` to its vocabulary.
+
+Every OTHER axis with no evidence is dropped: an authored option set the answer
+zero-filled, or one the budget skipped, is a set of checkboxes each guaranteed
+to return nothing (a live laptops leaf drew six of those and no filter). The
+drop is reported: one `console.warn` per slug in development — never in
+production, where the guard now asks "is this a dev build" rather than "is this
+not production", because a browser bundle with no `process` shim answered the
+second one wrong and shipped the warning to buyers.
 
 ## The chip row's order is the row's product
 

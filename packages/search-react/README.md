@@ -78,6 +78,30 @@ ordered candidate set; carried across a filter change it either gets refused or,
 worse, honoured against a different set. `patchSearchState` drops it for every
 change that is not itself a page move, so no call site has to remember.
 
+**Short feature keys.** The importer's type suffix carries nothing a reader can
+act on — `f.make_ref_select=toyota` says *make* once and *how the column is
+stored* once — so the address uses the short form the ANSWER states:
+
+```
+/c/avtomobili?f.make=toyota&r.year=2015..2020
+```
+
+stapel-search 0.14.4+ derives it per request inside the queried category's
+scope (`facet_labels[slug].url_key`: the slug minus its suffix where that stays
+unambiguous, the slug itself otherwise) and accepts both forms. This pair
+**writes** `url_key` and **reads either**, so an old link keeps working and a
+collision keeps the slug on both sides. Nothing is renamed and nothing is
+stored: the slug is still the feature's identity, and the request this pair
+sends carries it.
+
+The map travels with the answer — `useSearchQuery` publishes it up to
+`SearchStateProvider` (`usePublishFacetKeys`, `useFacetKeys`), which re-parses
+the URL with it and writes every later address through it. Before the first
+answer, and against a server that states none, the address is spelled in slugs
+exactly as it was. The codec itself stays pure: `parseSearchState(params,
+{facetKeys})`, `writeSearchState(state, base, facetKeys)`, and
+`buildFacetKeyMap` / `facetKeyMapFromLabels` to make one.
+
 **Any router, or none.** `SearchStateProvider` takes a `SearchParamsAdapter` —
 two members, shaped exactly like react-router's `useSearchParams()`. `./router`
 ships that binding; a Next.js app, a hash router or a plain `URLSearchParams` in
@@ -188,20 +212,36 @@ one you came back for. The phone sheet passes `visibleGroups={null}`; a surface
 devoted to filtering has the room.
 
 `facetGroupIsDrawable(group)` is the one rule the rail and the chip row share
-for "is there anything to draw here". A group with no options is a heading over
-nothing — after `buildFacetGroups` learned to read the schema, what is left in
-that state is a `ref_select` whose config is a bare `optionsRef` pointer and
-which the server did not count, so there is nothing to enumerate from either
-side. It is not drawn, and outside production it is **named**: a
-`console.warn` says which axis went, why, and whether the schema calls it
-required. That is the fault that took *make* off a live cars rail while every
-`select`-typed comfort option drew its own table and stayed.
+for "is there anything to draw here", and the question it asks is **evidence**:
+at least one value some candidate in this answer actually carries. A live
+laptops leaf drew six of six groups as accordions a person could open and
+narrow nothing by — every counted bucket zero, and the axes the facet budget
+skipped standing on their authored option tables with `count: null` on every
+row. Three exemptions, and nothing else:
+
+- an axis the reader has already **filtered on** — a constraint with no
+  control to remove it is worse than a bare heading;
+- a **vocabulary-backed** axis: its control is a field over a dictionary the
+  answer never enumerated, and that box searches the dictionary rather than
+  the buckets — *make* on a cars leaf holding three cars, *vendor* on a
+  laptops leaf holding one. `mandatory` is deliberately not asked: on the live
+  laptops leaf not one of vendor/model/screen size carries it;
+- an axis with evidence, obviously.
+
+A dropped axis is **named** outside production: a `console.warn` says which
+axis went, why, and whether the schema calls it required — the fault that took
+*make* off a live cars rail while every `select`-typed comfort option drew its
+own table and stayed. Note the consequence for a leaf whose plan was cut at
+`MAX_FACET_FIELDS`: an axis the server never counted is not drawn unless it is
+one of the two exemptions, so the way to put it back is to raise that budget
+(stapel-search 0.14.5 spends it in schema order, required first).
 
 ## A vocabulary is a dictionary, not a checkbox list
 
-Past eight **evidence buckets** a `ref_select` group (or an untyped group that
-long — the live case, where no schema was threaded through) stops being a list
-and becomes a dictionary: the busiest values, a search box that filters them
+A **vocabulary-backed** axis (`ref_select`/`ref_hierarchical_select`, whose
+config is a pointer and never an option table — or an untyped group the answer
+came back long for, the live case where no schema was threaded through) is
+always a dictionary, **however many buckets came back**: the busiest values, a search box that filters them
 locally, and the chosen values pinned above the box so a filter is never
 invisible. The box matches **across alphabets** — `тойота` finds `Toyota`,
 `тимберленд` finds `Timberland`, `ровер` finds `Land Rover` — by a prefix rule
@@ -212,6 +252,13 @@ answer — stapel-search caps a vocabulary-backed group at
 `MAX_FACET_VALUES_VOCABULARY` (1000, raised from the shared 200 for exactly
 this), so a 418-term make dictionary arrives whole and the box has everything
 it filters.
+
+The bucket count used to decide this, and on a leaf holding three cars the make
+drew three checkboxes over a vocabulary of four hundred makes — "а если там
+сотни вариантов" is a question about the DICTIONARY, and the dictionary is
+large whether or not this leaf has stock. An **inline** option set is never a
+dictionary, whatever its length: a `select` carries its own table, and a small
+one is a list a person reads at a glance.
 
 A dictionary outranks the pills, too: the live `make` axis is `maxSelected: 1`
 over a 418-value vocabulary, so "pick one" used to win and the control it drew
@@ -225,9 +272,13 @@ Escape to close. The phone sheet keeps the list inline, because the sheet is
 already the disclosure.
 
 ```tsx
-facetGroupShape(group)   // "segmented" | "nested" | "checkbox" | "dictionary"
-isDictionaryFacet(group) // > FACET_DICTIONARY_THRESHOLD counted buckets
+facetGroupShape(group)             // "segmented" | "nested" | "checkbox" | "dictionary"
+isDictionaryFacet(group)           // vocabulary-backed, or untyped and long
+facetGroupIsVocabularyBacked(group) // the schema's type, else the answer's `vocabulary`
 ```
+
+`<SearchPage dictionaryMode>` overrides the per-layout default (`"field"` in
+the column, `"inline"` in the sheet).
 
 ## A bounded integer is a picker, not a bare number
 
@@ -290,6 +341,13 @@ the rail also declares a classic bar through the WebKit pseudo-elements, with a
 real width and every colour a `--stapel-*` custom property, so it is the
 panel's own hairline in both themes. `railScrollbarCss()` and `RAIL_CLASS` are
 exported for a host that lays out its own column.
+
+The panel's footer — the live count, and the clear-all beside it — sits where
+its frame wants it: `footerBar="static"` (what `<SearchPage>` passes in the
+column layout) puts it after the last group, and `"sticky"` / `true` pins it to
+the scroll port's floor, which is right in a sheet whose port IS the sheet. It
+was pinned everywhere, and on the desktop rail an opaque bar over the last two
+groups made them unreachable.
 
 ## The other sections are a line, and they come with the results
 

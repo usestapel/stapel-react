@@ -43,6 +43,36 @@ export type FacetLabels = Schemas["FacetLabels"] & {
    * fixture captured from the wire is not a type error.
    */
   readonly label_translatable?: boolean;
+  /**
+   * What this group is called IN THE ADDRESS: `f.<url_key>`, `r.<url_key>`.
+   *
+   * The slug minus the type suffix an importer mints (`_select`,
+   * `_ref_select`, `_int`, `_bool`, `_string`) where dropping it stays
+   * unambiguous among the features of the category in scope, and the slug
+   * itself otherwise — and always when the query names no category
+   * (stapel-search 0.14.4+, `facets.url_keys`). Derived per request, never
+   * stored: the slug remains the feature's identity and both forms are
+   * accepted inside the scope, which is what lets a client write the short
+   * one without a migration behind it.
+   *
+   * WHAT THE GENERATOR LOST: newer than this pair's pinned `schema.json`,
+   * so it is declared here rather than regenerated into a shape a deployed
+   * older server does not send. Measured on a live answer 2026-09-04:
+   * `make_ref_select` → `make`, `fuel_type_ref_select` → `fuel_type`,
+   * `model` → `model`.
+   */
+  readonly url_key?: string | null;
+  /**
+   * The vocabulary this group's values are drawn from, when the server names
+   * one.
+   *
+   * The one fact that decides whether an axis is a DICTIONARY rather than a
+   * list, and the client's second-best source for it: the first is the
+   * category schema's own `optionsRef`, which a host that threaded no schema
+   * does not have. Absent on every server that does not state it — absence
+   * is not "inline", it is "unsaid", and the schema is asked next.
+   */
+  readonly vocabulary?: string | null;
 };
 
 /** `facet_labels` as a whole: `{slug: {label, translatable, values}}`. */

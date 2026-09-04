@@ -260,17 +260,28 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    */
   readonly skippedNotice?: boolean;
   /**
-   * Draw the sticky footer inside the panel: the live result count as the
-   * bar's strong text, and the clear-all control (which then moves out of the
-   * heading row — one control, not two) beside it. Default `false`.
+   * Draw the footer inside the panel: the live result count as the bar's
+   * strong text, and the clear-all control (which then moves out of the
+   * heading row — one control, not two) beside it. Default: no bar.
    *
    * `<SearchPage>` turns it on for the desktop RAIL only. Desktop filters
    * apply instantly, so the bar is FEEDBACK plus the way out, not an apply
    * button — which is exactly why the phone sheet must not get it: the sheet
    * already closes through its own "Show N results" footer, and a second
    * count-bearing bar above that one would be the same sentence twice.
+   *
+   * ── Where it sits, and why that is a choice ───────────────────────────────
+   *
+   * `"sticky"` (and `true`, which is what it has always meant) pins the bar to
+   * the bottom of the panel's own scroll port. That is right in a SHEET, whose
+   * port is the sheet and whose bar is the way out of it. In the desktop
+   * COLUMN the rail scrolls with the page, so an opaque bar pinned to the
+   * bottom of the viewport parks itself over the last two facet groups and
+   * they cannot be reached at all — a storefront was reaching for `!important`
+   * to lift it off. `"static"` puts the bar after the groups, where it stops
+   * covering anything, and the column layout of `<SearchPage>` passes it.
    */
-  readonly footerBar?: boolean;
+  readonly footerBar?: boolean | "sticky" | "static";
   /**
    * The partition control, drawn at the TOP of the panel — above the price,
    * above every facet.
@@ -319,6 +330,9 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
 function RailFooterBar(props: {
   readonly activeFilters: number;
   readonly clearAll: () => void;
+  /** `"sticky"` pins it to the scroll port's floor; `"static"` lets it sit
+   * after the last group. See {@link FacetPanelPaneProps.footerBar}. */
+  readonly position: "sticky" | "static";
 }): ReactElement | null {
   const t = useT();
   const tPlural = useTPlural();
@@ -340,9 +354,9 @@ function RailFooterBar(props: {
   return (
     <div
       data-testid="facets-footer-bar"
+      data-position={props.position}
       style={{
-        position: "sticky",
-        bottom: 0,
+        ...(props.position === "sticky" ? { position: "sticky", bottom: 0 } : {}),
         // Opaque, or the options scrolling under the bar read THROUGH it.
         background: token.colorBgContainer,
         borderBlockStart: `1px solid ${token.colorSplit}`,
@@ -513,6 +527,13 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
   // panel's own search box: the URL is the search, and how much of the rail a
   // person has unfolded is not part of it.
   const [tailOpen, setTailOpen] = useState(false);
+  // `true` is the shape the prop shipped with and keeps meaning: pinned.
+  const footerBar: "sticky" | "static" | "none" =
+    props.footerBar === true
+      ? "sticky"
+      : props.footerBar === false || props.footerBar === undefined
+        ? "none"
+        : props.footerBar;
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -577,7 +598,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               {/* With the footer bar on, clear-all lives THERE — beside the
                   count it acts on — and drawing it here too would be two
                   identical exits one panel apart. */}
-              {bag.activeFilters > 0 && props.footerBar !== true && (
+              {bag.activeFilters > 0 && footerBar === "none" && (
                 <Button
                   style={FACET_CLEAR}
                   onClick={bag.clearAll}
@@ -845,10 +866,11 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               </>
             )}
 
-            {props.footerBar === true && (
+            {footerBar !== "none" && (
               <RailFooterBar
                 activeFilters={bag.activeFilters}
                 clearAll={bag.clearAll}
+                position={footerBar}
               />
             )}
           </Flex>

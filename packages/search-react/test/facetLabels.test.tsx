@@ -93,9 +93,24 @@ function mount(props: MountProps = {}): void {
   );
 }
 
+/**
+ * Open the vendor axis.
+ *
+ * On the desktop rail a vocabulary-backed axis is a FIELD reading «Any»
+ * (`dictionaryMode: "field"`, the layout's default since 0.26): its values —
+ * and therefore every caption these tests are about — live behind it. The
+ * host resolver still runs on the group's options either way; what changed is
+ * only which click puts them on screen.
+ */
+async function openVendor(): Promise<void> {
+  const field = await screen.findByTestId("facet-dictionary-field-vendor");
+  fireEvent.click(field);
+}
+
 describe("the host resolver names what nothing else can", () => {
   it("turns a ref_select's storage slug into the vocabulary's word", async () => {
     mount();
+    await openVendor();
     await waitFor(() => {
       expect(
         screen.getByTestId("facet-group-vendor").textContent
@@ -108,6 +123,7 @@ describe("the host resolver names what nothing else can", () => {
     // a slug: the option is real, it has a count, and it is the only route to
     // those documents.
     mount();
+    await openVendor();
     await waitFor(() => {
       expect(
         screen.getByTestId("facet-group-vendor").textContent
@@ -118,6 +134,7 @@ describe("the host resolver names what nothing else can", () => {
   it("is asked ONCE per group, batched, with only the unresolved values", async () => {
     const seen: FacetLabelRequest[] = [];
     mount({ seen });
+    await openVendor();
     await waitFor(() => {
       expect(
         screen.getByTestId("facet-group-vendor").textContent
@@ -244,6 +261,7 @@ describe("precedence: nobody overwrites a caption somebody better already gave",
       resolve: async () =>
         await Promise.resolve({ novoe: "OVERWRITTEN", apple: "Apple" }),
     });
+    await openVendor();
     await waitFor(() => {
       expect(
         screen.getByTestId("facet-group-vendor").textContent
@@ -257,6 +275,7 @@ describe("precedence: nobody overwrites a caption somebody better already gave",
   it("a page with no resolver keeps the raw value and asks nobody", async () => {
     const seen: FacetLabelRequest[] = [];
     mount({ resolve: false, seen });
+    await openVendor();
     await waitFor(() => {
       expect(
         screen.getByTestId("facet-group-vendor").textContent
