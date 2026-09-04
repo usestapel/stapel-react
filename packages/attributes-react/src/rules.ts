@@ -382,6 +382,30 @@ function stateOf(feature: FeatureDef, read: (slug: string) => readonly string[])
 }
 
 /**
+ * Does one rule's condition hold against a form's answers?
+ *
+ * Exported for {@link featureBounds}, which needs to know not only THAT a
+ * `limit` matched but WHICH rule did — the state carries the numbers and
+ * forgets where they came from, and "from 2018 to 2024" beside a year field
+ * is a different sentence from "for this generation, from 2018 to 2024".
+ * Reads answers straight off `values`, like {@link featureRuleState}.
+ */
+export function ruleWhenMatches(
+  when: Rule["when"],
+  values: Readonly<Record<string, unknown>> | undefined
+): boolean {
+  const raw = values ?? {};
+  return whenMatches(when, (slug) => stringify(raw[slug]));
+}
+
+/** The controlling slugs one rule's condition names, in the order it states
+ * them and without duplicates — the fields whose answers a hint has to name. */
+export function conditionSlugs(when: Rule["when"]): readonly string[] {
+  const conds = when.all ?? when.any ?? [];
+  return [...new Set(conds.map((cond) => cond.feature))];
+}
+
+/**
  * Evaluate every feature's rules against `values` in one pass (§1.3).
  *
  * ```

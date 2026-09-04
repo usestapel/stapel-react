@@ -29,7 +29,7 @@
  * conversion here would be a second, disagreeing implementation of a table
  * that lives in Python.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { Flex, Select, Typography } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
@@ -76,6 +76,107 @@ const REF_INT_PAGE = 50;
 /** The suggestions panel's scroll cap — one-off geometry (about six rows of
  * the phone control height), named so the next change happens once. */
 export const INT_SUGGESTIONS_MAX_HEIGHT = 240;
+
+/**
+ * At most this many values a BOUNDED int offers as a list.
+ *
+ * A year (1900–2026) is 127 rows and a scroll a person can reach the end of;
+ * a mileage cap (0–1 000 000) is not a list at all, and materializing one
+ * would be a megabyte of DOM offering nothing the keypad does not. Above the
+ * cap the control is the keypad and the steppers, with the range said under
+ * it — which is the state this package was already in, kept for the fields
+ * where a list is genuinely the wrong shape.
+ */
+export const BOUNDED_INT_MAX_OPTIONS = 300;
+
+/** The values a closed integer range contains, or `null` when it is not a
+ * listable set — an open end, a fractional bound, or more values than a
+ * person can be handed ({@link BOUNDED_INT_MAX_OPTIONS}). */
+export function boundedIntValues(
+  min: number | undefined,
+  max: number | undefined
+): readonly number[] | null {
+  if (min === undefined || max === undefined) return null;
+  if (!Number.isInteger(min) || !Number.isInteger(max)) return null;
+  const count = max - min + 1;
+  if (count < 1 || count > BOUNDED_INT_MAX_OPTIONS) return null;
+  return Array.from({ length: count }, (_, index) => min + index);
+}
+
+/** The two arrows that walk an allowed set. A target of `undefined` is the
+ * end of the set, and the arrow greys there — the boundary the control
+ * communicates by being unable to cross it. */
+function IntSteppers(props: {
+  readonly disabled: boolean;
+  readonly down: number | undefined;
+  readonly up: number | undefined;
+  readonly onPick: (value: number) => void;
+}): ReactElement {
+  const t = useT();
+  return (
+    <>
+      <Button
+        aria-label={t(ATTRIBUTES_I18N_KEYS.intStepDown)}
+        data-testid="attributes-int-step-down"
+        disabled={props.disabled || props.down === undefined}
+        data-disabled-reason="already at the lowest allowed value — the boundary the greyed arrow itself communicates"
+        data-analytics="none"
+        data-analytics-reason="passthrough — the committed value lands in the form's own onChange"
+        onClick={() => props.down !== undefined && props.onPick(props.down)}
+      >
+        −
+      </Button>
+      <Button
+        aria-label={t(ATTRIBUTES_I18N_KEYS.intStepUp)}
+        data-testid="attributes-int-step-up"
+        disabled={props.disabled || props.up === undefined}
+        data-disabled-reason="already at the highest allowed value — the boundary the greyed arrow itself communicates"
+        data-analytics="none"
+        data-analytics-reason="passthrough — the committed value lands in the form's own onChange"
+        onClick={() => props.up !== undefined && props.onPick(props.up)}
+      >
+        +
+      </Button>
+    </>
+  );
+}
+
+/** The allowed values, as rows a thumb can hit. One panel for both int
+ * controls, so the vocabulary-backed set and the bounded range cannot drift
+ * apart in shape, geometry or test id. */
+function IntSuggestions(props: {
+  readonly label: string;
+  readonly values: readonly number[];
+  readonly onPick: (value: number) => void;
+}): ReactElement {
+  return (
+    <div
+      role="listbox"
+      aria-label={props.label}
+      data-testid="attributes-int-suggestions"
+      style={{
+        maxHeight: INT_SUGGESTIONS_MAX_HEIGHT,
+        overflowY: "auto",
+        marginTop: spacing[1],
+      }}
+    >
+      {props.values.map((one) => (
+        <Button
+          key={one}
+          type="text"
+          block
+          role="option"
+          data-int-suggestion=""
+          data-analytics="none"
+          data-analytics-reason="passthrough — the caller's onChange carries the tracked pick"
+          onClick={() => props.onPick(one)}
+        >
+          {String(one)}
+        </Button>
+      ))}
+    </div>
+  );
+}
 
 /**
  * `IntConfig.optionsRef` — the year-of-make field scoped by the chosen
@@ -209,58 +310,20 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
           />
         </div>
         {loaded && (
-          <>
-            <Button
-              aria-label={t(ATTRIBUTES_I18N_KEYS.intStepDown)}
-              data-testid="attributes-int-step-down"
-              disabled={props.disabled === true || downTarget === undefined}
-              data-disabled-reason="already at the lowest allowed value — the boundary the greyed arrow itself communicates"
-              data-analytics="none"
-              data-analytics-reason="passthrough — the committed value lands in the form's own onChange"
-              onClick={() => commit(downTarget)}
-            >
-              −
-            </Button>
-            <Button
-              aria-label={t(ATTRIBUTES_I18N_KEYS.intStepUp)}
-              data-testid="attributes-int-step-up"
-              disabled={props.disabled === true || upTarget === undefined}
-              data-disabled-reason="already at the highest allowed value — the boundary the greyed arrow itself communicates"
-              data-analytics="none"
-              data-analytics-reason="passthrough — the committed value lands in the form's own onChange"
-              onClick={() => commit(upTarget)}
-            >
-              +
-            </Button>
-          </>
+          <IntSteppers
+            disabled={props.disabled === true}
+            down={downTarget}
+            up={upTarget}
+            onPick={commit}
+          />
         )}
       </Flex>
       {panel.length > 0 && (
-        <div
-          role="listbox"
-          aria-label={featureName(props.feature)}
-          data-testid="attributes-int-suggestions"
-          style={{
-            maxHeight: INT_SUGGESTIONS_MAX_HEIGHT,
-            overflowY: "auto",
-            marginTop: spacing[1],
-          }}
-        >
-          {panel.map((one) => (
-            <Button
-              key={one}
-              type="text"
-              block
-              role="option"
-              data-int-suggestion=""
-              data-analytics="none"
-              data-analytics-reason="passthrough — the caller's onChange carries the tracked pick"
-              onClick={() => commit(one)}
-            >
-              {String(one)}
-            </Button>
-          ))}
-        </div>
+        <IntSuggestions
+          label={featureName(props.feature)}
+          values={panel}
+          onPick={commit}
+        />
       )}
       {outOfSet && lowest !== undefined && highest !== undefined && (
         <HintLine>
@@ -285,14 +348,257 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   );
 };
 
+// ── int with a static or rule-given bound ───────────────────────────────────
+
+/** Is this value inside the (possibly one-ended) bound? */
+function withinBounds(
+  value: number,
+  min: number | undefined,
+  max: number | undefined
+): boolean {
+  return (min === undefined || value >= min) && (max === undefined || value <= max);
+}
+
+/**
+ * The bounded `int` — a year, a capacity, a number of doors.
+ *
+ * The founder's verdict on the state this replaces: *the prose was removed
+ * but the mechanism for the person was not delivered* — the range travelled
+ * as a placeholder and a grey line, and the control under it was a bare text
+ * box that took 1899 as happily as 1999 and let the server say no. So the
+ * bound is now something a person can OPERATE, in the shape the vocabulary-
+ * backed int already had (they share this file's two pieces on purpose):
+ *
+ *  - the numeric KEYPAD stays the primary path, and nothing it is given is
+ *    ever clamped or rewritten — `SkinNumberField`'s own rule;
+ *  - a dropdown of the allowed values rides along whenever the range is
+ *    listable ({@link BOUNDED_INT_MAX_OPTIONS}); a typed prefix filters it, a
+ *    typed value inside the bound hides it, a typed value OUTSIDE the bound
+ *    opens the whole set with the bound said in words — the dropdown is the
+ *    recovery path, not a second control;
+ *  - the steppers walk by one and grey at the ends;
+ *  - when the bound MOVES under a parent's answer and the value no longer
+ *    fits, the value is CLEARED and the hint shown. Never coerced: a year
+ *    silently rewritten from 2016 to 2018 is a listing that says something
+ *    nobody typed, in a field nobody is looking at any more.
+ *
+ * `min === max` (a `limit` rule pinning both ends) is the BAKE, and it is not
+ * performed here: `<FeatureFields>` owns the write-back and the reason beside
+ * the control (`soleAllowedValue`), so this file does not become a second
+ * owner of the attribute. The control renders inert, which is what a baked
+ * field looks like from the inside.
+ */
+function BoundedIntEditor(props: ValueEditorProps): ReactElement {
+  const t = useT();
+  const cfg = configOf(props);
+  const touchFloor = useTouchFloor();
+  const rangeHint = useRangeHint();
+  const min = numberish(cfg["min"]);
+  const max = numberish(cfg["max"]);
+  const current = numberish(props.value);
+  const placeholder = str(cfg["placeholder"]);
+  const prefix = configLabel(t, cfg["prefix"]);
+  const postfix = configLabel(t, cfg["postfix"]);
+  const postfix1000 = configLabel(t, cfg["postfix1000"]);
+  const suffix =
+    postfix1000.length > 0 && current !== undefined && Math.abs(current) >= 1000
+      ? postfix1000
+      : postfix;
+  const values = useMemo(() => boundedIntValues(min, max), [min, max]);
+  const baked = min !== undefined && max !== undefined && min === max;
+
+  // What the person is TYPING, before the host round-trips it — so a
+  // half-typed «201» filters the list on the keystroke rather than a render
+  // later. External moves (a clear, a bake) are adopted back.
+  const [typed, setTyped] = useState<number | undefined>(current);
+  useEffect(() => {
+    setTyped(current);
+  }, [current]);
+
+  // The list, opened by hand. Typing a value that fits closes it again: the
+  // question has been answered, and a list standing open over the next field
+  // is chrome the person did not ask for.
+  const [open, setOpen] = useState(false);
+  // The bound moved out from under the answer, and the answer was dropped.
+  // Held so the sentence survives the value going away — without it the field
+  // would simply empty itself and say nothing.
+  const [cleared, setCleared] = useState(false);
+
+  const onChange = props.onChange;
+  const seenBound = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const canon = `${min ?? ""}:${max ?? ""}`;
+    const before = seenBound.current;
+    seenBound.current = canon;
+    // A MOUNT is not a change: a seeded draft whose value no longer fits its
+    // bound is the server's to refuse, and clearing it on first paint would
+    // delete an answer the person never saw questioned.
+    if (before === undefined || before === canon) return;
+    if (current === undefined || withinBounds(current, min, max)) {
+      setCleared(false);
+      return;
+    }
+    setCleared(true);
+    onChange(undefined);
+  }, [min, max, current, onChange]);
+
+  const commit = (next: number | undefined): void => {
+    setTyped(next);
+    setCleared(false);
+    if (next !== undefined && withinBounds(next, min, max)) setOpen(false);
+    onChange(next);
+  };
+
+  const inBounds = typed !== undefined && withinBounds(typed, min, max);
+  const prefixMatched =
+    values !== null && typed !== undefined && !inBounds
+      ? values.filter((one) => String(one).startsWith(String(typed)))
+      : [];
+  const outOfBounds = typed !== undefined && !inBounds && prefixMatched.length === 0;
+  const panel: readonly number[] =
+    values === null || baked || props.disabled === true
+      ? []
+      : typed === undefined || inBounds
+        ? open
+          ? values
+          : []
+        : prefixMatched.length > 0
+          ? prefixMatched
+          : values;
+
+  const up =
+    values !== null
+      ? typed === undefined
+        ? values[0]
+        : values.find((one) => one > typed)
+      : typed === undefined
+        ? min
+        : max !== undefined && Math.floor(typed) + 1 > max
+          ? undefined
+          : Math.floor(typed) + 1;
+  const down =
+    values !== null
+      ? typed === undefined
+        ? values[values.length - 1]
+        : [...values].reverse().find((one) => one < typed)
+      : typed === undefined
+        ? max
+        : min !== undefined && Math.ceil(typed) - 1 < min
+          ? undefined
+          : Math.ceil(typed) - 1;
+
+  // The bound, three ways, and never twice at once: as the empty box's
+  // placeholder, as a grey line under it while the answer fits, and as the
+  // out-of-bounds sentence — which NAMES the answers that set it when a rule
+  // did, because "for this generation, from 2018 to 2024" is actionable and
+  // "from 2018 to 2024" beside a year field is arithmetic.
+  const both = min !== undefined && max !== undefined;
+  const parents = (props.boundSources ?? []).filter((one) => one.length > 0);
+  const refusal = !both
+    ? rangeHint(
+        min === undefined ? undefined : String(min),
+        max === undefined ? undefined : String(max)
+      )
+    : parents.length > 0
+      ? t(ATTRIBUTES_I18N_KEYS.intOutOfAllowedFor, {
+          parents: parents.join(", "),
+          min: String(min),
+          max: String(max),
+        })
+      : t(ATTRIBUTES_I18N_KEYS.intOutOfAllowed, { min: String(min), max: String(max) });
+  const shout = outOfBounds || cleared;
+  const settled = rangeHint(
+    min === undefined ? undefined : String(min),
+    max === undefined ? undefined : String(max)
+  );
+  const box = rangePlaceholder(min, max);
+
+  const field = (
+    <SkinNumberField
+      id={props.id}
+      value={current}
+      integer
+      disabled={props.disabled === true || baked}
+      ariaLabel={featureName(props.feature)}
+      {...(props.required === true ? { ariaRequired: true } : {})}
+      testId="attributes-number-field"
+      {...errorStatus(props.error)}
+      {...(suffix.length > 0 ? { unit: suffix } : {})}
+      {...(placeholder.length > 0
+        ? { hintPlaceholder: placeholder }
+        : box !== undefined
+          ? { hintPlaceholder: box }
+          : {})}
+      {...(!shout && settled !== undefined ? { helpText: <HintLine>{settled}</HintLine> } : {})}
+      onValueChange={commit}
+    />
+  );
+
+  return (
+    <div {...touchFloorMarker(touchFloor)} data-testid="attributes-int-bounded">
+      <Flex align="center" gap={spacing[1]}>
+        {prefix.length > 0 && (
+          <Typography.Text type="secondary" data-attributes-prefix="">
+            {prefix}
+          </Typography.Text>
+        )}
+        <div style={{ flex: 1 }}>{field}</div>
+        {!baked && values !== null && (
+          <Button
+            aria-label={t(ATTRIBUTES_I18N_KEYS.intChooseValue)}
+            aria-expanded={panel.length > 0}
+            data-testid="attributes-int-open"
+            disabled={props.disabled === true}
+            data-analytics="none"
+            data-analytics-reason="passthrough — the tracked step is the submit, not opening a list"
+            onClick={() => setOpen((was) => !was)}
+          >
+            ▾
+          </Button>
+        )}
+        {!baked && (
+          <IntSteppers
+            disabled={props.disabled === true}
+            down={down}
+            up={up}
+            onPick={commit}
+          />
+        )}
+      </Flex>
+      {panel.length > 0 && (
+        <IntSuggestions
+          label={featureName(props.feature)}
+          values={panel}
+          onPick={commit}
+        />
+      )}
+      {shout && refusal !== undefined && (
+        <HintLine>
+          <span data-testid="attributes-int-out-of-range">{refusal}</span>
+        </HintLine>
+      )}
+    </div>
+  );
+}
+
 // ── int / float ──────────────────────────────────────────────────────────────
 
 function makeNumberEditor(isInt: boolean): ValueEditor {
   const Editor = (props: ValueEditorProps): ReactElement => {
-    // The vocabulary-backed int branches BEFORE any hook: `optionsRef` is a
-    // property of the catalogue's config, stable for the life of the row.
-    if (isInt && optionsRefOf(configOf(props)) !== undefined) {
+    // Both branches are taken BEFORE any hook, on config shape alone: a
+    // pointer and a bound are properties of the catalogue's config, stable
+    // for the life of the row.
+    const cfg = configOf(props);
+    if (isInt && optionsRefOf(cfg) !== undefined) {
       return <RefIntEditor {...props} />;
+    }
+    // A closed options list is a CHOICE, not a range — it keeps the chips and
+    // the picker sheet `FreeNumberEditor` draws, whatever `min`/`max` say.
+    const listed = Array.isArray(cfg["options"]) && cfg["options"].length > 0;
+    const bounded =
+      numberish(cfg["min"]) !== undefined || numberish(cfg["max"]) !== undefined;
+    if (isInt && bounded && !(listed && cfg["allowCustom"] === false)) {
+      return <BoundedIntEditor {...props} />;
     }
     return <FreeNumberEditor {...props} isInt={isInt} />;
   };

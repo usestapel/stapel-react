@@ -90,6 +90,17 @@ export interface ValueEditorProps<T = unknown> {
    */
   readonly siblings?: Readonly<Record<string, unknown>>;
   /**
+   * The answers that set this field's current bound, as a PERSON reads them
+   * ("BMW", "3 series", "G20") — `featureBounds(feature, values).sources`
+   * resolved through the catalogue by the row that draws it.
+   *
+   * Present only when a `limit` rule decided the bound; absent when the bound
+   * is the config's own, and absent for every type that has none. An editor
+   * that ignores it still says the range — it just says it plainly, which is
+   * exactly what a rule-less bound deserves.
+   */
+  readonly boundSources?: readonly string[];
+  /**
    * DOM id the editor MUST put on its primary control. The field row points
    * its `<label for>` at this, so the label actually names the input for a
    * screen reader (and for a click). An editor that drops it renders an

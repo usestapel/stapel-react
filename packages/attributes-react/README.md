@@ -145,6 +145,46 @@ the same canon through `pnpm gen:feature-def`.
 config the rules already narrowed — so **editors stay rule-unaware** and a
 host's own registered editor gets rules for free.
 
+## A bounded `int` is a control, not a caption
+
+A year is the case: `int{min: 1900, max: 2026}`, tightened to one generation's
+span by a `limit` rule. Until 0.15 the range travelled as a placeholder and a
+grey line over a plain text box — the prose was removed and the mechanism was
+never delivered, so a seller could type 1899 and hear about it from the server.
+
+Every `int` that has a bound — the config's own, a rule's, or both — now draws
+the same control the vocabulary-backed int draws:
+
+| | |
+|---|---|
+| keypad | `inputmode="numeric"`, and **nothing typed is ever clamped** — a bound is said, not enforced |
+| dropdown | the allowed values, while the range is listable (≤ `BOUNDED_INT_MAX_OPTIONS`, 300 — a year qualifies, a mileage cap does not). A typed prefix filters it; a value inside the bound hides it; a value OUTSIDE opens the whole set |
+| hint | "For G20 the value is from 2018 to 2024" when a `limit` rule set the bound, plain "From 1900 to 2030." when the catalogue did |
+| steppers | walk by one, grey at the ends |
+| bake | one allowed value (`min === max`) is committed, greyed and captioned — `<FeatureFields>`' write-back, the same one every other single-option collapse takes |
+| moved bound | the parent changed and the answer no longer fits → the answer is **cleared** with the hint shown, never coerced to the nearest end |
+
+The sentence names the parents because a bound has a PROVENANCE, and
+`narrowConfig` forgets it (rightly — the engine reports `above_maximum` either
+way). `featureBounds` remembers it:
+
+```ts
+featureBounds(year, values); // {min: 2018, max: 2024, sources: ["generation"]}
+```
+
+`<FeatureFields>` resolves those slugs to the answers a person reads and hands
+the editor `boundSources` — the one thing a control cannot derive from a
+narrowed config, and the only rule knowledge any editor is given.
+
+Two laws it does not bend. A bound is **replaced, never introduced**, exactly
+as `narrowConfig` has it: a `limit` on a config that declares no `max` yields
+no `max` here either. And the client checks what the server checks — the
+mirror narrows through the same call, `stapel_attributes` narrows again in
+Python (`validation.py:223`) and `IntFeatureType.validate_dto` refuses
+`below_minimum` / `above_maximum` against the narrowed config
+(`types/int/type.py:92-104`), so the dropdown, the hint and the refusal are
+one fact.
+
 ## What a host asks before it draws a step
 
 A composer that walks a category in steps needs two answers, and both are

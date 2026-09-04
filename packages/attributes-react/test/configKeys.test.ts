@@ -101,10 +101,11 @@ const HELPERS: readonly string[] = [
   "uiStyleOf",
   "toCascaderOptions",
   "optionLabel",
-  // The two halves `makeNumberEditor` dispatches between — reached as JSX,
+  // The three halves `makeNumberEditor` dispatches between — reached as JSX,
   // which is why the follow regex below matches `<Helper` as well as a call.
   "FreeNumberEditor",
   "RefIntEditor",
+  "BoundedIntEditor",
 ];
 
 function keysIn(body: string): Set<string> {

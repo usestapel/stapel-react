@@ -58,6 +58,8 @@ import {
   undisclosedSlugs,
 } from "../disclosure.js";
 import { featureRequiredUnder } from "../validate.js";
+import { featureBounds } from "../bounds.js";
+import { answerLabel } from "./labels.js";
 import { resolveValueEditor } from "../registry.js";
 import { VOCABULARY_BACKED_TYPES, useVocabularyClient } from "../vocabulary.js";
 import { BUILTIN_VALUE_EDITORS } from "./editors.js";
@@ -564,6 +566,29 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   const collapsing = props.groupCollapse === "auto";
   const [openState, setOpenState] = useState<Readonly<Record<string, boolean>>>({});
 
+  // Who set the bound a numeric row is under, in words — the answers of the
+  // fields a matching `limit` rule names, resolved through the catalogue.
+  // Computed HERE and not in the editor because only this component holds the
+  // sibling DEFINITIONS an answer's label lives in; the editor is handed the
+  // finished words, which keeps it as rule-unaware as the narrowed config
+  // does.
+  const boundSources = useMemo(() => {
+    const out: Record<string, readonly string[]> = {};
+    for (const feature of features) {
+      if (broken[feature.slug] !== undefined) continue;
+      const { sources } = featureBounds(feature, values);
+      if (sources.length === 0) continue;
+      const labels = sources
+        .map((slug) => {
+          const parent = features.find((one) => one.slug === slug);
+          return parent === undefined ? "" : answerLabel(t, parent, values[slug]);
+        })
+        .filter((label) => label.length > 0);
+      if (labels.length > 0) out[feature.slug] = labels;
+    }
+    return out;
+  }, [features, values, broken, t]);
+
   // Progressive disclosure: a field whose allowed set is scoped by a sibling
   // (`optionsRef.parentFeature`) is not DRAWN until that sibling is answered.
   // The second visibility gate, composed with the rules' — see disclosure.ts.
@@ -716,6 +741,9 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                         error={errors[feature.slug]}
                         disabled={props.disabled === true || baked}
                         required={required}
+                        {...(boundSources[feature.slug] === undefined
+                          ? {}
+                          : { boundSources: boundSources[feature.slug] })}
                       />
                       {baked && (
                         <Typography.Text

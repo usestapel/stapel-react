@@ -76,12 +76,20 @@ export {
   featureRuleState,
   narrowConfig,
   narrowFeature,
+  conditionSlugs,
   parseRules,
   ruleErrors,
   ruleStateToJson,
+  ruleWhenMatches,
   stringify,
 } from "./rules.js";
 export type { RuleState } from "./rules.js";
+
+// The live bound of a numeric field, WITH the answers that set it — what a
+// control needs to say "for this generation, from 2018 to 2024" instead of
+// repeating a range the person cannot act on.
+export { featureBounds } from "./bounds.js";
+export type { FeatureBounds } from "./bounds.js";
 
 // Progressive disclosure and the bake rule — the dependent-field predicates
 // `<FeatureFields>` and `toFeaturesDto` share, exported so a host drawing

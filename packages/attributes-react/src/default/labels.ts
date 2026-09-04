@@ -32,7 +32,9 @@
  * host's catalogue has no entry and therefore degrades to today's behaviour
  * rather than to a blank.
  */
-import type { FeatureConfig } from "../types.js";
+import type { FeatureConfig, FeatureDef } from "../types.js";
+import { featureConfig, featureType } from "../types.js";
+import { stringify } from "../rules.js";
 
 /** The translator shape this module needs — core's `useT()` return value,
  * narrowed so a non-React caller can pass a plain lookup. */
@@ -84,4 +86,37 @@ export function optionLabel(
   const text = typeof raw === "string" && raw.length > 0 ? raw : fallback;
   if (config["translatable_options"] === false) return text;
   return text === fallback ? text : t(text);
+}
+
+/**
+ * One field's current ANSWER as a person reads it — "BMW", "Yes", "2019".
+ *
+ * The other direction from {@link optionLabel}: that one dresses an option
+ * being offered, this one names an answer already given, so a sentence about
+ * ANOTHER field can quote it ("for this generation, from 2018 to 2024"). A
+ * code with no matching option travels verbatim — a vocabulary term's label
+ * lives behind a second wire and is not this function's to invent.
+ */
+export function answerLabel(t: Translate, feature: FeatureDef, value: unknown): string {
+  const config = featureConfig(feature);
+  const codes = stringify(value);
+  if (codes.length === 0) return "";
+  if (featureType(feature) === "bool") {
+    const caption = configLabel(t, config[codes[0] === "true" ? "trueLabel" : "falseLabel"]);
+    return caption.length > 0 ? caption : codes[0] ?? "";
+  }
+  const options = Array.isArray(config["options"]) ? config["options"] : [];
+  return codes
+    .map((code) => {
+      const hit = options.find(
+        (option) =>
+          option !== null &&
+          typeof option === "object" &&
+          String((option as { value?: unknown }).value) === code
+      );
+      return hit === undefined
+        ? code
+        : optionLabel(t, config, (hit as { label?: unknown }).label, code);
+    })
+    .join(", ");
 }

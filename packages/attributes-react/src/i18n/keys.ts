@@ -135,9 +135,21 @@ export const ATTRIBUTES_I18N_KEYS = {
    * `{min}` and `{max}` — the ends of the LIVE set, not the static config
    * bounds. Shown beside the full recovery dropdown. */
   intOutOfAllowed: "attributes.int.out_of_allowed",
+  /**
+   * The same refusal when the bound came from a `limit` rule: it names the
+   * ANSWERS that set it (`{parents}` — the make, the model, the generation),
+   * because "from 2018 to 2024" beside a year box reads as an arbitrary rule
+   * and "for this generation, from 2018 to 2024" is a fact the person can act
+   * on — by changing the year, or by changing the generation.
+   */
+  intOutOfAllowedFor: "attributes.int.out_of_allowed_for",
   /** Accessible names of the two steppers that walk the allowed set. */
   intStepUp: "attributes.int.step_up",
   intStepDown: "attributes.int.step_down",
+  /** The handle that opens the list of allowed values beside the keypad. The
+   * keypad is the primary path; this is how a person who would rather pick
+   * than type gets the same set. */
+  intChooseValue: "attributes.int.choose_value",
   /** The disclosure that holds a long `description`. The help itself is the
    * catalogue's sentence; this is the handle, and it says what is behind it
    * rather than "More". */
@@ -248,8 +260,10 @@ export const attributesI18nBundleEn: I18nDictionary = {
   "attributes.ref.parent_first": "Choose {parent} first.",
   "attributes.baked": "Determined by your other selections.",
   "attributes.int.out_of_allowed": "Outside the allowed range — from {min} to {max}.",
+  "attributes.int.out_of_allowed_for": "For {parents} the value is from {min} to {max}.",
   "attributes.int.step_up": "Next allowed value",
   "attributes.int.step_down": "Previous allowed value",
+  "attributes.int.choose_value": "Choose from the allowed values",
   "attributes.help.more": "How to fill this in",
   "attributes.hint.range": "From {min} to {max}.",
   "attributes.hint.min": "From {min}.",
