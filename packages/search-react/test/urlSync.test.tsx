@@ -12,6 +12,7 @@ function UrlProbe(): ReactElement {
   return (
     <span data-testid="probe">
       {JSON.stringify({
+        type: state.type,
         q: state.q,
         sort: state.sort ?? null,
         brand: state.filters["brand"] ?? [],
@@ -21,7 +22,13 @@ function UrlProbe(): ReactElement {
   );
 }
 
-function probe(): { q: string; sort: string | null; brand: string[]; anchor: string | null } {
+function probe(): {
+  type: string;
+  q: string;
+  sort: string | null;
+  brand: string[];
+  anchor: string | null;
+} {
   return JSON.parse(screen.getByTestId("probe").textContent ?? "{}");
 }
 
@@ -177,7 +184,11 @@ describe("the URL is the state, in both directions (spec §4.2)", () => {
     });
     expect(latest.search).not.toContain("f.brand");
     expect(latest.search).not.toContain("r.price");
-    expect(latest.search).toContain("type=listing");
+    // `type=listing` no longer rides along: it is `<TestHarness>`'s
+    // `defaultType`, so the codec omits it (D343) and the state still reads
+    // "listing" back — the round trip, not the raw string, is the guarantee.
+    expect(latest.search).not.toContain("type=listing");
+    expect(probe().type).toBe("listing");
   });
 });
 

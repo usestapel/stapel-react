@@ -78,7 +78,10 @@ function serverWith(
 
 function paneWith(
   server: ReturnType<typeof mockServer>,
-  extra: { categoryName?: (category: string) => string | undefined } = {}
+  extra: {
+    categoryName?: (category: string) => string | undefined;
+    categoryHref?: (category: string) => string | undefined;
+  } = {}
 ): ReactElement {
   return (
     <TestHarness server={server} initialSearch="type=listing&q=auto">
@@ -219,6 +222,84 @@ describe("the line comes out of the search response, not a second request", () =
         <SearchResultsPane otherCategories />
       </TestHarness>
     );
+
+    await screen.findByTestId("search-other-categories");
+    const entries = screen.getAllByTestId("search-other-category");
+    expect(entries.map((node) => node.dataset["category"])).toEqual(["buses"]);
+  });
+});
+
+describe("categoryHref (D346): a row can be a real link, not only an in-app narrow", () => {
+  const response = () =>
+    searchResponse({
+      facet_meta: { ...searchResponse().facet_meta, categories: CARS },
+    });
+
+  it("without categoryHref, an entry has no href at all", async () => {
+    const server = serverWith(response());
+    render(paneWith(server));
+
+    await screen.findByTestId("search-other-categories");
+    const entry = screen.getAllByTestId("search-other-category")[0] as HTMLElement;
+    expect(entry.hasAttribute("href")).toBe(false);
+  });
+
+  it("resolves an href per row, and leaves an unresolved row in-app-only", async () => {
+    const server = serverWith(response());
+    render(
+      paneWith(server, {
+        categoryHref: (category) => (category === "cars" ? "/c/cars" : undefined),
+      })
+    );
+
+    await screen.findByTestId("search-other-categories");
+    const entries = screen.getAllByTestId("search-other-category");
+    const cars = entries.find((e) => e.dataset["category"] === "cars") as HTMLElement;
+    const buses = entries.find((e) => e.dataset["category"] === "buses") as HTMLElement;
+    expect(cars.getAttribute("href")).toBe("/c/cars");
+    expect(buses.hasAttribute("href")).toBe(false);
+  });
+
+  it("a plain click still narrows the search in place, not a full navigation", async () => {
+    const server = serverWith(response());
+    let search = "";
+    render(
+      <TestHarness
+        server={server}
+        initialSearch="type=listing&q=auto"
+        onAdapter={(adapter) => {
+          search = adapter.search;
+        }}
+      >
+        <SearchResultsPane otherCategories categoryHref={() => "/c/cars"} />
+      </TestHarness>
+    );
+
+    await screen.findByTestId("search-other-categories");
+    const entries = screen.getAllByTestId("search-other-category");
+    const cars = entries.find((e) => e.dataset["category"] === "cars") as HTMLElement;
+    expect(cars.getAttribute("href")).toBe("/c/cars");
+
+    fireEvent.click(cars);
+    await waitFor(() => {
+      expect(new URLSearchParams(search).get("category")).toBe("cars");
+    });
+    // Still the same query — a full navigation to `/c/cars` would have lost it.
+    expect(new URLSearchParams(search).get("q")).toBe("auto");
+  });
+
+  it("a row with no name is still dropped, whether or not it has an href", async () => {
+    const withUnnamed = searchResponse({
+      facet_meta: {
+        ...searchResponse().facet_meta,
+        categories: metaCategories([
+          ["140/145", 9],
+          ["buses", 3],
+        ]),
+      },
+    });
+    const server = serverWith(withUnnamed);
+    render(paneWith(server, { categoryHref: () => "/c/whatever" }));
 
     await screen.findByTestId("search-other-categories");
     const entries = screen.getAllByTestId("search-other-category");

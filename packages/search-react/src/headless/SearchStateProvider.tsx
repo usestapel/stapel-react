@@ -50,9 +50,77 @@ export interface SearchParamsAdapter {
    * `replace` is meaningful, not decorative: a FILTER change pushes (so Back
    * removes exactly the last filter — the spec's §4.2 acceptance), while a
    * correction that the person did not perform replaces. Callers below pass
-   * it deliberately; an adapter that ignores it breaks the Back button.
+   * it deliberately, following {@link DEFAULT_HISTORY_MODE} — see that table
+   * for which change gets which. An adapter that ignores `replace` breaks the
+   * Back button.
    */
   setParams(next: URLSearchParams, options?: { readonly replace?: boolean }): void;
+}
+
+/** One kind of change a control can make to the search — the unit
+ * {@link DEFAULT_HISTORY_MODE} assigns a history mode to. */
+export type SearchHistoryKind =
+  | "text"
+  | "sort"
+  | "category"
+  | "language"
+  | "filter"
+  | "range"
+  | "geo"
+  | "limit"
+  | "clear"
+  | "page"
+  | "patch";
+
+/** `"push"` opens a new history entry; `"replace"` overwrites the current one. */
+export type HistoryMode = "push" | "replace";
+
+/**
+ * THE HISTORY POLICY — one place stating which change gets its own Back step.
+ *
+ * `"push"` is what makes Back undo exactly one thing: choosing or removing a
+ * facet value (`filter`), narrowing or widening a range (`range`), picking a
+ * partition or another category (`category` — `<PartitionChips>` and
+ * `<OtherCategoriesLine>` both go through `setCategory`), applying a place
+ * (`geo`) or a sort (`sort`) are all decisions a person can want to take back
+ * one press at a time, so each one opens its own entry — this is the
+ * behaviour spec §4.2 tests: "press Back and lose exactly the last filter".
+ *
+ * `"replace"` is for a change too fine-grained, or too incidental, to be a
+ * Back-able step of its own:
+ *
+ *  - `text` — one history entry per keystroke would make Back useless long
+ *    before it reached the filter underneath;
+ *  - `limit` — a page-size preference, not a narrowing;
+ *  - `page` — a keyset cursor move is SCROLLING, not a decision. Back from
+ *    page 3 has to land where the visitor WAS (off the pager, before they
+ *    started paging), not quietly on page 2 with the pager still showing —
+ *    the reference behaves the first way, and a mutator that pushed here used
+ *    to make Back page backwards forever instead of leaving the results.
+ *
+ * Every mutator {@link SearchStateBag} ships follows this table; `clear` and
+ * the `patch` escape hatch push by default like any other applied change. A
+ * host that disagrees can still call {@link SearchStateBag.patch} directly
+ * with its own `replace` — the table governs this pair's own controls, not
+ * every possible call.
+ */
+export const DEFAULT_HISTORY_MODE: Readonly<Record<SearchHistoryKind, HistoryMode>> = {
+  text: "replace",
+  sort: "push",
+  category: "push",
+  language: "push",
+  filter: "push",
+  range: "push",
+  geo: "push",
+  limit: "replace",
+  clear: "push",
+  page: "replace",
+  patch: "push",
+};
+
+/** {@link DEFAULT_HISTORY_MODE} as the `setParams` options it produces. */
+function historyOptions(kind: SearchHistoryKind): { readonly replace?: boolean } {
+  return DEFAULT_HISTORY_MODE[kind] === "replace" ? { replace: true } : {};
 }
 
 /** Everything a control needs to read and move the search. */
@@ -292,11 +360,15 @@ export function SearchStateProvider(
   const commit = useCallback(
     (next: SearchQueryState, options?: { readonly replace?: boolean }): void => {
       setParams(
-        writeSearchState(next, new URLSearchParams(search), facetKeys),
+        writeSearchState(next, new URLSearchParams(search), facetKeys, {
+          defaultType,
+          ...(defaultSort !== undefined ? { defaultSort } : {}),
+          ...(defaultLimit !== undefined ? { defaultLimit } : {}),
+        }),
         options
       );
     },
-    [setParams, search, facetKeys]
+    [setParams, search, facetKeys, defaultType, defaultSort, defaultLimit]
   );
 
 
@@ -337,31 +409,38 @@ export function SearchStateProvider(
       geoOffer: state.geo === undefined ? offer : undefined,
       geoIsOffer: sameCenter(state.geo, offer),
 
-      // Typing replaces rather than pushes: one history entry per letter
-      // would make Back useless, which is the control the spec's acceptance
-      // leans on for "Back removes the last filter".
-      setText: (q) => apply(patchSearchState(state, { q }), { replace: true }),
-      setSort: (sort) => apply(patchSearchState(state, { sort })),
-      setCategory: (category) => apply(patchSearchState(state, { category })),
-      setLanguage: (lang) => apply(patchSearchState(state, { lang })),
-      toggleFilter: (slug, value) => apply(toggleFilterValue(state, slug, value)),
-      setFilter: (slug, values) => apply(setFilterValues(state, slug, values)),
-      setRange: (slug, range) => apply(setRangeValue(state, slug, range)),
+      // Every history mode below follows DEFAULT_HISTORY_MODE — see that
+      // table for the reasoning behind which kind pushes and which replaces.
+      setText: (q) => apply(patchSearchState(state, { q }), historyOptions("text")),
+      setSort: (sort) => apply(patchSearchState(state, { sort }), historyOptions("sort")),
+      setCategory: (category) =>
+        apply(patchSearchState(state, { category }), historyOptions("category")),
+      setLanguage: (lang) =>
+        apply(patchSearchState(state, { lang }), historyOptions("language")),
+      toggleFilter: (slug, value) =>
+        apply(toggleFilterValue(state, slug, value), historyOptions("filter")),
+      setFilter: (slug, values) =>
+        apply(setFilterValues(state, slug, values), historyOptions("filter")),
+      setRange: (slug, range) =>
+        apply(setRangeValue(state, slug, range), historyOptions("range")),
       setGeo: (geo) => {
-        apply(patchSearchState(state, { geo }));
+        apply(patchSearchState(state, { geo }), historyOptions("geo"));
       },
       acceptGeoOffer: () => {
         if (offer === undefined || state.geo !== undefined) return;
         // A PUSH, like any other filter the person applies: Back takes the
         // narrowing off again, which is the same promise every chip makes.
-        apply(patchSearchState(state, { geo: offer }));
+        apply(patchSearchState(state, { geo: offer }), historyOptions("geo"));
       },
-      // A page size is a preference, not a step through the results.
-      setLimit: (limit) => apply(patchSearchState(state, { limit }), { replace: true }),
-      clearAll: () => apply(clearFilters(state)),
+      setLimit: (limit) =>
+        apply(patchSearchState(state, { limit }), historyOptions("limit")),
+      clearAll: () => apply(clearFilters(state), historyOptions("clear")),
+      // A keyset move REPLACES: it is scrolling, not a decision, and a push
+      // here used to make Back page backwards forever instead of leaving the
+      // results where the visitor actually was.
       goToAnchor: (anchor, direction) =>
-        apply(patchSearchState(state, { anchor, direction })),
-      patch: (patch) => apply(patchSearchState(state, patch)),
+        apply(patchSearchState(state, { anchor, direction }), historyOptions("page")),
+      patch: (patch) => apply(patchSearchState(state, patch), historyOptions("patch")),
     };
   }, [parsed, commit, geoOffer]);
 

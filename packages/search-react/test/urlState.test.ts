@@ -197,6 +197,44 @@ describe("clear-all keeps what identifies the search, drops what constrains it",
   });
 });
 
+describe("a value equal to its default is omitted from the address (D343)", () => {
+  const DEFAULTS = { defaultType: "listing", defaultSort: "relevance", defaultLimit: 24 };
+
+  it("omits type, sort and limit when they equal the default", () => {
+    const { state } = parse("type=listing&sort=relevance&limit=24");
+    const written = writeSearchState(state, undefined, undefined, DEFAULTS);
+    expect(written.has("type")).toBe(false);
+    expect(written.has("sort")).toBe(false);
+    expect(written.has("limit")).toBe(false);
+  });
+
+  it("still writes them when they differ from the default", () => {
+    const { state } = parse("type=car&sort=price_asc&limit=48");
+    const written = writeSearchState(state, undefined, undefined, DEFAULTS);
+    expect(written.get("type")).toBe("car");
+    expect(written.get("sort")).toBe("price_asc");
+    expect(written.get("limit")).toBe("48");
+  });
+
+  it("still reads the default back when the address omits the parameter", () => {
+    const { state, issues } = parseSearchState(new URLSearchParams(""), DEFAULTS);
+    expect(issues).toEqual([]);
+    expect(state.type).toBe("listing");
+    expect(state.sort).toBe("relevance");
+    expect(state.limit).toBe(24);
+  });
+
+  it("without defaults, writes every one of the three exactly as before", () => {
+    // Backward compatible: a caller that never passes `defaults` sees no
+    // change in behaviour.
+    const { state } = parse("type=listing&sort=relevance&limit=24");
+    const written = writeSearchState(state);
+    expect(written.get("type")).toBe("listing");
+    expect(written.get("sort")).toBe("relevance");
+    expect(written.get("limit")).toBe("24");
+  });
+});
+
 describe("state → wire query", () => {
   it("emits the backend's own parameter names and shapes", () => {
     const { state } = parse(

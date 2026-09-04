@@ -47,7 +47,10 @@ import { DegradationNotice } from "./DegradationNotice.js";
 import { EmptyExits } from "./EmptyExits.js";
 import type { DegradationNoticeVariant } from "./DegradationNotice.js";
 import { OtherCategoriesLine } from "./OtherCategoriesLine.js";
-import type { OtherCategoryNamer } from "./OtherCategoriesLine.js";
+import type {
+  OtherCategoryHrefResolver,
+  OtherCategoryNamer,
+} from "./OtherCategoriesLine.js";
 import { SearchResultCard } from "./SearchResultCard.js";
 import type { SearchCardRenderer } from "./SearchResultCard.js";
 import type { SearchResultsLayout } from "./ViewSwitch.js";
@@ -277,6 +280,9 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
   /** What a category id path is CALLED, for the line above — see
    * {@link OtherCategoriesLineProps.categoryName}. */
   readonly categoryName?: OtherCategoryNamer;
+  /** A real address for a category id path, for the line above — see
+   * {@link OtherCategoriesLineProps.categoryHref}. */
+  readonly categoryHref?: OtherCategoryHrefResolver;
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -399,6 +405,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                 {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}
                 {...(props.categoryName !== undefined
                   ? { categoryName: props.categoryName }
+                  : {})}
+                {...(props.categoryHref !== undefined
+                  ? { categoryHref: props.categoryHref }
                   : {})}
               />
             )}

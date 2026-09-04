@@ -58,6 +58,7 @@ export {
 } from "./OtherCategoriesLine.js";
 export type {
   OtherCategoriesLineProps,
+  OtherCategoryHrefResolver,
   OtherCategoryNamer,
 } from "./OtherCategoriesLine.js";
 

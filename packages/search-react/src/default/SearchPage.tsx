@@ -86,7 +86,10 @@ import { FilterChips } from "./FilterChips.js";
 import { LocationSummaryLine } from "./LocationSummaryLine.js";
 import { PageSizeSelect } from "./PageSizeSelect.js";
 import { SearchBox } from "./SearchBox.js";
-import type { OtherCategoryNamer } from "./OtherCategoriesLine.js";
+import type {
+  OtherCategoryHrefResolver,
+  OtherCategoryNamer,
+} from "./OtherCategoriesLine.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
 import type { SearchResultsWrapper } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
@@ -367,6 +370,9 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   /** What a category id path is CALLED, for the line above. The same question
    * `categoryLabel` answers for the chip, asked once per row. */
   readonly categoryName?: OtherCategoryNamer;
+  /** A real address for a category id path, for the line above — see
+   * {@link OtherCategoriesLineProps.categoryHref}. */
+  readonly categoryHref?: OtherCategoryHrefResolver;
   /** What this surface calls its result list. See
    * {@link SearchResultsPaneProps.heading}. */
   readonly resultsHeading?: ReactNode;
@@ -468,6 +474,7 @@ interface SearchPageBodyProps {
   readonly appliedChips?: boolean | "desktop";
   readonly otherCategories?: boolean;
   readonly categoryName?: OtherCategoryNamer;
+  readonly categoryHref?: OtherCategoryHrefResolver;
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly filtersLayout?: SearchFiltersLayout;
@@ -659,6 +666,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(props.categoryName !== undefined
         ? { categoryName: props.categoryName }
         : {})}
+      {...(props.categoryHref !== undefined
+        ? { categoryHref: props.categoryHref }
+        : {})}
       {...(props.resultsHeading !== undefined
         ? { heading: props.resultsHeading }
         : {})}
@@ -838,6 +848,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     appliedChips,
     otherCategories,
     categoryName,
+    categoryHref,
     resultsHeading,
     degradationNotice,
     filtersLayout,
@@ -879,6 +890,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(appliedChips !== undefined ? { appliedChips } : {})}
           {...(otherCategories !== undefined ? { otherCategories } : {})}
           {...(categoryName !== undefined ? { categoryName } : {})}
+          {...(categoryHref !== undefined ? { categoryHref } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}

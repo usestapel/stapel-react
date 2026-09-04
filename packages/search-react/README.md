@@ -78,6 +78,30 @@ ordered candidate set; carried across a filter change it either gets refused or,
 worse, honoured against a different set. `patchSearchState` drops it for every
 change that is not itself a page move, so no call site has to remember.
 
+**A value equal to its default never rides along.** `type`, `sort` and `limit`
+are written to the address only when they DIFFER from the default the host
+declared (`defaultType`, `defaultSort`, `defaultLimit`) — a catalogue with one
+doc type no longer carries `?type=listing` on every single link. Reading is
+unaffected: `parseSearchState` fills the same default whether or not the
+parameter is there, so the round trip is exact either way.
+`writeSearchState(state, base, keys, { defaultType, defaultSort, defaultLimit })`
+takes the same three, for a host composing its own address.
+
+**Which change gets its own Back step.** A press has to be undoable one filter
+at a time, and that only works if the change that applied the filter opened its
+own history entry — `DEFAULT_HISTORY_MODE` is the one table stating which
+change kind does:
+
+| Change | Mode | Why |
+|---|---|---|
+| a facet value, a range, a partition/category, geo, sort | `push` | each is a decision worth its own Back step (spec §4.2) |
+| the search box | `replace` | one history entry per keystroke would make Back useless |
+| a keyset page move | `replace` | scrolling, not a decision — Back from page 3 leaves the results, it does not page backwards forever |
+| a page size | `replace` | a preference, not a narrowing |
+
+Every mutator `useSearchState()` returns follows this table; a host calling
+`patch()` directly still chooses its own `replace`.
+
 **Short feature keys.** The importer's type suffix carries nothing a reader can
 act on — `f.make_ref_select=toyota` says *make* once and *how the column is
 stored* once — so the address uses the short form the ANSWER states:
@@ -382,6 +406,16 @@ the chip. Without it the line still draws every row the server itself named (a
 `/suggest` answer already in the cache names them for free) and every path whose
 last segment is a slug; a row nothing can name is dropped rather than printed as
 `163`.
+
+`categoryHref` is what makes a row a real link. Without it every entry is a
+`<button>` — no address to hover, no "open in a new tab", nothing a crawler can
+follow. Pass it and a row it can resolve becomes a real `<a href>`: a plain
+click still narrows THIS search in place (a full navigation would answer a
+different query than the one the count beside the name was counted for), while
+a modified click — the browser's own "open in new tab/window" — is left alone
+and follows the address like any other link. A row `categoryHref` returns
+nothing for keeps the in-app-only behaviour; whether a row is DRAWN AT ALL still
+depends only on `categoryName`, exactly as without this prop.
 
 On the phone surface the cap halves (8 → 4) and the collapsed line is clamped to
 two rows besides, because it is name LENGTH and not entry count that turns a line

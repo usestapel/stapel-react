@@ -463,6 +463,26 @@ function optional<K extends string, V>(
 }
 
 /**
+ * The defaults {@link writeSearchState} may omit — the other half of
+ * {@link ParseSearchStateOptions}.
+ *
+ * A value equal to its default is written back by {@link parseSearchState}
+ * whether or not the URL states it, so writing it too is pure noise: it is
+ * how `?type=listing` ended up in every address on a host with exactly one
+ * doc type, and how a page-size default rode along in a link that never
+ * touched it. Omitting it costs nothing on the read side — the same default
+ * fills the gap — and the address stops asserting a fact nobody chose.
+ */
+export interface WriteSearchStateDefaults {
+  /** Matches {@link ParseSearchStateOptions.defaultType}. */
+  readonly defaultType?: string;
+  /** Matches {@link ParseSearchStateOptions.defaultSort}. */
+  readonly defaultSort?: string;
+  /** Matches {@link ParseSearchStateOptions.defaultLimit}. */
+  readonly defaultLimit?: number;
+}
+
+/**
  * State → URL.
  *
  * `base` is the CURRENT query string: every parameter this codec does not own
@@ -473,11 +493,18 @@ function optional<K extends string, V>(
  * `keys` is the answer's short-key map: a filter is written as its
  * `url_key` when the answer states one and as its slug otherwise, so the two
  * halves of a round trip agree without either side chopping at a string.
+ *
+ * `defaults` is what lets `type`, `sort` and `limit` disappear from the
+ * address when they equal the value {@link parseSearchState} would have
+ * filled in anyway — see {@link WriteSearchStateDefaults}. Omitted, nothing
+ * changes: every one of the three is written whenever the state carries it,
+ * exactly as before this existed.
  */
 export function writeSearchState(
   state: SearchQueryState,
   base?: URLSearchParams,
-  keys?: FacetKeyMap
+  keys?: FacetKeyMap,
+  defaults?: WriteSearchStateDefaults
 ): URLSearchParams {
   const next = new URLSearchParams();
 
@@ -488,7 +515,7 @@ export function writeSearchState(
     }
   }
 
-  next.set(SEARCH_PARAM.type, state.type);
+  if (state.type !== defaults?.defaultType) next.set(SEARCH_PARAM.type, state.type);
   if (state.q.length > 0) next.set(SEARCH_PARAM.q, state.q);
   if (state.lang !== undefined) next.set(SEARCH_PARAM.lang, state.lang);
   if (state.category !== undefined) next.set(SEARCH_PARAM.category, state.category);
@@ -523,7 +550,9 @@ export function writeSearchState(
     }
   }
 
-  if (state.sort !== undefined) next.set(SEARCH_PARAM.sort, state.sort);
+  if (state.sort !== undefined && state.sort !== defaults?.defaultSort) {
+    next.set(SEARCH_PARAM.sort, state.sort);
+  }
   if (state.facets !== undefined) {
     next.set(
       SEARCH_PARAM.facets,
@@ -532,7 +561,9 @@ export function writeSearchState(
   }
   if (state.anchor !== undefined) next.set(SEARCH_PARAM.anchor, state.anchor);
   if (state.direction !== undefined) next.set(SEARCH_PARAM.direction, state.direction);
-  if (state.limit !== undefined) next.set(SEARCH_PARAM.limit, String(state.limit));
+  if (state.limit !== undefined && state.limit !== defaults?.defaultLimit) {
+    next.set(SEARCH_PARAM.limit, String(state.limit));
+  }
 
   return next;
 }

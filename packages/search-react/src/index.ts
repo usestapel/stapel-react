@@ -102,6 +102,7 @@ export type {
   SearchStateIssue,
   SearchStateIssueCode,
   SearchStatePatch,
+  WriteSearchStateDefaults,
 } from "./state/urlState.js";
 
 export {
@@ -185,12 +186,15 @@ export { useRankingDisclosure, useSearchQuery, useSuggest } from "./model/querie
 // ── headless (renderless components) ─────────────────────────────────────────
 export { SearchProvider } from "./headless/SearchProvider.js";
 export {
+  DEFAULT_HISTORY_MODE,
   SearchStateProvider,
   useFacetKeys,
   usePublishFacetKeys,
   useSearchState,
 } from "./headless/SearchStateProvider.js";
 export type {
+  HistoryMode,
+  SearchHistoryKind,
   SearchParamsAdapter,
   SearchStateBag,
   SearchStateProviderProps,

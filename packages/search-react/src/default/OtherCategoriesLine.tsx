@@ -30,9 +30,18 @@
  * show a different, larger number, so the caption would be a lie one click
  * later. Each entry therefore writes the `category` parameter of the search
  * already on screen, keeping the query: press "Cars 12" and twelve results
- * follow. That is a state change, so each entry is a real `<button>` and not
- * an anchor.
+ * follow.
  *
+ * Without {@link OtherCategoriesLineProps.categoryHref} that state change is
+ * ALL an entry does, so it is a plain `<button>` with no `href` — no address
+ * to hover, no "open in a new tab", nothing a crawler can follow. `categoryHref`
+ * turns the entry into a real `<a href>` without giving up the in-app
+ * narrowing: a plain click still rewrites the query in place (a full
+ * navigation would answer a different question than the one the count was
+ * counted for), while a modified click — the browser's own "open in a new
+ * tab/window" — is left alone and follows the address like any other link.
+ *
+
  * ## Two rows on a phone, at most
  *
  * The cap is halved on the sheet surface ({@link OTHER_CATEGORIES_PHONE_LIMIT}),
@@ -70,6 +79,10 @@ export const OTHER_CATEGORIES_SLOT_MIN_HEIGHT = 24;
  * drops the row rather than printing a number at a person. */
 export type OtherCategoryNamer = (category: string) => string | undefined;
 
+/** Resolves an id path to a real, navigable address. Returning `undefined`
+ * leaves the row's in-app narrowing as the only way to press it. */
+export type OtherCategoryHrefResolver = (category: string) => string | undefined;
+
 export interface OtherCategoriesLineProps {
   /** How many entries before the fold (default {@link OTHER_CATEGORIES_LIMIT}). */
   readonly limit?: number;
@@ -86,6 +99,24 @@ export interface OtherCategoriesLineProps {
    * slug — and drops the rest, because "163 · 149" is not a sentence.
    */
   readonly categoryName?: OtherCategoryNamer;
+  /**
+   * A real address for a category id path, when the host has one — a
+   * category page's own URL, most usefully.
+   *
+   * Without it every entry is a `<button>` with no `href`: it narrows the
+   * search on click, and nothing else — no "open in a new tab", no address
+   * to hover, nothing a crawler can follow. With it the entry becomes a real
+   * `<a href>` (a middle-click, a ctrl/cmd-click, "open in new tab" all work
+   * as they do for any link), while a plain click still narrows THIS search
+   * in place rather than leaving it — the whole reason the count beside a
+   * name is trustworthy is that it is a count for the query on screen, and a
+   * full navigation to the host's address would be answering a different
+   * question than the one the click asked.
+   *
+   * A row this returns nothing for keeps the in-app-only behaviour; the row
+   * is dropped only when it has no NAME, exactly as without this prop.
+   */
+  readonly categoryHref?: OtherCategoryHrefResolver;
   /** Skip the read entirely — mirrors `<SearchResultsPane enabled>`. */
   readonly enabled?: boolean;
 }
@@ -130,6 +161,7 @@ export function otherCategoriesCss(): string {
 interface Entry {
   readonly row: OtherCategoryRow;
   readonly name: string;
+  readonly href?: string;
 }
 
 export function OtherCategoriesLine(
@@ -152,7 +184,9 @@ export function OtherCategoriesLine(
   for (const row of bag.rows) {
     const name =
       props.categoryName?.(row.category) ?? row.name ?? otherCategoryLeaf(row.category);
-    if (name !== undefined) entries.push({ row, name });
+    if (name === undefined) continue;
+    const href = props.categoryHref?.(row.category);
+    entries.push(href !== undefined ? { row, name, href } : { row, name });
   }
 
   const shown = expanded ? entries : entries.slice(0, limit);
@@ -201,12 +235,26 @@ export function OtherCategoriesLine(
             style={ENTRY}
             data-testid="search-other-category"
             data-category={entry.row.category}
+            {...(entry.href !== undefined ? { href: entry.href } : {})}
             data-analytics="none"
             data-analytics-reason="narrowing a search is a read, not a flow step"
             aria-label={t(SEARCH_I18N_KEYS.otherCategoriesNarrow, {
               name: entry.name,
             })}
-            onClick={() => {
+            onClick={(event) => {
+              // A real `href` still narrows THIS search in place on a plain
+              // click — a full navigation would answer a different query
+              // than the one the count beside the name was counted for.
+              // Anything asking for a new tab/window (a modified click) is
+              // left to the browser, which is what makes the address real
+              // rather than decorative.
+              if (
+                entry.href !== undefined &&
+                (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+              ) {
+                return;
+              }
+              event.preventDefault();
               setCategory(entry.row.category);
             }}
           >
