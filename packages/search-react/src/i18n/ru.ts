@@ -100,14 +100,6 @@ export const searchI18nBundleRu: I18nDictionary = {
     "Счётчики приблизительные — подходящих объявлений слишком много, чтобы пересчитать все.",
   "search.facets.skipped":
     "Эти фильтры для текущего поиска не посчитаны: {slugs}",
-  "search.facets.withheld.one":
-    "Ещё {count} фильтр подходит слишком малой части результатов",
-  "search.facets.withheld.few":
-    "Ещё {count} фильтра подходят слишком малой части результатов",
-  "search.facets.withheld.many":
-    "Ещё {count} фильтров подходят слишком малой части результатов",
-  "search.facets.withheld.other":
-    "Ещё {count} фильтра подходят слишком малой части результатов",
   "search.facets.not_counted": "не посчитано",
   "search.facets.drill_down_hint":
     "Рядом с каждым значением — сколько будет, если выбрать его вместо текущего.",

@@ -205,11 +205,14 @@ rail that reshuffles as you tick is not.
 orderFacetGroupsBySchema({ groups, categoryFeatures, pinned })
 ```
 
-Past `visibleGroups` (default `FACET_VISIBLE_GROUPS`, 8) the tail folds under
-one **All filters (K)** control — except a group you have already chosen a
-value in, which is never folded away: the control that removes a filter is the
-one you came back for. The phone sheet passes `visibleGroups={null}`; a surface
-devoted to filtering has the room.
+Past `visibleGroups` the tail folds under one **All filters (K)** control —
+except a group you have already chosen a value in, which is never folded
+away: the control that removes a filter is the one you came back for.
+Defaulted per layout through `<SearchPage>`: 16 in the desktop column
+(`FACET_VISIBLE_GROUPS`, `<FacetPanelPane>`'s own default too), 8 in the
+phone sheet — a surface already behind one tap costs less to fold again than
+a column sitting on screen the whole time. Either number is a prop away from
+being something else.
 
 `facetGroupIsDrawable(group)` is the one rule the rail and the chip row share
 for "is there anything to draw here", and the question it asks is **evidence**:

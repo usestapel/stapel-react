@@ -181,15 +181,21 @@ export const FACET_OPEN_GROUPS = 5;
 export const FACET_SEARCH_THRESHOLD = 6;
 
 /**
- * How many groups the rail draws before the rest go behind one control.
+ * How many groups the rail draws before the rest go behind one control. This
+ * is `<FacetPanelPane>`'s own default, for the desktop COLUMN — `<SearchPage>`
+ * passes 8 for the phone sheet instead (a surface reached through a modal
+ * already costs a tap; folding its tail behind a second one is not the same
+ * saving as folding a column that sits on screen the whole time).
  *
- * The reference classified shows a make, a price, a year and a handful of
- * body axes, and then the word "all filters" — eight is the count that fills
- * a 900px rail once the partition row and the price have taken their share,
- * and it is the point past which a person is scanning rather than reading.
- * The tail is not hidden: `facetsAllFilters` names how many are in it.
+ * The reference classified inlines roughly two dozen groups in the desktop
+ * rail before anything folds — eight, this pair's number for three releases,
+ * turned a make, a price and a year into the whole visible rail with a
+ * "all filters" button under them. Sixteen is not a copy of the reference's
+ * count; it is the point past which the tail is genuinely a scan rather than
+ * a read, on the rail widths this pair is measured against. The tail is
+ * never hidden: `facetsAllFilters` names how many are in it.
  */
-export const FACET_VISIBLE_GROUPS = 8;
+export const FACET_VISIBLE_GROUPS = 16;
 
 /** What a host's category control is handed. */
 export interface CategoryFilterSlotProps {
@@ -484,33 +490,43 @@ function skippedNames(
 
 /**
  * The empty arm of the panel — the ONE place "this search offers no filters"
- * may be said, and the two answers that forbid it (D175).
+ * may be said, and the three things that forbid it (D175, amended).
  *
- * A group list of zero is not the same claim. `withheld` names groups the
- * counter counted and then held back for describing too little of the result
- * set: they exist, so the honest line is how many. `planUnavailable` means
- * the server could not work a plan out at all — the reader hears that from
- * `<DegradationNotice>`, and this arm's only job is to not contradict it.
+ * A group list of zero is not "nothing on the rail". `withheld` names groups
+ * the counter counted and then held back for describing too little of the
+ * result set: they exist, so this is not the search's own claim to make.
+ * `planUnavailable` means the server could not work a plan out at all — the
+ * reader hears that from `<DegradationNotice>`, and this arm's only job is to
+ * not contradict it. `hasOtherDrawable` means the rail is already drawing
+ * something beside the facet groups — a price row, a location constraint, a
+ * partition — and "no filters" would be false the moment any of those is on
+ * screen.
+ *
+ * This USED to be two sentences: `facetsEmpty` for the last case and
+ * `facetsWithheld` — "N filters apply to too few of these results" — for the
+ * first. A reference catalogue checked against the same case says NEITHER:
+ * it leaves the filters visible with low counts and explains nothing. So
+ * `withheld` (and, the same way, `skipped`) now suppress this arm instead of
+ * replacing its text — the arm says nothing, and `data-withheld` is a test
+ * hook a shopper never reads.
  *
  * A COMPONENT rather than a ternary inline in `empty=`, because `LoadList`
  * reads a nullish `empty` as "no arm given" and draws its own default, which
  * is the sentence again. An element that renders `null` says nothing; a
  * `null` prop says it louder.
  */
-function FacetsEmptyArm(props: { readonly bag: FacetPanelBag }): ReactElement | null {
+function FacetsEmptyArm(props: {
+  readonly bag: FacetPanelBag;
+  /** Something else on the rail already makes "no filters" false. */
+  readonly hasOtherDrawable: boolean;
+}): ReactElement | null {
   const t = useT();
-  const tPlural = useTPlural();
   const withheld = props.bag.withheld.length;
-  if (withheld > 0) {
-    return (
-      <EmptyState
-        compact
-        title={tPlural(SEARCH_I18N_KEYS.facetsWithheld, { count: withheld })}
-        testId="facets-withheld"
-      />
-    );
+  if (withheld > 0 || props.bag.planUnavailable || props.hasOtherDrawable) {
+    return withheld > 0 ? (
+      <span hidden data-testid="facets-withheld" data-withheld={withheld} />
+    ) : null;
   }
-  if (props.bag.planUnavailable) return null;
   return (
     <EmptyState compact title={t(SEARCH_I18N_KEYS.facetsEmpty)} testId="facets-empty" />
   );
@@ -571,6 +587,16 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
           // classified catalogue means parcel weight and wholesale packing.
           const coreRanges = ranges.filter((group) => group.core);
           const attributeRanges = ranges.filter((group) => !group.core);
+          // Is there anything on this rail besides the facet groups? A price
+          // row, an applied location, or the partition slot all make "this
+          // search offers no filters" false even when the group list itself
+          // is empty. `state.geo` rather than a rendered control: the place
+          // and its radius are drawn by `<LocationSummaryLine>` beside this
+          // panel, not inside it, but the constraint is still on the rail.
+          const hasOtherDrawable =
+            props.partition !== undefined ||
+            coreRanges.length > 0 ||
+            state.geo !== undefined;
           return (
           <Flex vertical gap={spacing[3]} data-testid="search-facets">
             {/* In a 280px rail this row laid the word "Filters" out in a
@@ -678,7 +704,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               state={bag.state}
               testId="facets"
               skeletonRows={4}
-              empty={<FacetsEmptyArm bag={bag} />}
+              empty={<FacetsEmptyArm bag={bag} hasOtherDrawable={hasOtherDrawable} />}
               failed={(error) => (
                 <ErrorAlert
                   testId="facets-failed"

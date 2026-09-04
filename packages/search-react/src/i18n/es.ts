@@ -75,10 +75,6 @@ export const searchI18nBundleEs: I18nDictionary = {
     "Los recuentos son aproximados: había demasiados candidatos para contarlos todos.",
   "search.facets.skipped":
     "Estos filtros no se contaron para esta búsqueda: {slugs}",
-  "search.facets.withheld.one":
-    "{count} filtro se aplica a muy pocos de estos resultados",
-  "search.facets.withheld.other":
-    "{count} filtros se aplican a muy pocos de estos resultados",
   "search.facets.not_counted": "sin contar",
   "search.facets.drill_down_hint":
     "Cada recuento es lo que obtendrías eligiendo ese valor en lugar del actual.",

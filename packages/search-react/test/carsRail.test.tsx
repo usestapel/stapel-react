@@ -23,7 +23,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import {
-  FACET_VISIBLE_GROUPS,
   FacetPanelPane,
   PartitionChips,
   RAIL_CLASS,
@@ -266,12 +265,16 @@ describe("the rail is in SCHEMA order, required first", () => {
   });
 
   it("draws the required axes first in the panel and folds the tail", async () => {
-    await mountCarsRail();
+    // An explicit override, not FACET_VISIBLE_GROUPS: this fixture's schema
+    // only ever draws a dozen groups, and the point of this test is the
+    // ORDER and the fold mechanics, not pinning the default's exact value
+    // (see visibleGroupsDefault.test.tsx for that).
+    await mountCarsRail(LIVE_CARS_FEATURES, { visibleGroups: 8 });
     const headings = [
       ...document.querySelectorAll<HTMLElement>("[data-testid^='facet-group-']"),
     ].map((node) => node.getAttribute("data-testid"));
     expect(headings[0]).toBe("facet-group-make_ref_select");
-    expect(headings.length).toBe(FACET_VISIBLE_GROUPS);
+    expect(headings.length).toBe(8);
     const more = screen.getByTestId("facets-all-filters");
     expect(more.textContent).toContain("All filters");
     fireEvent.click(more);

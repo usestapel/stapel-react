@@ -277,6 +277,17 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * page rather than the pane could not get the field at all.
    */
   readonly dictionaryMode?: "field" | "inline";
+  /**
+   * How many groups the rail draws before the rest fold behind "All filters"
+   * — see {@link FacetPanelPaneProps.visibleGroups}.
+   *
+   * Defaulted PER LAYOUT, the same reasoning as `dictionaryMode`: 16 in the
+   * desktop COLUMN, where the rail sits on screen the whole time and the tail
+   * is a genuine scroll away; 8 in the phone SHEET, which is already a modal
+   * a person paid a tap to open — folding its tail behind a second control
+   * saves less than folding a column's does. Set it to override either.
+   */
+  readonly visibleGroups?: number | null;
   /** Print the engine's list of uncounted facet slugs in the filter panel.
    * Default `false` — see {@link FacetPanelPaneProps.skippedNotice}. */
   readonly skippedNotice?: boolean;
@@ -439,6 +450,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
   readonly dictionaryMode?: "field" | "inline";
+  readonly visibleGroups?: number | null;
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly renderEmptyExits?: () => ReactNode;
   readonly locale?: string;
@@ -533,11 +545,12 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const filtersEmpty =
     facets.state.status === "ready" &&
     facets.state.data.length === 0 &&
-    // Zero groups is not zero filters: `withheld` names groups the server
-    // counted and held back for covering too little of the result set, and
-    // the panel's job is to say how many (D175). Skipping the column would
-    // put that sentence nowhere.
-    facets.withheld.length === 0 &&
+    // `withheld` (groups the server counted and held back for covering too
+    // little of the result set) used to keep the column open so the panel
+    // could name how many. It no longer prints that sentence at all (D175,
+    // amended) — a reference catalogue says nothing in this case either — so
+    // zero groups plus zero of everything else below really is nothing to
+    // show.
     facets.activeFilters === 0 &&
     ranges.length === 0 &&
     state.category === undefined &&
@@ -568,6 +581,16 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
               // pinned to the port's floor sat on top of the last groups.
               { footerBar: "static" as const })}
           dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "inline" : "field")}
+          // `??` would treat an explicit `null` ("never fold") the same as
+          // "not set": `visibleGroups` uses `null` as a real value, unlike
+          // `dictionaryMode` above, so only `undefined` falls through.
+          visibleGroups={
+            props.visibleGroups !== undefined
+              ? props.visibleGroups
+              : layout === "sheet"
+                ? 8
+                : 16
+          }
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(props.renderEmptyExits !== undefined
             ? { renderEmptyExits: props.renderEmptyExits }
@@ -828,6 +851,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     resultsAction,
     resultsHeadingLevel,
     dictionaryMode,
+    visibleGroups,
     mode,
     ...parseOptions
   } = props;
@@ -838,6 +862,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
+          {...(visibleGroups !== undefined ? { visibleGroups } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}

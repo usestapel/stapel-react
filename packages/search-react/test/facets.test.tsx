@@ -391,13 +391,20 @@ describe("the panel renders the server's honesty flags", () => {
 });
 
 /**
- * D175 — "this search offers no filters" over 46 phones that all carry a
- * manufacturer. The backend half is `facet_meta.plan: "evidence"`; this is
- * the half that decides whether the sentence is still allowed to be printed.
- * `search.facets.empty` is a CLAIM about the answer, and there are two ways
- * for it to be false while the group list is empty: the server counted
- * groups and held them back (`withheld`), or it could not work a plan out at
- * all (`degraded: ["facet_plan_evidence"]`).
+ * D175, amended — "this search offers no filters" over 46 phones that all
+ * carry a manufacturer. The backend half is `facet_meta.plan: "evidence"`;
+ * this is the half that decides whether the sentence is still allowed to be
+ * printed. `search.facets.empty` is a CLAIM about the answer, and it is false
+ * whenever the server counted groups and held them back (`withheld`), could
+ * not work a plan out at all (`degraded: ["facet_plan_evidence"]`), or the
+ * rail is already drawing something else (price, location, partition).
+ *
+ * The arm used to pick a SECOND sentence for the `withheld` case ("N filters
+ * apply to too few of these results"). A reference catalogue checked against
+ * the same shape says neither sentence — it leaves the filters visible with
+ * low counts. So this pair now says NOTHING for `withheld`, the same silence
+ * as every other case that is not genuinely empty; `data-withheld` is a test
+ * hook, not text a shopper reads.
  */
 describe("«no filters» is a claim, and the answer can contradict it", () => {
   const META_BASE = {
@@ -412,7 +419,7 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
     categories: [],
   };
 
-  it("says how many filters were left out, never «no filters»", async () => {
+  it("says nothing — not even a second sentence — when groups were withheld", async () => {
     const server = mockServer({
       "/query": {
         body: searchResponse({
@@ -433,12 +440,15 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
         <FacetPanelPane />
       </TestHarness>
     );
+    // The count is a TEST HOOK, not a sentence: two groups were held back for
+    // covering too little of the result set, and the panel says so nowhere a
+    // shopper reads — no text, just the attribute.
     await waitFor(() => {
-      expect(screen.getByTestId("facets-withheld")).toBeTruthy();
+      expect(screen.getByTestId("facets-withheld").getAttribute("data-withheld")).toBe(
+        "2"
+      );
     });
-    // The count is the whole point: two filters exist and describe too little
-    // of this result set. Saying "none" is the lie D175 was.
-    expect(screen.getByTestId("facets-withheld").textContent).toContain("2");
+    expect(screen.getByTestId("facets-withheld").textContent).toBe("");
     expect(screen.queryByTestId("facets-empty")).toBeNull();
   });
 
@@ -457,6 +467,69 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
       expect(screen.getByTestId("facets-empty")).toBeTruthy();
     });
     expect(screen.queryByTestId("facets-withheld")).toBeNull();
+  });
+
+  it("says nothing when withheld groups sit beside a price row already on the rail", async () => {
+    // The rail is not empty just because the FACET GROUPS came back empty —
+    // a price control (core_ranges) is already something to draw, so this is
+    // not the search's "no filters" moment at all, not even the withheld one.
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({
+          facets: {},
+          facet_meta: {
+            ...META_BASE,
+            core_ranges: ["price"],
+            withheld: [{ slug: "manufacturer", coverage: 4, candidates: 46 }],
+          },
+        }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-ranges")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("facets-empty")).toBeNull();
+    // The hook still fires — a host composing its own copy can still read it.
+    expect(screen.getByTestId("facets-withheld").getAttribute("data-withheld")).toBe("1");
+  });
+
+  it("draws no empty state when the rail already shows the partition", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({ facets: {}, facet_meta: { ...META_BASE, candidates: 0 } }),
+      },
+    });
+    render(
+      <TestHarness server={server}>
+        <FacetPanelPane partition={<div data-testid="my-partition">all / used / new</div>} />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("my-partition")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("facets-empty")).toBeNull();
+  });
+
+  it("draws no empty state when a location constraint is already applied", async () => {
+    const server = mockServer({
+      "/query": {
+        body: searchResponse({ facets: {}, facet_meta: { ...META_BASE, candidates: 0 } }),
+      },
+    });
+    render(
+      <TestHarness server={server} initialSearch="type=listing&lat=55.75&lon=37.62">
+        <FacetPanelPane />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-facets")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("facets-empty")).toBeNull();
   });
 
   it("claims nothing when the server could not work the plan out", async () => {

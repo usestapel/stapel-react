@@ -111,22 +111,24 @@ export const SEARCH_I18N_KEYS = {
   facetsTitle: "search.facets.title",
   facetsLoading: "search.facets.loading",
   facetsLoadFailed: "search.facets.load_failed",
+  /**
+   * "This search offers no filters" — the ONE sentence the empty arm may
+   * print, and only when the rail draws nothing else either (no price, no
+   * location, no partition — see `FacetsEmptyArm`'s `hasOtherDrawable`).
+   *
+   * D175, amended: this used to be one of TWO sentences, the other keyed on
+   * `facet_meta.withheld` ("N filters apply to too few of these results").
+   * A reference catalogue was checked for the same case and says neither —
+   * it leaves the filters visible with low counts and no explanation of why
+   * some are thin. `withheld` (and `skipped`) now suppress this sentence
+   * instead of replacing it; a test that needs the count reads
+   * `data-withheld` on the empty arm, which carries no text.
+   */
   facetsEmpty: "search.facets.empty",
   facetsClear: "search.facets.clear",
   facetsClearAll: "search.facets.clear_all",
   facetsApproximate: "search.facets.approximate",
   facetsSkipped: "search.facets.skipped",
-  /**
-   * "N filters apply to too few of these results" — the sentence that
-   * REPLACES {@link facetsEmpty} whenever `facet_meta.withheld` is not
-   * empty. A PLURAL FAMILY: it counts a noun in words.
-   *
-   * D175: a branch category holding 46 phones that all carry a manufacturer
-   * printed "this search offers no filters". The groups were counted and
-   * then withheld for covering too little of the set — so "there are none"
-   * was false, and the honest sentence is this one, with the number in it.
-   */
-  facetsWithheld: "search.facets.withheld",
   /** Shown INSTEAD of a count for a slug the server did not count. */
   facetsNotCounted: "search.facets.not_counted",
   facetsDrillDownHint: "search.facets.drill_down_hint",
@@ -471,7 +473,6 @@ export const SEARCH_I18N_PLURAL_KEYS: readonly SearchI18nKey[] = [
   SEARCH_I18N_KEYS.filtersShowCountAtLeast,
   SEARCH_I18N_KEYS.boxCategoryCount,
   SEARCH_I18N_KEYS.facetsMatchCount,
-  SEARCH_I18N_KEYS.facetsWithheld,
 ];
 
 /**
@@ -544,10 +545,6 @@ export const searchI18nBundleEn: Record<string, string> = {
     "Counts are approximate — there were too many candidates to count them all.",
   "search.facets.skipped":
     "These filters were not counted for this search: {slugs}",
-  "search.facets.withheld.one":
-    "{count} filter applies to too few of these results",
-  "search.facets.withheld.other":
-    "{count} filters apply to too few of these results",
   "search.facets.not_counted": "not counted",
   "search.facets.drill_down_hint":
     "Each count is what you would get by choosing that value instead of the one you have.",
