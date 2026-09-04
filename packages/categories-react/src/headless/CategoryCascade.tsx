@@ -113,6 +113,7 @@ import type {
   CategoryCascadeSource,
 } from "../catalog/cascade.js";
 import { categoryLabel } from "../catalog/labels.js";
+import { browseStage } from "../catalog/stage.js";
 import type { CategoryLabel } from "../catalog/labels.js";
 import { categoryChildIds } from "../catalog/tree.js";
 import {
@@ -200,11 +201,18 @@ export interface CategoryCascadeBag {
 /**
  * Why the cascade has no value for its host.
  *
- * `not_a_leaf` can only occur in `commit: "any"` mode; under `commit: "leaf"`
- * a non-leaf is never reported in the first place, so the reason there is
- * always that the ladder is unfinished.
+ * `not_a_leaf` is the `commit: "leaf"` refusal — the ladder has not reached a
+ * category nothing lives under. `has_subcategories` is the `commit: "stage"`
+ * one: the chosen category still divides into a LEVEL of subcategories, which
+ * is a rung the person has not answered rather than a partition the host
+ * offers. Both say the same thing to a person ("this one has subcategories"),
+ * and they are separate values because the rules that produced them differ —
+ * a `chips` parent is refused by the first and accepted by the second.
  */
-export type CategoryCascadeBlockedReason = "nothing_selected" | "not_a_leaf";
+export type CategoryCascadeBlockedReason =
+  | "nothing_selected"
+  | "not_a_leaf"
+  | "has_subcategories";
 
 /**
  * What a cascade reports to its host.
@@ -215,11 +223,40 @@ export type CategoryCascadeBlockedReason = "nothing_selected" | "not_a_leaf";
  * descendants.
  *
  * `"leaf"` — only a leaf, and `null` for every step on the way. The
- * COMPOSER's rule: a listing lives in exactly one category, and a non-leaf
- * inherits the wrong feature set. The intermediate steps still show as
- * answered — they are the cursor, not a value.
+ * COMPOSER's rule as the tree alone states it: a listing lives in exactly one
+ * category, and a non-leaf inherits the wrong feature set. The intermediate
+ * steps still show as answered — they are the cursor, not a value.
+ *
+ * `"stage"` — the COMPOSER's rule as the BROWSE CONTRACT states it, and the
+ * one a composer should use where the server resolves `children_as`. The
+ * ladder ends at the category that owns a feed — {@link browseStage} `"feed"`,
+ * i.e. a leaf OR a `chips` parent — and offers no rung below it.
+ *
+ * The difference is a partition. Under `"leaf"` a `chips` parent (`Cars`, with
+ * `New` and `Used` under it) is refused and the cascade goes on asking for one
+ * of the two, which files the person's listing through a control that presents
+ * a FILTER as a level of the tree — and the two halves of the site then
+ * disagree about what a category is, which is exactly what the browse contract
+ * settled. Under `"stage"` the cascade commits `Cars` and stops; the partition
+ * child is a required select the host draws beside it, out of the same rows,
+ * where it reads as the choice it is.
  */
-export type CategoryCascadeCommit = "any" | "leaf";
+export type CategoryCascadeCommit = "any" | "leaf" | "stage";
+
+/**
+ * May this row be reported to the host under this rule? The commit rule in
+ * one place, so the value the cascade hands over and the reason it withholds
+ * one cannot drift apart.
+ *
+ * `"leaf"` reads `tn_children_pks` here rather than {@link CategoryCascadeBag.atLeaf}
+ * because a click has to answer in its own render; `atLeaf` is the
+ * server-verified verdict the blocked reason still hangs on.
+ */
+function commits(category: Category, rule: CategoryCascadeCommit): boolean {
+  if (rule === "any") return true;
+  if (rule === "stage") return browseStage(category) === "feed";
+  return categoryChildIds(category).length === 0;
+}
 
 export interface UseCategoryCascadeOptions
   extends CategoryBrowseOptions,
@@ -373,10 +410,44 @@ export function useCategoryCascade(
       ),
     [cursorQuery.data, cursorId, rootId]
   );
-  const parentIds = useMemo(
-    () => cascadeParentIds(rootId, chainIds),
-    [rootId, chainIds]
-  );
+  /**
+   * Does the ladder END at the cursor?
+   *
+   * Only under `commit: "stage"`, and only for a PARTITION — a row that has
+   * children and says they are `chips`. Its children are a filter on the
+   * cursor's own feed, so offering them as a rung would present a filter as a
+   * level of the tree; the host draws them as its own required select instead
+   * (see {@link CategoryCascadeCommit}).
+   *
+   * A LEAF is deliberately not this case, even though {@link browseStage}
+   * calls it a feed too. Its speculative rung comes back empty, which is the
+   * server VERIFYING the leaf — the evidence `atLeaf` is made of — and an
+   * empty rung is never built into a select anyway. Skipping it would save
+   * one small request and cost the bag's only honest answer to "did the
+   * ladder finish".
+   *
+   * The cursor's row is the one row this hook already reads for its ancestry,
+   * and a row the person just clicked was seeded into that cache on the way
+   * past — so the stop is known in the same render the choice is made, and no
+   * rung flashes on screen before being withdrawn.
+   */
+  const stageStop =
+    commitRule === "stage" &&
+    cursorQuery.data !== undefined &&
+    categoryChildIds(cursorQuery.data).length > 0 &&
+    browseStage(cursorQuery.data) === "feed";
+  /**
+   * One entry per rung that could exist. Under a stage stop the LAST one —
+   * the speculative rung whose empty answer would discover a leaf — is
+   * dropped: its request is not made, and `buildCategoryCascade` therefore
+   * builds no select for it. The rung above still shows the cursor as chosen.
+   */
+  const parentIds = useMemo(() => {
+    const ids = cascadeParentIds(rootId, chainIds);
+    // Never the TOP rung: a ladder with no rungs at all is not a stop, it is
+    // an empty control.
+    return stageStop && ids.length > 1 ? ids.slice(0, -1) : ids;
+  }, [rootId, chainIds, stageStop]);
   const levelOptions = useMemo<CategoryBrowseOptions>(
     () => ({ ...visibility, enabled }),
     [visibility, enabled]
@@ -509,11 +580,7 @@ export function useCategoryCascade(
       );
     }
     const committed =
-      category === null
-        ? null
-        : commitRule === "any" || categoryChildIds(category).length === 0
-          ? category
-          : null;
+      category === null || !commits(category, commitRule) ? null : category;
     setCursorState({
       cursor: category?.id ?? null,
       from: committed?.id ?? null,
@@ -532,7 +599,9 @@ export function useCategoryCascade(
         ? "nothing_selected"
         : commitRule === "leaf" && !atLeaf
           ? "not_a_leaf"
-          : null,
+          : commitRule === "stage" && !commits(selected, commitRule)
+            ? "has_subcategories"
+            : null,
     choose: (depth, category) => {
       if (category !== null) {
         moveTo(category);

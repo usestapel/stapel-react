@@ -404,3 +404,63 @@ describe("tile density (the owner's ruling on tile size)", () => {
     );
   });
 });
+
+describe("tile layout (the wrapping arm the storefront had to draw itself)", () => {
+  function tileList(): HTMLElement {
+    return screen.getByTestId("categories-tile-grid-list");
+  }
+
+  it("wrap drops the scroll port for an auto-fill grid at the default width", async () => {
+    // The host had to draw its own home grid because this component only ever
+    // scrolled: a wrapped grid is a different geometry, not a wider one.
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid layout="wrap" />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    const columns = tileList().style.gridTemplateColumns;
+    expect(columns).toContain("auto-fill");
+    expect(columns).toContain("240px");
+    // No scroll port, and no fixed row count: every tile is on screen.
+    expect(tileList().style.overflowX).toBe("");
+    expect(tileList().style.gridAutoFlow).toBe("");
+    // `min(…, 100%)`: a bare minimum overflows a container narrower than one
+    // tile, which is the one thing this layout must not do.
+    expect(columns).toContain("min(");
+  });
+
+  it("wrap takes the host's minimum tile width", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid layout="wrap" minTileWidth={160} />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    expect(tileList().style.gridTemplateColumns).toContain("160px");
+  });
+
+  it("wrap renders every tile — layout changes geometry, not rows", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid layout="wrap" entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("a")).toHaveLength(2)
+    );
+    expect(tileList().dataset["stapelTileLayout"]).toBe("wrap");
+  });
+
+  it("the default is still the scroller — no existing host changes shape", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    expect(tileList().dataset["stapelTileLayout"]).toBe("scroll");
+    expect(tileList().style.overflowX).toBe("auto");
+    expect(tileList().style.gridTemplateColumns).toBe("");
+  });
+});

@@ -126,6 +126,67 @@ describe("<CategoryPage>'s listings slot", () => {
   });
 });
 
+describe("<CategoryPage>'s heading slot", () => {
+  // A storefront's title is a sentence the pair cannot compose — "Buy a car in
+  // Sochi · 54 364" mixes a verb, a place and a count that belong to three
+  // other owners. Without this slot the host drew its own title ABOVE the
+  // page's and left two headings in the document outline for one screen.
+  it("draws the category's own name when the host supplies nothing", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage slug="phones" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-category-title")).toBeTruthy();
+    });
+    expect(screen.getByTestId("categories-category-title").textContent).toBe(
+      "category.phones"
+    );
+  });
+
+  it("replaces the heading's CONTENT, leaving one heading in the outline", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage
+          slug="phones"
+          heading={<span data-testid="host-heading">Buy a phone · 54 364</span>}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("host-heading")).toBeTruthy();
+    });
+    const titles = screen.getAllByTestId("categories-category-title");
+    expect(titles).toHaveLength(1);
+    // The host's text is INSIDE the page's heading element, not beside it.
+    expect(titles[0]?.contains(screen.getByTestId("host-heading"))).toBe(true);
+    expect(titles[0]?.textContent).not.toContain("category.phones");
+  });
+
+  it("hands a callback the category and the page's own subcategory count", async () => {
+    // `count` is the only number this pair owns. A results count belongs to
+    // the listings pair and is already in the host's state — which is why the
+    // slot takes a node rather than a template.
+    let seen: { slug: string; count?: number } | null = null;
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage
+          slug="phones"
+          heading={(ctx) => {
+            seen = { slug: ctx.category.slug, ...(ctx.count !== undefined ? { count: ctx.count } : {}) };
+            return <span data-testid="host-heading">{ctx.category.slug}</span>;
+          }}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("host-heading").textContent).toBe("phones");
+    });
+    expect(seen).toEqual({ slug: "phones", count: 1 });
+  });
+});
+
 describe("a feature's help text reaches a screen", () => {
   it("is a KEY on the same terms as the name", () => {
     expect(featureCommentLabel(FEATURE_BRAND)).toEqual({

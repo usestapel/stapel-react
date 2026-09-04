@@ -26,7 +26,12 @@
 export { CatalogPage } from "./CatalogPage.js";
 export type { CatalogPageProps } from "./CatalogPage.js";
 export { CategoryPage } from "./CategoryPage.js";
-export type { CategoryPageProps, SubcategoryForm } from "./CategoryPage.js";
+export type {
+  CategoryHeading,
+  CategoryHeadingContext,
+  CategoryPageProps,
+  SubcategoryForm,
+} from "./CategoryPage.js";
 export { CategoryTreePane } from "./CategoryTreePane.js";
 export type { CategoryTreePaneProps } from "./CategoryTreePane.js";
 export { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
@@ -36,7 +41,12 @@ export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
 export { CategoryMegaMenu } from "./CategoryMegaMenu.js";
 export type { CategoryMegaMenuProps } from "./CategoryMegaMenu.js";
 export { CategoryTileGrid } from "./CategoryTileGrid.js";
-export type { CategoryTileGridProps, TileDensity } from "./CategoryTileGrid.js";
+export type {
+  CategoryIconResolver,
+  CategoryTileGridProps,
+  TileDensity,
+  TileLayout,
+} from "./CategoryTileGrid.js";
 /** Re-exported here because `<CategoryTileGrid>`'s `entries` and `renderIcon`
  * both make it part of a skin caller's vocabulary — a host composing tiles
  * should not have to reach into the headless entry for the row type it is

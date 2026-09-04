@@ -55,12 +55,17 @@
  * comes from its aspect ratio. A tile sized in viewport pixels is a tile that
  * is the wrong size inside every panel, sheet and column that is not the whole
  * screen — and this row is mounted inside all three.
+ *
+ * `layout="wrap"` keeps that rule and drops the scroll port: the columns come
+ * from `minmax(min(minTileWidth, 100%), 1fr)`, so the tiles wrap onto as many
+ * lines as the container needs and none of them is off screen.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Skeleton } from "antd";
 import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
+import type { Category } from "../api/types.js";
 import { renderCategoryLabel } from "../catalog/labels.js";
 import { categoryIconSrc, categoryOffersTileGrid } from "../catalog/tiles.js";
 import { CategoryCarousel } from "../headless/CategoryCarousel.js";
@@ -151,6 +156,53 @@ const scrollerCompact: CSSProperties = {
 
 function scrollerStyle(density: TileDensity): CSSProperties {
   return density === "compact" ? scrollerCompact : scrollerBase;
+}
+
+/**
+ * The two ways the tiles fill their container.
+ *
+ * `"scroll"` (default) is the reference phone row: two rows deep, sideways,
+ * with the peeking column that says there is more. `"wrap"` is the same tiles
+ * with no scroll port at all — as many per line as the width allows, wrapping
+ * onto as many lines as it takes, so EVERY category is on screen at once.
+ *
+ * A landing that wants the whole catalogue visible (a desktop home page, a
+ * category page's subcategories) cannot get there from the scroller: a wrapped
+ * grid is a different geometry, not a wider one, and a host that needed it had
+ * to draw its own tiles — which is the same tile anatomy re-implemented, and
+ * the copy that drifts.
+ */
+export type TileLayout = "scroll" | "wrap";
+
+/**
+ * The narrowest a wrapped tile may be before the grid drops a column
+ * (`repeat(auto-fill, minmax(...))`). 240px is the reference desktop tile.
+ */
+const DEFAULT_MIN_TILE_WIDTH = 240;
+
+/**
+ * The wrapping arm.
+ *
+ * `min(<width>, 100%)` rather than the bare width: `minmax` with a fixed
+ * minimum is the classic auto-fill overflow — inside a container narrower
+ * than one tile the track keeps its minimum and the page scrolls sideways,
+ * which is precisely the thing this layout exists not to do.
+ */
+function wrapStyle(minTileWidth: number): CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateColumns: `repeat(auto-fill, minmax(min(${String(minTileWidth)}px, 100%), 1fr))`,
+    gap: spacing[2],
+  };
+}
+
+/** The container the tiles sit in — one of the two geometries. */
+function listStyle(
+  layout: TileLayout,
+  density: TileDensity,
+  minTileWidth: number
+): CSSProperties {
+  return layout === "wrap" ? wrapStyle(minTileWidth) : scrollerStyle(density);
 }
 
 const tileBase: CSSProperties = {
@@ -312,9 +364,10 @@ function TileMonogram(props: { readonly label: string }): ReactElement {
  *
  * Three arms, in this order, and the order is the contract: the host's
  * `renderIcon` first (a storefront that hardcodes its own root glyphs keeps
- * them), then the server's own URL, then the monogram. So the picture appears
- * on a deployment whose catalogue has been seeded and nowhere else, and no
- * arm was taken away from anybody.
+ * them), then an address — the host's `resolveIconSrc`, else the row's own
+ * field — and then the monogram. So the picture appears on a deployment whose
+ * catalogue has been seeded and nowhere else, and no arm was taken away from
+ * anybody: each one may DECLINE and hand the row to the next.
  *
  * 3:2 and `contain`: the generated art is 3:2 on a soft ground, and `contain`
  * is what keeps a differently-proportioned upload whole instead of cropping
@@ -342,18 +395,54 @@ function TileImage(props: {
   );
 }
 
-/** The art of one tile: host resolver, then a server-sent address, then the
- * monogram. `renderIcon` stays first so a storefront's own glyphs win. */
+/**
+ * Turn a category's opaque icon reference into an ADDRESS — the seam for a
+ * host whose CDN needs a lookup rather than a prefix.
+ *
+ * `renderIcon` already lets a host draw whatever it likes, but it costs the
+ * host the tile's own `<img>` (its lazy loading, its aspect ratio, its alt
+ * text) for the one thing it usually wants: the URL. A resolver hands back a
+ * string and keeps the library's picture.
+ *
+ * It takes the CATEGORY, not the reference, because a store of opaque refs
+ * (`product/<sha256>`) is keyed by the row, and the alternative — projecting
+ * every row into a new `entries` array just to rewrite one field — is a copy
+ * of the catalogue per render.
+ *
+ * `undefined` is DECLINING this row, not an error: the next arm answers.
+ * Whatever comes back still goes through {@link categoryIconSrc}, so a
+ * resolver that returns an opaque string or a `data:` URI draws the monogram
+ * rather than a broken image.
+ */
+export type CategoryIconResolver = (category: Category) => string | undefined;
+
+/**
+ * The art of one tile: the host's `renderIcon`, then an address, then the
+ * monogram — and EVERY arm may decline.
+ *
+ * Declining is the whole correction here. `renderIcon` used to be returned
+ * unconditionally whenever the row carried a reference, so a host that draws
+ * its own glyph for five roots and `null` for the rest turned the other two
+ * arms off for the entire catalogue: the seeded `catalog_icon` never drew, and
+ * neither did the monogram — every unglyphed tile had an empty art corner,
+ * which reads as a tile that failed to load. `null` (and `undefined`) from a
+ * host renderer means "not this row", and the next arm answers.
+ */
 function tileArt(
   reference: string | null,
   label: string,
   entry: CarouselEntry,
-  renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode
+  renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode,
+  resolveIconSrc?: CategoryIconResolver
 ): ReactNode {
   if (reference !== null && renderIcon !== undefined) {
-    return renderIcon(reference, entry);
+    const drawn = renderIcon(reference, entry);
+    if (drawn !== null && drawn !== undefined) return drawn;
   }
-  const src = categoryIconSrc(reference);
+  // The resolver first, then the row's own field: a host that can address the
+  // opaque reference knows more about its CDN than the row does, and a
+  // resolver that declines leaves the seeded URL exactly where it was.
+  const src = categoryIconSrc(resolveIconSrc?.(entry.category) ?? reference);
   if (src !== null) return <TileImage src={src} label={label} />;
   return <TileMonogram label={label} />;
 }
@@ -424,10 +513,20 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
   readonly basePath?: string;
   /**
    * Turn an opaque icon reference into something renderable — the same
-   * contract `<CategoryCarouselStrip>` takes. Absent, or absent for a row that
-   * carries no reference, draws {@link TileMonogram}.
+   * contract `<CategoryCarouselStrip>` takes.
+   *
+   * Returning `null` DECLINES the row and the remaining arms answer it: the
+   * row's own address if it carries one, otherwise {@link TileMonogram}. So a
+   * host that only has glyphs for its five roots hands back `null` for
+   * everything else and the rest of the catalogue keeps its art.
    */
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  /**
+   * Address a row's opaque icon reference without projecting the rows — see
+   * {@link CategoryIconResolver}. Consulted after `renderIcon` and before the
+   * row's own `catalog_icon`; `undefined` declines.
+   */
+  readonly resolveIconSrc?: CategoryIconResolver;
   /**
    * Lead with a tile linking `basePath` itself (default `true`). Off for a row
    * that is already inside a category, where "All" would point at the
@@ -477,6 +576,18 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * strip — never a wall — inside a wide desktop column.
    */
   readonly density?: TileDensity;
+  /**
+   * How the tiles fill the container — see {@link TileLayout}. Default
+   * `"scroll"`, the reference two-row scroller, so no existing host changes
+   * shape.
+   */
+  readonly layout?: TileLayout;
+  /**
+   * The narrowest a tile may be in `layout="wrap"` before the grid drops a
+   * column. Default 240px. Ignored by `"scroll"`, whose column width comes
+   * from {@link TileDensity} and the container.
+   */
+  readonly minTileWidth?: number;
 }
 
 /** The scroll port itself: the "All" tile, then one tile per row. */
@@ -486,7 +597,10 @@ function TileRow(props: {
   readonly allTile?: boolean;
   readonly linkComponent?: LinkComponent;
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  readonly resolveIconSrc?: CategoryIconResolver;
   readonly density: TileDensity;
+  readonly layout: TileLayout;
+  readonly minTileWidth: number;
 }): ReactElement {
   const t = useT();
   const linkProps =
@@ -494,7 +608,11 @@ function TileRow(props: {
       ? { linkComponent: props.linkComponent }
       : {};
   return (
-    <div style={scrollerStyle(props.density)} data-testid="categories-tile-grid-list">
+    <div
+      style={listStyle(props.layout, props.density, props.minTileWidth)}
+      data-stapel-tile-layout={props.layout}
+      data-testid="categories-tile-grid-list"
+    >
       {props.allTile !== false && (() => {
         const allLabel = t(CATEGORIES_I18N_KEYS.tilesAll);
         return (
@@ -519,7 +637,13 @@ function TileRow(props: {
             slug={entry.category.slug}
             categoryId={entry.category.id}
             label={label}
-            art={tileArt(entry.icon, label, entry, props.renderIcon)}
+            art={tileArt(
+              entry.icon,
+              label,
+              entry,
+              props.renderIcon,
+              props.resolveIconSrc
+            )}
           />
         );
       })}
@@ -538,14 +662,21 @@ export function CategoryTileGrid(
   // rows nobody may see.
   const offersTiles = categoryOffersTileGrid(props.categoryDepth);
   const density: TileDensity = props.density ?? "cozy";
+  const layout: TileLayout = props.layout ?? "scroll";
+  const minTileWidth = props.minTileWidth ?? DEFAULT_MIN_TILE_WIDTH;
   const rowProps = {
     basePath,
     density,
+    layout,
+    minTileWidth,
     ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
     ...(props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
       : {}),
     ...(props.renderIcon !== undefined ? { renderIcon: props.renderIcon } : {}),
+    ...(props.resolveIconSrc !== undefined
+      ? { resolveIconSrc: props.resolveIconSrc }
+      : {}),
   };
   const override = props.entries;
 
@@ -576,7 +707,7 @@ export function CategoryTileGrid(
                 testId="categories-tile-grid"
                 onRetry={bag.refetch}
                 loading={
-                  <div style={scrollerStyle(density)}>
+                  <div style={listStyle(layout, density, minTileWidth)}>
                     {SKELETON_TILES.map((slot) => (
                       <Skeleton.Button
                         key={slot}

@@ -160,7 +160,8 @@ The same `bag.features` is what `@stapel/search-react`'s facet panel takes as
 | `applyCategoryPage` / `firstPageRequest` / `nextPageRequest` / `syncCatalog` | the delta protocol, testable without React |
 | `categoryLabel` / `featureLabel` / `featureCommentLabel` / `renderCategoryLabel` | the translation-key answer |
 | `<CategoryTree>` `<CategoryBreadcrumbs>` `<CategoryCarousel>` `<CategoryPicker>` `<CategoryFeatures>` | headless bags |
-| `/default`: `CatalogPage` `CategoryPage` `CategoryTreePane` `CategoryBreadcrumbsBar` `CategoryCarouselStrip` `CategoryTileGrid` `CategoryMegaMenu` `CategoryPickerField` `CategoryFeatureList` | the antd skin |
+| `useCategoryCascade` / `<CategoryCascade>` | the ladder of child selects the tile cap hands over to — one `children/` per rung, three commit rules |
+| `/default`: `CatalogPage` `CategoryPage` `CategoryTreePane` `CategoryBreadcrumbsBar` `CategoryCarouselStrip` `CategoryTileGrid` `CategoryMegaMenu` `CategoryPickerField` `CategoryCascadeField` `CategoryFeatureList` | the antd skin |
 
 Nav entries: `categories.catalog` → `/c`, `categories.category` → `/c/:slug`,
 both `surface: "public"`. `/` is **not** claimed — the storefront's landing is
@@ -252,13 +253,96 @@ own `href` builder and hands the path straight over.
 
 ## Tiles draw `catalog_icon` when it is already an address
 
-A tile's art has three arms, in this order: the host's `renderIcon` (a
-storefront with its own root glyphs keeps them), then `catalog_icon` when the
-row already carries a URL — a seeded catalogue writes the uploaded asset's
-address there — and then the category's initial as a monogram. The library
-still never BUILDS a URL out of an opaque reference like
-`catalog/electronics`, which is what `categoryIconSrc` decides and what keeps
-a broken image off every deployment that resolves its CDN differently.
+A tile's art has three arms, in this order, and **every one of them may
+decline**: the host's `renderIcon` (a storefront with its own root glyphs keeps
+them), then an address — `resolveIconSrc` if the host supplies one, else
+`catalog_icon` when the row already carries a URL — and then the category's
+initial as a monogram. The library still never BUILDS a URL out of an opaque
+reference like `catalog/electronics`, which is what `categoryIconSrc` decides
+and what keeps a broken image off every deployment that resolves its CDN
+differently.
+
+Declining is the part to know. `renderIcon` returning `null` means *not this
+row*, not *no art anywhere*: a host with glyphs for its five roots hands back
+`null` for the rest and the remaining arms answer them.
+
+```tsx
+<CategoryTileGrid
+  // an opaque CDN ref (`product/<sha256>`) → a URL, without projecting rows
+  resolveIconSrc={(category) => cdn.get(category.catalog_icon)}
+/>
+```
+
+`resolveIconSrc` takes the CATEGORY, so a host keyed by row answers from its
+own store instead of copying the catalogue into a new `entries` array per
+render, and it keeps the library's `<img>` — lazy, 3:2, `contain`, alt text
+from the tile's own label. What it returns still goes through
+`categoryIconSrc`, so a resolver that hands back a reference or a `data:` URI
+draws the monogram rather than a broken image. `undefined` declines.
+
+## Tiles that wrap instead of scrolling
+
+`layout="wrap"` is the same tiles with no scroll port: as many per line as the
+container allows, wrapping onto as many lines as it takes, so nothing is off
+screen. `minTileWidth` (default 240) is the narrowest a tile may be before the
+grid drops a column — `repeat(auto-fill, minmax(min(240px, 100%), 1fr))`, and
+the `min(…, 100%)` is what stops a container narrower than one tile from
+scrolling sideways.
+
+```tsx
+<CategoryTileGrid layout="wrap" minTileWidth={160} />
+```
+
+The default is unchanged: `layout="scroll"`, the reference two-row sideways
+row with the peeking third column. A wrapped grid is a different geometry
+rather than a wider one, which is why it is a layout and not a breakpoint.
+
+## The cascade's commit rule: `any`, `leaf`, `stage`
+
+`useCategoryCascade` / `<CategoryCascadeField>` is the ladder of child selects
+the tile cap hands over to — one small `GET {id}/children/` per rung, never the
+catalogue. `commit` says what it reports to its host:
+
+| `commit` | reports | for |
+|---|---|---|
+| `"any"` (default) | every choice, leaf or not | the FILTER — "everything under Cars" is a prefix match the index already answers |
+| `"leaf"` | only a category nothing lives under | the composer, as the TREE alone states it |
+| `"stage"` | the category that owns a feed — `browseStage(node) === "feed"`, i.e. a leaf **or** a `chips` parent | the composer, as the BROWSE CONTRACT states it |
+
+The difference between the last two is a partition. Under `"leaf"` a `chips`
+parent (`Cars`, with `New` and `Used` under it) is refused and the cascade goes
+on offering a rung of `New` / `Used` — which presents a FILTER as a level of
+the tree, and the browsing half and the posting half of the site then disagree
+about what a category is. Under `"stage"` the cascade commits `Cars` and stops:
+it offers no rung below a `chips` parent and fires no request for one. The
+partition child is then a required select the host draws beside the cascade,
+out of the same rows, where it reads as the choice it is.
+
+The intermediate steps still show as answered in every mode — they are the
+cursor, not a value. `blockedReason` says why no value came back:
+`"nothing_selected"`, `"not_a_leaf"` (the `"leaf"` refusal) or
+`"has_subcategories"` (the `"stage"` one). Keyboard and aria are the same
+control in all three.
+
+## The category page's title: `heading`
+
+`<CategoryPage>` renders the category's own translated name as its heading.
+`heading` replaces that CONTENT — a node, or a function of
+`{ category, count }` — and never the heading element, so a storefront that
+needs «Купить автомобиль в Сочи · 54 364» gets it without drawing a second
+title above the page's and leaving two headings in one outline.
+
+```tsx
+<CategoryPage
+  slug={slug}
+  // `resultCount` is the host's own state — the listings pair counted it
+  heading={({ category }) => <>{t(`buy.${category.slug}`)} · {resultCount}</>}
+/>
+```
+
+`count` is the number of SUB-CATEGORIES the page has in hand — the only count
+this pair owns. A results count belongs to the listings pair and is already in
+the host's state, which is why the slot takes a node rather than a template.
 
 ## Category chrome inside a SPA: `linkComponent`
 

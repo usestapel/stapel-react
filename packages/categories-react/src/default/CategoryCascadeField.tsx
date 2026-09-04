@@ -293,7 +293,9 @@ function Level(props: {
  *
  * `not_a_leaf` is the sentence the composer's whole gate hangs on, and it is
  * the same key `<CategoryPickerField>` uses: one refusal, one wording, two
- * controls.
+ * controls. `has_subcategories` — the `commit: "stage"` refusal — takes that
+ * same wording rather than a second one: the two rules differ in what they
+ * accept, not in what they tell the person to do about it.
  */
 function Verdict(props: {
   readonly bag: CategoryCascadeBag;

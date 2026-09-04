@@ -35,6 +35,7 @@ import type {
   CatalogStore,
   Category,
   CategoryCascadeBag,
+  CategoryCascadeCommit,
   CategoryCascadeSource,
 } from "../src/index.js";
 import { CategoryCascadeField } from "../src/default/index.js";
@@ -45,6 +46,7 @@ import {
   ROWS,
   USED_PHONES,
   VEHICLES,
+  categoryRow,
 } from "./fixtures.js";
 import {
   TestProviders,
@@ -157,7 +159,7 @@ function Probe(props: {
   readonly onBag: (bag: CategoryCascadeBag) => void;
   readonly store: CatalogStore;
   readonly rootId?: number | null;
-  readonly commit?: "any" | "leaf";
+  readonly commit?: CategoryCascadeCommit;
   readonly value?: number | null;
   readonly roots?: readonly Category[];
   readonly onChange?: (id: number | null) => void;
@@ -182,7 +184,7 @@ interface Mounted {
 
 async function mountProbe(props: {
   readonly rootId?: number | null;
-  readonly commit?: "any" | "leaf";
+  readonly commit?: CategoryCascadeCommit;
   readonly value?: number | null;
   readonly roots?: readonly Category[];
   readonly onChange?: (id: number | null) => void;
@@ -190,14 +192,16 @@ async function mountProbe(props: {
    * exist at all — a deployment with no curated strip, which is the case the
    * catalogue-sync fallback is for. */
   readonly carousel?: readonly Category[];
+  /** The catalogue the mock server answers from. Defaults to the fixture's. */
+  readonly rows?: readonly Category[];
 }): Promise<Mounted> {
-  const { carousel, ...probeProps } = props;
+  const { carousel, rows, ...probeProps } = props;
   const server = mockServer({
     "/categories/": { body: FULL_PAGE },
     ...(carousel !== undefined
       ? { "/categories/carousel/": { body: carousel } }
       : {}),
-    ...rowRoutes(ROWS),
+    ...rowRoutes(rows ?? ROWS),
   });
   const store = testStore();
   let latest: CategoryCascadeBag | null = null;
@@ -577,5 +581,132 @@ describe("<CategoryCascadeField>", () => {
     ]) {
       expect(text.split(caption).length - 1, caption).toBe(1);
     }
+  });
+});
+
+/**
+ * `commit: "stage"` — the composer's rule as the BROWSE CONTRACT states it.
+ *
+ * The fixture adds the shape the flat rows above have none of: a PARTITION.
+ *
+ *   cars (51, children_as: "chips")
+ *     cars-new (52)
+ *     cars-used (53)
+ *
+ * `New`/`Used` are one attribute template split by a value their name
+ * expresses, so `cars` is a feed page with a chip row and NOT a level of the
+ * tree. Under `commit: "leaf"` the cascade refuses `cars` and goes on asking
+ * for one of the two — presenting a filter as a rung, which is the disagreement
+ * about what a category is that the contract settled. Under `"stage"` it
+ * commits `cars` and offers nothing below; the host draws the partition as its
+ * own required select, out of the same rows.
+ */
+const CARS = categoryRow(51, "cars", "category.cars", null, "", "52,53", {
+  children_as: "chips",
+});
+const CARS_NEW = categoryRow(52, "cars-new", "category.cars_new", 51, "51", "");
+const CARS_USED = categoryRow(53, "cars-used", "category.cars_used", 51, "51", "");
+const STAGE_ROWS: readonly Category[] = [...ROWS, CARS, CARS_NEW, CARS_USED];
+
+/** Let every request the choice could have fired actually fire. */
+async function settle(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+}
+
+function rungCount(bag: CategoryCascadeBag): number {
+  return bag.state.status === "ready" ? bag.state.data.length : 0;
+}
+
+describe('useCategoryCascade — commit: "stage"', () => {
+  it("commits a chips parent and offers NO rung under it", async () => {
+    const seen: (number | null)[] = [];
+    const { bag, server } = await mountProbe({
+      roots: [CARS, ELECTRONICS],
+      commit: "stage",
+      rows: STAGE_ROWS,
+      onChange: (id) => seen.push(id),
+    });
+
+    act(() => {
+      bag().choose(0, CARS);
+    });
+    // Reported: `cars` owns the feed the person's listing belongs on.
+    expect(seen).toEqual([51]);
+    expect(bag().blockedReason).toBeNull();
+
+    await settle();
+    // No second select, and — the point of the stop — no request for one:
+    // the partition is the host's control, not a rung.
+    expect(rungCount(bag())).toBe(1);
+    expect(
+      server.calls.filter((call) => call.url.includes("/51/children/"))
+    ).toHaveLength(0);
+  });
+
+  it("offers the rung under a TILES parent and refuses to commit it", async () => {
+    const seen: (number | null)[] = [];
+    const { bag } = await mountProbe({
+      roots: [CARS, ELECTRONICS],
+      commit: "stage",
+      rows: STAGE_ROWS,
+      onChange: (id) => seen.push(id),
+    });
+
+    act(() => {
+      bag().choose(0, ELECTRONICS);
+    });
+    // Withheld: `electronics` has real subcategories, so the ladder is not
+    // finished and a listing filed here inherits the wrong schema.
+    expect(seen).toEqual([null]);
+    await waitFor(() => {
+      expect(rungCount(bag())).toBe(2);
+    });
+    expect(bag().blockedReason).toBe("has_subcategories");
+  });
+
+  it("commits a LEAF, and still waits for the server to verify it", async () => {
+    const seen: (number | null)[] = [];
+    const { bag } = await mountProbe({
+      rootId: 2,
+      commit: "stage",
+      rows: STAGE_ROWS,
+      onChange: (id) => seen.push(id),
+    });
+
+    act(() => {
+      bag().choose(0, USED_PHONES);
+    });
+    expect(seen).toEqual([4]);
+    // A leaf keeps its speculative rung: the empty answer is the server
+    // VERIFYING the leaf, which is what `atLeaf` is made of. Only a partition
+    // skips the request.
+    await waitFor(() => {
+      expect(bag().atLeaf).toBe(true);
+    });
+    expect(bag().blockedReason).toBeNull();
+    expect(rungCount(bag())).toBe(1);
+  });
+
+  it('commit: "leaf" still descends into the partition — the rules differ', async () => {
+    // The same fixture under the old rule, so the two are readable side by
+    // side: `leaf` withholds `cars` and asks for New or Used.
+    const seen: (number | null)[] = [];
+    const { bag } = await mountProbe({
+      roots: [CARS, ELECTRONICS],
+      commit: "leaf",
+      rows: STAGE_ROWS,
+      onChange: (id) => seen.push(id),
+    });
+
+    act(() => {
+      bag().choose(0, CARS);
+    });
+    expect(seen).toEqual([null]);
+    await waitFor(() => {
+      expect(rungCount(bag())).toBe(2);
+    });
+    expect(bag().blockedReason).toBe("not_a_leaf");
   });
 });

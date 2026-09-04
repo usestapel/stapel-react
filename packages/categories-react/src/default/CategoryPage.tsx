@@ -126,7 +126,10 @@ import { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 import { CategoryCascadeField } from "./CategoryCascadeField.js";
 import { CategoryFeatureList } from "./CategoryFeatureList.js";
 import { CategoryTileGrid } from "./CategoryTileGrid.js";
-import type { TileDensity } from "./CategoryTileGrid.js";
+import type {
+  CategoryIconResolver,
+  TileDensity,
+} from "./CategoryTileGrid.js";
 import { CategoryLevelList } from "./CategoryLevelList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
 import { CategoryLink } from "./CategoryLink.js";
@@ -140,7 +143,41 @@ import type { ThemeModeProp } from "./types.js";
  */
 export const CATEGORY_MEASURE = "64rem";
 
+/** What a heading callback is told about the page it is titling. */
+export interface CategoryHeadingContext {
+  /** The resolved category — the row the page drew its own title from. */
+  readonly category: Category;
+  /**
+   * How many SUB-CATEGORIES this page has in hand, which is the only count
+   * this pair owns. A results count belongs to the listings pair and is
+   * already in the host's own state, which is the reason this slot takes a
+   * node at all.
+   */
+  readonly count?: number;
+}
+
+/**
+ * The page's title, host-supplied.
+ *
+ * A node, or a function of {@link CategoryHeadingContext} for a host that
+ * wants the category and the page's own count without resolving the slug a
+ * second time. Either way it replaces the CONTENT of the page's heading and
+ * not the heading itself: one `<h*>` in the document, in the same place, with
+ * the host's sentence inside it — a storefront that needs "Buy a car in Sochi
+ * · 54 364" gets it without drawing a second heading above the page's and
+ * leaving two in the outline.
+ */
+export type CategoryHeading =
+  | ReactNode
+  | ((ctx: CategoryHeadingContext) => ReactNode);
+
 export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
+  /**
+   * Replace the page's heading text — see {@link CategoryHeading}. Omitted,
+   * the page renders the category's own translated name, which is what it has
+   * always rendered.
+   */
+  readonly heading?: CategoryHeading;
   /**
    * The category, by id — the address that costs two small requests. Every
    * in-app navigation has it, because it drew the link that got here.
@@ -212,6 +249,12 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * own initial; this page never builds a URL out of a reference.
    */
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  /**
+   * Address a tile's opaque reference without projecting the rows — forwarded
+   * verbatim to `<CategoryTileGrid>`, and meaningful only on the `"tiles"`
+   * arm. See `CategoryIconResolver`.
+   */
+  readonly resolveIconSrc?: CategoryIconResolver;
 }
 
 /**
@@ -387,6 +430,7 @@ function Subcategories(props: {
   readonly onNarrow?: (category: Category | null) => void;
   readonly narrowValue?: number | null;
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  readonly resolveIconSrc?: CategoryIconResolver;
   readonly tileDensity?: TileDensity;
 }): ReactElement | null {
   const t = useT();
@@ -437,6 +481,9 @@ function Subcategories(props: {
             : {})}
           {...(props.renderIcon !== undefined
             ? { renderIcon: props.renderIcon }
+            : {})}
+          {...(props.resolveIconSrc !== undefined
+            ? { resolveIconSrc: props.resolveIconSrc }
             : {})}
           basePath={props.basePath}
           categoryDepth={props.depth}
@@ -551,8 +598,19 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
               />
             ) : (
               <Flex vertical gap={spacing[4]}>
-                <Typography.Title level={3} style={{ margin: 0 }}>
-                  {renderCategoryLabel(categoryLabel(source.current), t)}
+                <Typography.Title
+                  level={3}
+                  style={{ margin: 0 }}
+                  data-testid="categories-category-title"
+                >
+                  {props.heading === undefined
+                    ? renderCategoryLabel(categoryLabel(source.current), t)
+                    : typeof props.heading === "function"
+                      ? props.heading({
+                          category: source.current,
+                          count: source.children.length,
+                        })
+                      : props.heading}
                 </Typography.Title>
 
                 <Subcategories
@@ -577,6 +635,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     : {})}
                   {...(props.renderIcon !== undefined
                     ? { renderIcon: props.renderIcon }
+                    : {})}
+                  {...(props.resolveIconSrc !== undefined
+                    ? { resolveIconSrc: props.resolveIconSrc }
                     : {})}
                 />
 
