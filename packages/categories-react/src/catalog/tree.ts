@@ -27,6 +27,7 @@
 import type { Category } from "../api/types.js";
 import { isBrowsableCategory } from "./browse.js";
 import type { CategoryVisibilityOptions } from "./browse.js";
+import { warnLegacyFallback } from "./devWarn.js";
 import { parseTreenodePks } from "./pks.js";
 
 /** One node of the assembled tree. */
@@ -218,15 +219,21 @@ export function categoryAncestorIds(category: Category): readonly number[] {
 }
 
 /**
- * The server's own answer to "who are this row's children", from
- * `tn_children_pks`.
+ * The reader's own answer to "who are this row's children" — `children_pks`
+ * (stapel-categories 0.20.5), the same set `GET /{id}/children/` itself
+ * returns, in order.
  *
- * This is the FULL child set, including soft-deleted and inactive rows — the
- * column is maintained by treenode, which knows nothing about either flag. Use
- * it to detect "this category has sub-categories at all"; use the built node's
- * `children` to render them.
+ * Falls back to `tn_children_pks`, parsed, on a server that predates the
+ * field (a dev build warns when this fires): treenode's raw structure column,
+ * which counts soft-deleted and retired rows too and so OVERSTATES this row's
+ * real children — the defect a live "services" root actually showed
+ * (`tn_children_pks: "68,67,221"`, one live child). Use this to detect "this
+ * category has sub-categories at all"; use the built node's `children` to
+ * render them.
  */
 export function categoryChildIds(category: Category): readonly number[] {
+  if (Array.isArray(category.children_pks)) return category.children_pks;
+  warnLegacyFallback("children_pks", "tn_children_pks");
   return parseTreenodePks(category.tn_children_pks);
 }
 

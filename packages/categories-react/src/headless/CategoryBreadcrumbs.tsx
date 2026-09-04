@@ -98,8 +98,9 @@ export interface CategoryBreadcrumbsProps
    *
    * Supplied, this REPLACES the automatic {@link isWrapperAncestor} check for
    * every crumb — a host that knows its own ancestry beats a guess made from
-   * `tn_children_pks` alone, and running both would leave two authorities
-   * disagreeing about the same crumb. Omitted, the automatic check runs.
+   * `children_pks` (or, on an older server, `tn_children_pks`) alone, and
+   * running both would leave two authorities disagreeing about the same
+   * crumb. Omitted, the automatic check runs.
    */
   unlink?: (crumb: CategoryCrumbInput) => boolean;
   children: (bag: CategoryBreadcrumbsBag) => ReactNode;

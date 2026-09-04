@@ -237,11 +237,24 @@ describe("isWrapperAncestor — the breadcrumb-trail question", () => {
     expect(isWrapperAncestor(parent, leaf)).toBe(false);
   });
 
-  it("is false when the parent row carries no tn_children_pks at all", () => {
+  it("is false when the parent row carries none of children_pks/children_count/tn_children_pks", () => {
     const parent = { slug: "root" } as unknown as Parameters<
       typeof isWrapperAncestor
     >[0];
     const child = categoryRow(2, "leaf", "category.leaf", 1, "1", "3");
     expect(isWrapperAncestor(parent, child)).toBe(false);
+  });
+
+  it("resolves a one-child wrapper from children_pks even though tn_children_pks lists ghosts (stapel-categories 0.20.5)", () => {
+    // The real defect: the "uslugi" root's tn_children_pks was "68,67,221" —
+    // 67 and 68 soft-deleted — but children_pks (the live answer) is [221].
+    // By the ghost-inflated count the parent has THREE children and is not a
+    // wrapper; by the live count it has ONE, and it is.
+    const root = categoryRow(65, "uslugi", "category.uslugi", null, "", "68,67,221", {
+      children_pks: [221],
+      children_count: 1,
+    });
+    const wrapper = categoryRow(221, "predlozhenie-uslug", "category.predlozhenie", 65, "65", "1,2");
+    expect(isWrapperAncestor(root, wrapper)).toBe(true);
   });
 });

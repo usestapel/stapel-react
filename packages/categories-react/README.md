@@ -254,11 +254,14 @@ the placement target of a listing; only the presentation changes. Neither call
 cares whether the row it is handed is a root or not by counting depth itself —
 `browseStage` reads `tn_parent` / `tn_ancestors_pks` / a `CategoryTreeNode`'s
 own `path` (whichever the row carries) to answer "is this a root", and both
-calls read `tn_children_pks` before `children_as` before the nested `children`
-array to answer "does it have any" — because a depth-capped tree read empties
-the `children` array on its last level, and `children_as` survives that cut
-where the array does not (the server sends it `null` **only** where a row
-truly has nothing to present).
+calls read `children_pks` / `children_count` (stapel-categories 0.20.5 —
+live children only), then `tn_children_pks` on an older server (a dev build
+warns when this fallback fires — that column counts soft-deleted and retired
+rows too), then `children_as`, before the nested `children` array to answer
+"does it have any" — because a depth-capped tree read empties the `children`
+array on its last level, and `children_as` survives that cut where the array
+does not (the server sends it `null` **only** where a row truly has nothing
+to present).
 
 The superseded reading ("tiles end where the attribute schema begins", i.e.
 `children_as: "tiles"` draws a grid at ANY depth) put tile pages six levels
@@ -290,8 +293,9 @@ browseChildren(children, grandchildrenOf) // the rows a tile page should draw
 ```
 
 Both read the same fields `hasChildren`/`browseStage` already do — a flat
-row's `tn_children_pks`, then `children_as` surviving a depth cut — so
-detecting a wrapper never costs a request. Drawing its children does:
+row's `children_pks`/`children_count` (falling back to `tn_children_pks` on
+an older server), then `children_as` surviving a depth cut — so detecting a
+wrapper never costs a request. Drawing its children does:
 `grandchildrenOf` is the caller's accessor, `(child) => child.children` for a
 nested `CategoryTreeNode`, or a small `useCategoryChildren` read gated on the
 one candidate id for flat rows. `<CategoryPage subcategories="tiles">` wires

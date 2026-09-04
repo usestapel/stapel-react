@@ -24,6 +24,7 @@ export function categoryRow(
   children: string,
   extra: Partial<Category> = {}
 ): Category {
+  const liveChildIds = children === "" ? [] : children.split(",").map(Number);
   return {
     id,
     name,
@@ -35,6 +36,14 @@ export function categoryRow(
     // The 0.19 contract sends it on every row; `null` is "no children to
     // present", which is what a fixture built without an `extra` describes.
     children_as: null,
+    // stapel-categories 0.20.5: the reader's own live child set, matching
+    // `tn_children_pks` by default — a fixture with GHOSTS in
+    // `tn_children_pks` (soft-deleted/retired rows the server still lists
+    // there) passes a narrower `children_pks`/`children_count` explicitly via
+    // `extra`; a fixture simulating a server that predates the fields uses
+    // {@link withoutLiveChildFields} below.
+    children_pks: liveChildIds,
+    children_count: liveChildIds.length,
     features: [],
     translatable: true,
     tn_parent: parent,
@@ -45,6 +54,21 @@ export function categoryRow(
     deleted: false,
     ...extra,
   };
+}
+
+/**
+ * Strip the 0.20.5 live-children fields from a fixture, simulating a server
+ * that predates them — the shape `hasChildren`, `categoryChildIds` and
+ * `isWrapperAncestor`'s `tn_children_pks` fallback tier exists for.
+ *
+ * A helper rather than `{ children_pks: undefined, ... }` in `extra`: this
+ * package's `exactOptionalPropertyTypes` makes an explicit `undefined` on an
+ * optional-but-not-`| undefined` field a type error, so the only honest way
+ * to describe "this row does not carry the key" is to not carry it.
+ */
+export function withoutLiveChildFields(row: Category): Category {
+  const { children_pks: _children_pks, children_count: _children_count, ...legacy } = row;
+  return legacy as Category;
 }
 
 /**

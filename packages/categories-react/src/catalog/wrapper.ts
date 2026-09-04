@@ -30,8 +30,9 @@
  *
  * "That one child itself has children" is answered by {@link hasChildren}
  * from `catalog/stage.ts` — the SAME fallback chain a stage check already
- * reads off a row that is already in hand (`tn_children_pks` on a flat
- * `Category`, `children_as` surviving a depth cut on a `CategoryTreeNode`).
+ * reads off a row that is already in hand (`children_pks`/`children_count`
+ * on a flat `Category`, falling back to `tn_children_pks` on an older server,
+ * `children_as` surviving a depth cut on a `CategoryTreeNode`).
  * {@link isTransparentWrapper} never issues a second request just to learn
  * whether the single child qualifies, and a host may call it directly — the
  * wrapper's OWN page redirect the addendum describes ("the wrapper's own page
@@ -57,8 +58,7 @@
  * treats a flagged leaf as an ordinary leaf and warns in development.
  */
 import type { BrowseStageInput } from "./stage.js";
-import { hasChildren } from "./stage.js";
-import { parseTreenodePks } from "./pks.js";
+import { categoryLiveChildCount, hasChildren } from "./stage.js";
 
 /**
  * A child's own children, however the caller's shape carries them.
@@ -214,25 +214,25 @@ export function browseChildren<C extends BrowseStageInput>(
  * A BREADCRUMB TRAIL never holds a parent's full sibling array the way a tile
  * page's `childRows` does — each ancestor is one fetched row, `id`-path and
  * slug-path alike (`Category` either way, see `catalog/tree.ts`'s
- * `CategoryNode.category`). `tn_children_pks` on that row already carries the
- * COUNT {@link isTransparentWrapper}'s array-length check stands in for, so no
+ * `CategoryNode.category`). `parent`'s own `children_pks`/`children_count`
+ * (stapel-categories 0.20.5, falling back to `tn_children_pks` on an older
+ * server — see {@link categoryLiveChildCount}) already carries the COUNT
+ * {@link isTransparentWrapper}'s array-length check stands in for, so no
  * second request buys the same answer: `parent` has exactly one child when
- * its own column parses to one id, and {@link isTransparentWrapper} still
- * answers whether that one child (`child`) has children of its own.
+ * its own live count is one, and {@link isTransparentWrapper} still answers
+ * whether that one child (`child`) has children of its own.
  *
  * The AUTHORED check needs no sibling count at all — `children_as` sits on
  * `child` itself, so it fires whether or not `child` is `parent`'s only row.
- * `undefined` `tn_children_pks` (a row shape that never carried the column)
- * only rules out the structural arm; the authored one is still consulted.
+ * A `parent` with no live-count channel at all (`categoryLiveChildCount`
+ * answers `undefined` — a row shape that never carried any of the three
+ * fields) only rules out the structural arm; the authored one is still
+ * consulted.
  */
 export function isWrapperAncestor<C extends BrowseStageInput>(
   parent: C,
   child: C
 ): boolean {
   if (isActionableTransparentNode(child)) return true;
-  if (typeof parent.tn_children_pks !== "string") return false;
-  return (
-    parseTreenodePks(parent.tn_children_pks).length === 1 &&
-    isTransparentWrapper([child])
-  );
+  return categoryLiveChildCount(parent) === 1 && isTransparentWrapper([child]);
 }

@@ -96,7 +96,12 @@ export {
   categoryOffersTileGrid,
   nodeOffersTileGrid,
 } from "./catalog/tiles.js";
-export { browseStage, childControl, hasChildren } from "./catalog/stage.js";
+export {
+  browseStage,
+  categoryLiveChildCount,
+  childControl,
+  hasChildren,
+} from "./catalog/stage.js";
 export type { BrowseStage, BrowseStageInput, ChildControl } from "./catalog/stage.js";
 export {
   browseChildren,

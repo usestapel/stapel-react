@@ -7,9 +7,9 @@
  * (`childControl`), never the stage. The fixtures below cover the five cases
  * the browse-stages SPEC's evening correction names by name.
  */
-import { describe, expect, it } from "vitest";
-import { browseStage, childControl } from "../src/index.js";
-import { categoryRow } from "./fixtures.js";
+import { describe, expect, it, vi } from "vitest";
+import { browseStage, childControl, hasChildren } from "../src/index.js";
+import { categoryRow, withoutLiveChildFields } from "./fixtures.js";
 import { TREE_CARS, TREE_PARTS, TREE_TRANSPORT, treeNode } from "./fixtures.js";
 
 describe("browseStage", () => {
@@ -52,9 +52,16 @@ describe("browseStage", () => {
     expect(browseStage(cutRoot)).toBe("tiles");
   });
 
-  it("reads a flat row's tn_children_pks over children_as or a cut array", () => {
-    const parent = categoryRow(1, "electronics", "category.electronics", null, "", "2,3");
-    const leaf = categoryRow(3, "laptops", "category.laptops", 1, "1", "");
+  it("reads a flat row's tn_children_pks over children_as or a cut array (older-server fallback)", () => {
+    // No children_pks/children_count — the shape a server predating
+    // stapel-categories 0.20.5 sends, which is exactly the case this
+    // fallback tier exists for.
+    const parent = withoutLiveChildFields(
+      categoryRow(1, "electronics", "category.electronics", null, "", "2,3")
+    );
+    const leaf = withoutLiveChildFields(
+      categoryRow(3, "laptops", "category.laptops", 1, "1", "")
+    );
     expect(browseStage(parent)).toBe("tiles");
     expect(browseStage(leaf)).toBe("feed");
     // A root that (incorrectly) claims "chips" is still tiles — the field
@@ -123,5 +130,31 @@ describe("childControl", () => {
       { children_as: "transparent" }
     );
     expect(childControl(transparent)).toBe("none");
+  });
+});
+
+describe("hasChildren / browseStage — children_pks over tn_children_pks (stapel-categories 0.20.5)", () => {
+  it("resolves a childless row as a leaf when children_pks is empty despite a stale tn_children_pks", () => {
+    // A live "services" root showed exactly this shape: tn_children_pks named
+    // ids nobody can fetch any more (soft-deleted/retired), and the reader's
+    // own children_pks — the real answer — is empty.
+    const stale = categoryRow(50, "leaf-stale", "category.leaf_stale", 1, "1", "99", {
+      children_pks: [],
+      children_count: 0,
+    });
+    expect(hasChildren(stale)).toBe(false);
+    expect(browseStage(stale)).toBe("feed");
+    expect(childControl(stale)).toBe("none");
+  });
+
+  it("falls back to tn_children_pks, with a dev warning, when children_pks and children_count are both absent", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const legacy = withoutLiveChildFields(
+      categoryRow(1, "electronics", "category.electronics", null, "", "2,3")
+    );
+    expect(hasChildren(legacy)).toBe(true);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain("tn_children_pks");
+    warn.mockRestore();
   });
 });

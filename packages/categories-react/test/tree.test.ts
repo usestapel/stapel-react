@@ -2,7 +2,7 @@
  * Tree assembly from flat rows — the spec's named acceptance for this pair
  * (§8.2: build the tree from flat rows; resolve slug to pk).
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildCategoryTree,
   categoryAncestorIds,
@@ -12,7 +12,7 @@ import {
   parseTreenodePks,
   resolveCategorySlug,
 } from "../src/index.js";
-import { ROWS, categoryRow } from "./fixtures.js";
+import { ROWS, categoryRow, withoutLiveChildFields } from "./fixtures.js";
 
 describe("treenode pk columns are comma-joined STRINGS", () => {
   it("parses a populated column root-first", () => {
@@ -166,11 +166,25 @@ describe("breadcrumbs", () => {
   });
 });
 
-describe("the server's own ancestry columns", () => {
-  it("tn_children_pks is the FULL child set, flags and all", () => {
-    // treenode maintains it and knows nothing about `deleted`/`active` — so
-    // it answers "does this have sub-categories at all", not "what to render".
-    const withHidden = categoryRow(40, "p", "category.p", null, "", "41,42");
-    expect(categoryChildIds(withHidden)).toEqual([41, 42]);
+describe("categoryChildIds — the live child set (stapel-categories 0.20.5)", () => {
+  it("reads children_pks over tn_children_pks — ghosts in tn_children_pks are not the live answer", () => {
+    // The real defect a live "services" root showed: tn_children_pks named
+    // three ids, two of them soft-deleted. children_pks — the reader's own
+    // live answer — names only the one that is really there.
+    const withGhosts = categoryRow(40, "p", "category.p", null, "", "41,42,43", {
+      children_pks: [43],
+      children_count: 1,
+    });
+    expect(categoryChildIds(withGhosts)).toEqual([43]);
+  });
+
+  it("falls back to tn_children_pks, parsed, with a dev warning, when children_pks is absent (older server)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const legacy = withoutLiveChildFields(
+      categoryRow(40, "p", "category.p", null, "", "41,42")
+    );
+    expect(categoryChildIds(legacy)).toEqual([41, 42]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });

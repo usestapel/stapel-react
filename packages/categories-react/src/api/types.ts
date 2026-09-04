@@ -83,15 +83,16 @@ export type CategoryPresentation = {
    *
    * Not the same set as `tn_children_pks`: that is django-treenode's raw
    * structure column and it counts soft-deleted and retired rows, so a rule
-   * built on it sees children nobody can open. Declared here, read nowhere in
-   * this pair YET — the readers still parse `tn_children_pks`, and moving
-   * them is its own round with its own fixtures. Declared and not consumed is
-   * the honest state; declared as REQUIRED would be the lie, which is why it
-   * sits in this alias beside the other two.
+   * built on it (leaf-ness, a child count, the one-child wrapper check) sees
+   * children nobody can open. Every reader in this pair that used to parse
+   * `tn_children_pks` for that question — `hasChildren`, `categoryChildIds`,
+   * `isWrapperAncestor` — now reads this first and falls back to
+   * `tn_children_pks` only when a server predates the field.
    */
   readonly children_pks?: readonly number[];
   /** How many children a reader can see — `children_pks.length`
-   * (stapel-categories 0.20.5). Absent on a server that predates it. */
+   * (stapel-categories 0.20.5). Absent on a server that predates it; the same
+   * fallback as {@link children_pks} applies. */
   readonly children_count?: number;
 }
 
@@ -108,9 +109,11 @@ export type CategoryPresentation = {
  *   COMMA-JOINED PK STRINGS (`treenode/utils.py: PKS_SEPARATOR = ","`), typed
  *   `string` here because that is what arrives — `""` for a root. Parse them
  *   with `parseTreenodePks`, never with `JSON.parse` and never by assuming an
- *   array. Since stapel-categories 0.20.5 there is a better source for the
- *   children half — `children_pks`, live rows only — and the readers here
- *   still parse the treenode column; the switch is its own round.
+ *   array. Since stapel-categories 0.20.5 `tn_children_pks` is no longer the
+ *   preferred source for "does this row have children" — `children_pks` /
+ *   `children_count` (live rows only) answer that, and every reader in this
+ *   pair reads them first, falling back to `tn_children_pks` only on a server
+ *   that predates the two fields.
  * - `deleted` is a TOMBSTONE flag, not an absence: a soft-deleted row is still
  *   served (the list endpoint's `include_deleted` defaults to **true**), which
  *   is exactly what makes the delta protocol work and exactly what shows a
@@ -218,7 +221,8 @@ export type CategoryFeatureType = CategoryFeatureConfig["type"];
  * `children` is CUT AT `depth`. A node whose `children` is empty is therefore
  * "no children within the depth asked for", not "a leaf" — the distinction
  * {@link CategoryPresentation.children_as} keeps honest, and the reason
- * `browseStage` prefers a row's own `tn_children_pks` when it has one.
+ * `browseStage` prefers a row's own `children_pks`/`children_count`
+ * (falling back to `tn_children_pks`, then `children_as`) when it has one.
  */
 export interface CategoryTreeNode {
   readonly id: number;
@@ -234,6 +238,15 @@ export interface CategoryTreeNode {
   readonly catalog_icon?: string;
   readonly translatable?: boolean;
   readonly children_as?: CategoryChildrenAs | null;
+  /**
+   * How many LIVE children this node has, over the whole visible set — not
+   * `len(children)`, which is cut at the requested `depth` (stapel-categories
+   * 0.20.5). This is what tells a menu there is another level to ask for once
+   * the nested array has been trimmed away by the depth cap. Absent on a
+   * server that predates the field; `hasChildren` falls back to
+   * `children_as` surviving the cut, then to the (possibly empty) array.
+   */
+  readonly children_count?: number;
   /** Cut at the requested depth; absent and `[]` mean the same thing. */
   readonly children?: readonly CategoryTreeNode[];
 }

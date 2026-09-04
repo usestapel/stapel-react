@@ -332,8 +332,9 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * An object form mounts the bar (like `true`) and forwards `unlink` to
    * `<CategoryBreadcrumbsBar>` — a host that holds ancestry knowledge this
    * page does not (a wrapper the catalogue itself cannot detect from
-   * `tn_children_pks` alone) states it here instead of overriding the bar's
-   * own default from outside. Supplied, the host's predicate REPLACES the
+   * `children_pks`, or `tn_children_pks` on an older server, alone) states it
+   * here instead of overriding the bar's own default from outside. Supplied,
+   * the host's predicate REPLACES the
    * bar's automatic transparent-wrapper check for every crumb; see
    * `CategoryBreadcrumbsBarProps.unlink`.
    */

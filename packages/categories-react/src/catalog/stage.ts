@@ -35,15 +35,18 @@
  *
  * 2. "No children" is not "empty `children` array". `GET /tree/?depth=N` cuts
  *    the nesting at `N`, so a root read at a shallow depth can arrive with
- *    `children: []` despite having real ones. `tn_children_pks` (the flat
- *    row's authoritative, comma-joined truth) is consulted first; failing
- *    that, `children_as` survives the cut where the array does not — the
- *    server sends it `null` ONLY where a row truly has nothing to present, so
- *    a non-null value proves children exist even where the nested array was
- *    trimmed away. The nested array is the last resort, for a plain tree node
- *    that carries neither.
+ *    `children: []` despite having real ones. `children_pks`/`children_count`
+ *    (stapel-categories 0.20.5's live answer) are consulted first; failing
+ *    that, `tn_children_pks` (django-treenode's raw, ghost-inclusive column,
+ *    a server predating 0.20.5's only signal); failing that, `children_as`
+ *    survives the cut where the array does not — the server sends it `null`
+ *    ONLY where a row truly has nothing to present, so a non-null value
+ *    proves children exist even where the nested array was trimmed away. The
+ *    nested array is the last resort, for a plain tree node that carries
+ *    none of the above.
  */
 import type { CategoryChildrenAs, CategoryTreeNode } from "../api/types.js";
+import { warnLegacyFallback } from "./devWarn.js";
 import { parseTreenodePks } from "./pks.js";
 
 /**
@@ -82,7 +85,17 @@ export interface BrowseStageInput {
   readonly tn_parent?: number | null;
   /** django-treenode's comma-joined ancestor pks — `""` for a root. */
   readonly tn_ancestors_pks?: string;
-  /** django-treenode's comma-joined pks — authoritative when present. */
+  /** The reader's own live children ids, in order (stapel-categories 0.20.5).
+   * Preferred over `tn_children_pks` — see {@link hasChildren}. */
+  readonly children_pks?: readonly number[];
+  /** How many live children this row has, over the whole visible set
+   * (stapel-categories 0.20.5) — the only channel a depth-capped
+   * `CategoryTreeNode` carries, since it has no `children_pks` of its own.
+   * Preferred over `tn_children_pks`, same as {@link children_pks}. */
+  readonly children_count?: number;
+  /** django-treenode's comma-joined pks. Counts soft-deleted and retired
+   * rows too — a FALLBACK, read only when both `children_pks` and
+   * `children_count` are absent (a server predating 0.20.5). */
   readonly tn_children_pks?: string;
   /** A `CategoryTreeNode`'s own root→self path (`"141/151"`) — no `/` for a
    * root. The last resort for parentage, on a shape with neither treenode
@@ -113,16 +126,45 @@ function isRoot(category: BrowseStageInput): boolean {
 }
 
 /**
+ * The row's own live child COUNT, when it states one at all —
+ * `children_pks.length` first, `children_count` next (the only channel a
+ * depth-capped `CategoryTreeNode` carries, since it has no `children_pks` of
+ * its own), `tn_children_pks` parsed last as a FALLBACK for a server that
+ * predates both (a dev build warns when this fallback fires — the column
+ * counts soft-deleted and retired rows too, so it can overstate the answer).
+ *
+ * `undefined` when the row states none of the three — {@link hasChildren}'s
+ * further fallbacks (`children_as`, the nested `children` array) answer a
+ * boolean-only question no exact count exists for. Exported so
+ * `catalog/wrapper.ts`'s `isWrapperAncestor` can ask "does the parent have
+ * EXACTLY ONE child" without a second copy of this preference chain.
+ */
+export function categoryLiveChildCount(
+  category: BrowseStageInput
+): number | undefined {
+  if (Array.isArray(category.children_pks)) return category.children_pks.length;
+  if (typeof category.children_count === "number") return category.children_count;
+  if (typeof category.tn_children_pks === "string") {
+    warnLegacyFallback("children_pks/children_count", "tn_children_pks");
+    return parseTreenodePks(category.tn_children_pks).length;
+  }
+  return undefined;
+}
+
+/**
  * Does this row have children at all, as far as the caller can tell?
  *
- * `tn_children_pks` first — see this file's header. Then `children_as`: the
- * server sends `null` ONLY where a row has no children to present, so any
- * other value proves children exist even where a depth cap trimmed the nested
- * array to `[]`. The nested `children` array is the last resort. `undefined`
- * on every channel means the caller handed a row that says nothing about its
- * children, and the honest default is "assume it has some" — a tile grid or a
- * chip row that turns out empty renders its own empty state one layer down,
- * which costs less than hiding a real subcategory.
+ * {@link categoryLiveChildCount} first — `children_pks`/`children_count`
+ * (stapel-categories 0.20.5), falling back to `tn_children_pks` only on an
+ * older server (see that function's own doc for the fallback's dev warning).
+ * Then `children_as`: the server sends `null` ONLY where a row has no
+ * children to present, so any other value proves children exist even where a
+ * depth cap trimmed the nested array to `[]`. The nested `children` array is
+ * the last resort. `undefined` on every channel means the caller handed a row
+ * that says nothing about its children, and the honest default is "assume it
+ * has some" — a tile grid or a chip row that turns out empty renders its own
+ * empty state one layer down, which costs less than hiding a real
+ * subcategory.
  *
  * Exported so `catalog/wrapper.ts` can ask the same question of a single
  * CHILD ("does it have children of its own") without a second copy of this
@@ -130,9 +172,8 @@ function isRoot(category: BrowseStageInput): boolean {
  * stage check would disagree with this file about the same row.
  */
 export function hasChildren(category: BrowseStageInput): boolean {
-  if (typeof category.tn_children_pks === "string") {
-    return parseTreenodePks(category.tn_children_pks).length > 0;
-  }
+  const liveCount = categoryLiveChildCount(category);
+  if (liveCount !== undefined) return liveCount > 0;
   if (category.children_as !== undefined) return category.children_as !== null;
   if (category.children !== undefined) return category.children.length > 0;
   return true;

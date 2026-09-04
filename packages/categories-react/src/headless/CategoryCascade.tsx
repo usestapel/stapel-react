@@ -138,13 +138,14 @@ export interface CategoryCascadeOption {
   readonly category: Category;
   readonly label: CategoryLabel;
   /**
-   * The server's own `tn_children_pks` is empty — nothing at all lives under
-   * this row, so choosing it ends the ladder.
+   * `categoryChildIds` (this row's own `children_pks`, falling back to
+   * `tn_children_pks` on an older server) is empty — nothing at all lives
+   * under this row, so choosing it ends the ladder.
    *
    * A HINT, and the one place this hook reports something it has not verified.
-   * The column is maintained by django-treenode, which knows nothing about
-   * `active` or `deleted`, so `false` can still lead to a rung with no
-   * browsable options. The authoritative verdict is
+   * The fallback column is maintained by django-treenode, which knows nothing
+   * about `active` or `deleted`, so a fallback-derived `false` can still lead
+   * to a rung with no browsable options. The authoritative verdict is
    * {@link CategoryCascadeBag.atLeaf}, which is the absence of a further rung
    * — i.e. the server's own empty answer. This is here so a skin can mark an
    * option as terminal before it is chosen, never so it can skip a request.
@@ -259,7 +260,8 @@ export type CategoryCascadeCommit = "any" | "leaf" | "stage";
  * one place, so the value the cascade hands over and the reason it withholds
  * one cannot drift apart.
  *
- * `"leaf"` reads `tn_children_pks` here rather than {@link CategoryCascadeBag.atLeaf}
+ * `"leaf"` reads `categoryChildIds` (`children_pks`, falling back to
+ * `tn_children_pks`) here rather than {@link CategoryCascadeBag.atLeaf}
  * because a click has to answer in its own render; `atLeaf` is the
  * server-verified verdict the blocked reason still hangs on.
  */
