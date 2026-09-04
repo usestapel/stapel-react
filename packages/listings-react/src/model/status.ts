@@ -202,13 +202,34 @@ export function moderationNotice(
   }
 
   if (moderationStatus === "needs_review") {
+    // Same three-way split as `pending`, and for the same reason (D225): a
+    // manual-review verdict is exactly as capable of being OVERTAKEN by a
+    // lifecycle move as an automated one is, and this branch used to ignore
+    // that — a sold/paused/archived/draft row carrying a stale
+    // `needs_review` printed "a moderator is looking at this by hand" to an
+    // owner whose listing had not been on offer for however long the review
+    // has been sitting open.
+    if (live) {
+      return {
+        moderationStatus,
+        messageKey: LISTINGS_I18N_KEYS.moderationLiveNeedsReview,
+        tone: "waiting",
+        liveDuringReview: true,
+      };
+    }
+    if (status === "pending") {
+      return {
+        moderationStatus,
+        messageKey: LISTINGS_I18N_KEYS.moderationNeedsReview,
+        tone: "waiting",
+        liveDuringReview: false,
+      };
+    }
     return {
       moderationStatus,
-      messageKey: live
-        ? LISTINGS_I18N_KEYS.moderationLiveNeedsReview
-        : LISTINGS_I18N_KEYS.moderationNeedsReview,
-      tone: "waiting",
-      liveDuringReview: live,
+      messageKey: LISTINGS_I18N_KEYS.moderationPendingOffline,
+      tone: "neutral",
+      liveDuringReview: false,
     };
   }
 

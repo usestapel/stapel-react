@@ -86,6 +86,37 @@ describe("the moderation axis, given BOTH fields", () => {
     );
   });
 
+  it("does not promise a review to a listing carrying a stale needs_review (D225)", () => {
+    // The exact defect: sold/paused/archived/draft rows printed "a moderator
+    // is looking at this by hand" for a verdict the lifecycle had already
+    // made moot. Same treatment as the `pending` overtaken case above.
+    for (const status of ["sold", "paused", "archived", "draft"] as const) {
+      const view = listingStatusView(status, "needs_review");
+      expect(view.liveUnderReview).toBe(false);
+      expect(view.moderation?.messageKey).toBe(
+        "listings.moderation.pending_offline"
+      );
+    }
+  });
+
+  it("still names a needs_review verdict where it means something", () => {
+    // A first submission awaiting a human's look: say so.
+    const first = listingStatusView("pending", "needs_review");
+    expect(first.moderation?.messageKey).toBe(
+      "listings.moderation.needs_review"
+    );
+    expect(first.liveUnderReview).toBe(false);
+
+    // A live listing whose edit is being screened by hand: still visible,
+    // still worth telling the owner.
+    const liveEdit = listingStatusView("published", "needs_review");
+    expect(liveEdit.moderation?.messageKey).toBe(
+      "listings.moderation.live_needs_review"
+    );
+    expect(liveEdit.liveUnderReview).toBe(true);
+    expect(liveEdit.lifecycle.publiclyVisible).toBe(true);
+  });
+
   it("separates a rejection that has landed from one that has not", () => {
     expect(listingStatusView("blocked", "rejected").moderation?.messageKey).toBe(
       "listings.moderation.rejected"
