@@ -234,6 +234,13 @@
       ],
       "remediation": "fix_input"
     },
+    "error.400.search_unknown_category": {
+      "status": 400,
+      "params": [
+        "category"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.search_unknown_doc_type": {
       "status": 400,
       "params": [
@@ -741,6 +748,7 @@
     "error.400.search_sort_needs_center",
     "error.400.search_too_many_facets",
     "error.400.search_too_many_ranges",
+    "error.400.search_unknown_category",
     "error.400.search_unknown_doc_type",
     "error.400.search_unknown_sort",
     "error.400.search_window_exceeded",
@@ -936,6 +944,7 @@
   ],
   "exports": {
     "runtime": [
+      "EMPTY_FACET_KEYS",
       "FACETABLE_FEATURE_TYPES",
       "FACET_PLAN_EVIDENCE",
       "FILTER_PREFIX",
@@ -971,6 +980,7 @@
       "SearchStateProvider",
       "activeFilterCount",
       "buildFacetGroups",
+      "buildFacetKeyMap",
       "buildRangeGroups",
       "clearFilters",
       "consonantKey",
@@ -985,7 +995,11 @@
       "explainSearchError",
       "facetGroupHasEvidence",
       "facetGroupIsDrawable",
+      "facetGroupIsVocabularyBacked",
+      "facetKeyForSlug",
+      "facetKeyMapFromLabels",
       "facetOptionLabel",
+      "facetSlugForKey",
       "isCountNuanceOnly",
       "isFacetableFeature",
       "isRangeFeature",
@@ -1011,9 +1025,11 @@
       "translitKey",
       "translitPrefixMatch",
       "useAppliedSort",
+      "useFacetKeys",
       "useFacetPanel",
       "useHostFacetLabels",
       "useOtherCategories",
+      "usePublishFacetKeys",
       "useRankingDisclosure",
       "useSearchAnalytics",
       "useSearchApi",
@@ -1031,6 +1047,7 @@
       "CreateSearchRuntimeOptions",
       "FacetCategoryCount",
       "FacetGroup",
+      "FacetKeyMap",
       "FacetLabelRequest",
       "FacetLabelResolver",
       "FacetLabelSource",

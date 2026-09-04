@@ -118,6 +118,17 @@ export interface RefSelectConfig {
   readonly maxSelected?: number | null;
   /** @default "dropdown" */
   readonly uiStyle?: "dropdown" | "chips";
+  /**
+   * Display affix before the rendered labels; a translation key,
+   * snapshotted into the DAO at write time exactly as on `int`/`float`.
+   */
+  readonly prefix?: string | null;
+  /**
+   * Display affix after the rendered labels — the unit a numeric
+   * vocabulary level needs, so a stored floor prints with it rather than
+   * as a bare `3`.
+   */
+  readonly postfix?: string | null;
   /** The wire carries more than the canon describes. */
   readonly [key: string]: unknown;
 }

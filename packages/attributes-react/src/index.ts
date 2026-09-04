@@ -57,7 +57,6 @@ export type {
   Hint,
   OptionsRef,
   RefHierarchicalSelectConfig,
-  RefSelectAffixConfig,
   RefSelectConfig,
   Rule,
   RuleWhen,

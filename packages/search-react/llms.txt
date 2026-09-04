@@ -33,7 +33,7 @@ Paths are relative to `/search/api/v1/`.
 - useSuggest (query) → suggest
 
 ## Errors (render t(code, params); UX from remediation)
-54 keys (full catalog: manifest.json §errors). By remediation: fix_input 26 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+55 keys (full catalog: manifest.json §errors). By remediation: fix_input 27 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -50,6 +50,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.search_bad_range [400] → fix_input {slug,reason}
 - error.400.search_too_many_facets [400] → fix_input {limit}
 - error.400.search_too_many_ranges [400] → fix_input {limit}
+- error.400.search_unknown_category [400] → fix_input {category}
 - error.400.search_unknown_doc_type [400] → fix_input {doc_type}
 - error.400.search_unknown_sort [400] → fix_input {sort}
 - error.400.search_window_exceeded [400] → fix_input {window}

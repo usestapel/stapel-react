@@ -148,6 +148,13 @@ export interface components {
              */
             radius_km?: number;
         };
+        /** @description The queried category in both forms an address can carry. */
+        CategoryResolved: {
+            /** @description The slash-joined ID path this answer actually filtered on — what to send back as `category`. `category=` accepts an id, an id path, a slug, a slug path and any mix, so the string the caller sent is not necessarily this one: `avtomobili` and `141/avtomobili` both answer `141/151`. */
+            path: string;
+            /** @description The same node as slug segments, root->leaf — what a readable URL is built from (`/c/avtomobili`). `null`, never partial, when any segment has no slug: half a slug path builds a wrong address and a client cannot see that by looking. `null` here with `category_names` in `degraded[]` means the names provider was unreachable, not that the node has no slug. */
+            slugs: string[] | null;
+        };
         /** @description One destination in the dropdown, ready to render and ready to follow. */
         CategorySuggestion: {
             /** @description Category id. A `listings`-graded row derives it from the path's leaf segment. */
@@ -209,8 +216,14 @@ export interface components {
             /** @description True when this filter actually narrowed the answer. A false one still contributed to each row's `match_count`. */
             applied: boolean;
         };
-        /** @description Captions for one slug's option codes. */
+        /** @description The heading for one facet group, plus captions for its option codes. */
         FacetLabels: {
+            /** @description The feature definition's own name — the HEADING above this group's buckets. `null` when the definition carries no name: a client renders the slug only as a dev-mode fallback, because a raw slug in a heading is not a caption, and this field is how it can tell that case from a name the server has. */
+            label: string | null;
+            /** @description True when `label` is a translation KEY (`FeatureDef.translate` is `all` or `title`), false when it is literal text. Same question as `translatable`, one level up. */
+            label_translatable: boolean;
+            /** @description What to call this group in the address: `f.<url_key>` and `r.<url_key>`. The slug without the importer type suffix (`_select`, `_ref_select`, `_int`, `_bool`, `_string`) where that stays unambiguous among the features of the category in scope, and the slug itself otherwise — and always when the query names no category. Derived per request, never stored: the slug remains the feature's identity, and both forms are accepted inside the scope. */
+            url_key: string;
             /** @description True when `values` holds translation KEYS to run through the catalogue; false when it holds literal captions. The reader cannot tell by looking — `b.apple` and `Б/у` are both strings. */
             translatable: boolean;
             values: {
@@ -347,6 +360,8 @@ export interface components {
         /** @description The query envelope: AnchorPagination's keys, plus what search owes. */
         SearchResponse: {
             items: components["schemas"]["SearchItem"][];
+            /** @description The category this answer filtered on, in both addressable forms. `null` when the query named no category. */
+            category_resolved: components["schemas"]["CategoryResolved"] | null;
             /** @description Per-band counts in render order — `nearby` («Объявления поблизости») then `all` («Все объявления»). Present only under `geo_mode=rank`; empty when no centre was given. The rows themselves carry `band`; this is the summary a heading needs. The top-level `count` remains the WHOLE matching total, never the nearby one. */
             bands?: components["schemas"]["BandSummary"][];
             /** @description What the query's words became. Absent entirely while QUERY_UNDERSTANDING is off or `qu=off` was sent. */
@@ -357,7 +372,7 @@ export interface components {
                     [key: string]: number;
                 };
             };
-            /** @description {slug: {translatable, values: {value: caption}}} for slugs whose options are inline in the category schema. Absent for a vocabulary-backed slug: its level lives outside the schema and the plan will not invent a caption it has not read. */
+            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. */
             facet_labels: {
                 [key: string]: components["schemas"]["FacetLabels"];
             };
@@ -428,7 +443,7 @@ export interface operations {
                 anchor?: string;
                 /** @description minLat,minLon,maxLat,maxLon. minLon > maxLon means the box crosses +/-180. For an anonymous caller the rectangle is grown OUTWARD to whole ~1.1km cells of the public geo grid, so it can only ever ask about the area a public card publishes: a box EXCLUDES rows, and halving one around a listing would otherwise converge on the seller's pin in a few dozen requests. */
                 bbox?: string;
-                /** @description root/leaf path; a prefix filter, so a parent finds its descendants. */
+                /** @description root/leaf path; a prefix filter, so a parent finds its descendants. Segments are node IDS or SLUGS, in any mix: a bare node id is resolved to that node's full path (`166` == `141/151/166`), and a slug is a whole address on its own because slugs are globally unique (`avtomobili` == `transport/avtomobili` == `141/151`). The form that answered is echoed in `category_resolved`. A segment no category has is a 400, never an empty answer. */
                 category?: string;
                 /** @description next | prev. */
                 direction?: string;
