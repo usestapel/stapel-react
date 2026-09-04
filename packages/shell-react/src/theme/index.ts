@@ -39,7 +39,12 @@ export type {
 
 export { useDocumentThemeMode, useThemePreference } from "./useTheme.js";
 
-export { ThemeModeControl, themeModeLabelsEn } from "./ThemeModeControl.js";
+export {
+  ThemeModeControl,
+  themeModeLabelsEn,
+  themeControlFocusCss,
+  THEME_CONTROL_FOCUS_CLASS,
+} from "./ThemeModeControl.js";
 export type {
   ThemeModeControlProps,
   ThemeModeControlVariant,

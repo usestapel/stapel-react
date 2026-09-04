@@ -17,7 +17,9 @@ import {
   documentThemeMode,
   resolveThemePreference,
   watchSystemTheme,
+  themeControlFocusCss,
   THEME_ATTRIBUTE,
+  THEME_CONTROL_FOCUS_CLASS,
   THEME_PREFERENCE_STORAGE_KEY,
   ThemeModeControl,
   useThemePreference,
@@ -520,5 +522,42 @@ describe("the settings variant is the control that shipped, unchanged", () => {
       expect(button.style.minHeight).toBe("2.75rem");
       expect(button.textContent?.trim()).toBeTruthy();
     }
+  });
+});
+
+describe("the keyboard focus ring is the shell's token, in both variants", () => {
+  it("emits a :focus-visible rule keyed to --stapel-focus-ring, never a plain :focus", () => {
+    const css = themeControlFocusCss();
+    expect(css).toContain(`.${THEME_CONTROL_FOCUS_CLASS}:focus-visible`);
+    expect(css).toContain("var(--stapel-focus-ring");
+    expect(css).toContain("outline-offset:2px");
+    // Never a mouse-click ring: the rule must gate on :focus-visible, not
+    // on a bare :focus that fires for every pointer click too.
+    expect(css).not.toMatch(/:focus\s*\{/);
+  });
+
+  it("the compact button carries the ring class, host className kept alongside it", () => {
+    render(<CompactHost initial="light" />);
+    expect(screen.getByRole("button").className).toContain(THEME_CONTROL_FOCUS_CLASS);
+  });
+
+  it("a host className rides alongside the ring class rather than replacing it", () => {
+    render(<ThemeModeControl value="light" onChange={() => {}} className="host-class" />);
+    const classes = screen.getByRole("button").className.split(/\s+/);
+    expect(classes).toContain(THEME_CONTROL_FOCUS_CLASS);
+    expect(classes).toContain("host-class");
+  });
+
+  it("every settings segment carries the same ring class as the compact button", () => {
+    render(<Host initial="light" />);
+    for (const button of screen.getAllByRole("radio")) {
+      expect(button.className).toContain(THEME_CONTROL_FOCUS_CLASS);
+    }
+  });
+
+  it("hoists the ring sheet once via the dedup href, whichever variant mounts", () => {
+    render(<CompactHost initial="light" />);
+    const sheet = document.head.querySelector('style[data-href="stapel-shell-theme-focus"]');
+    expect(sheet?.textContent).toContain(THEME_CONTROL_FOCUS_CLASS);
   });
 });

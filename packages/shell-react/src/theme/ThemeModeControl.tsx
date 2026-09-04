@@ -47,8 +47,13 @@
  * never loaded `@stapel/tokens`' `tokens.css` still gets a control that
  * inherits its surroundings instead of one painted a colour nobody chose.
  *
- * No `outline: none` anywhere: the browser's own focus ring is the only
- * focus affordance a library can ship that is right in every host.
+ * No `outline: none` anywhere. The RING is the shell's token
+ * (`--stapel-focus-ring`, `:focus-visible` only — never on a mouse click),
+ * the same convention the shell's other header controls draw
+ * (`tokens-antd`'s `skinCarouselCss`, antd's own `genFocusStyle`); a plain
+ * `<button>` left to the engine's own default drew Chromium's blue ring
+ * while its header neighbours drew the token one, which is the seam Pass 11
+ * closes, not a reason to opt this control out of the ring altogether.
  *
  * ── The radiogroup is a real radiogroup ──────────────────────────────────
  *
@@ -234,6 +239,31 @@ const UNMARKED_FG = "var(--stapel-text-muted, currentColor)";
  */
 const SEGMENT_MIN_HEIGHT = "2.75rem";
 
+/**
+ * The class both variants' buttons carry so ONE hoisted stylesheet (React 19's
+ * `<style href precedence>` dedup, the same mechanism `NavDock` uses) can draw
+ * the ring — an inline `style` object cannot express a pseudo-class.
+ */
+export const THEME_CONTROL_FOCUS_CLASS: string = "stapel-theme-control-focus";
+
+/** The hoisted sheet's dedup key. */
+const THEME_CONTROL_STYLE_HREF = "stapel-shell-theme-focus";
+
+/**
+ * The keyboard-focus ring: the shell's token, 2px, `:focus-visible` only —
+ * never drawn for a mouse click, and never `outline:none` at rest, so a
+ * host with no `@stapel/tokens` still gets a visible neutral ring rather
+ * than none at all.
+ */
+export function themeControlFocusCss(): string {
+  return `.${THEME_CONTROL_FOCUS_CLASS}:focus-visible{outline:2px solid var(--stapel-focus-ring, rgba(128,128,128,0.6));outline-offset:2px}`;
+}
+
+/** `className` + the ring class, host class last so it can still override. */
+function withFocusClass(className: string | undefined): string {
+  return className ? `${THEME_CONTROL_FOCUS_CLASS} ${className}` : THEME_CONTROL_FOCUS_CLASS;
+}
+
 const GROUP_STYLE = {
   display: "inline-flex",
   alignItems: "stretch",
@@ -293,10 +323,17 @@ function nextPreference(from: ThemePreference): ThemePreference {
 }
 
 export function ThemeModeControl(props: ThemeModeControlProps): ReactElement {
-  return props.variant === "settings" ? (
-    <SettingsControl {...props} />
-  ) : (
-    <CompactControl {...props} />
+  return (
+    <>
+      <style href={THEME_CONTROL_STYLE_HREF} precedence="default">
+        {themeControlFocusCss()}
+      </style>
+      {props.variant === "settings" ? (
+        <SettingsControl {...props} />
+      ) : (
+        <CompactControl {...props} />
+      )}
+    </>
   );
 }
 
@@ -335,7 +372,7 @@ function CompactControl({
   return (
     <button
       type="button"
-      className={className}
+      className={withFocusClass(className)}
       aria-label={name}
       {...(tooltip ? { title: name } : {})}
       data-state={value}
@@ -455,6 +492,7 @@ function SettingsControl({
             key={preference}
             type="button"
             role="radio"
+            className={THEME_CONTROL_FOCUS_CLASS}
             aria-checked={marked}
             aria-label={name}
             {...(tooltip ? { title: name } : {})}
