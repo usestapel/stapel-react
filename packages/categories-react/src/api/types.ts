@@ -39,7 +39,7 @@ export type Schemas = components["schemas"];
  * ever sees the two resolved values. A `chips` parent's children keep their
  * ids, paths and URLs — only the presentation changes.
  */
-export type CategoryChildrenAs = "tiles" | "chips";
+export type CategoryChildrenAs = Schemas["ChildrenAsEnum"];
 
 /**
  * The presentation fields the serializer adds beyond the pinned schema.
@@ -56,6 +56,13 @@ export type CategoryPresentation = {
    * present — {@link browseStage} reads both as "no chip row".
    */
   readonly children_as?: CategoryChildrenAs | null;
+  /**
+   * What a `chips` row SPLITS ON — the axis the children partition, as a
+   * translation key like `name` (stapel-categories 0.20.0). Empty when nobody
+   * named it, and absent on a server that predates the field, which
+   * `partitionAxisLabel` reads as the same thing: a chip row with no caption.
+   */
+  readonly children_axis_label?: string;
 }
 
 /**
@@ -77,10 +84,22 @@ export type CategoryPresentation = {
  *   is exactly what makes the delta protocol work and exactly what shows a
  *   deleted category in a menu if nobody filters.
  */
-export type Category = Schemas["Category"] & CategoryPresentation;
+/**
+ * The two presentation keys are REQUIRED on the pinned schema and optional
+ * here, so the intersection is over `Omit` rather than the row whole: a
+ * generated type is a promise about the contract, and a storefront pointed at
+ * a server older than 0.20 receives rows carrying neither. Every reader in
+ * this pair already answers "absent" the way it answers `null`.
+ */
+export type Category = Omit<Schemas["Category"], keyof CategoryPresentation> &
+  CategoryPresentation;
 
-/** The `{pagination, revisions, results}` envelope of `RevisionPagination`. */
-export type CategoryPage = Schemas["PaginatedCategoryList"];
+/** The `{pagination, revisions, results}` envelope of `RevisionPagination`.
+ * Its rows are {@link Category}, not the generated row: the two presentation
+ * keys are optional on this side and the envelope must say so too. */
+export type CategoryPage = Omit<Schemas["PaginatedCategoryList"], "results"> & {
+  results: Category[];
+};
 
 /** `revisions` — the delta-sync bookkeeping half of the envelope. */
 export type CategoryRevisions = CategoryPage["revisions"];

@@ -207,7 +207,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get all features for this category, sorted by order. Includes inherited features.
+         * @description Get all features for this category, sorted by order. Includes inherited features. For a `chips` parent that declares no features of its own the answer is the EFFECTIVE schema — the intersection of its children's, since the parent renders the feed and the chip row for all of them; a feature only some children carry appears once its chip is picked, and one whose children disagree carries `divergent: true` beside the widest config of theirs. The `X-Effective-From: children` response header says the list was intersected rather than read off this node (`own` otherwise).
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
@@ -736,6 +736,8 @@ export interface components {
             active?: boolean;
             /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
+            /** @description Name of the axis the children split on, for a `chips` row (e.g. a key rendering as 'Condition' over New | Used). A translation key, like `name` — empty when nobody named it. */
+            readonly children_axis_label: string;
             readonly features: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -840,6 +842,7 @@ export interface components {
             active?: boolean;
             /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
+            children_axis_label?: string;
             readonly features: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -900,6 +903,8 @@ export interface components {
              *     * `chips` - chips
              */
             children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
+            /** @description Name of the axis the children split on, for a `chips` row. A translation key, like `name`; empty when nobody named it. */
+            children_axis_label: string;
             /** @description Nodes of this same shape; empty at the requested depth. */
             children: {
                 [key: string]: unknown;
@@ -1373,6 +1378,65 @@ export interface components {
             feature: components["schemas"]["Feature"];
             parent_feature?: components["schemas"]["Feature"] | null;
         };
+        /**
+         * @description A compact feature as it reads in an EFFECTIVE (intersected) schema.
+         *
+         *     One key more than the compact form, and only where it is true: a
+         *     `chips` parent's schema is the intersection of its children's, and a
+         *     feature whose children disagree about its config, its requiredness or
+         *     its rules carries ``divergent: true`` so a client can hide the control
+         *     until a chip is picked instead of showing one that means something
+         *     different per chip. The config beside it is already the widest the
+         *     children accept, so a client that shows it anyway refuses nothing a
+         *     child would take.
+         *
+         *     Absent means false — the key is dropped rather than sent as ``false``,
+         *     so a leaf and a `tiles` parent answer byte-for-byte what they answered
+         *     before this existed.
+         */
+        FeatureEffective: {
+            readonly id: number;
+            /** Parent */
+            tn_parent?: number | null;
+            name: string;
+            slug?: string;
+            icon?: string;
+            comment?: string;
+            readonly config: Omit<components["schemas"]["FeatureConfig"], "type">;
+            mandatory?: boolean;
+            show_as_badge?: boolean;
+            show_at_title?: boolean;
+            /**
+             * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way. A non-public feature is never a title and never a badge.
+             *
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
+             */
+            visibility?: components["schemas"]["VisibilityD99Enum"];
+            /**
+             * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
+             *
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
+             */
+            translate?: components["schemas"]["Translate2c2Enum"];
+            /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
+            rules?: unknown;
+            /** @description Help text under the field; translation key or literal. */
+            description?: string;
+            /** @description Placeholder text; translation key or literal. */
+            example?: string;
+            /** @description Initial form value in DTO 'value' shape (for a select, a list of option codes). */
+            default?: unknown;
+            /** @description Notices rendered with the field: [{"title": ..., "content": ...}]. */
+            hints?: unknown;
+            /** @description Form section; sections order by first appearance. */
+            group?: string;
+            /** @description Present and true when the children of this `chips` parent do not agree on the feature; the config shown is the widest of theirs. Absent means the children agree. */
+            readonly divergent: boolean;
+        };
         /** @description Serializer for FeatureValidationResult. */
         FeatureValidationResult: {
             id?: unknown;
@@ -1652,6 +1716,7 @@ export interface components {
             active?: boolean;
             /** @description How this category's children are presented: `tiles` (real subcategories) or `chips` (a partition of one attribute template). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as?: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
+            children_axis_label?: string;
             readonly features?: number[];
             /** @description If True, category name is a translation key */
             translatable?: boolean;
@@ -2290,10 +2355,12 @@ export interface operations {
         responses: {
             200: {
                 headers: {
+                    /** @description `own` — the schema is this node's own (own + inherited). `children` — this node is a `chips` parent declaring nothing itself, so the list is the intersection of its children's schemas. */
+                    "X-Effective-From"?: "children" | "own";
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FeatureCompact"][];
+                    "application/json": components["schemas"]["FeatureEffective"][];
                 };
             };
         };
