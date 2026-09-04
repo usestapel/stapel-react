@@ -185,9 +185,12 @@ slugify("iPhone 15 Pro Max 256 ГБ"); // "iphone-15-pro-max-256-gb"
 ```
 
 Its Cyrillic table is chosen for a slug a person can read aloud (`ё` → "yo",
-`й`/`ы` → "y"), not for the fuzzy prefix match in
-[`search-react`'s `translit.ts`](../search-react/src/state/translit.ts) —
-same alphabet, a different job, so the tables differ on purpose.
+`й`/`ы` → "y", `щ` → "shch", `ї` → "yi", `є` → "ye"), not for the fuzzy prefix
+match in [`search-react`'s `translit.ts`](../search-react/src/state/translit.ts) —
+same alphabet, a different job, so the tables differ on purpose. This table
+is a shared contract with consumers (e.g. a storefront's own
+`slug.test.ts`, copied into this package's test suite) — a letter's mapping
+does not change without updating both.
 
 `maxLength` (default 60) cuts on a word boundary: a whole trailing word is
 dropped rather than chopped mid-token, unless the very first word alone

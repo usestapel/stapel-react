@@ -29,7 +29,10 @@ describe("slugify", () => {
   });
 
   it("transliterates the extra Ukrainian/Belarusian/Kazakh letters", () => {
-    expect(slugify("їжак ґанок ўзор")).toBe("izhak-ganok-uzor");
+    // Ukrainian short-i and ye letters expand to two Latin letters ("yi",
+    // "ye") per the storefront contract (see contract block below), rather
+    // than folding to the plain vowel.
+    expect(slugify("їжак ґанок ўзор")).toBe("yizhak-ganok-uzor");
     expect(slugify("әні ғұрыптық қалаңай өрт ұлы үй һасил")).toBe(
       "ani-guryptyq-qalanay-ort-uly-uy-hasil"
     );
@@ -58,5 +61,65 @@ describe("slugify", () => {
     expect(slugify("supercalifragilisticexpialidocious", { maxLength: 10 })).toBe(
       "supercalif"
     );
+  });
+});
+
+/**
+ * Shared contract with a consuming storefront's address contract: that consumer
+ * refused to adopt this export until every case below passed byte for byte
+ * (notably shcha expanding to "shch", not the old "sch"). Copied verbatim so
+ * the two sides can't drift again.
+ */
+describe("slugify (storefront address contract)", () => {
+  it("transliterates word by word and joins with hyphens", () => {
+    expect(slugify("Стол с электроподъёмом, светлый")).toBe(
+      "stol-s-elektropodyomom-svetlyy"
+    );
+  });
+
+  it("spells the letters a reader expects, not a matcher's folding", () => {
+    expect(slugify("Ёжик")).toBe("yozhik");
+    expect(slugify("Юля")).toBe("yulya");
+    expect(slugify("Подъезд")).toBe("podezd");
+    expect(slugify("Щётка")).toBe("shchyotka");
+  });
+
+  it("leaves a Latin title alone but for case and punctuation", () => {
+    expect(slugify("Toyota Camry 2019")).toBe("toyota-camry-2019");
+    expect(slugify("Škoda Octavia")).toBe("skoda-octavia");
+  });
+
+  it("drops everything that is not a letter or a digit", () => {
+    expect(slugify("iPhone 15 Pro (256 ГБ) — как новый!")).toBe(
+      "iphone-15-pro-256-gb-kak-novyy"
+    );
+  });
+
+  it("answers an empty slug when nothing readable survives", () => {
+    expect(slugify("🙂🙂🙂")).toBe("");
+    expect(slugify("   ")).toBe("");
+    expect(slugify("")).toBe("");
+  });
+
+  it("cuts at 60 characters on a word boundary", () => {
+    const slug = slugify(
+      "Продам стол с электроподъёмом светлый почти новый доставка бесплатно"
+    );
+    expect(slug.length).toBeLessThanOrEqual(60);
+    expect(slug.endsWith("-")).toBe(false);
+    expect(slug).toBe(
+      "prodam-stol-s-elektropodyomom-svetlyy-pochti-novyy-dostavka"
+    );
+  });
+
+  it("cuts INSIDE a single word too long to keep, rather than answering nothing", () => {
+    const slug = slugify("a".repeat(80));
+    expect(slug).toBe("a".repeat(60));
+  });
+
+  it("spells the Ukrainian letters the contract wants: shch, yi, ye", () => {
+    expect(slugify("борщ")).toBe("borshch");
+    expect(slugify("їжак")).toBe("yizhak");
+    expect(slugify("єдність")).toBe("yednist");
   });
 });
