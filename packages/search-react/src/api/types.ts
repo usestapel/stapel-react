@@ -30,6 +30,19 @@ export type Schemas = components["schemas"];
  */
 export type FacetLabels = Schemas["FacetLabels"] & {
   readonly label?: string | null;
+  /**
+   * Whether {@link label} is a translation KEY rather than a caption, the way
+   * `translatable` says it for the values.
+   *
+   * Measured on a live answer (`category=141/151`, 2026-09-04): the server
+   * sends it beside every label — a make caption with
+   * `label_translatable: false`, a condition caption with `true` — and the
+   * describe it. Declared, not consumed: this pair passes the group heading
+   * through its translator either way, and a caption that is not a key comes
+   * back unchanged (`translate()` keeps a key it cannot resolve). Typed so a
+   * fixture captured from the wire is not a type error.
+   */
+  readonly label_translatable?: boolean;
 };
 
 /** `facet_labels` as a whole: `{slug: {label, translatable, values}}`. */

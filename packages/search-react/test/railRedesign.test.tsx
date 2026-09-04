@@ -426,15 +426,15 @@ describe("the rail ranks by evidence, not by schema order", () => {
     expect(order).toContain("facet-range-wholesale_packing_count");
   });
 
-  it("an ANSWERED axis outranks a better-evidenced unanswered one", async () => {
+  it("an ANSWERED axis is never folded away", async () => {
     // A constraint the person set must never sink below the fold of a
-    // viewport-tall rail: the control that removes it is the one they came for.
-    // `vendor` (32) ranks below `condition` (43) on evidence alone, and above
-    // it the moment somebody chooses a brand.
+    // viewport-tall rail: the control that removes it is the one they came
+    // for. The rail used to rank it to the top for this and now keeps SCHEMA
+    // order — which is stable under a click, where a rail that reshuffles as
+    // you tick is not — so the invariant moved to the fold: an answered group
+    // is drawn wherever the schema put it, and drawn OPEN.
     const container = await mountPhoneLeaf("type=listing&f.vendor=apple");
-    const order = railOrder(container);
-    expect(order.indexOf("facet-group-vendor")).toBeLessThan(
-      order.indexOf("facet-group-condition")
-    );
+    expect(railOrder(container)).toContain("facet-group-vendor");
+    expect(screen.getByTestId("facet-option-vendor-apple")).toBeTruthy();
   });
 });

@@ -35,7 +35,7 @@ import type {
 } from "react";
 import { Button } from "antd";
 import { useT } from "@stapel/core";
-import { radii, spacing } from "@stapel/tokens";
+import { cssVar, radii, spacing } from "@stapel/tokens";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
 /** One child of a partitioned category. `path` is the slash-joined id path
@@ -58,6 +58,20 @@ export interface PartitionChipsProps {
   readonly allLabel?: ReactNode;
   /** The row's accessible name. Defaults to `search.partition.label`. */
   readonly label?: string;
+  /**
+   * Which shape the row takes. `"chips"` (the default) is the phone's: a
+   * wrapping row of rounded pills above the feed. `"segmented"` is the
+   * desktop RAIL's — one joined control under the axis's own label, which is
+   * how the reference classified draws the same choice (a car-type row:
+   * all, used, new) and what a 280px column has room for.
+   *
+   * The SEMANTICS do not vary with it. Both are the same `radiogroup` with
+   * the same roving tabindex and the same arrow keys — a segmented look is a
+   * border-radius decision, and swapping in a component that draws joined
+   * cells by giving up "exactly one of these is true" would trade the
+   * accessible half of this control for the visible half.
+   */
+  readonly variant?: "chips" | "segmented";
 }
 
 const CHIP: CSSProperties = { borderRadius: radii.full };
@@ -66,6 +80,33 @@ const ROW: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
   gap: spacing[2],
+};
+
+/**
+ * The segmented row: one joined control, no gaps, the group's own outline.
+ *
+ * `gap: 0` plus a shared border is what makes three buttons read as one
+ * control — the thing a rail needs, because a wrapping pill row in a 280px
+ * column is two ragged lines. `overflow: hidden` clips the cells' own corners
+ * to the group's radius so the ends are round and the joins are square.
+ */
+const SEGMENTED_ROW: CSSProperties = {
+  display: "flex",
+  gap: 0,
+  inlineSize: "100%",
+  border: `1px solid ${cssVar("border")}`,
+  borderRadius: cssVar("radius-md"),
+  overflow: "hidden",
+};
+
+/** One cell of the segmented row: an equal share of the width, square joins,
+ * no border of its own — the group draws the outline. */
+const SEGMENTED_CELL: CSSProperties = {
+  flex: "1 1 0",
+  minInlineSize: 0,
+  borderRadius: 0,
+  borderInline: "none",
+  borderBlock: "none",
 };
 
 /** The row's cells, as `[value, label]` — the parent first, then the
@@ -122,9 +163,11 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
   const active = options.findIndex(([value]) => value === props.value);
   const stop = active >= 0 ? active : 0;
 
+  const segmented = props.variant === "segmented";
   return (
     <div
-      style={ROW}
+      style={segmented ? SEGMENTED_ROW : ROW}
+      data-variant={segmented ? "segmented" : "chips"}
       ref={row}
       role="radiogroup"
       aria-label={props.label ?? t(SEARCH_I18N_KEYS.partitionLabel)}
@@ -136,14 +179,14 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
           <Button
             key={value ?? "__all__"}
             size="small"
-            shape="round"
+            {...(segmented ? {} : { shape: "round" as const })}
             type={selected ? "primary" : "default"}
             role="radio"
             aria-checked={selected}
             // Roving tabindex: the row is ONE Tab stop and it lands on the
             // chosen chip, not on the first of eight.
             tabIndex={index === stop ? 0 : -1}
-            style={CHIP}
+            style={segmented ? SEGMENTED_CELL : CHIP}
             data-testid={`partition-chip-${value ?? "all"}`}
             data-analytics="none"
             data-analytics-reason="choosing a section is a read, not a flow step"

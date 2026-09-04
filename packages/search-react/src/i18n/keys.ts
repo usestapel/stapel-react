@@ -171,6 +171,28 @@ export const SEARCH_I18N_KEYS = {
   /** Over the values already chosen, which stay visible whatever the box
    * says — a filter a person cannot see is a filter they cannot remove. */
   facetsDictionaryChosen: "search.facets.dictionary_chosen",
+  /**
+   * The closed dictionary FIELD with nothing chosen — "no constraint on this
+   * axis", the way a classified says it ("Any make", shortened to "Any").
+   *
+   * Not `facetsPopularAll` and not `partitionAll`, which are both the word
+   * "All": those two name a WIDER SET a person can move to, and this one
+   * names the absence of a narrowing. The three read alike in English and
+   * diverge in every language with gender or case.
+   */
+  facetsDictionaryAny: "search.facets.dictionary_any",
+  /**
+   * The tail of the rail, folded: how many groups are behind one control.
+   * `{count}` is a number in parentheses, not a counted noun, so this is not
+   * a plural family — the same shape as `facetsClearAll`.
+   */
+  facetsAllFilters: "search.facets.all_filters",
+  /**
+   * The bounds of a picker axis, said in words when what was typed is
+   * outside them — a year before the catalogue's own floor otherwise does
+   * nothing at all, silently.
+   */
+  facetsRangeBounds: "search.facets.range_bounds",
   /** The way from the "popular values" block into the whole control. The
    * block is a shortcut over the busiest values, so the link has to say that
    * the rest exist. */
@@ -497,6 +519,9 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.dictionary_search": "Find a value",
   "search.facets.dictionary_empty": "No value matches this",
   "search.facets.dictionary_chosen": "Chosen",
+  "search.facets.dictionary_any": "Any",
+  "search.facets.all_filters": "All filters ({count})",
+  "search.facets.range_bounds": "from {min} to {max}",
   "search.facets.popular_all": "All",
   "search.partition.all": "All",
   "search.partition.label": "Section",

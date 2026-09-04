@@ -59,14 +59,14 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + hooks + URL codec + facet model incl. the facetability rule, the label-source order and the across-alphabets prefix matcher): no antd, no react-router",
+      "name": "index — the headless pair (client + hooks + URL codec + facet model incl. the facetability rule, the label-source order, the across-alphabets prefix matcher, the SCHEMA-order comparator that puts a category's required axes first and the bounded-integer picker list): no antd, no react-router. Raised 12 → 12.5 KB for the rail-order comparator, the shared drawability predicate (one rule for the rail and the chip row) and the picker bounds",
       "path": "dist/index.js",
-      "limit": "12 KB"
+      "limit": "12.5 KB"
     },
     {
-      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking, the dictionary control for a vocabulary facet, the popular-values block and the partition chip row) must stay out of the main bundle",
+      "name": "default — the antd skin (query box + a typeahead that offers CATEGORY destinations with their live counts, filters incl. ranges/geo/category slots + the phone chip row with its leading category chip and the location summary row + the rail's evidence-ranked disclosure groups, panel search and sticky count/clear footer, results incl. the view switch, the card photo GALLERY as a SkinCarousel strip, the empty state's derived exits, ranking, the dictionary control for a vocabulary facet, the popular-values block, the partition row in both its chip and segmented variants, the select-style dictionary FIELD the desktop rail opens, the from/to pickers a bounded integer axis draws and the rail's own scrollbar sheet) must stay out of the main bundle. Raised 24.5 → 25.5 KB for those four controls",
       "path": "dist/default/index.js",
-      "limit": "24.5 KB"
+      "limit": "25.5 KB"
     },
     {
       "name": "router — the react-router binding is opt-in; the main entry must never pull a router",

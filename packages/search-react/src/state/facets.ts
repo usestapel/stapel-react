@@ -96,6 +96,46 @@ function warnUnnamedGroup(slug: string): void {
   );
 }
 
+/** Slugs already reported as undrawable — one warning per slug per page. */
+const warnedUndrawable = new Set<string>();
+
+/**
+ * An axis that reached the panel with nothing to draw, said once, in
+ * development only.
+ *
+ * Measured on a live classified's cars branch: `make_ref_select`,
+ * `model` and `generation` are `ref_select` features whose config is a bare
+ * `optionsRef` pointer into a vocabulary — there is no option table in the
+ * schema and there never will be — so whenever the server's facet plan does
+ * not COUNT them there is nothing on the client to enumerate, and the group
+ * left the rail without a word while every `select`-typed comfort option
+ * (steering side, power steering, heating) drew its schema table and stayed.
+ * buyer's report was "I cannot pick a make".
+ *
+ * The panel still refuses to draw a heading over nothing — that is the right
+ * call — but the disappearance is a WIRING FAULT with two possible owners
+ * (the server's plan skipped a required axis, or the host threaded the wrong
+ * category's schema), and neither of them can see it from the page.
+ */
+function warnUndrawableGroup(group: FacetGroup): void {
+  const env = typeof process === "undefined" ? undefined : process.env;
+  if (env?.NODE_ENV === "production") return;
+  if (warnedUndrawable.has(group.slug)) return;
+  warnedUndrawable.add(group.slug);
+  console.warn(
+    `[search-react] facet group "${group.slug}" has no values to draw: the ` +
+      `answer did not count it${
+        group.feature === undefined
+          ? " and the category schema passed to this page does not define it"
+          : " and its config carries a vocabulary pointer, not an option table"
+      }, so the group is not rendered.` +
+      (group.feature?.mandatory === true
+        ? " The schema marks this axis REQUIRED — a buyer cannot narrow by a" +
+          " field every seller had to fill."
+        : "")
+  );
+}
+
 /**
  * Value types whose values are a BOUNDED OPTION SET — the only kind of
  * feature a person can be offered as a filter.
@@ -220,6 +260,105 @@ export function orderFacetGroups(
   groups: readonly FacetGroup[]
 ): readonly FacetGroup[] {
   return [...groups].sort(compareFacetsByEvidence);
+}
+
+/**
+ * Does the ANSWER have evidence for this axis — at least one value some
+ * candidate actually carries?
+ *
+ * The one fact that outranks every other rule in this module. A bucket with a
+ * count above zero is the server saying "documents in this result set have
+ * this value", and no schema opinion, no missing feature list and no type
+ * table may take an axis like that off the screen.
+ */
+export function facetGroupHasEvidence(group: FacetGroup): boolean {
+  return group.options.some((option) => (option.count ?? 0) > 0);
+}
+
+/**
+ * Is there anything for a surface to DRAW here?
+ *
+ * Shared by the rail and the chip row, which each used to hold their own
+ * `options.length > 0` — one predicate, or the two surfaces drift into two
+ * opinions about what an empty group is.
+ *
+ * A group with no options is a heading over nothing: after
+ * {@link buildFacetGroups} learned to read the schema, what is left in that
+ * state is a `ref_select` whose config is a bare `optionsRef` pointer and
+ * which the server did not count — nothing to enumerate from either side. It
+ * is not drawn, and in development it is NAMED: a required axis (the make on
+ * cars leaf) disappearing out of a rail is exactly the fault this pair spent
+ * a release chasing, and it must not disappear silently a second time.
+ *
+ * A group the reader has already FILTERED on is drawn whatever its options
+ * say — a constraint with no control to remove it is worse than a bare
+ * heading.
+ */
+export function facetGroupIsDrawable(group: FacetGroup): boolean {
+  if (group.selected.length > 0) return true;
+  if (group.options.length > 0) return true;
+  warnUndrawableGroup(group);
+  return false;
+}
+
+/**
+ * The order the RAIL puts groups in: the category's own schema order, with
+ * the axes the schema calls required in front of it.
+ *
+ * Evidence order ({@link compareFacetsByEvidence}) answers "which axis does
+ * this corpus fill in", which is the right question for a chip row that has
+ * room for four. It is the wrong question for a rail: on a cars leaf with
+ * three listings the busiest axis is whichever three values happen to be
+ * counted, so the rail opened on condition and colour while make, model and
+ * year — the three fields the schema marks
+ * `mandatory`, i.e. the three every seller had to fill and every buyer
+ * narrows by first — sat below them or off the fold entirely.
+ *
+ * So: the schema's own order, which is the order the composer asks the
+ * seller to fill the form in, with required first. Four bands:
+ *
+ *  1. `pinned` slugs, in the order given — the axis a page has already
+ *     decided is its subject (a partition's own field).
+ *  2. schema-required (`mandatory: true`), in schema order.
+ *  3. everything else the schema names, in schema order.
+ *  4. what the schema does not name at all — including EVERY group when the
+ *     host passed no feature list, which is the live parent-node case — in
+ *     evidence order, because with no schema there is no other order to have.
+ *
+ * Stable: within a band the comparator falls through to evidence and then to
+ * the order `buildFacetGroups` gave, so equal-ranked groups never reshuffle.
+ */
+export function orderFacetGroupsBySchema(input: {
+  readonly groups: readonly FacetGroup[];
+  /** The category schema, in the order the category declares it. */
+  readonly categoryFeatures?: readonly FeatureDef[];
+  /** Slugs pinned above everything, in the order given. */
+  readonly pinned?: readonly string[];
+}): readonly FacetGroup[] {
+  const schemaIndex = new Map<string, number>();
+  (input.categoryFeatures ?? []).forEach((feature, index) => {
+    if (!schemaIndex.has(feature.slug)) schemaIndex.set(feature.slug, index);
+  });
+  const pinnedIndex = new Map<string, number>();
+  (input.pinned ?? []).forEach((slug, index) => {
+    if (!pinnedIndex.has(slug)) pinnedIndex.set(slug, index);
+  });
+
+  const band = (group: FacetGroup): number => {
+    if (pinnedIndex.has(group.slug)) return 0;
+    if (!schemaIndex.has(group.slug)) return 3;
+    return group.feature?.mandatory === true ? 1 : 2;
+  };
+  const within = (group: FacetGroup): number =>
+    pinnedIndex.get(group.slug) ?? schemaIndex.get(group.slug) ?? 0;
+
+  return [...input.groups].sort((a, b) => {
+    const byBand = band(a) - band(b);
+    if (byBand !== 0) return byBand;
+    const byOrder = within(a) - within(b);
+    if (byOrder !== 0) return byOrder;
+    return compareFacetsByEvidence(a, b);
+  });
 }
 
 export interface BuildFacetGroupsInput {
@@ -467,6 +606,19 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     seen.add(slug);
     // Applied first, type second — in that order, so an `imei` somebody
     // somehow got into a link keeps the control that removes it.
+    //
+    // EVIDENCE does not enter here, and the reason is worth stating because
+    // the opposite was tried: a counted bucket cannot promote a slug the
+    // schema NAMES AND DISOWNS. An `imei` the engine counted is still not a
+    // filter — a free-text identifier enumerates one term per document — and
+    // a `visibility: "owner"` feature is one the canon says is never
+    // facetable at all. What evidence does outrank is SILENCE: an absent def,
+    // an untyped def, and the whole empty feature list the live cars page
+    // passes at its parent node all answer "not a verdict"
+    // (see {@link isFacetableFeature}), so a counted axis is never dropped
+    // for a schema that says nothing about it. That is the live case; a
+    // wrong-schema case where some other category types `make_ref_select` as
+    // free text is not one this pair can tell apart from a real `imei`.
     const applied = (input.state.filters[slug] ?? []).length > 0;
     if (!applied && !isFacetableFeature(bySlug.get(slug))) continue;
     slugs.push(slug);

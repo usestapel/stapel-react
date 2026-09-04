@@ -207,6 +207,18 @@ Set on `<SearchPage>`, it reaches both filter surfaces: the desktop panel and
 the phone chip row read one `useFacetPanel`, so they cannot print two words for
 one value.
 
+**The gap the seam does not close: EXISTENCE.** `resolveFacetLabels` names
+values; it does not enumerate them. A `ref_select` group the server did not
+count therefore has no options from either side — the answer counted nothing,
+the schema holds a pointer — and `facetGroupIsDrawable` refuses to draw a
+heading over nothing. Measured on a live cars leaf, that is exactly the set a
+buyer misses (make, model, generation, body type) while every `select`-typed
+option keeps its schema table. The client cannot invent the values, so the fix
+is on the other side — the facet plan must count a required vocabulary axis —
+and until it does, the disappearance is reported: one `console.warn` per slug
+outside production, naming the axis, the missing side, and whether the schema
+marks it required.
+
 ## The chip row's order is the row's product
 
 At 390px about four chips fit before the fold. On a live phone category the

@@ -116,8 +116,11 @@ export type {
 export {
   FACETABLE_FEATURE_TYPES,
   buildFacetGroups,
+  facetGroupHasEvidence,
+  facetGroupIsDrawable,
   facetOptionLabel,
   isFacetableFeature,
+  orderFacetGroupsBySchema,
 } from "./state/facets.js";
 export type {
   BuildFacetGroupsInput,
@@ -134,6 +137,7 @@ export {
 
 export {
   RANGE_FEATURE_TYPES,
+  RANGE_PICKER_MAX_VALUES,
   buildRangeGroups,
   coreRangeLabelKey,
   isRangeFeature,

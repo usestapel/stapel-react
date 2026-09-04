@@ -17,7 +17,7 @@
  */
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Button, Flex, InputNumber, Typography } from "antd";
+import { Button, Flex, InputNumber, Select, Typography } from "antd";
 import { actionAvailable, actionBlocked, useFormat, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { GatedButton } from "@stapel/tokens-antd/skin";
@@ -68,6 +68,100 @@ function boundSuffix(
   } catch {
     return group.currency;
   }
+}
+
+/**
+ * One bound of a PICKER axis — a bounded integer small enough to choose from
+ * (`RangeGroup.picker`), which on a cars leaf is the year.
+ *
+ * The founder's walk of the live page put it plainly: the year was a bare
+ * number field. A year is not a quantity a person computes, it is one of a
+ * hundred-odd values, and every classified draws it as two pickers.
+ *
+ * Typing still works, and the rule is the same one `attributes-react` is
+ * building for a bounded integer field: what a person types is a value, not a
+ * query. While the typed text IS a valid value inside the bounds the list
+ * narrows to it and gets out of the way; the moment it is not — a letter, a
+ * year before the catalogue's own floor — the full list comes back WITH the
+ * bounds said in words, because "1899" silently doing nothing is the defect
+ * this replaces.
+ */
+function BoundPicker(props: {
+  readonly group: RangeGroup;
+  readonly bound: "from" | "to";
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly onCommit: () => void;
+}): ReactElement {
+  const t = useT();
+  const { group } = props;
+  const [typed, setTyped] = useState("");
+  const values = group.picker ?? [];
+  const min = group.min ?? values[values.length - 1];
+  const max = group.max ?? values[0];
+  const query = typed.trim();
+  const asNumber = Number(query);
+  // "Valid" is the whole rule: a number, whole, and inside the axis's own
+  // bounds. Anything else is a query that matched nothing, not a value.
+  const valid =
+    query !== "" &&
+    /^-?\d+$/.test(query) &&
+    Number.isInteger(asNumber) &&
+    (min === undefined || asNumber >= min) &&
+    (max === undefined || asNumber <= max);
+  const listed = valid
+    ? values.filter((value) => String(value).startsWith(query))
+    : values;
+  return (
+    <Flex vertical gap={spacing[1]}>
+      <Select
+        showSearch
+        allowClear
+        value={props.value === "" ? null : props.value}
+        searchValue={typed}
+        // The list is already narrowed above, by the rule this control is
+        // about; antd's own substring filter would narrow it a second time
+        // and by a different rule.
+        filterOption={false}
+        placeholder={t(
+          props.bound === "from"
+            ? SEARCH_I18N_KEYS.facetsRangeFrom
+            : SEARCH_I18N_KEYS.facetsRangeTo
+        )}
+        aria-label={t(
+          props.bound === "from"
+            ? SEARCH_I18N_KEYS.facetsRangeFromAria
+            : SEARCH_I18N_KEYS.facetsRangeToAria,
+          { feature: group.label }
+        )}
+        data-testid={`facet-range-${group.slug}-${props.bound}`}
+        style={{ minWidth: RANGE_FIELD_MIN_WIDTH }}
+        options={listed.map((value) => ({
+          value: String(value),
+          label: String(value),
+        }))}
+        onSearch={setTyped}
+        onChange={(next: string | null) => {
+          setTyped("");
+          props.onChange(next ?? "");
+        }}
+        onBlur={props.onCommit}
+      />
+      {/* Said only when the typing has gone outside the axis — a hint over an
+          untouched field is chrome. */}
+      {query !== "" && !valid && (
+        <Typography.Text
+          type="secondary"
+          data-testid={`facet-range-${group.slug}-${props.bound}-bounds`}
+        >
+          {t(SEARCH_I18N_KEYS.facetsRangeBounds, {
+            min: String(min ?? ""),
+            max: String(max ?? ""),
+          })}
+        </Typography.Text>
+      )}
+    </Flex>
+  );
 }
 
 export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
@@ -138,6 +232,25 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
         {suffix === undefined ? group.label : `${group.label}, ${suffix}`}
       </Typography.Text>
       <Flex gap={spacing[2]} align="center" wrap>
+        {group.picker !== undefined ? (
+          <>
+            <BoundPicker
+              group={group}
+              bound="from"
+              value={from}
+              onChange={setFrom}
+              onCommit={commit}
+            />
+            <BoundPicker
+              group={group}
+              bound="to"
+              value={to}
+              onChange={setTo}
+              onCommit={commit}
+            />
+          </>
+        ) : (
+        <>
         <InputNumber
           value={from === "" ? null : Number(from)}
           placeholder={t(SEARCH_I18N_KEYS.facetsRangeFrom)}
@@ -172,6 +285,8 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
           }}
           onPressEnter={commit}
         />
+        </>
+        )}
         {/* Primary when there is something to apply, secondary when there is
             not. It used to be the other way round — filled over two empty
             fields, ghosted the moment the person had typed the numbers the

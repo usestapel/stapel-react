@@ -40,7 +40,12 @@
  */
 
 // ── surfaces ────────────────────────────────────────────────────────────────
-export { SearchPage } from "./SearchPage.js";
+export {
+  SearchPage,
+  RAIL_CLASS,
+  RAIL_STYLE_HREF,
+  railScrollbarCss,
+} from "./SearchPage.js";
 export type { SearchPageProps, SearchFiltersLayout } from "./SearchPage.js";
 
 export { SearchResultsPane, RESULTS_MAX_WIDTH } from "./SearchResultsPane.js";
@@ -95,7 +100,12 @@ export type { PopularValuesProps } from "./PopularValues.js";
 export { PartitionChips } from "./PartitionChips.js";
 export type { PartitionChild, PartitionChipsProps } from "./PartitionChips.js";
 
-export { FacetPanelPane } from "./FacetPanelPane.js";
+export {
+  FacetPanelPane,
+  FACET_OPEN_GROUPS,
+  FACET_SEARCH_THRESHOLD,
+  FACET_VISIBLE_GROUPS,
+} from "./FacetPanelPane.js";
 export type {
   FacetPanelPaneProps,
   CategoryFilterSlotProps,

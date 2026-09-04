@@ -133,7 +133,10 @@ import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import type { RangeGroup } from "../state/ranges.js";
-import { compareFacetsByEvidence } from "../state/facets.js";
+import {
+  compareFacetsByEvidence,
+  facetGroupIsDrawable,
+} from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
@@ -400,7 +403,7 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
   });
   const groups =
     bag.state.status === "ready"
-      ? bag.state.data.filter((group) => group.options.length > 0)
+      ? bag.state.data.filter(facetGroupIsDrawable)
       : [];
 
   const close = (): void => {

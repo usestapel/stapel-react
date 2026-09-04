@@ -66,7 +66,7 @@ import { useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Checkbox, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
-import { radii, spacing } from "@stapel/tokens";
+import { controls, cssVar, radii, spacing } from "@stapel/tokens";
 import {
   VOCABULARY_BACKED_TYPES,
   featureConfig,
@@ -181,18 +181,28 @@ export function isDictionaryFacet(group: FacetGroup): boolean {
 /**
  * Which of the four shapes a group takes.
  *
- * Order matters: a hierarchical facet is nested even when it is single-choice,
- * because losing the tree costs more than losing the pills; and a dictionary
- * is a dictionary before it is a checkbox list, because the checkbox list is
- * the shape it was drawn as when nobody could pick a make.
+ * Order matters, and it changed in one place after a live measurement:
+ *
+ *  - a hierarchical facet is nested even when it is single-choice, because
+ *    losing the tree costs more than losing the pills;
+ *  - a DICTIONARY outranks the pills. The make axis on the live cars leaf
+ *    `maxSelected: 1` over a 418-value vocabulary, so "pick one" won and the
+ *    control it produced was four hundred pills in a 280px rail — a wall
+ *    with a different border radius. Above the fold the shape a person needs
+ *    is a search box, whether or not they may tick two; below it,
+ *    single-choice still means pills, because `isDictionaryFacet` requires
+ *    more than {@link FACET_DICTIONARY_THRESHOLD} counted buckets;
+ *  - and a dictionary is a dictionary before it is a checkbox list, because
+ *    the checkbox list is the shape it was drawn as when nobody could pick a
+ *    make.
  */
 export function facetGroupShape(group: FacetGroup): FacetGroupShape {
   const feature = group.feature;
   if (feature !== undefined && featureType(feature) === "hierarchical_select") {
     return "nested";
   }
-  if (singleChoice(feature)) return "segmented";
-  return isDictionaryFacet(group) ? "dictionary" : "checkbox";
+  if (isDictionaryFacet(group)) return "dictionary";
+  return singleChoice(feature) ? "segmented" : "checkbox";
 }
 
 /**
@@ -519,6 +529,105 @@ function DictionaryBody(props: {
   );
 }
 
+/**
+ * The closed face of a dictionary group on DESKTOP: a select-shaped field
+ * that reads what is chosen, or "Any".
+ *
+ * A 418-value vocabulary rendered as a permanently-open box plus a scrolling
+ * list is right in a phone sheet, where the sheet IS the disclosure and there
+ * is one group on screen. In a 280px rail it is the whole rail: the reference
+ * classified draws the make as a field reading "Any" that opens the
+ * searchable list, and every axis under it stays reachable at a glance.
+ *
+ * A native `<button role="combobox">` rather than antd's `Select`, for the
+ * same reason the option pills are native buttons: the list underneath is
+ * this component's — it carries per-option counts, a chosen block and a fold
+ * — and a `Select` that only lends its trigger is a dependency on a popup
+ * layer for a border. `aria-expanded` on a real button is the disclosure
+ * pattern; Escape closes, and the field keeps focus so the next Tab goes
+ * where the person expects.
+ */
+const DICTIONARY_FIELD: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: spacing[1],
+  inlineSize: "100%",
+  minBlockSize: controls.height,
+  paddingInline: spacing[2],
+  paddingBlock: spacing[1],
+  border: `1px solid ${cssVar("border")}`,
+  borderRadius: cssVar("radius-md"),
+  background: cssVar("surface"),
+  color: "inherit",
+  font: "inherit",
+  textAlign: "start",
+  cursor: "pointer",
+};
+
+/** The chosen values, or the word for "no constraint on this axis". Never a
+ * count: "3 chosen" makes a person open the field to find out which three. */
+const DICTIONARY_FIELD_TEXT: CSSProperties = {
+  flex: "1 1 auto",
+  minInlineSize: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+function DictionaryField(props: {
+  readonly group: FacetGroup;
+  readonly onToggle: (slug: string, value: string) => void;
+  readonly visible: number;
+}): ReactElement {
+  const t = useT();
+  const { group } = props;
+  const [open, setOpen] = useState(false);
+  const chosen = group.options.filter((option) => option.selected);
+  const text =
+    chosen.length > 0
+      ? chosen.map((option) => option.label).join(", ")
+      : t(SEARCH_I18N_KEYS.facetsDictionaryAny);
+  return (
+    <Flex vertical gap={spacing[1]}>
+      <button
+        type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={group.label}
+        style={DICTIONARY_FIELD}
+        data-testid={`facet-dictionary-field-${group.slug}`}
+        data-chosen={chosen.length}
+        data-analytics="none"
+        data-analytics-reason="opening a filter group is a read, not a flow step"
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && open) {
+            event.preventDefault();
+            setOpen(false);
+          }
+          if (event.key === "ArrowDown" && !open) {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+        onClick={() => {
+          setOpen((was) => !was);
+        }}
+      >
+        <span style={DICTIONARY_FIELD_TEXT}>{text}</span>
+        <ChevronGlyph open={open} />
+      </button>
+      {open && (
+        <DictionaryBody
+          group={group}
+          onToggle={props.onToggle}
+          visible={props.visible}
+        />
+      )}
+    </Flex>
+  );
+}
+
 export interface FacetGroupControlProps {
   readonly group: FacetGroup;
   readonly onToggle: (slug: string, value: string) => void;
@@ -538,6 +647,14 @@ export interface FacetGroupControlProps {
   /** Whether a `collapsible` group STARTS open. Default `true`. The initial
    * value only — the person owns the state after the first click. */
   readonly defaultOpen?: boolean;
+  /**
+   * How a `"dictionary"` group is drawn. `"field"` is the desktop shape — a
+   * select-style field reading its chosen values or "Any", which opens the
+   * searchable list; `"inline"` (the default) keeps the list open, the shape
+   * a phone sheet wants because the sheet is already the disclosure.
+   * Meaningless for the other three shapes.
+   */
+  readonly dictionaryMode?: "field" | "inline";
 }
 
 export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
@@ -618,13 +735,21 @@ export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
       {/* Closed means NOT RENDERED, not hidden: a hundred `display:none`
           checkboxes are still a hundred stops for a screen reader, and the
           measured rail held 118 of them. */}
-      {open && shape === "dictionary" && (
-        <DictionaryBody
-          group={group}
-          onToggle={props.onToggle}
-          visible={limit ?? FACET_VISIBLE_OPTIONS}
-        />
-      )}
+      {open &&
+        shape === "dictionary" &&
+        (props.dictionaryMode === "field" ? (
+          <DictionaryField
+            group={group}
+            onToggle={props.onToggle}
+            visible={limit ?? FACET_VISIBLE_OPTIONS}
+          />
+        ) : (
+          <DictionaryBody
+            group={group}
+            onToggle={props.onToggle}
+            visible={limit ?? FACET_VISIBLE_OPTIONS}
+          />
+        ))}
 
       {open && shape !== "dictionary" && (
         <>

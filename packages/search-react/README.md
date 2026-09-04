@@ -157,6 +157,46 @@ Every `FacetGroup` and every `FacetOption` carries `labelSource:
 "server" | "schema" | "host" | "none"`, so "did anybody actually name this?" is
 answerable without looking at the string.
 
+## The rail is in schema order, required first
+
+The panel used to rank its groups by **evidence** — the sum of an axis's
+counts. That is the right question for a phone chip row with room for four and
+the wrong one for the column a person narrows a catalogue in: on a live cars
+page it opened on *condition* and *colour*, because with three listings the
+busiest axis is whichever three values happen to be counted, while *make*,
+*model* and *year* — the three fields the category marks `mandatory`, i.e. the
+three every seller had to fill — sat below them.
+
+The rail now follows the **category's own order**, in four bands: pinned slugs,
+then `mandatory` features in schema order, then the rest in schema order, then
+whatever the schema does not name at all (evidence order among themselves —
+with no schema there is no other order to have). Stable under a click, which a
+rail that reshuffles as you tick is not.
+
+```tsx
+<SearchPage
+  partition={<PartitionChips variant="segmented" items={children} … />}
+  pinnedFacets={["body_type_ref_select"]}
+/>
+orderFacetGroupsBySchema({ groups, categoryFeatures, pinned })
+```
+
+Past `visibleGroups` (default `FACET_VISIBLE_GROUPS`, 8) the tail folds under
+one **All filters (K)** control — except a group you have already chosen a
+value in, which is never folded away: the control that removes a filter is the
+one you came back for. The phone sheet passes `visibleGroups={null}`; a surface
+devoted to filtering has the room.
+
+`facetGroupIsDrawable(group)` is the one rule the rail and the chip row share
+for "is there anything to draw here". A group with no options is a heading over
+nothing — after `buildFacetGroups` learned to read the schema, what is left in
+that state is a `ref_select` whose config is a bare `optionsRef` pointer and
+which the server did not count, so there is nothing to enumerate from either
+side. It is not drawn, and outside production it is **named**: a
+`console.warn` says which axis went, why, and whether the schema calls it
+required. That is the fault that took *make* off a live cars rail while every
+`select`-typed comfort option drew its own table and stayed.
+
 ## A vocabulary is a dictionary, not a checkbox list
 
 Past eight **evidence buckets** a `ref_select` group (or an untyped group that
@@ -173,10 +213,45 @@ answer — stapel-search caps a vocabulary-backed group at
 this), so a 418-term make dictionary arrives whole and the box has everything
 it filters.
 
+A dictionary outranks the pills, too: the live `make` axis is `maxSelected: 1`
+over a 418-value vocabulary, so "pick one" used to win and the control it drew
+was four hundred pills in a 280px rail.
+
+On the **desktop rail** a dictionary is a select-style FIELD
+(`dictionaryMode="field"`, which `<SearchPage>` sets for the column layout):
+closed it reads the chosen values or *Any*, and it opens the searchable list —
+a real `role="combobox"` button, Enter/Space to open, ArrowDown to open,
+Escape to close. The phone sheet keeps the list inline, because the sheet is
+already the disclosure.
+
 ```tsx
 facetGroupShape(group)   // "segmented" | "nested" | "checkbox" | "dictionary"
 isDictionaryFacet(group) // > FACET_DICTIONARY_THRESHOLD counted buckets
 ```
+
+## A bounded integer is a picker, not a bare number
+
+A year is not a quantity a person computes, it is one of a hundred-odd values,
+and on a live cars page it was two empty number fields. An `int` feature whose
+schema declares both bounds and spans at most `RANGE_PICKER_MAX_VALUES` (300)
+gets `RangeGroup.picker` — the value list, newest first — and
+`<RangeFilterRow>` draws two from/to selects over it. Typing still works and
+carries the bounds: a valid in-range number narrows the list, anything else
+brings the whole list back **with the bounds said in words** ("from 1900 to
+2027"), because a year below the catalogue's floor otherwise does nothing at
+all, silently. A mileage (`1..1000000`) and the core price stay two typed
+fields.
+
+## The rail's scrollbar is in the gutter, not on the filters
+
+The rail scrolls on its own when it outgrows the window. `scrollbar-width:
+thin` plus `scrollbar-gutter: stable` is the standard half and it is not
+enough: on every overlay-scrollbar platform (a Mac by default, every iOS
+browser) the bar is drawn OVER the content and the gutter reserves nothing. So
+the rail also declares a classic bar through the WebKit pseudo-elements, with a
+real width and every colour a `--stapel-*` custom property, so it is the
+panel's own hairline in both themes. `railScrollbarCss()` and `RAIL_CLASS` are
+exported for a host that lays out its own column.
 
 ## Two browse surfaces the page places
 
@@ -194,13 +269,16 @@ not a media query: whether a 390px screen has room is a fact about the page.
 ```
 
 `<PartitionChips>` is the single-select row a `chips` category draws instead of
-a tile grid: `Все | child…` from `{id, path, name}`, controlled (the choice is
-a `category` in the URL), a real `radiogroup` with roving tabindex and arrow
-keys — because exactly one of them is true at a time, and `aria-pressed`
-toggles say the opposite.
+a tile grid: an "all" cell plus one per child, from `{id, path, name}`,
+controlled (the choice is a `category` in the URL), a real `radiogroup` with
+roving tabindex and arrow keys — because exactly one of them is true at a time,
+and `aria-pressed` toggles say the opposite. `variant="segmented"` is the
+desktop rail's shape (one joined control under its own label); the semantics do
+not vary with it.
 
 ```tsx
 <PartitionChips items={children} value={state.category ?? null}
+                variant={isPhone ? "chips" : "segmented"}
                 onChange={(path) => patch({ category: path })} />
 ```
 
@@ -254,10 +332,10 @@ the configured engine cannot evaluate.
 | Layer | Exports |
 |---|---|
 | api | `createSearchApi`, `searchQueryParams`, `SEARCH_SORTS`, wire types |
-| state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `facetOptionLabel`, `translitPrefixMatch`, `translitKey`, `consonantKey` |
+| state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `orderFacetGroupsBySchema`, `facetGroupIsDrawable`, `facetGroupHasEvidence`, `facetOptionLabel`, `translitPrefixMatch`, `translitKey`, `consonantKey` |
 | model | `createSearchRuntime`, `searchQueryKeys`, `useSearchQuery`, `useRankingDisclosure` |
 | headless | `SearchProvider`, `SearchStateProvider`/`useSearchState`, `SearchResults`, `FacetPanel`, `RankingDisclosure` |
-| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `facetGroupShape`, `isDictionaryFacet` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
+| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `RAIL_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
 | `./router` | `useRouterSearchParams` |
 | i18n | `registerSearchI18n` (+ `./i18n/ru`, `./i18n/es`) |
 | errors | `SEARCH_ERRORS`, `explainSearchError`, `SEARCH_WINDOW_EXCEEDED`, `SEARCH_BACKEND_UNAVAILABLE` |

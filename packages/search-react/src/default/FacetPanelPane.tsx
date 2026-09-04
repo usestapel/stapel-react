@@ -95,7 +95,11 @@ import type { FacetPanelBag } from "../headless/FacetPanel.js";
 import type { FacetLabelResolver } from "../headless/useFacetLabels.js";
 import { useSearchState } from "../headless/SearchStateProvider.js";
 import { useAppliedCount } from "../headless/useAppliedCount.js";
-import { facetCoverage, orderFacetGroups } from "../state/facets.js";
+import {
+  facetCoverage,
+  facetGroupIsDrawable,
+  orderFacetGroupsBySchema,
+} from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
 import { FacetGroupControl } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
@@ -175,6 +179,17 @@ export const FACET_OPEN_GROUPS = 5;
  * leaf had forty.
  */
 export const FACET_SEARCH_THRESHOLD = 6;
+
+/**
+ * How many groups the rail draws before the rest go behind one control.
+ *
+ * The reference classified shows a make, a price, a year and a handful of
+ * body axes, and then the word "all filters" — eight is the count that fills
+ * a 900px rail once the partition row and the price have taken their share,
+ * and it is the point past which a person is scanning rather than reading.
+ * The tail is not hidden: `facetsAllFilters` names how many are in it.
+ */
+export const FACET_VISIBLE_GROUPS = 8;
 
 /** What a host's category control is handed. */
 export interface CategoryFilterSlotProps {
@@ -256,6 +271,37 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    * count-bearing bar above that one would be the same sentence twice.
    */
   readonly footerBar?: boolean;
+  /**
+   * The partition control, drawn at the TOP of the panel — above the price,
+   * above every facet.
+   *
+   * A partition (`children_as: "chips"`) is not a filter among filters: it is
+   * which of one template's halves the page is about, and the reference
+   * classified puts it first for that reason (a car-type row: all, used,
+   * new). It is a slot rather than a component because the
+   * children come from the catalogue tree, which is `categories-react`'s;
+   * `<PartitionChips variant="segmented">` is what a host usually puts here.
+   */
+  readonly partition?: ReactNode;
+  /**
+   * Slugs pinned above every other group, in the order given — the axis a
+   * page has already decided is its subject. See
+   * {@link orderFacetGroupsBySchema}.
+   */
+  readonly pinnedFacets?: readonly string[];
+  /**
+   * How many groups before the tail folds under "All filters (K)". Default
+   * {@link FACET_VISIBLE_GROUPS}; `null` draws every group, which is what a
+   * phone sheet devoted to filtering wants.
+   */
+  readonly visibleGroups?: number | null;
+  /**
+   * How a DICTIONARY group is drawn. `"field"` is the desktop shape — a
+   * select-style field reading its chosen values or "Any", which opens the
+   * searchable list; `"inline"` (the default) keeps the list open, which is
+   * the phone sheet's shape because a sheet is already a disclosure.
+   */
+  readonly dictionaryMode?: "field" | "inline";
 }
 
 /**
@@ -463,6 +509,10 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
   // panel is drawn, never what the search is, so it must not survive into a
   // shared link the way everything in `useSearchState` does.
   const [filterQuery, setFilterQuery] = useState("");
+  // Whether the tail past `visibleGroups` is open. Presentation, like the
+  // panel's own search box: the URL is the search, and how much of the rail a
+  // person has unfolded is not part of it.
+  const [tailOpen, setTailOpen] = useState(false);
 
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
@@ -539,6 +589,12 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 </Button>
               )}
             </Flex>
+
+            {/* The partition first: which half of one template this page is
+                about is not a filter among filters. */}
+            {props.partition !== undefined && (
+              <div data-testid="search-partition">{props.partition}</div>
+            )}
 
             <CategoryFilter
               {...(props.renderCategoryFilter !== undefined
@@ -617,25 +673,34 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 // case: a `ref_select` whose config is a bare pointer into
                 // a vocabulary this pair cannot read. A heading with no
                 // control under it names nothing, so it is not drawn.
-                // Evidence order, the chip row's rule applied to the rail:
-                // answered axes first, then the ones this corpus actually
-                // fills. Schema order is the catalogue importer's, and an
-                // imported catalogue's is alphabetical-by-accident.
-                const drawable = orderFacetGroups(
-                  groups.filter((group) => group.options.length > 0)
-                );
+                // SCHEMA order, required first — see
+                // `orderFacetGroupsBySchema`. The rail ranked by evidence for
+                // two releases, which on a three-listing cars leaf put
+                // condition and colour above make, model and year:
+                // the busiest axis is the right question for a chip row with
+                // room for four and the wrong one for the column a person
+                // narrows a catalogue in. Groups the schema does not name
+                // keep evidence order among themselves.
+                const drawable = orderFacetGroupsBySchema({
+                  groups: groups.filter(facetGroupIsDrawable),
+                  ...(props.categoryFeatures !== undefined
+                    ? { categoryFeatures: props.categoryFeatures }
+                    : {}),
+                  ...(props.pinnedFacets !== undefined
+                    ? { pinned: props.pinnedFacets }
+                    : {}),
+                });
                 // Which groups OPEN — see the module note. Chosen groups are
-                // open unconditionally below; here the answer's evidence
-                // picks the rest: the top counted groups by coverage, and a
-                // group the server never counted sums to zero, so the wall
-                // of "not counted" rows starts as headers.
-                const openByEvidence = new Set(
+                // open unconditionally below; the rest are the first
+                // FACET_OPEN_GROUPS of the order above, so the panel's first
+                // screen is the axes the category itself calls required. A
+                // group the server never counted starts as a header, which is
+                // what keeps the wall of "not counted" rows folded.
+                const openByOrder = new Set(
                   drawable
-                    .filter((group) => group.counted)
-                    .map((group) => [group, facetCoverage(group)] as const)
-                    .sort((a, b) => b[1] - a[1])
+                    .filter((group) => group.counted || facetCoverage(group) > 0)
                     .slice(0, FACET_OPEN_GROUPS)
-                    .map(([group]) => group.slug)
+                    .map((group) => group.slug)
                 );
                 const searchable = drawable.length >= FACET_SEARCH_THRESHOLD;
                 const needle = searchable
@@ -648,6 +713,33 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                   );
                 const listed =
                   needle === "" ? drawable : drawable.filter(matches);
+                // The tail. Only while nothing is typed: a query has already
+                // narrowed the list, and folding its answer would hide the
+                // thing that was looked for. One group over the limit is not
+                // folded — a control that reveals exactly one heading costs
+                // more than it saves.
+                const groupLimit =
+                  props.visibleGroups === null
+                    ? null
+                    : (props.visibleGroups ?? FACET_VISIBLE_GROUPS);
+                const tailFolded =
+                  groupLimit !== null &&
+                  needle === "" &&
+                  listed.length > groupLimit + 1;
+                // A CONSTRAINT NEVER FOLDS. The fold hides axes a person has
+                // not touched; a group they have chosen a value in stays in
+                // the visible band wherever the schema put it, because the
+                // control that removes a filter is the one they came back
+                // for. (The rail used to rank answered axes to the top for
+                // this; schema order is stable under a click, which a rail
+                // that reshuffles as you tick is not.)
+                const shownGroups =
+                  tailFolded && !tailOpen && groupLimit !== null
+                    ? listed.filter(
+                        (group, index) =>
+                          index < groupLimit || group.selected.length > 0
+                      )
+                    : listed;
                 return (
                   <Flex vertical gap={spacing[4]}>
                     {searchable && (
@@ -684,7 +776,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                         a closed header is not an answer. Remounting is the
                         honest way to re-ask the question; the person's own
                         opens and closes come back when the box clears. */}
-                    {listed.map((group) => (
+                    {shownGroups.map((group) => (
                       <FacetGroupControl
                         key={needle === "" ? group.slug : `${group.slug}:match`}
                         group={group}
@@ -693,10 +785,30 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                         defaultOpen={
                           needle !== "" ||
                           group.selected.length > 0 ||
-                          openByEvidence.has(group.slug)
+                          openByOrder.has(group.slug)
                         }
+                        {...(props.dictionaryMode !== undefined
+                          ? { dictionaryMode: props.dictionaryMode }
+                          : {})}
                       />
                     ))}
+                    {tailFolded && (
+                      <Button
+                        style={{ alignSelf: "flex-start" }}
+                        data-testid="facets-all-filters"
+                        data-analytics="none"
+                        data-analytics-reason="opening the filter tail is a read, not a flow step"
+                        onClick={() => {
+                          setTailOpen((was) => !was);
+                        }}
+                      >
+                        {tailOpen
+                          ? t(SEARCH_I18N_KEYS.facetsShowLess)
+                          : t(SEARCH_I18N_KEYS.facetsAllFilters, {
+                              count: listed.length - (groupLimit ?? 0),
+                            })}
+                      </Button>
+                    )}
                     <Typography.Text type="secondary">
                       {t(SEARCH_I18N_KEYS.facetsDrillDownHint)}
                     </Typography.Text>

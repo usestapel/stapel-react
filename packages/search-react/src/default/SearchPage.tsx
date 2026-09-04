@@ -66,7 +66,7 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex } from "antd";
 import { SkinDialog, SkinTheme, useDialogSurface } from "@stapel/tokens-antd/skin";
 import { useT, useTPlural } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { cssVar, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { SearchStateProvider, useSearchState } from "../headless/SearchStateProvider.js";
 import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
@@ -126,6 +126,50 @@ export const FILTERS_RAIL_WIDTH = 280;
  * `alignSelf: flex-start` is load-bearing: a flex child stretches to the row's
  * height by default, and a stretched box has nothing to stick to.
  */
+/** The class the rail's own scrollbar rules are hung on. */
+export const RAIL_CLASS = "stapel-search-rail";
+
+/** The `href` the hoisted rail sheet is deduplicated by. */
+export const RAIL_STYLE_HREF = "stapel-search-rail";
+
+/**
+ * The rail scrolls, and its scrollbar must not sit ON the filters.
+ *
+ * `scrollbar-width: thin` and `scrollbar-gutter: stable` (below, in `RAIL`)
+ * are the standard half of this and they are not enough: on every WebKit
+ * platform with overlay scrollbars — a Mac by default, every iOS browser —
+ * the bar is drawn OVER the content and the gutter reserves nothing, so the
+ * walker saw the bar lying across the right edge of the checkbox labels.
+ *
+ * So the rail also declares a CLASSIC scrollbar through the WebKit
+ * pseudo-elements: a bar with a real width, which pushes the panel's content
+ * in by exactly that much instead of floating above it, drawn in the token
+ * palette so it is the panel's own hairline in both themes rather than a
+ * hard-coded grey that glows in the dark one. `--stapel-*` custom properties
+ * resolve per theme at paint time, which is why this is a sheet and not a
+ * pair of computed inline values: an inline colour would freeze whichever
+ * theme was mounted first.
+ *
+ * Emitted as one hoisted `<style>` (React 19 dedupes by `href`), because a
+ * pseudo-element is unreachable from an inline style — the same reason
+ * `<LocationSummaryLine>` hoists one.
+ */
+export function railScrollbarCss(): string {
+  const rail = `.${RAIL_CLASS}`;
+  return [
+    // A real width: an overlay bar occupies no space and therefore overlaps.
+    `${rail}::-webkit-scrollbar{inline-size:8px;block-size:8px}`,
+    `${rail}::-webkit-scrollbar-track{background:transparent}`,
+    `${rail}::-webkit-scrollbar-thumb{background:${cssVar("border")};` +
+      `border-radius:${cssVar("radius-full")}}`,
+    `${rail}::-webkit-scrollbar-thumb:hover{background:${cssVar("text-subtle")}}`,
+    // Firefox/Chromium's standard properties, stated here too so the rule
+    // travels with the class when the panel is used outside `<SearchPage>`.
+    `${rail}{scrollbar-width:thin;scrollbar-gutter:stable;` +
+      `scrollbar-color:${cssVar("border")} transparent}`,
+  ].join("\n");
+}
+
 const RAIL: CSSProperties = {
   flex: `0 0 ${String(FILTERS_RAIL_WIDTH)}px`,
   // Both bounds, not just the upper one. `flex-shrink: 0` already holds the
@@ -208,6 +252,14 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * coordinate, with or without it.
    */
   readonly geoLabel?: ReactNode;
+  /**
+   * The partition control, drawn at the top of the filter panel — see
+   * {@link FacetPanelPaneProps.partition}.
+   */
+  readonly partition?: ReactNode;
+  /** Facet slugs pinned above every other group — see
+   * {@link FacetPanelPaneProps.pinnedFacets}. */
+  readonly pinnedFacets?: readonly string[];
   /** Print the engine's list of uncounted facet slugs in the filter panel.
    * Default `false` — see {@link FacetPanelPaneProps.skippedNotice}. */
   readonly skippedNotice?: boolean;
@@ -639,7 +691,14 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         </>
       ) : showFilters ? (
         <Flex align="flex-start" gap={spacing[5]} data-testid="search-page-columns">
-          <div style={RAIL}>{panel}</div>
+          <div className={RAIL_CLASS} style={RAIL}>
+            {/* The rail's scrollbar, in the gutter and in the token palette —
+                see `railScrollbarCss`. Hoisted, deduped by `href`. */}
+            <style href={RAIL_STYLE_HREF} precedence="default">
+              {railScrollbarCss()}
+            </style>
+            {panel}
+          </div>
           {/* ONE heading and ONE sort control. The page used to caption
               the toolbar "Results" and then mount a pane whose own heading
               says "Results" again — the live /s page printed both, one

@@ -77,6 +77,19 @@ export interface RangeGroup {
    */
   readonly core: boolean;
   /**
+   * The values this axis can take, when it is a BOUNDED INTEGER small enough
+   * to pick from — `undefined` for every other axis, including price.
+   *
+   * A year is not a number a person types, it is one of a hundred-odd values,
+   * and the reference classified draws it as two pickers. `min`/`max` from
+   * the schema (`year: 1900..2027` on a live cars leaf) bound the list;
+   * {@link RANGE_PICKER_MAX_VALUES} is where a picker stops being one and
+   * becomes a scroll with a search box in it, at which point two typed fields
+   * are the better control. Descending, because the busy end of a bounded
+   * axis is its top: a year picker that opens on 1900 is a picker nobody uses.
+   */
+  readonly picker: readonly number[] | undefined;
+  /**
    * ISO 4217 code when the row is money, so the control can read as money
    * instead of as a bare integer. Only ever set on a core axis: an attribute
    * carries a `postfix`, not a currency.
@@ -129,6 +142,36 @@ function translate(t: ((key: string) => string) | undefined, key: string): strin
   if (t === undefined) return key;
   const resolved = t(key);
   return resolved.length > 0 ? resolved : key;
+}
+
+/**
+ * How many values a bounded integer may have and still be a PICKER.
+ *
+ * 300 covers every year range a catalogue declares (a live cars leaf is
+ * 1900..2027, 128 values) and a door count, a seat count, a floor number,
+ * and stops well short of a mileage (1..1000000), which is a number people
+ * type and never a list.
+ */
+export const RANGE_PICKER_MAX_VALUES = 300;
+
+/**
+ * The value list for a bounded integer axis, or `undefined`.
+ *
+ * A CORE axis never gets one: price is unbounded by construction and the
+ * server does not declare bounds for it.
+ */
+function pickerValues(
+  feature: FeatureDef | undefined,
+  min: number | undefined,
+  max: number | undefined
+): readonly number[] | undefined {
+  if (feature === undefined) return undefined;
+  if (featureType(feature) !== "int") return undefined;
+  if (min === undefined || max === undefined) return undefined;
+  if (!Number.isInteger(min) || !Number.isInteger(max)) return undefined;
+  const span = max - min + 1;
+  if (span < 2 || span > RANGE_PICKER_MAX_VALUES) return undefined;
+  return Array.from({ length: span }, (_, i) => max - i);
 }
 
 /** Is this feature one a numeric range row is drawn for? */
@@ -190,6 +233,7 @@ export function buildRangeGroups(
         ? undefined
         : (str(config["postfix"]) ?? str(config["unit_m"]) ?? str(config["unit_i"])),
       step: feature !== undefined && featureType(feature) === "int" ? 1 : undefined,
+      picker: isCore ? undefined : pickerValues(feature, num(config["min"]), num(config["max"])),
       active: applied !== undefined,
       core: isCore,
       currency: isCore ? str(input.currency) : undefined,
