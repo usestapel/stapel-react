@@ -41,7 +41,10 @@ const BARE: CarouselEntry = {
   href: "/c/phones",
 };
 
-type ArtProps = Pick<CategoryTileGridProps, "renderIcon" | "resolveIconSrc">;
+type ArtProps = Pick<
+  CategoryTileGridProps,
+  "renderIcon" | "resolveIconSrc" | "eagerCount"
+>;
 
 function mount(entries: readonly CarouselEntry[], art: ArtProps = {}) {
   return render(
@@ -71,15 +74,31 @@ describe("categoryIconSrc", () => {
 });
 
 describe("<CategoryTileGrid> art", () => {
-  it("draws the seeded picture, lazily, named by the category", () => {
+  it("draws the seeded picture, named by the category", () => {
     const { container } = mount([ADDRESSED]);
     const image = container.querySelector("img");
     expect(image?.getAttribute("src")).toBe(SEEDED);
-    expect(image?.getAttribute("loading")).toBe("lazy");
     // The alt is the tile's own label, so picture and caption cannot disagree.
     expect(image?.getAttribute("alt")).toBe(screen.getByText("category.electronics").textContent);
     expect(image?.style.objectFit).toBe("contain");
     expect(image?.style.aspectRatio).toBe("3 / 2");
+  });
+
+  it("is lazy past eagerCount, and carries no fetchPriority there — D242", () => {
+    // Index 0 is within the default eagerCount (8); a host that wants THIS
+    // row lazy (it is testing the tail of a long grid, not the first row)
+    // says so explicitly rather than fighting the default.
+    const { container } = mount([ADDRESSED], { eagerCount: 0 });
+    const image = container.querySelector("img");
+    expect(image?.getAttribute("loading")).toBe("lazy");
+    expect(image?.hasAttribute("fetchpriority")).toBe(false);
+  });
+
+  it("defaults the first row to eager with fetchPriority high — D242", () => {
+    const { container } = mount([ADDRESSED]);
+    const image = container.querySelector("img");
+    expect(image?.getAttribute("loading")).toBe("eager");
+    expect(image?.getAttribute("fetchpriority")).toBe("high");
   });
 
   it("keeps the glyph for an opaque reference — no URL is invented", () => {

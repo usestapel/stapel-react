@@ -239,6 +239,8 @@ describe("<CategoryTree> says whether its level may be tiles", () => {
 async function renderCategoryPage(
   props: {
     readonly subcategories?: SubcategoryForm;
+    readonly subcategoryLayout?: "scroll" | "wrap";
+    readonly subcategoryMinTileWidth?: number;
     readonly breadcrumbs?: boolean;
     readonly slug?: string;
     readonly categoryId?: number;
@@ -307,6 +309,45 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
       ...screen.getByTestId("categories-tile-grid-list").querySelectorAll("a"),
     ].map((a) => a.getAttribute("data-category-id"));
     expect(ids).toEqual([String(PHONES.id), String(LAPTOPS.id)]);
+  });
+
+  it("the tiles arm's default layout is still the scroller — D244", async () => {
+    // No existing host changes shape: a 5-tile page must ask for `wrap`
+    // explicitly rather than getting it because the host has 5 children.
+    await renderCategoryPage({ subcategories: "tiles" });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("categories-tile-grid-list").dataset["stapelTileLayout"]
+    ).toBe("scroll");
+  });
+
+  it("subcategoryLayout=\"wrap\" reaches the tile grid, so 5 children fill the row instead of a scroller corner — D244", async () => {
+    await renderCategoryPage({
+      subcategories: "tiles",
+      subcategoryLayout: "wrap",
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    const list = screen.getByTestId("categories-tile-grid-list");
+    expect(list.dataset["stapelTileLayout"]).toBe("wrap");
+    expect(list.style.gridTemplateColumns).toContain("auto-fill");
+  });
+
+  it("subcategoryMinTileWidth passes through to the wrap arm", async () => {
+    await renderCategoryPage({
+      subcategories: "tiles",
+      subcategoryLayout: "wrap",
+      subcategoryMinTileWidth: 300,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("categories-tile-grid-list").style.gridTemplateColumns
+    ).toContain("300px");
   });
 
   it("mounts NEITHER list when the host draws its own", async () => {

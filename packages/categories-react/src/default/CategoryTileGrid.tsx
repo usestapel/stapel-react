@@ -117,6 +117,18 @@ export type TileDensity = "cozy" | "compact";
 const TILE_ASPECT_RATIO = "4 / 3";
 
 /**
+ * The art corner's own aspect ratio — the same ratio {@link TileImage} draws
+ * its `<img>` at. Giving the WRAPPER this ratio too (not just the image) is
+ * what reserves the corner's height on the first frame: a definite width (a
+ * percentage of the tile, itself sized by {@link TILE_ASPECT_RATIO} from a
+ * definite grid column) times a definite ratio is a definite height, with no
+ * dependency on an asset that has not decoded yet. The box is the SAME shape
+ * whether it ends up holding a picture or {@link TileMonogram} — the tile's
+ * own height must not depend on which one a row happens to have.
+ */
+const ART_ASPECT_RATIO = "3 / 2";
+
+/**
  * Lines a tile's label may take before it is clipped.
  *
  * Three, not the original two, and with hyphenation below — measured on a
@@ -292,13 +304,16 @@ const labelCompact: CSSProperties = {
   WebkitLineClamp: 2,
 };
 
-/** Compact art: centred over the label, never a corner ornament. */
+/** Compact art: centred over the label, never a corner ornament. A fixed
+ * width plus {@link ART_ASPECT_RATIO} — see that constant — instead of a
+ * shrink-to-fit cap, so the box has its final size before anything is drawn
+ * inside it. */
 const artCompact: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  maxWidth: "50%",
-  maxHeight: "45%",
+  width: "50%",
+  aspectRatio: ART_ASPECT_RATIO,
 };
 
 const artStyle: CSSProperties = {
@@ -306,8 +321,8 @@ const artStyle: CSSProperties = {
   alignItems: "flex-end",
   justifyContent: "flex-end",
   alignSelf: "flex-end",
-  maxWidth: "60%",
-  maxHeight: "60%",
+  width: "60%",
+  aspectRatio: ART_ASPECT_RATIO,
 };
 
 /**
@@ -371,24 +386,30 @@ function TileMonogram(props: { readonly label: string }): ReactElement {
  *
  * 3:2 and `contain`: the generated art is 3:2 on a soft ground, and `contain`
  * is what keeps a differently-proportioned upload whole instead of cropping
- * its subject. `loading="lazy"` because a mega-menu or a long landing draws
- * dozens of these below the fold. The alt text is the category's own name —
- * the tile's label is beside it, so the two agree by construction.
+ * its subject. The alt text is the category's own name — the tile's label is
+ * beside it, so the two agree by construction.
+ *
+ * `eager` decides `loading` and `fetchPriority` — see
+ * {@link CategoryTileGridProps.eagerCount}. Lazy is still the default for
+ * every row past that count, because a mega-menu or a long landing draws
+ * dozens of these below the fold.
  */
 function TileImage(props: {
   readonly src: string;
   readonly label: string;
+  readonly eager: boolean;
 }): ReactElement {
   return (
     <img
       src={props.src}
       alt={props.label}
-      loading="lazy"
+      loading={props.eager ? "eager" : "lazy"}
+      {...(props.eager ? { fetchPriority: "high" as const } : {})}
       decoding="async"
       data-stapel-tile-art="image"
       style={{
         width: "100%",
-        aspectRatio: "3 / 2",
+        aspectRatio: ART_ASPECT_RATIO,
         objectFit: "contain",
       }}
     />
@@ -432,6 +453,7 @@ function tileArt(
   reference: string | null,
   label: string,
   entry: CarouselEntry,
+  eager: boolean,
   renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode,
   resolveIconSrc?: CategoryIconResolver
 ): ReactNode {
@@ -443,7 +465,7 @@ function tileArt(
   // opaque reference knows more about its CDN than the row does, and a
   // resolver that declines leaves the seeded URL exactly where it was.
   const src = categoryIconSrc(resolveIconSrc?.(entry.category) ?? reference);
-  if (src !== null) return <TileImage src={src} label={label} />;
+  if (src !== null) return <TileImage src={src} label={label} eager={eager} />;
   return <TileMonogram label={label} />;
 }
 
@@ -588,7 +610,25 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * from {@link TileDensity} and the container.
    */
   readonly minTileWidth?: number;
+  /**
+   * How many of the leading tiles (by `entries` order, the "All" tile not
+   * counted — it never carries an image) load their picture EAGERLY, with
+   * `fetchPriority="high"`, instead of `loading="lazy"`. Default 8.
+   *
+   * A grid whose whole first row sits above the fold and still marks every
+   * image `lazy` gives the browser no reason to fetch them before first
+   * paint, so the row's real height (and whatever sits below it) arrives a
+   * beat late — a walker measured a home page shoving its feed 224px down
+   * this way. Past `eagerCount` a tile stays `lazy`: a mega-menu or a long
+   * `layout="wrap"` landing still must not fetch dozens of images nobody has
+   * scrolled to.
+   */
+  readonly eagerCount?: number;
 }
+
+/** {@link CategoryTileGridProps.eagerCount}'s default — the reference
+ * desktop grid's first row. */
+const DEFAULT_EAGER_COUNT = 8;
 
 /** The scroll port itself: the "All" tile, then one tile per row. */
 function TileRow(props: {
@@ -601,6 +641,7 @@ function TileRow(props: {
   readonly density: TileDensity;
   readonly layout: TileLayout;
   readonly minTileWidth: number;
+  readonly eagerCount: number;
 }): ReactElement {
   const t = useT();
   const linkProps =
@@ -626,7 +667,7 @@ function TileRow(props: {
           />
         );
       })()}
-      {props.entries.map((entry) => {
+      {props.entries.map((entry, index) => {
         const label = renderCategoryLabel(entry.label, t);
         return (
           <Tile
@@ -641,6 +682,7 @@ function TileRow(props: {
               entry.icon,
               label,
               entry,
+              index < props.eagerCount,
               props.renderIcon,
               props.resolveIconSrc
             )}
@@ -664,11 +706,13 @@ export function CategoryTileGrid(
   const density: TileDensity = props.density ?? "cozy";
   const layout: TileLayout = props.layout ?? "scroll";
   const minTileWidth = props.minTileWidth ?? DEFAULT_MIN_TILE_WIDTH;
+  const eagerCount = props.eagerCount ?? DEFAULT_EAGER_COUNT;
   const rowProps = {
     basePath,
     density,
     layout,
     minTileWidth,
+    eagerCount,
     ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
     ...(props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }

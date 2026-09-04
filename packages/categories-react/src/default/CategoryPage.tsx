@@ -129,6 +129,7 @@ import { CategoryTileGrid } from "./CategoryTileGrid.js";
 import type {
   CategoryIconResolver,
   TileDensity,
+  TileLayout,
 } from "./CategoryTileGrid.js";
 import { CategoryLevelList } from "./CategoryLevelList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
@@ -231,6 +232,23 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * to size. Default is the grid's own (`"cozy"`).
    */
   readonly subcategoryTileDensity?: TileDensity;
+  /**
+   * How the `"tiles"` arm fills its container — `<CategoryTileGrid layout>`,
+   * passed through verbatim. Ignored by every other {@link SubcategoryForm}.
+   *
+   * Default unchanged: the grid's own `"scroll"`, so no existing host
+   * changes shape. A desktop category landing with a handful of children
+   * (5 tiles in a 1232px column, say) reads as an empty corner under
+   * `"scroll"`'s phone-width scroller — `"wrap"` is the fix, the same tiles
+   * stretched to fill the row like the reference design.
+   */
+  readonly subcategoryLayout?: TileLayout;
+  /**
+   * The `"tiles"` arm's `minTileWidth` under `subcategoryLayout="wrap"` —
+   * `<CategoryTileGrid minTileWidth>`, passed through verbatim. Ignored by
+   * `"scroll"` and by every other {@link SubcategoryForm}.
+   */
+  readonly subcategoryMinTileWidth?: number;
   /**
    * A narrowing made in the cascade below the tiles.
    *
@@ -432,6 +450,8 @@ function Subcategories(props: {
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
   readonly resolveIconSrc?: CategoryIconResolver;
   readonly tileDensity?: TileDensity;
+  readonly tileLayout?: TileLayout;
+  readonly tileMinWidth?: number;
 }): ReactElement | null {
   const t = useT();
   const link =
@@ -478,6 +498,12 @@ function Subcategories(props: {
           {...link}
           {...(props.tileDensity !== undefined
             ? { density: props.tileDensity }
+            : {})}
+          {...(props.tileLayout !== undefined
+            ? { layout: props.tileLayout }
+            : {})}
+          {...(props.tileMinWidth !== undefined
+            ? { minTileWidth: props.tileMinWidth }
             : {})}
           {...(props.renderIcon !== undefined
             ? { renderIcon: props.renderIcon }
@@ -620,6 +646,12 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                   }
                   {...(props.subcategoryTileDensity !== undefined
                     ? { tileDensity: props.subcategoryTileDensity }
+                    : {})}
+                  {...(props.subcategoryLayout !== undefined
+                    ? { tileLayout: props.subcategoryLayout }
+                    : {})}
+                  {...(props.subcategoryMinTileWidth !== undefined
+                    ? { tileMinWidth: props.subcategoryMinTileWidth }
                     : {})}
                   current={source.current}
                   depth={source.depth ?? 0}

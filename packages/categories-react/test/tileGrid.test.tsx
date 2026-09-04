@@ -26,7 +26,14 @@ import {
   resetViewportListeners,
   setViewport,
 } from "./harness.js";
-import { ELECTRONICS, FULL_PAGE, LAPTOPS, PHONES, VEHICLES } from "./fixtures.js";
+import {
+  ELECTRONICS,
+  FULL_PAGE,
+  LAPTOPS,
+  PHONES,
+  VEHICLES,
+  categoryRow,
+} from "./fixtures.js";
 
 const CAROUSEL = [ELECTRONICS, VEHICLES];
 
@@ -47,6 +54,33 @@ const OK = {
   "/categories/carousel/": { body: CAROUSEL },
   "/categories/": { body: FULL_PAGE },
 };
+
+/**
+ * Rows whose icon is already an ADDRESS, so `tileArt` draws `<img>` rather
+ * than the monogram — what `eagerCount` (D242) has anything to say about.
+ */
+function imageEntry(id: number): CarouselEntry {
+  const category = categoryRow(
+    100 + id,
+    `image-tile-${id}`,
+    `category.imageTile${id}`,
+    null,
+    "",
+    ""
+  );
+  return {
+    category,
+    label: categoryLabel(category),
+    icon: `https://cdn.test/tile/${id}.png`,
+    href: `/c/${category.slug}`,
+  };
+}
+
+const IMAGE_TILES: readonly CarouselEntry[] = [1, 2, 3].map(imageEntry);
+const MANY_IMAGE_TILES: readonly CarouselEntry[] = Array.from(
+  { length: 10 },
+  (_, i) => imageEntry(i + 1)
+);
 
 beforeAll(() => {
   installViewport();
@@ -462,5 +496,96 @@ describe("tile layout (the wrapping arm the storefront had to draw itself)", () 
     expect(tileList().dataset["stapelTileLayout"]).toBe("scroll");
     expect(tileList().style.overflowX).toBe("auto");
     expect(tileList().style.gridTemplateColumns).toBe("");
+  });
+
+  it("wrap's tile boxes reserve their aspect from the grid column alone — nothing here reads an image's own size", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid layout="wrap" entries={IMAGE_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("img")).toHaveLength(IMAGE_TILES.length)
+    );
+    for (const image of [...tileList().querySelectorAll("img")]) {
+      // The tile itself and the art corner around the image are both sized by
+      // a fixed aspect ratio, never by the `<img>`'s own natural dimensions —
+      // jsdom never loads the asset, so a value here can only have come from
+      // the inline style the component wrote, not from the image settling.
+      expect(image.closest("a")?.style.aspectRatio).toBe("4 / 3");
+      expect(image.parentElement?.style.aspectRatio).toBe("3 / 2");
+      expect(image.parentElement?.style.width).toBe("60%");
+    }
+  });
+});
+
+describe("eager loading (D242 — the first row must not depend on scroll)", () => {
+  function tileList(): HTMLElement {
+    return screen.getByTestId("categories-tile-grid-list");
+  }
+
+  it("defaults to the first 8 tiles eager, the rest lazy", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={MANY_IMAGE_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("img")).toHaveLength(
+        MANY_IMAGE_TILES.length
+      )
+    );
+    const images = [...tileList().querySelectorAll("img")];
+    images.slice(0, 8).forEach((image) => {
+      expect(image.getAttribute("loading")).toBe("eager");
+      expect(image.getAttribute("fetchpriority")).toBe("high");
+    });
+    images.slice(8).forEach((image) => {
+      expect(image.getAttribute("loading")).toBe("lazy");
+      expect(image.hasAttribute("fetchpriority")).toBe(false);
+    });
+  });
+
+  it("honours a host's own eagerCount", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={IMAGE_TILES}
+          allTile={false}
+          eagerCount={1}
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("img")).toHaveLength(
+        IMAGE_TILES.length
+      )
+    );
+    const images = [...tileList().querySelectorAll("img")];
+    expect(images[0]?.getAttribute("loading")).toBe("eager");
+    expect(images[0]?.getAttribute("fetchpriority")).toBe("high");
+    expect(images[1]?.getAttribute("loading")).toBe("lazy");
+    expect(images[1]?.hasAttribute("fetchpriority")).toBe(false);
+  });
+
+  it("the All tile takes no eager slot — it never carries an image", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={IMAGE_TILES}
+          eagerCount={1}
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("img")).toHaveLength(
+        IMAGE_TILES.length
+      )
+    );
+    // The All tile is index 0 in the DOM and has no `<img>` at all; the
+    // eagerCount is spent on the first CATEGORY tile, not on it.
+    expect(screen.getByTestId("categories-tile-grid-all").querySelector("img")).toBeNull();
+    const images = [...tileList().querySelectorAll("img")];
+    expect(images[0]?.getAttribute("loading")).toBe("eager");
   });
 });

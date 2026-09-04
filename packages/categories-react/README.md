@@ -297,6 +297,43 @@ The default is unchanged: `layout="scroll"`, the reference two-row sideways
 row with the peeking third column. A wrapped grid is a different geometry
 rather than a wider one, which is why it is a layout and not a breakpoint.
 
+`<CategoryPage subcategoryLayout>` reaches the same switch from the `"tiles"`
+arm, with `subcategoryMinTileWidth` alongside it: a category with a handful of
+children (five, say, in a wide desktop column) reads as an empty corner under
+the scroller and needs `"wrap"` to fill the row the way the reference design
+does. Both default unchanged, so no existing host changes shape.
+
+```tsx
+<CategoryPage
+  categoryId={id}
+  subcategories="tiles"
+  subcategoryLayout="wrap"
+  subcategoryMinTileWidth={280}
+/>
+```
+
+## The first row does not wait for a scrollbar: `eagerCount`
+
+Every tile image used to be `loading="lazy"`, including a whole first row that
+is above the fold on the day it renders — the browser is never told any of
+them are urgent, so the row's real height (and everything a page stacks below
+it) can settle a frame late. `eagerCount` (default 8) marks that many of the
+LEADING tiles `loading="eager"` with `fetchPriority="high"`; the "All" tile
+never counts against it, because it never carries a picture. Every tile past
+the count stays `loading="lazy"`, which still matters for a `layout="wrap"`
+landing or a mega-menu drawing dozens of these below the fold.
+
+```tsx
+<CategoryTileGrid eagerCount={5} />
+```
+
+The art corner itself reserves its shape independently of `eagerCount`: the
+box around a tile's picture (or its monogram, when there is no picture) is a
+fixed percentage of the tile at a fixed aspect ratio, so a tile's own height —
+already fixed by its 4:3 aspect ratio against a definite grid column — never
+grows or shrinks as an image decodes. A `layout="wrap"` row's height is the
+grid's own arithmetic from the start, with nothing in it waiting on an asset.
+
 ## The cascade's commit rule: `any`, `leaf`, `stage`
 
 `useCategoryCascade` / `<CategoryCascadeField>` is the ladder of child selects
