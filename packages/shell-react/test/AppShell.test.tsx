@@ -499,10 +499,13 @@ describe("<AppShell/> — the theme control is chrome, not a host chore", () => 
       "app-shell-theme"
     );
     expect(within(foot).getByTestId("shell-theme-control")).toBeDefined();
+    // The COMPACT button is what the chrome mounts: one icon, not a
+    // three-label track. The slot it sits in has not moved.
+    const button = within(foot).getByTestId("shell-theme-control");
+    expect(button.getAttribute("data-variant")).toBe("compact");
+    expect(within(foot).queryByRole("radiogroup")).toBeNull();
     // Named from the engine, not from the control's English floor.
-    expect(
-      within(foot).getByRole("radiogroup", { name: "Appearance" })
-    ).toBeDefined();
+    expect(button.getAttribute("aria-label")).toMatch(/^Appearance: /);
   });
 
   it("renders it in the foot of the nav sheet on a phone", async () => {
@@ -527,7 +530,12 @@ describe("<AppShell/> — the theme control is chrome, not a host chore", () => 
     render(wrap("/settings"));
     await waitFor(() => expect(screen.getByTestId("shell-theme-control")).toBeDefined());
 
-    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    // The compact button cycles, so reaching a named side is a press or two
+    // — bounded by the three states, never a spin.
+    const control = () => screen.getByTestId("shell-theme-control");
+    for (let i = 0; i < 3 && control().getAttribute("data-state") !== "dark"; i += 1) {
+      fireEvent.click(control());
+    }
 
     await waitFor(() =>
       expect(document.documentElement.getAttribute("data-theme")).toBe("dark")

@@ -72,6 +72,13 @@ export const SHELL_I18N_KEYS = {
   themeLight: "shell.theme.light",
   themeDark: "shell.theme.dark",
   themeSystem: "shell.theme.system",
+  /** The compact (default) variant's accessible name — a TEMPLATE over
+   * `{current}` and `{next}`, not two nouns glued to an English frame: one
+   * icon button has to say both where the choice stands and where the next
+   * press takes it, and the order of those two clauses is the translator's.
+   * Passed to the control unresolved; the control interpolates the state
+   * names, which are the other four keys. */
+  themeCycle: "shell.theme.cycle",
 } as const;
 
 export type ShellI18nKey = (typeof SHELL_I18N_KEYS)[keyof typeof SHELL_I18N_KEYS];
@@ -92,6 +99,7 @@ export const shellI18nBundleEn: I18nDictionary = {
   "shell.theme.light": "Light",
   "shell.theme.dark": "Dark",
   "shell.theme.system": "Match system",
+  "shell.theme.cycle": "Appearance: {current}. Switch to {next}",
 };
 
 /** Register the pair's `en` floor into a core i18n engine (call once at

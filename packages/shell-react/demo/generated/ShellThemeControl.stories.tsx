@@ -12,3 +12,6 @@ Default.parameters = { stapel: {"viewport":"desktop","step":"settings"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
 Phone.parameters = { stapel: {"viewport":"phone","step":"sheet-footer"} };
+export const Settings = (): ReactElement => renderDemoVariant(demo, "settings");
+Settings.storyName = "settings";
+Settings.parameters = { stapel: {"viewport":"desktop","step":"settings-variant"} };

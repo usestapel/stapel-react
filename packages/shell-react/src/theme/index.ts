@@ -42,5 +42,6 @@ export { useDocumentThemeMode, useThemePreference } from "./useTheme.js";
 export { ThemeModeControl, themeModeLabelsEn } from "./ThemeModeControl.js";
 export type {
   ThemeModeControlProps,
+  ThemeModeControlVariant,
   ThemeModeLabels,
 } from "./ThemeModeControl.js";

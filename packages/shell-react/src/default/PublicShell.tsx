@@ -232,7 +232,12 @@ export interface PublicShellProps {
   /**
    * The theme switch (`<ShellThemeControl/>`), ON by default — at the end of
    * the header's account area on a desktop, in the foot of the nav sheet on a
-   * phone.
+   * phone. Since 0.14.0 it is the COMPACT icon button: the three-label
+   * segmented control it used to be is a SETTING, and it stood in the first
+   * row of every desktop page (hosts answered by switching this off and
+   * rebuilding a home for it). The placement here has not moved — only the
+   * shape of the thing in it. `variant="settings"` is a host's to mount on
+   * its own appearance screen.
    *
    * Default skins ARE the product (§83). Both brands' token files have carried
    * a `[data-theme="dark"]` block for two waves and no storefront had a

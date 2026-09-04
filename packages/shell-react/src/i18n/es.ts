@@ -25,6 +25,7 @@ export const shellI18nBundleEs: I18nDictionary = {
   "shell.theme.light": "Claro",
   "shell.theme.dark": "Oscuro",
   "shell.theme.system": "Igual que el sistema",
+  "shell.theme.cycle": "Apariencia: {current}. Cambiar a {next}",
 };
 
 /** Register the Spanish chrome copy into a core i18n engine. */

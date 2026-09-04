@@ -29,6 +29,10 @@ export const shellI18nBundleRu: I18nDictionary = {
   "shell.theme.light": "Светлая",
   "shell.theme.dark": "Тёмная",
   "shell.theme.system": "Как в системе",
+  // A colon, not a verb: the state names are nominative adjectives, and a
+  // Russian "switch to X" would demand the accusative of a value the control
+  // interpolates blind. A colon takes no case.
+  "shell.theme.cycle": "Оформление: {current}. Следующее: {next}",
 };
 
 /** Register the Russian chrome copy into a core i18n engine. */

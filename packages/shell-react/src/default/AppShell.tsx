@@ -119,7 +119,10 @@ export interface AppShellProps {
   readonly navBadges?: Readonly<Record<string, number>>;
   /**
    * The theme switch (`<ShellThemeControl/>`), ON by default — at the foot of
-   * the `Sider` on a desktop, at the foot of the nav sheet on a phone.
+   * the `Sider` on a desktop, at the foot of the nav sheet on a phone. Since
+   * 0.14.0 it is the COMPACT icon button; a host that wants the three-label
+   * segmented control mounts `<ShellThemeControl variant="settings"/>` on its
+   * own appearance screen.
    *
    * Default skins ARE the product (§83). The mechanism under this control has
    * shipped for two waves and every token file compiles a dark block; what was
@@ -309,9 +312,9 @@ function AppChrome(props: AppShellProps): ReactElement {
             />
             {/* The sheet's footer. A phone has no `Sider` to hang a setting
                 off, and the header is one 56px line with a hamburger, a brand
-                and an account control already in it — the sheet is the one
-                phone surface with room for a control that is three targets
-                wide. */}
+                and an account control already in it — so the sheet, below the
+                destinations, is where a setting sits without reading as one
+                of them. */}
             {themeControl && (
               <div
                 style={{

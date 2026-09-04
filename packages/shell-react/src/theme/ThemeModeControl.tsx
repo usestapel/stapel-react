@@ -1,7 +1,32 @@
 /**
- * `<ThemeModeControl/>` — the three-state theme switch: a segmented control of
- * three named choices — sun/Light, moon/Dark, half-disc/Match system — inside
- * one track, with the chosen segment filled.
+ * `<ThemeModeControl/>` — the three-state theme switch, in two shapes.
+ *
+ * ── Two variants, and why `compact` is the default ───────────────────────
+ *
+ * `variant="settings"` is the segmented control: three named choices —
+ * sun/Light, moon/Dark, half-disc/Match system — inside one track, with the
+ * chosen segment filled. It is the right control on a settings screen, where
+ * every state is worth naming and the room is there to name it.
+ *
+ * It was also, for two waves, the DEFAULT — which put a ~310px three-label
+ * segmented control in the first row of every desktop page, because the
+ * shells mount the switch in their header chrome. A control that says
+ * "light / dark / system" in words is a SETTING wearing navigation's clothes:
+ * hosts answered by switching the chrome's switch off entirely and rebuilding
+ * a home for it (the fleet's storefront moved it to its footer), which is the
+ * shape of a default that is wrong rather than merely unfashionable.
+ *
+ * So the default is now `variant="compact"`: ONE icon button, 36px, showing
+ * the state the page is in and cycling light → dark → system on click. It is
+ * the header idiom every product ships, it fits a 56px bar and a 200px
+ * `Sider` foot alike, and it costs nothing a reader needs — the accessible
+ * name says both where the choice is and where the next press takes it
+ * ("Appearance: Dark. Switch to Match system"), which the three-label track
+ * only ever said in pictures.
+ *
+ * A host that wants the old control back passes `variant="settings"`.
+ *
+ * ── The settings variant, unchanged ──────────────────────────────────────
  *
  * It shipped as three bare 24px glyphs with no words and no visible selected
  * state, which is a control whose CURRENT VALUE cannot be read: the one thing
@@ -38,9 +63,10 @@
  * and CHOOSE (the APG's "selection follows focus", which is right here
  * because choosing is instant and reversible), Home/End jump to the ends.
  *
- * There is no tooltip. The accessible name carries what the icon means, and
- * a `title` is invisible to touch, unreachable by keyboard, and a duplicate
- * of the name for everyone else.
+ * There is no tooltip by default, in either variant. The accessible name
+ * carries what the icon means, and a `title` is invisible to touch,
+ * unreachable by keyboard, and a duplicate of the name for everyone else.
+ * `tooltip` turns one on for a desktop-only host that wants it anyway.
  *
  * ── Three states, and the one that is not a colour ───────────────────────
  *
@@ -74,6 +100,15 @@ export interface ThemeModeLabels {
   readonly light: string;
   readonly dark: string;
   readonly system: string;
+  /**
+   * The compact button's accessible name, as a TEMPLATE over `{current}` and
+   * `{next}` — the control interpolates the state names into it, so a
+   * translator keeps their own word order instead of receiving two nouns
+   * glued to an English frame. Optional: a host that passed the four state
+   * labels before this variant existed keeps type-checking, and falls back to
+   * the English floor's sentence.
+   */
+  readonly cycle?: string;
 }
 
 export const themeModeLabelsEn: ThemeModeLabels = {
@@ -81,9 +116,19 @@ export const themeModeLabelsEn: ThemeModeLabels = {
   light: "Light",
   dark: "Dark",
   system: "Match system",
+  cycle: "Appearance: {current}. Switch to {next}",
 };
 
+/** Which shape the control takes. See this module's header. */
+export type ThemeModeControlVariant = "compact" | "settings";
+
 export interface ThemeModeControlProps {
+  /**
+   * `"compact"` (the default) — one icon button for a header, cycling
+   * light → dark → system. `"settings"` — the three-label segmented control,
+   * for a settings screen with room to name every state.
+   */
+  readonly variant?: ThemeModeControlVariant;
   /** The preference currently chosen — the three-state value, never the
    * resolved colour. */
   readonly value: ThemePreference;
@@ -101,7 +146,14 @@ export interface ThemeModeControlProps {
   /** Icon size, any CSS length. Default `1rem`. */
   readonly size?: string;
   readonly className?: string;
-  /** Test/host hook — lands on the group element. */
+  /**
+   * Mirror the accessible name into a `title`. Off by default in both
+   * variants — a tooltip is invisible to touch and unreachable by keyboard,
+   * so it can only ever be an extra for a pointer, never the explanation.
+   */
+  readonly tooltip?: boolean;
+  /** Test/host hook — lands on the group element (`settings`) or on the
+   * button itself (`compact`). */
   readonly "data-testid"?: string;
 }
 
@@ -199,13 +251,129 @@ const GROUP_STYLE = {
   borderRadius: "var(--stapel-radius-lg, 0.625rem)",
 } as const;
 
-export function ThemeModeControl({
+/**
+ * The COMPACT button's own geometry. 36px is the top of the 32–36px band a
+ * header icon button lives in — comfortably above the 24px squares this
+ * control shipped as, still short enough for a 56px bar. It is deliberately
+ * NOT the settings variant's 44px: that rule governs a row of three adjacent
+ * targets where a mis-hit picks the wrong state; this is one isolated button
+ * whose mis-hit is a miss.
+ */
+const COMPACT_SIZE = "2.25rem";
+
+/** `{param}` interpolation, the same shape core's i18n engine uses — here so
+ * the control can compose its own name without an engine (it renders in
+ * hosts that have none). */
+function interpolate(template: string, params: Record<string, string>): string {
+  return template.replace(/\{([\w.]+)\}/g, (match, name: string) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? params[name] ?? match : match,
+  );
+}
+
+/** What a state is CALLED. `system` appends what it currently resolves to,
+ * because "following the system, currently dark" and "pinned to dark" are
+ * different answers and a reader who cannot see the glyph gets the
+ * distinction nowhere else. */
+function stateName(
+  preference: ThemePreference,
+  labels: ThemeModeLabels,
+  resolvedMode: ThemeMode,
+): string {
+  return preference === "system"
+    ? `${labels.system} (${labels[resolvedMode]})`
+    : labels[preference];
+}
+
+/** The state one press away, in the order the segmented track lists them. */
+function nextPreference(from: ThemePreference): ThemePreference {
+  const index = THEME_PREFERENCES.indexOf(from);
+  return (
+    THEME_PREFERENCES[(index + 1) % THEME_PREFERENCES.length] ?? THEME_PREFERENCES[0] ?? "light"
+  );
+}
+
+export function ThemeModeControl(props: ThemeModeControlProps): ReactElement {
+  return props.variant === "settings" ? (
+    <SettingsControl {...props} />
+  ) : (
+    <CompactControl {...props} />
+  );
+}
+
+/**
+ * One icon button: the state the page is in, cycling to the next on click.
+ *
+ * It is a plain `<button>`, not a radio and not a `switch`: `role="switch"`
+ * is a promise of TWO states and this cycles three, so the honest control is
+ * a button whose name says what pressing it does. Enter and Space therefore
+ * work with no key handling of our own, and the glyph is the current state
+ * rather than the next one — a button that pictures its destination reads as
+ * a control already set to it.
+ */
+function CompactControl({
   value,
   onChange,
   resolved,
   labels = themeModeLabelsEn,
   size = "1rem",
   className,
+  tooltip = false,
+  "data-testid": testId,
+}: ThemeModeControlProps): ReactElement {
+  const observed = useDocumentThemeMode();
+  const resolvedMode = resolved ?? observed;
+  const next = nextPreference(value);
+  const Glyph = GLYPHS[value];
+  const name = interpolate(labels.cycle ?? themeModeLabelsEn.cycle ?? "", {
+    current: stateName(value, labels, resolvedMode),
+    // The NEXT state is named bare, without its resolution: it is a
+    // destination, not an appearance, and "Switch to Match system (Dark)"
+    // names a colour the press does not necessarily land on.
+    next: labels[next],
+  });
+
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label={name}
+      {...(tooltip ? { title: name } : {})}
+      data-state={value}
+      data-variant="compact"
+      data-resolved={value === "system" ? resolvedMode : undefined}
+      data-testid={testId}
+      data-analytics="none"
+      data-analytics-reason="local-ui-theme-choice — the control writes nothing; pairs carry no @stapel/analytics runtime dependency, so the host instruments its own onChange"
+      onClick={() => onChange(next)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        inlineSize: COMPACT_SIZE,
+        blockSize: COMPACT_SIZE,
+        padding: 0,
+        border: `1px solid ${TRACK_BORDER}`,
+        borderRadius: "var(--stapel-radius-md, 0.5rem)",
+        background: TRACK_BG,
+        color: MARKED_FG,
+        cursor: "pointer",
+        font: "inherit",
+        lineHeight: 1,
+      }}
+    >
+      <Glyph size={size} />
+    </button>
+  );
+}
+
+function SettingsControl({
+  value,
+  onChange,
+  resolved,
+  labels = themeModeLabelsEn,
+  size = "1rem",
+  className,
+  tooltip = false,
   "data-testid": testId,
 }: ThemeModeControlProps): ReactElement {
   const observed = useDocumentThemeMode();
@@ -265,6 +433,7 @@ export function ThemeModeControl({
       role="radiogroup"
       aria-label={labels.group}
       className={className}
+      data-variant="settings"
       data-testid={testId}
       onKeyDown={onKeyDown}
       // The group's key handler only MOVES the choice between its own radios;
@@ -280,10 +449,7 @@ export function ThemeModeControl({
         // The half-disc says what it currently resolves to, so a reader who
         // cannot see which button is marked still gets the distinction the
         // marking carries visually.
-        const name =
-          preference === "system"
-            ? `${labels.system} (${labels[resolvedMode]})`
-            : labels[preference];
+        const name = stateName(preference, labels, resolvedMode);
         return (
           <button
             key={preference}
@@ -291,6 +457,7 @@ export function ThemeModeControl({
             role="radio"
             aria-checked={marked}
             aria-label={name}
+            {...(tooltip ? { title: name } : {})}
             // Roving tabindex: the group is ONE tab stop, and the arrow keys
             // move inside it (see this module's header).
             tabIndex={marked ? 0 : -1}

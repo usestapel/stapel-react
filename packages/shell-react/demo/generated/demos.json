@@ -185,7 +185,7 @@
     {
       "id": "shell.theme-control",
       "title": "Shell theme control",
-      "description": "The theme switch the default chrome renders, and the reason a dark theme that shipped in every token file was unreachable: the mechanism had no place. Unlike the bare ThemeModeControl — prop-driven on purpose, for hosts that keep the preference in a profile field — this one owns its own state: it reads the cached preference, applies it, follows the OS while the choice is “match system”, and writes the choice back. It applies NOTHING until that read resolves, so it never re-stamps the document a frame after a pre-paint boot script stamped it correctly; until then it simply marks the mode the page is already in. AppShell and PublicShell mount it by default (themeControl={false} opts out): at the foot of the Sider and the end of the header account area on a desktop, in the foot of the nav sheet on a phone.",
+      "description": "The theme switch the default chrome renders, and the reason a dark theme that shipped in every token file was unreachable: the mechanism had no place. Unlike the bare ThemeModeControl — prop-driven on purpose, for hosts that keep the preference in a profile field — this one owns its own state: it reads the cached preference, applies it, follows the OS while the choice is “match system”, and writes the choice back. It applies NOTHING until that read resolves, so it never re-stamps the document a frame after a pre-paint boot script stamped it correctly; until then it simply marks the mode the page is already in. AppShell and PublicShell mount it by default (themeControl={false} opts out): at the foot of the Sider and the end of the header account area on a desktop, in the foot of the nav sheet on a phone. Since 0.14.0 the shape it mounts is the COMPACT icon button — the three-label track it used to be is a setting, and it stood in the first row of every desktop page; the placements are unchanged, and variant=\"settings\" brings the old control back where a host wants it.",
       "component": "ShellThemeControl",
       "covers": [],
       "tokens": [
@@ -199,7 +199,7 @@
       "variants": [
         {
           "id": "default",
-          "description": "Desktop: the switch under the sentence that says what it governs.",
+          "description": "Desktop, the default: one icon button under the sentence that says what it governs.",
           "viewport": "desktop",
           "step": "settings"
         },
@@ -208,17 +208,23 @@
           "description": "Phone: the foot of the nav sheet, below the destinations and behind a rule.",
           "viewport": "phone",
           "step": "sheet-footer"
+        },
+        {
+          "id": "settings",
+          "description": "The opt-in: variant=\"settings\" puts the three-label track back, for a host whose own appearance screen wants every state named.",
+          "viewport": "desktop",
+          "step": "settings-variant"
         }
       ],
       "source": {
         "file": "demo/ShellThemeControl.demo.tsx",
-        "line": 115
+        "line": 118
       }
     },
     {
       "id": "shell.theme-mode",
       "title": "Theme mode control",
-      "description": "Sun, moon, half-disc — three NAMED segments in one track, the chosen one filled, each at least 44px tall: a control whose current value can be read at a glance, which three bare 24px glyphs with no selected state could not. Under it a real ARIA radio group: one tab stop, arrow keys move the choice, and no tooltip anywhere (the accessible name carries what the icon means, and hover does not exist on a phone). `system` is a RULE, not a colour: it resolves to light or dark and keeps resolving, so the distinction lives in WHICH segment is marked, and — for a reader who cannot see the mark — in the half-disc's name, which appends what it currently resolves to. Plain DOM and inline currentColor SVG, sized in em: the fleet's two consumers render nothing alike.",
+      "description": "Two shapes of one switch. The DEFAULT is `compact`: a single 36px icon button showing the state the page is in and cycling light → dark → system on click — the header idiom, and the shape the chrome mounts. Its accessible name is its whole readout, so it says both where the choice stands and where the next press lands (\"Appearance: Dark. Switch to Match system\"). `variant=\"settings\"` is the three-label segmented track for an appearance screen: named segments, 44px targets, a real ARIA radio group (one tab stop, arrow keys move the choice), no tooltip anywhere. `system` is a RULE, not a colour: it resolves to light or dark and keeps resolving, so the distinction lives in which state is MARKED and — for a reader who cannot see the mark — in the name, which appends what it currently resolves to. Plain DOM and inline currentColor SVG, sized in em: the fleet's two consumers render nothing alike.",
       "component": "ThemeModeControl",
       "covers": [],
       "tokens": [
@@ -232,26 +238,32 @@
       "variants": [
         {
           "id": "default",
-          "description": "Following the device.",
+          "description": "The default: one icon button, following the device.",
           "viewport": "desktop",
           "step": "system"
         },
         {
           "id": "pinned",
-          "description": "Pinned to dark — the same colour as system-resolved-to-dark, a different mark.",
+          "description": "Compact, pinned to dark — the same colour as system-resolved-to-dark, a different name.",
           "viewport": "desktop",
           "step": "dark"
         },
         {
           "id": "phone",
-          "description": "At phone width, where the 44px target and the absent tooltip matter.",
+          "description": "Compact at phone width, where the 36px target and the absent tooltip matter.",
           "viewport": "phone",
           "step": "light"
+        },
+        {
+          "id": "settings",
+          "description": "`variant=\"settings\"` — the three-label track a host mounts on its own appearance screen. Unchanged; it is no longer the default.",
+          "viewport": "desktop",
+          "step": "system"
         }
       ],
       "source": {
         "file": "demo/ThemeModeControl.demo.tsx",
-        "line": 53
+        "line": 69
       }
     }
   ]

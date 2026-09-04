@@ -15,3 +15,6 @@ Pinned.parameters = { stapel: {"viewport":"desktop","step":"dark"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
 Phone.parameters = { stapel: {"viewport":"phone","step":"light"} };
+export const Settings = (): ReactElement => renderDemoVariant(demo, "settings");
+Settings.storyName = "settings";
+Settings.parameters = { stapel: {"viewport":"desktop","step":"system"} };

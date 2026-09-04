@@ -171,9 +171,11 @@ One thing `"dock"` gives up, stated rather than discovered: the phone theme
 switch lives in the foot of the nav sheet, so removing the sheet removes it.
 That is accepted. A pre-paint boot script following `system` already puts an
 anonymous visitor on the right side of the theme, and the choice itself belongs
-on the account/profile surface a host owns — `<ShellThemeControl/>` is one
-import away. What is not acceptable is a three-target appearance control on the
-one row a storefront's search field lives on.
+on the account/profile surface a host owns — `<ShellThemeControl variant="settings"/>`
+is one import away. What is not acceptable is a three-target appearance control
+on the one row a storefront's search field lives on; a single 36px icon button
+(the 0.14.0 default) is a different question, and one a host answers with
+`themeControl`.
 
 ### `navBadges` — counts on nav destinations (both shells)
 
@@ -206,17 +208,47 @@ import { ThemeModeControl, useThemePreference } from "@stapel/shell-react/theme"
 // `preference` is whatever the host treats as the source of truth — a
 // profile field, a store, local state.
 useThemePreference(preference);
+
+// The default: one 36px icon button for a header, cycling light → dark →
+// system on click.
 <ThemeModeControl value={preference} onChange={save} />;
+
+// The three-label segmented control, for an appearance screen.
+<ThemeModeControl variant="settings" value={preference} onChange={save} />;
 ```
 
 Three states, not two: **light**, **dark**, and **follow the system** (sun /
 moon / half-disc, the Django-admin idiom). `system` is a rule, not a colour —
-it resolves to one of the other two and keeps resolving — so the mark stays on
-the half-disc whatever it currently resolves to, and the half-disc's accessible
-name names that resolution (`"Match system (Dark)"`). Buttons and inline
+it resolves to one of the other two and keeps resolving — so the choice stays
+tellable apart from the colour it lands on, and the half-disc's accessible name
+names that resolution (`"Match system (Dark)"`). Buttons and inline
 `currentColor` SVG, coloured through `--stapel-*` custom properties with
 fallbacks, so a Tailwind host with no antd and no `tokens.css` renders it
 correctly too.
+
+### `variant` — `"compact"` (default) or `"settings"`
+
+| | `compact` (default) | `settings` |
+| --- | --- | --- |
+| Shape | one icon button, 36px | segmented track, three 44px named segments |
+| Interaction | click cycles light → dark → system | ARIA radio group: one tab stop, arrow keys move the choice |
+| Reads its value from | its accessible name | the marked, filled segment |
+| For | a header | an appearance screen |
+
+`compact`'s accessible name is its whole readout, so it carries **both** where
+the choice stands and where the next press lands — `"Appearance: Dark. Switch
+to Match system"` — composed from `labels.cycle`, a template over `{current}`
+and `{next}` that a translator writes in their own word order (`shell.theme.cycle`
+in the `en`/`ru`/`es` catalogues this package ships). It is a plain `<button>`,
+not `role="switch"`: a switch promises two states and this cycles three. Neither
+variant renders a tooltip; `tooltip` opts one in for a pointer-only host.
+
+**This was the default's shape as of 0.14.0, and it changed a look.** Before it,
+the default was the segmented control — which the shells mount in their header
+chrome, so a ~310px three-label appearance SETTING stood in the first row of
+every desktop page and hosts answered by switching the chrome's switch off and
+rebuilding a home for it. Pass `variant="settings"` wherever you want the old
+control back; the placements the shells use have not moved.
 
 `applyThemePreference()` is the single writer: it stamps `data-theme` (the
 canon `@stapel/tokens-antd`'s `resolveThemeMode()` reads), the Tailwind `dark`
@@ -245,7 +277,10 @@ control does not).
 
 **`<AppShell/>` and `<PublicShell/>` render it by default** — foot of the
 `Sider` and end of the header's account area on a desktop, foot of the nav
-sheet on a phone — because a mechanism with no place is a mechanism nobody has:
+sheet on a phone, and since 0.14.0 in its **compact** shape (the slots are
+unchanged; `<ShellThemeControl variant="settings"/>` is a single import for a
+host's own appearance screen) — because a mechanism with no place is a
+mechanism nobody has:
 every token file in the fleet compiles a `[data-theme="dark"]` block and no
 deployment could reach it. `themeControl={false}` opts out, for a host whose own
 settings screen owns the choice. It is not a substitute for the pre-paint boot

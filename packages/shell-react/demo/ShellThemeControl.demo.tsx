@@ -4,6 +4,7 @@ import { defineDemo } from "@stapel/showcase";
 import { I18nProvider, createI18n, useT } from "@stapel/core";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { ShellThemeControl } from "../src/default/index.js";
+import type { ThemeModeControlVariant } from "../src/theme/index.js";
 import { registerShellI18n } from "../src/i18n/keys.js";
 
 /** Demo-local copy in the unmanaged `demo.*` namespace (same convention as
@@ -30,7 +31,7 @@ function Frame(props: { children: ReactNode }): ReactElement {
  * the switch beside the sentence that says what it governs, which is how it
  * reads in `PublicShell`'s header and `AppShell`'s `Sider` foot.
  */
-function SettingsCard(): ReactElement {
+function SettingsCard(props: { variant?: ThemeModeControlVariant }): ReactElement {
   const t = useT();
   return (
     <div
@@ -52,7 +53,9 @@ function SettingsCard(): ReactElement {
       >
         {t("demo.theme.settings_lead")}
       </span>
-      <ShellThemeControl />
+      <ShellThemeControl
+        {...(props.variant !== undefined ? { variant: props.variant } : {})}
+      />
     </div>
   );
 }
@@ -116,13 +119,13 @@ export default defineDemo({
   id: "shell.theme-control",
   title: "Shell theme control",
   description:
-    "The theme switch the default chrome renders, and the reason a dark theme that shipped in every token file was unreachable: the mechanism had no place. Unlike the bare ThemeModeControl — prop-driven on purpose, for hosts that keep the preference in a profile field — this one owns its own state: it reads the cached preference, applies it, follows the OS while the choice is “match system”, and writes the choice back. It applies NOTHING until that read resolves, so it never re-stamps the document a frame after a pre-paint boot script stamped it correctly; until then it simply marks the mode the page is already in. AppShell and PublicShell mount it by default (themeControl={false} opts out): at the foot of the Sider and the end of the header account area on a desktop, in the foot of the nav sheet on a phone.",
+    "The theme switch the default chrome renders, and the reason a dark theme that shipped in every token file was unreachable: the mechanism had no place. Unlike the bare ThemeModeControl — prop-driven on purpose, for hosts that keep the preference in a profile field — this one owns its own state: it reads the cached preference, applies it, follows the OS while the choice is “match system”, and writes the choice back. It applies NOTHING until that read resolves, so it never re-stamps the document a frame after a pre-paint boot script stamped it correctly; until then it simply marks the mode the page is already in. AppShell and PublicShell mount it by default (themeControl={false} opts out): at the foot of the Sider and the end of the header account area on a desktop, in the foot of the nav sheet on a phone. Since 0.14.0 the shape it mounts is the COMPACT icon button — the three-label track it used to be is a setting, and it stood in the first row of every desktop page; the placements are unchanged, and variant=\"settings\" brings the old control back where a host wants it.",
   component: ShellThemeControl,
   tokens: ["text", "text-muted", "surface", "surface-sunken", "border", "brand"],
   variants: {
     default: {
       description:
-        "Desktop: the switch under the sentence that says what it governs.",
+        "Desktop, the default: one icon button under the sentence that says what it governs.",
       viewport: "desktop",
       step: "settings",
       render: () => (
@@ -139,6 +142,17 @@ export default defineDemo({
       render: () => (
         <Frame>
           <SheetFooter />
+        </Frame>
+      ),
+    },
+    settings: {
+      description:
+        "The opt-in: variant=\"settings\" puts the three-label track back, for a host whose own appearance screen wants every state named.",
+      viewport: "desktop",
+      step: "settings-variant",
+      render: () => (
+        <Frame>
+          <SettingsCard variant="settings" />
         </Frame>
       ),
     },

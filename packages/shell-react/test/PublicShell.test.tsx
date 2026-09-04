@@ -346,7 +346,17 @@ describe("<PublicShell/> — the theme control is chrome, not a host chore", () 
     render(wrap("/s"));
     await waitFor(() => expect(screen.getByTestId("shell-theme-control")).toBeDefined());
 
-    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    // The header's control is the COMPACT button (0.14.0), and the slot it
+    // sits in is unchanged.
+    expect(
+      screen.getByTestId("shell-theme-control").getAttribute("data-variant")
+    ).toBe("compact");
+    // The compact button cycles, so reaching a named side is a press or two
+    // — bounded by the three states, never a spin.
+    const control = () => screen.getByTestId("shell-theme-control");
+    for (let i = 0; i < 3 && control().getAttribute("data-state") !== "dark"; i += 1) {
+      fireEvent.click(control());
+    }
 
     await waitFor(() =>
       expect(document.documentElement.getAttribute("data-theme")).toBe("dark")

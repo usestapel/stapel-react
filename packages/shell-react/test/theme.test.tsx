@@ -64,8 +64,21 @@ function radio(name: RegExp | string): HTMLElement {
   return screen.getByRole("radio", { name });
 }
 
-/** The control plus the wiring a real header would give it. */
+/** The SETTINGS control plus the wiring a real appearance screen would give
+ * it. Explicit about the variant because the default is no longer this one:
+ * every assertion below about a radio group is an assertion about
+ * `variant="settings"`, and a test that inherited the default would move to
+ * a different control the day the default moved. */
 function Host({ initial }: { initial: ThemePreference }) {
+  const [preference, setPreference] = useState<ThemePreference>(initial);
+  useThemePreference(preference, { persist: false });
+  return (
+    <ThemeModeControl variant="settings" value={preference} onChange={setPreference} />
+  );
+}
+
+/** The COMPACT control with the same wiring — one button, cycling. */
+function CompactHost({ initial }: { initial: ThemePreference }) {
   const [preference, setPreference] = useState<ThemePreference>(initial);
   useThemePreference(preference, { persist: false });
   return <ThemeModeControl value={preference} onChange={setPreference} />;
@@ -167,7 +180,7 @@ describe("only system follows the OS", () => {
 
 describe("the control shows three states and marks the chosen one", () => {
   it("offers exactly light, dark and system", () => {
-    render(<ThemeModeControl value="system" onChange={() => {}} />);
+    render(<ThemeModeControl variant="settings" value="system" onChange={() => {}} />);
 
     expect(screen.getAllByRole("radio")).toHaveLength(3);
     expect(screen.getByRole("radiogroup").getAttribute("aria-label")).toBe(
@@ -180,7 +193,7 @@ describe("the control shows three states and marks the chosen one", () => {
     ["dark" as const, /^Dark$/],
     ["system" as const, /^Match system/],
   ])("marks %s and nothing else", (value, name) => {
-    render(<ThemeModeControl value={value} onChange={() => {}} />);
+    render(<ThemeModeControl variant="settings" value={value} onChange={() => {}} />);
 
     expect(radio(name).getAttribute("aria-checked")).toBe("true");
     expect(markedState()).toBe(value);
@@ -188,7 +201,7 @@ describe("the control shows three states and marks the chosen one", () => {
 
   it("reports the choice, and stays quiet when the marked one is clicked", () => {
     const onChange = vi.fn();
-    render(<ThemeModeControl value="light" onChange={onChange} />);
+    render(<ThemeModeControl variant="settings" value="light" onChange={onChange} />);
 
     fireEvent.click(radio(/^Dark$/));
     expect(onChange).toHaveBeenCalledWith("dark");
@@ -346,6 +359,166 @@ describe("the control is the radio group it says it is", () => {
     for (const button of screen.getAllByRole("radio")) {
       expect(button.getAttribute("title")).toBeNull();
       expect(button.getAttribute("aria-label")).toBeTruthy();
+    }
+  });
+});
+
+/**
+ * The compact variant — the DEFAULT since 0.14.0.
+ *
+ * The subject is what one icon button has to carry that three labelled
+ * segments carried for free: which state the page is in, and what the next
+ * press does. Both of those live in the accessible name here, so the name is
+ * not a nicety in this variant — it is the control's entire readout.
+ */
+describe("the compact variant is the default, and it is one button", () => {
+  it("renders a single button and no radio group at all", () => {
+    render(<CompactHost initial="light" />);
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+
+  it("is what a host that names no variant gets", () => {
+    render(<ThemeModeControl value="dark" onChange={() => {}} />);
+    expect(screen.getByRole("button").getAttribute("data-variant")).toBe("compact");
+  });
+
+  it("shows the state the page is IN, not the one a press would reach", () => {
+    render(<CompactHost initial="dark" />);
+    expect(screen.getByRole("button").getAttribute("data-state")).toBe("dark");
+  });
+
+  it("cycles light -> dark -> system -> light on click", () => {
+    render(<CompactHost initial="light" />);
+    const seen = ["light"];
+    for (let i = 0; i < 3; i += 1) {
+      fireEvent.click(screen.getByRole("button"));
+      seen.push(screen.getByRole("button").getAttribute("data-state") ?? "?");
+    }
+    expect(seen).toEqual(["light", "dark", "system", "light"]);
+  });
+
+  it("reports every step to the host, including the wrap back to light", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<ThemeModeControl value="system" onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(onChange).toHaveBeenCalledWith("light");
+    rerender(<ThemeModeControl value="light" onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(onChange).toHaveBeenLastCalledWith("dark");
+  });
+
+  it("names the current state AND the next one — the readout the labels used to be", () => {
+    render(<CompactHost initial="light" />);
+    const name = () => screen.getByRole("button").getAttribute("aria-label") ?? "";
+    expect(name()).toBe("Appearance: Light. Switch to Dark");
+    fireEvent.click(screen.getByRole("button"));
+    expect(name()).toBe("Appearance: Dark. Switch to Match system");
+  });
+
+  it("leaves no {placeholder} unfilled in the name", () => {
+    render(<CompactHost initial="system" />);
+    expect(screen.getByRole("button").getAttribute("aria-label")).not.toMatch(/[{}]/);
+  });
+
+  it("takes the host's sentence and its word order, not just its nouns", () => {
+    render(
+      <ThemeModeControl
+        value="light"
+        onChange={() => {}}
+        labels={{
+          group: "Оформление",
+          light: "Светлая",
+          dark: "Тёмная",
+          system: "Как в системе",
+          cycle: "Оформление: {current}. Следующее: {next}",
+        }}
+      />
+    );
+    expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
+      "Оформление: Светлая. Следующее: Тёмная"
+    );
+  });
+
+  it("falls back to the English sentence for labels written before `cycle` existed", () => {
+    render(
+      <ThemeModeControl
+        value="light"
+        onChange={() => {}}
+        labels={{ group: "Appearance", light: "Light", dark: "Dark", system: "Match system" }}
+      />
+    );
+    expect(screen.getByRole("button").getAttribute("aria-label")).toBe(
+      "Appearance: Light. Switch to Dark"
+    );
+  });
+
+  it("says what system RESOLVES to, so the one non-colour state stays readable", () => {
+    installMatchMedia(true);
+    applyThemePreference("system");
+    render(<ThemeModeControl value="system" onChange={() => {}} />);
+    const button = screen.getByRole("button");
+    expect(button.getAttribute("aria-label")).toBe(
+      "Appearance: Match system (Dark). Switch to Light"
+    );
+    expect(button.getAttribute("data-resolved")).toBe("dark");
+  });
+
+  it("distinguishes pinned dark from system-resolved-to-dark in the name", () => {
+    installMatchMedia(true);
+    applyThemePreference("system");
+    const { rerender } = render(<ThemeModeControl value="dark" onChange={() => {}} />);
+    const pinned = screen.getByRole("button").getAttribute("aria-label");
+    rerender(<ThemeModeControl value="system" onChange={() => {}} />);
+    expect(screen.getByRole("button").getAttribute("aria-label")).not.toBe(pinned);
+  });
+
+  it("is a button, not a switch: role=switch promises two states and this has three", () => {
+    render(<CompactHost initial="light" />);
+    expect(screen.getByRole("button").getAttribute("role")).toBeNull();
+    expect(screen.queryAllByRole("switch")).toHaveLength(0);
+  });
+
+  it("carries no tooltip unless the host asks for one", () => {
+    const { rerender } = render(<ThemeModeControl value="light" onChange={() => {}} />);
+    expect(screen.getByRole("button").getAttribute("title")).toBeNull();
+    rerender(<ThemeModeControl value="light" onChange={() => {}} tooltip />);
+    expect(screen.getByRole("button").getAttribute("title")).toBe(
+      screen.getByRole("button").getAttribute("aria-label")
+    );
+  });
+
+  it("keeps a 36px hit area — a header icon button, not a 24px glyph", () => {
+    render(<CompactHost initial="light" />);
+    const style = screen.getByRole("button").style;
+    expect(style.inlineSize).toBe("2.25rem");
+    expect(style.blockSize).toBe("2.25rem");
+  });
+
+  it("colours itself through tokens, so it is right in both themes with no CSS file", () => {
+    render(<CompactHost initial="light" />);
+    const style = screen.getByRole("button").getAttribute("style") ?? "";
+    expect(style).toContain("--stapel-text");
+    expect(style).toContain("--stapel-border");
+    expect(style).toContain("--stapel-surface-sunken");
+  });
+});
+
+describe("the settings variant is the control that shipped, unchanged", () => {
+  it("still marks its group, so a host that opts in gets the same DOM contract", () => {
+    render(<Host initial="dark" />);
+    const group = screen.getByRole("radiogroup");
+    expect(group.getAttribute("data-variant")).toBe("settings");
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    expect(markedState()).toBe("dark");
+  });
+
+  it("keeps its 44px segments and its visible labels", () => {
+    render(<Host initial="light" />);
+    for (const button of screen.getAllByRole("radio")) {
+      expect(button.style.minHeight).toBe("2.75rem");
+      expect(button.textContent?.trim()).toBeTruthy();
     }
   });
 });
