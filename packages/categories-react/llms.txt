@@ -1,4 +1,4 @@
-# @stapel/categories-react 0.15.0
+# @stapel/categories-react 0.16.0
 
 Headless React flow pair for stapel-categories (contract >=0.19 <0.20) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,

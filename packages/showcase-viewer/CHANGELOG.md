@@ -1,5 +1,12 @@
 # @stapel/showcase-viewer
 
+## 0.0.36
+
+### Patch Changes
+
+- Updated dependencies [e3b3ce0]
+  - @stapel/core@0.25.0
+
 ## 0.0.35
 
 ### Patch Changes

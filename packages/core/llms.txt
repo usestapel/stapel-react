@@ -1,4 +1,4 @@
-# @stapel/core 0.24.0
+# @stapel/core 0.25.0
 
 Stapel frontend runtime (L0): typed fetch with the Stapel error envelope, auth token/refresh seams, verification-403 interception, TanStack Query layer with per-user persistence, i18n engine, config provider, breakpoints hook.
 
@@ -97,6 +97,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - putToForeignOrigin
 - recentsStorageKey
 - requireLoaded
+- slugify
 - toDate
 - toFlowError
 - toStapelApiError
@@ -220,6 +221,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - SiteBrand
 - SiteProviderProps
 - SlotPlaceholderProps
+- SlugifyOptions
 - StapelClient
 - StapelClientOptions
 - StapelConfig

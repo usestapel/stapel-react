@@ -236,7 +236,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.15.0",
+      "version": "0.16.0",
       "entries": [
         {
           "id": "categories.catalog",
@@ -510,7 +510,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.22.0",
+      "version": "0.22.1",
       "entries": [
         {
           "id": "listings.detail",
@@ -887,7 +887,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.22.0",
+      "version": "0.23.0",
       "entries": [
         {
           "id": "search.results",
