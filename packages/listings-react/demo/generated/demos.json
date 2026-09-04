@@ -458,6 +458,50 @@
         "file": "demo/ListingSerpCard.demo.tsx",
         "line": 116
       }
+    },
+    {
+      "id": "listings.spec-parts",
+      "title": "Badges and specs",
+      "description": "A badge says which question it answers, and a spec sheet is a definition list rather than a table. Both are drawn by the SERVER's decision about presentation, not by a client-side heuristic: the right badge for a value depends on the category — '3 rooms' wants its name, 'Brick' is a boolean whose name IS the badge, and '20 000 km' wants its unit and no name at all.",
+      "component": "CardBadges",
+      "covers": [
+        "CardSpecLine",
+        "ListingSpecColumns",
+        "ListingSpecList"
+      ],
+      "tokens": [
+        "text-subtle"
+      ],
+      "variants": [
+        {
+          "id": "contract",
+          "description": "The four presentations in one row: a bare option label, two named numbers, and a number with its unit. This is the line that used to read 'Brick · 3 · 9'.",
+          "viewport": "phone",
+          "step": "badges_contract"
+        },
+        {
+          "id": "legacy",
+          "description": "A server older than stapel-listings 0.21.3 declares no presentation, so the row goes through the stored config exactly as it did before the contract existed. Nothing about the new module is required for a card to draw.",
+          "viewport": "phone",
+          "step": "badges_fallback"
+        },
+        {
+          "id": "specs",
+          "description": "The detail sheet at 390px: one column, a row per fact, and the withheld row keeping its place rather than vanishing.",
+          "viewport": "phone",
+          "step": "specs_one_column"
+        },
+        {
+          "id": "specs-split",
+          "description": "The same sheet where there is room for two columns — split by count, not by a breakpoint each row has to survive.",
+          "viewport": "desktop",
+          "step": "specs_two_columns"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingSpecParts.demo.tsx",
+        "line": 181
+      }
     }
   ]
 }
