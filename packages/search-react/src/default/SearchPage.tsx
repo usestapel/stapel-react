@@ -552,6 +552,10 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const ranges = buildRangeGroups({
     state,
     ...(categoryFeatures !== undefined ? { categoryFeatures } : {}),
+    // The answer's measured axes count as rows here too: a leaf whose numeric
+    // axes are all vocabulary-backed has filters, and the schema alone would
+    // have called that column empty.
+    ...(facets.ranges !== undefined ? { ranges: facets.ranges } : {}),
   });
   const filtersEmpty =
     facets.state.status === "ready" &&

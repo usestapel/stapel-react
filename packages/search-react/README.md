@@ -325,6 +325,37 @@ facetGroupIsVocabularyBacked(group) // the schema's type, else the answer's `voc
 `<SearchPage dictionaryMode>` overrides the per-layout default (`"field"` in
 the column, `"sheet"` in the phone filter sheet).
 
+## The ends of a from/to come from the answer
+
+stapel-search 0.14.7 measures every numeric axis of a page and reports it as
+`facet_meta.ranges = {slug: {min, max}}` — core columns and attribute axes in
+one map, measured with the range filters removed, uncapped by
+`MAX_FACET_FIELDS`. `buildRangeGroups` takes it as `ranges` and the rail
+reads two facts off it:
+
+- **Where the ends are.** A catalogue's `year: 1900..2027` is what a year
+  could ever be; `1990..2024` is what this page has. Measured bounds win, and
+  `RangeGroup.measured` says which of the two a row is drawn from. The
+  schema's declaration is the fallback, and the only source against a server
+  that predates the report or an engine that has no `ranges` verb (see
+  below) — silence is never read as "this category has no numbers".
+- **Which axes exist.** An axis the catalogue types as a CHOICE — a
+  vocabulary-backed `year`, a `floor`, a `doors` — is a from/to to a buyer,
+  and the server measuring it is the fact that settles it. Every reported
+  axis gets a row: a picker when its integer span is at most
+  `RANGE_PICKER_MAX_VALUES`, two inputs otherwise. The row is drawn even when
+  the schema names no such feature (labelled by slug then), and `facets=year`
+  keeps its buckets — an axis can be both.
+
+The core price row is left alone by it. Its ends move with every other filter
+on the page, and an input that refuses the number a person meant to type is
+worse than an unbounded one; the measured price is still on the envelope
+(`useFacetPanel().ranges`) for a host that wants to draw over it.
+
+An engine without the verb lists `facet_ranges` in `degraded[]`, which the bag
+exposes as `rangesDegraded`. Its empty map is an ENGINE fact, not a corpus
+fact, so nothing is remembered from it and the rail falls back to the schema.
+
 ## A bounded integer is a picker, not a bare number
 
 A year is not a quantity a person computes, it is one of a hundred-odd values,
@@ -353,6 +384,16 @@ the real `<RangeFilterRow>` it becomes, so the swap costs no further height;
 without the schema yet — `categoryFeatures` itself still unresolved — it
 reserves one row's floor as `search-ranges-attributes-reserve`, a guess
 rather than nothing.
+
+The schema is only the FIRST guess at that count, because the answer may
+measure axes the schema types as choices: a leaf that declares two numeric
+attributes can answer with four, and the block would jump one answer later.
+So the count is remembered. `<SearchStateProvider>` keeps the measured axis
+list **per category** (`usePublishRangeAxes` / `useRememberedRangeAxes`,
+published from the facet bag as `reservedRangeAxes`), and once a category has
+reported one, that is what the rail reserves. Memory, never a control: it
+only ever sizes a placeholder, so a stale entry costs pixels and never a
+wrong row. A degraded answer writes nothing.
 
 ## The applied filters have a row of their own
 

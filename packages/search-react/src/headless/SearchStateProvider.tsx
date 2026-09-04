@@ -256,6 +256,75 @@ export function useFacetKeys(): FacetKeyMap {
   return useContext(FacetKeysContext)?.keys ?? EMPTY_FACET_KEYS;
 }
 
+/**
+ * WHICH NUMERIC AXES A CATEGORY HAS — remembered across answers.
+ *
+ * The rail reserves a box per numeric axis before the answer lands (D361),
+ * and until 0.14.7 the only thing that could count them was the category
+ * SCHEMA. The answer now knows better: `facet_meta.ranges` measures the axes
+ * that have numbers behind them, including the vocabulary-backed ones the
+ * schema calls choices. A schema count of 2 followed by a measured count of 4
+ * is the SAME layout jump the reservation exists to stop, one answer later.
+ *
+ * So the count is remembered, keyed by the category it was measured in —
+ * different leaves have different axes, and remembering one number for all of
+ * them would reserve a car's rail on a phone leaf. Memory, not cache: it is
+ * only ever read to size a placeholder, never to draw a row, so a stale entry
+ * costs a few pixels and never a wrong control.
+ */
+export type RangeAxisMemory = Readonly<Record<string, readonly string[]>>;
+
+interface RangeAxisRegistry {
+  readonly axes: RangeAxisMemory;
+  publish(category: string, slugs: readonly string[]): void;
+}
+
+const RangeAxesContext = createContext<RangeAxisRegistry | null>(null);
+
+const EMPTY_RANGE_AXES: RangeAxisMemory = {};
+
+/** The memory key for a search: its category path, or `""` for none. */
+function axisKey(category: string | undefined): string {
+  return category ?? "";
+}
+
+function sameAxes(a: readonly string[] | undefined, b: readonly string[]): boolean {
+  return (
+    a !== undefined && a.length === b.length && a.every((slug, i) => slug === b[i])
+  );
+}
+
+/**
+ * Publish the axes an answer MEASURED for the category it answered about.
+ *
+ * `slugs` is `undefined` when the server said nothing — it predates 0.14.7,
+ * or its engine listed `facet_ranges` in `degraded[]`. Nothing is written
+ * then, and nothing is forgotten: an empty list from a degraded answer would
+ * teach the rail that this category has no numeric axes at all.
+ */
+export function usePublishRangeAxes(
+  category: string | undefined,
+  slugs: readonly string[] | undefined
+): void {
+  const registry = useContext(RangeAxesContext);
+  const key = axisKey(category);
+  const joined = slugs === undefined ? undefined : slugs.join(" ");
+  useEffect(() => {
+    if (registry === null || joined === undefined) return;
+    registry.publish(key, joined === "" ? [] : joined.split(" "));
+  }, [registry, key, joined]);
+}
+
+/**
+ * The axes an answer has already reported for this category, or `undefined`
+ * when none ever has.
+ */
+export function useRememberedRangeAxes(
+  category: string | undefined
+): readonly string[] | undefined {
+  return useContext(RangeAxesContext)?.axes[axisKey(category)];
+}
+
 export interface SearchStateProviderProps extends ParseSearchStateOptions {
   readonly adapter: SearchParamsAdapter;
   /**
@@ -332,6 +401,20 @@ export function SearchStateProvider(
       },
     }),
     [facetKeys]
+  );
+
+  // The measured axis lists, per category — see `RangeAxesContext`.
+  const [rangeAxes, setRangeAxes] = useState<RangeAxisMemory>(EMPTY_RANGE_AXES);
+  const axisRegistry = useMemo<RangeAxisRegistry>(
+    () => ({
+      axes: rangeAxes,
+      publish: (category, slugs) => {
+        setRangeAxes((was) =>
+          sameAxes(was[category], slugs) ? was : { ...was, [category]: slugs }
+        );
+      },
+    }),
+    [rangeAxes]
   );
 
   const parsed = useMemo(
@@ -447,7 +530,9 @@ export function SearchStateProvider(
 
   return (
     <FacetKeysContext.Provider value={registry}>
-      <StateContext.Provider value={bag}>{children}</StateContext.Provider>
+      <RangeAxesContext.Provider value={axisRegistry}>
+        <StateContext.Provider value={bag}>{children}</StateContext.Provider>
+      </RangeAxesContext.Provider>
     </FacetKeysContext.Provider>
   );
 }

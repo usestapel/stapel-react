@@ -126,6 +126,32 @@ export interface FacetCategoryCount {
 }
 
 /**
+ * The two ENDS of one numeric axis, measured over this answer's candidate set
+ * with the range filters removed (stapel-search 0.14.7+).
+ *
+ * Numbers, not strings: a slider end is arithmetic a client does immediately,
+ * and a price re-parsed from a formatted string is a price that has already
+ * been rounded once.
+ */
+export interface FacetRangeBounds {
+  readonly min: number;
+  readonly max: number;
+}
+
+/**
+ * `facet_meta.ranges` — `{slug: {min, max}}` for every axis this answer has
+ * numbers behind, core columns and attribute axes in ONE report because one
+ * rail draws both.
+ *
+ * An axis ABSENT from the map has no numbers behind it on this page, which is
+ * a different fact from a bound of zero. The map itself absent is a different
+ * fact again: the server predates 0.14.7, or its engine has no `ranges` verb
+ * and said so as `facet_ranges` in `degraded[]`. The panel tells the
+ * three apart — see `state/ranges.ts`.
+ */
+export type FacetRangesMap = Readonly<Record<string, FacetRangeBounds>>;
+
+/**
  * The honesty block beside the counts: `approximate`, `candidates`,
  * `counted`, `skipped`, and (stapel-search 0.12.0+) where the facet plan came
  * from. Rendered, never swallowed (spec §4.2).
@@ -134,7 +160,15 @@ export interface FacetCategoryCount {
  * `categories` as bare `object` arrays, so the generated members are
  * `{[key: string]: unknown}[]` — the two fields a panel has to read
  * field-by-field are the two it cannot. Both are corrected here to the
- * documented row shapes; nothing else about `FacetMeta` is hand-written.
+ * documented row shapes.
+ *
+ * `ranges` is hand-declared and OPTIONAL, an extension over the generated
+ * shape rather than a correction of it: the pinned contract predates
+ * stapel-search 0.14.7, and a storefront ships against whichever server is
+ * running. Optional is the deployment truth — absent means "this server does
+ * not measure bounds", and a required field would compile while reading
+ * `undefined` from a key the compiler swore was there. It becomes generated,
+ * and this declaration disappears, when the pin moves.
  */
 export type FacetMeta = Omit<
   Schemas["FacetMeta"],
@@ -142,6 +176,7 @@ export type FacetMeta = Omit<
 > & {
   readonly withheld: readonly FacetWithheldGroup[];
   readonly categories: readonly FacetCategoryCount[];
+  readonly ranges?: FacetRangesMap;
 };
 
 /** `GET /suggest` 200, as the CURRENT generated schema describes it. */

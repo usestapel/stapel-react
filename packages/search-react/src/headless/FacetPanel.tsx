@@ -5,16 +5,21 @@ import type { FeatureDef } from "@stapel/attributes-react";
 import type {
   FacetCategoryCount,
   FacetMeta,
+  FacetRangesMap,
   FacetWithheldGroup,
   SearchRange,
 } from "../api/types.js";
 import { useSearchQuery } from "../model/queries.js";
 import { buildFacetGroups } from "../state/facets.js";
-import { FACET_PLAN_EVIDENCE } from "../state/degradations.js";
+import { FACET_PLAN_EVIDENCE, FACET_RANGES } from "../state/degradations.js";
 import type { FacetGroup } from "../state/facets.js";
 import { useHostFacetLabels } from "./useFacetLabels.js";
 import type { FacetLabelResolver } from "./useFacetLabels.js";
-import { useSearchState } from "./SearchStateProvider.js";
+import {
+  usePublishRangeAxes,
+  useRememberedRangeAxes,
+  useSearchState,
+} from "./SearchStateProvider.js";
 
 /** The bag `<FacetPanel>` hands its render prop. */
 export interface FacetPanelBag {
@@ -48,6 +53,29 @@ export interface FacetPanelBag {
    * filter the deployed server would answer zero for.
    */
   readonly coreRanges: readonly string[];
+  /**
+   * `facet_meta.ranges` — the ends this answer MEASURED per axis, core
+   * columns and attributes in one map (stapel-search 0.14.7+).
+   *
+   * `undefined` when the server said nothing: it predates the report, or its
+   * engine has no `ranges` verb and said so ({@link rangesDegraded}). A rail
+   * falls back to the schema's declared bounds then; it never reads the
+   * silence as "this category has no numbers".
+   */
+  readonly ranges: FacetRangesMap | undefined;
+  /** `true` when the engine listed `facet_ranges` in `degraded[]` — no axis
+   * was measured, and that is an engine fact, not a corpus fact. */
+  readonly rangesDegraded: boolean;
+  /**
+   * The attribute axes an answer has already reported FOR THIS CATEGORY,
+   * remembered in the state provider across answers — or `undefined` when
+   * none ever has.
+   *
+   * A skin sizes its reservation with it: the schema's numeric count is the
+   * first guess, and this is what the server turned out to measure, so the
+   * block does not jump the second time a person opens the same leaf.
+   */
+  readonly reservedRangeAxes: readonly string[] | undefined;
   /**
    * ISO 4217 code of the corpus, read off the first card of the answer, so
    * a money range reads as money without the host wiring anything. The
@@ -208,12 +236,34 @@ export function useFacetPanel(props: {
   // then this. See `useFacetLabels.ts`.
   const labelled = useHostFacetLabels(groups, props.resolveFacetLabels, props.locale);
 
+  // An engine with no `ranges` verb reports it; its empty map is then an
+  // engine fact, and reading it as "no numeric axes here" is exactly the
+  // appear-then-vanish rail this release removes.
+  const rangesDegraded =
+    envelope.status === "ready" && envelope.data.degraded.includes(FACET_RANGES);
+  const coreRanges = meta.core_ranges ?? [];
+  const measured =
+    envelope.status === "ready" && !rangesDegraded ? meta.ranges : undefined;
+  // Remembered per category, and only the ATTRIBUTE half: the core axes are
+  // declared by the server for every document and never part of the
+  // schema-sized block a rail reserves.
+  usePublishRangeAxes(
+    searchState.category,
+    measured === undefined
+      ? undefined
+      : Object.keys(measured).filter((slug) => !coreRanges.includes(slug))
+  );
+  const reservedRangeAxes = useRememberedRangeAxes(searchState.category);
+
   return {
     state: labelled,
     approximate: meta.approximate,
     skipped: meta.skipped,
     counted: meta.counted,
-    coreRanges: meta.core_ranges ?? [],
+    coreRanges,
+    ranges: measured,
+    rangesDegraded,
+    reservedRangeAxes,
     currency:
       envelope.status === "ready"
         ? envelope.data.items.find((item) => typeof item.card?.["currency"] === "string")

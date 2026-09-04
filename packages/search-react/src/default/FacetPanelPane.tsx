@@ -579,6 +579,10 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               ? { categoryFeatures: props.categoryFeatures }
               : {}),
             coreRanges: bag.coreRanges,
+            // The measured ends, and the axes the schema types as choices —
+            // a vocabulary-backed year is a from/to here because the answer
+            // says it has numbers behind it (stapel-search 0.14.7).
+            ...(bag.ranges !== undefined ? { ranges: bag.ranges } : {}),
             ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
             t,
           });
@@ -589,6 +593,11 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
           // classified catalogue means parcel weight and wholesale packing.
           const coreRanges = ranges.filter((group) => group.core);
           const attributeRanges = ranges.filter((group) => !group.core);
+          // How many rows the block reserves while the answer is in flight:
+          // what this category was last MEASURED to have, else what the
+          // schema declares. See the reservation comment below.
+          const reservedAxes =
+            bag.reservedRangeAxes?.length ?? attributeRanges.length;
           // Is there anything on this rail besides the facet groups? A price
           // row, an applied location, or the partition slot all make "this
           // search offers no filters" false even when the group list itself
@@ -894,7 +903,16 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                    schema, so the rail draws that many skeleton rows, each
                    `RANGE_ROW_MIN_HEIGHT` tall like the real one it will
                    become. Same count in both arms, so the swap from
-                   skeleton to `<RangeFilterRow>` costs no further height. */}
+                   skeleton to `<RangeFilterRow>` costs no further height.
+
+                And the schema is only the FIRST guess at that count. Since
+                stapel-search 0.14.7 the answer measures the axes that have
+                numbers behind them — including the ones the catalogue types
+                as choices, a vocabulary-backed year — so a leaf whose schema
+                declares two can answer with four. `bag.reservedRangeAxes` is
+                what an earlier answer FOR THIS CATEGORY reported, remembered
+                in the state provider; when there is one it sizes the block,
+                because it is the count the swap will actually land on. */}
             {props.categoryFeatures === undefined ? (
               <>
                 <Divider style={{ margin: 0 }} />
@@ -905,7 +923,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 />
               </>
             ) : (
-              attributeRanges.length > 0 && (
+              (attributeRanges.length > 0 || reservedAxes > 0) && (
                 <>
                   <Divider style={{ margin: 0 }} />
                   <Flex
@@ -921,8 +939,8 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                             onApply={bag.setRange}
                           />
                         ))
-                      : attributeRanges.map((group) => (
-                          <RangeRowSkeleton key={group.slug} />
+                      : Array.from({ length: reservedAxes }, (_, index) => (
+                          <RangeRowSkeleton key={index} />
                         ))}
                   </Flex>
                 </>

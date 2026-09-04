@@ -472,6 +472,7 @@ function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
       ? { categoryFeatures: props.categoryFeatures }
       : {}),
     coreRanges: bag.coreRanges,
+    ...(bag.ranges !== undefined ? { ranges: bag.ranges } : {}),
     ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
     t,
   });
@@ -866,6 +867,7 @@ function AppliedChipRow(props: FilterChipsAppliedProps): ReactElement | null {
       ? { categoryFeatures: props.categoryFeatures }
       : {}),
     coreRanges: bag.coreRanges,
+    ...(bag.ranges !== undefined ? { ranges: bag.ranges } : {}),
     ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
     t,
   });

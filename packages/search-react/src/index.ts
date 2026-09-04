@@ -55,6 +55,8 @@ export type {
   FacetLabels,
   FacetLabelsMap,
   FacetMeta,
+  FacetRangeBounds,
+  FacetRangesMap,
   FacetSelection,
   FacetWithheldGroup,
   RankingResponse,
@@ -107,6 +109,7 @@ export type {
 
 export {
   FACET_PLAN_EVIDENCE,
+  FACET_RANGES,
   countIsEstimate,
   countKind,
   degradationAudience,
@@ -190,10 +193,13 @@ export {
   SearchStateProvider,
   useFacetKeys,
   usePublishFacetKeys,
+  usePublishRangeAxes,
+  useRememberedRangeAxes,
   useSearchState,
 } from "./headless/SearchStateProvider.js";
 export type {
   HistoryMode,
+  RangeAxisMemory,
   SearchHistoryKind,
   SearchParamsAdapter,
   SearchStateBag,

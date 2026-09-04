@@ -27,6 +27,19 @@ const SCORER_PREFIX = "scorer:";
  */
 export const FACET_PLAN_EVIDENCE = "facet_plan_evidence";
 
+/**
+ * "This engine has no `ranges` verb, so no axis was measured."
+ *
+ * Read raw for the same reason as {@link FACET_PLAN_EVIDENCE}: an empty
+ * `facet_meta.ranges` from a degraded answer is not "this category has no
+ * numbers", so the rail falls back to the SCHEMA's bounds instead of drawing
+ * a control with no ends — and, crucially, does not REMEMBER the empty list
+ * as the category's axis count. Kept out of the `KNOWN` table deliberately: it is
+ * an operator's engine choice, and the generic literal-beside-the-sentence
+ * fallback is the honest way to show one this build has no wording for.
+ */
+export const FACET_RANGES = "facet_ranges";
+
 const KNOWN: Readonly<Record<string, SearchDegradationKind>> = {
   typo_tolerance: "typo_tolerance",
   phrase_synonyms: "phrase_synonyms",
