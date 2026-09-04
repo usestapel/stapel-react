@@ -67,6 +67,34 @@ describe("browseStage", () => {
     expect(browseStage({ children_as: "tiles" })).toBe("feed");
     expect(browseStage({})).toBe("feed");
   });
+
+  it("sends a transparent node to 'feed' with no parent in hand", () => {
+    const transparent = categoryRow(
+      1410,
+      "offer",
+      "category.offer",
+      141,
+      "141",
+      "1,2",
+      { children_as: "transparent" }
+    );
+    expect(browseStage(transparent)).toBe("feed");
+  });
+
+  it("delegates a transparent node to its parent's own shape", () => {
+    const root = categoryRow(141, "uslugi", "category.uslugi", null, "", "1410");
+    const transparent = categoryRow(
+      1410,
+      "offer",
+      "category.offer",
+      141,
+      "141",
+      "1,2",
+      { children_as: "transparent" }
+    );
+    expect(browseStage(transparent, root)).toBe(browseStage(root));
+    expect(browseStage(transparent, root)).toBe("tiles");
+  });
 });
 
 describe("childControl", () => {
@@ -82,5 +110,18 @@ describe("childControl", () => {
 
   it("does not guess children from a row that says nothing about them", () => {
     expect(childControl({})).toBe("list");
+  });
+
+  it("is 'none' for a transparent node — never a destination for a filter", () => {
+    const transparent = categoryRow(
+      1410,
+      "offer",
+      "category.offer",
+      141,
+      "141",
+      "1,2",
+      { children_as: "transparent" }
+    );
+    expect(childControl(transparent)).toBe("none");
   });
 });

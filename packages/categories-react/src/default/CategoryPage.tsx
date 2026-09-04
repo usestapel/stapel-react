@@ -92,6 +92,7 @@
  * rendered and then covered.
  */
 import { spacing } from "@stapel/tokens";
+import { useMemo } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Flex, Typography } from "antd";
 import {
@@ -113,7 +114,11 @@ import { categoryAncestorChain } from "../catalog/cascade.js";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
 import { browseStage } from "../catalog/stage.js";
 import { resolveCategorySlug } from "../catalog/tree.js";
-import { browseChildren, isTransparentWrapper } from "../catalog/wrapper.js";
+import {
+  browseChildren,
+  isTransparentNode,
+  isTransparentWrapper,
+} from "../catalog/wrapper.js";
 import { categoryTileEntry } from "../headless/CategoryCarousel.js";
 import type { CarouselEntry } from "../headless/CategoryCarousel.js";
 import {
@@ -132,6 +137,8 @@ import type {
   CategoryIconResolver,
   TileDensity,
   TileLayout,
+  TileOverflow,
+  TileSize,
 } from "./CategoryTileGrid.js";
 import { CategoryLevelList } from "./CategoryLevelList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
@@ -177,18 +184,20 @@ export type CategoryHeading =
   | ((ctx: CategoryHeadingContext) => ReactNode);
 
 /**
- * The `"tiles"` arm's own rows: `childRows` unless they are a one-rung IMPORT
- * WRAPPER (`catalog/wrapper.ts`) — a single child that itself has children,
- * such as the "Services" root's import-only "Services offer" child — in
- * which case the tile page draws the WRAPPER's children instead of a single
- * tile pointing at it.
+ * The `"tiles"` arm's own rows: `childRows` with every TRANSPARENT child
+ * spliced out (`catalog/wrapper.ts`) — a structural one-rung IMPORT WRAPPER
+ * (a single child that itself has children, such as the "Services" root's
+ * import-only "Services offer" child) OR an authored
+ * `children_as: "transparent"` sibling among several — replaced by ITS OWN
+ * children instead of a single tile pointing at it.
  *
  * A component rather than an inline call, for the same reason
- * {@link SubcategoryLevelPane} is one: detecting a wrapper is free
- * ({@link isTransparentWrapper} reads fields already on the rows in hand),
- * but DRAWING its children needs one more small read
- * (`GET {wrapperId}/children/`), and that read must mount only for the arm
- * that can use it — never under `"pane"`, `"cascade"` or `"none"`.
+ * {@link SubcategoryLevelPane} is one: detecting a transparent child is free
+ * ({@link isTransparentWrapper} / {@link isTransparentNode} read fields
+ * already on the rows in hand), but DRAWING its children needs one more
+ * small read per candidate (`GET {id}/children/`), and those reads must
+ * mount only for the arm that can use them — never under `"pane"`,
+ * `"cascade"` or `"none"`.
  */
 function TileSubcategories(props: {
   readonly childRows: readonly Category[];
@@ -200,22 +209,42 @@ function TileSubcategories(props: {
   readonly tileDensity?: TileDensity;
   readonly tileLayout?: TileLayout;
   readonly tileMinWidth?: number;
+  readonly tileSize?: TileSize;
+  readonly maxVisible?: number;
+  readonly overflow?: TileOverflow;
 }): ReactElement {
   const t = useT();
   const link =
     props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
       : {};
-  const wrapper = isTransparentWrapper(props.childRows)
-    ? (props.childRows[0] ?? null)
-    : null;
-  const wrapperChildren = useCategoryChildren(wrapper?.id ?? null, {
-    enabled: wrapper !== null,
-  });
-  const entries = browseChildren(
-    props.childRows,
-    (child) => (child.id === wrapper?.id ? wrapperChildren.data : undefined)
-  );
+  const transparentIds = useMemo(() => {
+    const ids: number[] = [];
+    const seen = new Set<number>();
+    const addCandidate = (id: number): void => {
+      if (!seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+    };
+    if (isTransparentWrapper(props.childRows)) {
+      const only = props.childRows[0];
+      if (only !== undefined) addCandidate(only.id);
+    }
+    for (const row of props.childRows) {
+      if (isTransparentNode(row)) addCandidate(row.id);
+    }
+    return ids;
+  }, [props.childRows]);
+  const transparentChildQueries = useCategoryLevels(transparentIds);
+  const childrenById = useMemo(() => {
+    const map = new Map<number, readonly Category[] | undefined>();
+    transparentIds.forEach((id, index) => {
+      map.set(id, transparentChildQueries.rows[index] ?? undefined);
+    });
+    return map;
+  }, [transparentIds, transparentChildQueries.rows]);
+  const entries = browseChildren(props.childRows, (child) => childrenById.get(child.id));
 
   return (
     <Flex vertical gap={spacing[2]}>
@@ -233,6 +262,11 @@ function TileSubcategories(props: {
         {...(props.tileMinWidth !== undefined
           ? { minTileWidth: props.tileMinWidth }
           : {})}
+        {...(props.tileSize !== undefined ? { size: props.tileSize } : {})}
+        {...(props.maxVisible !== undefined
+          ? { maxVisible: props.maxVisible }
+          : {})}
+        {...(props.overflow !== undefined ? { overflow: props.overflow } : {})}
         {...(props.renderIcon !== undefined
           ? { renderIcon: props.renderIcon }
           : {})}
@@ -335,6 +369,26 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * `"scroll"` and by every other {@link SubcategoryForm}.
    */
   readonly subcategoryMinTileWidth?: number;
+  /**
+   * The `"tiles"` arm's own anatomy — `<CategoryTileGrid size>`, passed
+   * through verbatim. Ignored by every other {@link SubcategoryForm}. Default
+   * `"regular"`, the grid's own default — a root's tiles keep their reference
+   * anatomy. A category landing (below the home) is where `"compact"`
+   * belongs — see `CategoryTileGrid.tsx`'s {@link TileSize}.
+   */
+  readonly subcategoryTileSize?: TileSize;
+  /**
+   * The `"tiles"` arm's own row cap — `<CategoryTileGrid maxVisible>`,
+   * passed through verbatim. Meaningful only together with
+   * {@link CategoryPageProps.subcategoryOverflow} `"modal"`.
+   */
+  readonly subcategoryMaxVisible?: number;
+  /**
+   * What the `"tiles"` arm does past
+   * {@link CategoryPageProps.subcategoryMaxVisible} —
+   * `<CategoryTileGrid overflow>`, passed through verbatim. Default `"none"`.
+   */
+  readonly subcategoryOverflow?: TileOverflow;
   /**
    * A narrowing made in the cascade below the tiles.
    *
@@ -549,6 +603,9 @@ function Subcategories(props: {
   readonly tileDensity?: TileDensity;
   readonly tileLayout?: TileLayout;
   readonly tileMinWidth?: number;
+  readonly tileSize?: TileSize;
+  readonly maxVisible?: number;
+  readonly overflow?: TileOverflow;
 }): ReactElement | null {
   const t = useT();
   const link =
@@ -602,6 +659,11 @@ function Subcategories(props: {
         {...(props.tileMinWidth !== undefined
           ? { tileMinWidth: props.tileMinWidth }
           : {})}
+        {...(props.tileSize !== undefined ? { tileSize: props.tileSize } : {})}
+        {...(props.maxVisible !== undefined
+          ? { maxVisible: props.maxVisible }
+          : {})}
+        {...(props.overflow !== undefined ? { overflow: props.overflow } : {})}
         {...(props.renderIcon !== undefined
           ? { renderIcon: props.renderIcon }
           : {})}
@@ -745,6 +807,15 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     : {})}
                   {...(props.subcategoryMinTileWidth !== undefined
                     ? { tileMinWidth: props.subcategoryMinTileWidth }
+                    : {})}
+                  {...(props.subcategoryTileSize !== undefined
+                    ? { tileSize: props.subcategoryTileSize }
+                    : {})}
+                  {...(props.subcategoryMaxVisible !== undefined
+                    ? { maxVisible: props.subcategoryMaxVisible }
+                    : {})}
+                  {...(props.subcategoryOverflow !== undefined
+                    ? { overflow: props.subcategoryOverflow }
                     : {})}
                   current={source.current}
                   depth={source.depth ?? 0}

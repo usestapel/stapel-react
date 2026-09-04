@@ -33,13 +33,26 @@ export type Schemas = components["schemas"];
  * - `chips` — the children are a PARTITION of one template, the same attribute
  *   set split by a value the child name expresses (new/used, buy/sell/rent):
  *   the parent renders a feed with a single-select chip row.
+ * - `transparent` — browsing skips THIS NODE: its children appear where it
+ *   would, and its own page is treated as its parent's. Unlike
+ *   {@link isTransparentWrapper}'s one-child structural rule (a wrapper the
+ *   catalogue never marked), this is an AUTHORED value — the reference
+ *   collapses this level deliberately, whether or not it has siblings.
  *
- * The stored field is `auto | tiles | chips`; `auto` is resolved server-side by
- * a derivation command and an authored value wins over it, so this pair only
- * ever sees the two resolved values. A `chips` parent's children keep their
- * ids, paths and URLs — only the presentation changes.
+ * The stored field is `auto | tiles | chips | transparent`; `auto` is
+ * resolved server-side by a derivation command and an authored value wins
+ * over it, so this pair only ever sees the three resolved values. A `chips`
+ * parent's children keep their ids, paths and URLs — only the presentation
+ * changes; a `transparent` node keeps its own id, slug and page too — see
+ * `catalog/wrapper.ts`.
+ *
+ * `"transparent"` is declared here by hand, ahead of the pinned schema
+ * (`Schemas["ChildrenAsEnum"]` still lists only `tiles | chips` —
+ * stapel-categories 0.20.4 added the value server-side) — an extension, not a
+ * widening of the generated union, so a regenerated schema that adds it
+ * upstream only removes this local addition rather than conflicting with it.
  */
-export type CategoryChildrenAs = Schemas["ChildrenAsEnum"];
+export type CategoryChildrenAs = Schemas["ChildrenAsEnum"] | "transparent";
 
 /**
  * The presentation fields the serializer adds beyond the pinned schema.

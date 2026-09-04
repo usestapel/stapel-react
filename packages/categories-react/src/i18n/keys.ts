@@ -76,6 +76,18 @@ export const CATEGORIES_I18N_KEYS = {
   // ── tile grid (the phone landing's two scrolling rows) ───────────────────
   /** The leading tile, which links the catalogue root rather than a category. */
   tilesAll: "categories.tiles.all",
+  /**
+   * "All categories" — the overflow tile past `maxVisible` (`overflow:
+   * "modal"`), and the dialog it opens listing every child. One key for
+   * both: the button says what it does and the dialog it opens is titled the
+   * same thing.
+   */
+  tilesShowAll: "categories.tiles.show_all",
+  /** The overflow dialog's search box (shown past
+   * `ALL_CATEGORIES_SEARCH_THRESHOLD` children in `CategoryTileGrid.tsx`). */
+  tilesAllSearch: "categories.tiles.all_search",
+  /** The overflow dialog's search found nothing. */
+  tilesAllNoMatches: "categories.tiles.all_no_matches",
 
   // ── mega menu (the desktop three-level catalogue panel) ──────────────────
   /** The panel's accessible name — it is a menu of the whole catalogue, so it
@@ -240,6 +252,9 @@ export const categoriesI18nBundleEn: Record<string, string> = {
   "categories.carousel.empty": "No categories are featured right now",
 
   "categories.tiles.all": "All",
+  "categories.tiles.show_all": "All categories",
+  "categories.tiles.all_search": "Search categories",
+  "categories.tiles.all_no_matches": "No category matches that",
 
   "categories.mega_menu.label": "All categories",
   "categories.mega_menu.more": "{count} more",

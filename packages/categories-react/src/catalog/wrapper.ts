@@ -44,6 +44,17 @@
  * it may answer `undefined` — not fetched yet, not "has none" — in which case
  * the page falls back to the ONE wrapper tile rather than rendering nothing,
  * and swaps in the real grandchildren the moment that read lands.
+ *
+ * ── A second, AUTHORED way a level goes invisible ───────────────────────────
+ *
+ * stapel-categories 0.20.4 adds `children_as: "transparent"`: a catalogue
+ * author marks a node directly, rather than this file inferring one from
+ * shape. {@link isTransparentNode} reads the flag; {@link browseChildren} now
+ * splices out every transparent CHILD it finds among a node's children (not
+ * only a lone one), replacing each with its own children, order kept. A leaf
+ * cannot be transparent — {@link isTransparentNode} still answers `true` for
+ * one (it is a pure field read), but every caller that ACTS on the flag
+ * treats a flagged leaf as an ordinary leaf and warns in development.
  */
 import type { BrowseStageInput } from "./stage.js";
 import { hasChildren } from "./stage.js";
@@ -84,30 +95,121 @@ export function isTransparentWrapper<C extends BrowseStageInput>(
 }
 
 /**
- * The list a tile page should draw for a node's own `children` — the
- * children themselves, or, when {@link isTransparentWrapper} fires, the one
- * child's own children (its GRANDCHILDREN, from the caller's perspective).
+ * Is `node` an AUTHORED transparent node — `children_as === "transparent"`?
  *
- * `grandchildrenOf` answering `undefined` (not loaded yet) falls back to
- * `children` unchanged — the single wrapper tile — rather than an empty
- * page: a page that rendered nothing while the extra read was in flight would
- * flash empty content on every wrapper it draws, for a state that resolves a
- * request later.
+ * A second, independent way a level goes invisible, added by
+ * stapel-categories 0.20.4 alongside {@link isTransparentWrapper}'s
+ * structural one-child rule. Where a wrapper is *inferred* from shape (one
+ * child, itself with children — the catalogue never marked it), a
+ * transparent node is *authored*: the reference collapses this level on
+ * purpose, whether it has one sibling or several. "Browsing skips this node:
+ * its children appear where it would, its own page is its parent's."
+ *
+ * A LEAF cannot be transparent — there is nothing behind it for browsing to
+ * reveal, and a catalogue that authored the flag on a childless row made a
+ * mistake a caller must not silently honour. Callers that act on this (see
+ * {@link browseChildren}, `browseStage`) treat a flagged leaf as an ordinary
+ * leaf and warn in development; this predicate itself stays a pure read and
+ * takes no `console` dependency, so `isTransparentNode` alone is safe to call
+ * from a render.
+ */
+export function isTransparentNode<C extends BrowseStageInput>(node: C): boolean {
+  return node.children_as === "transparent";
+}
+
+declare const process: { readonly env: { readonly NODE_ENV?: string } };
+
+/**
+ * Is this a DEVELOPMENT build — i.e. may this module talk to the console?
+ *
+ * Asked as "is it dev", never as "is it not production" — the second form
+ * fails open: a browser bundle with no `process` shim leaves `NODE_ENV`
+ * undefined, `undefined !== "production"` is true, and every production
+ * console gets this warning on a flagged leaf. Same rule as
+ * `search-react/src/state/facets.ts`'s `inDevelopment`.
+ */
+function inDevelopment(): boolean {
+  const env = typeof process === "undefined" ? undefined : process.env;
+  return env?.NODE_ENV === "development" || env?.NODE_ENV === "test";
+}
+
+/** `isTransparentNode`, plus the dev-only warning every CALLER that acts on
+ * the flag must give for a flagged leaf — one place, so the message and the
+ * condition it fires under cannot drift apart between `browseChildren`,
+ * `browseStage` and the cascade. */
+function isActionableTransparentNode<C extends BrowseStageInput>(node: C): boolean {
+  if (!isTransparentNode(node)) return false;
+  if (hasChildren(node)) return true;
+  if (inDevelopment()) {
+    console.warn(
+      "[@stapel/categories-react] a category with children_as: \"transparent\" has no children — a leaf cannot be transparent, and the flag is ignored."
+    );
+  }
+  return false;
+}
+
+/**
+ * The list a tile page should draw for a node's own `children` — with every
+ * TRANSPARENT child (structural wrapper or authored `"transparent"`) spliced
+ * out and replaced by ITS OWN children, in place, order kept.
+ *
+ * Unlike the old one-hop-only wrapper rule, this fires for a transparent
+ * child sitting AMONG several siblings, not only when it is the lone child —
+ * an authored `children_as: "transparent"` collapses a level on purpose
+ * regardless of how many siblings it has. The structural
+ * {@link isTransparentWrapper} case is still exactly the lone-child shape it
+ * always was; it is just one more way a child can qualify for the splice.
+ *
+ * `grandchildrenOf` answering `undefined` for a given child (not loaded yet)
+ * leaves THAT child's own tile in place rather than dropping it — the same
+ * "falls back, does not hide" contract the single-wrapper version always
+ * kept, now per child instead of for the whole list.
+ *
+ * Still one hop: a spliced-in grandchild that is itself transparent is not
+ * chased further. The addendum names one substitution per transparent node,
+ * not a walk to the first branching descendant.
  */
 export function browseChildren<C extends BrowseStageInput>(
   children: readonly C[],
   grandchildrenOf: ChildrenOf<C>
 ): readonly C[] {
-  if (!isTransparentWrapper(children)) return children;
-  const [wrapper] = children;
-  if (wrapper === undefined) return children;
-  const grandchildren = grandchildrenOf(wrapper);
-  return grandchildren ?? children;
+  // The one-hop-only lone-wrapper shape stays a single fast path: a lone
+  // child is exactly one candidate, and the loop below reaches the identical
+  // answer for it — this keeps the historical entry point cheap and its
+  // behaviour unchanged when nothing has changed about the row.
+  if (children.length === 1) {
+    const [only] = children;
+    if (only !== undefined && (isTransparentWrapper(children) || isActionableTransparentNode(only))) {
+      const grandchildren = grandchildrenOf(only);
+      return grandchildren ?? children;
+    }
+    return children;
+  }
+
+  let changed = false;
+  const out: C[] = [];
+  for (const child of children) {
+    if (!isActionableTransparentNode(child)) {
+      out.push(child);
+      continue;
+    }
+    const grandchildren = grandchildrenOf(child);
+    if (grandchildren === undefined) {
+      // Not fetched yet: fall back to this ONE child's own tile, not to the
+      // whole list — the sibling rows around it are unaffected.
+      out.push(child);
+      continue;
+    }
+    changed = true;
+    out.push(...grandchildren);
+  }
+  return changed ? out : children;
 }
 
 /**
- * Is `child` sitting where a transparent wrapper's ancestry slot would be —
- * `parent`'s ONLY child, itself with children of its own?
+ * Is `child` sitting where a transparent step's ancestry slot would be — a
+ * structural one-child wrapper, or an AUTHORED `children_as: "transparent"`
+ * node?
  *
  * A BREADCRUMB TRAIL never holds a parent's full sibling array the way a tile
  * page's `childRows` does — each ancestor is one fetched row, `id`-path and
@@ -118,14 +220,16 @@ export function browseChildren<C extends BrowseStageInput>(
  * its own column parses to one id, and {@link isTransparentWrapper} still
  * answers whether that one child (`child`) has children of its own.
  *
+ * The AUTHORED check needs no sibling count at all — `children_as` sits on
+ * `child` itself, so it fires whether or not `child` is `parent`'s only row.
  * `undefined` `tn_children_pks` (a row shape that never carried the column)
- * answers `false` rather than guessing — the same "otherwise not a wrapper"
- * default {@link isTransparentWrapper} takes for zero children.
+ * only rules out the structural arm; the authored one is still consulted.
  */
 export function isWrapperAncestor<C extends BrowseStageInput>(
   parent: C,
   child: C
 ): boolean {
+  if (isActionableTransparentNode(child)) return true;
   if (typeof parent.tn_children_pks !== "string") return false;
   return (
     parseTreenodePks(parent.tn_children_pks).length === 1 &&

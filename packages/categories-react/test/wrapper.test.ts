@@ -1,10 +1,18 @@
 /**
  * `isTransparentWrapper` / `browseChildren` — the census addendum's one-hop
  * rule: a node with exactly one child, itself with children of its own, is a
- * wrapper a tile page skips over to its grandchildren.
+ * wrapper a tile page skips over to its grandchildren. Plus
+ * `isTransparentNode` — stapel-categories 0.20.4's AUTHORED value
+ * (`children_as: "transparent"`), which fires whether or not the node has
+ * siblings.
  */
-import { describe, expect, it } from "vitest";
-import { browseChildren, isTransparentWrapper, isWrapperAncestor } from "../src/index.js";
+import { describe, expect, it, vi } from "vitest";
+import {
+  browseChildren,
+  isTransparentNode,
+  isTransparentWrapper,
+  isWrapperAncestor,
+} from "../src/index.js";
 import { categoryRow, treeNode } from "./fixtures.js";
 
 describe("isTransparentWrapper — flat Category rows", () => {
@@ -105,6 +113,102 @@ describe("browseChildren", () => {
   });
 });
 
+describe("isTransparentNode", () => {
+  it("is true for an authored transparent row with children", () => {
+    const node = categoryRow(10, "offer", "category.offer", 1, "1", "20,21", {
+      children_as: "transparent",
+    });
+    expect(isTransparentNode(node)).toBe(true);
+  });
+
+  it("is true even for a row this predicate cannot see is a leaf — a pure field read", () => {
+    const flaggedLeaf = categoryRow(10, "offer", "category.offer", 1, "1", "", {
+      children_as: "transparent",
+    });
+    expect(isTransparentNode(flaggedLeaf)).toBe(true);
+  });
+
+  it("is false for tiles/chips/null", () => {
+    expect(isTransparentNode(categoryRow(1, "a", "a", null, "", "", { children_as: "tiles" }))).toBe(false);
+    expect(isTransparentNode(categoryRow(1, "a", "a", null, "", "", { children_as: "chips" }))).toBe(false);
+    expect(isTransparentNode(categoryRow(1, "a", "a", null, "", "", { children_as: null }))).toBe(false);
+  });
+});
+
+describe("browseChildren — an authored transparent child AMONG several siblings", () => {
+  it("splices a transparent sibling's children in place, order kept, when it is not the only child", () => {
+    const before = categoryRow(1, "before", "category.before", 100, "100", "");
+    const transparentChild = categoryRow(2, "offer", "category.offer", 100, "100", "30,31", {
+      children_as: "transparent",
+    });
+    const after = categoryRow(3, "after", "category.after", 100, "100", "");
+    const grand1 = categoryRow(30, "g1", "category.g1", 2, "100,2", "");
+    const grand2 = categoryRow(31, "g2", "category.g2", 2, "100,2", "");
+    const drawn = browseChildren(
+      [before, transparentChild, after],
+      (child) => (child.id === transparentChild.id ? [grand1, grand2] : undefined)
+    );
+    expect(drawn).toEqual([before, grand1, grand2, after]);
+  });
+
+  it("still splices a transparent LONE child, same as a structural wrapper", () => {
+    const transparentChild = categoryRow(2, "offer", "category.offer", 100, "100", "30", {
+      children_as: "transparent",
+    });
+    const grand = categoryRow(30, "g1", "category.g1", 2, "100,2", "");
+    const drawn = browseChildren([transparentChild], (child) =>
+      child.id === transparentChild.id ? [grand] : undefined
+    );
+    expect(drawn).toEqual([grand]);
+  });
+
+  it("still treats a NON-flagged lone wrapper as transparent (unchanged behaviour)", () => {
+    const wrapper = categoryRow(1410, "offer", "category.offer", 141, "141", "1,2");
+    const g1 = categoryRow(1, "g1", "category.g1", 1410, "141,1410", "");
+    const g2 = categoryRow(2, "g2", "category.g2", 1410, "141,1410", "");
+    const drawn = browseChildren([wrapper], (child) =>
+      child.id === wrapper.id ? [g1, g2] : undefined
+    );
+    expect(drawn).toEqual([g1, g2]);
+  });
+
+  it("falls back to that ONE child's own tile while its children are not loaded, siblings unaffected", () => {
+    const before = categoryRow(1, "before", "category.before", 100, "100", "");
+    const transparentChild = categoryRow(2, "offer", "category.offer", 100, "100", "30", {
+      children_as: "transparent",
+    });
+    const drawn = browseChildren([before, transparentChild], () => undefined);
+    expect(drawn).toEqual([before, transparentChild]);
+  });
+
+  it("ignores a flagged LEAF — a leaf cannot be transparent — and warns in dev", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const before = categoryRow(1, "before", "category.before", 100, "100", "");
+    const flaggedLeaf = categoryRow(2, "offer", "category.offer", 100, "100", "", {
+      children_as: "transparent",
+    });
+    const drawn = browseChildren([before, flaggedLeaf], () => {
+      throw new Error("must not be called for a flagged leaf");
+    });
+    expect(drawn).toEqual([before, flaggedLeaf]);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("does not chase a spliced-in grandchild that is itself transparent — one hop", () => {
+    const innerTransparent = categoryRow(20, "inner", "category.inner", 2, "100,2", "30,31", {
+      children_as: "transparent",
+    });
+    const transparentChild = categoryRow(2, "offer", "category.offer", 100, "100", "20", {
+      children_as: "transparent",
+    });
+    const drawn = browseChildren([transparentChild], (child) =>
+      child.id === transparentChild.id ? [innerTransparent] : undefined
+    );
+    expect(drawn).toEqual([innerTransparent]);
+  });
+});
+
 describe("isWrapperAncestor — the breadcrumb-trail question", () => {
   it("is true for a parent/child step across a one-hop wrapper", () => {
     // "Services" (141) -> "Services offer" (1410, one child) -> groups (1).
@@ -117,6 +221,14 @@ describe("isWrapperAncestor — the breadcrumb-trail question", () => {
     const root = categoryRow(1, "electronics", "category.electronics", null, "", "2,3");
     const phones = categoryRow(2, "phones", "category.phones", 1, "1", "4");
     expect(isWrapperAncestor(root, phones)).toBe(false);
+  });
+
+  it("is true for an authored transparent child even among several siblings", () => {
+    const root = categoryRow(100, "root", "category.root", null, "", "1,2,3");
+    const transparentChild = categoryRow(2, "offer", "category.offer", 100, "100", "30", {
+      children_as: "transparent",
+    });
+    expect(isWrapperAncestor(root, transparentChild)).toBe(true);
   });
 
   it("is false when the only child is itself a leaf", () => {

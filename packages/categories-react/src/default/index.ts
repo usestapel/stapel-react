@@ -46,6 +46,8 @@ export type {
   CategoryTileGridProps,
   TileDensity,
   TileLayout,
+  TileOverflow,
+  TileSize,
 } from "./CategoryTileGrid.js";
 /** Re-exported here because `<CategoryTileGrid>`'s `entries` and `renderIcon`
  * both make it part of a skin caller's vocabulary — a host composing tiles

@@ -9,7 +9,7 @@
  * missing, in-flight or refused count is spoken as no number at all.
  */
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { loadFailed, loadLoading, loadReady } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import {
@@ -79,6 +79,12 @@ function imageEntry(id: number): CarouselEntry {
 const IMAGE_TILES: readonly CarouselEntry[] = [1, 2, 3].map(imageEntry);
 const MANY_IMAGE_TILES: readonly CarouselEntry[] = Array.from(
   { length: 10 },
+  (_, i) => imageEntry(i + 1)
+);
+/** Past the overflow dialog's own search threshold (20) — see
+ * `ALL_CATEGORIES_SEARCH_THRESHOLD` in `CategoryTileGrid.tsx`. */
+const MANY_TILES_25: readonly CarouselEntry[] = Array.from(
+  { length: 25 },
   (_, i) => imageEntry(i + 1)
 );
 
@@ -587,5 +593,230 @@ describe("eager loading (D242 — the first row must not depend on scroll)", () 
     expect(screen.getByTestId("categories-tile-grid-all").querySelector("img")).toBeNull();
     const images = [...tileList().querySelectorAll("img")];
     expect(images[0]?.getAttribute("loading")).toBe("eager");
+  });
+});
+
+describe("tile size (the reference's second-level tile, owner's ruling 2026-09-04)", () => {
+  function tileList(): HTMLElement {
+    return screen.getByTestId("categories-tile-grid-list");
+  }
+
+  it("regular (the default) keeps the reference root anatomy — a vertical tile", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    const tile = tileList().querySelectorAll("a")[0] as HTMLElement;
+    expect(tile.style.flexDirection).toBe("column");
+    expect(tile.style.aspectRatio).toBe("4 / 3");
+  });
+
+  it("compact is a horizontal row — name left, small picture right, ~half the height", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={CHILD_TILES} allTile={false} size="compact" />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    const tile = tileList().querySelectorAll("a")[0] as HTMLElement;
+    expect(tile.style.flexDirection).toBe("row");
+    // 8 / 3 is half the height of the regular tile's 4 / 3 at the same width.
+    expect(tile.style.aspectRatio).toBe("8 / 3");
+  });
+
+  it("compact denser wrap grid defaults to 220px, not the regular 240px", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={CHILD_TILES}
+          allTile={false}
+          size="compact"
+          layout="wrap"
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    expect(tileList().style.gridTemplateColumns).toContain("220px");
+  });
+
+  it("a host's own minTileWidth still wins over the compact default", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={CHILD_TILES}
+          allTile={false}
+          size="compact"
+          layout="wrap"
+          minTileWidth={180}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList()).toBeTruthy());
+    expect(tileList().style.gridTemplateColumns).toContain("180px");
+  });
+});
+
+describe("tile overflow — «Все категории» past maxVisible (owner's ruling 2026-09-04)", () => {
+  function tileList(): HTMLElement {
+    return screen.getByTestId("categories-tile-grid-list");
+  }
+
+  it("overflow: 'none' (the default) ignores maxVisible — every row still draws", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={MANY_IMAGE_TILES} allTile={false} maxVisible={3} />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("a")).toHaveLength(MANY_IMAGE_TILES.length)
+    );
+    expect(screen.queryByTestId("categories-tile-grid-more")).toBeNull();
+  });
+
+  it("overflow: 'modal' caps the grid at maxVisible and draws the overflow tile", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_IMAGE_TILES}
+          allTile={false}
+          maxVisible={3}
+          overflow="modal"
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(3));
+    expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy();
+    // Not yet opened.
+    expect(screen.queryByTestId("categories-tile-grid-dialog")).toBeNull();
+  });
+
+  it("the overflow tile opens a dialog listing EVERY child, not only the hidden ones", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_IMAGE_TILES}
+          allTile={false}
+          maxVisible={3}
+          overflow="modal"
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy()
+    );
+    fireEvent.click(screen.getByTestId("categories-tile-grid-more"));
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-dialog")).toBeTruthy()
+    );
+    expect(
+      screen
+        .getByTestId("categories-tile-grid-dialog-list")
+        .querySelectorAll("a")
+    ).toHaveLength(MANY_IMAGE_TILES.length);
+  });
+
+  it("carries no search box under the threshold", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={CHILD_TILES} allTile={false} maxVisible={1} overflow="modal" />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy()
+    );
+    fireEvent.click(screen.getByTestId("categories-tile-grid-more"));
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-dialog")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("categories-tile-grid-dialog-search")).toBeNull();
+    expect(
+      screen
+        .getByTestId("categories-tile-grid-dialog-list")
+        .querySelectorAll("a")
+    ).toHaveLength(CHILD_TILES.length);
+  });
+
+  it("grows a search box past the threshold and filters the list by label", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_TILES_25}
+          allTile={false}
+          maxVisible={3}
+          overflow="modal"
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy()
+    );
+    fireEvent.click(screen.getByTestId("categories-tile-grid-more"));
+    const search = await screen.findByTestId("categories-tile-grid-dialog-search");
+    expect(
+      screen
+        .getByTestId("categories-tile-grid-dialog-list")
+        .querySelectorAll("a")
+    ).toHaveLength(25);
+
+    fireEvent.change(search, { target: { value: "imageTile5" } });
+    await waitFor(() =>
+      expect(
+        screen
+          .getByTestId("categories-tile-grid-dialog-list")
+          .querySelectorAll("a")
+      ).toHaveLength(1)
+    );
+  });
+
+  it("an unmatched search empties the list with a sentence, not silence", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_TILES_25}
+          allTile={false}
+          maxVisible={3}
+          overflow="modal"
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy()
+    );
+    fireEvent.click(screen.getByTestId("categories-tile-grid-more"));
+    const search = await screen.findByTestId("categories-tile-grid-dialog-search");
+    fireEvent.change(search, { target: { value: "no such category" } });
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-dialog-empty")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("categories-tile-grid-dialog-list")).toBeNull();
+  });
+
+  it("Escape closes the dialog — SkinDialog's own keyboard affordance", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_IMAGE_TILES}
+          allTile={false}
+          maxVisible={3}
+          overflow="modal"
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy()
+    );
+    fireEvent.click(screen.getByTestId("categories-tile-grid-more"));
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-dialog")).toBeTruthy()
+    );
+    fireEvent.keyDown(screen.getByTestId("categories-tile-grid-dialog"), {
+      key: "Escape",
+      code: "Escape",
+    });
+    await waitFor(() =>
+      expect(screen.queryByTestId("categories-tile-grid-dialog")).toBeNull()
+    );
   });
 });

@@ -794,3 +794,46 @@ describe("useCategoryCascade — the one-rung import wrapper is invisible", () =
     expect(rungCount(bag())).toBe(1);
   });
 });
+
+/**
+ * An AUTHORED `children_as: "transparent"` child, sitting among two ordinary
+ * siblings — the case the structural wrapper rule above never covered,
+ * because it has more than one sibling.
+ */
+const SIBLING_ROOT = categoryRow(200, "siblings", "category.siblings", null, "", "201,202,203");
+const SIBLING_A = categoryRow(201, "sib-a", "category.sib_a", 200, "200", "");
+const TRANSPARENT_SIBLING = categoryRow(202, "offer", "category.offer", 200, "200", "210,211", {
+  children_as: "transparent",
+});
+const SIBLING_B = categoryRow(203, "sib-b", "category.sib_b", 200, "200", "");
+const TRANSPARENT_GROUP_A = categoryRow(210, "group-a", "category.group_a", 202, "200,202", "");
+const TRANSPARENT_GROUP_B = categoryRow(211, "group-b", "category.group_b", 202, "200,202", "");
+const SIBLING_ROWS: readonly Category[] = [
+  ...ROWS,
+  SIBLING_ROOT,
+  SIBLING_A,
+  TRANSPARENT_SIBLING,
+  SIBLING_B,
+  TRANSPARENT_GROUP_A,
+  TRANSPARENT_GROUP_B,
+];
+
+describe("useCategoryCascade — a transparent child among several siblings is invisible too", () => {
+  it("splices its own children into the rung, in place, order kept", async () => {
+    const { bag } = await mountProbe({ rootId: 200, rows: SIBLING_ROWS });
+    await waitFor(() => {
+      const state = bag().state;
+      const options = state.status === "ready" ? state.data[0]?.options : [];
+      expect(options?.map((o) => o.category.id)).toEqual([201, 210, 211, 203]);
+    });
+    expect(rungCount(bag())).toBe(1);
+  });
+
+  it("a ladder already past it shows one rung, not two", async () => {
+    const { bag } = await mountProbe({ rootId: 200, value: 210, rows: SIBLING_ROWS });
+    expect(bag().trail.map((c) => c.id)).toEqual([210]);
+    expect(bag().selected?.id).toBe(210);
+    expect(bag().atLeaf).toBe(true);
+    expect(rungCount(bag())).toBe(1);
+  });
+});

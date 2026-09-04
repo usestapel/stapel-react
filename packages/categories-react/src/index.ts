@@ -100,6 +100,7 @@ export { browseStage, childControl, hasChildren } from "./catalog/stage.js";
 export type { BrowseStage, BrowseStageInput, ChildControl } from "./catalog/stage.js";
 export {
   browseChildren,
+  isTransparentNode,
   isTransparentWrapper,
   isWrapperAncestor,
 } from "./catalog/wrapper.js";

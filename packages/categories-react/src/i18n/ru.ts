@@ -91,6 +91,9 @@ export const categoriesI18nBundleRu: I18nDictionary = {
   "categories.carousel.empty": "Сейчас ни одна категория не вынесена на витрину.",
 
   "categories.tiles.all": "Все",
+  "categories.tiles.show_all": "Все категории",
+  "categories.tiles.all_search": "Поиск по категориям",
+  "categories.tiles.all_no_matches": "Ничего не найдено",
 
   "categories.mega_menu.label": "Все категории",
   "categories.mega_menu.more": "Ещё {count}",

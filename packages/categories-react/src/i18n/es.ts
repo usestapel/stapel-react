@@ -73,6 +73,9 @@ export const categoriesI18nBundleEs: I18nDictionary = {
   "categories.carousel.empty": "Ahora mismo no hay categorías destacadas.",
 
   "categories.tiles.all": "Todo",
+  "categories.tiles.show_all": "Todas las categorías",
+  "categories.tiles.all_search": "Buscar categorías",
+  "categories.tiles.all_no_matches": "No hay ninguna categoría que coincida",
 
   "categories.mega_menu.label": "Todas las categorías",
   "categories.mega_menu.more": "{count} más",

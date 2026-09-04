@@ -316,6 +316,50 @@ trail's own rows (`isWrapperAncestor`, no extra request); an `unlink` prop —
 also `<CategoryPage breadcrumbs={{ unlink }}>` — lets a host say so instead,
 which REPLACES the automatic check rather than adding to it.
 
+### An AUTHORED transparent node: `children_as: "transparent"`
+
+stapel-categories 0.20.4 adds a second, independent way a level goes
+invisible. The wrapper above is *inferred* from shape — one child, itself with
+children — because the catalogue never marked it. A `"transparent"` node is
+*authored*: the reference collapses this level on purpose, whether it has one
+sibling or several. "Browsing skips this node: its children appear where it
+would, its own page is its parent's."
+
+```ts
+isTransparentNode(node) // boolean — a pure field read: children_as === "transparent"
+// true even for a flagged LEAF; a leaf cannot really be transparent, so every
+// CALLER that acts on the flag (browseChildren, browseStage, the cascade)
+// treats a flagged leaf as an ordinary leaf and warns in development
+```
+
+`browseChildren` now splices out **every** transparent child it finds among a
+node's `children` — not only a lone one — replacing each with its own
+children, in place, order kept:
+
+```ts
+browseChildren([before, transparentChild, after], grandchildrenOf)
+// → [before, ...grandchildrenOf(transparentChild), after]
+```
+
+The structural lone-wrapper case is unchanged (it is just one more way a
+single child can qualify), and the rule is still **one hop**: a spliced-in row
+that is itself transparent is not chased further.
+
+`browseStage` takes an optional second argument for this: a transparent
+node's own page IS its parent's, so `browseStage(transparent, parent)`
+returns exactly `browseStage(parent)` — a host that lands on a transparent
+node's URL reads this as its cue to redirect to the parent instead of
+rendering a page. Without `parent`, the answer is `"feed"`, never `"tiles"`,
+for a node that is not itself a real destination. `childControl` returns
+`"none"` for a transparent node for the same reason: it is never a
+destination a filter rail belongs to.
+
+`<CategoryCascadeField>` collapses a transparent rung the same way it always
+collapsed a structural wrapper — whether or not the transparent child is the
+only option on that rung — and `<CategoryPage subcategories="tiles">` /
+`useCategoryTree()` callers get the same splice through `browseChildren`,
+unchanged at the call site.
+
 ## The desktop mega-menu: one call, three levels
 
 `useCategoryTree(depth)` is `GET /tree/?depth=N` — active nodes, ordered,
@@ -405,6 +449,51 @@ does. Both default unchanged, so no existing host changes shape.
   subcategoryMinTileWidth={280}
 />
 ```
+
+## The reference's second-level tile: `size`, and the «All categories» overflow
+
+The root landing's tile (label top-left, art bottom-right) is not the same
+tile the reference design draws one level down — the owner's ruling
+(2026-09-04): a category page shows a denser, HORIZONTAL row (name on the
+left, a small picture on the right, about half the root tile's height for the
+same width), capped at a handful of rows with an «All categories» tile/button
+opening every remaining child in a dialog.
+
+```tsx
+<CategoryTileGrid size="compact" maxVisible={10} overflow="modal" />
+```
+
+`size` (default `"regular"`) is a THIRD tile anatomy, orthogonal to `density`
+(which packs the phone SCROLLER's columns) and to `layout` (scroll vs wrap):
+`"compact"` is the reference's second-level tile, and it also tightens the
+`layout="wrap"` grid's default `minTileWidth` to 220px (down from 240) and its
+gap, unless a host passes its own `minTileWidth`.
+
+`maxVisible` caps the grid at that many rows — the "All" tile is not counted
+against it — and is meaningful only under `overflow="modal"` (default
+`"none"`, which ignores `maxVisible` entirely and draws every row, so setting
+one alone changes nothing). Past the cap, one more tile — «All categories» —
+opens a `SkinDialog` (a bottom sheet on a phone, a centred modal on
+tablet/desktop, the same primitive `<CategoryPickerField>` uses) listing
+EVERY child, not only the hidden ones: compact rows, each a real link, with a
+search box once there are more than 20.
+
+`<CategoryPage>`'s `"tiles"` arm takes the same three knobs as
+`subcategoryTileSize`, `subcategoryMaxVisible` and `subcategoryOverflow`:
+
+```tsx
+<CategoryPage
+  categoryId={id}
+  subcategories="tiles"
+  subcategoryTileSize="compact"
+  subcategoryMaxVisible={10}
+  subcategoryOverflow="modal"
+/>
+```
+
+A root landing (the home page) keeps `size="regular"` and `overflow="none"` —
+both default unchanged, so no existing host changes shape. A storefront wires
+`size="compact" maxVisible={10} overflow="modal"` on every tile page below it.
 
 ## The first row does not wait for a scrollbar: `eagerCount`
 

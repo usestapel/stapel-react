@@ -113,10 +113,14 @@ import type {
   CategoryCascadeSource,
 } from "../catalog/cascade.js";
 import { categoryLabel } from "../catalog/labels.js";
-import { childControl } from "../catalog/stage.js";
+import { childControl, hasChildren } from "../catalog/stage.js";
 import type { CategoryLabel } from "../catalog/labels.js";
 import { categoryChildIds } from "../catalog/tree.js";
-import { browseChildren, isTransparentWrapper } from "../catalog/wrapper.js";
+import {
+  browseChildren,
+  isTransparentNode,
+  isTransparentWrapper,
+} from "../catalog/wrapper.js";
 import {
   useCategory,
   useCategoryCarousel,
@@ -266,57 +270,84 @@ function commits(category: Category, rule: CategoryCascadeCommit): boolean {
 }
 
 /**
- * Merge a one-rung IMPORT WRAPPER out of the fetched rungs — see
+ * Merge every TRANSPARENT rung out of the fetched rungs — see
  * `catalog/wrapper.ts`. The ladder still FETCHES every real rung (nothing
  * here changes what `parentIds` asks the server for); this reshapes what a
- * skin is SHOWN, so a wrapper is never presented as its own one-option rung.
+ * skin is SHOWN, so a transparent child — a structural one-child wrapper OR
+ * an authored `children_as: "transparent"` sibling among several — is never
+ * presented as its own selectable option.
  *
- * At most one merge, at the first rung {@link isTransparentWrapper} fires on:
- * that rung's `options` become its own single child's children, and the rung
- * that would otherwise have shown those same rows one level down — present
- * only once the person has already navigated past the wrapper, since only
- * then does the real ancestor chain reach that far — is dropped so the two
- * do not both appear. `chainIds` loses the same slot, so `choose`/`clearFrom`
- * (which index into the VISIBLE ladder) stay aligned with it.
+ * One pass over `sources`: each rung's `options` runs through
+ * {@link browseChildren} against `childrenById` (the eager fallback — see
+ * below) and against the NEXT fetched rung when that rung really is the
+ * transparent child's own children (`next.parentId` matches — true exactly
+ * when the person's real ancestor chain already runs through it). A rung
+ * consumed that way is dropped from the visible ladder and its `chainIds`
+ * slot is dropped with it, so `choose`/`clearFrom` (which index into the
+ * VISIBLE ladder) stay aligned. Nothing here re-chases a spliced-in row —
+ * {@link browseChildren} is still one hop, so a rung can be consumed at most
+ * once per pass.
  *
- * `wrapperChildren` is the eager fallback for a ladder that has NOT been
- * navigated past the wrapper yet — the common case, since a wrapper is never
- * chosen by a click. Whichever source supplies the rows, an `undefined`
- * (neither fetched yet) leaves the wrapper's own one-item rung in place
- * rather than merging into an empty one — the same "falls back, does not
- * hide" contract `browseChildren` documents.
+ * `childrenById` is the eager fallback for a ladder that has NOT been
+ * navigated past a given transparent child yet — the common case, since one
+ * is never chosen by a click. A candidate missing from the map (not fetched
+ * yet) leaves that ONE child's own tile in place rather than merging into an
+ * empty rung — the same "falls back, does not hide" contract `browseChildren`
+ * documents.
  */
 function collapseWrapperRung(
   sources: readonly CategoryCascadeSource[],
   chainIds: readonly number[],
-  wrapperChildren: readonly Category[] | undefined
+  childrenById: ReadonlyMap<number, readonly Category[] | undefined>
 ): {
   readonly sources: readonly CategoryCascadeSource[];
   readonly chainIds: readonly number[];
 } {
-  const index = sources.findIndex((source) => isTransparentWrapper(source.options));
-  const target = index < 0 ? undefined : sources[index];
-  if (target === undefined) return { sources, chainIds };
-  const wrapperId = target.options[0]?.id;
-  const next = sources[index + 1];
-  // The next FETCHED rung counts only when it is really this wrapper's own
-  // children — `parentIds` builds sources top-down in lockstep with
-  // `chainIds`, so that is true exactly when the person's real ancestor
-  // chain already runs through the wrapper.
-  const consumesNext = next !== undefined && next.parentId === wrapperId;
-  const grandchildren = consumesNext ? next.options : wrapperChildren;
-  const merged = browseChildren(target.options, () => grandchildren);
-  if (merged === target.options) return { sources, chainIds };
-  return {
-    sources: [
-      ...sources.slice(0, index),
-      { ...target, options: merged },
-      ...sources.slice(index + (consumesNext ? 2 : 1)),
-    ],
-    chainIds: consumesNext
-      ? [...chainIds.slice(0, index), ...chainIds.slice(index + 1)]
-      : chainIds,
-  };
+  // Pass 1: independently decide, for every rung, whether it merges and
+  // (when it does by consuming the NEXT fetched rung) which two index sets
+  // that consumption touches. Independent per rung — `next.options` is
+  // always the RAW rung, never an already-merged one — so a further
+  // transparent child two rungs deep is not chased across a consumed
+  // boundary; the same one-hop-per-splice rule `browseChildren` keeps.
+  const mergedOptions = new Map<number, readonly Category[]>();
+  // Source index that gets folded into the rung before it and dropped.
+  const droppedSourceIndex = new Set<number>();
+  // chainIds index that named the now-hidden transparent child — dropped
+  // along with the rung it used to point at; the entry that named the
+  // CHOSEN option among the folded-in rows (old `chainIds[i + 1]`) is left
+  // alone and lands at position `i` once this one is filtered out.
+  const droppedChainIndex = new Set<number>();
+
+  for (let i = 0; i < sources.length; i += 1) {
+    const source = sources[i];
+    if (source === undefined) continue;
+    const next = sources[i + 1];
+    let consumedId: number | null = null;
+    const merged = browseChildren(source.options, (child) => {
+      if (next !== undefined && next.parentId === child.id) {
+        consumedId = child.id;
+        return next.options;
+      }
+      return childrenById.get(child.id);
+    });
+    if (merged === source.options) continue;
+    mergedOptions.set(i, merged);
+    if (consumedId !== null) {
+      droppedSourceIndex.add(i + 1);
+      droppedChainIndex.add(i);
+    }
+  }
+
+  if (mergedOptions.size === 0) return { sources, chainIds };
+
+  const outSources = sources
+    .map((source, i) => {
+      const merged = mergedOptions.get(i);
+      return merged === undefined ? source : { ...source, options: merged };
+    })
+    .filter((_source, i) => !droppedSourceIndex.has(i));
+  const outChainIds = chainIds.filter((_id, i) => !droppedChainIndex.has(i));
+  return { sources: outSources, chainIds: outChainIds };
 }
 
 export interface UseCategoryCascadeOptions
@@ -582,26 +613,41 @@ export function useCategoryCascade(
   }, [topOptions, rootId, rootQuery.data, parentIds, levelQueries.rows]);
 
   /**
-   * The one extra rung a wrapper needs BEFORE anyone has clicked through
-   * it — see {@link collapseWrapperRung}. `sources` already carries the
-   * wrapper's children when the real ancestor chain runs through it (an
-   * ordinary rung, no extra request); this fan-out is only what a COLD
-   * ladder — nothing chosen yet — is missing to reveal them eagerly. At
-   * most one id, and `[]` (no request at all) once there is no wrapper to
-   * follow.
+   * The extra rungs a transparent child needs BEFORE anyone has clicked
+   * through it — see {@link collapseWrapperRung}. `sources` already carries
+   * a transparent child's own children when the real ancestor chain runs
+   * through it (an ordinary rung, no extra request); this fan-out is only
+   * what a COLD ladder — nothing chosen yet — is missing to reveal them
+   * eagerly. One candidate per structural one-child wrapper (unchanged from
+   * before) PLUS one per authored `children_as: "transparent"` sibling found
+   * anywhere in the fetched rungs — `[]` (no request at all) once there is
+   * none to follow.
    */
-  const wrapperId = useMemo(() => {
-    const wrapper = sources.find((source) => isTransparentWrapper(source.options));
-    return wrapper?.options[0]?.id ?? null;
+  const transparentChildIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const source of sources) {
+      if (isTransparentWrapper(source.options)) {
+        const only = source.options[0];
+        if (only !== undefined) ids.add(only.id);
+      }
+      for (const option of source.options) {
+        if (isTransparentNode(option) && hasChildren(option)) ids.add(option.id);
+      }
+    }
+    return [...ids];
   }, [sources]);
-  const wrapperChildQueries = useCategoryLevels(
-    wrapperId === null ? [] : [wrapperId],
-    levelOptions
-  );
+  const transparentChildQueries = useCategoryLevels(transparentChildIds, levelOptions);
+  const transparentChildrenById = useMemo(() => {
+    const map = new Map<number, readonly Category[] | undefined>();
+    transparentChildIds.forEach((id, index) => {
+      map.set(id, transparentChildQueries.rows[index] ?? undefined);
+    });
+    return map;
+  }, [transparentChildIds, transparentChildQueries.rows]);
 
   const collapsed = useMemo(
-    () => collapseWrapperRung(sources, chainIds, wrapperChildQueries.rows[0] ?? undefined),
-    [sources, chainIds, wrapperChildQueries.rows]
+    () => collapseWrapperRung(sources, chainIds, transparentChildrenById),
+    [sources, chainIds, transparentChildrenById]
   );
 
   const levels = useMemo<readonly CategoryCascadeLevel[]>(
@@ -697,7 +743,7 @@ export function useCategoryCascade(
     atLeaf,
     partitionChild,
     isFetching:
-      (levelQueries.isPending || wrapperChildQueries.isPending) &&
+      (levelQueries.isPending || transparentChildQueries.isPending) &&
       levels.length > 0,
     blockedReason:
       selected === null

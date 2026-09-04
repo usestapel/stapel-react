@@ -29,6 +29,10 @@
  *    (no `/` = root) last. A caller that got the row from *some* endpoint
  *    should not also have to know which one before asking this.
  *
+ * 2b. `children_as: "transparent"` (0.20.4) is a third page shape, not a
+ *    depth or a child count: this node's own page IS its parent's — see
+ *    {@link browseStage}'s `parent` argument.
+ *
  * 2. "No children" is not "empty `children` array". `GET /tree/?depth=N` cuts
  *    the nesting at `N`, so a root read at a shallow depth can arrive with
  *    `children: []` despite having real ones. `tn_children_pks` (the flat
@@ -141,8 +145,23 @@ export function hasChildren(category: BrowseStageInput): boolean {
  * `"tiles"` only for a ROOT that has children; `"feed"` for everything else,
  * including a childless root, any non-root node whatever its own children
  * look like, and a row this function cannot place at all.
+ *
+ * `children_as: "transparent"` (stapel-categories 0.20.4) is a THIRD case:
+ * this node's own page is its parent's, so its own shape is whatever the
+ * parent's is — pass `parent` when it is in hand and this delegates to
+ * `browseStage(parent)` instead of computing a shape for a node that has no
+ * real page. A host that lands on a transparent node's URL reads this as its
+ * cue to redirect to the parent rather than render a page here. Without
+ * `parent` the answer is `"feed"` — never `"tiles"` for a node that is not
+ * itself a real destination.
  */
-export function browseStage(category: BrowseStageInput): BrowseStage {
+export function browseStage(
+  category: BrowseStageInput,
+  parent?: BrowseStageInput
+): BrowseStage {
+  if (category.children_as === "transparent") {
+    return parent !== undefined ? browseStage(parent) : "feed";
+  }
   return isRoot(category) && hasChildren(category) ? "tiles" : "feed";
 }
 
@@ -157,6 +176,9 @@ export function browseStage(category: BrowseStageInput): BrowseStage {
  * would look like as a filter.
  */
 export function childControl(category: BrowseStageInput): ChildControl {
+  // A transparent node is never a destination: browsing has already skipped
+  // it, so it offers no filter of its own — see `catalog/wrapper.ts`.
+  if (category.children_as === "transparent") return "none";
   if (!hasChildren(category)) return "none";
   return category.children_as === "chips" ? "segmented" : "list";
 }

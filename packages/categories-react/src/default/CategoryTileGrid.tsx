@@ -60,10 +60,11 @@
  * from `minmax(min(minTileWidth, 100%), 1fr)`, so the tiles wrap onto as many
  * lines as the container needs and none of them is off screen.
  */
+import { useMemo, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Skeleton } from "antd";
+import { Flex, Input, List, Skeleton } from "antd";
 import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
-import { useT } from "@stapel/core";
+import { STAPEL_UI_KEYS, useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import type { Category } from "../api/types.js";
 import { renderCategoryLabel } from "../catalog/labels.js";
@@ -77,6 +78,8 @@ import {
   EmptyState,
   ErrorAlert,
   LoadList,
+  PHONE_CONTROL_HEIGHT,
+  SkinDialog,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import type { ThemeModeProp } from "./types.js";
@@ -112,6 +115,44 @@ const COMPACT_MAX_COLUMN_PX = 128;
  * two-row scroller; `compact` is the dense strip — see the constants above. */
 export type TileDensity = "cozy" | "compact";
 
+/**
+ * The tile's own ANATOMY, orthogonal to {@link TileDensity} (which packs the
+ * SCROLLER's columns) and to {@link TileLayout} (scroll vs wrap).
+ *
+ * `"regular"` (default) is the reference root tile — label top-left, art
+ * bottom-right, unchanged. `"compact"` is the reference's SECOND-level tile
+ * (owner's verdict, 2026-09-04): a person landing inside a category sees a
+ * denser row — name on the left, a small picture on the right, about HALF the
+ * root tile's height for the same width. A root page (the home) stays
+ * `"regular"`; every tile page below it is where `"compact"` belongs.
+ */
+export type TileSize = "regular" | "compact";
+
+/**
+ * `"compact"` size's own geometry — a THIRD anatomy, not a smaller `cozy` or
+ * a re-skinned `density: "compact"` (that one centres the art over the label
+ * for the phone SCROLLER; this one is a horizontal row, because the two solve
+ * different problems at different depths of the catalogue).
+ *
+ * The aspect ratio is derived, not guessed: {@link TILE_ASPECT_RATIO} is
+ * `4 / 3` (height = 0.75 × width), so HALF that height at the same width is
+ * `1.5 / 4` → `8 / 3` the other way up.
+ */
+const COMPACT_SIZE_ASPECT_RATIO = "8 / 3";
+/** Denser grid than the regular 240px default — the owner's number. */
+const COMPACT_SIZE_MIN_TILE_WIDTH = 220;
+/** Smaller type at this density — the label is one clamped line shorter too
+ * (2, not 3), because a horizontal row has no third line to spend. */
+const COMPACT_SIZE_LABEL_FONT_SIZE = 13;
+/** A small picture, never a corner ornament at this size — a fixed fraction
+ * of the row, capped so a wide row does not inflate it into a second tile. */
+const COMPACT_SIZE_ART_WIDTH = "32%";
+const COMPACT_SIZE_ART_MAX_PX = 56;
+/** Tighter gap between tiles at this density, and between the label and the
+ * picture inside one row. */
+const COMPACT_SIZE_GAP = spacing[1];
+const DEFAULT_GAP = spacing[2];
+
 /** Tile proportions — wider than tall, so a two-line label and the art corner
  * both fit without the row eating the fold. */
 const TILE_ASPECT_RATIO = "4 / 3";
@@ -143,31 +184,29 @@ const LABEL_LINES = 3;
 /** How many tiles the loading arm reserves room for. */
 const SKELETON_TILES = [1, 2, 3, 4] as const;
 
-const scrollerBase: CSSProperties = {
-  display: "grid",
-  gridAutoFlow: "column",
-  gridTemplateRows: `repeat(${TILE_ROWS}, auto)`,
-  // `100%` is the SCROLL PORT's content box, so the tile is a fraction of the
-  // box it was mounted in — see this file's header.
-  gridAutoColumns: `calc(100% / ${VISIBLE_COLUMNS} - ${spacing[2]}px)`,
-  gap: spacing[2],
-  overflowX: "auto",
-  overscrollBehaviorX: "contain",
-  scrollSnapType: "x proximity",
-  // The scroll port is the affordance; a scrollbar over a 2-row tile grid on a
-  // phone is chrome that covers the art.
-  scrollbarWidth: "none",
-};
-
-/** The compact delta: denser columns AND the absolute cap that keeps a wide
- * container honest — see the constants above. */
-const scrollerCompact: CSSProperties = {
-  ...scrollerBase,
-  gridAutoColumns: `min(calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${spacing[2]}px), ${COMPACT_MAX_COLUMN_PX}px)`,
-};
-
-function scrollerStyle(density: TileDensity): CSSProperties {
-  return density === "compact" ? scrollerCompact : scrollerBase;
+/** The scroller's own geometry, `gap` threaded through so `size: "compact"`
+ * (see {@link COMPACT_SIZE_GAP}) can tighten it without a second copy of the
+ * grid rules. */
+function scrollerStyle(density: TileDensity, gap: number): CSSProperties {
+  const columns =
+    density === "compact"
+      ? `min(calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${gap}px), ${COMPACT_MAX_COLUMN_PX}px)`
+      : // `100%` is the SCROLL PORT's content box, so the tile is a fraction
+        // of the box it was mounted in — see this file's header.
+        `calc(100% / ${VISIBLE_COLUMNS} - ${gap}px)`;
+  return {
+    display: "grid",
+    gridAutoFlow: "column",
+    gridTemplateRows: `repeat(${TILE_ROWS}, auto)`,
+    gridAutoColumns: columns,
+    gap,
+    overflowX: "auto",
+    overscrollBehaviorX: "contain",
+    scrollSnapType: "x proximity",
+    // The scroll port is the affordance; a scrollbar over a 2-row tile grid
+    // on a phone is chrome that covers the art.
+    scrollbarWidth: "none",
+  };
 }
 
 /**
@@ -200,11 +239,11 @@ const DEFAULT_MIN_TILE_WIDTH = 240;
  * than one tile the track keeps its minimum and the page scrolls sideways,
  * which is precisely the thing this layout exists not to do.
  */
-function wrapStyle(minTileWidth: number): CSSProperties {
+function wrapStyle(minTileWidth: number, gap: number): CSSProperties {
   return {
     display: "grid",
     gridTemplateColumns: `repeat(auto-fill, minmax(min(${String(minTileWidth)}px, 100%), 1fr))`,
-    gap: spacing[2],
+    gap,
   };
 }
 
@@ -212,9 +251,11 @@ function wrapStyle(minTileWidth: number): CSSProperties {
 function listStyle(
   layout: TileLayout,
   density: TileDensity,
-  minTileWidth: number
+  minTileWidth: number,
+  size: TileSize
 ): CSSProperties {
-  return layout === "wrap" ? wrapStyle(minTileWidth) : scrollerStyle(density);
+  const gap = size === "compact" ? COMPACT_SIZE_GAP : DEFAULT_GAP;
+  return layout === "wrap" ? wrapStyle(minTileWidth, gap) : scrollerStyle(density, gap);
 }
 
 const tileBase: CSSProperties = {
@@ -250,7 +291,28 @@ const tileCompact: CSSProperties = {
   gap: spacing[1],
 };
 
-function tileStyle(density: TileDensity): CSSProperties {
+/**
+ * `size: "compact"`'s own tile — a HORIZONTAL row (name left, small picture
+ * right), not the `density: "compact"` icon-over-label square above. `size`
+ * takes precedence: the two never both apply to one tile.
+ */
+const tileSizeCompact: CSSProperties = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: spacing[2],
+  aspectRatio: COMPACT_SIZE_ASPECT_RATIO,
+  padding: spacing[2],
+  borderRadius: radii.lg,
+  background: cssVar("surface-sunken"),
+  color: cssVar("text"),
+  scrollSnapAlign: "start",
+  overflow: "hidden",
+};
+
+function tileStyle(density: TileDensity, size: TileSize): CSSProperties {
+  if (size === "compact") return tileSizeCompact;
   return density === "compact" ? tileCompact : tileBase;
 }
 
@@ -322,6 +384,28 @@ const artStyle: CSSProperties = {
   justifyContent: "flex-end",
   alignSelf: "flex-end",
   width: "60%",
+  aspectRatio: ART_ASPECT_RATIO,
+};
+
+/** `size: "compact"`'s label: smaller type, one clamped line fewer than the
+ * regular tile — a horizontal row has no third line to spend. */
+const labelSizeCompact: CSSProperties = {
+  ...labelStyle,
+  fontSize: COMPACT_SIZE_LABEL_FONT_SIZE,
+  lineHeight: 1.25,
+  textAlign: "start",
+  WebkitLineClamp: 2,
+};
+
+/** `size: "compact"`'s small picture — a fixed fraction of the row, capped so
+ * a wide row does not inflate it into a second tile. */
+const artSizeCompact: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  width: COMPACT_SIZE_ART_WIDTH,
+  maxWidth: COMPACT_SIZE_ART_MAX_PX,
   aspectRatio: ART_ASPECT_RATIO,
 };
 
@@ -477,6 +561,53 @@ function firstLetter(label: string): string {
   return first === undefined ? "" : first.toLocaleUpperCase();
 }
 
+/**
+ * The label + art pairing for ONE tile, in whichever of the three anatomies
+ * applies — shared between {@link Tile} and {@link MoreTile}, which differ
+ * only in what wraps this (a link vs a button).
+ *
+ * `size: "compact"` takes precedence over `density`: the two never both
+ * apply to one tile — see {@link tileStyle}.
+ */
+function tileBody(props: {
+  readonly label: string;
+  readonly art: ReactNode;
+  readonly size: TileSize;
+  readonly density: TileDensity;
+  readonly testId?: string;
+}): ReactElement {
+  const labelProps =
+    props.testId !== undefined ? { "data-testid": props.testId } : {};
+  if (props.size === "compact") {
+    return (
+      <>
+        <span style={labelSizeCompact} {...labelProps}>
+          {props.label}
+        </span>
+        <span style={artSizeCompact}>{props.art}</span>
+      </>
+    );
+  }
+  if (props.density === "compact") {
+    return (
+      <>
+        <span style={artCompact}>{props.art}</span>
+        <span style={labelCompact} {...labelProps}>
+          {props.label}
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      <span style={labelStyle} {...labelProps}>
+        {props.label}
+      </span>
+      <span style={artStyle}>{props.art}</span>
+    </>
+  );
+}
+
 function Tile(props: {
   readonly href: string;
   readonly label: string;
@@ -486,6 +617,7 @@ function Tile(props: {
   readonly linkComponent?: LinkComponent;
   readonly testId?: string;
   readonly density: TileDensity;
+  readonly size: TileSize;
 }): ReactElement {
   return (
     <CategoryLink
@@ -497,34 +629,74 @@ function Tile(props: {
         ? { categoryId: props.categoryId }
         : {})}
       href={props.href}
-      style={tileStyle(props.density)}
+      style={tileStyle(props.density, props.size)}
     >
-      {props.density === "compact" ? (
-        <>
-          <span style={artCompact}>{props.art}</span>
-          <span
-            style={labelCompact}
-            {...(props.testId !== undefined
-              ? { "data-testid": props.testId }
-              : {})}
-          >
-            {props.label}
-          </span>
-        </>
-      ) : (
-        <>
-          <span
-            style={labelStyle}
-            {...(props.testId !== undefined
-              ? { "data-testid": props.testId }
-              : {})}
-          >
-            {props.label}
-          </span>
-          <span style={artStyle}>{props.art}</span>
-        </>
-      )}
+      {tileBody(props)}
     </CategoryLink>
+  );
+}
+
+/**
+ * The overflow tile/button ("All categories") — drawn in place of the rows
+ * past {@link CategoryTileGridProps.maxVisible} when
+ * {@link CategoryTileGridProps.overflow} is `"modal"`. Same anatomy as an
+ * ordinary tile (art corner, label) so it sits in the grid without a visual
+ * seam; a `<button>`, not a link, because it opens the dialog rather than
+ * navigating.
+ */
+function MoreTile(props: {
+  readonly label: string;
+  readonly extraCount: number;
+  readonly density: TileDensity;
+  readonly size: TileSize;
+  readonly testId: string;
+  readonly onClick: () => void;
+  /** `stapel/clickable-needs-event` opt-out, checked on THIS element — see
+   * the call site in `TileRow`, which carries the same two attributes. */
+  readonly "data-analytics"?: "none";
+  readonly "data-analytics-reason"?: string;
+}): ReactElement {
+  return (
+    <button
+      type="button"
+      style={{
+        ...tileStyle(props.density, props.size),
+        border: "none",
+        cursor: "pointer",
+        font: "inherit",
+        textAlign: "start",
+      }}
+      data-testid={props.testId}
+      data-analytics="none"
+      data-analytics-reason="opens the local overflow dialog; nothing leaves the browser"
+      onClick={props.onClick}
+    >
+      {tileBody({
+        label: props.label,
+        art: <MoreGlyph count={props.extraCount} />,
+        size: props.size,
+        density: props.density,
+      })}
+    </button>
+  );
+}
+
+/** The overflow tile's own art: `+N`, faint like {@link TileMonogram} — the
+ * accessible name comes from the button's own label, this is decorative. */
+function MoreGlyph(props: { readonly count: number }): ReactElement {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        fontSize: "1.5em",
+        lineHeight: 1,
+        fontWeight: fontWeight.bold,
+        color: cssVar("text"),
+        opacity: 0.5,
+      }}
+    >
+      +{props.count}
+    </span>
   );
 }
 
@@ -624,13 +796,166 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * scrolled to.
    */
   readonly eagerCount?: number;
+  /**
+   * The tile's own anatomy — see {@link TileSize}. Default `"regular"`, the
+   * reference root tile, so no existing host changes shape. A landing below
+   * the home page is where `"compact"` belongs.
+   */
+  readonly size?: TileSize;
+  /**
+   * Cap the grid at this many rows before offering the rest through
+   * {@link CategoryTileGridProps.overflow}. Ignored unless `overflow` is
+   * `"modal"` — see there. The "All" tile is not counted against the cap.
+   */
+  readonly maxVisible?: number;
+  /**
+   * What happens past {@link CategoryTileGridProps.maxVisible}. Default
+   * `"none"` — no cap is enforced and every row draws, so `maxVisible` alone
+   * changes nothing.
+   *
+   * `"modal"` draws exactly `maxVisible` rows plus one "All categories" tile
+   * that opens a dialog (`SkinDialog`) listing EVERY child — compact rows
+   * with pictures, a search box once there are more than
+   * {@link ALL_CATEGORIES_SEARCH_THRESHOLD}. The reference's own second-level
+   * page (owner's verdict, 2026-09-04): a compact grid capped at 10, plus the
+   * button.
+   */
+  readonly overflow?: TileOverflow;
 }
 
 /** {@link CategoryTileGridProps.eagerCount}'s default — the reference
  * desktop grid's first row. */
 const DEFAULT_EAGER_COUNT = 8;
 
-/** The scroll port itself: the "All" tile, then one tile per row. */
+/** {@link CategoryTileGridProps.overflow}'s two answers. */
+export type TileOverflow = "none" | "modal";
+
+/** Past this many children, the overflow dialog grows a search box — a list
+ * short enough to scan needs no filter, and a search box over three rows is
+ * chrome nobody asked for. */
+const ALL_CATEGORIES_SEARCH_THRESHOLD = 20;
+
+/**
+ * "All categories" — every child of this rung, searchable once there are
+ * enough of them, in a `SkinDialog` (a bottom sheet on a phone, a centred
+ * modal on tablet/desktop — the primitive's own responsive rule, so this
+ * component makes no surface choice of its own). Compact rows, each a real
+ * link: a keyboard tabs through them and Enter/click navigates like any other
+ * tile, and Esc / the mask / the dialog's own dismiss control close it — all
+ * `SkinDialog`'s doing.
+ */
+function AllCategoriesDialog(props: {
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly entries: readonly CarouselEntry[];
+  readonly linkComponent?: LinkComponent;
+  readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  readonly resolveIconSrc?: CategoryIconResolver;
+}): ReactElement {
+  const t = useT();
+  const [query, setQuery] = useState("");
+  const linkProps =
+    props.linkComponent !== undefined
+      ? { linkComponent: props.linkComponent }
+      : {};
+  const rows = useMemo(
+    () =>
+      props.entries.map((entry) => ({
+        entry,
+        label: renderCategoryLabel(entry.label, t),
+      })),
+    [props.entries, t]
+  );
+  const searchable = props.entries.length > ALL_CATEGORIES_SEARCH_THRESHOLD;
+  const filtered =
+    query === ""
+      ? rows
+      : rows.filter(({ label }) =>
+          label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+        );
+
+  return (
+    <SkinDialog
+      open={props.open}
+      onClose={props.onClose}
+      title={t(CATEGORIES_I18N_KEYS.tilesShowAll)}
+      dismissLabel={t(STAPEL_UI_KEYS.dismiss)}
+      data-testid="categories-tile-grid-dialog"
+    >
+      <Flex vertical gap={spacing[2]}>
+        {searchable ? (
+          <Input
+            allowClear
+            value={query}
+            placeholder={t(CATEGORIES_I18N_KEYS.tilesAllSearch)}
+            aria-label={t(CATEGORIES_I18N_KEYS.tilesAllSearch)}
+            data-testid="categories-tile-grid-dialog-search"
+            onChange={(event) => {
+              setQuery(event.target.value);
+            }}
+          />
+        ) : null}
+        {filtered.length === 0 ? (
+          <EmptyState
+            testId="categories-tile-grid-dialog-empty"
+            compact
+            title={t(CATEGORIES_I18N_KEYS.tilesAllNoMatches)}
+          />
+        ) : (
+          <List
+            data-testid="categories-tile-grid-dialog-list"
+            size="small"
+            dataSource={filtered}
+            renderItem={({ entry, label }) => (
+              <List.Item
+                key={entry.category.id}
+                data-testid={`categories-tile-grid-dialog-option-${String(entry.category.id)}`}
+              >
+                <CategoryLink
+                  {...linkProps}
+                  slug={entry.category.slug}
+                  categoryId={entry.category.id}
+                  href={entry.href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: spacing[2],
+                    width: "100%",
+                    minHeight: PHONE_CONTROL_HEIGHT,
+                    color: cssVar("text"),
+                  }}
+                >
+                  <span>{label}</span>
+                  <span
+                    style={{
+                      width: spacing[7],
+                      height: spacing[7],
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    {tileArt(
+                      entry.icon,
+                      label,
+                      entry,
+                      false,
+                      props.renderIcon,
+                      props.resolveIconSrc
+                    )}
+                  </span>
+                </CategoryLink>
+              </List.Item>
+            )}
+          />
+        )}
+      </Flex>
+    </SkinDialog>
+  );
+}
+
+/** The scroll port itself: the "All" tile, then one tile per row, then —
+ * past `maxVisible` under `overflow: "modal"` — the "All categories" tile and
+ * its dialog. */
 function TileRow(props: {
   readonly entries: readonly CarouselEntry[];
   readonly basePath: string;
@@ -639,57 +964,100 @@ function TileRow(props: {
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
   readonly resolveIconSrc?: CategoryIconResolver;
   readonly density: TileDensity;
+  readonly size: TileSize;
   readonly layout: TileLayout;
   readonly minTileWidth: number;
   readonly eagerCount: number;
+  readonly maxVisible?: number;
+  readonly overflow: TileOverflow;
 }): ReactElement {
   const t = useT();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const linkProps =
     props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
       : {};
+  const capped =
+    props.overflow === "modal" &&
+    props.maxVisible !== undefined &&
+    props.entries.length > props.maxVisible;
+  const visible = capped ? props.entries.slice(0, props.maxVisible) : props.entries;
+  const hiddenCount = capped ? props.entries.length - visible.length : 0;
+
   return (
-    <div
-      style={listStyle(props.layout, props.density, props.minTileWidth)}
-      data-stapel-tile-layout={props.layout}
-      data-testid="categories-tile-grid-list"
-    >
-      {props.allTile !== false && (() => {
-        const allLabel = t(CATEGORIES_I18N_KEYS.tilesAll);
-        return (
-          <Tile
-            {...linkProps}
+    <>
+      <div
+        style={listStyle(props.layout, props.density, props.minTileWidth, props.size)}
+        data-stapel-tile-layout={props.layout}
+        data-testid="categories-tile-grid-list"
+      >
+        {props.allTile !== false && (() => {
+          const allLabel = t(CATEGORIES_I18N_KEYS.tilesAll);
+          return (
+            <Tile
+              {...linkProps}
+              density={props.density}
+              size={props.size}
+              href={props.basePath}
+              label={allLabel}
+              art={<TileMonogram label={allLabel} />}
+              testId="categories-tile-grid-all"
+            />
+          );
+        })()}
+        {visible.map((entry, index) => {
+          const label = renderCategoryLabel(entry.label, t);
+          return (
+            <Tile
+              key={entry.category.id}
+              {...linkProps}
+              density={props.density}
+              size={props.size}
+              href={entry.href}
+              slug={entry.category.slug}
+              categoryId={entry.category.id}
+              label={label}
+              art={tileArt(
+                entry.icon,
+                label,
+                entry,
+                index < props.eagerCount,
+                props.renderIcon,
+                props.resolveIconSrc
+              )}
+            />
+          );
+        })}
+        {capped ? (
+          <MoreTile
+            label={t(CATEGORIES_I18N_KEYS.tilesShowAll)}
+            extraCount={hiddenCount}
             density={props.density}
-            href={props.basePath}
-            label={allLabel}
-            art={<TileMonogram label={allLabel} />}
-            testId="categories-tile-grid-all"
+            size={props.size}
+            testId="categories-tile-grid-more"
+            data-analytics="none"
+            data-analytics-reason="opens the local overflow dialog; nothing leaves the browser"
+            onClick={() => {
+              setDialogOpen(true);
+            }}
           />
-        );
-      })()}
-      {props.entries.map((entry, index) => {
-        const label = renderCategoryLabel(entry.label, t);
-        return (
-          <Tile
-            key={entry.category.id}
-            {...linkProps}
-            density={props.density}
-            href={entry.href}
-            slug={entry.category.slug}
-            categoryId={entry.category.id}
-            label={label}
-            art={tileArt(
-              entry.icon,
-              label,
-              entry,
-              index < props.eagerCount,
-              props.renderIcon,
-              props.resolveIconSrc
-            )}
-          />
-        );
-      })}
-    </div>
+        ) : null}
+      </div>
+      {capped ? (
+        <AllCategoriesDialog
+          open={dialogOpen}
+          onClose={() => {
+            setDialogOpen(false);
+          }}
+          entries={props.entries}
+          {...linkProps}
+          {...(props.renderIcon !== undefined ? { renderIcon: props.renderIcon } : {})}
+          {...(props.resolveIconSrc !== undefined
+            ? { resolveIconSrc: props.resolveIconSrc }
+            : {})}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -704,15 +1072,22 @@ export function CategoryTileGrid(
   // rows nobody may see.
   const offersTiles = categoryOffersTileGrid(props.categoryDepth);
   const density: TileDensity = props.density ?? "cozy";
+  const size: TileSize = props.size ?? "regular";
+  const overflow: TileOverflow = props.overflow ?? "none";
   const layout: TileLayout = props.layout ?? "scroll";
-  const minTileWidth = props.minTileWidth ?? DEFAULT_MIN_TILE_WIDTH;
+  const minTileWidth =
+    props.minTileWidth ??
+    (size === "compact" ? COMPACT_SIZE_MIN_TILE_WIDTH : DEFAULT_MIN_TILE_WIDTH);
   const eagerCount = props.eagerCount ?? DEFAULT_EAGER_COUNT;
   const rowProps = {
     basePath,
     density,
+    size,
     layout,
     minTileWidth,
     eagerCount,
+    overflow,
+    ...(props.maxVisible !== undefined ? { maxVisible: props.maxVisible } : {}),
     ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
     ...(props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
@@ -751,7 +1126,7 @@ export function CategoryTileGrid(
                 testId="categories-tile-grid"
                 onRetry={bag.refetch}
                 loading={
-                  <div style={listStyle(layout, density, minTileWidth)}>
+                  <div style={listStyle(layout, density, minTileWidth, size)}>
                     {SKELETON_TILES.map((slot) => (
                       <Skeleton.Button
                         key={slot}
