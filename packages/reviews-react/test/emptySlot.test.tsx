@@ -16,7 +16,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { ReviewListPanel } from "../src/default/index.js";
+import { ReviewListPanel, ReviewsPanel } from "../src/default/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { TARGET, page, review } from "./fixtures.js";
 
@@ -89,5 +89,47 @@ describe("<ReviewListPanel emptyState>", () => {
       expect(screen.getByTestId("reviews-list-rows")).toBeTruthy();
     });
     expect(screen.getByText("Great")).toBeTruthy();
+  });
+});
+
+describe("<ReviewsPanel emptyState> — the slot on the component hosts mount", () => {
+  /**
+   * `<ReviewListPanel>` had the slot and `<ReviewsPanel>` is what a listing
+   * page actually mounts, so the storefront could not reach it: it hid
+   * `reviews-list-empty` with a CSS rule instead, which is the pair rendering
+   * something the host cannot decline — the exact defect the slot closed one
+   * component down.
+   */
+  function mountPanel(emptyState?: ReactNode | null): void {
+    render(
+      <TestProviders server={mockServer({ "/reviews": { body: NO_REVIEWS } })}>
+        <ReviewsPanel
+          target={TARGET}
+          canReview={false}
+          {...(emptyState !== undefined ? { emptyState } : {})}
+        />
+      </TestProviders>
+    );
+  }
+
+  it("keeps the pair's own sentence when the host says nothing", async () => {
+    mountPanel();
+    await settled();
+    expect(screen.getByTestId("reviews-list-empty")).toBeTruthy();
+  });
+
+  it("forwards `null` — nothing is drawn, and no stylesheet is involved", async () => {
+    mountPanel(null);
+    const arm = await settled();
+    expect(arm.textContent).toBe("");
+    expect(screen.queryByTestId("reviews-list-empty")).toBeNull();
+    expect(arm.querySelector(".ant-empty")).toBeNull();
+  });
+
+  it("forwards the host's own node", async () => {
+    mountPanel(<p data-testid="host-empty">Be the first to review</p>);
+    await settled();
+    expect(screen.getByTestId("host-empty")).toBeTruthy();
+    expect(screen.queryByTestId("reviews-list-empty")).toBeNull();
   });
 });

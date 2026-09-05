@@ -57,6 +57,20 @@ export interface ReviewsPanelProps extends ThemeModeProp, SignInCtaProp {
   readonly canRespond?: boolean;
   readonly renderAuthor?: (review: Review) => ReactNode;
   readonly renderDate?: (review: Review) => ReactNode;
+  /**
+   * THE LIST'S EMPTY ARM, declared here and handed straight to
+   * `<ReviewListPanel emptyState>` — see that prop for the three cases
+   * (`undefined` keeps the pair's own "no reviews yet" state, a node replaces
+   * it, `null` renders nothing at all).
+   *
+   * It is repeated on this composed panel because this is the component a
+   * listing page actually mounts, and a prop that exists only on the part
+   * nobody mounts is a prop nobody has: a storefront that wanted the silent
+   * arm hid `reviews-list-empty` with a CSS rule instead, which is the pair's
+   * own defect the slot was added to end — the panel rendered something the
+   * host could not decline.
+   */
+  readonly emptyState?: ReactNode | null;
 }
 
 export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
@@ -75,6 +89,11 @@ export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
     <SkinTheme {...pinned} surface={surface ?? "base"}>
       <Flex vertical gap={spacing[4]} data-testid="reviews-panel">
         <RatingBadge target={target} {...pinned} surface="bare" />
+        {/* `rows` carries `emptyState` through untouched, and the
+            distinction that matters survives the trip: a prop the host never
+            passed is absent from the rest object entirely, so `undefined`
+            (the pair's own state) is told apart from an explicit `null` (draw
+            nothing) by presence rather than by truthiness. */}
         <ReviewListPanel
           target={target}
           {...pinned}
