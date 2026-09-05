@@ -35,6 +35,17 @@
  * one element, and no button wrapped around a link. `onOpen` still fires on
  * the click, additively, so a host that instruments the gesture keeps it.
  * Neither prop given, the row is exactly what it was.
+ *
+ * ── One PHRASE, not a row ─────────────────────────────────────────────────
+ *
+ * `size="compact"` is the same identity in the space of a caption: a 20px
+ * avatar, the name (a link when `href` says so) and an optional trailing node,
+ * all on ONE line, with the second line inline after the name rather than
+ * under it. It exists because a card's seller line is not a list row — a
+ * storefront that wanted the person under a listing card had to write its own
+ * anchor and its own avatar rather than use this pair, which is how a user id
+ * gets back onto the glass. The four states stay four here too: the compact
+ * arm skeletons and speaks exactly like the other two.
  */
 import type { ReactElement, ReactNode } from "react";
 import { Avatar, Flex, Skeleton, Typography } from "antd";
@@ -56,6 +67,10 @@ import type { PublicProfile } from "../api/types.js";
 export const PERSON_ROW_AVATAR = 40;
 /** The header variant's avatar (`<PublicProfilePage/>`'s identity block). */
 export const PERSON_HEADER_AVATAR = 72;
+/** The compact arm's avatar — a caption-sized person, for a card's seller
+ * line. Small enough that the line is text with a face in it rather than a
+ * list row squeezed into a card. */
+export const PERSON_COMPACT_AVATAR = 20;
 
 /** Up to two initials, uppercased — the monogram behind a missing avatar. */
 export function personMonogram(displayName: string): string {
@@ -81,8 +96,16 @@ export interface PersonRowProps {
   readonly isSelf?: boolean;
   /** The relationship control (or any per-row action) shown on the right. */
   readonly action?: ReactNode;
-  /** Replace the default second line (location, else nothing). */
+  /** Replace the default second line (location, else nothing). In
+   * `size="compact"` it renders INLINE after the name — the arm is one line. */
   readonly secondary?: ReactNode;
+  /**
+   * A node directly after the name — a rating, a "member since", a verified
+   * mark. `size="compact"` is what it is for: {@link action} is a right-hand
+   * RAIL (a follow button at the far edge of a list row), and a phrase has no
+   * rail. Rendered in every arm, right after the name and any `secondary`.
+   */
+  readonly trailing?: ReactNode;
   /**
    * The person's own page, as a URL. Given, the display NAME becomes a real
    * link — see the module doc for the four browser affordances a click
@@ -100,14 +123,20 @@ export interface PersonRowProps {
    * Alongside {@link href} it stays a NOTIFICATION (the anchor navigates and
    * this fires beside it), never a second way to navigate. */
   onOpen?(userId: string): void;
-  /** Draw the larger header variant (the public-profile identity block). */
-  readonly size?: "row" | "header";
+  /**
+   * Which of the three shapes: the list `"row"` (default), the larger
+   * `"header"` (the public-profile identity block), or `"compact"` — one
+   * caption-sized line, for a card's seller line (see the module doc).
+   */
+  readonly size?: "row" | "header" | "compact";
   readonly testId?: string;
 }
 
 /** The avatar side for a variant. */
 function avatarSide(size: PersonRowProps["size"]): number {
-  return size === "header" ? PERSON_HEADER_AVATAR : PERSON_ROW_AVATAR;
+  if (size === "header") return PERSON_HEADER_AVATAR;
+  if (size === "compact") return PERSON_COMPACT_AVATAR;
+  return PERSON_ROW_AVATAR;
 }
 
 /** The person's avatar: the backend's source-agnostic descriptor when there
@@ -152,7 +181,7 @@ export function PersonRow(props: PersonRowProps): ReactElement {
     return (
       <Flex
         align="center"
-        gap={spacing[3]}
+        gap={props.size === "compact" ? spacing[2] : spacing[3]}
         data-stapel-person="pending"
         {...(props.testId ? { "data-testid": props.testId } : {})}
       >
@@ -219,17 +248,46 @@ export function PersonRow(props: PersonRowProps): ReactElement {
       </Typography.Link>
     );
 
-  const body = (
+  const trailingNode: ReactNode =
+    props.trailing !== undefined && props.trailing !== null ? (
+      <span style={{ flexShrink: 0 }} data-stapel-person-trailing>
+        {props.trailing}
+      </span>
+    ) : null;
+
+  const you = props.isSelf === true && (
+    <Typography.Text type="secondary">
+      {t(PROFILES_I18N_KEYS.personYou)}
+    </Typography.Text>
+  );
+
+  // One line, in reading order: face, name, whatever qualifies it. No vertical
+  // stack and no right-hand rail — a phrase has neither.
+  const compactBody = (
+    <Flex align="center" gap={spacing[2]} style={{ minWidth: 0 }}>
+      <PersonAvatar profile={profile} fallbackName={name} side={side} />
+      {nameNode}
+      {you}
+      {secondary !== null && secondary !== undefined && (
+        <Typography.Text type="secondary" ellipsis>
+          {secondary}
+        </Typography.Text>
+      )}
+      {trailingNode}
+      {props.action !== undefined && props.action !== null && (
+        <div style={{ flexShrink: 0 }}>{props.action}</div>
+      )}
+    </Flex>
+  );
+
+  const stackedBody = (
     <Flex align="center" gap={spacing[3]} style={{ width: "100%", minWidth: 0 }}>
       <PersonAvatar profile={profile} fallbackName={name} side={side} />
       <Flex vertical style={{ minWidth: 0, flex: 1 }}>
         <Flex align="center" gap={spacing[2]} style={{ minWidth: 0 }}>
           {nameNode}
-          {props.isSelf === true && (
-            <Typography.Text type="secondary">
-              {t(PROFILES_I18N_KEYS.personYou)}
-            </Typography.Text>
-          )}
+          {you}
+          {trailingNode}
         </Flex>
         {secondary !== null && secondary !== undefined && (
           <Typography.Text type="secondary" ellipsis>
@@ -242,6 +300,8 @@ export function PersonRow(props: PersonRowProps): ReactElement {
       )}
     </Flex>
   );
+
+  const body = props.size === "compact" ? compactBody : stackedBody;
 
   // With a real link in the row, the row itself is NOT also a button: one
   // destination gets one activatable element, and a `role="button"` wrapped

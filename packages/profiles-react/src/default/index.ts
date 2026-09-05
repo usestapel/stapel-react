@@ -37,6 +37,7 @@ export {
   personMonogram,
   PERSON_ROW_AVATAR,
   PERSON_HEADER_AVATAR,
+  PERSON_COMPACT_AVATAR,
 } from "./PersonRow.js";
 export type { PersonRowProps } from "./PersonRow.js";
 export { Relationship } from "./Relationship.js";
