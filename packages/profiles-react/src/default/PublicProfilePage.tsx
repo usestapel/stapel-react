@@ -4,9 +4,9 @@
  *
  * `GET /{user_id}` had a typed client, a query hook, and no component: there
  * was no way in the whole library to look at another person. This is that
- * page — identity block, the two counts, location and rating when the
- * deployment fills them, and the follow / block controls
- * ({@link Relationship}) underneath.
+ * page — identity block, the two counts, location and the seller's declared
+ * trading capacity when the deployment fills them, and the follow / block
+ * controls ({@link Relationship}) underneath.
  *
  * ── THE EMPTY-BUT-RENDERABLE PROFILE IS A DESIGNED STATE ────────────────────
  *
@@ -29,7 +29,7 @@
  * `categories-react`'s `<CategoryPage slug=…>` uses.
  */
 import type { ReactElement } from "react";
-import { Card, Flex, Rate, Typography } from "antd";
+import { Card, Flex, Typography } from "antd";
 import { LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { loadStateFromQuery, useT, useTPlural } from "@stapel/core";
@@ -44,11 +44,44 @@ import type { PublicProfile } from "../api/types.js";
 export const PUBLIC_PROFILE_MAX_WIDTH = "42rem";
 
 /**
- * The top of the rating scale (`stapel_profiles`' `rating` is a 0-5 mean).
- * A bare "4.8" is not a rating — it is a number that could be out of five, ten
- * or a hundred, which is what the visual pass found on this screen.
+ * The word for a self-declared trading capacity (`seller_type`), or
+ * `undefined` for a value this package ships no word for.
+ *
+ * `private`/`business` are the two stapel-profiles states, and neither is a
+ * caption: "business" over a seller card in a Russian storefront is an English
+ * word for a Russian shop. A deployment that registers a third capacity gets
+ * `undefined` here and its own raw value on screen, which is the honest bottom
+ * of every label ladder in this fleet — a made-up word would be worse than an
+ * identifier.
+ *
+ * `null` — the wire's "no such field on this deployment's profile model" AND
+ * its "nobody declared one", deliberately indistinguishable — answers
+ * `undefined` too: there is nothing to say, so nothing is said.
  */
-export const PUBLIC_RATING_MAX = 5;
+export function sellerTypeLabelKey(
+  sellerType: string | null | undefined
+): string | undefined {
+  if (sellerType === "private") return PROFILES_I18N_KEYS.sellerTypePrivate;
+  if (sellerType === "business") return PROFILES_I18N_KEYS.sellerTypeBusiness;
+  return undefined;
+}
+
+/**
+ * The trading capacity as a word, or `undefined` when there is nothing to say.
+ *
+ * The value falls through to itself for a capacity this package has no word
+ * for — see {@link sellerTypeLabelKey}.
+ */
+export function sellerTypeLabel(
+  t: (key: string) => string,
+  sellerType: string | null | undefined
+): string | undefined {
+  if (sellerType === null || sellerType === undefined || sellerType === "") {
+    return undefined;
+  }
+  const key = sellerTypeLabelKey(sellerType);
+  return key === undefined ? sellerType : t(key);
+}
 
 export interface PublicProfilePageProps {
   /** Whose profile. The `:userId` segment of the host's `/u/:userId` route. */
@@ -76,6 +109,7 @@ function PublicProfileBody(props: {
   const t = useT();
   const tPlural = useTPlural();
   const { profile } = props;
+  const sellerType = sellerTypeLabel(t, profile.seller_type);
   const isSelf =
     props.skin.selfUserId === profile.user_id ||
     profile.relationship_status === "self";
@@ -137,31 +171,24 @@ function PublicProfileBody(props: {
           </Flex>
         )}
 
-        {profile.rating > 0 && (
+        {/* AM I BUYING FROM A PERSON OR FROM A SHOP — a different question
+            from who they are, and one a storefront otherwise answered with a
+            second lookup. stapel-profiles 0.19.0 puts it on the same read.
+
+            This block replaces a RATING one that could never render: the
+            schema declared `rating: float` on both public responses and no
+            version of the backend ever had the field (the migration that
+            added it was reverted inside the first release), so `rating > 0`
+            was `undefined > 0` on every profile this pair has ever drawn.
+            0.19.0's schema drops it. */}
+        {sellerType !== undefined && (
           <Flex vertical>
             <Typography.Text type="secondary">
-              {t(PROFILES_I18N_KEYS.publicRating)}
+              {t(PROFILES_I18N_KEYS.publicSellerType)}
             </Typography.Text>
-            {/* A number needs its scale to mean anything: stars carry it at a
-                glance, the sentence carries it for a screen reader and for
-                anybody the stars do not reach. */}
-            <Flex align="center" gap={spacing[2]}>
-              <Rate
-                disabled
-                allowHalf
-                count={PUBLIC_RATING_MAX}
-                value={profile.rating}
-                aria-hidden
-              />
-              <Typography.Text data-testid="public-profile-rating">
-                {t(PROFILES_I18N_KEYS.publicRatingValue, {
-                  value: profile.rating.toLocaleString(undefined, {
-                    maximumFractionDigits: 1,
-                  }),
-                  max: String(PUBLIC_RATING_MAX),
-                })}
-              </Typography.Text>
-            </Flex>
+            <Typography.Text data-testid="public-profile-seller-type">
+              {sellerType}
+            </Typography.Text>
           </Flex>
         )}
 

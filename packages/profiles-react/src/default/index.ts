@@ -45,5 +45,10 @@ export { ConnectionList, CONNECTION_ROW_MIN_WIDTH } from "./ConnectionList.js";
 export type { ConnectionListProps } from "./ConnectionList.js";
 export { ConnectionsPage, CONNECTIONS_MAX_WIDTH } from "./ConnectionsPage.js";
 export type { ConnectionsPageProps } from "./ConnectionsPage.js";
-export { PublicProfilePage, PUBLIC_PROFILE_MAX_WIDTH } from "./PublicProfilePage.js";
+export {
+  PublicProfilePage,
+  PUBLIC_PROFILE_MAX_WIDTH,
+  sellerTypeLabel,
+  sellerTypeLabelKey,
+} from "./PublicProfilePage.js";
 export type { PublicProfilePageProps } from "./PublicProfilePage.js";

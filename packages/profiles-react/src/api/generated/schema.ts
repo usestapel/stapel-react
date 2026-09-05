@@ -618,6 +618,15 @@ export interface components {
             readonly following_count: number;
             /** @description Get relationship status with current user. */
             readonly relationship_status: string | null;
+            /**
+             * @description The self-declared trading capacity, or `None` when unset.
+             *
+             *     `None` covers both "this deployment's profile model carries no
+             *     `seller_type` field at all" and "it carries one and nobody filled it
+             *     in" — a caller cannot tell the two apart from this response, which is
+             *     correct: neither means anything the caller should act on.
+             */
+            readonly seller_type: string | null;
         };
         /** @description Public profile for viewing other users. */
         ProfilePublicResponse: {
@@ -665,16 +674,15 @@ export interface components {
              */
             following_count: number;
             /**
-             * Format: double
-             * @description User rating
-             * @example 4.5
-             */
-            rating: number;
-            /**
              * @description Relationship to current user
              * @example following
              */
             relationship_status: string | null;
+            /**
+             * @description Self-declared trading capacity ("private"/"business"), or null when this deployment's profile carries no such field or the person never declared one
+             * @example business
+             */
+            seller_type: string | null;
         };
         /**
          * @description Full user profile (for /me endpoint).
@@ -782,12 +790,6 @@ export interface components {
              * @example 15
              */
             following_count: number;
-            /**
-             * Format: double
-             * @description User rating
-             * @example 4.8
-             */
-            rating: number;
             /**
              * @description ISO 8601 creation time
              * @example 2025-01-15T12:00:00Z

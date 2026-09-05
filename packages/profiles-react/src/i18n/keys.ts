@@ -88,7 +88,11 @@ export const PROFILES_I18N_KEYS = {
    * DESIGN, not a 404 to report. */
   publicUnwritten: "profiles.public.unwritten",
   publicLocation: "profiles.public.location",
-  publicRating: "profiles.public.rating",
+  /**
+   * The heading over the trading capacity — the answer to "am I buying from a
+   * person or from a shop", which is a different question from who they are.
+   */
+  publicSellerType: "profiles.public.seller_type",
   /**
    * The following count in the THIRD person. `countFollowing` is the caller's
    * own-list copy ("31 people you follow") and it was being rendered on other
@@ -97,9 +101,18 @@ export const PROFILES_I18N_KEYS = {
    * the page is about.
    */
   publicCountFollowing: "profiles.public.count.following",
-  /** A rating with its scale — `{value}` out of `{max}`. A bare "4.8" is a
-   * number, not a rating. */
-  publicRatingValue: "profiles.public.rating_value",
+  /**
+   * The two shipped values of `seller_type`, as words.
+   *
+   * The wire value is the SELF-DECLARED capacity (`private` / `business`) and
+   * it is not a caption: "business" over a seller card in a Russian storefront
+   * is an English word for a Russian shop. `sellerTypeLabelKey` maps the value
+   * to one of these; a deployment that registers a third value gets no key and
+   * the raw value stays on screen, which is the honest bottom of every label
+   * ladder in this fleet.
+   */
+  sellerTypePrivate: "profiles.seller_type.private",
+  sellerTypeBusiness: "profiles.seller_type.business",
   // Profile settings (default skin — ProfileSettings)
   settingsTitle: "profiles.settings.title",
   settingsSubtitle: "profiles.settings.subtitle",
@@ -226,10 +239,11 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.connections.kind_label": "Which list to show",
   "profiles.public.unwritten": "This person has not set up their profile yet.",
   "profiles.public.location": "Location",
-  "profiles.public.rating": "Rating",
+  "profiles.public.seller_type": "Seller",
   "profiles.public.count.following.one": "Follows {count} person",
   "profiles.public.count.following.other": "Follows {count} people",
-  "profiles.public.rating_value": "{value} out of {max}",
+  "profiles.seller_type.private": "Private individual",
+  "profiles.seller_type.business": "Company",
   "profiles.settings.title": "Profile",
   "profiles.settings.subtitle": "Your name, avatar, and general preferences.",
   "profiles.settings.avatar.change": "Change avatar",
