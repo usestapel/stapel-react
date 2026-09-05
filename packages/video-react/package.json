@@ -1,6 +1,6 @@
 {
   "name": "@stapel/video-react",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Headless React pair for stapel-video's scope usage read: who in one partition talked how much, per calendar month. `useScopeUsage` runs the window read that feeds the month selector and the single-month read that feeds the rows, both over `GET /video/api/v1/scopes/{scope_key}/usage/`. The wire carries user IDs and never names, so the display resolves them through a host-supplied `nameFor` and falls back to the id rather than to a blank cell. The 404 that means \"you may not read this scope\", \"this scope does not exist\" and \"this scope has no calls\" all at once is rendered as an explained refusal, never as an empty table. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd skin and the workspace-admin screen its nav entry mounts.",
   "license": "MIT",
   "repository": {

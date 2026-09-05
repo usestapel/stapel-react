@@ -1,5 +1,19 @@
 # @stapel/chat-react
 
+## 0.10.0
+
+### Minor Changes
+
+- A call button that places no call.
+
+  `<StartCall>` (headless) and `<StartCallButton>` (skin) answer the question chat owns — may these two people talk, about this thing, right now — and call back. The host wires `onCall` to `@stapel/video-react`'s `useCalls().place(…)`; neither package depends on the other, so a host that shows conversations and never calls carries no WebRTC stack.
+
+  Every blocked arm is a refusal the server would otherwise deliver AFTER the press, which is the one moment a refusal is useless: no counterpart, calling yourself, a visitor with no identity, no conversation to hang the call off (the server's authorizer requires one — a user id is not a phone number), and one the caller cannot see from this screen at all: **you are already on a call**, which is happening over some other page, and which a greyed button with no sentence would read as a bug.
+
+  One arm differs from `<StartDirectChat>` deliberately: `anonymous` has no elevation path. Minting an account so somebody's typed message can be delivered is a trade they understand; minting one so a stranger's phone can ring is not, and it is not a bargain this component makes on a host's behalf.
+
+  `<ConversationThreadPanel>` gains **`renderHeaderActions`** — a slot, not a built-in call button, because a deployment without stapel-video installed must not grow a control that 404s. It is given the counterparty's id in a direct thread and `null` in a group, since a call is between two people.
+
 ## 0.9.3
 
 ### Patch Changes

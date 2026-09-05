@@ -1,5 +1,27 @@
 # @stapel/video-react
 
+## 0.3.0
+
+### Minor Changes
+
+- 1:1 calls: the ring, mounted once, for the whole app.
+
+  Generated against stapel-video **0.11.0** — seven paths under `/video/api/v1/calls` and six `video_call_*` codes, whose ru/es texts this pair authors because the module ships no `translations/` of its own.
+
+  **`<CallsProvider>` goes at the app root, not in a thread.** A call arrives while the person is doing something else; that is the only case there is. `<LiveCallsProvider>` (from `/default`) is the same provider with the realtime subscription attached, `<IncomingCallOverlay>` draws the ring over whatever page is underneath — full frame on a phone, a card on a desktop — and `useCalls()` / `useIncomingCall()` are there for a host that draws its own.
+
+  **Three numbers come from the server and are never recomputed here.** `duration_seconds` (subtracting two ISO strings in a browser disagrees with the thread's own call line the moment a clock is off), `expires_at` (the countdown runs against the server's deadline, not against a fresh 45 seconds started when the frame arrived), and the call row itself (an `incoming` frame carries six fields against the row's thirteen, so a frame triggers a re-read rather than a synthesised state).
+
+  **`GET /calls/active` on mount and on every realtime reconnect.** The ring stream is best-effort by contract, so a lost `call.incoming` is a call that never rang and a lost `call.ended` a ring that never stops. The re-read is what makes both a two-second wrongness instead of a permanent one.
+
+  **Cross-tab arbitration.** Every tab shows the overlay; exactly one makes a sound, and accepting or declining anywhere dismisses the rest — `BroadcastChannel`, with a `storage` fallback, and a browser that has neither rings in every tab, stated rather than guarded against.
+
+  **`<CallPanel>`** is the 1:1 `renderMedia` for `<CallStage>`: one remote filling the frame, one corner picture, mute / camera / camera-flip-by-device-cycling / hang up, a timer anchored on the server's `answered_at`, a connection pill whose reconnect RE-MINTS the grant (`POST /calls/{id}/token`), and an audio-only arm that is a state rather than an empty rectangle. No chat, no screen share, no participant list — and the server denies `can_publish_data` in the grant, so the absence of a data channel is enforced rather than agreed.
+
+  **Three phone hooks ported from the meettoday client**, each a fix for an observed failure: `useMediaSession` (livekit-client registers a `freeze` listener unconditionally, so an Android screen-lock DISCONNECTS the call), `useWakeLock` (playing remote media does not keep a screen on, and a sleeping screen drops the audio), `useAudioKeepAlive` (preventing `freeze` still leaves background timer throttling to starve ICE). Porting them surfaced one bug worth naming: `play()` does not return a promise on the older engines the wake-lock fallback exists for, so `.catch` threw on exactly the platforms it was written to support.
+
+  Size budgets raised deliberately — index 10 → 13 KB, default 14 → 20 KB — for a second lifecycle, with the argument recorded in `package.json`. The main entry still carries no antd and no socket.
+
 ## 0.2.1
 
 ### Patch Changes
