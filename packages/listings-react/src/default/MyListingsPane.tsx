@@ -63,6 +63,7 @@ import { useListingActions } from "../headless/ListingActions.js";
 import { myListingTitle, neverSubmitted } from "../model/mine.js";
 import { listingStatusView } from "../model/status.js";
 import type { MyListingsTab } from "../model/status.js";
+import type { MyListingsAddress } from "../model/tabAddress.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { SignInLink } from "./SignInLink.js";
@@ -359,6 +360,17 @@ export interface MyListingsPaneProps extends ThemeModeProp, SignInCtaProp {
    * `GET my/listings/`, which is what a storefront wants. */
   readonly source?: MyListingsSource;
   /**
+   * Which tab to open when the ADDRESS names none — `?tab=drafts` wins over
+   * it. See `model/tabAddress.ts`.
+   */
+  readonly initialTab?: MyListingsTab;
+  /**
+   * Where the open tab is kept. Default: the browser's own `?tab=`, so
+   * `/account/listings?tab=drafts` opens drafts and a reload keeps it. A host
+   * with a router passes its own binding; `NO_ADDRESS` opts out.
+   */
+  readonly address?: MyListingsAddress;
+  /**
    * Open the composer on one of these listings. ABSENT IS A REAL ANSWER: the
    * Edit button then states that this app has no editing screen instead of
    * offering a click that does nothing.
@@ -392,9 +404,11 @@ export interface MyListingsPaneProps extends ThemeModeProp, SignInCtaProp {
 export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
   const t = useT();
   const tPlural = useTPlural();
-  const bag = useMyListings(
-    props.source !== undefined ? { source: props.source } : {}
-  );
+  const bag = useMyListings({
+    ...(props.source !== undefined ? { source: props.source } : {}),
+    ...(props.initialTab !== undefined ? { initialTab: props.initialTab } : {}),
+    ...(props.address !== undefined ? { address: props.address } : {}),
+  });
   // ONE confirmation for the whole list, keyed by the row that asked — not one
   // mounted dialog per row.
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -483,7 +497,7 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
             label: (
               <>
                 {t(TAB_LABEL[tab])}
-                {matchLoad(bag.counters, {
+                {matchLoad(bag.tabCounts, {
                   loading: () => null,
                   // A count we could not fetch is not zero. The number is
                   // simply absent and the failure is stated once, below.
@@ -492,12 +506,16 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
                   // danger token and "Active 2" is not a warning. It also
                   // keeps the tab short enough that three of them fit on a
                   // phone instead of collapsing into an overflow menu.
-                  ready: (counters) => (
+                  //
+                  // `tabCounts`, not `counters`: the badge is never allowed to
+                  // read lower than the rows underneath it (D407 — a
+                  // moderator-rejected listing sat in Drafts under a `0`).
+                  ready: (counts) => (
                     <Typography.Text
                       type="secondary"
                       data-testid={`listings-mine-count-${tab}`}
                     >
-                      {` ${String(counters[tab])}`}
+                      {` ${String(counts[tab])}`}
                     </Typography.Text>
                   ),
                 })}

@@ -133,6 +133,14 @@ export {
 export { defaultMyListingsSource } from "./model/mineSource.js";
 export type { MyListingsSource } from "./model/mineSource.js";
 export {
+  MY_LISTINGS_TAB_PARAM,
+  NO_ADDRESS,
+  browserAddress,
+  searchWithTab,
+  tabFromSearch,
+} from "./model/tabAddress.js";
+export type { MyListingsAddress } from "./model/tabAddress.js";
+export {
   myListingImages,
   myListingPrice,
   myListingTitle,

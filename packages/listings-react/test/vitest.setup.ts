@@ -18,6 +18,15 @@ configure({ asyncUtilTimeout: 10_000 });
 // after a suite whose tests all passed (profiles-react, 2026-08-13).
 afterEach(() => {
   cleanup();
+  // The seller dashboard writes its open tab into the address
+  // (`model/tabAddress.ts`), and jsdom's URL is shared by every test in a
+  // file: without this, one test switching to Drafts decides which tab the
+  // NEXT test's pane opens on. The reset belongs here rather than in that one
+  // suite — any component that binds state to the address has the same
+  // property.
+  if (typeof window !== "undefined" && typeof window.history !== "undefined") {
+    window.history.replaceState(null, "", "/");
+  }
 });
 
 // jsdom ships neither `matchMedia` nor `ResizeObserver`; Ant Design (the §54

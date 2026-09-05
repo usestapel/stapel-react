@@ -721,3 +721,205 @@ describe("what an owner's row says, when half its fields are still a draft", () 
     expect(myListingImages(myCard({ images: null, images_draft: null }))).toEqual([]);
   });
 });
+
+/**
+ * D407, and the address the dashboard never had.
+ *
+ * **The tab lives in the URL.** `/account/listings?tab=drafts` opened Active,
+ * a reload threw the tab away, and there was no address that meant "my
+ * drafts". Which of three lists a person is looking at is exactly the kind of
+ * state a URL is for.
+ *
+ * **A badge never reads lower than the rows under it.** The tab groupings
+ * exist in two places — `my/counters` aggregates them server-side and
+ * `MY_LISTINGS_TAB_STATUSES` decides which statuses a tab ASKS for — and any
+ * disagreement lands as a badge contradicting the list. A moderator-rejected
+ * listing sat in Drafts under a `0`.
+ */
+describe("the open tab is in the address", () => {
+  function withSearch(search: string): void {
+    window.history.replaceState(null, "", `/account/listings${search}`);
+  }
+
+  it("opens the tab the address names", async () => {
+    withSearch("?tab=drafts");
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-mine-row").length).toBeGreaterThan(0);
+    });
+    const asked = srv
+      .matching("/listings/my/listings/")
+      .map((call) => new URL(call.url).searchParams.get("status"));
+    // The DRAFTS grouping, not the default Active one.
+    expect(asked).toContain("draft,rejected");
+  });
+
+  it("lets `initialTab` decide only when the address says nothing", async () => {
+    withSearch("");
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab="archived" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        srv.matching("/listings/my/listings/").length
+      ).toBeGreaterThan(0);
+    });
+    const asked = srv
+      .matching("/listings/my/listings/")
+      .map((call) => new URL(call.url).searchParams.get("status"));
+    expect(asked).toContain("archived,paused,expired,sold");
+  });
+
+  it("an ADDRESS outranks the host's default — it is the person's own statement", async () => {
+    withSearch("?tab=drafts");
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab="archived" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        srv.matching("/listings/my/listings/").length
+      ).toBeGreaterThan(0);
+    });
+    const asked = srv
+      .matching("/listings/my/listings/")
+      .map((call) => new URL(call.url).searchParams.get("status"));
+    expect(asked).toContain("draft,rejected");
+    expect(asked).not.toContain("archived,paused,expired,sold");
+  });
+
+  it("writes the tab back, keeping every other parameter and not pushing history", async () => {
+    withSearch("?from=email&tab=active");
+    const before = window.history.length;
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-tabs")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByText(/Drafts/i));
+    await waitFor(() => {
+      expect(window.location.search).toContain("tab=drafts");
+    });
+    // The dashboard is one component on somebody's page; the rest of the
+    // address is not its to drop.
+    expect(window.location.search).toContain("from=email");
+    // A tab is a READ. A push per tab makes Back walk the dashboard's own
+    // tabs before it leaves the page at all.
+    expect(window.history.length).toBe(before);
+  });
+
+  it("ignores a `tab=` value this build has no tab for", async () => {
+    withSearch("?tab=sold-last-year");
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        srv.matching("/listings/my/listings/").length
+      ).toBeGreaterThan(0);
+    });
+    // A hand-written link, or a `?tab=` some other component owns: it falls
+    // back rather than opening an empty list or throwing.
+    const asked = srv
+      .matching("/listings/my/listings/")
+      .map((call) => new URL(call.url).searchParams.get("status"));
+    expect(asked).toContain("published,pending");
+  });
+});
+
+describe("a tab's badge never reads lower than its rows (D407)", () => {
+  it("counts a moderator-rejected listing in the tab that shows it", async () => {
+    window.history.replaceState(null, "", "/account/listings?tab=drafts");
+    const rejected = myCard({
+      id: 907,
+      status: "rejected",
+      moderation_status: "rejected",
+      available_transitions: ["draft"],
+    });
+    const srv = mockServer({
+      // The server's own grouping disagrees with the rows: an older counter,
+      // a status added upstream, a grouping changed on one side. Whatever the
+      // cause, the badge must not contradict the list.
+      "/listings/my/counters/": { body: { active: 2, archived: 1, drafts: 0 } },
+      "/listings/my/listings/": myListingsHandler(myPage([rejected])),
+    });
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-mine-row")).toHaveLength(1);
+    });
+    // The row is on screen. `0` beside it is not a count, it is a
+    // contradiction.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("listings-mine-count-drafts").textContent?.trim()
+      ).toBe("1");
+    });
+  });
+
+  it("keeps the SERVER's number when it is the larger one — the rows are one page", async () => {
+    window.history.replaceState(null, "", "/account/listings?tab=drafts");
+    const srv = mockServer({
+      "/listings/my/counters/": { body: { active: 2, archived: 1, drafts: 40 } },
+      "/listings/my/listings/": myListingsHandler(
+        myPage([myCard({ id: 1, status: "draft" })])
+      ),
+    });
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-mine-row")).toHaveLength(1);
+    });
+    // The visible rows are a floor, not a replacement: one keyset page of a
+    // set of forty.
+    expect(
+      screen.getByTestId("listings-mine-count-drafts").textContent?.trim()
+    ).toBe("40");
+  });
+
+  it("leaves the tabs a person is NOT looking at to the server", async () => {
+    window.history.replaceState(null, "", "/account/listings?tab=drafts");
+    const srv = mockServer({
+      "/listings/my/counters/": { body: { active: 0, archived: 1, drafts: 0 } },
+      "/listings/my/listings/": myListingsHandler(
+        myPage([myCard({ id: 1, status: "draft" })])
+      ),
+    });
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-mine-row")).toHaveLength(1);
+    });
+    // Rows for the OPEN tab are evidence about that tab and about no other:
+    // raising Active to 1 here would be inventing a number.
+    expect(
+      screen.getByTestId("listings-mine-count-active").textContent?.trim()
+    ).toBe("0");
+  });
+});
