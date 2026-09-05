@@ -78,6 +78,34 @@ export interface SkinNumberFieldProps {
    * contract, not an accident of forwarding. */
   readonly ariaRequired?: boolean;
   readonly id?: string;
+  /**
+   * The lower end of what is allowed, STATED on the element.
+   *
+   * The control is a text input with a keypad, never `type="number"`, so the
+   * browser enforces nothing here: `min`/`max` are the machine-readable half
+   * of the sentence the caller already prints, exactly as this file's rule
+   * requires — a bound is a hint, never a clamp. They exist because a bound
+   * that lives only in prose is a bound nothing can read: a walker measuring
+   * the field, an autofill heuristic, and assistive tech all ask the element.
+   * A deployed year field answered `min: null, max: null, list: null` while
+   * the page beside it printed the range in words (walker D392).
+   */
+  readonly min?: number;
+  /** The upper end of what is allowed — see {@link SkinNumberFieldProps.min}. */
+  readonly max?: number;
+  /**
+   * The shape of an acceptable entry, for the browsers that use it to pick a
+   * keypad and for anything reading the element. Native constraint validation
+   * DOES honour this on a text input, so a caller passes only a pattern its
+   * own values satisfy — never a stricter one it hopes to enforce with.
+   */
+  readonly pattern?: string;
+  /**
+   * The id of a `<datalist>` the CALLER renders, holding the values it knows
+   * are allowed. The caller owns the element because it owns the set (and its
+   * loading); this component owns only the wire from the input to it.
+   */
+  readonly list?: string;
   readonly onBlur?: () => void;
   readonly style?: CSSProperties;
   readonly className?: string;
@@ -160,6 +188,13 @@ export function SkinNumberField(props: SkinNumberFieldProps): ReactElement {
         {...(describedBy !== undefined ? { "aria-describedby": describedBy } : {})}
         {...(props.status !== undefined && props.status !== "" ? { status: props.status } : {})}
         {...(props.hintPlaceholder !== undefined ? { placeholder: props.hintPlaceholder } : {})}
+        /* `min`/`max`/`pattern`/`list` are STATED, not enforced: the element is
+           `type="text"`, so they are read by tooling, autofill and assistive
+           tech, and clamp nothing (see the props' docs). */
+        {...(props.min !== undefined ? { min: props.min } : {})}
+        {...(props.max !== undefined ? { max: props.max } : {})}
+        {...(props.pattern !== undefined ? { pattern: props.pattern } : {})}
+        {...(props.list !== undefined ? { list: props.list } : {})}
         {...(props.unit !== undefined ? { suffix: props.unit } : {})}
         {...(props.onBlur !== undefined ? { onBlur: props.onBlur } : {})}
         onChange={(event) => {

@@ -43,6 +43,51 @@ describe("parseNumericText", () => {
 });
 
 describe("SkinNumberField", () => {
+  /**
+   * D392 — a bound that lives only in prose is a bound nothing can read. The
+   * element states it; the element still enforces none of it, because the box
+   * is `type="text"` and this file's whole rule is that a bound is a hint.
+   */
+  it("states min/max/pattern and the datalist wire on the element", () => {
+    // An input carrying `list` is a combobox, not a textbox, so this one is
+    // reached by label rather than by the file's `field()` helper.
+    const field = (): HTMLInputElement =>
+      screen.getByLabelText("Year") as HTMLInputElement;
+    render(
+      <Host>
+        <SkinNumberField
+          integer
+          min={2008}
+          max={2012}
+          pattern="[0-9]*"
+          list="years"
+          onValueChange={() => undefined}
+          ariaLabel="Year"
+        />
+        <datalist id="years">
+          <option value="2008" />
+        </datalist>
+      </Host>
+    );
+    expect(field().getAttribute("min")).toBe("2008");
+    expect(field().getAttribute("max")).toBe("2012");
+    expect(field().getAttribute("pattern")).toBe("[0-9]*");
+    expect(field().getAttribute("list")).toBe("years");
+    // Still a text box with a keypad, so the browser clamps nothing.
+    expect(field().getAttribute("type")).not.toBe("number");
+  });
+
+  it("says nothing about a bound it was not given", () => {
+    render(
+      <Host>
+        <SkinNumberField integer onValueChange={() => undefined} ariaLabel="Year" />
+      </Host>
+    );
+    for (const name of ["min", "max", "pattern", "list"]) {
+      expect(field().hasAttribute(name), name).toBe(false);
+    }
+  });
+
   it("asks for the numeric keypad on an integer field and the decimal one otherwise", () => {
     const { rerender } = render(
       <Host>
