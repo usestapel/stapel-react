@@ -236,6 +236,24 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
   const controllers = useRef(new Map<string, AbortController>());
   const started = useRef(new Set<string>());
 
+  /**
+   * Is this control still on the screen?
+   *
+   * An upload settles on a microtask, and the settlement writes the outcome
+   * into state. If the control went away first, that write lands on a tree
+   * React has already taken down — a `ReferenceError: window is not defined`
+   * out of `resolveUpdatePriority` under jsdom, and a pointless update to
+   * nothing in a browser.
+   *
+   * The unmount cleanup below is what makes this reachable rather than rare:
+   * it ABORTS everything in flight, an abort rejects the upload's promise, and
+   * that rejection's handler is the code that patches `phase: "canceled"` in.
+   * The tidy-up was causing the write it exists to prevent, and a person
+   * navigating off mid-upload hit it every time. `patch` is the one door all
+   * of those writes go through, so the check belongs there.
+   */
+  const alive = useRef(true);
+
   // The latest callback, read from inside the runner without making the runner
   // depend on the caller's render identity.
   const onRefsChangeRef = useRef(onRefsChange);
@@ -243,6 +261,7 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
 
   const patch = useCallback(
     (id: string, next: Partial<UploadItem>): void => {
+      if (!alive.current) return;
       setItems((current) => {
         let changed = false;
         const updated = current.map((item) => {
@@ -339,7 +358,15 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
   // component that can no longer report what happened to them.
   useEffect(() => {
     const inFlight = controllers.current;
+    // Re-mounting (StrictMode, or a control that comes back) opens the door
+    // again — the cleanup below is not the end of this hook's life, only of
+    // this pass of it.
+    alive.current = true;
     return () => {
+      // Shut the door BEFORE aborting: each abort rejects an upload, and every
+      // one of those rejections lands in a handler that would otherwise patch
+      // state into a tree that is going away.
+      alive.current = false;
       for (const controller of inFlight.values()) controller.abort();
       inFlight.clear();
     };

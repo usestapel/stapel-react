@@ -396,4 +396,50 @@ describe("leaving the page", () => {
     expect(abort).toHaveBeenCalled();
     abort.mockRestore();
   });
+
+  /**
+   * THE TIDY-UP WAS CAUSING THE WRITE IT EXISTS TO PREVENT.
+   *
+   * The cleanup above aborts everything in flight; an abort REJECTS the
+   * upload's promise; and that rejection's handler is the code that patches
+   * `phase: "canceled"` in. So the unmount reliably scheduled a state write
+   * onto a tree React had already taken down — one microtask later, which is
+   * after this hook has no business writing anything.
+   *
+   * In a browser that write is a pointless update to nothing. In CI it landed
+   * a run after the test environment was torn down and came back as
+   * `ReferenceError: window is not defined` out of React's
+   * `resolveUpdatePriority` — a whole release blocked by a queue that could
+   * not tell it had been unmounted (run 33970729266, cdn-react, all 15 files
+   * green and the run failed anyway).
+   *
+   * What is asserted here is the sequence, not the symptom: the settlement is
+   * allowed to happen AFTER the unmount, which is the ordering that broke, and
+   * the file's own unhandled-rejection gate is what fails if the write comes
+   * back.
+   */
+  it("lets an aborted upload settle after unmount without writing state", async () => {
+    const server = storingServer();
+    const { result, unmount } = renderHook(() => useUploadQueue({ max: 10 }), {
+      wrapper: wrapperFor(server),
+    });
+
+    act(() => {
+      result.current.add([imageFile("a.jpg")]);
+    });
+    // Mid-flight — the upload has begun and has not finished.
+    await waitFor(() => {
+      expect(result.current.items[0]?.phase).not.toBe("idle");
+    });
+
+    unmount();
+
+    // Hand the microtask queue back so every abort rejection runs its handler
+    // while the tree is gone. Before the `alive` guard this is the moment the
+    // queue patched state into nothing.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  });
 });
