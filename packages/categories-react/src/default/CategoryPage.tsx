@@ -292,6 +292,24 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    */
   readonly heading?: CategoryHeading;
   /**
+   * WHICH HEADING LEVEL the page's title takes. Default `3`, what this page
+   * has always rendered, so no existing host changes shape.
+   *
+   * The level is a fact about the DOCUMENT, not about this page: a page
+   * mounted straight into a router owns the outline and its title is the
+   * `<h1>`; the same page mounted under a shell that already prints the
+   * storefront's `<h1>` must not print a second one, and a page dropped into
+   * a section wants an `<h3>`. Only the composing surface knows which of the
+   * three it is, and until this prop existed a host that knew had no way to
+   * say it — a storefront put its own heading above the page and left two
+   * competing headings in the outline, which is the accessibility twin of the
+   * two-lists defect {@link CategoryPageProps.subcategories} closed.
+   *
+   * Content is unchanged either way — this moves the tag, never the words;
+   * {@link CategoryPageProps.heading} is the slot for those.
+   */
+  readonly headingLevel?: 1 | 2 | 3;
+  /**
    * The category, by id — the address that costs two small requests. Every
    * in-app navigation has it, because it drew the link that got here.
    */
@@ -811,7 +829,7 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
             ) : (
               <Flex vertical gap={spacing[4]}>
                 <Typography.Title
-                  level={3}
+                  level={props.headingLevel ?? 3}
                   style={{ margin: 0 }}
                   data-testid="categories-category-title"
                 >

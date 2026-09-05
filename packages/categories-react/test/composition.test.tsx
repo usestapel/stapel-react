@@ -187,6 +187,59 @@ describe("<CategoryPage>'s heading slot", () => {
   });
 });
 
+describe("<CategoryPage>'s heading LEVEL", () => {
+  // Which level the title takes is a fact about the document the page was
+  // mounted into, and only the composing surface knows it. The words are the
+  // `heading` slot's business; this is the tag.
+  it("is an h3 when the host says nothing — the level the page has always drawn", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage slug="phones" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-category-title")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("categories-category-title").tagName.toLowerCase()
+    ).toBe("h3");
+  });
+
+  it("takes the level the host states, with the same words inside it", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage slug="phones" headingLevel={1} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-category-title")).toBeTruthy();
+    });
+    const title = screen.getByTestId("categories-category-title");
+    expect(title.tagName.toLowerCase()).toBe("h1");
+    expect(title.textContent).toBe("category.phones");
+    // Still exactly ONE heading for the page's own title.
+    expect(screen.getAllByTestId("categories-category-title")).toHaveLength(1);
+  });
+
+  it("carries the host's heading slot at the host's level", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage
+          slug="phones"
+          headingLevel={2}
+          heading={<span data-testid="host-heading">Buy a phone</span>}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("host-heading")).toBeTruthy();
+    });
+    const title = screen.getByTestId("categories-category-title");
+    expect(title.tagName.toLowerCase()).toBe("h2");
+    expect(title.contains(screen.getByTestId("host-heading"))).toBe(true);
+  });
+});
+
 describe("a feature's help text reaches a screen", () => {
   it("is a KEY on the same terms as the name", () => {
     expect(featureCommentLabel(FEATURE_BRAND)).toEqual({

@@ -184,6 +184,39 @@ const LABEL_LINES = 3;
 /** How many tiles the loading arm reserves room for. */
 const SKELETON_TILES = [1, 2, 3, 4] as const;
 
+/**
+ * THE BOX THE TILES ARRIVE INTO — the row's own geometry, filled with
+ * skeletons, and the one place it is written.
+ *
+ * Shared between the carousel arm's `loading` slot and
+ * {@link CategoryTileGridProps.reserve}, because a reserved box that is not
+ * the box the tiles land in is a smaller shift rather than no shift: the
+ * skeletons carry {@link TILE_ASPECT_RATIO} inside the same
+ * {@link listStyle} grid, so the reservation is the same height whichever
+ * side of the seam asked for it.
+ */
+function ReservedTiles(props: {
+  readonly layout: TileLayout;
+  readonly density: TileDensity;
+  readonly minTileWidth: number;
+  readonly size: TileSize;
+}): ReactElement {
+  return (
+    <div
+      style={listStyle(props.layout, props.density, props.minTileWidth, props.size)}
+    >
+      {SKELETON_TILES.map((slot) => (
+        <Skeleton.Button
+          key={slot}
+          active
+          block
+          style={{ aspectRatio: TILE_ASPECT_RATIO, height: "auto" }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** The scroller's own geometry, `gap` threaded through so `size: "compact"`
  * (see {@link COMPACT_SIZE_GAP}) can tighten it without a second copy of the
  * grid rules. */
@@ -748,9 +781,39 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * There is no loading or failed arm for an override, and that is deliberate:
    * the host owns the fetch it drew these rows from, so it owns the two
    * sentences that go with it. Handing this component a `LoadState` would give
-   * one load two owners.
+   * one load two owners — {@link CategoryTileGridProps.reserve} is how the
+   * host lends this one back the ONE thing it cannot own, which is the row's
+   * height before the rows exist.
    */
   readonly entries?: readonly CarouselEntry[];
+  /**
+   * HOLD THE ROW'S BOX WHILE THE HOST'S OWN FETCH IS IN FLIGHT.
+   *
+   * The `entries` override skips this component's loading arm on purpose (the
+   * host owns that read), and the consequence was a hole in the layout: a
+   * category page that has not resolved its children yet renders no tile row
+   * at all, and the row then APPEARS a beat later and pushes everything under
+   * it down the page. The pair already draws exactly the right box — the same
+   * grid, the same aspect ratio, the same skeletons — in its own loading arm;
+   * without this prop the only way to get it was for the host to re-implement
+   * it, and the measured storefront instead reserved a hand-guessed height in
+   * its own stylesheet.
+   *
+   *  - `false` (default) — unchanged: no rows, no box.
+   *  - `true` — reserve while `entries` is `undefined`, i.e. for exactly as
+   *    long as the host has handed nothing over. An empty array is a real
+   *    answer ("this category has no children") and ends the reservation.
+   *  - `"pending"` — the host STATES that its read is in flight, and the box
+   *    is held whatever `entries` currently says. For a host that keeps the
+   *    previous rows in hand across a refetch and would rather hold the box
+   *    than show a stale row.
+   *
+   * The reservation never asks the server anything: like the override arm,
+   * `<CategoryCarousel>` stays unmounted, so a host-driven row costs no
+   * `GET /categories/carousel/` in either state. Past the depth cap it is
+   * nothing at all — there are no tiles to reserve room for.
+   */
+  readonly reserve?: boolean | "pending";
   /**
    * The 0-indexed depth of the category whose children these tiles are — a
    * top-level category is `0`, its child is `1`. Omitted means the catalogue
@@ -1098,6 +1161,12 @@ export function CategoryTileGrid(
       : {}),
   };
   const override = props.entries;
+  // The host's read is in flight — see `reserve`. `"pending"` is the host
+  // saying so; `true` infers it from the one fact this component has, which
+  // is that no rows have been handed over yet.
+  const reserving =
+    props.reserve === "pending" ||
+    (props.reserve === true && override === undefined);
 
   if (!offersTiles) return null;
 
@@ -1107,7 +1176,27 @@ export function CategoryTileGrid(
         aria-label={t(CATEGORIES_I18N_KEYS.carouselTitle)}
         data-testid="categories-tile-grid"
       >
-        {override !== undefined ? (
+        {reserving ? (
+          // The substrate's own loading arm, by hand: this load belongs to the
+          // host, so `LoadList` has no state to route — but the box, the busy
+          // role and the `data-stapel-load-state` stamp are the fleet's, and a
+          // reservation that announced itself differently from every other
+          // pending region would be a second dialect of "wait".
+          <div
+            role="status"
+            aria-busy="true"
+            aria-label={t(STAPEL_UI_KEYS.loading)}
+            data-stapel-load-state="loading"
+            data-testid="categories-tile-grid-reserved"
+          >
+            <ReservedTiles
+              layout={layout}
+              density={density}
+              minTileWidth={minTileWidth}
+              size={size}
+            />
+          </div>
+        ) : override !== undefined ? (
           // The override arm asks the server nothing — see `entries`.
           override.length === 0 ? (
             <EmptyState
@@ -1126,16 +1215,12 @@ export function CategoryTileGrid(
                 testId="categories-tile-grid"
                 onRetry={bag.refetch}
                 loading={
-                  <div style={listStyle(layout, density, minTileWidth, size)}>
-                    {SKELETON_TILES.map((slot) => (
-                      <Skeleton.Button
-                        key={slot}
-                        active
-                        block
-                        style={{ aspectRatio: TILE_ASPECT_RATIO, height: "auto" }}
-                      />
-                    ))}
-                  </div>
+                  <ReservedTiles
+                    layout={layout}
+                    density={density}
+                    minTileWidth={minTileWidth}
+                    size={size}
+                  />
                 }
                 failed={(error) => (
                   <ErrorAlert

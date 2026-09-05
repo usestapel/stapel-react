@@ -820,3 +820,100 @@ describe("tile overflow — «Все категории» past maxVisible (owner
     );
   });
 });
+
+describe("reserve — the box a HOST-owned fetch will land in", () => {
+  /**
+   * The `entries` override skips this component's own loading arm on purpose
+   * (the host owns that read), and the hole it leaves is a layout shift: the
+   * row appears a beat later and pushes everything under it. The storefront
+   * held a hand-guessed height in its own stylesheet instead; `reserve` hands
+   * back the box the pair already draws.
+   */
+  it("holds the loading arm's own box while the host has handed nothing over", () => {
+    const server = mockServer(OK);
+    render(
+      <TestProviders server={server}>
+        <CategoryTileGrid reserve allTile={false} />
+      </TestProviders>
+    );
+    const reserved = screen.getByTestId("categories-tile-grid-reserved");
+    // The same busy region every other pending surface in the fleet renders.
+    expect(reserved.getAttribute("role")).toBe("status");
+    expect(reserved.getAttribute("aria-busy")).toBe("true");
+    expect(reserved.getAttribute("data-stapel-load-state")).toBe("loading");
+    // The box is the ROW's geometry with the row's own tile ratio in it —
+    // not an approximation of it.
+    const box = reserved.firstElementChild as HTMLElement | null;
+    expect(box?.style.display).toBe("grid");
+    expect(
+      [...reserved.querySelectorAll<HTMLElement>("[style]")].filter(
+        (node) => node.style.aspectRatio === "4 / 3"
+      ).length
+    ).toBe(4);
+    // And it costs the server nothing: the carousel is not mounted.
+    expect(server.calls).toHaveLength(0);
+    expect(screen.queryByTestId("categories-tile-grid-list")).toBeNull();
+  });
+
+  it("gives the box up the moment rows arrive", async () => {
+    const server = mockServer(OK);
+    const { rerender } = render(
+      <TestProviders server={server}>
+        <CategoryTileGrid reserve allTile={false} />
+      </TestProviders>
+    );
+    expect(screen.getByTestId("categories-tile-grid-reserved")).toBeTruthy();
+    rerender(
+      <TestProviders server={server}>
+        <CategoryTileGrid reserve entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("categories-tile-grid-reserved")).toBeNull();
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it("treats an EMPTY array as a real answer, not as a load still in flight", () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid reserve entries={[]} allTile={false} />
+      </TestProviders>
+    );
+    expect(screen.queryByTestId("categories-tile-grid-reserved")).toBeNull();
+    expect(screen.getByTestId("categories-tile-grid-empty")).toBeTruthy();
+  });
+
+  it('"pending" holds the box over rows the host still has in hand', () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid reserve="pending" entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    expect(screen.getByTestId("categories-tile-grid-reserved")).toBeTruthy();
+    expect(screen.queryByTestId("categories-tile-grid-list")).toBeNull();
+  });
+
+  it("reserves NOTHING past the depth cap, where there are no tiles to expect", () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid reserve categoryDepth={5} />
+      </TestProviders>
+    );
+    expect(screen.queryByTestId("categories-tile-grid")).toBeNull();
+    expect(screen.queryByTestId("categories-tile-grid-reserved")).toBeNull();
+  });
+
+  it("changes nothing for a host that does not ask for it", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("categories-tile-grid-reserved")).toBeNull();
+  });
+});
