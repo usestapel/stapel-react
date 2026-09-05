@@ -12,7 +12,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ListingCard } from "../src/default/index.js";
 import {
   SWIPE_MIN_PX,
@@ -241,5 +241,122 @@ describe("what the gestures do not cost", () => {
     // what keeps arrow keys, the reading order and the dots working.
     expect(strip?.getAttribute("tabindex")).toBe("0");
     expect(strip?.children).toHaveLength(PHOTOS.length);
+  });
+});
+
+describe("a finger's own scroll is the source of truth (probe p23)", () => {
+  /**
+   * MEASURED ON THE STAND, with a real touch sequence: the strip received the
+   * swipe and scrolled to 335.5px — and 284ms later the same code scrolled it
+   * back to 0. Wheel and scripted scrolls ended at 307; every touch drag and
+   * fling ended at 0, so a phone could not reach the second photograph of any
+   * card.
+   *
+   * The cause was two disagreeing answers to "which photograph is on screen".
+   * A native scroll moves the strip without telling this hook, so `active`
+   * stayed 0 while the browser was showing 1 — and the hook's effect, on the
+   * next render, imposed its stale answer by scrolling back. The strip's own
+   * position is now what `active` follows for a native scroll, and the effect
+   * only ever honours a move this hook ASKED for.
+   */
+  function strip(): HTMLElement {
+    const found = screen
+      .getByTestId("listings-card-photos")
+      .querySelector<HTMLElement>("[data-stapel-carousel-strip]");
+    if (found === null) throw new Error("no strip");
+    return found;
+  }
+
+  /** jsdom gives every rectangle zero width, and `nearestSlideIndex` reads
+   * rectangles — so the strip is placed at the origin and each slide at its
+   * own offset, with `index` sitting exactly on the strip's leading edge. */
+  function scrolledTo(index: number): ReturnType<typeof vi.fn> {
+    const element = strip();
+    const at = (left: number): DOMRect =>
+      ({
+        left,
+        top: 0,
+        right: left + 335.5,
+        bottom: 300,
+        width: 335.5,
+        height: 300,
+        x: left,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue(at(0));
+    [...element.children].forEach((slide, i) => {
+      vi.spyOn(slide, "getBoundingClientRect").mockReturnValue(at((i - index) * 335.5));
+    });
+    const scrollTo = vi.fn();
+    (element as unknown as { scrollTo: unknown }).scrollTo = scrollTo;
+    return scrollTo;
+  }
+
+  /** One animation frame — the carousel measures its position on a frame, not
+   * on every scroll event. */
+  async function frame(): Promise<void> {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 32));
+    });
+  }
+
+  it("follows the strip after a native scroll, and does not scroll it back", async () => {
+    pointerEnvironment(false);
+    render(providers(<ListingCard listing={MANY} href="/l/7" />));
+    const box = galleryBox();
+    const scrollTo = scrolledTo(2);
+
+    await act(async () => {
+      fireEvent.scroll(strip());
+    });
+    await frame();
+
+    // The browser's answer won, and nothing was scrolled anywhere.
+    expect(active(box)).toBe("2");
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    // …and the re-render that follows a finger lifting — the 284ms — leaves
+    // it alone too. `pointerleave` fires for a touch pointer the moment it is
+    // released, and the rewind it used to run is a HOVER rule.
+    fireEvent.pointerUp(box, { pointerType: "touch" });
+    fireEvent.pointerLeave(box, { pointerType: "touch" });
+    await frame();
+    expect(active(box)).toBe("2");
+    expect(scrollTo).not.toHaveBeenCalledWith(
+      expect.objectContaining({ left: 0 })
+    );
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("still drives the strip for the pair's OWN controls", async () => {
+    // The guard must not turn the gallery off: a hover scrub is this hook
+    // asking, and it still scrolls.
+    pointerEnvironment(true);
+    render(providers(<ListingCard listing={MANY} href="/l/7" />));
+    const box = galleryBox();
+    const scrollTo = scrolledTo(0);
+    await act(async () => {
+      fireEvent.pointerMove(box, { clientX: 250, clientY: 10, pointerType: "mouse" });
+    });
+    expect(active(box)).toBe("2");
+    expect(scrollTo).toHaveBeenCalled();
+  });
+
+  it("rewinds after a CURSOR leaves, which is what the rewind is for", async () => {
+    pointerEnvironment(true);
+    render(providers(<ListingCard listing={MANY} href="/l/7" />));
+    const box = galleryBox();
+    scrolledTo(0);
+    await act(async () => {
+      fireEvent.pointerMove(box, { clientX: 250, clientY: 10, pointerType: "mouse" });
+    });
+    expect(active(box)).toBe("2");
+    await act(async () => {
+      fireEvent.pointerLeave(box, { pointerType: "mouse" });
+    });
+    // A grid of forty tiles must be the same forty tiles after a cursor
+    // crosses them.
+    expect(active(box)).toBe("0");
   });
 });

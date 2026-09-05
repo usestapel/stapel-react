@@ -284,6 +284,12 @@ export function ListingPhotoStrip(props: {
         aspectRatio={LISTING_PHOTO_ASPECT}
         peek={many}
         dots={many}
+        // WHERE THE STRIP ACTUALLY IS, back into the gallery. A finger scrolls
+        // this element natively; without this the hook's `active` was stale
+        // the moment a swipe settled, and its effect scrolled the strip back
+        // to the stale one. See `cardGallery.ts` — the carousel already
+        // measures this for its dots, so it costs no second listener.
+        onSlideChange={gallery.onSlideChange}
         data-testid={props.testId}
       >
         {images.length === 0

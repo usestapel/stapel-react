@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
   "package": "@stapel/listings-react",
-  "version": "0.25.6",
+  "version": "0.25.7",
   "defined": [],
   "flows": []
 }

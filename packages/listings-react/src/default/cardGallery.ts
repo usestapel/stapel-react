@@ -154,6 +154,19 @@ export interface CardGallery {
   readonly ref: RefObject<HTMLDivElement | null>;
   /** The photograph currently on screen. */
   readonly active: number;
+  /**
+   * THE STRIP SAYS WHERE IT IS — wire to `<SkinCarousel onSlideChange>`.
+   *
+   * A native touch scroll (a drag, a fling, a snap settling) moves the strip
+   * without this hook being told, and until it was told there were two
+   * disagreeing answers to "which photograph is on screen": the browser's,
+   * which was true, and `active`, which was stale. The stale one won, through
+   * the effect below, by scrolling the strip back — measured on the stand
+   * (probe p23): a swipe scrolled to 335.5px and 284ms later the same code
+   * scrolled to 0. This is how the browser's answer gets in, and an index
+   * that arrives this way is REPORTED, never re-imposed.
+   */
+  readonly onSlideChange: (index: number) => void;
   /** True while a pointer is scrubbing — the box publishes it so the strip's
    * smooth-scroll can be switched off for the duration. */
   readonly scrubbing: boolean;
@@ -195,14 +208,56 @@ export function useCardGallery(count: number): CardGallery {
   // The origin of the drag in progress, or `null`. A ref rather than state:
   // it changes on every move and no render depends on it.
   const origin = useRef<{ x: number; y: number } | null>(null);
+  /**
+   * THE INDEX THIS HOOK ASKED FOR, and the whole of the fix.
+   *
+   * `active` has two sources now: the pair's OWN controls (the hover scrub,
+   * the swipe commit, the leave reset), and the strip reporting where a
+   * native scroll left it. Only the first kind may drive the strip — the
+   * second IS the strip, and scrolling it to where it already is means, in
+   * practice, scrolling it back to where it was: the effect below used to run
+   * on the render that followed a finger's own scroll and undo it.
+   *
+   * So a request is recorded here, the effect honours exactly that one, and
+   * clears it. An `active` that does not match a standing request came from
+   * the browser and is left alone.
+   */
+  const requested = useRef<number | null>(null);
   const fine = useFinePointer();
   const many = count > 1;
 
-  // The one place the strip is driven. `active` is the whole state of both
-  // gestures, so neither handler talks to the DOM.
+  /** Move the strip. The only way `active` is set by anything of ours. */
+  const request = useCallback(
+    (next: number | ((current: number) => number)): void => {
+      setActive((current) => {
+        const value = typeof next === "function" ? next(current) : next;
+        requested.current = value;
+        return value;
+      });
+    },
+    []
+  );
+
+  /**
+   * Where the STRIP says it is, after a scroll nobody here asked for.
+   *
+   * Recorded, never acted on: `requested` is untouched, so the effect below
+   * sees an `active` it did not ask for and keeps its hands off the DOM. This
+   * is also what keeps the dots, the keyboard and this hook agreeing about
+   * the photograph on screen after a fling.
+   */
+  const onSlideChange = useCallback((index: number): void => {
+    setActive(index);
+  }, []);
+
+  // The one place the strip is driven — and only for a move this hook asked
+  // for. `active` is the whole state of both gestures, so neither handler
+  // talks to the DOM.
   useEffect(() => {
     const box = ref.current;
     if (box === null || !many) return;
+    if (requested.current !== active) return;
+    requested.current = null;
     showSlide(box, active, scrubbing);
   }, [active, scrubbing, many]);
 
@@ -215,7 +270,7 @@ export function useCardGallery(count: number): CardGallery {
         if (box === null) return;
         const rect = box.getBoundingClientRect();
         setScrubbing(true);
-        setActive(segmentIndex(event.clientX - rect.left, rect.width, count));
+        request(segmentIndex(event.clientX - rect.left, rect.width, count));
         return;
       }
       const from = origin.current;
@@ -226,9 +281,9 @@ export function useCardGallery(count: number): CardGallery {
       // photograph per threshold rather than one per gesture.
       origin.current = { x: event.clientX, y: event.clientY };
       setScrubbing(false);
-      setActive((current) => Math.min(count - 1, Math.max(0, current + step)));
+      request((current) => Math.min(count - 1, Math.max(0, current + step)));
     },
-    [count, fine, many]
+    [count, fine, many, request]
   );
 
   const onPointerDown = useCallback(
@@ -243,19 +298,31 @@ export function useCardGallery(count: number): CardGallery {
     origin.current = null;
   }, []);
 
-  const onPointerLeave = useCallback((): void => {
-    origin.current = null;
-    if (!many) return;
-    // The card goes back to the photograph it was drawn with. A hover is a
-    // look, not an edit.
-    setScrubbing(false);
-    setActive(0);
-  }, [many]);
+  const onPointerLeave = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>): void => {
+      origin.current = null;
+      if (!many) return;
+      // THE REWIND IS A HOVER RULE, AND ONLY A HOVER RULE.
+      //
+      // The card goes back to the photograph it was drawn with after a
+      // CURSOR passes over it: a hover is a look, not an edit, and a grid of
+      // forty tiles must not end up forty different tiles because a cursor
+      // crossed them. A finger is the opposite — a swipe is a choice the
+      // person made — and `pointerleave` fires for a touch pointer the
+      // moment it is lifted, so this arm used to rewind every swipe a
+      // fraction of a second after it landed.
+      if (event.pointerType !== "mouse") return;
+      setScrubbing(false);
+      request(0);
+    },
+    [many, request]
+  );
 
   return {
     ref,
     active,
     scrubbing,
+    onSlideChange,
     onPointerMove,
     onPointerDown,
     onPointerUp: endDrag,
