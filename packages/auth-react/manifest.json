@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.19.1",
+  "version": "0.19.2",
   "backend": {
     "module": "stapel-auth",
     "contract": ">=0.30 <0.31"
@@ -3286,12 +3286,14 @@
       "OAuthFlowDeps",
       "OAuthProviderInfo",
       "OAuthState",
+      "OauthAuthorizeTarget",
       "OtpChannel",
       "OtpFlow",
       "OtpFlowDeps",
       "OtpMeta",
       "OtpRequestResponse",
       "OtpState",
+      "OtpVerifyOptions",
       "Passkey",
       "PasskeyAuthenticateBeginResponse",
       "PasskeyLoginBag",
@@ -3340,6 +3342,7 @@
       "Remediation",
       "SecurityStatus",
       "SessionDeviceType",
+      "SignupAttribution",
       "SsoDiscoveryBag",
       "SsoFlow",
       "SsoFlowDeps",

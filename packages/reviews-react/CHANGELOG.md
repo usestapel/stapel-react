@@ -1,5 +1,13 @@
 # @stapel/reviews-react
 
+## 0.7.2
+
+### Patch Changes
+
+- `<ReviewsPanel emptyState>` — the empty-arm slot reaches the component hosts actually mount.
+
+  `<ReviewListPanel>` has taken `emptyState` (a node replaces the pair's "no reviews yet" state, `null` draws nothing at all) since the storefront's seller card ended up saying the same sentence twice. A listing page mounts `<ReviewsPanel>`, not the list panel inside it, so the slot was out of reach there and the host went back to hiding `reviews-list-empty` with a CSS rule — a pair rendering something its host cannot decline, which is the defect the slot exists to end. The prop is now declared on the panel and forwarded verbatim, with the three cases intact: absent keeps the pair's own state, a node replaces it, `null` renders nothing.
+
 ## 0.7.1
 
 ### Patch Changes

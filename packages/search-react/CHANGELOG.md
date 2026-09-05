@@ -1,5 +1,17 @@
 # @stapel/search-react
 
+## 0.32.4
+
+### Patch Changes
+
+- Two reserved boxes that now hold the height of what actually lands in them.
+
+  **The applied chip row reserves its own box.** `<FilterChips mode="applied">` cannot NAME a slug before the answer arrives (a caption that changes under the reader is worse than one that arrives), so it drew nothing at all and then appeared — the results dropping by a row on every address that carries a filter. It now holds one chip's height while the answer is in flight AND the address names constraints (`f.*`/`r.*`), and nothing at all otherwise: a settled answer with no chips renders nothing, exactly as before, and a search with no filters reserves nothing, because for that search "no row" is the honest answer. The height is measured out of the theme the chips are drawn in — antd's `controlHeightSM`, 24px on a desktop and 44px under the fleet's phone touch floor, plus the row's two bands of focus-ring room — so it is right on both surfaces instead of right on the one it was written against. `appliedRowMinHeight()` is exported for a host that lays out around it.
+
+  **The other-sections slot measures the line it stands in for.** `<OtherCategoriesLine>`'s reserved band was one text row on every surface. On a phone the line is two: the label is most of a 390px row on its own, so the first entry lands on the second row, and the collapsed line is clamped at two — one row reserved for a two-row line is a shift of exactly the row nobody reserved, which the measured storefront paid for by holding a second row it had to guess the height of. `otherCategoriesSlotHeight({ entries, phone })` computes it from what the line already knows (the surface, how many entries it will print, its own clamp) and BOTH the band and the drawn line are measured with it, so they cannot drift apart. A slot with no entries yet stays one row — that is the label alone.
+
+  Measured with dependencies held constant: the `default` bundle 30.31 → 30.4 KB, inside its 30.5 KB ceiling.
+
 ## 0.32.3
 
 ### Patch Changes

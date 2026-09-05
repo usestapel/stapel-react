@@ -1,5 +1,19 @@
 # @stapel/auth-react
 
+## 0.19.2
+
+### Patch Changes
+
+- `<AuthPanel headingLevel>`, extra query parameters on the OAuth authorize door, and the landing page's advertising capture carried to the call that registers an account.
+
+  **The panel's own heading level.** Zone A's title was a fixed `level={3}`. Which level it should take is a fact about the document the panel was mounted into — its own `/sign-in` route (the page's `<h1>`), a host's branded card under the host's `<h1>` (`chrome="bare"`), a dialog (`<h2>`) — and only the composing surface knows. `headingLevel` (`1 | 2 | 3`, default `3`) says it. The copy is untouched.
+
+  **`authUrls(base).oauthAuthorize(provider, target)` takes more than a redirect.** A full-page navigation has one channel for anything the host needs to say on the way out, and the thing a storefront needs to say at that door is where the sign-up came from: an advertising click identifier captured on the landing page, several navigations before anybody presses "continue with Google". The builder now takes `{ redirect_uri, params? }` beside the bare string it has always taken, writes every value through one encoder, and keeps `redirect_uri` its own — a key of that name in `params` cannot displace the address. The alternative hosts had was hand-building the URL or smuggling the tags inside `redirect_uri`, where they came back as parameters of the host's own landing route.
+
+  **`attribution` on the verify call.** `AuthApi.otpVerify` takes an options object (`{ attribution }`) and puts it on the body verbatim; `createOtpFlow`, `<PasswordlessLogin>`, `<OtpPanel>` and `<AuthPanel>` each pass one through, as a value or as a function read at the moment of the call (a capture that is still landing when the screen mounts). The verify request is the one that REGISTERS on the email/phone channel, which is why it is the only call that carries this. Nothing is sent when the host has none: the body is byte-identical to what it always was. `SignupAttribution` is transcribed by hand from stapel-auth's released schema rather than generated, because this pair is built against the pinned contract and that contract's verify serializers predate the field.
+
+  Measured with dependencies held constant: the main entry 23.25 → 23.4 KB, inside its 24 KB ceiling.
+
 ## 0.19.1
 
 ### Patch Changes

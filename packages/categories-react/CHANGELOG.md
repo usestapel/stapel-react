@@ -1,5 +1,17 @@
 # @stapel/categories-react
 
+## 0.22.2
+
+### Patch Changes
+
+- `<CategoryPage headingLevel>` and `<CategoryTileGrid reserve>` — two host workarounds handed back to the pair.
+
+  **The title's level is the document's business.** `<CategoryPage>` drew its title as `Typography.Title level={3}` and took no say in it, so a storefront mounting the page under its own `<h1>` — or straight into a router, where the title IS the page's first heading — had one level and no way to ask for another. `headingLevel` (`1 | 2 | 3`, default `3`) moves the tag and nothing else: the words stay whatever the `heading` slot or the category's own name says, and there is still exactly one heading for the page's title.
+
+  **A host-owned fetch can now reserve the tile row's box.** `<CategoryTileGrid entries>` deliberately skips this component's loading arm (the host owns that read), which left a hole: a category page whose children have not landed draws no row at all, and the row then appears and pushes everything below it. `reserve` hands back the box the pair already draws in its own loading arm — the same grid, the same aspect ratio, the same skeletons, the same busy region. `true` holds it while `entries` is `undefined`; `"pending"` holds it whenever the host says its read is in flight, over rows it still has in hand. An empty array stays a real answer and ends the reservation, and past the tile depth cap nothing is reserved, because nothing is expected. Neither state mounts `<CategoryCarousel>`, so a reservation costs no request.
+
+  Measured with dependencies held constant: the `default` bundle 17.43 → 17.52 KB, inside its 17.6 KB ceiling (the skeleton row moved into one shared component, so the reservation reuses the loading arm's box rather than adding a second copy of it).
+
 ## 0.22.1
 
 ### Patch Changes
