@@ -23,6 +23,8 @@ import {
   mandateUnavailable,
 } from "@stapel/core";
 import type { MandatePrincipal, MandateState } from "@stapel/core";
+import { PaneGate } from "@stapel/tokens-antd/skin";
+import { actionAvailable } from "@stapel/core";
 import { StartChatButton } from "../src/default/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 
@@ -122,5 +124,71 @@ describe("the other four arms of the axis", () => {
     expect(screen.getByTestId("chat-start-blocked").textContent).toBe(
       "This listing has no seller to write to."
     );
+  });
+});
+
+/**
+ * FOURTEEN CARDS, FOURTEEN COPIES OF ONE SENTENCE.
+ *
+ * Measured on the host's phone results page: the same "sign in to message the
+ * seller" printed once per listing down a column — the reason has not changed,
+ * only the number of places it is printed. The rule "a switched-off control
+ * says why" is right for ONE control and wrong for a list of them.
+ *
+ * Every arm below keeps the sentence reachable. `"pooled"` moves it into the
+ * pane's own footnote and leaves each button's `aria-describedby` pointing at
+ * that copy, so a screen reader still reads the reason WITH the control —
+ * which is the difference between pooling and hiding. `"none"` is the one arm
+ * that may leave a control unexplained, and it is opt-in for exactly that
+ * reason: the host has said it somewhere else.
+ */
+describe("where the refusal sentence goes", () => {
+  it("prints it beside the button by default — one control, one sentence", () => {
+    renderAs("anonymous", <StartChatButton sellerId={SELLER} />);
+    expect(screen.getByTestId("chat-start-blocked")).toBeTruthy();
+  });
+
+  it("prints it once for the PANE when pooled, not once per button", () => {
+    renderAs(
+      "anonymous",
+      <PaneGate gate={actionAvailable()} testId="cards-reasons">
+        <StartChatButton sellerId={SELLER} refusal="pooled" />
+        <StartChatButton sellerId={SELLER} refusal="pooled" />
+        <StartChatButton sellerId={SELLER} refusal="pooled" />
+      </PaneGate>
+    );
+    // Three buttons…
+    expect(screen.getAllByTestId("chat-start-button")).toHaveLength(3);
+    // …and the sentence is not standing beside any of them.
+    expect(screen.queryAllByTestId("chat-start-blocked")).toHaveLength(0);
+    // Every one of them still POINTS at a reason: the sentence moved, it did
+    // not disappear.
+    for (const button of screen.getAllByTestId("chat-start-button")) {
+      expect(button.getAttribute("aria-describedby")).toBeTruthy();
+    }
+    // …at the same one.
+    const ids = new Set(
+      screen
+        .getAllByTestId("chat-start-button")
+        .map((button) => button.getAttribute("aria-describedby"))
+    );
+    expect(ids.size).toBe(1);
+  });
+
+  it("says nothing at all when the host has taken the sentence on", () => {
+    renderAs("anonymous", <StartChatButton sellerId={SELLER} refusal="none" />);
+    // The button is still switched off — what is dropped is the copy, not the
+    // gate.
+    expect(
+      (screen.getByTestId("chat-start-button") as HTMLButtonElement).disabled
+    ).toBe(true);
+    expect(screen.queryByTestId("chat-start-blocked")).toBeNull();
+  });
+
+  it("keeps the button pressable for a signed-in member under every arm", () => {
+    renderAs("member", <StartChatButton sellerId={SELLER} refusal="pooled" />);
+    expect(
+      (screen.getByTestId("chat-start-button") as HTMLButtonElement).disabled
+    ).toBe(false);
   });
 });
