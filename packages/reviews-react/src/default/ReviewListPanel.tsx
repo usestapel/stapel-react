@@ -61,6 +61,21 @@ export interface ReviewListPanelProps extends ThemeModeProp, SignInCtaProp {
   readonly renderAuthor?: (review: Review) => ReactNode;
   /** Override the pair's short absolute date (e.g. with relative time). */
   readonly renderDate?: (review: Review) => ReactNode;
+  /**
+   * THE EMPTY ARM IS A SLOT.
+   *
+   * Absent (default) keeps the pair's own "no reviews yet" `<EmptyState>`,
+   * `reviews-list-empty`, byte-compatible for existing hosts. A node replaces
+   * it. **`null` renders nothing at all** — the arm a host needs when the
+   * panel sits inside a card that already says, in its own words, that this
+   * seller has no reviews: two empty states stacked is the pane arguing with
+   * its own container (measured on a live storefront, which hid ours with a
+   * CSS rule on the test id).
+   *
+   * `null` is a real answer here rather than "not passed", so the three cases
+   * are distinguished by `undefined` vs `null` vs node — not by truthiness.
+   */
+  readonly emptyState?: ReactNode | null;
 }
 
 function ReviewRow(props: {
@@ -120,6 +135,7 @@ export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
     renderAuthor,
     renderDate,
     canRespond,
+    emptyState,
     ...listOptions
   } = props;
 
@@ -129,6 +145,21 @@ export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
       <Typography.Text type="secondary">{shown}</Typography.Text>
     );
   };
+
+  // Absent → the pair's own state; anything else (a node, or an explicit
+  // `null`) → exactly what the host said. `<LoadList>` folds a nullish `empty`
+  // back to the substrate's default, so "nothing" has to reach it as a node
+  // that renders nothing.
+  const empty: ReactNode =
+    emptyState === undefined ? (
+      <EmptyState
+        title={t(REVIEWS_I18N_KEYS.listEmpty)}
+        hint={t(REVIEWS_I18N_KEYS.listEmptyHint)}
+        testId="reviews-list-empty"
+      />
+    ) : (
+      (emptyState ?? <></>)
+    );
 
   return (
     <SkinTheme
@@ -148,13 +179,7 @@ export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
               state={bag.state}
               onRetry={bag.refresh}
               testId="reviews-list"
-              empty={
-                <EmptyState
-                  title={t(REVIEWS_I18N_KEYS.listEmpty)}
-                  hint={t(REVIEWS_I18N_KEYS.listEmptyHint)}
-                  testId="reviews-list-empty"
-                />
-              }
+              empty={empty}
             >
               {(reviews) => (
                 <>
