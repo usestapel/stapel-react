@@ -55,6 +55,7 @@ export {
   OTHER_CATEGORIES_SLOT_MIN_HEIGHT,
   OTHER_CATEGORIES_STYLE_HREF,
   otherCategoriesCss,
+  otherCategoriesSlotHeight,
 } from "./OtherCategoriesLine.js";
 export type {
   OtherCategoriesLineProps,
@@ -77,6 +78,7 @@ export {
   CHIP_ROW_MIN_HEIGHT,
   CHIP_ROW_STYLE_HREF,
   appliedChipTestId,
+  appliedRowMinHeight,
   buildAppliedChips,
   capChipRow,
   categoryLeaf,

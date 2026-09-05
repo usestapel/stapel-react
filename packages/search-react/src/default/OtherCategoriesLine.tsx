@@ -77,13 +77,50 @@ import type { OtherCategoryRow } from "../headless/useOtherCategories.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
 /**
- * The height the empty-result slot holds before its answer arrives.
+ * ONE text row of this line — the unit the slot is measured in.
  *
- * One text line. Reserving it is the whole difference between "the sections
- * appeared" and "the sections pushed the page", and it is reserved whether the
- * request ends with rows or with none.
+ * Kept under its original name because it is exported and a host may hold it;
+ * what changed is that the slot is no longer ASSUMED to be one of these. See
+ * {@link otherCategoriesSlotHeight}.
  */
 export const OTHER_CATEGORIES_SLOT_MIN_HEIGHT = 24;
+
+/** How many rows the collapsed phone line may occupy — the clamp in
+ * {@link otherCategoriesCss}, and half of what {@link otherCategoriesSlotHeight}
+ * measures with. */
+export const OTHER_CATEGORIES_PHONE_ROWS = 2;
+
+/**
+ * HOW TALL THE LINE WILL BE, computed from what the line already knows about
+ * itself rather than assumed.
+ *
+ * The slot used to hold exactly one row, on every surface. On a phone it is
+ * two: the label ("Search in other categories:") is most of a 390px row on its
+ * own, so the first entry lands on the second row, and the collapsed line is
+ * clamped at {@link OTHER_CATEGORIES_PHONE_ROWS} — which is why the measured
+ * storefront held a second row of its own under the pair's slot, a height it
+ * had to guess and could not read back. One row reserved for a two-row line is
+ * a shift of exactly the row that was not reserved.
+ *
+ * Three inputs, all of them already in hand when the slot is drawn: whether
+ * this is the phone surface, how many entries the line will print, and the
+ * clamp this file owns. A line with no entries stays one row — that is the
+ * label alone, which is what an empty-result read is still waiting to fill.
+ *
+ * The DRAWN line is measured with the same function, so the band and the line
+ * it stands in for cannot drift apart: a reserved slot one row taller than
+ * what fills it is still a shift, just in the other direction.
+ */
+export function otherCategoriesSlotHeight(input: {
+  /** How many entries the line will print — `0` while nothing is nameable. */
+  readonly entries: number;
+  /** The sheet surface, where the clamp applies. */
+  readonly phone: boolean;
+}): number {
+  const rows =
+    input.phone && input.entries > 0 ? OTHER_CATEGORIES_PHONE_ROWS : 1;
+  return rows * OTHER_CATEGORIES_SLOT_MIN_HEIGHT;
+}
 
 /** Names an id path the pair cannot name on its own. Returning `undefined`
  * drops the row rather than printing a number at a person. */
@@ -158,9 +195,6 @@ const ENTRY: CSSProperties = {
 };
 
 const COUNT: CSSProperties = { color: cssVar("text-subtle") };
-
-/** How many rows the collapsed phone line may occupy. */
-export const OTHER_CATEGORIES_PHONE_ROWS = 2;
 
 /** The class the clamp is hung on. */
 export const OTHER_CATEGORIES_CLASS = "stapel-search-other-categories";
@@ -239,13 +273,26 @@ export function OtherCategoriesLine(
   if (holding || entries.length === 0) {
     // Nothing to say, and nothing coming: say nothing.
     if (!expected) return null;
+    // THE HEIGHT OF THE LINE THIS STANDS IN FOR, not one text row. While the
+    // host is still naming, the SECTIONS are already known (they came with
+    // the answer that drew the cards), so how many entries the line will
+    // print is known too — capped by the same limit the line itself uses. An
+    // empty-result read that has not landed yet knows no sections, and one
+    // row is then the honest floor.
+    const willShow = Math.min(bag.rows.length, limit);
     return (
       <div
         data-testid="search-other-categories"
         data-reserved="on"
         data-source={bag.source}
+        data-reserved-rows={
+          otherCategoriesSlotHeight({ entries: willShow, phone }) /
+          OTHER_CATEGORIES_SLOT_MIN_HEIGHT
+        }
         {...(holding ? { "data-naming": "pending" } : {})}
-        style={{ minBlockSize: OTHER_CATEGORIES_SLOT_MIN_HEIGHT }}
+        style={{
+          minBlockSize: otherCategoriesSlotHeight({ entries: willShow, phone }),
+        }}
       />
     );
   }
@@ -262,10 +309,16 @@ export function OtherCategoriesLine(
           ? `${OTHER_CATEGORIES_CLASS} ${OTHER_CATEGORIES_CLASS}--clamped`
           : OTHER_CATEGORIES_CLASS
       }
-      // The band and the line are the SAME height by construction. A reserved
-      // slot one pixel taller than what fills it is still a shift, just a
-      // smaller one, and this is the only way to be sure they match.
-      style={{ minBlockSize: OTHER_CATEGORIES_SLOT_MIN_HEIGHT }}
+      // The band and the line are the SAME height by construction — one
+      // function, called with what each of them knows. A reserved slot one row
+      // taller (or shorter) than what fills it is still a shift, and this is
+      // the only way to be sure they match.
+      style={{
+        minBlockSize: otherCategoriesSlotHeight({
+          entries: shown.length,
+          phone,
+        }),
+      }}
     >
       <style href={OTHER_CATEGORIES_STYLE_HREF} precedence="default">
         {otherCategoriesCss()}

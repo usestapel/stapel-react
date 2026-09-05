@@ -17,9 +17,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
+import { PHONE_CONTROL_HEIGHT } from "@stapel/tokens-antd/skin";
 import {
   FilterChips,
   SearchPage,
+  appliedRowMinHeight,
   buildAppliedChips,
   rangeChipText,
   rangeLabelSource,
@@ -325,5 +327,60 @@ describe("a host mounts the row with one prop", () => {
     await waitFor(() => {
       expect(screen.getByTestId("search-applied-chips")).toBeTruthy();
     });
+  });
+});
+
+describe("the box the applied row arrives into", () => {
+  /**
+   * The row cannot NAME a slug before the answer lands (see the component's
+   * note), so it drew nothing at all and then appeared — 48px of results
+   * pushed down under the reader's eye on every address that carries a
+   * filter. The storefront held a hand-guessed 48px in its own stylesheet;
+   * the pair now holds its own row's height, measured out of the theme the
+   * chips are drawn in.
+   */
+  it("reserves one chip's height while the answer for an f./r. address is in flight", () => {
+    render(
+      <TestHarness
+        server={mockServer({ "/query": { body: searchResponse() } })}
+        initialSearch="type=listing&f.brand=bosch&r.price=100..500"
+      >
+        <FilterChips mode="applied" categoryFeatures={FEATURES} />
+      </TestHarness>
+    );
+    // Synchronously — the assertion is about the FIRST frame, before any
+    // answer could have landed.
+    const slot = screen.getByTestId("search-applied-chips-reserve");
+    // antd's own `controlHeightSM` (24 here, and the 44px touch floor under
+    // the fleet's phone theme) plus the row's two bands of focus-ring room.
+    expect(slot.style.minBlockSize).toBe(`${String(appliedRowMinHeight(24))}px`);
+    expect(appliedRowMinHeight(24)).toBe(32);
+    expect(appliedRowMinHeight(PHONE_CONTROL_HEIGHT)).toBe(52);
+  });
+
+  it("gives the box to the chips themselves once they land", async () => {
+    render(
+      <TestHarness
+        server={mockServer({ "/query": { body: searchResponse() } })}
+        initialSearch="type=listing&f.brand=bosch"
+      >
+        <FilterChips mode="applied" categoryFeatures={FEATURES} />
+      </TestHarness>
+    );
+    expect(screen.getByTestId("search-applied-chips-reserve")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByTestId("search-applied-chip-brand-bosch")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-applied-chips-reserve")).toBeNull();
+  });
+
+  it("reserves NOTHING for an address with no filters in it", async () => {
+    const seen = mount("type=listing");
+    expect(screen.queryByTestId("search-applied-chips-reserve")).toBeNull();
+    await waitFor(() => {
+      expect(seen.server.calls.length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByTestId("search-applied-chips-reserve")).toBeNull();
+    expect(screen.queryByTestId("search-applied-chips")).toBeNull();
   });
 });

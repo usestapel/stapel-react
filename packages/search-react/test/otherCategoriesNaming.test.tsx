@@ -23,9 +23,19 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { SearchResultsPane } from "../src/default/index.js";
-import { OTHER_CATEGORIES_SLOT_MIN_HEIGHT } from "../src/default/OtherCategoriesLine.js";
+import {
+  OTHER_CATEGORIES_PHONE_ROWS,
+  OTHER_CATEGORIES_SLOT_MIN_HEIGHT,
+  otherCategoriesSlotHeight,
+} from "../src/default/OtherCategoriesLine.js";
 import { searchResponse } from "./fixtures.js";
-import { TestHarness, mockServer } from "./harness.js";
+import {
+  DESKTOP_WIDTH,
+  PHONE_WIDTH,
+  TestHarness,
+  mockServer,
+  setViewport,
+} from "./harness.js";
 
 const CARS = [
   { category: "cars", count: 12 },
@@ -189,5 +199,59 @@ describe("the line is drawn ONCE, when the names are all in", () => {
     const line = screen.getByTestId("search-other-categories");
     expect(line.dataset["reserved"]).toBeUndefined();
     expect(entryCount()).toBe(CARS.length);
+  });
+});
+
+describe("the reserved slot MEASURES the line it stands in for", () => {
+  /**
+   * The slot held one text row on every surface. On a phone the line is two:
+   * the label is most of a 390px row on its own, so the first entry lands on
+   * the second, and the collapsed line is clamped at two. One row reserved
+   * for a two-row line is a shift of exactly the row nobody reserved — which
+   * the storefront paid for by holding a second row of its own, a height it
+   * had to guess because the pair would not say.
+   */
+  it("holds TWO rows on the phone, where the line is two rows", async () => {
+    setViewport(PHONE_WIDTH);
+    mount(<NamingHost />);
+    const slot = await screen.findByTestId("search-other-categories");
+    expect(slot.dataset["naming"]).toBe("pending");
+    expect(slot.dataset["reservedRows"]).toBe("2");
+    expect(slot.style.minBlockSize).toBe(
+      `${String(OTHER_CATEGORIES_SLOT_MIN_HEIGHT * OTHER_CATEGORIES_PHONE_ROWS)}px`
+    );
+    expect(OTHER_CATEGORIES_SLOT_MIN_HEIGHT * OTHER_CATEGORIES_PHONE_ROWS).toBe(48);
+  });
+
+  it("holds ONE row on a desktop, where it is one", async () => {
+    setViewport(DESKTOP_WIDTH);
+    mount(<NamingHost />);
+    const slot = await screen.findByTestId("search-other-categories");
+    expect(slot.dataset["reservedRows"]).toBe("1");
+    expect(slot.style.minBlockSize).toBe(
+      `${String(OTHER_CATEGORIES_SLOT_MIN_HEIGHT)}px`
+    );
+  });
+
+  it("fills the phone band it reserved, to the pixel", async () => {
+    setViewport(PHONE_WIDTH);
+    mount(<NamingHost />);
+    const slot = await screen.findByTestId("search-other-categories");
+    const reserved = slot.style.minBlockSize;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("resolve-one"));
+      fireEvent.click(screen.getByTestId("settle"));
+    });
+    const line = screen.getByTestId("search-other-categories");
+    expect(entryCount()).toBeGreaterThan(0);
+    expect(line.style.minBlockSize).toBe(reserved);
+  });
+
+  it("is the same function on both sides of the seam", () => {
+    // The band and the line cannot drift: one measurement, two callers.
+    expect(otherCategoriesSlotHeight({ entries: 3, phone: true })).toBe(48);
+    expect(otherCategoriesSlotHeight({ entries: 3, phone: false })).toBe(24);
+    // No entries is the label alone — one row, whatever the surface.
+    expect(otherCategoriesSlotHeight({ entries: 0, phone: true })).toBe(24);
   });
 });

@@ -159,7 +159,7 @@
  */
 import { useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button } from "antd";
+import { Button, theme as antdTheme } from "antd";
 import { SkinDialog, useDialogSurface } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
@@ -888,6 +888,26 @@ export function buildAppliedChips(input: {
   return chips;
 }
 
+/**
+ * THE APPLIED ROW'S OWN BLOCK-SIZE — one chip, plus the row's two bands of
+ * focus-ring room ({@link APPLIED_ROW}'s `paddingBlock`).
+ *
+ * A NUMBER OUT OF THE THEME, not a constant: the chips are `size="small"`
+ * buttons, so their height IS antd's `controlHeightSM` — 24px on a desktop
+ * and, under the fleet's phone touch floor, the same 44px as every other
+ * control. A reservation written as a literal would be right on one surface
+ * and a shift on the other, in whichever direction it guessed wrong.
+ *
+ * The row it stands in for wraps, so this holds ONE line: the height a search
+ * with a single constraint arrives at, and the floor for a search with more.
+ * Under-reserving by a line moves the page less than not reserving at all;
+ * over-reserving would move it in the other direction on every ordinary
+ * search, which is the trade a floor gets right and a guess does not.
+ */
+export function appliedRowMinHeight(chipHeight: number): number {
+  return chipHeight + spacing[1] * 2;
+}
+
 /** The applied row wraps: it stands beside a rail, not on a 390px scroller,
  * and a constraint pushed off the line is a constraint with no control. */
 const APPLIED_ROW: CSSProperties = {
@@ -901,6 +921,7 @@ const APPLIED_ROW: CSSProperties = {
 
 function AppliedChipRow(props: FilterChipsAppliedProps): ReactElement | null {
   const t = useT();
+  const { token } = antdTheme.useToken();
   const { state } = useSearchState();
   const bag = useFacetPanel({
     ...(props.categoryFeatures !== undefined
@@ -938,7 +959,34 @@ function AppliedChipRow(props: FilterChipsAppliedProps): ReactElement | null {
     ranges: answered ? ranges : [],
     t,
   });
-  if (chips.length === 0) return null;
+  if (chips.length === 0) {
+    /* THE BOX THE ROW WILL ARRIVE INTO.
+     *
+     * The paragraph above is why this row draws nothing until the answer
+     * lands, and the consequence was a hole: an address carrying `f.*`/`r.*`
+     * is an address whose row is CERTAIN — the constraints are in the URL,
+     * the only thing missing is what to call them — and the row appeared a
+     * beat later and pushed the first card down under the reader's eye. The
+     * measured host held 48px of its own in a stylesheet to stop it, a height
+     * it could not read back from this pair and which was wrong on whichever
+     * surface it was not measured on.
+     *
+     * Reserved only while the answer is IN FLIGHT and only for an address
+     * that names constraints: a settled answer with no chips renders nothing
+     * (what this row has always done), and a search with no filters in its
+     * address reserves nothing, because for that search "no row" is the
+     * honest answer and holding a band would be the same shift the other way.
+     */
+    const expected =
+      bag.state.status === "loading" && bag.activeFilters > 0;
+    return expected ? (
+      <div
+        aria-hidden="true"
+        data-testid="search-applied-chips-reserve"
+        style={{ minBlockSize: appliedRowMinHeight(token.controlHeightSM) }}
+      />
+    ) : null;
+  }
 
   const remove = (target: AppliedChipTarget): void => {
     if (target.kind === "facet") bag.toggle(target.slug, target.value);
