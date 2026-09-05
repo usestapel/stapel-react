@@ -67,6 +67,33 @@ export type ReviewModerationAction = "hide" | "publish";
  */
 export type ReviewAggregate = Schemas["AggregateResponse"];
 
+/** `POST /reviews/aggregates/by-owner` request body (stapel-reviews 0.6.0). */
+export type OwnerAggregatesRequest = Schemas["OwnerAggregatesRequest"];
+
+/**
+ * One owner's rating roll-up — same two field names as {@link RatingAggregate}
+ * on purpose, so `ratingSummary()` reads either without a branch.
+ */
+export interface OwnerAggregate {
+  /** Mean rating over PUBLISHED reviews across everything this owner owns. */
+  readonly avg: number;
+  /** Number of published reviews across the owner's targets. */
+  readonly count: number;
+}
+
+/**
+ * `POST /reviews/aggregates/by-owner` 200 body: owner key -> the aggregate.
+ * An owner nobody has published a review about is ABSENT from the map,
+ * never present with `{avg: 0, count: 0}` — the same "absent means unrated"
+ * rule {@link RatingAggregate} follows for a single target.
+ *
+ * Hand-typed rather than aliased from the generated operation response: the
+ * schema declares it as a bare `additionalProperties` object with no named
+ * component (`OwnerAggregatesRequest` is the only named schema this endpoint
+ * gets), so there is no `Schemas[...]` key to alias.
+ */
+export type OwnerAggregatesResponse = Record<string, OwnerAggregate>;
+
 /**
  * The 200 body of `GET /reviews` — core's `AnchorPagination` envelope,
  * generated since 0.3.0 (see this module's header).
@@ -118,11 +145,14 @@ export interface ReviewTarget {
 /** The rating roll-up itself, without the target it belongs to.
  *
  * Deliberately the same two field names the composite's projection uses
- * (`shop.listing_review_summary` → `{avg, count}`, `stapel_shop/models.py`):
- * a seller-level rating is computed by the composite and handed to this
- * pair's display as data, because stapel-reviews can only aggregate ONE
- * `(target_type, target_key)` at a time and has no roll-up endpoint. Same
- * shape in, same rendering out — see {@link ratingSummary}. */
+ * (`shop.listing_review_summary` → `{avg, count}`, `stapel_shop/models.py`)
+ * AND the same two names {@link OwnerAggregate} carries: a seller-level
+ * rating computed by the composite, or one read from stapel-reviews' own
+ * `POST /reviews/aggregates/by-owner` (0.6.0, `useOwnerAggregates`), lands
+ * here the same way and renders the same way — see {@link ratingSummary}.
+ * stapel-reviews can still only aggregate ONE `(target_type, target_key)`
+ * over `GET /reviews/aggregate`; the batched owner form is a second axis
+ * (by OWNER, across every target they own), not a replacement for this one. */
 export interface RatingAggregate {
   /** Mean rating over PUBLISHED reviews. `0` when `count` is `0` — which is
    * "nobody has rated this", never "everyone rated it zero". */

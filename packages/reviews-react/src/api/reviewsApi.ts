@@ -1,5 +1,6 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import type {
+  OwnerAggregatesResponse,
   Review,
   ReviewAggregate,
   ReviewListParams,
@@ -95,16 +96,47 @@ export interface ReviewsApi {
    * The module-owned rating aggregate for ONE target — mean and count over
    * published reviews. `AllowAny`.
    *
-   * There is no batch form on the HTTP surface: `reviews.aggregates_by_keys`
-   * is a comm Function for server-side projections, not an endpoint. A
-   * storefront that needs a rating per card gets it from the listing rows its
-   * own module serves (fed by the composite's projection), not by firing one
-   * of these per card.
+   * There is no batch form of THIS axis on the HTTP surface:
+   * `reviews.aggregates_by_keys` (many target keys, one target type) is a
+   * comm Function for server-side projections, not an endpoint. A storefront
+   * that needs a rating per card gets it from the listing rows its own module
+   * serves (fed by the composite's projection), not by firing one of these
+   * per card. {@link aggregatesByOwner} is a DIFFERENT axis — many owners,
+   * across every target each one owns — and is a real endpoint.
    */
   aggregate(
     target: ReviewTarget,
     options?: { readonly signal?: AbortSignal }
   ): Promise<ReviewAggregate>;
+
+  /**
+   * The rating of up to 100 OWNERS in one call — mean and count over
+   * published reviews of everything each owner owns (stapel-reviews 0.6.0).
+   * `AllowAny`, same public/throttled position as {@link aggregate}.
+   *
+   * An owner nobody has published a review about is ABSENT from the response
+   * map rather than present with zeros — the same "absent means unrated" rule
+   * a single-target aggregate follows. `targetType` narrows the count to one
+   * kind of target; omitted, it counts across every type the owner appears
+   * under.
+   *
+   * The ownership link is the review's OWN owner key, stamped at write time
+   * by the target type's `owner_key_for` resolver — a deployment that
+   * registers none for a type gets an empty map for every key of that type,
+   * which is the honest answer (the module was never told who owns
+   * anything), not a refusal.
+   *
+   * `error.400.reviews_too_many_owner_keys` when more than 100 keys are sent
+   * in one call — {@link useOwnerAggregates} chunks so a caller never
+   * provokes it by accident.
+   */
+  aggregatesByOwner(
+    body: {
+      readonly ownerKeys: readonly string[];
+      readonly targetType?: string;
+    },
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<OwnerAggregatesResponse>;
 
   /**
    * Write a review of a target. The one operation here that needs a real
@@ -201,6 +233,20 @@ export function createReviewsApi(client: StapelClient): ReviewsApi {
         query: targetQuery(target),
         ...signalOf(options),
       }),
+
+    // A read, but a POST (opaque owner keys have no length limit a query
+    // string could carry) — same CSRF header the writes below send, because
+    // a session-cookie client's unsafe method is unsafe to Django regardless
+    // of what the view does with it.
+    aggregatesByOwner: (body, options) =>
+      client.post(
+        "/reviews/aggregates/by-owner",
+        {
+          owner_keys: body.ownerKeys,
+          ...(body.targetType !== undefined ? { target_type: body.targetType } : {}),
+        },
+        mutating(signalOf(options))
+      ),
 
     createReview: (body, options) =>
       client.post(

@@ -55,13 +55,16 @@
  *
  * ── What this pair does NOT do ─────────────────────────────────────────────
  *
- * No seller-wide rating fetch. The product model (spec fork F5) reviews the
- * SELLER for a specific listing, so a seller's rating is a roll-up across
- * their listings — which stapel-reviews cannot compute (one
- * `(target_type, target_key)` per call) and the shop composite can
- * (`shop.listing_review_summary`). `<ReviewAggregate aggregate={…}>` renders
- * those two numbers from wherever the host got them; it does not invent an
- * N+1 loop to fake the roll-up.
+ * No N+1 loop to fake a seller-wide roll-up. The product model (spec fork F5)
+ * reviews the SELLER for a specific listing, so a seller's rating is a
+ * roll-up across their listings, over ONE `(target_type, target_key)` per
+ * `useReviewAggregate` call. Two ways to get that roll-up without firing one
+ * of those per seller: the shop composite computes it server-side
+ * (`shop.listing_review_summary`), or — since stapel-reviews 0.6.0, and only
+ * where the deployment registers `owner_key_for` for its target types —
+ * `useOwnerAggregates` batch-reads many sellers' roll-ups from this module
+ * directly. Either way `<ReviewAggregate aggregate={…}>` renders the two
+ * numbers from wherever the host got them; it does not invent the loop.
  *
  * No nav manifest: this pair has no route of its own. It renders INSIDE the
  * listing detail page and the public seller profile, both of which belong to
@@ -78,6 +81,9 @@
 export { createReviewsApi } from "./api/reviewsApi.js";
 export type { ReviewsApi } from "./api/reviewsApi.js";
 export type {
+  OwnerAggregate,
+  OwnerAggregatesRequest,
+  OwnerAggregatesResponse,
   RatingAggregate,
   Review,
   ReviewAggregate as ReviewAggregateResponse,
@@ -107,9 +113,17 @@ export {
   useReviewsApi,
   useReviewsRuntime,
 } from "./model/context.js";
-export { reviewsQueryKeys } from "./model/queryKeys.js";
-export { REVIEWS_PAGE, useReviewAggregate, useReviewList } from "./model/queries.js";
-export type { UseReviewListOptions } from "./model/queries.js";
+export { normalizedOwnerKeys, reviewsQueryKeys } from "./model/queryKeys.js";
+export {
+  REVIEWS_PAGE,
+  useOwnerAggregates,
+  useReviewAggregate,
+  useReviewList,
+} from "./model/queries.js";
+export type {
+  UseOwnerAggregatesOptions,
+  UseReviewListOptions,
+} from "./model/queries.js";
 export {
   useModerateReview,
   useRespondToReview,
@@ -138,6 +152,7 @@ export {
   isReviewGone,
   isReviewingForbidden,
   isSignInRequired,
+  isTooManyOwnerKeys,
   isUnknownTargetType,
   REVIEWS_ERROR_ALREADY_RESPONDED,
   REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED,
@@ -148,6 +163,7 @@ export {
   REVIEWS_ERROR_INVALID_RATING,
   REVIEWS_ERROR_NOT_FOUND,
   REVIEWS_ERROR_RESPONSE_NOT_ALLOWED,
+  REVIEWS_ERROR_TOO_MANY_OWNER_KEYS,
   REVIEWS_ERROR_UNKNOWN_TARGET_TYPE,
   toReviewsError,
 } from "./model/refusals.js";

@@ -69,6 +69,16 @@ export const REVIEWS_ERROR_RESPONSE_NOT_ALLOWED =
 /** The review already carries the owner's reply — the module's ONLY 409. */
 export const REVIEWS_ERROR_ALREADY_RESPONDED =
   "error.409.reviews_already_responded";
+/**
+ * More than `OWNER_KEYS_MAX` (100) owner keys in one
+ * `POST /reviews/aggregates/by-owner` call (stapel-reviews 0.6.0). Carries
+ * `{max}`. `useOwnerAggregates` chunks at the same ceiling, so a caller going
+ * through the hook cannot provoke this by simply asking for a big page — it
+ * is reachable only by a caller of `ReviewsApi.aggregatesByOwner` that builds
+ * its own request.
+ */
+export const REVIEWS_ERROR_TOO_MANY_OWNER_KEYS =
+  "error.400.reviews_too_many_owner_keys";
 
 /** Core's cross-cutting key for an unauthenticated call. */
 const HTTP_401_KEY = "stapel.http.401";
@@ -203,4 +213,14 @@ export function isReviewGone(error: unknown): boolean {
  */
 export function isUnknownTargetType(error: unknown): boolean {
   return isErrorCode(toReviewsError(error), REVIEWS_ERROR_UNKNOWN_TARGET_TYPE);
+}
+
+/**
+ * More than 100 owner keys were sent to `POST /reviews/aggregates/by-owner`
+ * in one call. Named mainly so it can show up in a test asserting
+ * `useOwnerAggregates`'s chunking makes it unreachable through the hook — a
+ * direct `ReviewsApi.aggregatesByOwner` caller can still hit it.
+ */
+export function isTooManyOwnerKeys(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_TOO_MANY_OWNER_KEYS);
 }

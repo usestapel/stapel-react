@@ -111,3 +111,23 @@ export const REVIEW_GONE_404 = {
   status: 404,
   body: { localizable_error: "error.404.reviews_review_not_found" },
 };
+
+/**
+ * More than `OWNER_KEYS_MAX` owner keys in one
+ * `POST /reviews/aggregates/by-owner` call — carries `{max}` (stapel-reviews
+ * 0.6.0).
+ */
+export const TOO_MANY_OWNER_KEYS_400 = {
+  status: 400,
+  body: {
+    localizable_error: "error.400.reviews_too_many_owner_keys",
+    params: { max: 100 },
+  },
+};
+
+/**
+ * A batched owner-aggregate answer: `u-1` has been rated, `u-2` is ABSENT
+ * (never present with zeros) because nobody has published a review of
+ * anything they own.
+ */
+export const OWNER_AGGREGATES = { "u-1": { avg: 4.5, count: 8 } };

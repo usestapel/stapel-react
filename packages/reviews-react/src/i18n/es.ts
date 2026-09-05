@@ -8,7 +8,7 @@ export { reviewsErrorBundleEs } from "./generated/errors.es.gen.js";
  * subpath (i18n-shipping.md §2), opt-in exactly like `./i18n/ru`.
  *
  * Same two sources, same reason (see `./ru.ts`): 42 cross-cutting keys come
- * from stapel-core's catalogue through the generated bundle, and the 10 keys
+ * from stapel-core's catalogue through the generated bundle, and the 11 keys
  * stapel-reviews owns are authored below until upstream ships
  * `translations/errors.es.json`.
  *
@@ -27,6 +27,8 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "error.400.reviews_invalid_rating": "La valoración está fuera del rango permitido",
   "error.400.reviews_response_not_allowed":
     "Las respuestas están desactivadas para este tipo de objeto",
+  "error.400.reviews_too_many_owner_keys":
+    "Demasiadas claves de propietario en una sola solicitud (máximo {max})",
   "error.400.reviews_unknown_target_type": "Tipo de objeto de reseña desconocido",
   "error.403.reviews_anonymous_not_allowed":
     "Una cuenta de invitado no puede dejar una reseña",

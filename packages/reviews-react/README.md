@@ -177,11 +177,35 @@ So the pair renders the two numbers the composite produced:
 />
 ```
 
-No request is made. **Known gap**: today no HTTP route publishes that roll-up,
-so a page that wants a seller rating must be served the two numbers by its own
-backend. Publishing them is the composite's job, not this pair's, and inventing
-an N+1 loop over the seller's listings here would be neither correct nor
-affordable.
+No request is made. **The gap above is now partly closable from this pair
+itself**, not only from a host composite: `useOwnerAggregates(ownerKeys,
+{ targetType? })` (stapel-reviews 0.6.0, `POST /reviews/aggregates/by-owner`)
+batch-reads up to 100 owners' `{avg, count}` roll-ups — across every target
+each one owns — in one cached, chunked-transparently request, keyed on the
+distinct sorted set of owner keys so a re-render with the same sellers never
+refetches and an empty list never fetches at all. It answers ONLY for owners
+the write path actually stamped: the ownership link is the review's own
+`owner_key`, set by the target type's optional `owner_key_for` resolver, so a
+deployment that has not registered one for `"listing"` gets an empty map back
+and still needs the composite's `shop.listing_review_summary` roll-up above.
+Where a deployment HAS registered the resolver, a page can skip the composite
+entirely: fetch once with `useOwnerAggregates`, then feed each entry straight
+into `<ReviewAggregate aggregate={…}>` exactly as `rollup` is supplied above —
+same two field names, same `source: "supplied"`. One thing to get right at the
+call site: an owner ABSENT from the map (nobody has rated them) must still be
+SUPPLIED as `{avg: 0, count: 0}`, not left `undefined` — `<ReviewAggregate>`
+only skips its own request when `aggregate` is a value, so an `undefined` for
+an unrated owner falls through to a per-card fetch instead of the "no request"
+path the batch read exists to give.
+
+```tsx
+<ReviewAggregate
+  target={{ targetType: "seller", targetKey: sellerId }}
+  aggregate={ownerAggregates[sellerId] ?? { avg: 0, count: 0 }}
+>
+  {(bag) => <YourStars bag={bag} />}
+</ReviewAggregate>
+```
 
 ## What is deliberately not here
 
@@ -227,7 +251,7 @@ and nothing else moves.
 | Layer | Exports |
 |---|---|
 | api | `createReviewsApi`, `ReviewsApi`, `Review`, `ReviewPage`, `ReviewTarget`, `RatingAggregate`, `ReviewStatus`, … |
-| model | `createReviewsRuntime`, `reviewsQueryKeys`, `useReviewList`, `useReviewAggregate`, `useSubmitReview`, `ratingSummary`, `starBreakdown`, `reviewsFromPages`, `findOwnReview`, `reviewVisibility`, `isDuplicateReview`, `isSignInRequired`, … |
+| model | `createReviewsRuntime`, `reviewsQueryKeys`, `useReviewList`, `useReviewAggregate`, `useOwnerAggregates`, `useSubmitReview`, `ratingSummary`, `starBreakdown`, `reviewsFromPages`, `findOwnReview`, `reviewVisibility`, `isDuplicateReview`, `isSignInRequired`, … |
 | headless | `ReviewsProvider`, `ReviewList`, `ReviewAggregate`, `ReviewForm` |
 | default | `ReviewsPanel`, `ReviewListPanel`, `ReviewFormCard`, `RatingBadge`, `ReviewsSkinTheme` |
 | i18n | `REVIEWS_I18N_KEYS`, `registerReviewsI18n`, `REVIEWS_ERRORS`, `explainReviewsError` |

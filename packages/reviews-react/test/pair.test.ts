@@ -14,7 +14,13 @@ import {
   reviewVisibility,
 } from "../src/index.js";
 import { mockServer } from "./harness.js";
-import { FIRST_PAGE, SECOND_PAGE, TARGET, review } from "./fixtures.js";
+import {
+  FIRST_PAGE,
+  OWNER_AGGREGATES,
+  SECOND_PAGE,
+  TARGET,
+  review,
+} from "./fixtures.js";
 
 describe("query keys (frontend-standard §2 — namespaced)", () => {
   it("namespaces under the module root and keys on BOTH halves of the target", () => {
@@ -47,6 +53,7 @@ describe("the api surface covers the whole contract", () => {
     // so what the client owes is not omission but a state-gated control.
     expect(Object.keys(api).sort()).toEqual([
       "aggregate",
+      "aggregatesByOwner",
       "client",
       "createReview",
       "moderate",
@@ -88,6 +95,39 @@ describe("the api surface covers the whole contract", () => {
     });
     await runtime.api.aggregate(TARGET);
     expect(server.calls[0]?.url).toContain("/reviews/aggregate?");
+  });
+
+  it("posts the batched owner read, camelCase→snake_case", async () => {
+    const server = mockServer({
+      "POST /reviews/aggregates/by-owner": { body: OWNER_AGGREGATES },
+    });
+    const runtime = createReviewsRuntime({
+      baseUrl: "/reviews/api/v1",
+      fetch: server.fetch,
+    });
+    const result = await runtime.api.aggregatesByOwner({
+      ownerKeys: ["u-1", "u-2"],
+      targetType: "listing",
+    });
+    expect(server.calls[0]?.method).toBe("POST");
+    expect(server.calls[0]?.url).toContain("/reviews/aggregates/by-owner");
+    expect(server.calls[0]?.body).toEqual({
+      owner_keys: ["u-1", "u-2"],
+      target_type: "listing",
+    });
+    expect(result).toEqual(OWNER_AGGREGATES);
+  });
+
+  it("omits target_type from the wire when none was given", async () => {
+    const server = mockServer({
+      "POST /reviews/aggregates/by-owner": { body: {} },
+    });
+    const runtime = createReviewsRuntime({
+      baseUrl: "/reviews/api/v1",
+      fetch: server.fetch,
+    });
+    await runtime.api.aggregatesByOwner({ ownerKeys: ["u-1"] });
+    expect(server.calls[0]?.body).toEqual({ owner_keys: ["u-1"] });
   });
 });
 

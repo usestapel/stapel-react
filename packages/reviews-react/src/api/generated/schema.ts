@@ -133,6 +133,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reviews/api/v1/reviews/aggregates/by-owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description The rating of an owner — avg and count over published reviews of
+         *     everything that owner owns — for up to 100 owners in one call.
+         *
+         *     Answers `{owner_key: {avg, count}}`; an owner nobody has published a review
+         *     about is absent from the map rather than present with zeros. Optional
+         *     `target_type` narrows the count to one kind of target.
+         *
+         *     A POST because the owner keys are opaque host strings of unbounded length,
+         *     and a page showing twenty sellers wants one request. It reads and never
+         *     writes, so it sits in the same public, throttled position as
+         *     `GET /reviews/aggregate` — published reviews only, so an anonymous caller
+         *     learns nothing a moderator would need withheld.
+         *
+         *     The ownership link is the review's owner key, stamped when the review is
+         *     written by the target type's optional `owner_key_for` resolver. A
+         *     deployment that registers none gets an empty map, which is the honest
+         *     answer: the module was never told who owns anything.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        post: operations["reviews_api_v1_reviews_aggregates_by_owner_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -157,6 +194,13 @@ export interface components {
             action: string;
             /** @description Optional moderation reason (carried in the emitted fact) */
             reason?: string;
+        };
+        /** @description Batch-read the rating aggregate of many owners. */
+        OwnerAggregatesRequest: {
+            /** @description Opaque host-owned owner keys (at most 100 per request) */
+            owner_keys: string[];
+            /** @description Optional narrowing to a single target type */
+            target_type?: string;
         };
         /** @description Attach the target owner's reply to a review. */
         RespondRequest: {
@@ -369,6 +413,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AggregateResponse"];
+                };
+            };
+        };
+    };
+    reviews_api_v1_reviews_aggregates_by_owner_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerAggregatesRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["OwnerAggregatesRequest"];
+                "multipart/form-data": components["schemas"]["OwnerAggregatesRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: {
+                            /**
+                             * Format: double
+                             * @description Mean rating, three decimals (0.0 at count 0).
+                             */
+                            avg: number;
+                            /** @description Number of published reviews across the owner's targets. */
+                            count: number;
+                        };
+                    };
                 };
             };
         };
