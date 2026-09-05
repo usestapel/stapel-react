@@ -295,6 +295,92 @@ describe("a pooled reason discloses itself on the gesture", () => {
   });
 });
 
+describe("the pooled footnote can carry the way out of it", () => {
+  const door = <a href="/login">Sign in</a>;
+
+  it("draws the action in the BLOCKED arm, as it always has", () => {
+    render(
+      <Host i18n={hostWithReason("en", "Sign in to do this.")}>
+        <PaneGate gate={actionBlocked(REASON_KEY)} action={door} testId="pane">
+          <div>hidden</div>
+        </PaneGate>
+      </Host>
+    );
+    expect(screen.getByTestId("pane").getAttribute("data-stapel-pane-gate")).toBe(
+      "blocked"
+    );
+    expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
+  });
+
+  it("draws NO action beside the footnote by default — today's behaviour", () => {
+    // The measured defect: the pane is available, two controls inside it are
+    // not, the footnote says why, and the door is in the one arm this page
+    // never renders.
+    render(
+      <Host i18n={hostWithReason("en", "Sign in to do this.")}>
+        <PaneGate gate={actionAvailable()} action={door} testId="pane">
+          <GatedButton gate={actionBlocked(REASON_KEY)} testId="a">
+            Save
+          </GatedButton>
+        </PaneGate>
+      </Host>
+    );
+    expect(screen.getByTestId("pane").getAttribute("data-stapel-pane-gate")).toBe(
+      "available"
+    );
+    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+  });
+
+  it("draws it under the pooled sentences when the host asks for `always`", () => {
+    render(
+      <Host i18n={hostWithReason("en", "Sign in to do this.")}>
+        <PaneGate
+          gate={actionAvailable()}
+          action={door}
+          actionPlacement="always"
+          testId="pane"
+        >
+          <GatedButton gate={actionBlocked(REASON_KEY)} testId="a">
+            Save
+          </GatedButton>
+          <GatedButton gate={actionBlocked(REASON_KEY)} testId="b">
+            Share
+          </GatedButton>
+        </PaneGate>
+      </Host>
+    );
+    const pooled = document.querySelector("[data-stapel-gate-reasons]");
+    expect(pooled).not.toBeNull();
+    // One sentence for two controls, and ONE door under it — inside the same
+    // block, because the reasons and the way out are one statement.
+    expect(screen.getAllByText("Sign in to do this.")).toHaveLength(1);
+    const links = screen.getAllByRole("link", { name: "Sign in" });
+    expect(links).toHaveLength(1);
+    expect(pooled?.contains(links[0] as Node)).toBe(true);
+  });
+
+  it("stays silent on an available pane with nothing blocked inside it", () => {
+    // No refusal, no pooled reasons, no door: `always` is not "always draw a
+    // sign-in link".
+    render(
+      <Host i18n={hostWithReason("en", "Sign in to do this.")}>
+        <PaneGate
+          gate={actionAvailable()}
+          action={door}
+          actionPlacement="always"
+          testId="pane"
+        >
+          <GatedButton gate={actionAvailable()} testId="a">
+            Save
+          </GatedButton>
+        </PaneGate>
+      </Host>
+    );
+    expect(document.querySelector("[data-stapel-gate-reasons]")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+  });
+});
+
 describe("`whenBlocked=\"annotate\"` — a verdict on the VALUE, not on the person", () => {
   it("leaves the control fully usable and only adds the sentence", () => {
     const onClick = vi.fn();

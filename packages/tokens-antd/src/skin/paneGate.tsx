@@ -18,7 +18,9 @@
  *     refusal is not a fault (audit N9).
  *  2. **Available:** render the children inside a `GateReasonScope`, so
  *     per-control gates inside the pane print each distinct reason once,
- *     in one footnote, instead of once per control.
+ *     in one footnote, instead of once per control — and, with
+ *     `actionPlacement="always"`, the way out of those reasons under the
+ *     footnote itself, which is the arm `action` used never to reach.
  */
 import { useCallback, useId, useMemo, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
@@ -38,6 +40,27 @@ export interface PaneGateProps {
   /** The way forward, when there is one: a sign-in door, a request-access
    * link. Never a retry. */
   readonly action?: ReactNode;
+  /**
+   * WHICH ARM DRAWS {@link action}.
+   *
+   * `"blocked"` (default, byte-compatible) is the pane-level refusal only: the
+   * door renders inside the refusal panel and vanishes the moment the pane
+   * itself is available.
+   *
+   * `"always"` also draws it under the POOLED footnote when the pane IS
+   * available — for the case the pooling was built for and then stopped
+   * short of. A pane a visitor may read but not write is `available`, and its
+   * per-control gates pool their reasons into one footnote: "sign in to
+   * reply", "sign in to react", once each. The door out of all of them was in
+   * the one arm that never renders on that page, so measured on a live
+   * storefront the footnote said what was refused and offered nowhere to go —
+   * the host worked around it by drawing its own sign-in link under the pane.
+   *
+   * Drawn only where there is something to pool: no refusal, no reasons, no
+   * door. An available pane with nothing blocked inside it stays exactly as
+   * quiet as it is today.
+   */
+  readonly actionPlacement?: "blocked" | "always";
   /** Read-only content shown under the refusal (what the person may see
    * but not act on). */
   readonly preview?: ReactNode;
@@ -143,6 +166,13 @@ export function PaneGate(props: PaneGateProps): ReactElement {
     );
   }
 
+  // The pooled footnote carries the door too when the host asked for it —
+  // see `actionPlacement`. Inside the same block, because the sentences and
+  // the way out of them are one statement, not a note and a stray button.
+  const pooledAction =
+    props.actionPlacement === "always" && props.action !== undefined
+      ? props.action
+      : null;
   const reasons =
     pooled.size > 0 ? (
       <div
@@ -161,6 +191,9 @@ export function PaneGate(props: PaneGateProps): ReactElement {
             {entry.detail !== undefined ? ` ${entry.detail}` : ""}
           </Typography.Text>
         ))}
+        {pooledAction !== null && (
+          <div data-stapel-gate-reasons-action="">{pooledAction}</div>
+        )}
       </div>
     ) : null;
   const top = props.reasonsPlacement === "top";
