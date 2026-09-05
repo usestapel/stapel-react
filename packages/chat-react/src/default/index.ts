@@ -27,6 +27,8 @@ export type { ConversationSplitPanelProps } from "./ConversationSplitPanel.js";
 export { StartChatButton } from "./StartChatButton.js";
 export type { StartChatButtonProps, StartChatRefusal } from "./StartChatButton.js";
 export { SignInLink } from "./SignInLink.js";
+export { PooledSignInDoor, usePooledRefusal } from "./pooledSignInDoor.js";
+export type { PooledRefusal } from "./pooledSignInDoor.js";
 // The subject card and the overflow menu are exported so a host composing its
 // own thread screen keeps the same two surfaces rather than re-deciding them.
 export {

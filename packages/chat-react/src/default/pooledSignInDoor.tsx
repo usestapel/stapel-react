@@ -34,10 +34,24 @@
  * own copy. The claim below hands the sentence to exactly one control per
  * (scope, reason) and hands it on when that control unmounts — a card scrolled
  * out of a virtualised list must not take the pane's only door with it.
+ *
+ * ── The headless arm claims the same door ─────────────────────────
+ *
+ * `<StartChatButton refusal="pooled">` is not the only compact card control:
+ * a host that wants its own geometry composes the headless
+ * `<StartDirectChat>` with the skin's `<GatedButton>` directly, and that
+ * pairing had no way in here — the door lived inside this pair's own button,
+ * so a hand-composed pane printed the pooled sentence with no way out of it,
+ * which is the exact half-answer pooling was fixed for. Both halves are
+ * exported for it: {@link usePooledRefusal} for a host holding its own
+ * render, {@link PooledSignInDoor} for one that just wants the node placed.
+ * Same claim, same key — this pair's button and a host's own control in one
+ * pane still add up to ONE door.
  */
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
+import { GateReasonScopeContext } from "@stapel/tokens-antd/skin";
 import type { GateReasonScope } from "@stapel/tokens-antd/skin";
 
 interface DoorClaim {
@@ -142,11 +156,60 @@ function usePooledSentence(
  * and still themed by the surrounding `ChatSkinTheme`.
  */
 export function PooledSignInDoor(props: {
-  readonly scope: GateReasonScope | null;
+  /**
+   * The pane's scope. Omitted, it is read from the ambient
+   * `GateReasonScopeContext` — which is what a host composing its own control
+   * wants; an explicit `null` still means "no scope".
+   */
+  readonly scope?: GateReasonScope | null;
   readonly reason: string | undefined;
   readonly door: ReactNode;
 }): ReactNode {
-  const sentence = usePooledSentence(props.scope, props.reason);
+  const ambient = useContext(GateReasonScopeContext);
+  const scope = props.scope === undefined ? ambient : props.scope;
+  const sentence = usePooledSentence(scope, props.reason);
   if (sentence === null) return null;
   return createPortal(props.door, sentence);
+}
+
+/** What {@link usePooledRefusal} tells a control about the pane's one door. */
+export interface PooledRefusal {
+  /** The enclosing `PaneGate`'s reason scope, or `null` outside one — where
+   * the reason and its door stand beside the control, as they always did. */
+  readonly scope: GateReasonScope | null;
+  /** Is THIS control the one rendering the pane's door for this reason?
+   * `false` for every other control sharing the sentence, and while the
+   * sentence is not on the page yet. */
+  readonly holdsDoor: boolean;
+  /**
+   * Put `door` in the pooled sentence — a portal, so the node keeps this
+   * control's React context (its `I18nProvider`, its theme) even though the
+   * DOM node moves. Returns `null` from the controls that did not win the
+   * claim, so every control may call it unconditionally.
+   */
+  readonly renderDoor: (door: ReactNode) => ReactNode;
+}
+
+/**
+ * Claim the pane's ONE sign-in door for a pooled refusal.
+ *
+ * For a host composing `<StartDirectChat>` with the skin's `<GatedButton>`
+ * itself: pass the reason `useActionGate` gave you, render
+ * `refusal.renderDoor(<SignInLink cta={signIn} />)` beside your button, and
+ * exactly one of the controls sharing the pane's sentence puts the link
+ * inside it — this pair's own `<StartChatButton refusal="pooled">` included,
+ * because both go through the same claim, keyed by the same (scope, reason).
+ *
+ * The scope comes from the ambient `GateReasonScopeContext`, so there is
+ * nothing for the host to thread.
+ */
+export function usePooledRefusal(reason: string | undefined): PooledRefusal {
+  const scope = useContext(GateReasonScopeContext);
+  const sentence = usePooledSentence(scope, reason);
+  return {
+    scope,
+    holdsDoor: sentence !== null,
+    renderDoor: (door: ReactNode) =>
+      sentence === null ? null : createPortal(door, sentence),
+  };
 }
