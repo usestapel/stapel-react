@@ -346,7 +346,16 @@ export function createSessionManager(
   const handoffStorage: Storage | null = (() => {
     if (options.refreshHandoffStorage !== undefined) return options.refreshHandoffStorage;
     try {
-      // eslint-disable-next-line stapel/no-raw-storage -- Not user data, and not something `createRepository` can hold. What is stored is one timestamp saying "a token rotation is out right now", which must (a) be readable SYNCHRONOUSLY at construction, before any await, or the next document's refresh has already been dispatched by the time we know; (b) live in `sessionStorage` specifically — per-tab, surviving a reload of this tab and nothing else; (c) not be wiped at logout, since a logout is exactly when the last rotation must still be visible to the page that loads next. §43.4's guarantees (encrypt user data, wipe it at logout) are about the opposite kind of value, and `createRepository` is async and session-scoped — it is built ON this manager, so it cannot be what this manager boots through.
+      // Raw `sessionStorage`, and structurally so: this file is a named
+      // exception in the plugin's `STORAGE_ALLOWED` (§43.4), beside the
+      // `no-adhoc-401` carve-out it already had. What is stored is one
+      // timestamp — "a token rotation is out right now" — which must be
+      // readable SYNCHRONOUSLY at construction (before any await, or the next
+      // document has already dispatched its own refresh), must be per-tab,
+      // and must survive a logout, since a logout is exactly when the last
+      // rotation still has to be visible to the page that loads next.
+      // `createRepository` is async, session-scoped and built ON this
+      // manager, so it cannot be what this manager boots through.
       return typeof sessionStorage === "undefined" ? null : sessionStorage;
     } catch {
       return null;
