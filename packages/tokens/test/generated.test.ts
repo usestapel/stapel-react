@@ -12,6 +12,7 @@ import {
   elevation,
   spacing,
   radii,
+  responsive,
 } from "../src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -154,5 +155,58 @@ describe("breakpoints (values generated, helpers hand-written)", () => {
     expect(breakpointForWidth(breakpoints.tablet)).toBe("tablet");
     expect(breakpointForWidth(breakpoints.desktop)).toBe("desktop");
     expect(mediaQuery("tablet")).toBe("(min-width: 768px)");
+  });
+});
+
+/**
+ * `page-gutter` — the first scale role whose value changes with the VIEWPORT.
+ *
+ * A page's distance from the edge of the window cannot be one number: 24px on
+ * a 390px phone is a tenth of the screen spent on nothing, and 4px on a
+ * 1440px desktop is a page glued to the frame. It also must not be each
+ * component's own guess, which is exactly what it was — a shell, a category
+ * page and a search page each picked a spacing step, and a page composed of
+ * the three had three different left edges down one screen.
+ */
+describe("responsive scale roles", () => {
+  const css = read("src/generated/tokens.css");
+
+  it("resolves each breakpoint to a real spacing step", () => {
+    // Authored as STEP NAMES, so the role stays on the scale a theme retunes
+    // in one place rather than becoming three loose pixel values.
+    expect(responsive["page-gutter"]).toEqual({
+      phone: spacing[1],
+      tablet: spacing[2],
+      desktop: spacing[5],
+    });
+  });
+
+  it("declares the NARROWEST value as the base — mobile first, and not as a slogan", () => {
+    const [root = ""] = css.split('[data-theme="dark"]');
+    // A var declared once at the desktop value and overridden downwards puts
+    // 24px on a phone for every host that loads the sheet and forgets the
+    // query.
+    expect(root).toContain(`--stapel-page-gutter: ${String(spacing[1])}px;`);
+  });
+
+  it("widens it with one @media arm per wider breakpoint, ascending", () => {
+    const arms = [...css.matchAll(/@media \(min-width: (\d+)px\) \{[^}]*?--stapel-page-gutter: (\d+)px;/gs)]
+      .map((match) => [Number(match[1]), Number(match[2])] as const);
+    expect(arms).toEqual([
+      [breakpoints.tablet, spacing[2]],
+      [breakpoints.desktop, spacing[5]],
+    ]);
+  });
+
+  it("keeps the arms OUT of the themed blocks — a gutter is not a colour", () => {
+    // Repeating it under [data-theme="dark"] would be two declarations to keep
+    // in step for no reason at all.
+    const dark = css.slice(css.indexOf('[data-theme="dark"] {'));
+    const themedBlock = dark.slice(0, dark.indexOf("}"));
+    expect(themedBlock).not.toContain("--stapel-page-gutter");
+  });
+
+  it("is addressable through the typed cssVar", () => {
+    expect(cssVar("page-gutter")).toBe("var(--stapel-page-gutter)");
   });
 });

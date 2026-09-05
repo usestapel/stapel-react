@@ -61,7 +61,7 @@ import { Link, Outlet } from "react-router";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useBreakpoint, useOptionalSite, useT } from "@stapel/core";
-import { spacing } from "@stapel/tokens-antd";
+import { cssVar, spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE, dockRenders } from "./NavDock.js";
@@ -89,6 +89,30 @@ const SIGN_IN_PATH = "/login";
 const DEFAULT_CONTENT_MAX_WIDTH = 1280;
 
 /** See `AppShell`'s constants of the same name — one frame, one geometry. */
+/**
+ * The page's own side padding — header, content and footer, one value.
+ *
+ * `--stapel-page-gutter` is a RESPONSIVE token role: 4px on a phone, 8px on a
+ * tablet, 24px on a desktop, declared once by `@stapel/tokens` with its own
+ * media arms. Read as a var rather than computed here for two reasons, and the
+ * second is the one that matters:
+ *
+ *  - it changes with the VIEWPORT, and this shell already knows its
+ *    breakpoint — but a value computed in JS is applied at render and a page
+ *    resized between renders keeps the old gutter, where a var reflows;
+ *  - it is the same edge for everything on the page. The three boxes used to
+ *    say `spacing[4]` each, and the pages MOUNTED INSIDE them said their own
+ *    thing — so a composed screen had a header at 16px, a category grid at 24
+ *    and a footer at 16, three left edges down one window. One role, read by
+ *    everyone, is the only shape that cannot drift.
+ *
+ * Written through `cssVar` (so a renamed role fails to compile rather than
+ * silently resolving to nothing) with the value the three boxes used before
+ * the role existed as the fallback, which keeps a host that loads no
+ * stylesheet exactly where it was.
+ */
+const PAGE_GUTTER_CSS = `${cssVar("page-gutter").slice(0, -1)}, ${String(spacing[4])}px)`;
+
 const HEADER_HEIGHT_DESKTOP = spacing[8];
 const HEADER_HEIGHT_PHONE = spacing[7] + spacing[2];
 const DRAWER_WIDTH = "min(20rem, 86vw)";
@@ -517,11 +541,13 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           alignItems: isDesktop || dockChrome ? "center" : "stretch",
           flexDirection: isDesktop || dockChrome ? "row" : "column",
           gap: isDesktop ? spacing[4] : dockChrome ? spacing[3] : spacing[2],
+          // The side padding is the PAGE's, not the header's — see
+          // `PAGE_GUTTER_CSS`. Only the block padding differs by chrome.
           padding: isDesktop
-            ? `0 ${String(spacing[4])}px`
+            ? `0 ${PAGE_GUTTER_CSS}`
             : dockChrome
-              ? `0 ${String(spacing[4])}px`
-              : `${String(spacing[2])}px ${String(spacing[4])}px`,
+              ? `0 ${PAGE_GUTTER_CSS}`
+              : `${String(spacing[2])}px ${PAGE_GUTTER_CSS}`,
           height: isDesktop
             ? HEADER_HEIGHT_DESKTOP
             : dockChrome
@@ -676,9 +702,13 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       )}
 
       <Layout.Content
+        // The same gutter the header and the footer use, so the three boxes
+        // have ONE left edge — and a page mounted in here reads the same role
+        // instead of adding a second one on top of it.
         style={{
-          padding: spacing[4],
+          padding: `${String(spacing[4])}px ${PAGE_GUTTER_CSS}`,
         }}
+        data-testid="public-shell-main"
       >
         <div
           style={{
@@ -698,7 +728,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           style={{
             background: token.colorBgContainer,
             borderTop: `1px solid ${token.colorSplit}`,
-            padding: `${String(spacing[5])}px ${String(spacing[4])}px`,
+            padding: `${String(spacing[5])}px ${PAGE_GUTTER_CSS}`,
           }}
           data-testid="public-shell-footer"
         >

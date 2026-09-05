@@ -99,6 +99,10 @@
       "height": 32,
       "height-phone": 44
     },
+    "_responsiveComment": "A scale role whose value changes with the VIEWPORT, authored as SPACING STEP names so it stays on the scale a theme retunes in one place. Emitted mobile-first: the narrowest breakpoint is the base declaration and every wider one is an @media arm. `page-gutter` is how far a page's content sits from the edge of the window — one number cannot serve both a 390px phone (where 24px is a tenth of the screen) and a 1440px desktop, and each component guessing for itself is what put three different left edges down one composed page.",
+    "responsive": {
+      "page-gutter": { "phone": "1", "tablet": "2", "desktop": "5" }
+    },
     "breakpoints": {
       "phone": 0,
       "tablet": 768,

@@ -635,3 +635,55 @@ describe("<PublicShell/> — navBadges reach every surface the entry renders on"
     setViewportWidth(1440);
   });
 });
+
+/**
+ * ONE LEFT EDGE.
+ *
+ * The header, the content and the footer each said `spacing[4]` for their side
+ * padding, and the PAGES mounted inside the content said their own thing on
+ * top of it — so a composed screen had a header at 16px, a category grid at 40
+ * (16 + its own 24) and a footer at 16: three left edges down one window, and
+ * one of them the buyer's eye lands on first.
+ *
+ * `--stapel-page-gutter` is a responsive TOKEN role (4px phone / 8px tablet /
+ * 24px desktop, declared once by `@stapel/tokens` with its own media arms), so
+ * the three boxes read one value and it reflows on resize rather than being
+ * recomputed at the shell's next render.
+ */
+describe("<PublicShell/> — the page gutter is a token, and the same one everywhere", () => {
+  it("reads the role in the header, the content and the footer", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { footer: <span>Ranking</span> }));
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+
+    for (const testId of [
+      "public-shell-header",
+      "public-shell-main",
+      "public-shell-footer",
+    ]) {
+      const style = screen.getByTestId(testId).getAttribute("style") ?? "";
+      expect(style).toContain("--stapel-page-gutter");
+    }
+  });
+
+  it("carries the old value as the var's fallback — a host with no stylesheet does not move", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s"));
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    // 16px is what all three boxes hardcoded before the role existed.
+    expect(
+      screen.getByTestId("public-shell-main").getAttribute("style") ?? ""
+    ).toContain("--stapel-page-gutter, 16px");
+  });
+
+  it("keeps the phone header's own BLOCK padding — only the side is shared", async () => {
+    setViewportWidth(390);
+    render(wrap("/s"));
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+    const style = screen.getByTestId("public-shell-header").getAttribute("style") ?? "";
+    // The gutter is the distance from the window's edge; how tall the chrome
+    // is remains the chrome's business.
+    expect(style).toContain("--stapel-page-gutter");
+    expect(style).toMatch(/padding:\s*\d+px/);
+  });
+});

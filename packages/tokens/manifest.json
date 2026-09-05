@@ -91,6 +91,9 @@
         "desktop",
         "phone",
         "tablet"
+      ],
+      "responsive": [
+        "page-gutter"
       ]
     }
   },

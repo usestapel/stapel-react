@@ -245,6 +245,7 @@ async function renderCategoryPage(
     readonly breadcrumbs?: boolean;
     readonly slug?: string;
     readonly categoryId?: number;
+    readonly gutter?: boolean;
     readonly server?: ReturnType<typeof mockServer>;
   } = {}
 ) {
@@ -519,5 +520,42 @@ describe("the tiles arm skips a one-rung import wrapper", () => {
       expect(hrefs).toEqual(["/c/group-a", "/c/group-b"]);
     });
     expect(screen.queryByText("category.offer")).toBeNull();
+  });
+});
+
+/**
+ * A PAGE INSIDE A SHELL MUST NOT INDENT ITSELF TWICE.
+ *
+ * `@stapel/shell-react`'s `<Layout.Content>` holds the page gutter
+ * (`--stapel-page-gutter`, a responsive token role — 4px on a phone, 24px on a
+ * desktop). A page that adds its own inline padding on top of it sits further
+ * in than the header above it and the footer below it: three left edges down
+ * one window, which is the defect the shared role exists to end.
+ *
+ * The default is unchanged, because a page mounted straight into a router with
+ * nothing around it does own its own padding.
+ */
+describe("the page's own gutter", () => {
+  it("keeps its inline padding by default — nothing is holding one for it", async () => {
+    await renderCategoryPage();
+    const page = screen.getByTestId("categories-category-page");
+    expect(page.getAttribute("data-gutter")).toBe("on");
+    expect(page.style.paddingInline).not.toBe("0");
+  });
+
+  it("drops the inline half when the composing surface already has one", async () => {
+    await renderCategoryPage({ gutter: false });
+    const page = screen.getByTestId("categories-category-page");
+    expect(page.getAttribute("data-gutter")).toBe("off");
+    expect(page.style.paddingInline).toBe("0");
+  });
+
+  it("keeps the BLOCK padding either way — vertical rhythm is the page's own", async () => {
+    await renderCategoryPage({ gutter: false });
+    // The space between a shell's header and this page's first line is not
+    // the shell's to decide.
+    expect(
+      screen.getByTestId("categories-category-page").style.paddingBlock
+    ).not.toBe("0");
   });
 });

@@ -36,8 +36,13 @@ const SCALE_PREFIXES = [
   "elevation-",
 ];
 
-function isScaleName(name) {
-  return SCALE_PREFIXES.some((prefix) => name.startsWith(prefix));
+// Responsive scale roles carry NO prefix on the wire (`--stapel-page-gutter`),
+// because a page gutter is one role and not a family. They are read from the
+// catalog rather than hardcoded here, so a theme adding one does not need this
+// rule edited to stop calling it a typo.
+function isScaleName(name, catalog) {
+  if (SCALE_PREFIXES.some((prefix) => name.startsWith(prefix))) return true;
+  return catalog.responsive.has(name);
 }
 
 // var(--stapel-<name>) or var(--stapel-<name>, <fallback>) — captures <name>.
@@ -109,7 +114,7 @@ export default {
     const names = [...catalog.all];
 
     function reportIfUnknown(node, name, form) {
-      if (isScaleName(name)) return;
+      if (isScaleName(name, catalog)) return;
       if (catalog.hasToken(name)) return;
       const suggestion = closestName(name, names);
       context.report({

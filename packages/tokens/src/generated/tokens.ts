@@ -75,6 +75,7 @@ export type StapelVar =
   | "line-height-sm"
   | "line-height-xl"
   | "line-height-xs"
+  | "page-gutter"
   | "radius-full"
   | "radius-lg"
   | "radius-md"
@@ -336,6 +337,31 @@ export const breakpoints = {
   "tablet": 768,
   "desktop": 1200
 } as const;
+
+/**
+ * Scale roles whose value changes with the VIEWPORT, in px per breakpoint.
+ *
+ * `page-gutter` is the one that ships: how far a page's content sits from the
+ * edge of the window. It cannot be a single number — 24px on a 390px phone is
+ * a tenth of the screen spent on nothing — and it must not be each
+ * component's own guess, which is what it was: a shell, a category page and a
+ * search page each picked a spacing step, and a page composed of the three had
+ * three different left edges down one screen.
+ *
+ * Read it in CSS as `var(--stapel-page-gutter)`, which the emitted
+ * stylesheet declares mobile-first with one `@media (min-width: …)` arm per
+ * wider breakpoint. This object is the same numbers for anything that has to
+ * compute rather than declare.
+ */
+export const responsive = {
+  "page-gutter": {
+    "desktop": 24,
+    "phone": 4,
+    "tablet": 8
+  }
+} as const;
+
+export type ResponsiveRoleName = keyof typeof responsive;
 
 export interface TypeStep {
   readonly fontSize: number;

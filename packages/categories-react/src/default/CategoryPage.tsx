@@ -425,6 +425,29 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * changes shape.
    */
   readonly measure?: number | string;
+  /**
+   * The page's own side padding — its distance from whatever is to its left
+   * and right.
+   *
+   * Default `true`, which is what this page has always drawn: `spacing[4]` on
+   * all four sides, correct for a page mounted straight into a router with
+   * nothing around it.
+   *
+   * `false` removes the INLINE half of it, for the far more common case — the
+   * page mounted inside a shell whose `<Layout.Content>` already holds the
+   * page gutter (`@stapel/shell-react`, `--stapel-page-gutter`). Two boxes
+   * each adding their own padding is a page indented twice: the heading sits
+   * further in than the header above it and the footer below it, which is the
+   * three-left-edges defect the shared token role exists to end. The block
+   * padding stays either way — vertical rhythm between a header and a page's
+   * first line is this page's own business.
+   *
+   * A prop rather than a context read on purpose: whether there is a gutter
+   * outside this component is a fact about the COMPOSITION, and the composing
+   * surface is the only party that knows it. Defaulting to `true` keeps every
+   * existing host exactly where it is.
+   */
+  readonly gutter?: boolean;
 }
 
 /**
@@ -719,7 +742,14 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
       <Flex
         vertical
         gap={spacing[4]}
-        style={{ padding: spacing[4], maxWidth: props.measure ?? CATEGORY_MEASURE }}
+        style={{
+          // Block padding always; inline padding only when nothing outside is
+          // already holding the page gutter — see `CategoryPageProps.gutter`.
+          paddingBlock: spacing[4],
+          paddingInline: props.gutter === false ? 0 : spacing[4],
+          maxWidth: props.measure ?? CATEGORY_MEASURE,
+        }}
+        data-gutter={props.gutter === false ? "off" : "on"}
         data-testid="categories-category-page"
       >
         {/* The page owns the outage and the dead address; the bar under

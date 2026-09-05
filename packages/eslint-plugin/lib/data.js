@@ -65,11 +65,16 @@ function buildTokenCatalog(manifest) {
   const core = new Set(t.core ?? []);
   const component = new Set(t.component ?? []);
   const ramps = new Set(manifest?.ramps?.names ?? []);
+  // Scale roles that change with the viewport (`page-gutter`). They are the
+  // one scale namespace with no prefix on the wire, so a rule policing colour
+  // roles by name needs the catalog to say they are scales.
+  const responsive = new Set(t.scales?.responsive ?? []);
   const all = new Set([...core, ...component]);
   return {
     core,
     component,
     ramps,
+    responsive,
     all,
     /** true if `name` is a known L2 core or L3 component token */
     hasToken: (name) => all.has(name),

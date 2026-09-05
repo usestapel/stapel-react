@@ -232,6 +232,27 @@ export function validateTheme(theme, ramps) {
     }
   }
 
+  // ── responsive roles point at a real spacing step and a real breakpoint ──
+  const scales = theme.scales ?? {};
+  for (const [role, byBreakpoint] of sortedEntries(scales.responsive ?? {})) {
+    if (role.startsWith("_")) continue;
+    for (const [breakpoint, step] of sortedEntries(byBreakpoint ?? {})) {
+      if (scales.breakpoints?.[breakpoint] === undefined) {
+        errors.push(
+          `tokens: responsive role "${role}" names breakpoint "${breakpoint}", ` +
+            `which scales.breakpoints does not define`
+        );
+      }
+      if (scales.spacing?.[step] === undefined) {
+        errors.push(
+          `tokens: responsive role "${role}".${breakpoint} → "${step}" — a ` +
+            `responsive role's value is a SPACING STEP name, so the role stays ` +
+            `on the scale a theme retunes in one place`
+        );
+      }
+    }
+  }
+
   return { errors, warnings };
 }
 
@@ -256,7 +277,34 @@ export function resolveTheme(theme, ramps) {
     elevation[name] = { light: def.light, dark: def.dark };
   }
   const scales = theme.scales ?? {};
-  return { core, elevation, scales };
+  return { core, elevation, scales, responsive: resolveResponsive(scales) };
+}
+
+/**
+ * `scales.responsive` — a role whose value is a SPACING STEP that changes with
+ * the viewport, resolved to `{breakpoint: px}`.
+ *
+ * The one such role today is `page-gutter`: how far a page's content sits from
+ * the edge of the window. It cannot be one number — 24px of margin on a 390px
+ * phone is 12% of the screen spent on nothing — and it cannot be each
+ * component's own guess either, which is what it was: a shell, a category page
+ * and a search page each picked a spacing step, and a page composed of the
+ * three had three different left edges down one screen.
+ *
+ * Authored as STEP NAMES, never pixels, so the role stays on the scale a theme
+ * can retune in one place (`scales.spacing`).
+ */
+function resolveResponsive(scales) {
+  const out = {};
+  for (const [role, byBreakpoint] of sortedEntries(scales.responsive ?? {})) {
+    if (role.startsWith("_")) continue;
+    const resolved = {};
+    for (const [breakpoint, step] of sortedEntries(byBreakpoint)) {
+      resolved[breakpoint] = scales.spacing?.[step];
+    }
+    out[role] = resolved;
+  }
+  return out;
 }
 
 function scaleLines(scales) {
@@ -284,6 +332,65 @@ function scaleLines(scales) {
     lines.push(`${PREFIX}-breakpoint-${kebab(name)}: ${px(value)};`);
   }
   return lines;
+}
+
+/**
+ * The base arm of every responsive role — the NARROWEST breakpoint's value.
+ *
+ * Mobile first, and not as a slogan: a var declared once at the desktop value
+ * and overridden downwards would put 24px of margin on a 390px phone for every
+ * host that loads the stylesheet and forgets the media query. The base is the
+ * phone; the arms below only ever widen it.
+ */
+function responsiveBaseLines(scales, responsive) {
+  const order = breakpointOrder(scales);
+  const first = order[0];
+  const lines = [];
+  if (first === undefined) return lines;
+  for (const [role, byBreakpoint] of sortedEntries(responsive)) {
+    const value = byBreakpoint[first];
+    if (value === undefined) continue;
+    lines.push(`${PREFIX}-${kebab(role)}: ${px(value)};`);
+  }
+  return lines;
+}
+
+/** The theme's breakpoints, narrowest first — the order the arms are written
+ * in, so the widest matching one wins by ordinary cascade order. */
+function breakpointOrder(scales) {
+  return Object.entries(scales.breakpoints ?? {})
+    .sort((a, b) => a[1] - b[1])
+    .map(([name]) => name);
+}
+
+/**
+ * One `@media (min-width: …)` block per breakpoint past the first, holding
+ * every responsive role that names it.
+ *
+ * The arms live OUTSIDE the themed selectors on purpose: a page gutter is not
+ * a colour and does not change with light/dark, so repeating it under
+ * `[data-theme="dark"]` would be two declarations to keep in step for no
+ * reason. Scoped selectors still apply — `sel.light` carries the brand
+ * qualifier when there is one — so a brand can retune the gutter like anything
+ * else.
+ */
+function responsiveArms(scales, responsive, sel) {
+  const order = breakpointOrder(scales);
+  const blocks = [];
+  for (const breakpoint of order.slice(1)) {
+    const width = scales.breakpoints[breakpoint];
+    const lines = [];
+    for (const [role, byBreakpoint] of sortedEntries(responsive)) {
+      const value = byBreakpoint[breakpoint];
+      if (value === undefined) continue;
+      lines.push(`    ${PREFIX}-${kebab(role)}: ${px(value)};`);
+    }
+    if (lines.length === 0) continue;
+    blocks.push(
+      `@media (min-width: ${px(width)}) {\n  ${sel.light} {\n${lines.join("\n")}\n  }\n}`
+    );
+  }
+  return blocks;
 }
 
 /** A brand key is an ADDRESS in a selector and a filename — keep it boring. */
@@ -335,7 +442,7 @@ export function scopeSelectors(scope) {
  */
 export function renderCss(resolved, options = {}) {
   const sel = scopeSelectors(options.scope);
-  const { core, elevation, scales } = resolved;
+  const { core, elevation, scales, responsive = {} } = resolved;
   const rootColor = [];
   const darkColor = [];
   const rootElev = [];
@@ -349,7 +456,11 @@ export function renderCss(resolved, options = {}) {
     rootElev.push(`${PREFIX}-elevation-${name}: ${t.light};`);
     darkElev.push(`${PREFIX}-elevation-${name}: ${t.dark};`);
   }
-  const rootScale = scaleLines(scales);
+  const rootScale = [
+    ...scaleLines(scales),
+    ...responsiveBaseLines(scales, responsive),
+  ];
+  const arms = responsiveArms(scales, responsive, sel);
 
   const indent = (lines) => lines.map((l) => `  ${l}`).join("\n");
 
@@ -379,6 +490,11 @@ export function renderCss(resolved, options = {}) {
     indent(darkElev),
     "}",
     "",
+    // Responsive scale roles — a page gutter is not a colour, so the arms sit
+    // outside the light/dark pair rather than being written twice.
+    ...(arms.length > 0
+      ? ["/* responsive scales (mobile-first; the base is in the block above) */", ...arms, ""]
+      : []),
   ].join("\n");
 }
 
@@ -492,7 +608,7 @@ function tsUnion(names) {
 
 /** Render the typed generated tokens.ts (role union + typed cssVar + colors). */
 export function renderTokensTs(resolved) {
-  const { core, elevation, scales } = resolved;
+  const { core, elevation, scales, responsive = {} } = resolved;
   const coreNames = Object.keys(core).sort();
 
   // Back-compat resolved colours object (public API `colors`, §1.4).
@@ -512,6 +628,7 @@ export function renderTokensTs(resolved) {
   for (const n of Object.keys(scales.radii ?? {})) scaleVarNames.push(`radius-${kebab(n)}`);
   for (const n of Object.keys(scales.controls ?? {})) scaleVarNames.push(`control-${kebab(n)}`);
   for (const n of Object.keys(scales.breakpoints ?? {})) scaleVarNames.push(`breakpoint-${kebab(n)}`);
+  for (const n of Object.keys(responsive)) scaleVarNames.push(kebab(n));
   for (const n of Object.keys(elevation)) scaleVarNames.push(`elevation-${kebab(n)}`);
   scaleVarNames.sort();
 
@@ -570,6 +687,25 @@ export const radii = ${lit(scales.radii ?? {})} as const;
 export const controls = ${lit(scales.controls ?? {})} as const;
 export const breakpoints = ${lit(scales.breakpoints ?? {})} as const;
 
+/**
+ * Scale roles whose value changes with the VIEWPORT, in px per breakpoint.
+ *
+ * \`page-gutter\` is the one that ships: how far a page's content sits from the
+ * edge of the window. It cannot be a single number — 24px on a 390px phone is
+ * a tenth of the screen spent on nothing — and it must not be each
+ * component's own guess, which is what it was: a shell, a category page and a
+ * search page each picked a spacing step, and a page composed of the three had
+ * three different left edges down one screen.
+ *
+ * Read it in CSS as \`var(--stapel-page-gutter)\`, which the emitted
+ * stylesheet declares mobile-first with one \`@media (min-width: …)\` arm per
+ * wider breakpoint. This object is the same numbers for anything that has to
+ * compute rather than declare.
+ */
+export const responsive = ${lit(responsive)} as const;
+
+export type ResponsiveRoleName = keyof typeof responsive;
+
 export interface TypeStep {
   readonly fontSize: number;
   readonly lineHeight: number;
@@ -603,7 +739,7 @@ export type RampName = keyof typeof ramps;
 
 /** Render the tokens package manifest (§6 — self-description, phase-1 pattern). */
 export function renderManifest(pkg, resolved, ramps) {
-  const { core, elevation, scales } = resolved;
+  const { core, elevation, scales, responsive = {} } = resolved;
   return {
     $generated:
       "by @stapel/tokens' `stapel-tokens` bin — do not edit; drift-gated (pnpm gen:tokens:check)",
@@ -620,6 +756,11 @@ export function renderManifest(pkg, resolved, ramps) {
         radii: Object.keys(scales.radii ?? {}).sort(),
         controls: Object.keys(scales.controls ?? {}).sort(),
         breakpoints: Object.keys(scales.breakpoints ?? {}).sort(),
+        // Scale roles that change with the viewport. Listed here because they
+        // are the one scale namespace with NO prefix on the wire
+        // (`--stapel-page-gutter`), so a lint rule policing colour roles has
+        // to be told they are scales — data, not a hardcoded skip list.
+        responsive: Object.keys(responsive).sort(),
       },
     },
     ramps: {

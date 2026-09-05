@@ -24,7 +24,8 @@ export type { Typography } from "./typography.js";
 export type { TypeStep, FontSizeName, FontWeightName } from "./generated/tokens.js";
 
 // ── spacing / radii / controls / elevation ───────────────────────────────────
-export { spacing, radii, controls, elevation } from "./generated/tokens.js";
+export { spacing, radii, controls, elevation, responsive } from "./generated/tokens.js";
+export type { ResponsiveRoleName } from "./generated/tokens.js";
 export type {
   SpacingStep,
   RadiusName,
