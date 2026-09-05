@@ -4,6 +4,7 @@ import type {
   ElevationSource,
   PersistStorage,
   SessionLostReason,
+  SessionStatus,
   StapelClient,
 } from "@stapel/core";
 import { createAnonymousElevation } from "./anonymousElevation.js";
@@ -92,6 +93,18 @@ export interface CreateAuthRuntimeOptions {
    * logout); this fires only for `revoked`/`expired`.
    */
   readonly onSessionLost?: (reason: SessionLostReason) => void | Promise<void>;
+  /**
+   * The ceiling on waiting out a previous document's token rotation. Forwarded
+   * as-is to core's session manager — see
+   * `model/session.ts`'s `AuthSessionOptions.refreshHandoffWindowMs`.
+   */
+  readonly refreshHandoffWindowMs?: number;
+  /**
+   * A synchronous read of the host's non-httponly evidence that a session
+   * exists, forwarded as-is to core's session manager — see
+   * `model/session.ts`'s `AuthSessionOptions.readSessionHint`.
+   */
+  readonly readSessionHint?: () => SessionStatus | null;
   /** Extra headers merged into every request (e.g. a captcha or tenant id). */
   readonly defaultHeaders?: Record<string, string>;
   /**
@@ -196,6 +209,12 @@ export function createAuthRuntime(
     ...(options.onTeardown !== undefined ? { onTeardown: options.onTeardown } : {}),
     ...(options.onSessionLost !== undefined
       ? { onSessionLost: options.onSessionLost }
+      : {}),
+    ...(options.refreshHandoffWindowMs !== undefined
+      ? { refreshHandoffWindowMs: options.refreshHandoffWindowMs }
+      : {}),
+    ...(options.readSessionHint !== undefined
+      ? { readSessionHint: options.readSessionHint }
       : {}),
   });
   sessionHolder.current = session;

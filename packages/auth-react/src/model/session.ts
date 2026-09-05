@@ -4,6 +4,7 @@ import type {
   RefreshOutcome,
   SessionLostReason,
   SessionManager,
+  SessionStatus,
 } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
 import type { AuthResponse, AuthTokens, StapelUser } from "../api/types.js";
@@ -163,6 +164,25 @@ export interface AuthSessionOptions {
    * logout; this only fires for an involuntary loss).
    */
   readonly onSessionLost?: (reason: SessionLostReason) => void | Promise<void>;
+  /**
+   * How long a refresh marker left by the PREVIOUS document counts as "a
+   * rotation is still in flight" — core's cross-document handoff guard. This
+   * pair builds the core manager, so a host that measured its own refresh
+   * latency had no way to raise the ceiling: the option existed on
+   * `createSessionManager` and stopped at this constructor. Absent, core's
+   * {@link https://npmjs.com/@stapel/core `REFRESH_HANDOFF_WINDOW_MS`} (3 s)
+   * still applies, unchanged.
+   */
+  readonly refreshHandoffWindowMs?: number;
+  /**
+   * A cheap synchronous read of whatever NON-httponly evidence the host has
+   * that a session exists, handed to core's manager: consulted only after
+   * waiting out a previous document's rotation, where "a session is already
+   * there" is the difference between waiting and refreshing on top of someone
+   * else's rotation. Same seam, same reason as above — it was reachable on
+   * `createSessionManager` and nowhere from this pair.
+   */
+  readonly readSessionHint?: () => SessionStatus | null;
 }
 
 const REFRESH_REVOKED = "error.401.refresh_revoked";
@@ -435,6 +455,13 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
     },
     ...(options.onSessionLost !== undefined
       ? { onSessionLost: options.onSessionLost }
+      : {}),
+    // Straight through to core, which owns both defaults.
+    ...(options.refreshHandoffWindowMs !== undefined
+      ? { refreshHandoffWindowMs: options.refreshHandoffWindowMs }
+      : {}),
+    ...(options.readSessionHint !== undefined
+      ? { readSessionHint: options.readSessionHint }
       : {}),
   });
 
