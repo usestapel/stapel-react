@@ -5,11 +5,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { useUploadQueue } from "../src/index.js";
+import { useCdnRef, useUploadQueue } from "../src/index.js";
 import type { UploadQueueBag } from "../src/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 import type { MockServer } from "./harness.js";
-import { bigImageFile, imageFile, imageRow, MISS, uploaded } from "./fixtures.js";
+import { bigImageFile, hit, imageFile, imageRow, MISS, uploaded } from "./fixtures.js";
 
 function wrapperFor(server: MockServer) {
   return function Wrapper(props: { children: ReactNode }): ReactNode {
@@ -304,7 +304,7 @@ describe("the order IS the meaning", () => {
 });
 
 describe("a reopened draft", () => {
-  it("starts from stored references, with no bytes and no requests", () => {
+  it("starts from stored references with no bytes uploaded, then resolves each row through the owner-scoped read", async () => {
     const server = storingServer();
     const refs = [`product/${"a".repeat(64)}`, `avatar/${"b".repeat(64)}`];
     const { result } = renderHook(() => useUploadQueue({ max: 10, initialRefs: refs }), {
@@ -313,7 +313,70 @@ describe("a reopened draft", () => {
 
     expect(result.current.refs).toEqual(refs);
     expect(result.current.items.every((item) => item.file === null)).toBe(true);
-    expect(server.calls).toHaveLength(0);
+    // No bytes cross the wire on a reopen — only the read that finds the row.
+    expect(server.count("/upload/")).toBe(0);
+
+    await waitFor(() => {
+      expect(result.current.items.every((item) => item.restoredLookup === "done")).toBe(true);
+    });
+    // One `file/exists/` per distinct hash — see the cache-sharing test below
+    // for the case where a hash is asked about only once across two hooks.
+    expect(server.count("/file/exists/")).toBe(2);
+  });
+
+  it("resolves a restored item's row, so the composer's thumbnail has something to paint (D383)", async () => {
+    const hash = "a".repeat(64);
+    const ref = `product/${hash}`;
+    const server = mockServer({ "/file/exists/": { body: hit(imageRow({ hash })) } });
+    const { result } = renderHook(() => useUploadQueue({ max: 10, initialRefs: [ref] }), {
+      wrapper: wrapperFor(server),
+    });
+
+    await waitFor(() => {
+      expect(result.current.items[0]?.row).not.toBeNull();
+    });
+    expect(result.current.items[0]?.kind).toBe("image");
+    expect(result.current.items[0]?.variantsReady).toBe(true);
+    // Asked by HASH, not by the whole reference — same contract as `useCdnRef`.
+    expect(server.calls[0]?.url).toContain(`file_hash=${hash}`);
+  });
+
+  it("a reference the server no longer resolves ends with no row, not a hang", async () => {
+    const ref = `product/${"a".repeat(64)}`;
+    const server = mockServer({ "/file/exists/": { body: MISS } });
+    const { result } = renderHook(() => useUploadQueue({ max: 10, initialRefs: [ref] }), {
+      wrapper: wrapperFor(server),
+    });
+
+    await waitFor(() => {
+      expect(result.current.items[0]?.restoredLookup).toBe("done");
+    });
+    expect(result.current.items[0]?.row).toBeNull();
+    // The gap is in the PICTURE only — count, order and the publish gate
+    // never depended on the row resolving.
+    expect(result.current.refs).toEqual([ref]);
+    expect(result.current.settled.available).toBe(true);
+  });
+
+  it("shares the cache with useCdnRef — a hash already resolved costs the queue no second request", async () => {
+    const hash = "a".repeat(64);
+    const ref = `product/${hash}`;
+    const server = mockServer({ "/file/exists/": { body: hit(imageRow({ hash })) } });
+
+    const { result } = renderHook(
+      () => ({
+        resolved: useCdnRef(ref),
+        queue: useUploadQueue({ max: 10, initialRefs: [ref] }),
+      }),
+      { wrapper: wrapperFor(server) }
+    );
+
+    await waitFor(() => {
+      expect(result.current.queue.items[0]?.row).not.toBeNull();
+    });
+    // Two callers asked about the SAME hash; the query cache — keyed on the
+    // hash, same as `useCdnRef` — collapses them into one request.
+    expect(server.count("/file/exists/")).toBe(1);
   });
 });
 

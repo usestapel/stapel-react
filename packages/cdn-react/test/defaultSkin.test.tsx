@@ -7,7 +7,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ImageUploadField, MediaGalleryField } from "../src/default/index.js";
 import { cdnI18nBundleEn } from "../src/index.js";
 import { TestHarness, mockServer } from "./harness.js";
-import { imageFile, imageRow, MISS, uploaded } from "./fixtures.js";
+import { hit, imageFile, imageRow, MISS, uploaded } from "./fixtures.js";
 
 const HASH = "a".repeat(64);
 
@@ -147,6 +147,44 @@ describe("<MediaGalleryField/>", () => {
     await waitFor(() => {
       expect(changed.at(-1)).toEqual([`product/${"b".repeat(64)}`, `product/${HASH}`]);
     });
+  });
+
+  it("a reopened draft's tile paints the picture once its row resolves (D383)", async () => {
+    const server = mockServer({ "/file/exists/": { body: hit(imageRow({ hash: HASH })) } });
+    render(
+      <TestHarness server={server}>
+        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+      </TestHarness>
+    );
+
+    // Before the read settles: a skeleton, not an empty frame and not a
+    // broken-image glyph — the reference has not been found gone.
+    expect(screen.getByTestId("cdn-tile-thumbnail-skeleton")).toBeTruthy();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("cdn-tile-thumbnail-skeleton")).toBeNull();
+    });
+    // The row arrived: `<CdnThumbnail>` now has real metadata and hands it to
+    // `<Image>`, which paints its inline preview at once — no empty frame and
+    // no broken-image glyph for a reference that DID resolve.
+    expect(screen.queryByTestId("cdn-tile-thumbnail-broken")).toBeNull();
+    expect(screen.getByTestId("stapel-image-preview")).toBeTruthy();
+  });
+
+  it("a reopened draft's reference that no longer resolves draws the broken-image fallback, not a hang", async () => {
+    const server = mockServer({ "/file/exists/": { body: MISS } });
+    render(
+      <TestHarness server={server}>
+        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+      </TestHarness>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cdn-tile-thumbnail-broken")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("cdn-tile-thumbnail-skeleton")).toBeNull();
+    // Still counted, still removable — only the picture is missing.
+    expect(screen.getByTestId("cdn-gallery-count").textContent).toBe("1 of 10 photos");
   });
 
   it("uploads picked files and reports them as references", async () => {

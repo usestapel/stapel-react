@@ -118,12 +118,19 @@ function Tile(props: {
       style={{ width: PREVIEW_TILE_PX }}
     >
       {/* The tier comes from THIS tile's box at the live device pixel ratio,
-          not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. */}
+          not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. A restored
+          item (`file === null`) still resolving its row draws a skeleton;
+          one that resolved to nothing draws the broken-image fallback —
+          `useUploadQueue`'s `restoredLookup` is what tells the two apart
+          from a plain in-flight tile, which has a `file` and never sets it. */}
       <CdnThumbnail
         localUrl={preview.localUrl}
         image={imageRowOf(item)}
         box={PREVIEW_BOX}
         alt={t(CDN_I18N_KEYS.itemAlt)}
+        resolving={item.file === null && item.restoredLookup === "pending"}
+        broken={item.file === null && item.restoredLookup === "done" && item.row === null}
+        data-testid="cdn-tile-thumbnail"
       />
       <Typography.Text
         type="secondary"

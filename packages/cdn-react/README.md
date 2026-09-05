@@ -151,6 +151,12 @@ at all. Requests raised in one tick coalesce into as few POSTs as the 50-ref
 ceiling allows, and the cache unit is the ref — thirty bubbles sharing
 references cost one request.
 
+`useUploadQueue`'s `initialRefs` runs the `useCdnRef` read itself, for every
+restored item, sharing its cache: `MediaGalleryField`'s tile shows a skeleton
+while a reopened draft's photo is being looked up, the picture once the row
+comes back, and a broken-image glyph if the reference no longer resolves —
+never an empty frame for a photo that is actually there.
+
 ## Layers
 
 `api/` (generated schema + the typed operations) → `model/` (the flow, the

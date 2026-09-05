@@ -402,8 +402,12 @@ export function variantsReadyAtOf(row: CdnMediaRow): string | null {
  * A document has neither — no ladder, no probe, nothing to wait for — so it is
  * born settled, and reporting `false` for it would make a file upload look
  * permanently unfinished.
+ *
+ * Exported for `useUploadQueue`'s restored-item resolution, which derives the
+ * same `variantsReady` from a row `file/exists/` hands back rather than one a
+ * fresh upload produced — the row shape is identical, so the read is too.
  */
-function isProcessed(row: CdnMediaRow): boolean {
+export function isProcessed(row: CdnMediaRow): boolean {
   const status = variantsStatusOf(row);
   if (status !== null) return status === "ready";
   return "is_processed" in row ? row.is_processed : true;

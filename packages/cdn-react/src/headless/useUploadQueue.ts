@@ -21,15 +21,18 @@
  * failed), and a boolean cannot.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import {
   actionAvailable,
   actionBlocked,
   firstBlock,
   StapelApiError,
   toStapelApiError,
+  useActiveSessionReady,
 } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import type {
+  CdnFileExistsResponse,
   CdnFileKind,
   CdnImage,
   CdnMediaRow,
@@ -39,7 +42,15 @@ import type {
 import { useCdnRuntime } from "../model/context.js";
 import type { CdnIntakeLimits } from "../model/limits.js";
 import { acceptAttribute, validateFile } from "../model/limits.js";
-import { isUploadCanceled, runUpload, targetFileKind } from "../model/upload.js";
+import { cdnQueryKeys } from "../model/queryKeys.js";
+import { parseCdnRef } from "../model/refs.js";
+import {
+  isProcessed,
+  isUploadCanceled,
+  runUpload,
+  targetFileKind,
+  variantsStatusOf,
+} from "../model/upload.js";
 import type {
   CdnUploadTarget,
   DedupSkipReason,
@@ -65,6 +76,19 @@ export interface UploadItem {
   readonly row: CdnMediaRow | null;
   /** Which of the three models {@link row} is; `null` until there is one. */
   readonly kind: CdnFileKind | null;
+  /**
+   * For a restored item (`file === null`): whether the owner-scoped lookup
+   * for its stored row has settled. Every other item is born `"done"` — its
+   * row, if it has one, already came back with the upload outcome, so there
+   * is nothing to wait for.
+   *
+   * The reason this exists rather than reading {@link row} alone: `row` is
+   * `null` BOTH while the lookup is in flight and after it comes back saying
+   * the reference no longer resolves. A skin needs to tell those apart —
+   * "still asking" draws a skeleton, "asked, and it is gone" draws a broken
+   * image.
+   */
+  readonly restoredLookup: "pending" | "done";
   /** The pre-check hit: these bytes were already stored and nothing was sent. */
   readonly deduped: boolean;
   /** Why the pre-check did not run, when it did not. */
@@ -176,6 +200,9 @@ const RESTORED: Omit<UploadItem, "id" | "ref"> = {
   phase: "done",
   row: null,
   kind: null,
+  // Nothing has asked `file/exists/` about this reference yet — the effect
+  // in `useUploadQueue` below does that, once, per distinct hash.
+  restoredLookup: "pending",
   deduped: false,
   dedupSkipped: undefined,
   variantsReady: false,
@@ -186,11 +213,14 @@ const RESTORED: Omit<UploadItem, "id" | "ref"> = {
 export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
   const runtime = useCdnRuntime();
   const target: CdnUploadTarget = options.target ?? { kind: "image" };
+  // What `file/exists/` calls this target's rows — used both for the ceilings
+  // below and for matching a restored item's resolved row further down.
+  const fileKind = targetFileKind(target);
   // The ceilings that apply are the ones for THIS intake. A video queue
   // validating against the image limits would refuse a 40 MB clip the server
   // would have accepted, which is the exact failure `model/limits.ts` opens by
   // forbidding: a mirror must never refuse what the server would take.
-  const limits = runtime.limits[targetFileKind(target)];
+  const limits = runtime.limits[fileKind];
   const concurrency = options.concurrency ?? 3;
   const { max, onRefsChange } = options;
 
@@ -315,6 +345,94 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
     };
   }, []);
 
+  // ── Resolving a restored item's row (composer reopen, D383) ────────────
+  //
+  // A restored item (`RESTORED` above) arrives with a reference and no row: a
+  // reopened draft has `images_draft` but never re-uploads it. This resolves
+  // it through the SAME owner-scoped `file/exists/` read `useCdnRef` wraps,
+  // over the SAME query key (`cdnQueryKeys.exists`) — so a hash `useCdnRef`
+  // already resolved elsewhere on the page, or that a sibling restored item
+  // in this queue shares, is never asked for twice.
+  //
+  // `useQueries` rather than one `useCdnRef` call per item: the queue's
+  // length changes at runtime (add, remove, restore), and the rules of hooks
+  // forbid a variable number of hook calls. This is also what "batched per
+  // queue" means here — every unresolved item in ONE queue is asked in the
+  // same render pass rather than one after another — there being no HTTP
+  // batch for this read (unlike `/describe/`, `file/exists/` takes one hash).
+  //
+  // `CdnRef` never doubles as an address: stapel-cdn's asset types are
+  // host-configured strings and the reference is opaque by design
+  // (`model/refs.ts`), so there is no cheaper "build the URL from the ref"
+  // branch to take — every restored item pays for one read of its row.
+  const sessionReady = useActiveSessionReady();
+  const unresolvedHashes = useMemo(() => {
+    const hashes = new Set<string>();
+    for (const item of items) {
+      if (item.file !== null || item.ref === null || item.restoredLookup === "done") {
+        continue;
+      }
+      const parsed = parseCdnRef(item.ref);
+      if (parsed !== null) hashes.add(parsed.fileHash);
+    }
+    return [...hashes];
+  }, [items]);
+
+  const resolveResults = useQueries({
+    queries: unresolvedHashes.map((fileHash) => ({
+      queryKey: cdnQueryKeys.exists(fileHash),
+      queryFn: (): Promise<CdnFileExistsResponse> => apiRef.current.fileExists(fileHash),
+      enabled: sessionReady,
+      // Same posture as `useCdnRef`: a content-addressed row does not change.
+      staleTime: Number.POSITIVE_INFINITY,
+      retry: false,
+    })),
+  });
+
+  useEffect(() => {
+    if (unresolvedHashes.length === 0) return;
+    const byHash = new Map<string, (typeof resolveResults)[number]>();
+    unresolvedHashes.forEach((hash, index) => {
+      const result = resolveResults[index];
+      if (result !== undefined) byHash.set(hash, result);
+    });
+    setItems((current) => {
+      let changed = false;
+      const next = current.map((item) => {
+        if (item.file !== null || item.ref === null || item.restoredLookup === "done") {
+          return item;
+        }
+        const parsed = parseCdnRef(item.ref);
+        if (parsed === null) {
+          changed = true;
+          return { ...item, restoredLookup: "done" as const };
+        }
+        const result = byHash.get(parsed.fileHash);
+        if (result === undefined || result.status === "pending") return item;
+        changed = true;
+        if (result.status !== "success") {
+          // Could not ask — the tile draws the same broken-image fallback as
+          // a reference the server said is gone; see `CdnThumbnail`.
+          return { ...item, restoredLookup: "done" as const };
+        }
+        const data = result.data;
+        if (!data.exists || data.type !== fileKind || data.file === null) {
+          return { ...item, restoredLookup: "done" as const };
+        }
+        const row = data.file;
+        return {
+          ...item,
+          restoredLookup: "done" as const,
+          row,
+          kind: fileKind,
+          variantsReady: isProcessed(row),
+          variantsStatus: variantsStatusOf(row),
+        };
+      });
+      return changed ? next : current;
+    });
+  }, [resolveResults, unresolvedHashes, fileKind]);
+
   const refs = useMemo(() => refsOf(items), [items]);
   const refsKey = refs.join(" ");
   const lastRefsKey = useRef<string | null>(null);
@@ -359,6 +477,9 @@ export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
             ref: null,
             row: null,
             kind: null,
+            // A real pick, not a restored reference — there is nothing to
+            // look up, so this is born settled.
+            restoredLookup: "done",
             deduped: false,
             dedupSkipped: undefined,
             variantsReady: false,

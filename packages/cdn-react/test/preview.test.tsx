@@ -155,6 +155,7 @@ describe("queue tile preview", () => {
       ref: `product/${"a".repeat(64)}`,
       row: imageRow({ hash: "a".repeat(64) }) as never,
       kind: "image",
+      restoredLookup: "done",
       deduped: false,
       dedupSkipped: undefined,
       variantsReady: true,

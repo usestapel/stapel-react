@@ -384,20 +384,24 @@ describe("the gallery counts in words that agree with the number", () => {
     expect(empty.textContent).toContain(cdnI18nBundleEn["cdn.gallery.empty_hint"]);
   });
 
-  it("shows the ROW's variants_status while the ladder's URLs are a prediction", () => {
+  it("shows the ROW's variants_status while the ladder's URLs are a prediction", async () => {
+    const server = mockServer({ "/file/exists/": { body: MISS } });
     render(
-      <TestHarness server={quiet()}>
+      <TestHarness server={server}>
         <MediaGalleryField max={10} initialRefs={[IMAGE_REF]} />
       </TestHarness>
     );
-    // A restored item has no row and therefore no status: the absence is the
+    await waitFor(() => {
+      expect(server.count("/file/exists/")).toBe(1);
+    });
+    // Resolved to nothing: no row and therefore no status. The absence is the
     // honest answer, not a "pending" invented for a tile nobody uploaded.
     expect(screen.queryByTestId("cdn-tile-variants-pending")).toBeNull();
   });
 
   it("keeps the tile controls at the skin's own size, not `small`", () => {
     render(
-      <TestHarness server={quiet()}>
+      <TestHarness server={mockServer({ "/file/exists/": { body: MISS } })}>
         <MediaGalleryField max={10} initialRefs={[IMAGE_REF]} />
       </TestHarness>
     );

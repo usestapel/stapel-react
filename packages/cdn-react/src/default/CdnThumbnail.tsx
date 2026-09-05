@@ -40,6 +40,21 @@ export interface CdnThumbnailProps {
   readonly box: CSSProperties;
   readonly alt: string;
   readonly "data-testid"?: string;
+  /**
+   * A restored item whose row is still being looked up — no bytes exist to
+   * show yet, but the reference has not been found gone either. Draws a
+   * neutral skeleton instead of the empty frame, so "still asking" reads
+   * differently from "there is nothing here" (composer reopen, D383).
+   * Ignored once `image` or `localUrl` is set — there is something to paint.
+   */
+  readonly resolving?: boolean;
+  /**
+   * The lookup finished and the reference no longer resolves — deleted, or
+   * never stored under this owner. Draws a broken-image glyph instead of the
+   * empty frame, so "this photo is gone" reads differently from "not
+   * uploaded yet". Ignored once `image` or `localUrl` is set.
+   */
+  readonly broken?: boolean;
 }
 
 /** One tile's image: the local pick, else the right tier for this box, else
@@ -83,13 +98,47 @@ export function CdnThumbnail(props: CdnThumbnailProps): ReactElement {
       />
     );
   }
+  const testId = props["data-testid"];
+  if (props.broken === true) {
+    // The same sunken tone `<MediaAttachment>`'s frame uses, plus a glyph — a
+    // FILLED box reads as "this used to be something" where the empty frame
+    // below reads as "nothing chosen yet".
+    return (
+      <div
+        role="img"
+        aria-label={props.alt}
+        style={{
+          ...props.box,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: cssVar("surface-sunken"),
+          color: cssVar("border-subtle"),
+        }}
+        {...(testId !== undefined ? { "data-testid": `${testId}-broken` } : {})}
+      >
+        ✕
+      </div>
+    );
+  }
+  if (props.resolving === true) {
+    // No animation: a static muted fill is enough to say "not yet decided"
+    // without a keyframe this component would have to own and clean up.
+    return (
+      <div
+        aria-hidden
+        style={{ ...props.box, background: cssVar("surface-sunken") }}
+        {...(testId !== undefined ? { "data-testid": `${testId}-skeleton` } : {})}
+      />
+    );
+  }
   // The empty frame takes the BORDER role. `border: "1px dashed"` with no
   // colour inherits `currentColor` — the TEXT colour — so a placeholder drew
   // itself at full text contrast, as loud as the copy beside it.
   return (
     <div
       style={{ ...props.box, border: `1px dashed ${cssVar("border-subtle")}` }}
-      {...(props["data-testid"] !== undefined ? { "data-testid": props["data-testid"] } : {})}
+      {...(testId !== undefined ? { "data-testid": testId } : {})}
     />
   );
 }

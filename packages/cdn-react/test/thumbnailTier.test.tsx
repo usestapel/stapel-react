@@ -142,3 +142,58 @@ describe("the tile's tier comes from the tile", () => {
     );
   });
 });
+
+/**
+ * A restored item's three paint states (composer reopen, D383): still
+ * asking, asked-and-gone, and the row itself once it arrives — the last of
+ * which is already covered above, since a resolved row is drawn exactly like
+ * one a fresh upload produced.
+ */
+describe("a restored item's tile before its row is known", () => {
+  it("draws a skeleton while the lookup is in flight, not the empty frame", () => {
+    render(
+      <CdnThumbnail
+        localUrl={null}
+        image={null}
+        box={PREVIEW_BOX}
+        alt="tile"
+        resolving
+        data-testid="thumb"
+      />
+    );
+    expect(screen.getByTestId("thumb-skeleton")).toBeTruthy();
+    expect(screen.queryByTestId("thumb")).toBeNull();
+  });
+
+  it("draws a broken-image fallback once the reference resolves to nothing", () => {
+    render(
+      <CdnThumbnail
+        localUrl={null}
+        image={null}
+        box={PREVIEW_BOX}
+        alt="gone"
+        broken
+        data-testid="thumb"
+      />
+    );
+    expect(screen.getByTestId("thumb-broken")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "gone" })).toBeTruthy();
+  });
+
+  it("a local pick or a resolved row wins over `resolving`/`broken` — there is something to paint", () => {
+    render(
+      <CdnThumbnail
+        localUrl="blob:local/1"
+        image={null}
+        box={PREVIEW_BOX}
+        alt="tile"
+        resolving
+        broken
+        data-testid="thumb"
+      />
+    );
+    expect(screen.getByAltText("tile").getAttribute("src")).toBe("blob:local/1");
+    expect(screen.queryByTestId("thumb-skeleton")).toBeNull();
+    expect(screen.queryByTestId("thumb-broken")).toBeNull();
+  });
+});
