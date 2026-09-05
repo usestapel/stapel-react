@@ -36,7 +36,13 @@ export { LobbyPanel } from "./LobbyPanel.js";
 export type { LobbyPanelProps } from "./LobbyPanel.js";
 export { ParticipantsList } from "./ParticipantsList.js";
 export type { ParticipantsListProps } from "./ParticipantsList.js";
-export { CallStage, LIVEKIT_PEER } from "./CallStage.js";
+export {
+  CallStage,
+  CALL_DIAL_ATTEMPTS,
+  CALL_DIAL_BACKOFF_MS,
+  LIVEKIT_PEER,
+  isTerminalDialFailure,
+} from "./CallStage.js";
 export type {
   CallStageProps,
   CallStageState,

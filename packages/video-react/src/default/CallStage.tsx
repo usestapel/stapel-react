@@ -98,6 +98,39 @@ export interface CallStageProps extends ThemeModeProp {
   readonly loadPeer?: CallPeerLoader;
 }
 
+/**
+ * HOW MANY TIMES ONE CALL MAY BE DIALLED, and how long it waits between.
+ *
+ * A stand walk (PASS-17) caught a single call issuing **129** signalling
+ * requests, one after another with no gap, each a `GET …/rtc/v1?access_token=`
+ * answered 404 — a misconfigured media URL turned into a request flood, on
+ * both parties' phones, behind a screen that said "connecting" and offered no
+ * way out. Five attempts is enough to ride out a media server restarting; the
+ * sixth is a fact about the deployment, not about this call, and belongs on
+ * screen rather than in the network log.
+ *
+ * The backoff doubles from {@link CALL_DIAL_BACKOFF_MS} and is what makes the
+ * five attempts a diagnosis instead of a burst: 0.4s, 0.8s, 1.6s, 3.2s.
+ */
+export const CALL_DIAL_ATTEMPTS = 5;
+export const CALL_DIAL_BACKOFF_MS = 400;
+
+/**
+ * A refusal that will refuse again — no number of retries makes a 404 into a
+ * room.
+ *
+ * 404 is "there is no media server at this address" and 403 is "this token is
+ * not welcome here"; both are the deployment's configuration answering, and
+ * both were being retried on a timer. Anything else (a dropped socket, a
+ * timeout, a 5xx) is worth another attempt.
+ */
+export function isTerminalDialFailure(error: unknown): boolean {
+  const status = (error as { status?: unknown } | null)?.status;
+  if (status === 404 || status === 403) return true;
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /\b(404|403)\b/.test(message) || /not found|forbidden/i.test(message);
+}
+
 /** Is this thrown value "the optional peer is not installed"? Bundlers and
  * runtimes each phrase it differently; all of them say the specifier. */
 function isPeerMissing(error: unknown): boolean {
@@ -114,7 +147,19 @@ export function CallStage(props: CallStageProps): ReactElement {
   const t = useT();
   const { token: themeToken } = theme.useToken();
   const { token, serverUrl, renderMedia, onLeave } = props;
-  const loadPeer = props.loadPeer ?? defaultLoader;
+  /**
+   * The loader, held rather than depended on.
+   *
+   * A prop function's IDENTITY is not a reason to dial a call again, and it
+   * was one: `loadPeer` sat in the effect's dependency list, so a host that
+   * passed an inline arrow (which every host did while the built-in loader
+   * was broken) got a new identity on every render, and every dial caused a
+   * render. That is the loop behind the 129 requests — see
+   * {@link CALL_DIAL_ATTEMPTS}. What SHOULD re-dial is a new token, a new
+   * server, or a person pressing retry, and those are the deps below.
+   */
+  const loadPeerRef = useRef<CallPeerLoader>(props.loadPeer ?? defaultLoader);
+  loadPeerRef.current = props.loadPeer ?? defaultLoader;
 
   const [state, setState] = useState<CallStageState>("idle");
   const [error, setError] = useState<unknown>(undefined);
@@ -130,11 +175,22 @@ export function CallStage(props: CallStageProps): ReactElement {
       return undefined;
     }
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setError(undefined);
     setState("loading");
-    void (async (): Promise<void> => {
+
+    /**
+     * One dial, and the decision about the next one.
+     *
+     * The whole retry policy is here rather than in the caller: bounded
+     * ({@link CALL_DIAL_ATTEMPTS}), spaced (doubling from
+     * {@link CALL_DIAL_BACKOFF_MS}) and stopped early for a refusal that will
+     * refuse again ({@link isTerminalDialFailure}). What the person gets when
+     * it stops is the failed screen, which has both a retry and a way out.
+     */
+    const dial = async (attemptIndex: number): Promise<void> => {
       try {
-        const loaded = (await loadPeer()) as CallModuleLike | undefined;
+        const loaded = (await loadPeerRef.current()) as CallModuleLike | undefined;
         const RoomCtor = loaded?.Room;
         if (typeof RoomCtor !== "function") {
           if (!cancelled) setState("missing");
@@ -154,17 +210,35 @@ export function CallStage(props: CallStageProps): ReactElement {
           setState("missing");
           return;
         }
-        setError(thrown);
-        setState("failed");
+        // A room that half-connected still holds a socket; drop it before the
+        // next attempt makes a second one.
+        const held = roomRef.current;
+        roomRef.current = null;
+        if (held !== null) held.disconnect();
+        const last = attemptIndex + 1 >= CALL_DIAL_ATTEMPTS;
+        if (last || isTerminalDialFailure(thrown)) {
+          setError(thrown);
+          setState("failed");
+          return;
+        }
+        timer = setTimeout(
+          () => {
+            if (!cancelled) void dial(attemptIndex + 1);
+          },
+          CALL_DIAL_BACKOFF_MS * 2 ** attemptIndex
+        );
       }
-    })();
+    };
+
+    void dial(0);
     return () => {
       cancelled = true;
+      if (timer !== undefined) clearTimeout(timer);
       const held = roomRef.current;
       roomRef.current = null;
       if (held !== null) held.disconnect();
     };
-  }, [ready, token, serverUrl, loadPeer, attempt]);
+  }, [ready, token, serverUrl, attempt]);
 
   const retry = useCallback((): void => {
     setAttempt((n) => n + 1);
@@ -224,13 +298,28 @@ export function CallStage(props: CallStageProps): ReactElement {
     }
     if (state === "failed") {
       return (
-        <ErrorAlert
-          testId="video-stage-failed"
-          thrown={error}
-          message={t(VIDEO_I18N_KEYS.stageFailed)}
-          onRetry={retry}
-          retryLabel={t(VIDEO_I18N_KEYS.stageRetry)}
-        />
+        <Flex vertical gap={themeToken.paddingXS}>
+          <ErrorAlert
+            testId="video-stage-failed"
+            thrown={error}
+            message={t(VIDEO_I18N_KEYS.stageFailed)}
+            onRetry={retry}
+            retryLabel={t(VIDEO_I18N_KEYS.stageRetry)}
+          />
+          {/* A retry is not a way OUT. A call that cannot connect still exists
+              on the server — it is ringing the other person and the meter is
+              running — so the screen that says it failed has to be able to end
+              it, not only to try again. */}
+          <Button
+            danger
+            onClick={leave}
+            data-testid="video-stage-failed-leave"
+            data-analytics="none"
+            data-analytics-reason="leaving the media session is a client-side disconnect; the host app wraps this with its own tracked()"
+          >
+            {t(VIDEO_I18N_KEYS.stageLeave)}
+          </Button>
+        </Flex>
       );
     }
     if (state === "connected") {
@@ -253,15 +342,34 @@ export function CallStage(props: CallStageProps): ReactElement {
         </Flex>
       );
     }
+    // Loading the peer, dialling, or waiting out a backoff between attempts.
+    //
+    // THE ONE CONTROL THIS SCREEN MUST HAVE IS THE WAY OUT. A stand walk
+    // (PASS-17) found both parties held on the "connecting to the call" line
+    // with no control of any kind while a misconfigured media URL answered
+    // 404: the
+    // only exit was to close the tab, and the call stayed up on the server
+    // for both of them. Hanging up here ends it where it actually lives.
     return (
-      <Typography.Text
-        type="secondary"
-        role="status"
-        aria-busy
-        data-testid="video-stage-connecting"
-      >
-        {t(VIDEO_I18N_KEYS.stageConnecting)}
-      </Typography.Text>
+      <Flex vertical gap={themeToken.paddingXS}>
+        <Typography.Text
+          type="secondary"
+          role="status"
+          aria-busy
+          data-testid="video-stage-connecting"
+        >
+          {t(VIDEO_I18N_KEYS.stageConnecting)}
+        </Typography.Text>
+        <Button
+          danger
+          onClick={leave}
+          data-testid="video-stage-connecting-leave"
+          data-analytics="none"
+          data-analytics-reason="leaving the media session is a client-side disconnect; the host app wraps this with its own tracked()"
+        >
+          {t(VIDEO_I18N_KEYS.stageLeave)}
+        </Button>
+      </Flex>
     );
   }
 }

@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { actionBlocked, loadReady } from "@stapel/core";
-import { CallStage } from "../src/default/CallStage.js";
+import {
+  CALL_DIAL_ATTEMPTS,
+  CALL_DIAL_BACKOFF_MS,
+  CallStage,
+  isTerminalDialFailure,
+} from "../src/default/CallStage.js";
 import { JoinGate } from "../src/default/JoinGate.js";
 import { LobbyPanel } from "../src/default/LobbyPanel.js";
 import { ParticipantsList } from "../src/default/ParticipantsList.js";
@@ -236,5 +241,141 @@ describe("<CallStage> — the optional peer's absence is a screen", () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/^\s*\/\/.*$/gm, "");
     expect(code).not.toMatch(/import\(\s*[A-Za-z_$][\w$]*\s*\)/);
+  });
+});
+
+describe("a call that cannot connect (stand walk PASS-17)", () => {
+  /**
+   * Measured on the stand: a misconfigured media URL answered 404, and ONE
+   * call issued 129 signalling requests back to back — on both parties'
+   * phones, behind a screen that said "connecting" and offered no control of
+   * any kind. The only way out was to close the tab, and the call stayed up
+   * on the server for both of them.
+   */
+  it("offers the way out while it is still dialling", async () => {
+    const left = vi.fn();
+    const disconnect = vi.fn();
+    class SlowRoom {
+      connect = (): Promise<void> => new Promise(() => undefined);
+      disconnect = disconnect;
+    }
+    await act(async () => {
+      mount(
+        <CallStage
+          token="tok"
+          serverUrl="wss://sfu.test"
+          loadPeer={() => Promise.resolve({ Room: SlowRoom })}
+          onLeave={left}
+        />
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("video-stage-connecting")).toBeTruthy()
+    );
+    // Hang up is a control, not a tab close: it drops this browser's session
+    // AND tells the host, which is what ends the call on the server.
+    fireEvent.click(screen.getByTestId("video-stage-connecting-leave"));
+    expect(disconnect).toHaveBeenCalled();
+    expect(left).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops dialling at the bound, and says so with a retry AND a way out", async () => {
+    vi.useFakeTimers();
+    try {
+      const connect = vi.fn().mockRejectedValue(new Error("socket closed"));
+      class DeadRoom {
+        connect = connect;
+        disconnect = vi.fn();
+      }
+      mount(
+        <CallStage
+          token="tok"
+          serverUrl="wss://sfu.test"
+          loadPeer={() => Promise.resolve({ Room: DeadRoom })}
+        />
+      );
+      // Ride out every backoff: 0.4s, 0.8s, 1.6s, 3.2s between five attempts.
+      for (let i = 0; i < CALL_DIAL_ATTEMPTS + 2; i += 1) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(CALL_DIAL_BACKOFF_MS * 2 ** (i + 1));
+        });
+      }
+      expect(screen.getByTestId("video-stage-failed")).toBeTruthy();
+      expect(screen.getByTestId("video-stage-failed-leave")).toBeTruthy();
+      // FIVE, not a hundred and twenty-nine.
+      expect(connect).toHaveBeenCalledTimes(CALL_DIAL_ATTEMPTS);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry a refusal that will refuse again", async () => {
+    vi.useFakeTimers();
+    try {
+      // 404 is "there is no media server at this address" — a fact about the
+      // deployment, which no number of attempts changes.
+      const connect = vi
+        .fn()
+        .mockRejectedValue(new Error("could not connect: 404 Not Found"));
+      class MissingRoom {
+        connect = connect;
+        disconnect = vi.fn();
+      }
+      mount(
+        <CallStage
+          token="tok"
+          serverUrl="wss://sfu.test"
+          loadPeer={() => Promise.resolve({ Room: MissingRoom })}
+        />
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(CALL_DIAL_BACKOFF_MS * 64);
+      });
+      expect(screen.getByTestId("video-stage-failed")).toBeTruthy();
+      expect(connect).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("classifies the two terminal refusals and nothing else", () => {
+    expect(isTerminalDialFailure({ status: 404 })).toBe(true);
+    expect(isTerminalDialFailure({ status: 403 })).toBe(true);
+    expect(isTerminalDialFailure(new Error("403 Forbidden"))).toBe(true);
+    expect(isTerminalDialFailure(new Error("504 gateway timeout"))).toBe(false);
+    expect(isTerminalDialFailure(new Error("socket closed"))).toBe(false);
+  });
+
+  it("does not re-dial because a host passed a new function identity", async () => {
+    // The loop behind the 129: `loadPeer` was a dependency of the dialling
+    // effect, an inline arrow is a new identity on every render, and every
+    // dial renders.
+    const connect = vi.fn().mockResolvedValue(undefined);
+    class Room {
+      connect = connect;
+      disconnect = vi.fn();
+    }
+    const { rerender } = mount(
+      <CallStage
+        token="tok"
+        serverUrl="wss://sfu.test"
+        loadPeer={() => Promise.resolve({ Room })}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy()
+    );
+    for (let i = 0; i < 3; i += 1) {
+      rerender(
+        <TestProviders server={mockServer({})}>
+          <CallStage
+            token="tok"
+            serverUrl="wss://sfu.test"
+            loadPeer={() => Promise.resolve({ Room })}
+          />
+        </TestProviders>
+      );
+    }
+    expect(connect).toHaveBeenCalledTimes(1);
   });
 });
