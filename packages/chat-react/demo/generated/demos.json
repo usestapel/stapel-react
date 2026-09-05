@@ -281,6 +281,12 @@
           "step": "self"
         },
         {
+          "id": "pooled-refusal",
+          "description": "Three cards, one sentence, one door. The reason moves into the pane's footnote instead of being repeated under every card, and the sign-in link moves WITH it — pooling the reason must not pool the answer away.",
+          "viewport": "phone",
+          "step": "sign_in"
+        },
+        {
           "id": "no-seller",
           "description": "A listing with nobody attached to write to, at desk width.",
           "viewport": "desktop",
@@ -289,7 +295,7 @@
       ],
       "source": {
         "file": "demo/StartChatButtonSkin.demo.tsx",
-        "line": 58
+        "line": 89
       }
     },
     {

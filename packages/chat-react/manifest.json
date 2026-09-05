@@ -672,6 +672,7 @@
         "default",
         "signed-out",
         "own-listing",
+        "pooled-refusal",
         "no-seller"
       ],
       "source": "demo/StartChatButtonSkin.demo.tsx"

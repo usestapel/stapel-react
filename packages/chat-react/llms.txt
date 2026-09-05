@@ -85,7 +85,7 @@ const { tracked } = useTracked();
 - chat.presence → <PresenceLine> [default|last-seen|never-seen|my-connection-is-the-problem|notifications-ask]  demo/PresenceSkin.demo.tsx
 - chat.sign-in-link → <SignInLink> [default|host-routed|no-route]  demo/SignInLinkSkin.demo.tsx
 - chat.start → <StartDirectChat> [default|no-seller|own-listing]  demo/StartDirectChat.demo.tsx
-- chat.start-chat-button → <StartChatButton> [default|signed-out|own-listing|no-seller]  demo/StartChatButtonSkin.demo.tsx
+- chat.start-chat-button → <StartChatButton> [default|signed-out|own-listing|pooled-refusal|no-seller]  demo/StartChatButtonSkin.demo.tsx
 - chat.thread → <ConversationThread> [default]  demo/ConversationThread.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

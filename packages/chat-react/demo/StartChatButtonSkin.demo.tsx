@@ -15,8 +15,9 @@
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
-import { MandateProvider, mandateResolved } from "@stapel/core";
+import { MandateProvider, actionAvailable, mandateResolved } from "@stapel/core";
 import type { MandatePrincipal } from "@stapel/core";
+import { PaneGate } from "@stapel/tokens-antd/skin";
 import { StartChatButton } from "../src/default/StartChatButton.js";
 import { ChatDemoHarness, DEMO_INBOX } from "./_harness.js";
 
@@ -49,6 +50,36 @@ function Button(props: {
             block={props.block ?? false}
             {...(props.signIn ? { signIn: props.signIn } : {})}
           />
+        </div>
+      </MandateProvider>
+    </ChatDemoHarness>
+  );
+}
+
+/**
+ * A LIST of them, pooled. Fourteen cards printed fourteen copies of one
+ * sentence about one session; `refusal="pooled"` registers the reason with the
+ * enclosing `PaneGate`, which prints it ONCE under the pane while every button
+ * keeps its `aria-describedby` pointing at that copy. The door goes with it —
+ * one link, in the sentence, rather than one under each card.
+ */
+function PooledPane(): ReactElement {
+  return (
+    <ChatDemoHarness handlers={{ "/conversations": DEMO_INBOX[0] ?? {} }}>
+      <MandateProvider source={{ state: mandateResolved("anonymous") }}>
+        <div style={{ maxWidth: 420 }}>
+          <PaneGate gate={actionAvailable()}>
+            {["bicycle", "drill", "kayak"].map((item) => (
+              <StartChatButton
+                key={item}
+                sellerId={`u-seller-${item}`}
+                viewerId={null}
+                refusal="pooled"
+                block
+                signIn={SIGN_IN}
+              />
+            ))}
+          </PaneGate>
         </div>
       </MandateProvider>
     </ChatDemoHarness>
@@ -95,6 +126,13 @@ export default defineDemo({
       render: () => (
         <Button principal="member" sellerId="u-buyer" viewerId="u-buyer" block />
       ),
+    },
+    "pooled-refusal": {
+      description:
+        "Three cards, one sentence, one door. The reason moves into the pane's footnote instead of being repeated under every card, and the sign-in link moves WITH it — pooling the reason must not pool the answer away.",
+      viewport: "phone",
+      step: "sign_in",
+      render: () => <PooledPane />,
     },
     "no-seller": {
       description:
