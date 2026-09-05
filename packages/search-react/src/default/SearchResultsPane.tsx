@@ -293,6 +293,10 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
   /** A real address for a category id path, for the line above — see
    * {@link OtherCategoriesLineProps.categoryHref}. */
   readonly categoryHref?: OtherCategoryHrefResolver;
+  /** Are {@link categoryName}'s answers still on their way? While `true` the
+   * line holds its height and draws nothing — see
+   * {@link OtherCategoriesLineProps.categoryNamesPending}. */
+  readonly categoryNamesPending?: boolean;
 }
 
 function Count(props: { bag: SearchResultsBag }): ReactElement | null {
@@ -421,6 +425,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   : {})}
                 {...(props.categoryHref !== undefined
                   ? { categoryHref: props.categoryHref }
+                  : {})}
+                {...(props.categoryNamesPending !== undefined
+                  ? { categoryNamesPending: props.categoryNamesPending }
                   : {})}
               />
             )}

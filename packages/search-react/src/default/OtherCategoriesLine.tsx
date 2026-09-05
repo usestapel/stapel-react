@@ -23,6 +23,16 @@
  * candidate list is empty by definition — draws into a slot whose height is
  * reserved from the first frame, so the answer lands without moving anything.
  *
+ * ## …and the NAMES can be late too
+ *
+ * The rows are id paths; naming them is the host's, and a host whose
+ * catalogue is a read of its own has no names in the first frame. That put
+ * both defects back on a page that had fixed them — a late mount, and then a
+ * line growing a row at a time as names trickled in. So the line reserves one
+ * line of height as soon as sections are KNOWN, and while
+ * {@link OtherCategoriesLineProps.categoryNamesPending} it draws nothing into
+ * it: one mount, whole, into a band that was already there.
+ *
  * ## Pressing an entry narrows the search; it does not leave it
  *
  * The count beside a name is the count for THIS QUERY in that section — the
@@ -117,6 +127,23 @@ export interface OtherCategoriesLineProps {
    * is dropped only when it has no NAME, exactly as without this prop.
    */
   readonly categoryHref?: OtherCategoryHrefResolver;
+  /**
+   * ARE THE HOST'S NAME READS STILL LANDING?
+   *
+   * {@link categoryName} is a plain function, so a host whose catalogue is
+   * itself a read answers `undefined` for every path until its own request
+   * comes back — and a row nothing can name is DROPPED. The line therefore
+   * had two ways to move a page it was written to stop moving: it mounted a
+   * beat after the cards (0.054 CLS on a phone), and where the names landed
+   * one at a time it GREW, row by row, into a second and third line (0.148).
+   *
+   * `undefined` is the same answer for "I never will" and "not yet", and only
+   * the host can tell those apart — so it says. While this is `true` the line
+   * draws nothing and holds one line of height; when it turns `false` the
+   * line is drawn ONCE, whole. Absent: the previous behaviour, drawing
+   * whatever is nameable in the frame it becomes nameable.
+   */
+  readonly categoryNamesPending?: boolean;
   /** Skip the read entirely — mirrors `<SearchResultsPane enabled>`. */
   readonly enabled?: boolean;
 }
@@ -192,15 +219,32 @@ export function OtherCategoriesLine(
   const shown = expanded ? entries : entries.slice(0, limit);
   const hidden = entries.length - shown.length;
 
-  if (entries.length === 0) {
-    // Nothing to say, and nothing coming: say nothing. A reserved band under a
-    // page that will never fill it is the same hole an empty filter column was.
-    if (!bag.reserving) return null;
+  // ONE MOUNT. Half-named is not a state this line has: drawing the two names
+  // that arrived first and then the rest is precisely the row-by-row growth
+  // that measured worse than the late mount it was meant to replace.
+  const holding = props.categoryNamesPending === true;
+
+  // A line is EXPECTED — and its height therefore held from the first frame —
+  // when the sections are already known (`bag.rows`, out of the answer that
+  // drew the cards) or a request for them is out (`bag.pending` /
+  // `bag.reserving`), AND something is actually going to be drawn there:
+  // either the host is still naming, or a row is named already. Rows nothing
+  // will EVER name still reserve nothing — a band under a page that will
+  // never fill it is the same hole an empty filter column was.
+  const expected =
+    bag.reserving ||
+    bag.pending ||
+    (bag.rows.length > 0 && (holding || entries.length > 0));
+
+  if (holding || entries.length === 0) {
+    // Nothing to say, and nothing coming: say nothing.
+    if (!expected) return null;
     return (
       <div
         data-testid="search-other-categories"
         data-reserved="on"
         data-source={bag.source}
+        {...(holding ? { "data-naming": "pending" } : {})}
         style={{ minBlockSize: OTHER_CATEGORIES_SLOT_MIN_HEIGHT }}
       />
     );
@@ -218,9 +262,10 @@ export function OtherCategoriesLine(
           ? `${OTHER_CATEGORIES_CLASS} ${OTHER_CATEGORIES_CLASS}--clamped`
           : OTHER_CATEGORIES_CLASS
       }
-      style={
-        bag.reserving ? { minBlockSize: OTHER_CATEGORIES_SLOT_MIN_HEIGHT } : {}
-      }
+      // The band and the line are the SAME height by construction. A reserved
+      // slot one pixel taller than what fills it is still a shift, just a
+      // smaller one, and this is the only way to be sure they match.
+      style={{ minBlockSize: OTHER_CATEGORIES_SLOT_MIN_HEIGHT }}
     >
       <style href={OTHER_CATEGORIES_STYLE_HREF} precedence="default">
         {otherCategoriesCss()}

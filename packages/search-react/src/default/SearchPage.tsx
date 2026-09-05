@@ -404,6 +404,11 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   /** A real address for a category id path, for the line above — see
    * {@link OtherCategoriesLineProps.categoryHref}. */
   readonly categoryHref?: OtherCategoryHrefResolver;
+  /** Are {@link categoryName}'s answers still on their way? A host whose
+   * catalogue is a read of its own says so, and the line holds one line of
+   * height and draws once, when they are all in — see
+   * {@link OtherCategoriesLineProps.categoryNamesPending}. */
+  readonly categoryNamesPending?: boolean;
   /** What this surface calls its result list. See
    * {@link SearchResultsPaneProps.heading}. */
   readonly resultsHeading?: ReactNode;
@@ -509,6 +514,7 @@ interface SearchPageBodyProps {
   readonly otherCategories?: boolean;
   readonly categoryName?: OtherCategoryNamer;
   readonly categoryHref?: OtherCategoryHrefResolver;
+  readonly categoryNamesPending?: boolean;
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly filtersLayout?: SearchFiltersLayout;
@@ -718,6 +724,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(props.categoryHref !== undefined
         ? { categoryHref: props.categoryHref }
         : {})}
+      {...(props.categoryNamesPending !== undefined
+        ? { categoryNamesPending: props.categoryNamesPending }
+        : {})}
       {...(props.resultsHeading !== undefined
         ? { heading: props.resultsHeading }
         : {})}
@@ -901,6 +910,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     otherCategories,
     categoryName,
     categoryHref,
+    categoryNamesPending,
     resultsHeading,
     degradationNotice,
     filtersLayout,
@@ -947,6 +957,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(otherCategories !== undefined ? { otherCategories } : {})}
           {...(categoryName !== undefined ? { categoryName } : {})}
           {...(categoryHref !== undefined ? { categoryHref } : {})}
+          {...(categoryNamesPending !== undefined ? { categoryNamesPending } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
