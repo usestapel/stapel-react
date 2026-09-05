@@ -218,7 +218,7 @@ const ROW_THUMB_WIDTH = spacing[5];
 const ROW_THUMB_HEIGHT = spacing[6];
 
 /** The class the row's subject link carries, for {@link subjectRowLinkCss}. */
-export const SUBJECT_LINK_CLASS = "stapel-chat-subject-link";
+const SUBJECT_LINK_CLASS = "stapel-chat-subject-link";
 
 /**
  * The rules an inline style cannot state: `:hover` and `:focus-visible`.
@@ -229,15 +229,15 @@ export const SUBJECT_LINK_CLASS = "stapel-chat-subject-link";
  * second invisible target would not have fixed that. Colour and ring are the
  * design system's own role tokens, never a literal.
  */
-export function subjectRowLinkCss(): string {
+function subjectRowLinkCss(): string {
   const link = `.${SUBJECT_LINK_CLASS}`;
-  return [
-    `${link}{display:inline-flex;min-inline-size:0;color:var(--stapel-link);`
-      + `text-decoration:none}`,
-    `${link}:hover{color:var(--stapel-link-hover);text-decoration:underline}`,
-    `${link}:focus-visible{outline:2px solid var(--stapel-focus-ring);`
-      + `outline-offset:2px;border-radius:4px}`,
-  ].join("");
+  return (
+    `${link}{display:inline-flex;min-inline-size:0;color:var(--stapel-link);` +
+    `text-decoration:none}` +
+    `${link}:hover{color:var(--stapel-link-hover);text-decoration:underline}` +
+    `${link}:focus-visible{outline:2px solid var(--stapel-focus-ring);` +
+    `outline-offset:2px;border-radius:4px}`
+  );
 }
 
 /**
@@ -280,6 +280,14 @@ export function SubjectRowSummary(props: {
   const href = props.href ?? view.href;
   const Link = props.linkComponent;
   const linked = view.title !== "" && href !== "";
+  const linkProps = {
+    href,
+    className: SUBJECT_LINK_CLASS,
+    "data-testid": "chat-row-subject-link",
+    "data-analytics": "none",
+    "data-analytics-reason":
+      "navigation out to the subject — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture",
+  };
   const title =
     view.title === "" ? null : (
       <Typography.Text
@@ -293,14 +301,6 @@ export function SubjectRowSummary(props: {
         {view.title}
       </Typography.Text>
     );
-  const linkProps = {
-    href,
-    className: SUBJECT_LINK_CLASS,
-    "data-testid": "chat-row-subject-link",
-    "data-analytics": "none",
-    "data-analytics-reason":
-      "navigation out to the subject — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture",
-  };
   return (
     <Flex
       align="center"
@@ -319,6 +319,9 @@ export function SubjectRowSummary(props: {
         {subjectRowLinkCss()}
       </style>
       {linked ? (
+        // ONE props object, two possible elements: a host's router link where
+        // there is one, a plain anchor where there is not — never the six
+        // attributes written out twice.
         Link !== undefined ? (
           <Link {...linkProps}>{title}</Link>
         ) : (
