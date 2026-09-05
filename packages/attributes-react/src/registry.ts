@@ -90,6 +90,21 @@ export interface ValueEditorProps<T = unknown> {
    */
   readonly siblings?: Readonly<Record<string, unknown>>;
   /**
+   * What the sibling features are CALLED, keyed by slug — the display half of
+   * {@link siblings}, resolved once by the row that draws them.
+   *
+   * An editor that has to talk ABOUT another field needs its name, and
+   * `siblings` carries only values: the vocabulary-backed int whose allowed
+   * set depends on a parent has to say «Choose Generation first», and without
+   * this it could only say the storage slug or say nothing. Resolving it here
+   * rather than per editor is the same argument `siblings` itself makes — one
+   * prop, filled by the one component that holds the whole feature list.
+   *
+   * Optional: a host mounting an editor directly may not have it, and every
+   * editor that reads it must still render without it.
+   */
+  readonly siblingNames?: Readonly<Record<string, string>>;
+  /**
    * The answers that set this field's current bound, as a PERSON reads them
    * ("BMW", "3 series", "G20") — `featureBounds(feature, values).sources`
    * resolved through the catalogue by the row that draws it.

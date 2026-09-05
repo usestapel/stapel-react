@@ -191,8 +191,27 @@ export function uiStyleOf(config: FeatureConfig): "dropdown" | "checkboxes" | "c
   return declared === "checkboxes" || declared === "chips" ? declared : "dropdown";
 }
 
-/** Choices → chips, with the column's touch floor applied to each label and
- * an optional reason that switches one off (a cardinality cap). */
+/**
+ * Choices → chips, with the column's touch floor applied to each label and an
+ * optional reason that switches one off (a cardinality cap).
+ *
+ * ── Why every chip states its own aria-label ─────────────────────────────
+ *
+ * `touchFloor` wraps each label in a `<span>` so a chip is a 44px tap target.
+ * That makes the label a NODE, and the bridge has no string form for a node —
+ * so the chip that carries the field's `id` (the first of every group, which
+ * must have an explicit accessible name or the field's `<label>` overrides it)
+ * fell all the way through to `option.value` and was announced as the STORAGE
+ * CODE: "b-u" where the screen said "Estate", `4d-sedan` where it said "Sedan", on the first chip of every
+ * group in the composer. Nothing on screen showed it.
+ *
+ * The plain `choice.label` is right here and nowhere else — this function is
+ * the one place that holds both the words and the node built out of them — so
+ * it is stated, on every chip rather than only the first: which chip carries
+ * the id is the row's business, not this one's, and a name that is correct
+ * only in the position the caller happens to render it in is a defect waiting
+ * for a reorder.
+ */
 export function chipOptions(
   choices: readonly Choice[],
   options: {
@@ -210,6 +229,7 @@ export function chipOptions(
     const reason = options.disabled === true ? undefined : options.disabledReason?.(choice.value);
     return {
       value: choice.value,
+      ariaLabel: choice.label,
       ...(options.disabled === true ? { disabled: true } : {}),
       label: options.touchFloor ? (
         <span

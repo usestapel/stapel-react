@@ -31,7 +31,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import { Flex, Select, Typography } from "antd";
+import { Flex, Select, Spin, Typography } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { SkinNumberField, SkinPickerSheet } from "@stapel/tokens-antd/skin";
@@ -40,6 +40,7 @@ import type { ValueEditor, ValueEditorProps } from "../registry.js";
 import { featureName } from "../types.js";
 import { firstCode, optionsRefOf, termPageOf, useVocabularyClient } from "../vocabulary.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
+import { ERROR_CODE_TO_KEY } from "../errors.js";
 import { configLabel } from "./labels.js";
 import { useTouchFloor } from "./touchFloor.js";
 import {
@@ -197,6 +198,33 @@ function IntSuggestions(props: {
  * enforces it is the defect this editor exists to remove. The same set is
  * what the server checks (`IntFeatureType.validate_dto_in_context` walks the
  * same vocabulary edges), so the picker and the refusal cannot disagree.
+ *
+ * ── The two states that used to be A BARE KEYPAD ─────────────────────────
+ *
+ * `allowed === null` covers three different situations and this editor drew
+ * one control for all of them: a plain number box with no steppers, no list
+ * and nothing said. Two of the three are not "there is no set" at all —
+ *
+ *  - the FETCH IS IN FLIGHT. The set is coming; the box that will gain
+ *    steppers and a list is on screen claiming it is a free-text number, and
+ *    the controls then appear under the hand. It is now marked busy while it
+ *    waits.
+ *  - the PARENT IS UNANSWERED. A year scoped by a generation has no allowed
+ *    set until a generation is chosen, and the useful thing to say is which
+ *    field to fill in first — not to offer a box that will refuse every
+ *    number it is given. The keypad is switched off with that sentence beside
+ *    it, which is the house rule for anything switched off.
+ *
+ * The third — no client, a failed fetch, a page-capped answer — genuinely is
+ * "this side cannot know the set", and the keypad stays exactly as it was:
+ * the fetch is a convenience and the server is the gate.
+ *
+ * ── A refusal says what IS allowed ───────────────────────────────────────
+ *
+ * `not_in_options` renders as "Value is not in allowed options for Year",
+ * which tells a person the number they typed is wrong and nothing about
+ * which number is right. Where the set IS loaded, its ends are said beside
+ * the refusal — the same sentence a typed out-of-set number already gets.
  */
 const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   const t = useT();
@@ -218,14 +246,21 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   // answer, a non-numeric code). `null` renders a plain keypad — the fetch
   // is a convenience, the server is the gate.
   const [allowed, setAllowed] = useState<readonly number[] | null>(null);
+  /** The set is COMING — distinct from "there is none", which is what a bare
+   * keypad used to say for both. */
+  const [pending, setPending] = useState(false);
+  // A parent this pointer names and nobody has answered: there is no allowed
+  // set to fetch, and the whole level is not "the allowed set of this parent".
+  // Progressive disclosure normally keeps the row unmounted until then, but a
+  // host drawing rows itself may not gate — and this is the state it lands in.
+  const awaitingParent = parentFeature !== undefined && parent === undefined;
   useEffect(() => {
     setAllowed(null);
+    setPending(false);
     if (client === null || vocabulary.length === 0 || level.length === 0) return;
-    // Normally unreachable — progressive disclosure keeps the row unmounted
-    // until the parent is answered — but a host drawing rows itself may not
-    // gate, and the whole level is not "the allowed set of this parent".
     if (parentFeature !== undefined && parent === undefined) return;
     let stale = false;
+    setPending(true);
     client
       .search(vocabulary, level, "", parent)
       .then((answered) => {
@@ -233,12 +268,16 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
         // picker where to draw a rule and says nothing about which integers
         // are permitted, so only the rows are read here.
         const { terms } = termPageOf(answered);
-        if (stale || terms.length === 0 || terms.length >= REF_INT_PAGE) return;
+        if (stale) return;
+        if (terms.length === 0 || terms.length >= REF_INT_PAGE) return;
         const numbers = terms.map((term) => Number.parseInt(term.code, 10));
         if (numbers.some((one) => !Number.isFinite(one))) return;
         setAllowed([...numbers].sort((left, right) => left - right));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!stale) setPending(false);
+      });
     return () => {
       stale = true;
     };
@@ -291,15 +330,35 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
     onChange(next);
   };
 
+  // The refusal that names WHAT IS ALLOWED. `not_in_options` on its own says
+  // the number is wrong and nothing about which number is right; the ends of
+  // the loaded set are the missing half, and they are already the sentence a
+  // typed out-of-set number gets.
+  const refusedNotInOptions =
+    props.error?.code === ERROR_CODE_TO_KEY.not_in_options;
+
   return (
-    <div {...touchFloorMarker(touchFloor)} data-testid="attributes-int-ref">
+    <div
+      {...touchFloorMarker(touchFloor)}
+      data-testid="attributes-int-ref"
+      {...(pending ? { "aria-busy": true as const } : {})}
+      data-state={
+        awaitingParent
+          ? "awaiting-parent"
+          : pending
+            ? "loading"
+            : allowed === null
+              ? "unbounded"
+              : "bounded"
+      }
+    >
       <Flex align="center" gap={spacing[1]}>
         <div style={{ flex: 1 }}>
           <SkinNumberField
             id={props.id}
             value={current}
             integer
-            disabled={props.disabled === true || baked}
+            disabled={props.disabled === true || baked || awaitingParent}
             ariaLabel={featureName(props.feature)}
             {...(props.required === true ? { ariaRequired: true } : {})}
             testId="attributes-number-field"
@@ -317,7 +376,26 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
             onPick={commit}
           />
         )}
+        {/* The set is on its way. A spinner where the steppers will be, so
+            the row is the height it will keep and the box does not claim to
+            be a free-text number while the constraint is in flight. */}
+        {pending && !awaitingParent && (
+          <Spin size="small" data-testid="attributes-int-loading" />
+        )}
       </Flex>
+      {/* Switched off WITH ITS REASON — the house rule. A year scoped by a
+          generation has no allowed set until a generation is chosen, and a
+          live box that refuses every number is worse than one that says which
+          field to fill in first. */}
+      {awaitingParent && (
+        <HintLine>
+          <span data-testid="attributes-int-parent-first">
+            {t(ATTRIBUTES_I18N_KEYS.refParentFirst, {
+              parent: props.siblingNames?.[parentFeature ?? ""] ?? "",
+            })}
+          </span>
+        </HintLine>
+      )}
       {panel.length > 0 && (
         <IntSuggestions
           label={featureName(props.feature)}
@@ -325,16 +403,24 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
           onPick={commit}
         />
       )}
-      {outOfSet && lowest !== undefined && highest !== undefined && (
-        <HintLine>
-          <span data-testid="attributes-int-out-of-set">
-            {t(ATTRIBUTES_I18N_KEYS.intOutOfAllowed, {
-              min: String(lowest),
-              max: String(highest),
-            })}
-          </span>
-        </HintLine>
-      )}
+      {(outOfSet || refusedNotInOptions) &&
+        lowest !== undefined &&
+        highest !== undefined && (
+          <HintLine>
+            <span
+              data-testid={
+                outOfSet
+                  ? "attributes-int-out-of-set"
+                  : "attributes-int-refusal-range"
+              }
+            >
+              {t(ATTRIBUTES_I18N_KEYS.intOutOfAllowed, {
+                min: String(lowest),
+                max: String(highest),
+              })}
+            </span>
+          </HintLine>
+        )}
       {baked && (
         <Typography.Text
           type="secondary"

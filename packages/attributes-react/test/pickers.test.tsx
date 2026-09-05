@@ -27,6 +27,7 @@ import { registerAttributesI18n } from "../src/i18n/keys.js";
 import { VocabularyClientProvider } from "../src/vocabulary.js";
 import type { VocabularyClient, VocabularyTerm } from "../src/vocabulary.js";
 import { FeatureFields } from "../src/default/FeatureFields.js";
+import { chipOptions } from "../src/default/editorKit.js";
 import { pathEcho, recentsScope } from "../src/default/editorsRef.js";
 import { looksLikeCode } from "../src/default/editorsText.js";
 import {
@@ -491,5 +492,70 @@ describe("ref_select's postfix rides beside the chosen value", () => {
     await waitFor(() =>
       expect(screen.getByTestId("attributes-ref-trigger").textContent).toBe("3")
     );
+  });
+});
+
+/**
+ * THE CODE LEAKED INTO THE ACCESSIBLE NAME, and the two halves that did it.
+ *
+ * `chipOptions` wraps every label in a `<span>` under `touchFloor` so a chip
+ * is a 44px tap target — which makes the label a NODE. The substrate has no
+ * string form for a node, so the chip that carries the field's `id` (which
+ * MUST have an explicit `aria-label`, or the row's `<label htmlFor>` overrides
+ * its name and the first answer is announced as the question) fell through to
+ * `option.value` and was read out as the STORAGE CODE: "b-u" where the screen
+ * said "Estate", `4d-sedan` where it said "Sedan". Nothing visible showed it.
+ *
+ * The plain label is right there in `chipOptions` and nowhere else — it is the
+ * one place holding both the words and the node built out of them — so it
+ * states `ariaLabel` on every chip.
+ */
+describe("a chip is named by its LABEL, never by its code", () => {
+  const CODED: FeatureDef = feature("body", {
+    type: "select",
+    translatable_options: false,
+    options: [
+      { value: "4d-sedan", label: "Sedan" },
+      { value: "5d-hatch", label: "Hatchback" },
+      { value: "b-u", label: "Estate" },
+    ],
+  });
+
+  function chip(value: string): HTMLButtonElement {
+    const found = document.querySelector(`[data-stapel-chip="${value}"]`);
+    if (found === null) throw new Error(`no chip for ${value}`);
+    return found as HTMLButtonElement;
+  }
+
+  it("names the FIRST chip — the one carrying the field's id — by its label", () => {
+    renderOne(CODED);
+    const first = chip("4d-sedan");
+    // It is the id-carrying chip: without an explicit name the field's own
+    // <label for> would override it.
+    expect(first.hasAttribute("id")).toBe(true);
+    expect(first.getAttribute("aria-label")).toBe("Sedan");
+    expect(first.getAttribute("aria-label")).not.toBe("4d-sedan");
+  });
+
+  it("names a LATER chip the same way — position is not part of a name", () => {
+    renderOne(CODED);
+    expect(chip("b-u").getAttribute("aria-label")).toBe("Estate");
+  });
+
+  it("states the name where the LABEL BECOMES A NODE — the touch floor", () => {
+    // Asserted on `chipOptions` itself, because this is the mechanism: under
+    // the 44px floor each label is wrapped in a <span>, and from that moment
+    // the plain words exist only here. A chip whose name had to be read off
+    // the node is a chip announced as its storage code.
+    const options = chipOptions(
+      [
+        { value: "4d-sedan", label: "Sedan" },
+        { value: "b-u", label: "Estate" },
+      ],
+      { touchFloor: true }
+    );
+    expect(options.map((one) => one.ariaLabel)).toEqual(["Sedan", "Estate"]);
+    // …and the label really is a node, not a string, in this mode.
+    expect(typeof options[0]?.label).not.toBe("string");
   });
 });

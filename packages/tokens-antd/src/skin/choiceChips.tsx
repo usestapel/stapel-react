@@ -51,6 +51,22 @@ export interface ChoiceChipOption {
   readonly value: string;
   /** What the person reads. Copy the CALLER owns — the bridge invents none. */
   readonly label: ReactNode;
+  /**
+   * The chip's accessible NAME, when {@link label} is not plain text.
+   *
+   * A label may be a node — an icon beside the words, a `<span>` a caller
+   * wraps every chip in to give it a tap target — and a node has no string
+   * form this bridge is entitled to invent. Without this the first chip of a
+   * group (the one that carries the field's `id`, and therefore needs an
+   * explicit name) fell back to `option.value`, and a screen reader read the
+   * STORAGE CODE where every sighted reader saw a word: "b-u" for "Estate",
+   * `4d-sedan` for "Sedan".
+   *
+   * So the caller states it: it is the only party that has both the node and
+   * the plain text that went into it. Optional, because a string label needs
+   * no help.
+   */
+  readonly ariaLabel?: string;
   readonly disabled?: boolean;
   /**
    * Why this one cannot be chosen, as a finished sentence in the host's
@@ -116,6 +132,32 @@ const GRID_COLUMN_MIN = 140;
  * no derivable name here, and the value is at least stable and unique). */
 function labelText(label: ReactNode): string {
   return typeof label === "string" || typeof label === "number" ? String(label) : "";
+}
+
+/**
+ * A chip's accessible name, in the order of who actually knows it.
+ *
+ * The caller's own {@link ChoiceChipOption.ariaLabel} first — it is the only
+ * party holding both the node and the words inside it. A plain-text label
+ * second. The stored VALUE last, and only because a chip carrying the field's
+ * `id` must have some explicit name or the field's `<label>` overrides it and
+ * the first answer is announced as the question.
+ *
+ * That last rung is a defect when it is reached and this order is why: a
+ * caller that wraps its labels in a `<span>` (a touch floor, an icon) turned
+ * every first chip of every group into its storage code — "Estate" read out as
+ * "b-u" — and nothing on screen showed it.
+ */
+function chipAriaLabel(
+  option: ChoiceChipOption,
+  /** Does this chip carry the field's `id`? Only then does an unstated name
+   * have to be invented at all — every other chip is named by its own
+   * content, which is what a reader sees. */
+  carriesFieldId: boolean
+): string | undefined {
+  if (option.ariaLabel !== undefined) return option.ariaLabel;
+  if (!carriesFieldId) return undefined;
+  return labelText(option.label) || option.value;
 }
 
 function isSelected(props: ChoiceChipsProps, value: string): boolean {
@@ -241,8 +283,20 @@ export function ChoiceChips(props: ChoiceChipsProps): ReactElement {
               // beats content in accname computation) and the first answer
               // would be announced as the question. aria-label outranks the
               // label element, so the chip keeps saying what it answers.
-              {...(index === 0 && props.id !== undefined
-                ? { id: props.id, "aria-label": labelText(option.label) || option.value }
+              //
+              // A caller-stated `ariaLabel` reaches EVERY chip, not only that
+              // one: a label that is a node has no text form this bridge can
+              // read, and a name that happens to be right in position 0 is a
+              // defect waiting for a reorder.
+              {...(index === 0 && props.id !== undefined ? { id: props.id } : {})}
+              {...(chipAriaLabel(option, index === 0 && props.id !== undefined) !==
+              undefined
+                ? {
+                    "aria-label": chipAriaLabel(
+                      option,
+                      index === 0 && props.id !== undefined
+                    ),
+                  }
                 : {})}
               type="button"
               aria-pressed={selected}

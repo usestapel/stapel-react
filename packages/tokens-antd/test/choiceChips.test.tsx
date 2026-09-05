@@ -207,3 +207,94 @@ describe("ChoiceChips — a chip that cannot be chosen says why", () => {
     expect(document.activeElement).toBe(first);
   });
 });
+
+/**
+ * The accessible NAME, and the code that used to leak into it.
+ *
+ * A chip's name normally comes from its own content, which is what a sighted
+ * reader sees. Two things break that: the chip that carries the field's `id`
+ * needs an explicit `aria-label` (a `<label htmlFor>` beats content in the
+ * accname computation, so without one the first answer is announced as the
+ * question), and a label that is a NODE — an icon, or the `<span>` a caller
+ * wraps every label in to give the chip a 44px tap target — has no string form
+ * this bridge is entitled to invent.
+ *
+ * Together they produced the defect: `@stapel/attributes-react`'s `chipOptions`
+ * wraps every label under `touchFloor`, so the first chip of every group in the
+ * composer fell through to `option.value` and was announced as the STORAGE
+ * CODE — "b-u" where the screen said "Estate". Nothing visible showed it.
+ */
+describe("ChoiceChips — the accessible name", () => {
+  const NODE_LABELLED: readonly ChoiceChipOption[] = [
+    { value: "b-u", label: <span>Б/у</span>, ariaLabel: "Б/у" },
+    { value: "4d-sedan", label: <span>Седан</span>, ariaLabel: "Седан" },
+  ];
+
+  it("says the LABEL, not the code, on the chip carrying the field's id", () => {
+    render(
+      <Host>
+        <ChoiceChips
+          mode="single"
+          id="condition-field"
+          options={NODE_LABELLED}
+          value="b-u"
+          onChange={() => undefined}
+        />
+      </Host>
+    );
+    const first = chip("b-u");
+    expect(first.getAttribute("id")).toBe("condition-field");
+    expect(first.getAttribute("aria-label")).toBe("Б/у");
+    expect(first.getAttribute("aria-label")).not.toBe("b-u");
+  });
+
+  it("says it on a LATER chip too — position is the row's business, not the name's", () => {
+    render(
+      <Host>
+        <ChoiceChips
+          mode="single"
+          id="condition-field"
+          options={NODE_LABELLED}
+          value="b-u"
+          onChange={() => undefined}
+        />
+      </Host>
+    );
+    // A name that is only right in position 0 is a defect waiting for a
+    // reorder.
+    expect(chip("4d-sedan").getAttribute("aria-label")).toBe("Седан");
+  });
+
+  it("leaves a plain-text chip to be named by its own content", () => {
+    render(
+      <Host>
+        <ChoiceChips
+          mode="single"
+          options={OPTIONS}
+          value="new"
+          onChange={() => undefined}
+        />
+      </Host>
+    );
+    // No `id`, nothing stated: the button's text IS the name, and an
+    // aria-label here would only be a second copy of it to keep in sync.
+    expect(chip("used").getAttribute("aria-label")).toBeNull();
+  });
+
+  it("still falls back to the code when NOBODY states a name for the id-carrying chip", () => {
+    render(
+      <Host>
+        <ChoiceChips
+          mode="single"
+          id="shape-field"
+          options={[{ value: "4d-sedan", label: <span>Седан</span> }]}
+          value="4d-sedan"
+          onChange={() => undefined}
+        />
+      </Host>
+    );
+    // The honest bottom: an explicit name is required here, and the code is
+    // the only string this bridge has. It is why `ariaLabel` exists.
+    expect(chip("4d-sedan").getAttribute("aria-label")).toBe("4d-sedan");
+  });
+});

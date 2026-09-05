@@ -20,7 +20,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { ReactElement } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
 
-import { FeatureFields, featureControlId } from "../src/default/index.js";
+import {
+  BUILTIN_VALUE_EDITORS,
+  FeatureFields,
+  featureControlId,
+} from "../src/default/index.js";
 import { VocabularyClientProvider } from "../src/vocabulary.js";
 import type { VocabularyClient } from "../src/vocabulary.js";
 import { registerAttributesI18n } from "../src/i18n/keys.js";
@@ -199,5 +203,129 @@ describe("constrained int editor", () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith("year", undefined);
     });
+  });
+});
+
+/**
+ * The two states that used to render as A BARE KEYPAD, and the refusal that
+ * used to say only what was wrong.
+ *
+ * `allowed === null` covered three different situations and the editor drew
+ * one control for all of them — a plain number box, no steppers, no list,
+ * nothing said. Two of the three are not "there is no set": the fetch is in
+ * flight (the steppers are about to appear under the hand), or the parent is
+ * unanswered (there is no set to fetch, and the useful thing to say is which
+ * field to fill in first). The third — no client, a failed fetch, a capped
+ * answer — genuinely is "this side cannot know", and the keypad stays.
+ */
+describe("the constrained int says which state it is in", () => {
+  /**
+   * The editor MOUNTED DIRECTLY, which is the only way this state is reached:
+   * `<FeatureFields>`' progressive disclosure keeps the year row unmounted
+   * until the generation is answered, and this is the case the editor's own
+   * comment calls "a host drawing rows itself may not gate".
+   */
+  function renderBare(props: {
+    readonly value?: unknown;
+    readonly siblings?: Record<string, unknown>;
+    readonly error?: {
+      readonly code: string;
+      readonly params: Readonly<Record<string, unknown>>;
+      readonly status: number | undefined;
+      readonly message: string | undefined;
+      readonly language: string | undefined;
+    };
+  }): void {
+    const Editor = BUILTIN_VALUE_EDITORS["int"];
+    if (Editor === undefined) throw new Error("no int editor");
+    const i18n = createI18n({ locale: "en" });
+    registerAttributesI18n(i18n);
+    render(
+      <I18nProvider i18n={i18n}>
+        <VocabularyClientProvider value={client()}>
+          <Editor
+            id="year-control"
+            feature={YEAR}
+            value={props.value}
+            siblings={props.siblings ?? {}}
+            siblingNames={{ generation: "Generation", year: "Year" }}
+            onChange={() => undefined}
+            {...(props.error !== undefined ? { error: props.error } : {})}
+          />
+        </VocabularyClientProvider>
+      </I18nProvider>
+    );
+  }
+
+  it("switches the keypad off, with its reason, while the parent is unanswered", () => {
+    renderBare({});
+    const row = screen.getByTestId("attributes-int-ref");
+    expect(row.getAttribute("data-state")).toBe("awaiting-parent");
+    // The house rule: nothing is switched off silently.
+    expect(
+      (document.getElementById("year-control") as HTMLInputElement).hasAttribute(
+        "disabled"
+      )
+    ).toBe(true);
+    // And no steppers over a set that does not exist.
+    expect(screen.queryByTestId("attributes-int-step-up")).toBeNull();
+  });
+
+  it("names the parent as a PERSON reads it, not as a slug", () => {
+    renderBare({});
+    // The sentence comes from the sibling's own NAME (`siblingNames`); the
+    // slug `generation` in it would be storage printed at a person, which is
+    // the defect class this package is careful about everywhere else.
+    expect(
+      screen.getByTestId("attributes-int-parent-first").textContent
+    ).toBe("Choose Generation first.");
+  });
+
+  it("marks itself busy while the allowed set is in flight, then bounded", async () => {
+    renderYear({ generation: ["g15"] });
+    const row = screen.getByTestId("attributes-int-ref");
+    // First frame: the box that is about to gain steppers and a list must not
+    // claim to be a free-text number while the constraint is on its way.
+    expect(row.getAttribute("data-state")).toBe("loading");
+    expect(row.getAttribute("aria-busy")).toBe("true");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("attributes-int-ref").getAttribute("data-state")
+      ).toBe("bounded");
+    });
+    expect(
+      screen.getByTestId("attributes-int-ref").hasAttribute("aria-busy")
+    ).toBe(false);
+  });
+
+  it("a REFUSAL names the allowed range, not just the fact of being wrong", async () => {
+    // The server refused a value this side believes is allowed — its set and
+    // the one fetched here were resolved against different snapshots. The
+    // refusal alone ("Value is not in allowed options for Year") says the
+    // number is wrong and nothing about which number is right.
+    renderBare({
+      value: 2010,
+      siblings: { generation: ["g15"] },
+      error: {
+        code: "error.400.feature_not_in_options",
+        params: {},
+        status: 400,
+        message: undefined,
+        language: undefined,
+      },
+    });
+    const said = await screen.findByTestId("attributes-int-refusal-range");
+    expect(said.textContent ?? "").toContain("2008");
+    expect(said.textContent ?? "").toContain("2012");
+  });
+
+  it("says nothing extra when there is no refusal", async () => {
+    renderBare({ value: 2010, siblings: { generation: ["g15"] } });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("attributes-int-ref").getAttribute("data-state")
+      ).toBe("bounded");
+    });
+    expect(screen.queryByTestId("attributes-int-refusal-range")).toBeNull();
   });
 });

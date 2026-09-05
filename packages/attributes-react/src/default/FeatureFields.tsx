@@ -546,6 +546,23 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   });
 
   const { features, values } = props;
+  /**
+   * What every field is CALLED, keyed by slug — the display half of the
+   * sibling seam (`ValueEditorProps.siblingNames`).
+   *
+   * Resolved once here because this is the component that holds the whole
+   * feature list: an editor that must talk about ANOTHER field ("choose
+   * Generation first") otherwise has only the storage slug, and printing a
+   * slug at a person is the defect class this package is careful about
+   * everywhere else.
+   */
+  // `featureName`, not `t(featureName(...))`: a def's `name` is the
+  // catalogue's own words, and this file's own `<Form.Item label>` reads it
+  // exactly this way one screen up.
+  const siblingNames = useMemo(
+    () => Object.fromEntries(features.map((one) => [one.slug, featureName(one)])),
+    [features]
+  );
   // A vocabulary-backed type with no client is undrawable at the ROW level,
   // not just inside the editor: the notice names the feature itself, so a
   // labelled row would print "Brand" twice — once as the label and once in the
@@ -737,6 +754,7 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                         feature={drawn}
                         value={props.values[feature.slug]}
                         siblings={props.values}
+                        siblingNames={siblingNames}
                         onChange={(value) => props.onChange(feature.slug, value)}
                         error={errors[feature.slug]}
                         disabled={props.disabled === true || baked}
