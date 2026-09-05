@@ -510,7 +510,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.25.2",
+      "version": "0.25.3",
       "entries": [
         {
           "id": "listings.detail",
@@ -724,7 +724,7 @@
     },
     {
       "package": "@stapel/profiles-react",
-      "version": "0.21.0",
+      "version": "0.21.1",
       "entries": [
         {
           "id": "profiles.settings",
@@ -887,7 +887,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "entries": [
         {
           "id": "search.results",
