@@ -205,6 +205,19 @@ export interface ListingDetailPaneProps
    * whose chrome already carries a standing sign-in door.
    */
   readonly blockedReason?: "text" | "popover";
+  /**
+   * WHICH HEADING THE TITLE IS.
+   *
+   * The listing title is the page's subject, but the pane drew it at `h3`
+   * unconditionally — right for a pane mounted inside a page that already has
+   * its own `h1`, wrong for the storefront route where this pane IS the page
+   * and the document then had no `h1` at all (measured on a live storefront,
+   * which worked around it with an offscreen heading above the pane). The
+   * host is the only side that knows which of the two it built, so it says.
+   *
+   * Default `3`, byte-compatible for every existing mount.
+   */
+  readonly headingLevel?: 1 | 2 | 3;
   readonly footer?: ReactNode;
 }
 
@@ -358,7 +371,10 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
 
             const heading = (
               <>
-                <Typography.Title level={3} data-testid="listings-detail-title">
+                <Typography.Title
+                  level={props.headingLevel ?? 3}
+                  data-testid="listings-detail-title"
+                >
                   {listing.title ?? ""}
                 </Typography.Title>
 
