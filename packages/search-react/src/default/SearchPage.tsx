@@ -241,6 +241,16 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
   /**
+   * Draw the "Category" pane in the filter panel at all. Default `true`.
+   *
+   * `false` removes it entirely — see
+   * {@link FacetPanelPaneProps.categoryFilter}. The page passes it on and
+   * stops counting the category as a reason to keep the filter column open,
+   * so a leaf whose only other filter is a price does not get a column
+   * containing one pane the surface asked not to draw.
+   */
+  readonly categoryFilter?: boolean;
+  /**
    * What the current category is CALLED — the chip's own text. The pair holds
    * a path of slugs and no way to turn one into a catalogue name; absent, the
    * chip states the path's last segment. See
@@ -270,7 +280,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    *
    * Defaulted PER LAYOUT rather than left to the panel's own default, because
    * the two frames want opposite shapes and only this component knows which
-   * one it is drawing: the desktop rail gets `"field"` (a select-style «Any»
+   * one it is drawing: the desktop rail gets `"field"` (a select-style "Any"
    * that opens the searchable list — a 418-value vocabulary held open in a
    * 280px column is the whole column), the phone sheet gets `"sheet"` — the
    * same trigger row, opening a nested picker with a search box, a
@@ -340,6 +350,23 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * describes the whole page, not the results column of it.
    */
   readonly resultsHeader?: ReactNode;
+  /**
+   * The top of the RESULTS COLUMN, above the toolbar and the heading row.
+   *
+   * The fifth slot, and the four before it were each checked first:
+   * `resultsHeader` spans the whole page (both columns on a desktop), which is
+   * right for a location row and wrong for anything that belongs over the list
+   * — a category's own description, a promoted band, a "12 new since
+   * yesterday" line all describe the RESULTS and would otherwise sit over the
+   * filter rail as well; `breadcrumb` is a walk up the category tree and
+   * renders above the heading; `resultsHeading` is the caption itself; the
+   * pane's `toolbar` is the row of controls this slot sits above.
+   *
+   * Rendered inside the column in BOTH layouts, so on a phone it is above the
+   * sort row and on a desktop it is above the sort row of the results column
+   * only.
+   */
+  readonly resultsLead?: ReactNode;
   /**
    * Draw the APPLIED filter row in the results header — one chip per applied
    * value and per applied range, each of which removes it
@@ -459,6 +486,8 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
+  readonly categoryFilter?: boolean;
+  readonly resultsLead?: ReactNode;
   readonly dictionaryMode?: "field" | "inline" | "sheet";
   readonly visibleGroups?: number | null;
   readonly categoryFeatures?: readonly FeatureDef[];
@@ -568,9 +597,13 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     // show.
     facets.activeFilters === 0 &&
     ranges.length === 0 &&
-    state.category === undefined &&
+    // A category pane the surface turned off is not a control on this rail,
+    // however narrowed the search is: the way back out of a leaf is then the
+    // breadcrumb or the tiles above, not a filter (`categoryFilter`).
+    (props.categoryFilter === false ||
+      (state.category === undefined &&
+        props.renderCategoryFilter === undefined)) &&
     state.lang === undefined &&
-    props.renderCategoryFilter === undefined &&
     (props.languages ?? []).length === 0;
   const showFilters = filtersHeader !== undefined || !filtersEmpty;
 
@@ -615,6 +648,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           {...(props.languages !== undefined ? { languages: props.languages } : {})}
           {...(props.renderCategoryFilter !== undefined
             ? { renderCategoryFilter: props.renderCategoryFilter }
+            : {})}
+          {...(props.categoryFilter !== undefined
+            ? { categoryFilter: props.categoryFilter }
             : {})}
           {...(props.skippedNotice !== undefined
             ? { skippedNotice: props.skippedNotice }
@@ -661,6 +697,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const results = (
     <SearchResultsPane
       toolbar={toolbar}
+      {...(props.resultsLead !== undefined ? { lead: props.resultsLead } : {})}
       {...(phoneToolbar ? { header: "compact" as const } : {})}
       headingLevel={props.resultsHeadingLevel ?? 1}
       {...(view.render !== undefined ? { renderResults: view.render } : {})}
@@ -776,7 +813,8 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             /* The catalogue picker becomes the row's leading chip. The panel
                behind the circle keeps its own copy of the control; both write
                the same `category` parameter, so they cannot disagree. */
-            {...(props.renderCategoryFilter !== undefined
+            {...(props.renderCategoryFilter !== undefined &&
+            props.categoryFilter !== false
               ? { renderCategoryFilter: props.renderCategoryFilter }
               : {})}
             {...(props.categoryLabel !== undefined
@@ -853,6 +891,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     footer,
     filtersHeader,
     resultsHeader,
+    resultsLead,
+    categoryFilter,
     appliedChips,
     otherCategories,
     categoryName,
@@ -895,6 +935,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(footer !== undefined ? { footer } : {})}
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
           {...(resultsHeader !== undefined ? { resultsHeader } : {})}
+          {...(resultsLead !== undefined ? { resultsLead } : {})}
+          {...(categoryFilter !== undefined ? { categoryFilter } : {})}
           {...(appliedChips !== undefined ? { appliedChips } : {})}
           {...(otherCategories !== undefined ? { otherCategories } : {})}
           {...(categoryName !== undefined ? { categoryName } : {})}

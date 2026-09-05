@@ -12,14 +12,19 @@
  * values; a range is not enumerable and no bucket is ever sent for one. So
  * the rows come from three places:
  *
- *  - the ANSWER's `facet_meta.ranges` (stapel-search 0.14.7+) — `{slug:
- *    {min, max}}` for every axis this page has NUMBERS behind, measured with
- *    the range filters removed and uncapped by `MAX_FACET_FIELDS`. When the
- *    answer reports it, it is the authority on which attribute axes exist and
- *    where their ends are: the schema says an axis COULD be numeric, and this
- *    says it IS, on these documents. It reaches axes the schema's own type
- *    cannot — a vocabulary-backed `year`, a `floor`, a `doors` are CHOICES in
- *    the catalogue and from/to's to a buyer, and both are served.
+ *  - the ANSWER's `facet_meta.ranges` (stapel-search 0.14.7+, a whole axis
+ *    rather than two numbers since 0.16.0) — `{slug: {min, max, label,
+ *    label_translatable, unit?, order}}` for every axis this page has NUMBERS
+ *    behind, measured with the range filters removed. When the answer reports
+ *    it, it is the authority on which attribute axes exist, where their ends
+ *    are, WHAT THEY ARE CALLED and where in the panel they sit: the schema
+ *    says an axis COULD be numeric, and this says it IS, on these documents,
+ *    under this name. It reaches axes the schema's own type cannot — a
+ *    vocabulary-backed `year`, a `floor`, a `doors` are CHOICES in the
+ *    catalogue and from/to's to a buyer, and both are served.
+ *  - the ANSWER's `facet_meta.withheld` (0.16.0), which is the same authority
+ *    used in the negative: an axis it names as a withheld `range` is one this
+ *    answer planned and declined to offer, and no schema row resurrects it.
  *  - the CATEGORY SCHEMA — the same `categoryFeatures` slot that gives the
  *    checkboxes their labels — filtered to the numeric value types. It is the
  *    FALLBACK, and the only source against a server that reports no `ranges`
@@ -49,9 +54,11 @@ import { featureConfig, featureName, featureType } from "@stapel/attributes-reac
 import type { FeatureDef } from "@stapel/attributes-react";
 import type {
   FacetRangesMap,
+  FacetWithheldAxis,
   SearchQueryState,
   SearchRange,
 } from "../api/types.js";
+import { withheldSlugs } from "../api/types.js";
 
 /**
  * Value types a numeric range row is drawn for (`config.type`, the
@@ -66,7 +73,13 @@ export const RANGE_FEATURE_TYPES: readonly string[] = [
 /** One `r.<slug>` row of the filter panel. */
 export interface RangeGroup {
   readonly slug: string;
-  /** The feature's display name (translated when it is a key), else the slug. */
+  /**
+   * What to write above the picker: the ANSWER's own caption first (0.16.0
+   * resolves it from the same definition a group heading comes from), the
+   * schema's display name next, this package's key for a core axis, and — only
+   * for a slug the URL constrains that none of them explain — the slug itself.
+   * {@link named} says which of those two worlds the row is in.
+   */
   readonly label: string;
   /** The schema entry behind the slug, when the host supplied one. */
   readonly feature: FeatureDef | undefined;
@@ -87,7 +100,10 @@ export interface RangeGroup {
    * has. Never set on a core axis — see {@link BuildRangeGroupsInput.ranges}.
    */
   readonly measured: boolean;
-  /** Unit suffix the schema declares (`postfix`, or a convertible unit). */
+  /** What the numbers are measured in: the ANSWER's `unit` (the definition's
+   * `postfix`, or the BASE unit of a convertible family) when it states one,
+   * the schema's own affixes otherwise. Absent, never `""`, on an axis nobody
+   * gave a unit — a price among them. */
   readonly unit: string | undefined;
   /** `1` for an integer feature — a whole-number input for a whole number. */
   readonly step: number | undefined;
@@ -121,6 +137,31 @@ export interface RangeGroup {
    * carries a `postfix`, not a currency.
    */
   readonly currency: string | undefined;
+  /**
+   * Where this axis sits in the ONE sequence the panel draws — the answer's
+   * `facet_meta.ranges[<slug>].order`, numbered together with the groups'
+   * `facet_labels[<slug>].order` (stapel-search 0.16.0+).
+   *
+   * `undefined` means the answer stated no position (an older server, an axis
+   * the plan has no place for, or a row that came from the schema alone), and
+   * a panel then falls back to the band order it has always used: core axes
+   * first, then the groups, then the rest of the measurements. See
+   * `orderPanelItems`.
+   */
+  readonly order: number | undefined;
+  /**
+   * `true` when {@link label} is a name SOMEBODY GAVE the axis — the answer's
+   * own caption, the schema's `FeatureDef.name`, or this package's key for a
+   * core axis — and `false` when it is the storage slug standing in for a name
+   * nobody has.
+   *
+   * A row is only ever unlabelled when the URL already constrains the slug: a
+   * constraint must keep the control that removes it, even one captioned
+   * `power_w`. Every other unnamed axis is dropped before it reaches a
+   * surface, which is the client half of the rule stapel-search 0.16.0 states
+   * on the wire by WITHHOLDING an axis it could not caption.
+   */
+  readonly named: boolean;
 }
 
 /**
@@ -175,6 +216,24 @@ export interface BuildRangeGroupsInput {
    * that wants to draw a histogram over it.
    */
   readonly ranges?: FacetRangesMap;
+  /**
+   * `facet_meta.withheld` — the axes the server planned and then did NOT
+   * offer (stapel-search 0.16.0+).
+   *
+   * Only the rows whose `axis` is `"range"` are read here, and reading them is
+   * not optional: an axis withheld for `coverage` describes three of fifty-two
+   * documents and an axis withheld as `unlabelled` has no caption anyone could
+   * print, and the server leaving it out of `ranges` is only half the
+   * statement — the CATEGORY SCHEMA still names the same slug, so a rail that
+   * ignored this list would draw from the schema exactly the row the answer
+   * just declined to offer.
+   *
+   * The one exemption is a slug the URL constrains. The server promises never
+   * to withhold one (that would leave a filter applied with no control to undo
+   * it) and this module keeps the row anyway if it ever does, for the same
+   * reason it keeps a row the schema cannot explain.
+   */
+  readonly withheld?: readonly FacetWithheldAxis[];
   /** ISO 4217 code for the money axes, when the surface knows one. */
   readonly currency?: string;
   /** Translator for label keys (the schema's `name` is often one). */
@@ -279,6 +338,9 @@ export function buildRangeGroups(
   const core = new Set(input.coreRanges ?? []);
   const bounds = input.ranges;
   const reported = new Set(Object.keys(bounds ?? {}));
+  // The axes this answer planned and declined to offer — sparse, or with no
+  // caption anyone could print. Dropped unless the URL constrains them.
+  const withheld = new Set(withheldSlugs(input.withheld, "range"));
   const slugs: string[] = [...core];
   for (const feature of input.categoryFeatures ?? []) {
     // A core slug shadows a same-named attribute — which is exactly what the
@@ -300,43 +362,92 @@ export function buildRangeGroups(
     if (!slugs.includes(slug)) slugs.push(slug);
   }
 
-  return slugs.map((slug) => {
-    const isCore = core.has(slug);
-    const feature = isCore ? undefined : bySlug.get(slug);
-    const config = feature === undefined ? {} : featureConfig(feature);
-    const applied: SearchRange | undefined = input.state.ranges[slug];
-    // Measured ends win over declared ones, on an attribute axis only — see
-    // `BuildRangeGroupsInput.ranges` for why the price input keeps its own.
-    const axis = isCore ? undefined : bounds?.[slug];
-    const measured = axis !== undefined;
-    const min = measured ? axis.min : num(config["min"]);
-    const max = measured ? axis.max : num(config["max"]);
-    return {
-      slug,
-      label: isCore
-        ? translate(input.t, coreRangeLabelKey(slug))
-        : feature === undefined
-          ? slug
-          : translate(input.t, featureName(feature)),
-      feature,
-      from: applied?.from,
-      to: applied?.to,
-      min,
-      max,
-      measured,
-      // A core money axis carries a CURRENCY, not a unit suffix: "₽" is
-      // formatted from the code for the reader's locale, a unit suffix is a literal
-      // the category author typed.
-      unit: isCore
-        ? undefined
-        : (str(config["postfix"]) ?? str(config["unit_m"]) ?? str(config["unit_i"])),
-      step: !isCore && isIntegerAxis(feature, min, max, measured) ? 1 : undefined,
-      picker: isCore ? undefined : pickerValues(feature, min, max, measured),
-      active: applied !== undefined,
-      core: isCore,
-      currency: isCore ? str(input.currency) : undefined,
-    };
-  });
+  return slugs
+    .map((slug): RangeGroup => {
+      const isCore = core.has(slug);
+      const feature = isCore ? undefined : bySlug.get(slug);
+      const config = feature === undefined ? {} : featureConfig(feature);
+      const applied: SearchRange | undefined = input.state.ranges[slug];
+      // The ANSWER's row for the slug. Read for its caption on every axis
+      // including a core one — the server names `price` out of its own
+      // `CORE_RANGE_LABELS` — and for its BOUNDS on an attribute axis only:
+      // see `BuildRangeGroupsInput.ranges` for why the price input keeps its
+      // own ends.
+      const axis = bounds?.[slug];
+      const measured = !isCore && axis !== undefined;
+      const min = measured ? axis.min : num(config["min"]);
+      const max = measured ? axis.max : num(config["max"]);
+      // The caption, in the order of who is entitled to give one:
+      //  1. the ANSWER. `label` is resolved server-side from the same
+      //     definition a group heading comes from, it is present for a core
+      //     axis the client has no definition for, and it is the only source
+      //     a host that threaded no schema has at all.
+      //  2. the SCHEMA's own `name`, for a server too old to send one.
+      //  3. this package's key for a core axis, same reason as (2).
+      // and never the slug, which is storage. An axis none of the three name
+      // is dropped below.
+      const answered = str(axis?.label);
+      const named =
+        answered !== undefined || isCore || feature !== undefined;
+      const label =
+        answered !== undefined
+          ? // `label_translatable: false` is literal text the catalogue wrote
+            // and must not be looked up; absent means the server did not say,
+            // and a lookup that misses returns the string unchanged.
+            axis?.label_translatable === false
+            ? answered
+            : translate(input.t, answered)
+          : isCore
+            ? translate(input.t, coreRangeLabelKey(slug))
+            : feature === undefined
+              ? slug
+              : translate(input.t, featureName(feature));
+      return {
+        slug,
+        label,
+        named,
+        feature,
+        from: applied?.from,
+        to: applied?.to,
+        min,
+        max,
+        measured,
+        // The unit, same precedence and same reason: the answer resolved it
+        // off the definition (a `convertible_unit`'s BASE unit, which the
+        // client cannot work out from `unit_m`/`unit_i` alone), the schema's
+        // own affixes second. Translated, because the server states plainly
+        // that it never translates one and the string may be a key.
+        //
+        // A core money axis carries a CURRENCY, not a unit suffix: "₽" is
+        // formatted from the code for the reader's locale, a unit suffix is a
+        // literal the category author typed.
+        unit: isCore
+          ? undefined
+          : str(axis?.unit) !== undefined
+            ? translate(input.t, str(axis?.unit) ?? "")
+            : (str(config["postfix"]) ?? str(config["unit_m"]) ?? str(config["unit_i"])),
+        step: !isCore && isIntegerAxis(feature, min, max, measured) ? 1 : undefined,
+        picker: isCore ? undefined : pickerValues(feature, min, max, measured),
+        active: applied !== undefined,
+        core: isCore,
+        currency: isCore ? str(input.currency) : undefined,
+        order: typeof axis?.order === "number" ? axis.order : undefined,
+      };
+    })
+    .filter((group) => {
+      // A CONSTRAINT ALWAYS KEEPS ITS CONTROL. Everything below removes a row
+      // the reader has not used; a row they have is never one of them.
+      if (group.active) return true;
+      // The server planned this axis and declined to offer it — sparse, or
+      // unnameable. The schema still declares the same slug, so without this
+      // the rail would draw exactly the row the answer withheld.
+      if (withheld.has(group.slug)) return false;
+      // Nobody named it. A from/to picker captioned `kilometrage` is a control
+      // whose meaning a reader has to guess out of the numbers inside it,
+      // which is not a filter — the same judgement stapel-search 0.16.0 makes
+      // on the wire, made again here for the rows that come from the schema.
+      return group.named;
+    });
 }
 
 /**

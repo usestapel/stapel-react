@@ -33,8 +33,25 @@ export type Schemas = components["schemas"];
  */
 export type FacetLabels = Omit<
   Schemas["FacetLabels"],
-  "label" | "label_translatable" | "url_key" | "vocabulary"
+  "label" | "label_translatable" | "url_key" | "vocabulary" | "order"
 > & {
+  /**
+   * Where this group sits in ONE panel, numbered together with the numeric
+   * axes of `facet_meta.ranges` (stapel-search 0.16.0+).
+   *
+   * The whole point of the field is that it is the SAME sequence: a group and
+   * a range are two ways of narrowing one authored feature, and sorting both
+   * halves by this key puts "Price" and "Year" where the category's schema put
+   * them instead of stacking every choice above every measurement. `null` is
+   * the server saying the plan has no position for this group, which sorts
+   * last.
+   *
+   * WHY IT IS NOT THE GENERATED SHAPE: 0.16.0 declares it REQUIRED, and a
+   * fixture captured from a 0.15 answer — or a group a host builds by hand —
+   * carries no `order` at all. Optional here, and the panel reads absence and
+   * `null` the same way: no position, sort last.
+   */
+  readonly order?: number | null;
   readonly label?: string | null;
   /**
    * Whether {@link label} is a translation KEY rather than a caption, the way
@@ -110,18 +127,61 @@ export type SearchResponse = Omit<
 export type SearchItem = Schemas["SearchItem"];
 
 /**
- * One group the counter COUNTED and then held back, because its buckets
- * describe too little of the result set (`FACET_MIN_COVERAGE`).
+ * One axis the server PLANNED and then did not offer, and why
+ * (stapel-search 0.16.0's `WithheldAxis`).
  *
  * The existence of this list is what makes "this search offers no filters"
- * a false sentence whenever it is not empty (D175).
+ * a false sentence whenever it is not empty (D175). Two things 0.16.0 added,
+ * and both matter to a panel:
+ *
+ *  - `axis` says WHICH HALF the row is about. One slug can be a choice and a
+ *    measurement at once — an imported `year` is both — and the two are
+ *    decided by different quantities over the same page, so a withheld
+ *    `group` row does not mean the slider is gone. A surface that counts the
+ *    list filters by `axis`; a surface that hides an axis reads only the rows
+ *    for its own half.
+ *  - `reason` is a CLOSED set. `coverage` is the old case (it describes too
+ *    little of the result set, and then the two numbers are present).
+ *    `unlabelled` is the new one: no caption could be resolved anywhere, so
+ *    the only thing a client could draw above the picker is the storage slug
+ *    — `doors`, `kilometrage`, printed at a buyer. That axis is withheld
+ *    rather than shipped bare, and this row is how the panel knows it existed.
+ *
+ * `coverage` and `candidates` are therefore OPTIONAL: they are the
+ * measurement that decided a `coverage` row and mean nothing on an
+ * `unlabelled` one.
  */
-export interface FacetWithheldGroup {
-  readonly slug: string;
-  /** Sum of that group's bucket counts — how much of the set it describes. */
-  readonly coverage: number;
-  /** Size of the candidate set `coverage` is a fraction of. */
-  readonly candidates: number;
+export type FacetWithheldAxis = Schemas["WithheldAxis"];
+
+/**
+ * @deprecated The 0.15-era name, kept for one minor so a host that imported
+ * it still compiles. It now denotes {@link FacetWithheldAxis}, which is the
+ * same row plus `axis` and `reason`.
+ */
+export type FacetWithheldGroup = FacetWithheldAxis;
+
+/** Which half of the panel a {@link FacetWithheldAxis} row is about. */
+export type FacetAxisKind = Schemas["AxisEnum"];
+
+/** Why an axis was withheld — a closed set; an unknown value means the client
+ * is older than the server. */
+export type FacetWithheldReason = Schemas["ReasonEnum"];
+
+/**
+ * The slugs one half of the panel must NOT draw, out of the answer's
+ * `withheld` list.
+ *
+ * Filtering by `axis` is the whole reason the field exists: a `year` withheld
+ * as a GROUP is still a slider, and a `year` withheld as a RANGE is still a
+ * bucket list. Reading the list without the discriminator hides both.
+ */
+export function withheldSlugs(
+  withheld: readonly FacetWithheldAxis[] | undefined,
+  axis: FacetAxisKind
+): readonly string[] {
+  return (withheld ?? [])
+    .filter((row) => row.axis === axis)
+    .map((row) => row.slug);
 }
 
 /** One category the candidate set is made of. */
@@ -134,41 +194,81 @@ export interface FacetCategoryCount {
 }
 
 /**
- * The two ENDS of one numeric axis, measured over this answer's candidate set
- * with the range filters removed (stapel-search 0.14.7+).
+ * One numeric axis a from/to picker is drawn from — its two ENDS, measured
+ * over this answer's candidate set with the range filters removed, AND its
+ * caption (stapel-search 0.16.0's `RangeAxis`).
  *
- * Numbers, not strings: a slider end is arithmetic a client does immediately,
- * and a price re-parsed from a formatted string is a price that has already
- * been rounded once.
+ * `min`/`max` are numbers, not strings: a slider end is arithmetic a client
+ * does immediately, and a price re-parsed from a formatted string is a price
+ * that has already been rounded once.
+ *
+ * The other three are 0.16.0's, and they are why a client stopped needing the
+ * category schema to write a heading:
+ *
+ *  - `label` comes from the same source a facet group's heading does — the
+ *    category's own `FeatureDef.name`, or this library's own key for a core
+ *    axis — and is never null, because an axis nobody could name is WITHHELD
+ *    (`facet_meta.withheld`, reason `unlabelled`) rather than shipped as a
+ *    bare `doors`. `label_translatable` says whether it is a key or literal
+ *    text the catalogue wrote, exactly as it does for a group.
+ *  - `unit` is the definition's `postfix`, or the family's BASE unit for a
+ *    `convertible_unit` — the stored value is in the base unit, so naming the
+ *    input unit would label metres as kilometres. ABSENT, never `""`, for an
+ *    axis whose definition names none (`price` among them: a price's unit is
+ *    the corpus's currency, a property of each document rather than of the
+ *    axis).
+ *  - `order` numbers this axis in the SAME sequence as `facet_labels`, so a
+ *    panel that sorts both halves by it lands the picker where the category
+ *    authored it.
+ *
+ * `label`, `label_translatable` and `order` are OPTIONAL here while the
+ * generated shape declares them required: a fixture captured off a 0.15
+ * server, and a map a host or a demo builds by hand, carry two numbers and
+ * nothing else. A type that promised the caption would compile while reading
+ * `undefined` from a field the compiler swore was there — and the label is
+ * exactly the field a panel must not guess at.
  */
-export interface FacetRangeBounds {
-  readonly min: number;
-  readonly max: number;
-}
+export type FacetRangeAxis = Omit<
+  Schemas["RangeAxis"],
+  "label" | "label_translatable" | "order"
+> & {
+  readonly label?: string;
+  readonly label_translatable?: boolean;
+  readonly order?: number | null;
+};
 
 /**
- * `facet_meta.ranges` — `{slug: {min, max}}` for every axis this answer has
+ * @deprecated The 0.14-era name for the two bounds alone. It now denotes
+ * {@link FacetRangeAxis}, which is the same two numbers plus the caption.
+ */
+export type FacetRangeBounds = FacetRangeAxis;
+
+/**
+ * `facet_meta.ranges` — `{slug: RangeAxis}` for every axis this answer has
  * numbers behind, core columns and attribute axes in ONE report because one
  * rail draws both.
  *
- * An axis ABSENT from the map has no numbers behind it on this page, which is
- * a different fact from a bound of zero. The map itself absent is a different
- * fact again: the server predates 0.14.7, or its engine has no `ranges` verb
- * and said so as `facet_ranges` in `degraded[]`. The panel tells the
- * three apart — see `state/ranges.ts`.
+ * An axis ABSENT from the map either has no numbers behind it on this page —
+ * a different fact from a bound of zero — or was WITHHELD, and then it is
+ * named in `facet_meta.withheld` with the reason. The map itself absent is a
+ * different fact again: the server predates 0.14.7, or its engine has no
+ * `ranges` verb and said so as `facet_ranges` in `degraded[]`. The panel tells
+ * them apart — see `state/ranges.ts`.
  */
-export type FacetRangesMap = Readonly<Record<string, FacetRangeBounds>>;
+export type FacetRangesMap = Readonly<Record<string, FacetRangeAxis>>;
 
 /**
  * The honesty block beside the counts: `approximate`, `candidates`,
  * `counted`, `skipped`, and (stapel-search 0.12.0+) where the facet plan came
  * from. Rendered, never swallowed (spec §4.2).
  *
- * WHAT THE GENERATOR LOST: drf-spectacular describes `withheld` and
- * `categories` as bare `object` arrays, so the generated members are
- * `{[key: string]: unknown}[]` — the two fields a panel has to read
- * field-by-field are the two it cannot. Both are corrected here to the
- * documented row shapes.
+ * WHAT THE GENERATOR LOST: drf-spectacular describes `categories` as a bare
+ * `object` array, so the generated member is `{[key: string]: unknown}[]` — a
+ * field a panel has to read row by row arrives with no rows in the type. It is
+ * corrected here to the documented row shape. `withheld` was in the same state
+ * until stapel-search 0.16.0 gave it a named `WithheldAxis`; it is now
+ * generated, and is re-declared only to keep the `readonly` array this pair
+ * hands around.
  *
  * `ranges` (stapel-search 0.14.7) is now GENERATED, and is corrected here for
  * both of the reasons the two fields above are. The generator lost the row
@@ -184,7 +284,7 @@ export type FacetMeta = Omit<
   Schemas["FacetMeta"],
   "withheld" | "categories" | "ranges"
 > & {
-  readonly withheld: readonly FacetWithheldGroup[];
+  readonly withheld: readonly FacetWithheldAxis[];
   readonly categories: readonly FacetCategoryCount[];
   readonly ranges?: FacetRangesMap;
 };

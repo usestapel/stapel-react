@@ -52,17 +52,17 @@ export interface SortSelectProps {
    *  - the {@link SORT_SELECT_MIN_WIDTH} floor goes, so the control shares one
    *    row with whatever the surface puts beside it instead of pushing it to
    *    the next line;
-   *  - the blocked option's REASON moves from a line under the control into
-   *    the option's own label.
+   *  - the line under the control goes. The blocked option's REASON does not:
+   *    it is on the option itself at every width now (see `optionsFor`), and
+   *    what the compact form drops is the second, separate copy of it.
    *
-   * That last move is not the reason being dropped. This file exists because
-   * the reason used to live in a `title=` a phone can never surface, and a
-   * phone is exactly where "sort by distance" is greyed out most often. On a
-   * 390px toolbar the reason as a separate row costs a whole band of the
-   * viewport above the first result — so it goes where the person actually
-   * meets the refusal: on the disabled row of the open list, which a screen
-   * reader reads out with the option and a thumb reads at the moment of the
-   * tap. Nothing is hidden; it is closer to the thing it explains.
+   * The reason lives on the row because that is where the person meets the
+   * refusal — a disabled row of the open list, which a screen reader reads out
+   * with the option and a thumb reads at the moment of the tap. This file
+   * exists because it used to live in a `title=` a phone can never surface,
+   * and a phone is exactly where "sort by distance" is greyed out most often;
+   * on a 390px toolbar the reason as a separate row would also cost a whole
+   * band of the viewport above the first result.
    */
   readonly compact?: boolean;
 }
@@ -94,7 +94,23 @@ export function SortSelect(props: SortSelectProps): ReactElement {
     ? actionAvailable()
     : actionBlocked(SORT_DISTANCE_BLOCKED);
 
-  const optionsFor = (describedBy?: string): {
+  /**
+   * The list, with the blocked row carrying its own reason — AT EVERY WIDTH.
+   *
+   * This used to be the compact arm's alone. The desktop arm relied on
+   * `GatedControl`'s sentence beside the closed select, which is where a
+   * screen reader meets it (`aria-describedby`) and is NOT where a person
+   * meets the refusal: they open the list, find one row greyed out, and the
+   * explanation for it is behind the open dropdown, above a control the
+   * dropdown is covering. A greyed row with no reason on it is the same defect
+   * this file was written to fix, one width up — it was a `title=` then and a
+   * line the dropdown hides now.
+   *
+   * So the row says it, and the sentence beside the control stays: one is the
+   * accessible description of the SELECT, the other is the label of the OPTION
+   * that is refused, and they are read in different moments.
+   */
+  const optionsFor = (): {
     readonly value: string;
     readonly label: string;
     readonly disabled: boolean;
@@ -105,13 +121,7 @@ export function SortSelect(props: SortSelectProps): ReactElement {
       const blocked = value === "distance" && !hasCentre;
       return {
         value,
-        // In the compact form the option carries its own reason — see
-        // `SortSelectProps.compact`. Elsewhere `GatedControl` renders it once,
-        // beside the control, and repeating it here would say it twice.
-        label:
-          blocked && props.compact === true && describedBy === undefined
-            ? `${label} — ${t(SORT_DISTANCE_BLOCKED)}`
-            : label,
+        label: blocked ? `${label} — ${t(SORT_DISTANCE_BLOCKED)}` : label,
         disabled: blocked,
       };
     });
@@ -153,7 +163,7 @@ export function SortSelect(props: SortSelectProps): ReactElement {
             onChange={(next) => {
               setSort(next);
             }}
-            options={optionsFor(bind["aria-describedby"] ?? "")}
+            options={optionsFor()}
           />
         </Flex>
       )}

@@ -55,7 +55,7 @@ function makesGroup(t: (key: string) => string): FacetGroup {
 }
 
 function Block(props: {
-  readonly columns?: number;
+  readonly columns?: number | "responsive";
   readonly limit?: number;
   readonly showAll?: boolean;
 }): ReactElement {
@@ -87,6 +87,17 @@ export default defineDemo({
       render: () => (
         <SearchSkinHarness search={`type=${DEMO_TYPE}`}>
           <Block showAll />
+        </SearchSkinHarness>
+      ),
+    },
+    responsive: {
+      description:
+        "`columns=\"responsive\"` lets the BLOCK decide: a CSS container query climbs 1 → 2 → 3 → 4 columns by the width of this block rather than of the window, which is the only question with an answer here — the block sits in the results column, i.e. the window minus a 280px filter rail.",
+      viewport: "desktop",
+      step: "popular-responsive",
+      render: () => (
+        <SearchSkinHarness search={`type=${DEMO_TYPE}`}>
+          <Block columns="responsive" showAll />
         </SearchSkinHarness>
       ),
     },

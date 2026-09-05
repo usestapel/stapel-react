@@ -49,16 +49,21 @@ export {
   SUGGEST_DEGRADED_CATEGORIES,
   SUGGEST_DEGRADED_ROLLUP,
   suggestTerms,
+  withheldSlugs,
 } from "./api/types.js";
 export type {
+  FacetAxisKind,
   FacetCategoryCount,
   FacetLabels,
   FacetLabelsMap,
   FacetMeta,
+  FacetRangeAxis,
   FacetRangeBounds,
   FacetRangesMap,
   FacetSelection,
+  FacetWithheldAxis,
   FacetWithheldGroup,
+  FacetWithheldReason,
   RankingResponse,
   Scorer,
   SearchDegradation,
@@ -155,6 +160,9 @@ export {
   isRangeUsable,
 } from "./state/ranges.js";
 export type { BuildRangeGroupsInput, RangeGroup } from "./state/ranges.js";
+
+export { orderPanelItems } from "./state/panel.js";
+export type { OrderPanelItemsInput, PanelItem } from "./state/panel.js";
 
 export {
   SEARCH_BOX_DEBOUNCE_MS,

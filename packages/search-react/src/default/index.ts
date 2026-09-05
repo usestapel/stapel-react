@@ -103,6 +103,7 @@ export type { LocationSummaryLineProps } from "./LocationSummaryLine.js";
 
 export {
   FacetGroupControl,
+  facetGroupIsEmptyHeading,
   facetGroupShape,
   facetOptionNodes,
   isDictionaryFacet,
@@ -122,8 +123,13 @@ export type {
 export {
   PopularValues,
   popularOptions,
+  popularValuesLadderCss,
+  POPULAR_VALUES_CLASS,
   POPULAR_VALUES_COLUMNS,
+  POPULAR_VALUES_LADDER,
   POPULAR_VALUES_LIMIT,
+  POPULAR_VALUES_STYLE_HREF,
+  POPULAR_VALUE_COLUMN_WIDTH,
 } from "./PopularValues.js";
 export type { PopularValuesProps } from "./PopularValues.js";
 export { PartitionChips } from "./PartitionChips.js";
@@ -166,7 +172,7 @@ export type {
 } from "./DegradationNotice.js";
 export { UrlIssueNotice } from "./UrlIssueNotice.js";
 export { RangeFilterRow } from "./RangeFilterRow.js";
-export type { RangeFilterRowProps } from "./RangeFilterRow.js";
+export type { RangeDraft, RangeFilterRowProps } from "./RangeFilterRow.js";
 
 // ── theming ─────────────────────────────────────────────────────────────────
 export type { ThemeModeProp } from "./types.js";

@@ -127,6 +127,13 @@ export interface FacetPanelBag {
    */
   setValues(slug: string, values: readonly string[]): void;
   setRange(slug: string, range: SearchRange | null): void;
+  /**
+   * Write several ranges in ONE commit — see
+   * {@link SearchStateBag.setRanges}. What the panel's single "Apply"
+   * calls: `setRange` twice in a tick applies the second axis and drops the
+   * first, because both edits fold into the same starting state.
+   */
+  setRanges(ranges: Readonly<Record<string, SearchRange | null>>): void;
   clear(slug: string): void;
   clearAll(): void;
 }
@@ -206,8 +213,15 @@ export function useFacetPanel(props: {
    */
   resolveFacetLabels?: FacetLabelResolver;
 } = {}): FacetPanelBag {
-  const { state: searchState, setFilter, setRange, clearAll, toggleFilter, activeFilters } =
-    useSearchState();
+  const {
+    state: searchState,
+    setFilter,
+    setRange,
+    setRanges,
+    clearAll,
+    toggleFilter,
+    activeFilters,
+  } = useSearchState();
   const t = useT();
   const query = useSearchQuery(
     searchState,
@@ -285,6 +299,7 @@ export function useFacetPanel(props: {
     toggle: toggleFilter,
     setValues: setFilter,
     setRange,
+    setRanges,
     clear: (slug) => {
       setFilter(slug, []);
     },

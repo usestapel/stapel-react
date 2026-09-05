@@ -427,8 +427,8 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
           facet_meta: {
             ...META_BASE,
             withheld: [
-              { slug: "manufacturer", coverage: 4, candidates: 46 },
-              { slug: "model", coverage: 2, candidates: 46 },
+              { slug: "manufacturer", axis: "group" as const, reason: "coverage" as const, coverage: 4, candidates: 46 },
+              { slug: "model", axis: "group" as const, reason: "coverage" as const, coverage: 2, candidates: 46 },
             ],
             categories: [{ category: "32/149/163", count: 46 }],
           },
@@ -480,7 +480,7 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
           facet_meta: {
             ...META_BASE,
             core_ranges: ["price"],
-            withheld: [{ slug: "manufacturer", coverage: 4, candidates: 46 }],
+            withheld: [{ slug: "manufacturer", axis: "group" as const, reason: "coverage" as const, coverage: 4, candidates: 46 }],
           },
         }),
       },
@@ -576,7 +576,7 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
           facet_meta: {
             ...META_BASE,
             categories,
-            withheld: [{ slug: "manufacturer", coverage: 4, candidates: 46 }],
+            withheld: [{ slug: "manufacturer", axis: "group" as const, reason: "coverage" as const, coverage: 4, candidates: 46 }],
           },
         }),
       },
@@ -597,7 +597,7 @@ describe("«no filters» is a claim, and the answer can contradict it", () => {
     });
     expect(seen?.categories).toEqual(categories);
     expect(seen?.withheld).toEqual([
-      { slug: "manufacturer", coverage: 4, candidates: 46 },
+      { slug: "manufacturer", axis: "group" as const, reason: "coverage" as const, coverage: 4, candidates: 46 },
     ]);
   });
 });

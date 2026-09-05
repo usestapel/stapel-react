@@ -984,7 +984,29 @@ export interface FacetGroupControlProps {
   readonly onSetValues?: (slug: string, values: readonly string[]) => void;
 }
 
-export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
+/**
+ * Is this group a HEADING WITH NOTHING UNDER IT?
+ *
+ * A bucket list with no buckets draws a caption, a chevron, and an empty box
+ * — a control that cannot narrow anything, taking a row of a 280px rail and a
+ * stop in a screen reader's tour to say so. On a live laptops leaf that was
+ * six of six groups (D249), and `facetGroupIsDrawable` now keeps most of them
+ * off the rail; this is the last mile, for the group that reaches a surface
+ * anyway — a host's own list, a fixture, a slug the URL constrains whose
+ * options the answer never enumerated.
+ *
+ * A DICTIONARY group is the exemption and the only one. Its control is a
+ * FIELD over a vocabulary the answer never enumerated, so it works with no
+ * buckets at all — that is the whole reason the shape exists, and a make
+ * picker on a leaf holding three cars must not vanish for having three.
+ */
+export function facetGroupIsEmptyHeading(group: FacetGroup): boolean {
+  return group.options.length === 0 && facetGroupShape(group) !== "dictionary";
+}
+
+export function FacetGroupControl(
+  props: FacetGroupControlProps
+): ReactElement | null {
   const t = useT();
   const { group } = props;
   const [expanded, setExpanded] = useState(false);
@@ -994,6 +1016,12 @@ export function FacetGroupControl(props: FacetGroupControlProps): ReactElement {
 
   const disclosure = props.collapsible === true && props.heading !== false;
   const open = !disclosure || openState;
+
+  // Nothing to narrow by: no heading either. See `facetGroupIsEmptyHeading`.
+  // AFTER the hooks, never before one — the group can gain buckets on the next
+  // answer, and a component that stopped calling `useState` on the way there
+  // would be a different component to React.
+  if (facetGroupIsEmptyHeading(group)) return null;
 
   const limit =
     props.visibleOptions === null

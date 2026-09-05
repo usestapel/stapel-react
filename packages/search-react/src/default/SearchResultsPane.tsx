@@ -181,6 +181,16 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    */
   readonly toolbar?: ReactNode;
   /**
+   * The very top of the pane, ABOVE the heading row and its toolbar.
+   *
+   * For whatever describes THIS LIST and is not one of its controls: a
+   * category's own introduction, a promoted band, a "12 new since yesterday"
+   * line. It is inside the results column, which is the difference between
+   * this and `<SearchPage resultsHeader>` — that one spans both columns and
+   * would put the same block over the filter rail as well.
+   */
+  readonly lead?: ReactNode;
+  /**
    * What this list is CALLED on this surface. Default: "Results".
    *
    * The pane owning the heading row is what stops a screen printing two
@@ -363,6 +373,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
       <SearchResults {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}>
         {(bag) => (
           <Flex vertical gap={spacing[4]}>
+            {props.lead !== undefined && (
+              <div data-testid="search-results-lead">{props.lead}</div>
+            )}
             {props.header === "compact" ? (
               <Flex vertical gap={spacing[2]} data-testid="search-results-header-compact">
                 <Typography.Title

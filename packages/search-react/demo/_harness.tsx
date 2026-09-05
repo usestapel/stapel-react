@@ -121,6 +121,9 @@ const demoBundleEn: Record<string, string> = {
   "demo.exits.sibling_used": "Used cars · 128",
   "demo.exits.sibling_bikes": "Motorcycles · 41",
   "demo.action.reset": "Reset",
+  // What a catalogue leaf says over its own list, in the `resultsLead` slot.
+  "demo.leaf.intro":
+    "Corded and cordless drills from 240 sellers, with a two-year warranty on every new tool.",
   "demo.feature.brand": "Brand",
   "demo.feature.condition": "Condition",
   "demo.feature.power": "Power",

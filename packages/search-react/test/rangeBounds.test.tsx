@@ -154,15 +154,54 @@ describe("the ends of an axis come from the answer that measured them", () => {
     expect(groups[0]?.label).toBe("test.feature.year");
   });
 
-  it("draws a measured axis the schema never mentioned, labelled by slug", () => {
+  it("draws a measured axis the schema never mentioned, under the NAME the answer gave it", () => {
     const groups = buildRangeGroups({
       state: state(),
+      categoryFeatures: [],
+      ranges: {
+        doors: {
+          min: 2,
+          max: 5,
+          label: "Количество дверей",
+          label_translatable: false,
+          order: 3,
+        },
+      },
+    });
+    expect(groups.map((group) => group.slug)).toEqual(["doors"]);
+    // The whole point of stapel-search 0.16.0: the caption travels with the
+    // bounds, so a host that threaded no category schema still gets a picker
+    // a person can read.
+    expect(groups[0]?.label).toBe("Количество дверей");
+    expect(groups[0]?.named).toBe(true);
+    expect(groups[0]?.order).toBe(3);
+    expect(groups[0]?.picker).toEqual([5, 4, 3, 2]);
+  });
+
+  it("draws NO row for a measured axis nobody named — `doors` is storage, not a caption", () => {
+    const groups = buildRangeGroups({
+      state: state(),
+      categoryFeatures: [],
+      // The two-number shape a pre-0.16 server sends, and the shape a 0.16
+      // server never sends because it withholds an axis it cannot caption.
+      ranges: { doors: { min: 2, max: 5 } },
+    });
+    // A from/to picker captioned `doors` is a control whose meaning a reader
+    // has to guess out of the numbers inside it. It was on the live chip row
+    // beside `kilometrage`, and it is the defect this release closes.
+    expect(groups).toEqual([]);
+  });
+
+  it("keeps an unnamed axis the URL CONSTRAINS — a filter always keeps its exit", () => {
+    const groups = buildRangeGroups({
+      state: state({ ranges: { doors: { from: "4" } } }),
       categoryFeatures: [],
       ranges: { doors: { min: 2, max: 5 } },
     });
     expect(groups.map((group) => group.slug)).toEqual(["doors"]);
     expect(groups[0]?.label).toBe("doors");
-    expect(groups[0]?.picker).toEqual([5, 4, 3, 2]);
+    expect(groups[0]?.named).toBe(false);
+    expect(groups[0]?.active).toBe(true);
   });
 
   it("falls back to the schema when the answer measured nothing", () => {

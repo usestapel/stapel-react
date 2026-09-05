@@ -146,7 +146,9 @@ describe("the panel renders the price control", () => {
     // Above every attribute row, and named as money rather than as a bare
     // integer: the corpus currency is read off the cards the same answer
     // returned, so no host had to wire it.
-    const rows = screen.getByTestId("search-ranges").querySelectorAll("[data-testid^='facet-range-']");
+    const rows = screen
+      .getByTestId("search-facets")
+      .querySelectorAll("[data-testid^='facet-range-']");
     expect(rows[0]?.getAttribute("data-testid")).toBe("facet-range-price");
     expect(
       screen.getByTestId("facet-range-price-label").textContent

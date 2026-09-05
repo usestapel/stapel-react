@@ -419,14 +419,15 @@ describe("the rail ranks by evidence, not by schema order", () => {
   it("keeps the numeric tail — it is ranked, not deleted", async () => {
     const container = await mountPhoneLeaf();
     const order = railOrder(container);
-    // A buyer who genuinely wants a shipping-weight bound still has one, in
-    // its own block below the facets.
-    expect(
-      screen.getByTestId("search-ranges-attributes").contains(
-        screen.getByTestId("facet-range-weight_for_delivery")
-      )
-    ).toBe(true);
+    // A buyer who genuinely wants a shipping-weight bound still has one —
+    // after the facet groups, which is where the band order puts an axis the
+    // plan numbered no place for. The rows are no longer fenced into a block
+    // of their own: one panel, one order (`orderPanelItems`).
+    expect(order).toContain("facet-range-weight_for_delivery");
     expect(order).toContain("facet-range-wholesale_packing_count");
+    expect(order.indexOf("facet-group-vendor")).toBeLessThan(
+      order.indexOf("facet-range-weight_for_delivery")
+    );
   });
 
   it("an ANSWERED axis is never folded away", async () => {

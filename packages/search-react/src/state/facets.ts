@@ -239,6 +239,19 @@ export interface FacetGroup {
    * hold. `undefined` means nobody said, not "inline".
    */
   readonly vocabulary?: string;
+  /**
+   * Where this group sits in the ONE sequence the panel draws — the answer's
+   * `facet_labels[<slug>].order`, numbered together with the numeric axes'
+   * `facet_meta.ranges[<slug>].order` (stapel-search 0.16.0+).
+   *
+   * The point of the field is that a group and a range are two ways of
+   * narrowing one authored feature, so they share a scale: drawn sorted by it,
+   * "Price" and "Year" land among the makes and models instead of above and
+   * below all of them. `undefined` (an older server, or a group the plan has
+   * no place for, which the wire says as `null`) means "no stated position",
+   * and `orderPanelItems` sorts those after everything that has one.
+   */
+  readonly order?: number | undefined;
   /** The group's heading: the answer's own `label`, else the feature's
    * display name, else — with a dev warning — the raw slug. */
   readonly label: string;
@@ -606,6 +619,19 @@ function optionalVocabulary(
   return vocabulary === undefined ? {} : { vocabulary };
 }
 
+/**
+ * The group's stated place in the panel, when the answer states one.
+ *
+ * `null` on the wire is the server's own "the plan has no position for this
+ * group", which reads exactly like a server too old to state one: both mean
+ * "sort me after everything that does have a place". So both spread to
+ * nothing, and `FacetGroup.order` is a number or absent — never a `null` a
+ * comparator would have to remember to special-case.
+ */
+function optionalOrder(order: number | null | undefined): { order?: number } {
+  return typeof order === "number" ? { order } : {};
+}
+
 function resolveVocabulary(
   input: BuildFacetGroupsInput,
   feature: FeatureDef | undefined,
@@ -813,6 +839,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     return {
       slug,
       urlKey: keys.write[slug] ?? slug,
+      ...optionalOrder(input.facetLabels?.[slug]?.order),
       ...optionalVocabulary(resolveVocabulary(input, feature, slug)),
       ...resolveGroupLabel(input, feature, slug),
       feature,

@@ -18,6 +18,24 @@
  * the picker never had — which is also what makes "from > to" refusable
  * instead of merely empty. A blur that changed nothing sends nothing, and
  * Enter followed by the blur it does not itself cause never double-commits.
+ *
+ * ── One Apply for the panel, not one per row ──────────────────────────────
+ *
+ * That is the row STANDING ALONE. Inside a filter panel it is one of several,
+ * and a rail with a price, a year and a mileage drew three identical
+ * "Apply" buttons stacked down a 280px column — one per row, each
+ * committing its own two fields, so narrowing by two axes was two searches and
+ * two history entries, and the button beside the row a person had just typed
+ * into looked like the one that would apply everything.
+ *
+ * So a panel passes {@link RangeFilterRowProps.onDraft} and owns the button:
+ * the row then REPORTS its draft on every change and commits nothing by
+ * itself. Blur stops committing (there is a button now, and blurring one field
+ * to reach the next is not a decision), Enter reaches the panel's own commit
+ * through {@link RangeFilterRowProps.onCommit}, and "Clear" stays on the
+ * row because removing one applied constraint is not the same act as applying
+ * a draft. The standalone shape is unchanged, and is still what a host mounting
+ * one row gets.
  */
 import { useRef, useState } from "react";
 import type { ReactElement } from "react";
@@ -77,10 +95,36 @@ export function RangeRowSkeleton(): ReactElement {
   );
 }
 
+/** What one row reports to a panel that owns the Apply button. */
+export interface RangeDraft {
+  /** The two ends as typed, or `null` for "clear this slug". */
+  readonly range: SearchRange | null;
+  /** `false` for `100..50` — a pair the server would answer zero for, which
+   * reads as "there is nothing like this" instead of "you typed it
+   * backwards". A panel refuses to apply while any draft is unusable. */
+  readonly usable: boolean;
+  /** `true` when the draft differs from what the URL already carries — what
+   * makes the panel's button primary, and what stops an Apply over untouched
+   * rows sending anything. */
+  readonly dirty: boolean;
+}
+
 export interface RangeFilterRowProps {
   readonly group: RangeGroup;
   /** `null` clears the slug's range entirely. */
   readonly onApply: (slug: string, range: SearchRange | null) => void;
+  /**
+   * Report this row's draft instead of owning an Apply button — see the
+   * module note. Called on every change, and once on mount is NOT promised: a
+   * panel starts from "nothing pending", which is what an untouched row means.
+   */
+  readonly onDraft?: (slug: string, draft: RangeDraft) => void;
+  /**
+   * Commit everything the panel has collected. Only reachable in the collected
+   * shape, and only from Enter — the gesture that has always meant "I have
+   * finished typing this".
+   */
+  readonly onCommit?: () => void;
 }
 
 function toDraft(value: string | undefined): string {
@@ -243,6 +287,10 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
   const apply: ActionAvailability = usable
     ? actionAvailable()
     : actionBlocked(SEARCH_I18N_KEYS.facetsRangeInvalid);
+  // Who owns the Apply button — see the module note. `onDraft` is the panel
+  // saying "I have one for all of us".
+  const onDraft = props.onDraft;
+  const collected = onDraft !== undefined;
 
   const commit = (): void => {
     if (!usable) return;
@@ -250,6 +298,45 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
     if (draftKey === lastSent.current) return;
     lastSent.current = draftKey;
     props.onApply(group.slug, empty ? null : draft);
+  };
+
+  /**
+   * Both halves of a change, in the shape the row is in.
+   *
+   * Standalone, a bound moves the local draft and nothing else until Apply,
+   * Enter or blur. Collected, the same move is also REPORTED — synchronously,
+   * from the event, with the values the change produces rather than the ones
+   * state still holds, because `setFrom` has not landed yet and a panel told
+   * the previous value would apply the number before last.
+   */
+  const change = (bound: "from" | "to", value: string): void => {
+    if (bound === "from") setFrom(value);
+    else setTo(value);
+    if (onDraft === undefined) return;
+    const nextFrom = bound === "from" ? value : from;
+    const nextTo = bound === "to" ? value : to;
+    const next: SearchRange = {
+      ...(nextFrom !== "" ? { from: nextFrom } : {}),
+      ...(nextTo !== "" ? { to: nextTo } : {}),
+    };
+    const blank = nextFrom === "" && nextTo === "";
+    onDraft(group.slug, {
+      range: blank ? null : next,
+      usable: isRangeUsable(next),
+      dirty: `${nextFrom}..${nextTo}` !== current,
+    });
+  };
+
+  /** Enter. The panel's commit when there is one, this row's otherwise. */
+  const enter = (): void => {
+    if (collected) props.onCommit?.();
+    else commit();
+  };
+
+  /** Blur. Nothing at all once a button owns the decision — leaving a field to
+   * reach the next one is not "apply this". */
+  const blur = (): void => {
+    if (!collected) commit();
   };
 
   const suffix = boundSuffix(format, group);
@@ -294,15 +381,19 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
               group={group}
               bound="from"
               value={from}
-              onChange={setFrom}
-              onCommit={commit}
+              onChange={(value) => {
+                change("from", value);
+              }}
+              onCommit={blur}
             />
             <BoundPicker
               group={group}
               bound="to"
               value={to}
-              onChange={setTo}
-              onCommit={commit}
+              onChange={(value) => {
+                change("to", value);
+              }}
+              onCommit={blur}
             />
           </>
         ) : (
@@ -320,10 +411,10 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
           {...(group.max !== undefined ? { max: group.max } : {})}
           {...(group.step !== undefined ? { step: group.step } : {})}
           onChange={(value) => {
-            setFrom(value === null || value === undefined ? "" : String(value));
+            change("from", value === null || value === undefined ? "" : String(value));
           }}
-          onPressEnter={commit}
-          onBlur={commit}
+          onPressEnter={enter}
+          onBlur={blur}
         />
         <InputNumber
           value={to === "" ? null : Number(to)}
@@ -338,10 +429,10 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
           {...(group.max !== undefined ? { max: group.max } : {})}
           {...(group.step !== undefined ? { step: group.step } : {})}
           onChange={(value) => {
-            setTo(value === null || value === undefined ? "" : String(value));
+            change("to", value === null || value === undefined ? "" : String(value));
           }}
-          onPressEnter={commit}
-          onBlur={commit}
+          onPressEnter={enter}
+          onBlur={blur}
         />
         </>
         )}
@@ -351,22 +442,28 @@ export function RangeFilterRow(props: RangeFilterRowProps): ReactElement {
             button exists to submit (class C-NOPRIMARY). And no `size="small"`:
             a filter row that a phone cannot hit is not a filter row, and the
             shared `SkinTheme` only raises the DEFAULT control height to 44. */}
-        <GatedButton
-          gate={apply}
-          type={usable && !empty ? "primary" : "default"}
-          testId={`facet-range-${group.slug}-apply`}
-          data-analytics="none"
-          data-analytics-reason="a filter is a read, not a flow step"
-          onClick={commit}
-        >
-          {t(SEARCH_I18N_KEYS.facetsRangeApply)}
-        </GatedButton>
+        {!collected && (
+          <GatedButton
+            gate={apply}
+            type={usable && !empty ? "primary" : "default"}
+            testId={`facet-range-${group.slug}-apply`}
+            data-analytics="none"
+            data-analytics-reason="a filter is a read, not a flow step"
+            onClick={commit}
+          >
+            {t(SEARCH_I18N_KEYS.facetsRangeApply)}
+          </GatedButton>
+        )}
         {group.active && (
           <Button
             data-testid={`facet-range-${group.slug}-clear`}
             data-analytics="none"
             data-analytics-reason="a filter is a read, not a flow step"
             onClick={() => {
+              // The row's own draft goes with the constraint: leaving a
+              // pending `2015..` behind would let the panel's Apply put back
+              // exactly what this button just removed.
+              onDraft?.(group.slug, { range: null, usable: true, dirty: false });
               props.onApply(group.slug, null);
             }}
           >

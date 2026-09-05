@@ -84,10 +84,37 @@ describe("the attribute-range block reserves its box before the answer lands", (
       expect(screen.getByTestId("facet-range-akb")).toBeTruthy()
     );
 
-    const box = screen.getByTestId("search-ranges-attributes");
-    expect(within(box).queryAllByTestId("facet-range-skeleton")).toHaveLength(0);
-    // Same axis count, now as real rows — one row per direct child.
-    expect(box.children).toHaveLength(PHONE_RANGE_AXES);
+    // The reservation is a box for rows that have not arrived; once they have,
+    // it is gone and the rows themselves stand in the panel's one order.
+    expect(screen.queryByTestId("search-ranges-attributes")).toBeNull();
+    expect(screen.queryAllByTestId("facet-range-skeleton")).toHaveLength(0);
+    // Same axis count, now as real rows — every ATTRIBUTE axis the schema
+    // declared, drawn among the groups rather than fenced below them.
+    expect(
+      screen
+        .getByTestId("search-facets")
+        .querySelectorAll('[data-core="false"]')
+    ).toHaveLength(PHONE_RANGE_AXES);
+  });
+
+  it("keeps the whole reservation INSIDE the loading arm — nothing after it travels", () => {
+    render(
+      <TestHarness server={phoneServer()}>
+        <FacetPanelPane categoryFeatures={PHONE_RANGE_FEATURES} />
+      </TestHarness>
+    );
+    // The numeric band and its skeleton used to be SIBLINGS of the loading
+    // arm, at positions nothing had decided yet, and travelled to their real
+    // places the instant the plan landed: 0.34 CLS on the live host. One box,
+    // and the pane draws nothing after it until there is an order to draw in.
+    const arm = screen.getByTestId("facets-loading");
+    expect(arm.contains(screen.getByTestId("search-ranges-attributes"))).toBe(
+      true
+    );
+    // Nothing between the busy region and the pane's floor.
+    const pane = screen.getByTestId("search-facets");
+    const after = [...pane.children].slice([...pane.children].indexOf(arm) + 1);
+    expect(after.map((node) => node.getAttribute("data-testid"))).toEqual([]);
   });
 
   it("reserves one row's floor when the schema itself is not known yet", () => {

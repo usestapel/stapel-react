@@ -76,13 +76,22 @@ import {
   Divider,
   Flex,
   Input,
+  Skeleton,
   Typography,
   theme,
 } from "antd";
-import { SlotPlaceholder, useT, useTPlural } from "@stapel/core";
+import {
+  SlotPlaceholder,
+  actionAvailable,
+  actionBlocked,
+  useT,
+  useTPlural,
+} from "@stapel/core";
+import type { ActionAvailability } from "@stapel/core";
 import {
   EmptyState,
   ErrorAlert,
+  GatedButton,
   LoadList,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
@@ -101,11 +110,15 @@ import {
   orderFacetGroupsBySchema,
 } from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
-import { FacetGroupControl } from "./FacetGroupControl.js";
+import { FacetGroupControl, facetGroupIsEmptyHeading } from "./FacetGroupControl.js";
 import { buildRangeGroups } from "../state/ranges.js";
+import type { RangeGroup } from "../state/ranges.js";
+import { orderPanelItems } from "../state/panel.js";
+import type { PanelItem } from "../state/panel.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { LanguageSelect } from "./LanguageSelect.js";
 import { RANGE_ROW_MIN_HEIGHT, RangeFilterRow, RangeRowSkeleton } from "./RangeFilterRow.js";
+import type { RangeDraft } from "./RangeFilterRow.js";
 import type { ThemeModeProp } from "./types.js";
 
 /**
@@ -231,6 +244,22 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
   /** The catalogue picker (`categories-react`'s `CategoryPickerField`, bound
    * to a path). Unfilled, an active category still gets a "clear" control. */
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
+  /**
+   * Draw the "Category" pane at all. Default `true`.
+   *
+   * `false` removes it ENTIRELY — no cascade, no development placeholder, and
+   * in particular no raw-id fallback: the arm that prints "Category: 32/149"
+   * with a "clear" button under it goes with the rest. That fallback exists so
+   * a shared link narrowing to a category always carries the control that
+   * widens it again, and it is the right default. It is the wrong thing on a
+   * surface whose category IS the page — a catalogue leaf reached by walking
+   * the tree, where the tree is the navigation above the panel and the id path
+   * inside the filters is machine state printed at a shopper.
+   *
+   * A host turning it off owns the way back out: on such a page it is the
+   * breadcrumb, or the tiles the reader arrived through.
+   */
+  readonly categoryFilter?: boolean;
   /** BCP-47 tags this deployment indexes — see {@link LanguageSelect}. */
   readonly languages?: readonly string[];
   /**
@@ -545,6 +574,20 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
   // panel's own search box: the URL is the search, and how much of the rail a
   // person has unfolded is not part of it.
   const [tailOpen, setTailOpen] = useState(false);
+  /**
+   * The range drafts the rows have reported and nobody has applied yet.
+   *
+   * The panel owns ONE "Apply" for every from/to row it draws — see
+   * `RangeFilterRow`'s module note — so it also owns what those rows have
+   * typed. Keyed by slug, emptied by an apply (the rows then re-read the URL
+   * they just wrote) and by a clear.
+   */
+  const [rangeDrafts, setRangeDrafts] = useState<
+    Readonly<Record<string, RangeDraft>>
+  >({});
+  const noteDraft = (slug: string, draft: RangeDraft): void => {
+    setRangeDrafts((was) => ({ ...was, [slug]: draft }));
+  };
   // `true` is the shape the prop shipped with and keeps meaning: pinned.
   const footerBar: "sticky" | "static" | "none" =
     props.footerBar === true
@@ -579,10 +622,15 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               ? { categoryFeatures: props.categoryFeatures }
               : {}),
             coreRanges: bag.coreRanges,
-            // The measured ends, and the axes the schema types as choices —
-            // a vocabulary-backed year is a from/to here because the answer
-            // says it has numbers behind it (stapel-search 0.14.7).
+            // The measured ends, the CAPTIONS (0.16.0), and the axes the
+            // schema types as choices — a vocabulary-backed year is a from/to
+            // here because the answer says it has numbers behind it
+            // (stapel-search 0.14.7).
             ...(bag.ranges !== undefined ? { ranges: bag.ranges } : {}),
+            // And the axes this answer planned and declined to offer, so the
+            // schema cannot put back a sparse or unnameable row the server
+            // just removed (0.16.0).
+            withheld: bag.withheld,
             ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
             t,
           });
@@ -608,6 +656,67 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
             props.partition !== undefined ||
             coreRanges.length > 0 ||
             state.geo !== undefined;
+          /**
+           * Apply every pending draft at once — the panel's own button.
+           *
+           * Only the DIRTY ones are sent: an Apply over three rows where one
+           * was typed into is one request, not three, and the two untouched
+           * rows must not rewrite the URL with the values it already carries.
+           * An unusable draft (`100..50`) blocks the button rather than being
+           * skipped quietly, which is the same refusal the row used to make
+           * for itself.
+           */
+          const pending = Object.entries(rangeDrafts).filter(
+            ([, draft]) => draft.dirty
+          );
+          const rangesUsable = pending.every(([, draft]) => draft.usable);
+          const applyRanges = (): void => {
+            if (!rangesUsable) return;
+            // ONE commit. `setRange` per axis would fold every edit into the
+            // same starting state and apply only the last of them — see
+            // `SearchStateBag.setRanges`.
+            bag.setRanges(Object.fromEntries(
+              pending.map(([slug, draft]) => [slug, draft.range])
+            ));
+            setRangeDrafts({});
+          };
+          const rangesApply: ActionAvailability = rangesUsable
+            ? actionAvailable()
+            : actionBlocked(SEARCH_I18N_KEYS.facetsRangeInvalid);
+          /** One from/to row, reporting to the button above rather than
+           * carrying one of its own. */
+          const rangeRow = (group: RangeGroup): ReactElement => (
+            <RangeFilterRow
+              key={group.slug}
+              group={group}
+              onApply={bag.setRange}
+              onDraft={noteDraft}
+              onCommit={applyRanges}
+            />
+          );
+          /**
+           * The panel's single "Apply", under the rows it commits.
+           *
+           * Drawn only where there is a from/to row to commit, primary only
+           * once something is actually pending — a filled button over three
+           * untouched fields is a button that does nothing, and the rail used
+           * to draw one of those per row.
+           */
+          const rangesApplyButton = (rows: readonly RangeGroup[]): ReactNode =>
+            rows.length === 0 ? null : (
+              <GatedButton
+                gate={rangesApply}
+                type={pending.length > 0 ? "primary" : "default"}
+                style={{ alignSelf: "flex-start" }}
+                testId="facet-ranges-apply"
+                data-pending={pending.length}
+                data-analytics="none"
+                data-analytics-reason="a filter is a read, not a flow step"
+                onClick={applyRanges}
+              >
+                {t(SEARCH_I18N_KEYS.facetsRangeApply)}
+              </GatedButton>
+            );
           return (
           <Flex vertical gap={spacing[3]} data-testid="search-facets">
             {/* In a 280px rail this row laid the word "Filters" out in a
@@ -654,39 +763,20 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               <div data-testid="search-partition">{props.partition}</div>
             )}
 
-            <CategoryFilter
-              {...(props.renderCategoryFilter !== undefined
-                ? { render: props.renderCategoryFilter }
-                : {})}
-            />
+            {/* The "Category" pane, unless the surface has said its category
+                is the page rather than a filter over it — see
+                `FacetPanelPaneProps.categoryFilter`. Off means OFF: no
+                placeholder, and no raw-id line either. */}
+            {props.categoryFilter !== false && (
+              <CategoryFilter
+                {...(props.renderCategoryFilter !== undefined
+                  ? { render: props.renderCategoryFilter }
+                  : {})}
+              />
+            )}
             <LanguageSelect
               {...(props.languages !== undefined ? { languages: props.languages } : {})}
             />
-
-            {/* Price, and only the CORE axes — the ones the server declares
-                for every document in every category.
-
-                Every other numeric row is an ATTRIBUTE the category happens
-                to declare, and on the deployed phones leaf all seven were
-                parcel dimensions and wholesale packing. They used to render
-                here, immediately under the price, which put 908px of
-                shipping-weight and packing-count rows between the buyer and
-                the brand (D120/D121).
-                They now render AFTER the facets, which is the band order the
-                chip row has used since D16 — see `CHIP_BAND_ORDER`. */}
-            {coreRanges.length > 0 && (
-              <Flex vertical gap={spacing[3]} data-testid="search-ranges">
-                {coreRanges.map((group) => (
-                  <RangeFilterRow
-                    key={group.slug}
-                    group={group}
-                    onApply={bag.setRange}
-                  />
-                ))}
-              </Flex>
-            )}
-
-            {coreRanges.length > 0 && <Divider style={{ margin: 0 }} />}
 
             {/* Honesty flags, not failures: the counts ARE approximate and
                 those slugs WERE skipped, and a red box would teach a person
@@ -711,10 +801,68 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               />
             )}
 
+            {/* NO GROUPS, BUT STILL A PANEL. `LoadList` draws its `empty` arm
+                instead of the children, so the from/to rows would vanish with
+                the checkboxes on a leaf whose only filter is a price — the one
+                shape where the rail is nothing else. Drawn here, in the place
+                the merged list would have put them. */}
+            {bag.state.status === "ready" &&
+              bag.state.data.length === 0 &&
+              ranges.length > 0 && (
+              <Flex vertical gap={spacing[3]} data-testid="search-ranges">
+                {ranges.map(rangeRow)}
+                {rangesApplyButton(ranges)}
+              </Flex>
+            )}
+
+            {/* ONE BOX WHILE THE PLAN IS UNKNOWN (0.34 CLS on a live host).
+                The numeric band and its reservation used to be SIBLINGS of
+                this arm: the rail drew four skeleton rows, then a divider,
+                then N range skeletons under it, and when the answer landed the
+                rows moved up into the order the plan asked for — every one of
+                them travelling past the reader's eye. The loading arm now
+                covers the whole pane, so nothing renders after it until there
+                is an order to render in.
+
+                Two things are unknown at first paint and each gets its own
+                reserve inside the box:
+                 - the SCHEMA (`categoryFeatures` undefined) — the axis count
+                   is unknown, so one row's floor is the guess;
+                 - the ANSWER with a known schema — the count is certain from
+                   the schema (and, better, from what an earlier answer FOR
+                   THIS CATEGORY measured: `bag.reservedRangeAxes`), so that
+                   many skeleton rows, each `RANGE_ROW_MIN_HEIGHT` tall like
+                   the row it will become. */}
             <LoadList
               state={bag.state}
               testId="facets"
               skeletonRows={4}
+              loading={
+                <Flex vertical gap={spacing[3]}>
+                  <Skeleton active paragraph={{ rows: 4 }} />
+                  <Divider style={{ margin: 0 }} />
+                  {props.categoryFeatures === undefined ? (
+                    <div
+                      aria-hidden="true"
+                      data-testid="search-ranges-attributes-reserve"
+                      style={{ minBlockSize: RANGE_ROW_MIN_HEIGHT }}
+                    />
+                  ) : (
+                    <Flex
+                      vertical
+                      gap={spacing[3]}
+                      data-testid="search-ranges-attributes"
+                    >
+                      {Array.from(
+                        { length: Math.max(reservedAxes, 1) },
+                        (_, index) => (
+                          <RangeRowSkeleton key={index} />
+                        )
+                      )}
+                    </Flex>
+                  )}
+                </Flex>
+              }
               empty={<FacetsEmptyArm bag={bag} hasOtherDrawable={hasOtherDrawable} />}
               failed={(error) => (
                 <ErrorAlert
@@ -740,7 +888,13 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 // narrows a catalogue in. Groups the schema does not name
                 // keep evidence order among themselves.
                 const drawable = orderFacetGroupsBySchema({
-                  groups: groups.filter(facetGroupIsDrawable),
+                  groups: groups
+                    .filter(facetGroupIsDrawable)
+                    // A bucket list with no buckets is a caption and an empty
+                    // box. Dropped HERE and not only inside the control, so
+                    // the count in "All filters (K)", the panel search and the
+                    // fold all agree about what is on the rail.
+                    .filter((group) => !facetGroupIsEmptyHeading(group)),
                   ...(props.categoryFeatures !== undefined
                     ? { categoryFeatures: props.categoryFeatures }
                     : {}),
@@ -771,6 +925,16 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                   );
                 const listed =
                   needle === "" ? drawable : drawable.filter(matches);
+                // The panel search narrows the from/to rows too: a person who
+                // typed "price" is looking for the price picker as much as for
+                // a checkbox group, and leaving the rows in would answer the
+                // query with everything it did not match.
+                const listedRanges =
+                  needle === ""
+                    ? ranges
+                    : ranges.filter((group) =>
+                        group.label.toLowerCase().includes(needle)
+                      );
                 // The tail. Only while nothing is typed: a query has already
                 // narrowed the list, and folding its answer would hide the
                 // thing that was looked for. One group over the limit is not
@@ -828,29 +992,52 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                         not decide — `facetGroupShape` reads the same config keys
                         the attributes editor reads, so a facet cannot look one
                         way here and another way in the composer. */}
+                    {/* ONE PANEL, ONE ORDER. The bucket lists and the from/to
+                        pickers are numbered on the same scale by the plan
+                        (stapel-search 0.16.0), so they are drawn as one
+                        sequence: "Price" and "Year" land where the category
+                        authored them instead of above and below every choice.
+                        A host's `pinnedFacets` reaches both halves — see
+                        `orderPanelItems`, which also holds the band order used
+                        when nobody numbered anything. */}
                     {/* The key changes with the query's presence ON PURPOSE:
                         `defaultOpen` is an initial value, and a group the
                         panel-search matched has to render OPEN — a hit behind
                         a closed header is not an answer. Remounting is the
                         honest way to re-ask the question; the person's own
                         opens and closes come back when the box clears. */}
-                    {shownGroups.map((group) => (
-                      <FacetGroupControl
-                        key={needle === "" ? group.slug : `${group.slug}:match`}
-                        group={group}
-                        onToggle={bag.toggle}
-                        onSetValues={bag.setValues}
-                        collapsible
-                        defaultOpen={
-                          needle !== "" ||
-                          group.selected.length > 0 ||
-                          openByOrder.has(group.slug)
-                        }
-                        {...(props.dictionaryMode !== undefined
-                          ? { dictionaryMode: props.dictionaryMode }
-                          : {})}
-                      />
-                    ))}
+                    {orderPanelItems({
+                      groups: shownGroups,
+                      ranges: listedRanges,
+                      ...(props.pinnedFacets !== undefined
+                        ? { pinned: props.pinnedFacets }
+                        : {}),
+                    }).map((item: PanelItem) =>
+                      item.kind === "range" ? (
+                        rangeRow(item.range)
+                      ) : (
+                        <FacetGroupControl
+                          key={
+                            needle === ""
+                              ? item.group.slug
+                              : `${item.group.slug}:match`
+                          }
+                          group={item.group}
+                          onToggle={bag.toggle}
+                          onSetValues={bag.setValues}
+                          collapsible
+                          defaultOpen={
+                            needle !== "" ||
+                            item.group.selected.length > 0 ||
+                            openByOrder.has(item.group.slug)
+                          }
+                          {...(props.dictionaryMode !== undefined
+                            ? { dictionaryMode: props.dictionaryMode }
+                            : {})}
+                        />
+                      )
+                    )}
+                    {rangesApplyButton(listedRanges)}
                     {tailFolded && (
                       <Button
                         style={{ alignSelf: "flex-start" }}
@@ -875,77 +1062,6 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 );
               }}
             </LoadList>
-
-            {/* The numeric tail, below the axes people actually narrow by.
-                On the deployed mobile-phones leaf this block is 908px of
-                battery health, four parcel dimensions and two wholesale
-                packing counts — and while it
-                rendered directly under the price it was the ONLY thing a
-                buyer could see in a viewport-tall rail (D120/D121, D74 on the
-                phone). It is a real filter for the person who wants it, so it
-                is not deleted; it is ranked where the chip row already ranks
-                it. */}
-            {/* The reservation, not just the rows (D361).
-                On a live category feed at 1536px this block's arrival was a
-                53px jump: `attributeRanges` draws from the CATEGORY SCHEMA
-                (`props.categoryFeatures`), and a host that fetches the
-                schema alongside the search answer had nothing here at all
-                until both landed — no host slot reserved the box, so the
-                rail grew under the reader's eye the instant it did.
-
-                Two things can be unknown at first paint, and each gets its
-                own reservation:
-                 - the SCHEMA itself (`categoryFeatures` undefined) — the
-                   axis count is unknown, so the fallback is one row's floor,
-                   a guess rather than nothing;
-                 - the ANSWER (`bag.state` not yet "ready") with a known
-                   schema — the axis COUNT is already certain from the
-                   schema, so the rail draws that many skeleton rows, each
-                   `RANGE_ROW_MIN_HEIGHT` tall like the real one it will
-                   become. Same count in both arms, so the swap from
-                   skeleton to `<RangeFilterRow>` costs no further height.
-
-                And the schema is only the FIRST guess at that count. Since
-                stapel-search 0.14.7 the answer measures the axes that have
-                numbers behind them — including the ones the catalogue types
-                as choices, a vocabulary-backed year — so a leaf whose schema
-                declares two can answer with four. `bag.reservedRangeAxes` is
-                what an earlier answer FOR THIS CATEGORY reported, remembered
-                in the state provider; when there is one it sizes the block,
-                because it is the count the swap will actually land on. */}
-            {props.categoryFeatures === undefined ? (
-              <>
-                <Divider style={{ margin: 0 }} />
-                <div
-                  aria-hidden="true"
-                  data-testid="search-ranges-attributes-reserve"
-                  style={{ minBlockSize: RANGE_ROW_MIN_HEIGHT }}
-                />
-              </>
-            ) : (
-              (attributeRanges.length > 0 || reservedAxes > 0) && (
-                <>
-                  <Divider style={{ margin: 0 }} />
-                  <Flex
-                    vertical
-                    gap={spacing[3]}
-                    data-testid="search-ranges-attributes"
-                  >
-                    {bag.state.status === "ready"
-                      ? attributeRanges.map((group) => (
-                          <RangeFilterRow
-                            key={group.slug}
-                            group={group}
-                            onApply={bag.setRange}
-                          />
-                        ))
-                      : Array.from({ length: reservedAxes }, (_, index) => (
-                          <RangeRowSkeleton key={index} />
-                        ))}
-                  </Flex>
-                </>
-              )
-            )}
 
             {footerBar !== "none" && (
               <RailFooterBar

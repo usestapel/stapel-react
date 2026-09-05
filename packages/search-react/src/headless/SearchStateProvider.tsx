@@ -168,6 +168,21 @@ export interface SearchStateBag {
   toggleFilter(slug: string, value: string): void;
   setFilter(slug: string, values: readonly string[]): void;
   setRange(slug: string, range: SearchRange | null): void;
+  /**
+   * Write SEVERAL ranges at once — the bulk half of {@link setRange}, and the
+   * same relationship `setFilter` has to `toggleFilter`.
+   *
+   * Every setter here closes over the state it edits, so two of them in one
+   * tick both fold their change into the SAME starting value and the second
+   * one wins. That is invisible while one control writes one axis; it is the
+   * whole story for a filter panel with one "Apply" over a price row and
+   * a mileage row, where two calls would have applied the mileage and quietly
+   * dropped the price. This folds them all into one state and commits once —
+   * one request, one history entry.
+   *
+   * `null` for a slug clears it, exactly as it does on {@link setRange}.
+   */
+  setRanges(ranges: Readonly<Record<string, SearchRange | null>>): void;
   setGeo(geo: SearchGeo | null): void;
   setLimit(limit: number | null): void;
   clearAll(): void;
@@ -506,6 +521,14 @@ export function SearchStateProvider(
         apply(setFilterValues(state, slug, values), historyOptions("filter")),
       setRange: (slug, range) =>
         apply(setRangeValue(state, slug, range), historyOptions("range")),
+      setRanges: (ranges) =>
+        apply(
+          Object.entries(ranges).reduce(
+            (next, [slug, range]) => setRangeValue(next, slug, range),
+            state
+          ),
+          historyOptions("range")
+        ),
       setGeo: (geo) => {
         apply(patchSearchState(state, { geo }), historyOptions("geo"));
       },

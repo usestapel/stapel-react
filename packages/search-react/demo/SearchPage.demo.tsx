@@ -15,7 +15,9 @@
  * rather than the skeleton every variant would otherwise share.
  */
 import type { ReactElement } from "react";
+import { Typography } from "antd";
 import { defineDemo } from "@stapel/showcase";
+import { useT } from "@stapel/core";
 import { SearchPage } from "../src/default/SearchPage.js";
 import { SearchDemoHarness, DemoFrame, useMemoryParams } from "./_harness.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
@@ -49,7 +51,12 @@ const SEED: DemoSeed = {
 const RESULTS_SEARCH = `type=${DEMO_TYPE}&q=bosch`;
 const UNREADABLE_SEARCH = `type=${DEMO_TYPE}&q=bosch&lat=abc&lon=37.6&r.price=cheap`;
 
-function Page(props: { phone?: boolean; search?: string }): ReactElement {
+function Page(props: {
+  phone?: boolean;
+  search?: string;
+  /** The catalogue leaf shape — see the `catalogue-leaf` variant. */
+  leaf?: boolean;
+}): ReactElement {
   const search = props.search ?? RESULTS_SEARCH;
   const adapter = useMemoryParams(search);
   return (
@@ -60,9 +67,25 @@ function Page(props: { phone?: boolean; search?: string }): ReactElement {
           defaultType={DEMO_TYPE}
           categoryFeatures={DEMO_FEATURES}
           filtersLayout={props.phone === true ? "sheet" : "column"}
+          {...(props.leaf === true
+            ? {
+                categoryFilter: false,
+                resultsLead: <LeafIntro />,
+              }
+            : {})}
         />
       </DemoFrame>
     </SearchDemoHarness>
+  );
+}
+
+/** What a catalogue leaf puts over its own list — the `resultsLead` slot. */
+function LeafIntro(): ReactElement {
+  const t = useT();
+  return (
+    <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+      {t("demo.leaf.intro")}
+    </Typography.Paragraph>
   );
 }
 
@@ -87,6 +110,13 @@ export default defineDemo({
       viewport: "phone",
       step: "results-phone",
       render: () => <Page phone />,
+    },
+    "catalogue-leaf": {
+      description:
+        "A page reached by walking the catalogue: the category IS the page, so the «Category» pane goes entirely (`categoryFilter={false}`) rather than printing the id path with a Clear button under it, and the leaf's own words go in `resultsLead` — inside the results column, above the toolbar, and not over the filter rail the way a full-width header would be.",
+      viewport: "desktop",
+      step: "catalogue-leaf",
+      render: () => <Page leaf />,
     },
     "unreadable-link": {
       description:
