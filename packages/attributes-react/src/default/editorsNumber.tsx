@@ -29,7 +29,7 @@
  * conversion here would be a second, disagreeing implementation of a table
  * that lives in Python.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 import { Flex, Select, Spin, Typography } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
@@ -180,6 +180,57 @@ function IntSuggestions(props: {
 }
 
 /**
+ * The allowed set as the ELEMENT states it.
+ *
+ * The suggestions panel above is what a thumb operates; this is what a
+ * MACHINE reads — the browser's own autofill, an accessibility tree, and the
+ * walker that measures the deployed field. Both int editors knew their set
+ * and neither put a word of it on the input: a deployed year field answered
+ * `min: null, max: null, list: null` while the page beside it printed the
+ * range in words (walker D392), so nothing could tell a bounded field from a
+ * free one without reading the prose.
+ *
+ * It is a statement, never a gate: the control is a text input with a keypad
+ * (`SkinNumberField` refuses `type="number"` on purpose), so the browser
+ * enforces none of this and the server stays the only judge.
+ */
+function IntAllowedList(props: {
+  readonly id: string;
+  readonly values: readonly number[];
+}): ReactElement {
+  return (
+    <datalist id={props.id} data-testid="attributes-int-datalist">
+      {props.values.map((one) => (
+        <option key={one} value={String(one)} />
+      ))}
+    </datalist>
+  );
+}
+
+/**
+ * The DOM half of a bound. `pattern` admits a leading minus only where the
+ * bound itself does — a pattern stricter than the values the field accepts
+ * would be native validation refusing something this package permits.
+ */
+function intDomBounds(
+  min: number | undefined,
+  max: number | undefined,
+  listId: string | undefined
+): {
+  readonly min?: number;
+  readonly max?: number;
+  readonly pattern: string;
+  readonly list?: string;
+} {
+  return {
+    ...(min !== undefined ? { min } : {}),
+    ...(max !== undefined ? { max } : {}),
+    pattern: min !== undefined && min >= 0 ? "[0-9]*" : "-?[0-9]*",
+    ...(listId !== undefined ? { list: listId } : {}),
+  };
+}
+
+/**
  * `IntConfig.optionsRef` — the year-of-make field scoped by the chosen
  * generation. The owner's ruling, final shape (together, not instead):
  *
@@ -225,6 +276,15 @@ function IntSuggestions(props: {
  * which tells a person the number they typed is wrong and nothing about
  * which number is right. Where the set IS loaded, its ends are said beside
  * the refusal — the same sentence a typed out-of-set number already gets.
+ *
+ * ── The ELEMENT says it too ──────────────────────────────────────────────
+ *
+ * All of the above is what a thumb operates. `min`/`max`/`pattern` and a
+ * `<datalist>` of the loaded set are the same facts written on the input, for
+ * everything that READS the field instead of tapping it — the browser's
+ * autofill, assistive tech, and the walker that measured this exact field
+ * answering `min: null, max: null, list: null` beside a page that printed the
+ * range in words (D392). Stated, never enforced: see {@link intDomBounds}.
  */
 const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   const t = useT();
@@ -240,6 +300,13 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   const current = numberish(props.value);
   const placeholder = str(cfg["placeholder"]);
   const postfix = configLabel(t, cfg["postfix"]);
+  // The catalogue's own bound. The live set replaces it as the CONSTRAINT
+  // (the hint under the control is suppressed for exactly that reason), but
+  // while there is no set — no parent yet, a fetch in flight, a level this
+  // side cannot know — it is still the truest thing the element can say.
+  const cfgMin = numberish(cfg["min"]);
+  const cfgMax = numberish(cfg["max"]);
+  const listId = useId();
 
   // The allowed set for the CURRENT parent, ascending; `null` while loading
   // or when it cannot be trusted (no client, a failed fetch, a page-capped
@@ -337,6 +404,16 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   const refusedNotInOptions =
     props.error?.code === ERROR_CODE_TO_KEY.not_in_options;
 
+  // What the ELEMENT says about the set, beside what the panel and the
+  // steppers do with it. The ends of the loaded set win over the catalogue's
+  // static bound, because they are the constraint the server will apply.
+  const listed = loaded && (allowed?.length ?? 0) > 0;
+  const dom = intDomBounds(
+    lowest ?? cfgMin,
+    highest ?? cfgMax,
+    listed ? listId : undefined
+  );
+
   return (
     <div
       {...touchFloorMarker(touchFloor)}
@@ -363,10 +440,12 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
             {...(props.required === true ? { ariaRequired: true } : {})}
             testId="attributes-number-field"
             {...errorStatus(props.error)}
+            {...dom}
             {...(postfix.length > 0 ? { unit: postfix } : {})}
             {...(placeholder.length > 0 ? { hintPlaceholder: placeholder } : {})}
             onValueChange={commit}
           />
+          {listed && <IntAllowedList id={listId} values={allowed ?? []} />}
         </div>
         {loaded && (
           <IntSteppers
@@ -463,6 +542,9 @@ function withinBounds(
  *    opens the whole set with the bound said in words — the dropdown is the
  *    recovery path, not a second control;
  *  - the steppers walk by one and grey at the ends;
+ *  - the bound is on the ELEMENT as well as in the prose — `min`/`max`,
+ *    `pattern`, and the `<datalist>` the dropdown draws from, for everything
+ *    that reads the field rather than taps it ({@link intDomBounds});
  *  - when the bound MOVES under a parent's answer and the value no longer
  *    fits, the value is CLEARED and the hint shown. Never coerced: a year
  *    silently rewritten from 2016 to 2018 is a listing that says something
@@ -492,6 +574,7 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
       : postfix;
   const values = useMemo(() => boundedIntValues(min, max), [min, max]);
   const baked = min !== undefined && max !== undefined && min === max;
+  const listId = useId();
 
   // What the person is TYPING, before the host round-trips it — so a
   // half-typed «201» filters the list on the keystroke rather than a render
@@ -598,6 +681,14 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
     max === undefined ? undefined : String(max)
   );
   const box = rangePlaceholder(min, max);
+  // The same bound, on the element — see {@link intDomBounds}. The list is
+  // attached only where the range IS one (`boundedIntValues` caps it), so a
+  // mileage field states its ends and offers no million-row datalist.
+  const dom = intDomBounds(
+    min,
+    max,
+    values !== null && !baked ? listId : undefined
+  );
 
   const field = (
     <SkinNumberField
@@ -609,6 +700,7 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
       {...(props.required === true ? { ariaRequired: true } : {})}
       testId="attributes-number-field"
       {...errorStatus(props.error)}
+      {...dom}
       {...(suffix.length > 0 ? { unit: suffix } : {})}
       {...(placeholder.length > 0
         ? { hintPlaceholder: placeholder }
@@ -628,7 +720,12 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
             {prefix}
           </Typography.Text>
         )}
-        <div style={{ flex: 1 }}>{field}</div>
+        <div style={{ flex: 1 }}>
+          {field}
+          {values !== null && !baked && (
+            <IntAllowedList id={listId} values={values} />
+          )}
+        </div>
         {!baked && values !== null && (
           <Button
             aria-label={t(ATTRIBUTES_I18N_KEYS.intChooseValue)}

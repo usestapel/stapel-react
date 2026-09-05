@@ -95,10 +95,15 @@ describe("the subform", () => {
     renderGroup(GROUP_FEATURE, [{ quantity: 10 }]);
     // `int` with min/max — the same control a top-level int row would get,
     // and the bounds are on it as a HINT rather than as a clamp: the empty
-    // box shows the range, and nothing rewrites what is typed.
+    // box shows the range, the element states it (D392), and the browser
+    // enforces none of it because this is a text box with a keypad, never
+    // `type="number"`.
     const cell = screen.getAllByLabelText(/quantity/)[0] as HTMLElement;
     expect(cell.getAttribute("placeholder")).toBe("1–10000000");
-    expect(cell.getAttribute("max")).toBeNull();
+    expect(cell.getAttribute("min")).toBe("1");
+    expect(cell.getAttribute("max")).toBe("10000000");
+    expect(cell.getAttribute("type")).not.toBe("number");
+    expect(cell.getAttribute("inputmode")).toBe("numeric");
   });
 
   it("marks a mandatory child, and only a mandatory one", () => {

@@ -98,6 +98,44 @@ describe("constrained int editor", () => {
     expect(yearInput().getAttribute("inputmode")).toBe("numeric");
   });
 
+  /**
+   * D392 — the deployed year field answered `min: null, max: null, list:
+   * null` while the page beside it printed the allowed range in words. Everything
+   * the editor knew about the set lived in prose and in a panel a pointer had
+   * to reach; nothing that READS a field — autofill, assistive tech, a walker
+   * measuring the page — could tell it from a free-text box.
+   */
+  it("states the catalogue's bound on the element before any set arrives", () => {
+    renderYear({ generation: ["g15"] });
+    // First frame, the fetch still in flight: the static bound is the truest
+    // thing the element can say, and it says it.
+    expect(yearInput().getAttribute("min")).toBe("1900");
+    expect(yearInput().getAttribute("max")).toBe("2027");
+    expect(yearInput().getAttribute("pattern")).toBe("[0-9]*");
+  });
+
+  it("narrows min/max to the live set and hangs a datalist off the input", async () => {
+    renderYear({ generation: ["g15"] });
+    await waitFor(() => expect(yearInput()).toBeTruthy());
+    await waitFor(() => {
+      expect(yearInput().getAttribute("list")).toBeTruthy();
+    });
+    // The ends of the LOADED set win over the catalogue's static bound: they
+    // are the constraint the server will actually apply.
+    expect(yearInput().getAttribute("min")).toBe("2008");
+    expect(yearInput().getAttribute("max")).toBe("2012");
+
+    const list = document.getElementById(yearInput().getAttribute("list") ?? "");
+    expect(list?.tagName.toLowerCase()).toBe("datalist");
+    expect([...(list?.querySelectorAll("option") ?? [])].map((one) => one.value)).toEqual([
+      "2008",
+      "2009",
+      "2010",
+      "2011",
+      "2012",
+    ]);
+  });
+
   it("suppresses the static range hint once the live set is on the control", async () => {
     renderYear({ generation: ["g15"] });
     await waitFor(() => expect(yearInput()).toBeTruthy());
@@ -269,6 +307,14 @@ describe("the constrained int says which state it is in", () => {
     ).toBe(true);
     // And no steppers over a set that does not exist.
     expect(screen.queryByTestId("attributes-int-step-up")).toBeNull();
+    // Nor a list: an empty `<datalist>` on the input would say "these are the
+    // allowed values" about a set nobody has asked for yet.
+    const box = document.getElementById("year-control") as HTMLInputElement;
+    expect(box.hasAttribute("list")).toBe(false);
+    expect(screen.queryByTestId("attributes-int-datalist")).toBeNull();
+    // The catalogue's own bound is still true, and still stated.
+    expect(box.getAttribute("min")).toBe("1900");
+    expect(box.getAttribute("max")).toBe("2027");
   });
 
   it("names the parent as a PERSON reads it, not as a slug", () => {

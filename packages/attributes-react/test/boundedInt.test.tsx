@@ -112,6 +112,38 @@ describe("the bound as a mechanism, not as prose", () => {
     expect(box("year").getAttribute("inputmode")).toBe("numeric");
   });
 
+  /** D392 — the bound was operable and still invisible to everything that
+   * READS the field rather than tapping it. */
+  it("writes the bound on the element, list and all", () => {
+    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const year = box("year");
+    expect(year.getAttribute("min")).toBe("2018");
+    expect(year.getAttribute("max")).toBe("2024");
+    expect(year.getAttribute("pattern")).toBe("[0-9]*");
+    const list = document.getElementById(year.getAttribute("list") ?? "");
+    expect(list?.tagName.toLowerCase()).toBe("datalist");
+    expect([...(list?.querySelectorAll("option") ?? [])].map((one) => one.value)).toEqual([
+      "2018",
+      "2019",
+      "2020",
+      "2021",
+      "2022",
+      "2023",
+      "2024",
+    ]);
+  });
+
+  it("states the ends of a range too long to list, and lists nothing", () => {
+    renderFields([MILEAGE], {});
+    const mileage = box("mileage");
+    expect(mileage.getAttribute("min")).toBe("0");
+    expect(mileage.getAttribute("max")).toBe("1000000");
+    // A million-row datalist is a megabyte of DOM offering nothing the keypad
+    // does not — `boundedIntValues` caps it, and the wire follows the cap.
+    expect(mileage.hasAttribute("list")).toBe(false);
+    expect(screen.queryByTestId("attributes-int-datalist")).toBeNull();
+  });
+
   it("offers the allowed values as a dropdown beside the keypad", () => {
     renderFields([GENERATION, YEAR], { generation: ["g20"] });
     expect(suggestions()).toEqual([]);

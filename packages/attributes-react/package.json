@@ -70,7 +70,7 @@
   ],
   "peerDependencies": {
     "@stapel/core": ">=0.23.0 <1.0.0",
-    "@stapel/tokens-antd": ">=0.16.0",
+    "@stapel/tokens-antd": ">=0.17.3",
     "antd": ">=5.20.0 <7",
     "react": ">=19"
   },
