@@ -219,3 +219,103 @@ describe("the inbox names the person, not the kind", () => {
     );
   });
 });
+
+/**
+ * THE ROW NAMES THE LISTING, NOT JUST ITS TITLE.
+ *
+ * A row for a conversation with a subject (stapel-chat 0.6.0) used to draw
+ * only `subjectRowLabel()`'s title text — the same card already carries a
+ * price and a thumbnail (`readSubjectCard`), and a buyer scanning ten threads
+ * about ten different listings could not tell them apart by price at a
+ * glance, nor recognize one by its photo. The row now draws thumbnail, title
+ * and price on one line, and a conversation with no subject — or a subject
+ * whose card is missing entirely — renders exactly as it always did.
+ */
+function listingCard(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    listing_id: "42",
+    title: "Bicycle, almost new",
+    price: 45000,
+    currency: "RUB",
+    state: "available",
+    url: "/listings/42",
+    image: {
+      ref: "image/abc",
+      preview_b64: "data:image/webp;base64,AAAA",
+      variants: [
+        { tier: "64", branch: null, url: "/media/cdn/image/abc/64.webp", width: 64 },
+        { tier: "240", branch: "w", url: "/media/cdn/image/abc/240w.webp", width: 240 },
+      ],
+    },
+    meta_status: "ok",
+    ...overrides,
+  };
+}
+
+function withListingSubject(card: Record<string, unknown> | null): Conversation {
+  return conversation({
+    subject: {
+      type: "listing",
+      key: "42",
+      card,
+      meta_status: card === null ? "partial" : "ok",
+    },
+  });
+}
+
+describe("the inbox row shows what the conversation is about", () => {
+  it("renders the subject's thumbnail and price beside its title", async () => {
+    const people = peopleSlot();
+    renderInbox([withListingSubject(listingCard())], people.slot);
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-conversation-row")).toBeTruthy()
+    );
+    expect(screen.getByTestId("chat-row-subject-title").textContent).toBe(
+      "Bicycle, almost new"
+    );
+    // The price is DATA — `Intl` renders it for the reader's locale, same as
+    // the pinned thread card.
+    expect(screen.getByTestId("chat-row-subject-price").textContent).toContain(
+      "45,000"
+    );
+    // The smallest variant wide enough for a thumbnail, not a 720px one.
+    const thumb = screen.getByTestId("chat-row-subject-thumb");
+    expect(thumb.tagName).toBe("IMG");
+    expect(thumb.getAttribute("src")).toBe("/media/cdn/image/abc/240w.webp");
+    expect(thumb.getAttribute("alt")).toBe("Bicycle, almost new");
+  });
+
+  it("a conversation without a subject renders as it always did", async () => {
+    const people = peopleSlot();
+    renderInbox(threeConversations(), people.slot);
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(3)
+    );
+    expect(screen.queryByTestId("chat-row-subject")).toBeNull();
+    expect(screen.queryByTestId("chat-row-subject-thumb")).toBeNull();
+  });
+
+  it("a subject with no photo draws the themed placeholder, never a broken image", async () => {
+    const people = peopleSlot();
+    renderInbox([withListingSubject(listingCard({ image: null }))], people.slot);
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-row-subject-thumb")).toBeTruthy()
+    );
+    const thumb = screen.getByTestId("chat-row-subject-thumb");
+    expect(thumb.tagName).toBe("DIV");
+    expect(thumb.getAttribute("data-photo")).toBe("none");
+    // Still the title and price — only the photo is missing.
+    expect(screen.getByTestId("chat-row-subject-title").textContent).toBe(
+      "Bicycle, almost new"
+    );
+  });
+
+  it("a subject whose card could not be built draws no subject line at all", async () => {
+    const people = peopleSlot();
+    renderInbox([withListingSubject(null)], people.slot);
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-conversation-row")).toBeTruthy()
+    );
+    expect(screen.queryByTestId("chat-row-subject")).toBeNull();
+  });
+});

@@ -29,7 +29,12 @@ export type { StartChatButtonProps } from "./StartChatButton.js";
 export { SignInLink } from "./SignInLink.js";
 // The subject card and the overflow menu are exported so a host composing its
 // own thread screen keeps the same two surfaces rather than re-deciding them.
-export { SubjectCard, readSubjectCard, subjectRowLabel } from "./subjectCard.js";
+export {
+  SubjectCard,
+  SubjectRowSummary,
+  readSubjectCard,
+  subjectRowLabel,
+} from "./subjectCard.js";
 export type { SubjectCardView } from "./subjectCard.js";
 // The presence line and the transport tag are both exported, and the pair of
 // them is the point: one says whether the OTHER person is there, the other

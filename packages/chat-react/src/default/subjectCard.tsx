@@ -148,11 +148,27 @@ export function subjectRowLabel(subject: Subject, locale: string): string {
 /** On the design-system scale, so a denser skin rescales with the tokens. */
 const THUMB_SIZE = spacing[7];
 
-function Thumb(props: { readonly url: string | null; readonly alt: string }): ReactElement {
+/**
+ * A thumbnail box: an `<img>` when there is a URL, a themed placeholder when
+ * there is not — never a torn-page glyph, never a layout shift.
+ *
+ * `size` and `testId` are overridable so the same drawing rule serves both
+ * the pinned card ({@link THUMB_SIZE}, `chat-subject-thumb`) and the inbox
+ * row's smaller inline one ({@link ROW_THUMB_SIZE}, `chat-row-subject-thumb`)
+ * without a second copy of the URL-vs-placeholder branch.
+ */
+function Thumb(props: {
+  readonly url: string | null;
+  readonly alt: string;
+  readonly size?: number;
+  readonly testId?: string;
+}): ReactElement {
   const { token } = antdTheme.useToken();
+  const size = props.size ?? THUMB_SIZE;
+  const testId = props.testId ?? "chat-subject-thumb";
   const box: CSSProperties = {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
+    width: size,
+    height: size,
     flex: "0 0 auto",
     borderRadius: radii.md,
     background: token.colorFillQuaternary,
@@ -162,15 +178,69 @@ function Thumb(props: { readonly url: string | null; readonly alt: string }): Re
   // painted from the theme's own fill, so the header never shifts when a
   // photo lands and never shows a torn-page glyph when it does not.
   return props.url === null ? (
-    <div style={box} data-testid="chat-subject-thumb" data-photo="none" />
+    <div style={box} data-testid={testId} data-photo="none" />
   ) : (
     <img
       src={props.url}
       alt={props.alt}
       style={box}
-      data-testid="chat-subject-thumb"
+      data-testid={testId}
       data-photo="present"
     />
+  );
+}
+
+/** Small enough to sit inline on an inbox row, beside the counterparty avatar. */
+const ROW_THUMB_SIZE = spacing[5];
+
+/**
+ * WHAT the row is about, on one line: thumbnail, title, price — or nothing
+ * at all when the conversation carries no subject. Used by the default
+ * inbox row (`ConversationListPanel`) in place of the old title-only
+ * {@link subjectRowLabel}.
+ */
+export function SubjectRowSummary(props: {
+  readonly subject: Subject;
+  readonly locale: string;
+}): ReactElement | null {
+  const t = useT();
+  const view = readSubjectCard(props.subject, props.locale);
+  if (view === null) return null;
+  if (view.title === "" && view.price === "" && view.imageUrl === null) return null;
+  const label = t(CHAT_I18N_KEYS.subjectLabel);
+  const alt = view.title === "" ? label : view.title;
+  return (
+    <Flex
+      align="center"
+      gap={spacing[2]}
+      style={{ minWidth: 0 }}
+      data-testid="chat-row-subject"
+    >
+      <Thumb
+        url={view.imageUrl}
+        alt={alt}
+        size={ROW_THUMB_SIZE}
+        testId="chat-row-subject-thumb"
+      />
+      {view.title !== "" ? (
+        <Typography.Text
+          ellipsis
+          style={{ minWidth: 0 }}
+          data-testid="chat-row-subject-title"
+        >
+          {view.title}
+        </Typography.Text>
+      ) : null}
+      {view.price !== "" ? (
+        <Typography.Text
+          type="secondary"
+          style={{ whiteSpace: "nowrap", flex: "0 0 auto" }}
+          data-testid="chat-row-subject-price"
+        >
+          {view.price}
+        </Typography.Text>
+      ) : null}
+    </Flex>
   );
 }
 

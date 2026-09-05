@@ -52,7 +52,7 @@ import {
   conversationPeopleIds,
   useCounterpartyLabel,
 } from "./people.js";
-import { subjectRowLabel } from "./subjectCard.js";
+import { SubjectRowSummary, readSubjectCard } from "./subjectCard.js";
 
 export interface ConversationListPanelProps {
   /**
@@ -115,8 +115,13 @@ function ConversationRow(props: {
   const { row, viewerId, directory, openHref, onOpen } = props;
   const label = useCounterpartyLabel(row, viewerId, directory);
   const subject = row.subject ?? null;
-  const subjectLabel =
-    subject === null ? "" : subjectRowLabel(subject, props.locale);
+  const subjectView = subject === null ? null : readSubjectCard(subject, props.locale);
+  // A card with nothing renderable (no title, price or photo) is the same as
+  // no subject at all for this line — the row draws nothing rather than an
+  // empty flex gap.
+  const hasSubjectSummary =
+    subjectView !== null &&
+    (subjectView.title !== "" || subjectView.price !== "" || subjectView.imageUrl !== null);
 
   // The name is TEXT, and the whole row is the control (D65 — see `openRow`
   // below). It used to be the other way round: a link-styled name inside a
@@ -138,12 +143,10 @@ function ConversationRow(props: {
             : preview.body;
 
   const meta =
-    subjectLabel === "" && previewText === "" ? undefined : (
+    !hasSubjectSummary && previewText === "" ? undefined : (
       <>
-        {subjectLabel !== "" ? (
-          <span style={{ display: "block" }} data-testid="chat-row-subject">
-            {subjectLabel}
-          </span>
+        {hasSubjectSummary && subject !== null ? (
+          <SubjectRowSummary subject={subject} locale={props.locale} />
         ) : null}
         {previewText !== "" ? (
           <span style={{ display: "block" }} data-testid="chat-row-preview">
