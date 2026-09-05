@@ -493,6 +493,7 @@ interface SearchPageBodyProps {
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly renderEmptyExits?: () => ReactNode;
   readonly locale?: string;
+  readonly pinnedFacets?: readonly string[];
   readonly resolveFacetLabels?: FacetLabelResolver;
   readonly searchBox?: boolean;
   readonly languages?: readonly string[];
@@ -645,6 +646,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
+          {...(props.pinnedFacets !== undefined
+            ? { pinnedFacets: props.pinnedFacets }
+            : {})}
           {...(props.languages !== undefined ? { languages: props.languages } : {})}
           {...(props.renderCategoryFilter !== undefined
             ? { renderCategoryFilter: props.renderCategoryFilter }
@@ -911,6 +915,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     resultsHeadingLevel,
     dictionaryMode,
     visibleGroups,
+    pinnedFacets,
     mode,
     ...parseOptions
   } = props;
@@ -922,6 +927,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}
+          {...(pinnedFacets !== undefined ? { pinnedFacets } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}

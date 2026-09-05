@@ -247,6 +247,67 @@ describe("the filter sheet is a state the page can open in", () => {
  * field. The default is now per LAYOUT, because only this component knows
  * which frame it is drawing.
  */
+/**
+ * `pinnedFacets` was declared and documented on `<SearchPage>` but never
+ * forwarded past it — a host pinning a facet through the page (rather than
+ * mounting `<FacetPanelPane>` directly) got the plan's own order back,
+ * silently. Both places `<SearchPage>` draws the panel — the desktop rail and
+ * the phone sheet — share the same `panel` element, so one prop reaches both.
+ */
+describe("pinnedFacets reaches the panel through SearchPage", () => {
+  function PinnedPage(props: {
+    readonly layout?: "column" | "sheet";
+  }): ReactElement {
+    const adapter: SearchParamsAdapter = useTestParams("type=listing");
+    return (
+      <SearchPage
+        adapter={adapter}
+        defaultType="listing"
+        pinnedFacets={["condition", "brand"]}
+        {...(props.layout !== undefined ? { filtersLayout: props.layout } : {})}
+        {...(props.layout === "sheet" ? { defaultFiltersOpen: true } : {})}
+      />
+    );
+  }
+
+  // High coverage on `brand`, low on `condition`, so the UNPINNED evidence
+  // order ranks brand first — the pin has to visibly overturn it, not just
+  // agree with what the evidence order already gives.
+  function pinnedServer() {
+    return serverWith(
+      { brand: { bosch: 100 }, condition: { new: 5 } },
+      ["brand", "condition"]
+    );
+  }
+
+  function groupSlugsInOrder(): string[] {
+    const panel = screen.getByTestId("search-facets");
+    return Array.from(
+      panel.querySelectorAll("[data-testid^='facet-group-']")
+    ).map((el) => (el.getAttribute("data-testid") ?? "").replace("facet-group-", ""));
+  }
+
+  it("puts the pinned slug first in the desktop rail", async () => {
+    render(
+      <TestProviders server={pinnedServer()}>
+        <PinnedPage layout="column" />
+      </TestProviders>
+    );
+    await waitFor(() => expect(screen.getByTestId("facet-group-brand")).toBeTruthy());
+    expect(groupSlugsInOrder()).toEqual(["condition", "brand"]);
+  });
+
+  it("puts the pinned slug first in the phone sheet too", async () => {
+    render(
+      <TestProviders server={pinnedServer()}>
+        <PinnedPage layout="sheet" />
+      </TestProviders>
+    );
+    await waitFor(() => expect(screen.getByTestId("facet-group-brand")).toBeTruthy());
+    expect(groupSlugsInOrder()).toEqual(["condition", "brand"]);
+  });
+});
+
 describe("a dictionary axis is a FIELD on the desktop rail", () => {
   const VENDOR = [
     {
