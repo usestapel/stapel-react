@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
   "package": "@stapel/chat-react",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "defined": [],
   "flows": []
 }
