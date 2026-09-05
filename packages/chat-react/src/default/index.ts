@@ -19,7 +19,10 @@ export {
 } from "./ConversationListPanel.js";
 export type { ConversationListPanelProps } from "./ConversationListPanel.js";
 export { ConversationThreadPanel } from "./ConversationThreadPanel.js";
-export type { ConversationThreadPanelProps } from "./ConversationThreadPanel.js";
+export type {
+  ConversationThreadPanelProps,
+  ThreadHeaderActionsContext,
+} from "./ConversationThreadPanel.js";
 // The desktop two-pane arrangement over the two panels above. Mounting it is
 // the HOST's viewport decision — a phone host keeps the two screens.
 export { ConversationSplitPanel } from "./ConversationSplitPanel.js";
@@ -62,3 +65,14 @@ export type { SignInLinkProps } from "./SignInLink.js";
 // it is exported so a host composing loose parts can wrap them once.
 export { ChatSkinTheme } from "./theme.js";
 export type { ChatSkinThemeProps } from "./theme.js";
+
+// ── The call control (0.10.0) ───────────────────────────────────────────────
+//
+// chat owns the QUESTION — may these two people talk, about this thing, right
+// now — and `@stapel/video-react` owns the act. The button below holds the
+// gate and calls back; a host wires `onCall` to `useCalls().place(…)`, and
+// neither package depends on the other. A thread header that imported the
+// video pair to draw a button would put a WebRTC stack in the bundle of every
+// host that shows a conversation and never calls anybody.
+export { StartCallButton } from "./StartCallButton.js";
+export type { StartCallButtonProps } from "./StartCallButton.js";

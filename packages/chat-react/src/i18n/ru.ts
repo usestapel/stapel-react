@@ -115,6 +115,16 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.start.button": "Написать продавцу",
   "chat.start.starting": "Открываем…",
   "chat.start.blocked.self": "Это ваше собственное объявление.",
+
+  // ── The call control ──────────────────────────────────────────────────────
+  "chat.call.button": "Позвонить",
+  "chat.call.blocked.sign_in": "Войдите, чтобы позвонить.",
+  "chat.call.blocked.mandate_unknown": "Секунду…",
+  "chat.call.blocked.unknown_peer": "Здесь некому звонить.",
+  "chat.call.blocked.self": "Это ваше собственное объявление.",
+  "chat.call.blocked.no_thread": "Сначала откройте переписку, потом звоните.",
+  "chat.call.blocked.busy": "Вы уже в звонке.",
+  "chat.call.blocked.pending": "Звоним…",
   "chat.start.blocked.unknown_seller": "У этого объявления не указан продавец.",
   "chat.start.blocked.sign_in": "Войдите, чтобы написать продавцу.",
   "chat.start.blocked.mandate_unknown": "Проверяем вашу сессию…",

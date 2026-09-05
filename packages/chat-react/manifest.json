@@ -659,6 +659,27 @@
       "source": "demo/StartDirectChat.demo.tsx"
     },
     {
+      "id": "chat.start-call-button",
+      "title": "Call (default skin)",
+      "description": "The thread-header control. It answers whether these two people may talk — the same axes 'message the seller' reads — and calls back; the host wires that to @stapel/video-react's useCalls().place(). Neither package depends on the other, which is why a host that shows conversations and never calls carries no WebRTC stack.",
+      "component": "StartCallButton",
+      "covers": [
+        "StartCall"
+      ],
+      "tokens": [
+        "brand",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "busy",
+        "signed-out",
+        "no-thread",
+        "compact"
+      ],
+      "source": "demo/StartCallButtonSkin.demo.tsx"
+    },
+    {
       "id": "chat.start-chat-button",
       "title": "Message the seller (default skin)",
       "description": "The shipped listing-card control. Pressable, or switched off WITH the sentence that says why — and, when the host supplies a sign-in route, with the door beside the sentence. Opening is get-or-create by participant pair, so pressing twice cannot fan out into two threads.",
@@ -696,6 +717,14 @@
     }
   ],
   "i18nKeys": [
+    "chat.call.blocked.busy",
+    "chat.call.blocked.mandate_unknown",
+    "chat.call.blocked.no_thread",
+    "chat.call.blocked.pending",
+    "chat.call.blocked.self",
+    "chat.call.blocked.sign_in",
+    "chat.call.blocked.unknown_peer",
+    "chat.call.button",
     "chat.composer.blocked.empty",
     "chat.composer.blocked.too_long",
     "chat.composer.placeholder",
@@ -860,6 +889,7 @@
       "MessageComposer",
       "PRESENCE_UNKNOWN",
       "RENEWING_CREDENTIAL_DEBOUNCE_MS",
+      "StartCall",
       "StartDirectChat",
       "THREAD_INTERVAL_MS",
       "THREAD_PAGE",
@@ -1003,6 +1033,7 @@
       "Schemas",
       "SendMessageRequest",
       "SendMessageVariables",
+      "StartCallBag",
       "StartDirectChatBag",
       "StartDirectChatVariables",
       "Subject",

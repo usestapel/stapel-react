@@ -96,6 +96,23 @@ export const CHAT_I18N_KEYS = {
   startButton: "chat.start.button",
   startStarting: "chat.start.starting",
   startBlockedSelf: "chat.start.blocked.self",
+
+  // ── The call control (0.10.0) ────────────────────────────────────────────
+  // chat owns the QUESTION ("may these two talk, about this thing, now") and
+  // not the act: @stapel/video-react places the call. These keys are the
+  // sentences a switched-off control shows, and every one of them names a
+  // reason the person can act on.
+  callButton: "chat.call.button",
+  callBlockedSignIn: "chat.call.blocked.sign_in",
+  callBlockedMandateUnknown: "chat.call.blocked.mandate_unknown",
+  callBlockedUnknownPeer: "chat.call.blocked.unknown_peer",
+  callBlockedSelf: "chat.call.blocked.self",
+  /** No conversation to hang the call off. The server's authorizer requires
+   * one — a user id is not a phone number — so this is blocked rather than
+   * pressed into a 403. */
+  callBlockedNoThread: "chat.call.blocked.no_thread",
+  callBlockedBusy: "chat.call.blocked.busy",
+  callBlockedPending: "chat.call.blocked.pending",
   startBlockedUnknownSeller: "chat.start.blocked.unknown_seller",
   /** A visitor: the POST is `IsAuthenticated`, so say so before the click. */
   startBlockedSignIn: "chat.start.blocked.sign_in",
@@ -253,6 +270,16 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.start.button": "Message the seller",
   "chat.start.starting": "Opening…",
   "chat.start.blocked.self": "This is your own listing.",
+
+  // ── The call control ──────────────────────────────────────────────────────
+  "chat.call.button": "Call",
+  "chat.call.blocked.sign_in": "Sign in to call.",
+  "chat.call.blocked.mandate_unknown": "One moment…",
+  "chat.call.blocked.unknown_peer": "There is nobody to call here.",
+  "chat.call.blocked.self": "This is your own listing.",
+  "chat.call.blocked.no_thread": "Open the conversation first, then call.",
+  "chat.call.blocked.busy": "You are already on a call.",
+  "chat.call.blocked.pending": "Calling…",
   "chat.start.blocked.unknown_seller": "This listing has no seller to write to.",
   "chat.start.blocked.sign_in": "Sign in to message the seller.",
   "chat.start.blocked.mandate_unknown": "Checking your session…",

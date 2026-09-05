@@ -251,6 +251,8 @@ export {
   CHAT_ELEVATION_ACTIONS,
 } from "./headless/StartDirectChat.js";
 export type { StartDirectChatBag } from "./headless/StartDirectChat.js";
+export { StartCall } from "./headless/StartCall.js";
+export type { StartCallBag } from "./headless/StartCall.js";
 
 // ── nav ──────────────────────────────────────────────────────────────────────
 export { navEntries } from "./nav/manifest.js";

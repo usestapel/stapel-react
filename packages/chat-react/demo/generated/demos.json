@@ -251,6 +251,55 @@
       }
     },
     {
+      "id": "chat.start-call-button",
+      "title": "Call (default skin)",
+      "description": "The thread-header control. It answers whether these two people may talk — the same axes 'message the seller' reads — and calls back; the host wires that to @stapel/video-react's useCalls().place(). Neither package depends on the other, which is why a host that shows conversations and never calls carries no WebRTC stack.",
+      "component": "StartCallButton",
+      "covers": [
+        "StartCall"
+      ],
+      "tokens": [
+        "brand",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A signed-in member, in a direct thread with a counterpart: pressable, with nothing in the way.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "busy",
+          "description": "Already on a call. The refusal that is otherwise invisible from this screen: the call is happening over some other page, and a grey button with no sentence would read as a bug rather than as a state.",
+          "viewport": "desktop",
+          "step": "busy"
+        },
+        {
+          "id": "signed-out",
+          "description": "A visitor. Told to sign in BEFORE the press — and, unlike messaging, with no elevation path: minting an anonymous account so a stranger's phone can ring is a different bargain from minting one to deliver a message somebody typed.",
+          "viewport": "phone",
+          "step": "sign_in"
+        },
+        {
+          "id": "no-thread",
+          "description": "No conversation to hang the call off. The server's authorizer REQUIRES one — a user id is not a phone number, and membership of a thread is what makes it one — so the control is blocked rather than pressed into a 403.",
+          "viewport": "phone",
+          "step": "no_thread"
+        },
+        {
+          "id": "compact",
+          "description": "Icon-only, for a crowded thread header. The accessible name and the tooltip carry the label either way — an icon button with no name is announced as 'button' — and the sentence still renders on the page, because a hover does not exist on the phone this is mostly used on.",
+          "viewport": "phone",
+          "step": "compact"
+        }
+      ],
+      "source": {
+        "file": "demo/StartCallButtonSkin.demo.tsx",
+        "line": 48
+      }
+    },
+    {
       "id": "chat.start-chat-button",
       "title": "Message the seller (default skin)",
       "description": "The shipped listing-card control. Pressable, or switched off WITH the sentence that says why — and, when the host supplies a sign-in route, with the door beside the sentence. Opening is get-or-create by participant pair, so pressing twice cannot fan out into two threads.",

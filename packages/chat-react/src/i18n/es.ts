@@ -115,6 +115,16 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.start.button": "Escribir al vendedor",
   "chat.start.starting": "Abriendo…",
   "chat.start.blocked.self": "Este anuncio es tuyo.",
+
+  // ── The call control ──────────────────────────────────────────────────────
+  "chat.call.button": "Llamar",
+  "chat.call.blocked.sign_in": "Inicia sesión para llamar.",
+  "chat.call.blocked.mandate_unknown": "Un momento…",
+  "chat.call.blocked.unknown_peer": "Aquí no hay nadie a quien llamar.",
+  "chat.call.blocked.self": "Este anuncio es tuyo.",
+  "chat.call.blocked.no_thread": "Abre la conversación y luego llama.",
+  "chat.call.blocked.busy": "Ya estás en una llamada.",
+  "chat.call.blocked.pending": "Llamando…",
   "chat.start.blocked.unknown_seller": "Este anuncio no tiene vendedor a quien escribir.",
   "chat.start.blocked.sign_in": "Inicia sesión para escribir al vendedor.",
   "chat.start.blocked.mandate_unknown": "Comprobando tu sesión…",

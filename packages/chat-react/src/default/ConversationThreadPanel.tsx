@@ -57,6 +57,26 @@ export interface ConversationThreadPanelProps {
    * not want it, rather than leaving a skin to hide the prompt.
    */
   notifications?: boolean;
+  /**
+   * Extra controls in the thread header, beside the transport tag and the
+   * actions menu — `<StartCallButton>` is what this exists for.
+   *
+   * A SLOT and not a built-in call button, deliberately: calling lives in
+   * `@stapel/video-react` and a deployment without stapel-video must not grow
+   * a control that 404s. The slot is given the counterparty's id where there
+   * is exactly ONE (a direct thread), and `null` in a group — a call is
+   * between two people, and a "call" button on a five-person thread would be
+   * a promise this fleet's call surface does not make.
+   */
+  renderHeaderActions?: (context: ThreadHeaderActionsContext) => ReactNode;
+}
+
+/** What the header-actions slot is told. */
+export interface ThreadHeaderActionsContext {
+  readonly conversationId: string;
+  /** The one other person, or `null` for a group or an unknown reader. */
+  readonly counterpartyId: string | null;
+  readonly viewerId: string | null;
 }
 
 /** A stable empty list — a fresh `[]` per render would re-run a host's batch. */
@@ -77,6 +97,9 @@ function ThreadHeader(props: {
   readonly directory: ChatPeopleDirectory;
   readonly conversationId: string;
   readonly transportTag: ReactNode;
+  readonly renderHeaderActions:
+    | ((context: ThreadHeaderActionsContext) => ReactNode)
+    | undefined;
 }): ReactElement {
   const t = useT();
   const { conversation, viewerId } = props;
@@ -130,6 +153,21 @@ function ThreadHeader(props: {
             a degraded transport that renders as a plain "refreshing every few
             seconds" is the thing that made this pair's broken handshake look
             like a design decision for months. */}
+        {/* The host's own controls first: a call button belongs beside the
+            name, before the overflow menu, because it is the second thing a
+            person does in a thread and the menu is the fifth. */}
+        {/* `?? null`, and not a `SlotPlaceholder`: an EMPTY header-actions
+            slot is the correct, common state, not a hole somebody forgot to
+            fill. Calling lives in another package, and a deployment without
+            stapel-video installed is supposed to have exactly the header it
+            had before — a dashed "renderHeaderActions" region in every such
+            app would be this pair advertising a feature the deployment does
+            not have. */}
+        {props.renderHeaderActions?.({
+          conversationId: props.conversationId,
+          counterpartyId: others.length === 1 ? (others[0] ?? null) : null,
+          viewerId,
+        }) ?? null}
         {props.transportTag}
         <ThreadActionsMenu
           conversationId={props.conversationId}
@@ -375,6 +413,7 @@ export function ConversationThreadPanel(
                 viewerId={viewerId}
                 directory={directory}
                 conversationId={props.conversationId}
+                renderHeaderActions={props.renderHeaderActions}
                 transportTag={
                   <TransportTag
                     transport={transport}
