@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/listings-react",
-  "version": "0.25.5",
+  "version": "0.25.6",
   "demos": [
     {
       "id": "listings.card",

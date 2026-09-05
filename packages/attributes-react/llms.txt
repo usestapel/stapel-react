@@ -1,4 +1,4 @@
-# @stapel/attributes-react 0.16.1
+# @stapel/attributes-react 0.16.2
 
 React value layer for stapel-attributes' dynamic feature types: a value-editor registry keyed on config.type (explicit registration > skin builtin > loud unsupported notice, with the submit blocked and the reason named), a client-side validation mirror that speaks the engine's own error.400.feature_* keys (pattern as fullmatch, string length in Unicode code points), DTO helpers for the {slug: {type, value}} wire shape, and display formatting. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd editors for all ten builtin types plus <FeatureFields> and <FeatureBadges>.
 
