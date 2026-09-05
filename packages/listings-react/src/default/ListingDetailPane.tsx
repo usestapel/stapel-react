@@ -131,15 +131,50 @@ export interface ListingDetailPaneProps
    */
   readonly layout?: "column" | "split";
   /**
+   * WHO OWNS THE PAGE EDGE.
+   *
+   * `"own"` (default, byte-compatible) keeps the pane's own `spacing[4]`
+   * gutter — right for a host that mounts the pane on a bare route with
+   * nothing padding it.
+   *
+   * `"shell"` says a page frame already placed that edge, so the pane adds
+   * none. `@stapel/shell-react` pads its content box with
+   * `--stapel-page-gutter` — a RESPONSIVE role, 4px on a phone and 24px on a
+   * desktop — and the pane then stacked a flat 16px inside it: a 40px left
+   * edge on a desktop, and on a 360px phone a 20px edge on each side eating
+   * a ninth of the screen the photos are read on. Two gutters is one gutter
+   * too many, and only the host knows whether it has a frame; measured on a
+   * live storefront, which worked around it by negatively margining the pane
+   * back out to the frame's edge.
+   */
+  readonly gutter?: "own" | "shell";
+  /**
    * The host's seller block (a profile card, ratings, "member since" — a
    * different pair's data, so it arrives as a node). In `"split"` it renders
    * inside the sticky buy column, under the actions, where the reference
-   * design keeps it. In `"column"` there is no buy column to live in, so it
-   * joins the end of the reading flow directly ABOVE `footer` — the flow
-   * position the footer already holds, so a host passing both gets seller
-   * block then footer, in that order.
+   * design keeps it. In `"column"` it takes the position
+   * {@link asidePlacement} names.
    */
   readonly aside?: ReactNode;
+  /**
+   * Where {@link aside} sits in the ONE-COLUMN arm (`layout="column"`);
+   * ignored in `"split"`, where the buy column already puts it under the
+   * actions.
+   *
+   *  - `"end"` (default, byte-compatible) — the end of the reading flow,
+   *    directly above `footer`.
+   *  - `"after-actions"` — directly under the actions, before the description
+   *    and the spec table.
+   *
+   * The phone is the whole argument. `"column"` IS the phone rendering of
+   * this page, and there the seller block sat below a description, a spec
+   * table and a meta table: measured on a live storefront, "who am I buying
+   * from" was two full screens of scrolling below "message the seller" — the
+   * two halves of one decision, separated by everything else on the page.
+   * The split layout already reads the other way round (price, actions,
+   * seller), and this is that reading order for the column.
+   */
+  readonly asidePlacement?: "end" | "after-actions";
   /**
    * THE primary action for a buyer: "message the seller", filled by the
    * container from `@stapel/chat-react`. Rendered first, before favouriting,
@@ -211,7 +246,9 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
       surface="base"
       style={{
         maxWidth: split ? DETAIL_SPLIT_MEASURE : DETAIL_MEASURE,
-        padding: spacing[4],
+        // See `gutter`: a frame that already placed the page edge does not get
+        // a second one stacked inside it.
+        padding: props.gutter === "shell" ? 0 : spacing[4],
       }}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
@@ -627,8 +664,12 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               ) : null;
 
             if (!split) {
-              // The single column, in the order it has always read — the
-              // host's aside joins where the footer's flow already is.
+              // The single column. `"end"` is the order it has always read —
+              // the host's aside joins where the footer's flow already is;
+              // `"after-actions"` puts the seller beside the decision to
+              // contact them, which is where the split layout already has it.
+              const asideAfterActions =
+                props.asidePlacement === "after-actions";
               return (
                 <>
                   {statusBlocks}
@@ -637,11 +678,12 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   {price}
                   {buyBox}
                   {actionError}
+                  {asideAfterActions ? aside : null}
                   <Divider />
                   {description}
                   {specsSection}
                   {meta}
-                  {aside}
+                  {asideAfterActions ? null : aside}
                   {props.footer}
                 </>
               );
