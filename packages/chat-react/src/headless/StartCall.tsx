@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   actionAvailable,
@@ -52,8 +52,18 @@ export interface StartCallBag {
   /** Blocked reasons: no counterpart, calling yourself, a visitor with no
    * identity, or a call already in progress. */
   readonly availability: ActionAvailability;
-  /** A call is being placed right now. */
+  /** A call is being placed right now — including the thread being created
+   * first, when the press is what creates it (see `ensureConversation`). */
   readonly isStarting: boolean;
+  /**
+   * What `ensureConversation` threw, if it did.
+   *
+   * A press that has to make the thread first can fail before there is any
+   * call to fail, and the gate's own vocabulary cannot say that: a blocked
+   * REASON is a fact about the button that was true before it was pressed.
+   * `undefined` until something goes wrong, and cleared by the next press.
+   */
+  readonly error?: unknown;
   /** Ring them. A no-op while blocked, so a host that renders its own control
    * cannot bypass the gate by wiring the callback directly. */
   call(): void;
@@ -67,8 +77,32 @@ export function StartCall(props: {
   /** The conversation the call hangs off. The server's default authorizer
    * REQUIRES it: a user id is not a phone number, and membership of a thread
    * is what makes it one. Absent, the control is blocked rather than
-   * pressed into a 403. */
+   * pressed into a 403 — unless the host can MAKE one, see
+   * `ensureConversation`. */
   conversationId: string | null | undefined;
+  /**
+   * MAKE THE THREAD THE PRESS NEEDS.
+   *
+   * A call needs a conversation because that is what the server's authorizer
+   * reads, and on a listing page there is usually no thread yet: nobody has
+   * written to this seller. With only `conversationId` to go on, the control
+   * had exactly one honest answer there — blocked, "there is no conversation
+   * to call in" — which is a true sentence about a screen where "Call" is
+   * precisely what the person wants, and it left hosts either hiding the
+   * button or pre-creating an empty thread for every listing anyone looked at.
+   *
+   * Supplied, an absent `conversationId` stops blocking: the thread is a step
+   * of the press rather than a precondition of it. The seam is the host's
+   * because CREATING one is (`<StartDirectChat>`'s `POST /conversations/` is
+   * the same call, with the same subject and participants only the host
+   * knows). Everything else about the gate is unchanged — a visitor, a
+   * missing counterpart, calling yourself and being mid-call all still block
+   * BEFORE the press, which is the whole point of the component.
+   *
+   * Resolving to nothing is a refusal, not a call with no thread: the press
+   * simply ends, and `bag.error` carries anything thrown.
+   */
+  ensureConversation?: () => Promise<string | null | undefined>;
   /** Is this person already on a call? Fed from the video pair. */
   busy?: boolean;
   /** A call is in flight. */
@@ -78,6 +112,19 @@ export function StartCall(props: {
   children: (bag: StartCallBag) => ReactNode;
 }): ReactNode {
   const { peerId, viewerId, conversationId, busy, pending, onCall } = props;
+  const ensureConversation = props.ensureConversation;
+  // The press that has to make a thread first is in flight from the click
+  // until the call is handed over — one state, so the button reads "starting"
+  // for the whole of it rather than looking idle while a POST is out.
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<unknown>(undefined);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   /**
    * The same mandate read `<StartDirectChat>` makes, with ONE arm different.
@@ -110,11 +157,16 @@ export function StartCall(props: {
     viewerId != null && viewerId === peerId
       ? actionBlocked(CHAT_I18N_KEYS.callBlockedSelf)
       : actionAvailable(),
-    conversationId === null ||
+    // No thread blocks only when nothing can make one. With
+    // `ensureConversation` in hand the thread is a step of the press, so the
+    // control is pressable and the OTHER gates still decide.
+    (conversationId === null ||
       conversationId === undefined ||
-      conversationId.length === 0
+      conversationId.length === 0) &&
+    ensureConversation === undefined
       ? actionBlocked(CHAT_I18N_KEYS.callBlockedNoThread)
       : actionAvailable(),
+    creating ? actionBlocked(CHAT_I18N_KEYS.callBlockedPending) : actionAvailable(),
     busy === true ? actionBlocked(CHAT_I18N_KEYS.callBlockedBusy) : actionAvailable(),
     pending === true
       ? actionBlocked(CHAT_I18N_KEYS.callBlockedPending)
@@ -124,13 +176,34 @@ export function StartCall(props: {
   const doCall = useCallback((): void => {
     if (!availability.available) return;
     if (peerId === null || peerId === undefined) return;
-    if (conversationId === null || conversationId === undefined) return;
-    onCall({ peerId, conversationId });
-  }, [availability.available, peerId, conversationId, onCall]);
+    if (conversationId !== null && conversationId !== undefined && conversationId.length > 0) {
+      onCall({ peerId, conversationId });
+      return;
+    }
+    if (ensureConversation === undefined) return;
+    setError(undefined);
+    setCreating(true);
+    void (async (): Promise<void> => {
+      try {
+        const made = await ensureConversation();
+        if (!alive.current) return;
+        // Nothing made is a refusal, not a call placed without a thread: the
+        // server would answer that with the 403 this gate exists to avoid.
+        if (made !== null && made !== undefined && made.length > 0) {
+          onCall({ peerId, conversationId: made });
+        }
+      } catch (thrown) {
+        if (alive.current) setError(thrown);
+      } finally {
+        if (alive.current) setCreating(false);
+      }
+    })();
+  }, [availability.available, peerId, conversationId, ensureConversation, onCall]);
 
   return props.children({
     availability,
-    isStarting: pending === true,
+    isStarting: pending === true || creating,
+    ...(error !== undefined ? { error } : {}),
     call: doCall,
   });
 }

@@ -7,7 +7,7 @@
  * press — which is the one moment it is useless.
  */
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { useActionGate } from "@stapel/core";
 import type { StartCallBag } from "../src/index.js";
@@ -47,6 +47,9 @@ function gate(props: Partial<Parameters<typeof StartCall>[0]> = {}): {
         conversationId={props.conversationId === undefined ? THREAD : props.conversationId}
         {...(props.busy !== undefined ? { busy: props.busy } : {})}
         {...(props.pending !== undefined ? { pending: props.pending } : {})}
+        {...(props.ensureConversation !== undefined
+          ? { ensureConversation: props.ensureConversation }
+          : {})}
         onCall={onCall}
       >
         {(bag) => <Probe bag={bag} />}
@@ -163,5 +166,103 @@ describe("the skinned button", () => {
     expect(
       screen.getByTestId("chat-call-button").getAttribute("aria-label")
     ).toBeTruthy();
+  });
+});
+
+describe("a thread the press itself creates", () => {
+  /**
+   * On a listing page nobody has written to the seller yet, so there IS no
+   * conversation — and "Call" is exactly what the person wants there. With
+   * only `conversationId` to read, the control's one honest answer was
+   * "open the conversation first", which left hosts hiding the button or
+   * pre-creating an empty thread for every listing anyone looked at.
+   */
+  it("is pressable with no thread when the host can make one", () => {
+    gate({ conversationId: null, ensureConversation: async () => "conv-new" });
+    expect(screen.getByTestId("available").textContent).toBe("true");
+    expect(screen.getByTestId("reason").textContent).toBe("");
+  });
+
+  it("makes the thread on the press and calls into the one it made", async () => {
+    const made: string[] = [];
+    const { onCall } = gate({
+      conversationId: null,
+      ensureConversation: async () => {
+        made.push("asked");
+        return "conv-new";
+      },
+    });
+    fireEvent.click(screen.getByTestId("press"));
+    await waitFor(() => {
+      expect(onCall).toHaveBeenCalledWith({
+        peerId: THEM,
+        conversationId: "conv-new",
+      });
+    });
+    expect(made).toEqual(["asked"]);
+  });
+
+  it("never asks when a thread is already in hand", () => {
+    const ensure = vi.fn(async () => "conv-new");
+    const { onCall } = gate({ ensureConversation: ensure });
+    fireEvent.click(screen.getByTestId("press"));
+    expect(onCall).toHaveBeenCalledWith({ peerId: THEM, conversationId: THREAD });
+    expect(ensure).not.toHaveBeenCalled();
+  });
+
+  it("keeps every OTHER gate — the seam is not a bypass", () => {
+    // A visitor with no identity, a missing counterpart and a call already in
+    // progress still block before the press, which is the whole point of the
+    // component.
+    gate({
+      conversationId: null,
+      busy: true,
+      ensureConversation: async () => "conv-new",
+    });
+    expect(screen.getByTestId("available").textContent).toBe("false");
+    expect(screen.getByTestId("reason").textContent).toBe(
+      "You are already on a call."
+    );
+  });
+
+  it("places no call when nothing was made", async () => {
+    // Resolving to nothing is a refusal, not a call with no thread — which is
+    // the 403 this gate exists to avoid.
+    const { onCall } = gate({
+      conversationId: null,
+      ensureConversation: async () => null,
+    });
+    fireEvent.click(screen.getByTestId("press"));
+    await waitFor(() => {
+      expect(screen.getByTestId("available").textContent).toBe("true");
+    });
+    expect(onCall).not.toHaveBeenCalled();
+  });
+
+  it("says on the page when making the thread failed", async () => {
+    // A press that had to make the thread can fail before there is a call to
+    // fail, and the gate's vocabulary cannot say that: a blocked REASON is a
+    // fact that was true before the press.
+    const server = mockServer({});
+    render(
+      <TestHarness server={server}>
+        <StartCallButton
+          peerId={THEM}
+          viewerId={ME}
+          conversationId={null}
+          ensureConversation={async () => {
+            throw new Error("no thread for you");
+          }}
+          onCall={() => undefined}
+        />
+      </TestHarness>
+    );
+    expect(
+      screen.getByTestId("chat-call-button").hasAttribute("disabled")
+    ).toBe(false);
+    fireEvent.click(screen.getByTestId("chat-call-button"));
+    await waitFor(() => {
+      expect(screen.getByTestId("chat-call-failed")).toBeTruthy();
+    });
   });
 });

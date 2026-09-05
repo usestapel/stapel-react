@@ -21,8 +21,9 @@
  */
 import type { ReactElement } from "react";
 import { Button, Space, Typography } from "antd";
-import { useActionGate, useT } from "@stapel/core";
+import { useActionGate, useErrorDisplay, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
+import { ErrorAlert } from "./ErrorAlert.js";
 import { StartCall } from "../headless/StartCall.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ChatSkinTheme } from "./theme.js";
@@ -34,6 +35,13 @@ export interface StartCallButtonProps {
   viewerId?: string | null;
   /** The thread the call hangs off — required by the server's authorizer. */
   conversationId: string | null | undefined;
+  /**
+   * Make the thread this press needs, when there is none yet — forwarded to
+   * `<StartCall ensureConversation>`, which is where the reasoning lives. A
+   * listing page whose visitor has never written to the seller has no
+   * conversation and still wants a "Call" button that works.
+   */
+  ensureConversation?: () => Promise<string | null | undefined>;
   /** Already on a call? From `useCalls().call !== undefined`. */
   busy?: boolean;
   /** A call is being placed. */
@@ -57,6 +65,9 @@ export function StartCallButton(props: StartCallButtonProps): ReactElement {
         conversationId={conversationId}
         {...(busy !== undefined ? { busy } : {})}
         {...(pending !== undefined ? { pending } : {})}
+        {...(props.ensureConversation !== undefined
+          ? { ensureConversation: props.ensureConversation }
+          : {})}
         onCall={onCall}
       >
         {(bag) => (
@@ -64,6 +75,7 @@ export function StartCallButton(props: StartCallButtonProps): ReactElement {
             availability={bag.availability}
             isStarting={bag.isStarting}
             call={bag.call}
+            error={bag.error}
             compact={compact === true}
           />
         )}
@@ -76,9 +88,13 @@ function StartCallBody(props: {
   availability: ActionAvailability;
   isStarting: boolean;
   call: () => void;
+  /** What making the thread threw — a failure of the press, not a reason the
+   * button was blocked before it. */
+  error: unknown;
   compact: boolean;
 }): ReactElement {
   const t = useT();
+  const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
   const gate = useActionGate(props.availability);
   const label = t(CHAT_I18N_KEYS.callButton);
 
@@ -110,6 +126,10 @@ function StartCallBody(props: {
           {t(gate.reason)}
         </Typography.Text>
       ) : null}
+      {/* A press that had to MAKE the thread can fail before there is a call
+          to fail — said on the page, in the pair's one error surface, rather
+          than swallowed into a button that quietly went idle again. */}
+      <ErrorAlert error={errorDisplay(props.error)} testId="chat-call-failed" />
     </Space>
   );
 }

@@ -40,6 +40,7 @@ import type { Subject } from "../api/types.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
+import type { ThreadHeaderActionsContext } from "./ConversationThreadPanel.js";
 import { ChatSkinTheme } from "./theme.js";
 
 export interface ConversationSplitPanelProps {
@@ -66,6 +67,20 @@ export interface ConversationSplitPanelProps {
   maxLength?: number;
   /** Browser-notification offer — forwarded to `<ConversationThreadPanel/>`. */
   notifications?: boolean;
+  /**
+   * Extra controls in the thread header — forwarded verbatim to
+   * `<ConversationThreadPanel renderHeaderActions>`, which is where
+   * `<StartCallButton>` goes.
+   *
+   * It is here because the desktop arrangement mounts the thread panel
+   * ITSELF: a host that composed the two panes by hand could pass the slot
+   * and a host that took this arrangement could not, so the same deployment
+   * grew a call button on the phone's thread screen and had none in the
+   * desktop split — the arrangement silently deciding a product question it
+   * makes no decisions about (this file lays out; it does not choose which
+   * verbs a thread has). The slot is told the same context on both surfaces.
+   */
+  renderHeaderActions?: (context: ThreadHeaderActionsContext) => ReactNode;
   /**
    * The right pane while nothing is selected. Default: a quiet empty state
    * saying to pick a conversation — an invitation, not a failure.
@@ -155,6 +170,9 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
             {...(props.maxLength !== undefined ? { maxLength: props.maxLength } : {})}
             {...(props.notifications !== undefined
               ? { notifications: props.notifications }
+              : {})}
+            {...(props.renderHeaderActions !== undefined
+              ? { renderHeaderActions: props.renderHeaderActions }
               : {})}
           />
         ) : (

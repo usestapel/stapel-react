@@ -72,6 +72,54 @@ describe("<ConversationSplitPanel/>", () => {
     expect(screen.getByText("0/500")).toBeTruthy();
   });
 
+  it("forwards the header-actions slot, so the desktop thread can host a call button", async () => {
+    // The slot existed on `<ConversationThreadPanel>` and this arrangement
+    // mounts that panel itself, so a host taking the desktop split had no way
+    // to pass one: the same deployment grew a call button on the phone's
+    // thread screen and had none beside the desktop thread.
+    const server = mockServer({
+      "GET /messages": { body: messagePage([2, 1]) },
+      "POST /read": { body: {} },
+      "GET /conversations": { body: conversationPage([conversation()]) },
+    });
+    const seen: { conversationId: string; counterpartyId: string | null }[] = [];
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationSplitPanel
+          viewerId={BUYER}
+          selectedId={CONVERSATION_ID}
+          renderHeaderActions={(context) => {
+            seen.push({
+              conversationId: context.conversationId,
+              counterpartyId: context.counterpartyId,
+            });
+            return <button type="button" data-testid="host-call">Call</button>;
+          }}
+        />
+      </TestHarness>
+    );
+    await waitFor(() => expect(screen.getByTestId("host-call")).toBeTruthy());
+    // The slot is told the same context the phone's thread screen tells it —
+    // the open thread, and the ONE other person in it.
+    expect(seen[0]?.conversationId).toBe(CONVERSATION_ID);
+    expect(seen.every((c) => c.conversationId === CONVERSATION_ID)).toBe(true);
+  });
+
+  it("mounts nothing extra in the header when no host slot is passed", async () => {
+    const server = mockServer({
+      "GET /messages": { body: messagePage([2, 1]) },
+      "POST /read": { body: {} },
+      "GET /conversations": { body: conversationPage([conversation()]) },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationSplitPanel viewerId={BUYER} selectedId={CONVERSATION_ID} />
+      </TestHarness>
+    );
+    await waitFor(() => expect(screen.getByTestId("chat-thread")).toBeTruthy());
+    expect(screen.queryByTestId("host-call")).toBeNull();
+  });
+
   it("a host-supplied empty node replaces the default one", async () => {
     const server = mockServer({
       "GET /conversations": { body: conversationPage([conversation()]) },
