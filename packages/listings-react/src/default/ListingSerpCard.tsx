@@ -73,6 +73,7 @@
  * has to be re-laid-out the day the projection grows the field. The seam is
  * the honest half; the missing data is written down rather than faked.
  */
+import { Fragment } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
@@ -141,6 +142,22 @@ export interface ListingSerpCardBaseProps
   /** The seller's name and rating. See the file header for the per-card fetch
    * caveat a container has to avoid. */
   readonly sellerSlot?: ReactNode;
+  /**
+   * Where the seller line sits relative to the place: `"above"` (the default,
+   * and what this card has always drawn) or `"below"`.
+   *
+   * The reference classified — and the host measured against it — reads the
+   * bottom of a card as one descending line of PROVENANCE: what it is, then
+   * where it is, then who is selling it. This card put the seller between the
+   * specs and the place, which reads as part of the description rather than as
+   * the answer to "who am I buying from".
+   *
+   * A prop and not a change, because the order is a surface's decision and
+   * some surfaces genuinely want the seller first — a seller's own page, where
+   * every card has the same one, keeps it out of the way at the bottom, and a
+   * cross-seller feed leads with it. Both stay one line of composition.
+   */
+  readonly sellerSlotPosition?: "above" | "below";
   /** The vertical action column at the trailing edge — call, write. The
    * favourite heart is added at its end by this component. */
   readonly actionsRail?: ReactNode;
@@ -353,18 +370,28 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
 
                   {/* Outside the anchor, both of them: a seller line usually holds
                       a link to the seller, and the place is the last thing read
-                      rather than part of what the card is called. */}
-                  {props.sellerSlot ?? null}
+                      rather than part of what the card is called.
 
-                  {listing.location_label !== undefined &&
-                  listing.location_label.length > 0 ? (
-                    <Typography.Text
-                      type="secondary"
-                      data-testid="listings-serp-location"
-                    >
-                      {listing.location_label}
-                    </Typography.Text>
-                  ) : null}
+                      Their ORDER is the surface's — see
+                      `sellerSlotPosition`. Rendered from one array so the two
+                      arms cannot drift into two different pairs of nodes. */}
+                  {(props.sellerSlotPosition === "below"
+                    ? ["location", "seller"]
+                    : ["seller", "location"]
+                  ).map((part) =>
+                    part === "seller" ? (
+                      <Fragment key="seller">{props.sellerSlot ?? null}</Fragment>
+                    ) : listing.location_label !== undefined &&
+                      listing.location_label.length > 0 ? (
+                      <Typography.Text
+                        key="location"
+                        type="secondary"
+                        data-testid="listings-serp-location"
+                      >
+                        {listing.location_label}
+                      </Typography.Text>
+                    ) : null
+                  )}
                 </Flex>
 
                 {rail}

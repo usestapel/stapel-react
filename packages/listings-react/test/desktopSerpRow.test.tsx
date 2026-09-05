@@ -226,3 +226,78 @@ describe("the rule text — the row arm a browser applies", () => {
     expect(container.querySelector(`.${CARD_BLEED_CLASS}`)).toBeNull();
   });
 });
+
+/**
+ * WHO AM I BUYING FROM — and where that answer sits.
+ *
+ * The bottom of a result card reads as one descending line of provenance:
+ * what it is, then where it is, then who is selling it. This card put the
+ * seller between the specs and the place, which reads as part of the
+ * description rather than as the answer to "who am I buying from" — the
+ * reference classified, and the host measured against it, put it last.
+ *
+ * A prop rather than a change of mind: a seller's OWN page, where every card
+ * has the same seller, keeps that line out of the way at the bottom, and a
+ * cross-seller feed leads with it. Both stay one line of composition.
+ */
+describe("where the seller line sits", () => {
+  function positions(): { seller: number; location: number } {
+    const nodes = [...document.querySelectorAll("[data-testid]")];
+    return {
+      seller: nodes.findIndex(
+        (node) => node.getAttribute("data-testid") === "seller-line"
+      ),
+      location: nodes.findIndex(
+        (node) => node.getAttribute("data-testid") === "listings-serp-location"
+      ),
+    };
+  }
+
+  it("keeps the seller ABOVE the place by default — nothing existing moves", () => {
+    render(
+      providers(
+        <ListingSerpCard
+          listing={CARD}
+          href="/l/7"
+          sellerSlot={<span data-testid="seller-line">Ivan · 4.9</span>}
+        />
+      )
+    );
+    const { seller, location } = positions();
+    expect(seller).toBeGreaterThan(-1);
+    expect(location).toBeGreaterThan(-1);
+    expect(seller).toBeLessThan(location);
+  });
+
+  it("puts it BELOW the place when the surface asks", () => {
+    render(
+      providers(
+        <ListingSerpCard
+          listing={CARD}
+          href="/l/7"
+          sellerSlotPosition="below"
+          sellerSlot={<span data-testid="seller-line">Ivan · 4.9</span>}
+        />
+      )
+    );
+    const { seller, location } = positions();
+    expect(location).toBeLessThan(seller);
+  });
+
+  it("draws the seller alone on a card with no place at all", () => {
+    render(
+      providers(
+        <ListingSerpCard
+          listing={{ ...CARD, location_label: "" }}
+          href="/l/7"
+          sellerSlotPosition="below"
+          sellerSlot={<span data-testid="seller-line">Ivan · 4.9</span>}
+        />
+      )
+    );
+    // The order is over two lines, one of which may not exist: a card without
+    // a place must not lose the seller with it.
+    expect(screen.getByTestId("seller-line")).toBeTruthy();
+    expect(screen.queryByTestId("listings-serp-location")).toBeNull();
+  });
+});
