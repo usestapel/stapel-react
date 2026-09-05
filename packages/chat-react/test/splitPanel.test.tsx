@@ -120,6 +120,39 @@ describe("<ConversationSplitPanel/>", () => {
     expect(screen.queryByTestId("host-call")).toBeNull();
   });
 
+  it("forwards the system-line slot too, so a desktop thread says «Call · 3:08»", async () => {
+    const page = messagePage([1]);
+    const server = mockServer({
+      "GET /messages": {
+        body: {
+          ...page,
+          items: page.items.map((row) => ({
+            ...row,
+            kind: "system",
+            sender_id: null,
+            body: "video.call.ended:188",
+          })),
+        },
+      },
+      "POST /read": { body: {} },
+      "GET /conversations": { body: conversationPage([conversation()]) },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationSplitPanel
+          viewerId={BUYER}
+          selectedId={CONVERSATION_ID}
+          renderSystemMessage={(message) =>
+            message.body.startsWith("video.call.ended") ? "Call · 3:08" : undefined
+          }
+        />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-system-body").textContent).toBe("Call · 3:08")
+    );
+  });
+
   it("a host-supplied empty node replaces the default one", async () => {
     const server = mockServer({
       "GET /conversations": { body: conversationPage([conversation()]) },

@@ -336,3 +336,117 @@ describe("the composer is pristine after a send, not empty-and-invalid", () => {
     expect(screen.queryByTestId("chat-composer-blocked")).toBeNull();
   });
 });
+
+describe("<ConversationThreadPanel renderSystemMessage> — whose vocabulary is it", () => {
+  /**
+   * A system line's body is written by whichever module wrote it, for a
+   * reader that does not exist yet: the call surface posts
+   * `video.call.ended:188` and this panel printed exactly that at a person,
+   * in every language, under a "system message" label. The chat pair cannot
+   * do better on its own — the vocabulary is another module's, and a table of
+   * other modules' event names kept here would go stale the day it was
+   * written — so the host, which knows what it installed, draws the sentence.
+   */
+  const SYSTEM_PAGE = {
+    "GET /messages": {
+      body: messagePage([1]),
+    },
+    "POST /read": { body: {} },
+  };
+
+  function systemRoutes(): Parameters<typeof mockServer>[0] {
+    const page = messagePage([1]);
+    return {
+      "GET /messages": {
+        body: {
+          ...page,
+          items: page.items.map((row) => ({
+            ...row,
+            kind: "system",
+            sender_id: null,
+            body: "video.call.ended:188",
+          })),
+        },
+      },
+      "POST /read": { body: {} },
+    };
+  }
+
+  it("prints the raw line when no host slot is passed — what it always did", async () => {
+    render(
+      <TestHarness server={mockServer(systemRoutes())} realtime={{ socketUrl: null }}>
+        <ConversationThreadPanel conversationId={CONVERSATION_ID} viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-system-body")).toBeTruthy()
+    );
+    expect(screen.getByTestId("chat-system-body").textContent).toBe(
+      "video.call.ended:188"
+    );
+  });
+
+  it("draws the host's sentence in place of the line", async () => {
+    const seen: string[] = [];
+    render(
+      <TestHarness server={mockServer(systemRoutes())} realtime={{ socketUrl: null }}>
+        <ConversationThreadPanel
+          conversationId={CONVERSATION_ID}
+          viewerId={BUYER}
+          renderSystemMessage={(message) => {
+            seen.push(message.body);
+            const [code, seconds] = message.body.split(":");
+            if (code !== "video.call.ended") return undefined;
+            const total = Number(seconds ?? 0);
+            return `Call · ${String(Math.floor(total / 60))}:${String(total % 60).padStart(2, "0")}`;
+          }}
+        />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-system-body").textContent).toBe("Call · 3:08")
+    );
+    // Called with the ROW, not with a pre-chewed string: the seconds are in
+    // the line and only the host knows what to do with them. (Asked once per
+    // render of the row, which is a render concern; what matters is that it
+    // is asked about THIS line and about nothing else.)
+    expect(new Set(seen)).toEqual(new Set(["video.call.ended:188"]));
+  });
+
+  it("falls back to the body for a line the host does not recognise", async () => {
+    render(
+      <TestHarness server={mockServer(systemRoutes())} realtime={{ socketUrl: null }}>
+        <ConversationThreadPanel
+          conversationId={CONVERSATION_ID}
+          viewerId={BUYER}
+          renderSystemMessage={() => undefined}
+        />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-system-body").textContent).toBe(
+        "video.call.ended:188"
+      )
+    );
+  });
+
+  it("is never asked about an ordinary message", async () => {
+    const seen: string[] = [];
+    render(
+      <TestHarness server={mockServer(SYSTEM_PAGE)} realtime={{ socketUrl: null }}>
+        <ConversationThreadPanel
+          conversationId={CONVERSATION_ID}
+          viewerId={BUYER}
+          renderSystemMessage={(message) => {
+            seen.push(message.body);
+            return "should not appear";
+          }}
+        />
+      </TestHarness>
+    );
+    await waitFor(() => expect(screen.getAllByTestId("chat-message")).toHaveLength(1));
+    expect(seen).toEqual([]);
+    expect(screen.queryByText("should not appear")).toBeNull();
+    expect(screen.queryByTestId("chat-system-body")).toBeNull();
+  });
+});

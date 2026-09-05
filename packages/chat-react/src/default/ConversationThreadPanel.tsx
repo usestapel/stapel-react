@@ -69,6 +69,25 @@ export interface ConversationThreadPanelProps {
    * a promise this fleet's call surface does not make.
    */
   renderHeaderActions?: (context: ThreadHeaderActionsContext) => ReactNode;
+  /**
+   * SAY WHAT A SYSTEM LINE MEANS.
+   *
+   * A system message's body is written by whichever module wrote the line,
+   * for a reader that does not exist yet: the call surface posts
+   * `video.call.ended:188`, and this panel printed exactly that at a person,
+   * under a "system message" label, in every language. The pair cannot do
+   * better on its own — the vocabulary belongs to the module that emitted the
+   * line (and to the deployment that installed it), and a chat renderer that
+   * grew a table of other modules' event names would be a copy going stale
+   * from the day it was written.
+   *
+   * So the host, which knows which modules it installed, is handed the row
+   * and draws the sentence: "Call · 3:08". Called only for `kind: "system"`,
+   * and in place of the body — a host returning `undefined` or `null` for a
+   * line it does not recognise gets the body back, which is what every host
+   * gets today.
+   */
+  renderSystemMessage?: (message: ChatMessage) => ReactNode;
 }
 
 /** What the header-actions slot is told. */
@@ -197,10 +216,18 @@ function MessageRow(props: {
   message: ChatMessage;
   viewerId: string | null | undefined;
   locale: string;
+  renderSystemMessage:
+    | ((message: ChatMessage) => ReactNode)
+    | undefined;
 }): ReactElement {
   const t = useT();
   const { message, viewerId, locale } = props;
   const isSystem = message.kind === "system";
+  // The host's sentence for a system line, when it recognises the line. Not
+  // a fallback ladder: `undefined` and `null` both mean "not mine", and the
+  // body — the machine string this panel has always printed — is what a
+  // reader gets then.
+  const said = isSystem ? props.renderSystemMessage?.(message) : undefined;
   const isOwn =
     !isSystem && viewerId != null && message.sender_id === viewerId;
   const bubble: CSSProperties = {
@@ -219,8 +246,11 @@ function MessageRow(props: {
           {t(CHAT_I18N_KEYS.threadSystem)}
         </Typography.Text>
       ) : null}
-      <Typography.Paragraph style={{ marginBottom: 0 }}>
-        {message.body}
+      <Typography.Paragraph
+        style={{ marginBottom: 0 }}
+        {...(isSystem ? { "data-testid": "chat-system-body" } : {})}
+      >
+        {said ?? message.body}
       </Typography.Paragraph>
       <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
         {stamp}
@@ -489,6 +519,7 @@ export function ConversationThreadPanel(
                       message={message}
                       viewerId={props.viewerId}
                       locale={locale}
+                      renderSystemMessage={props.renderSystemMessage}
                     />
                   ))}
                 </Flex>

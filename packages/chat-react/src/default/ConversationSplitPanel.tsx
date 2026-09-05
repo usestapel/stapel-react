@@ -36,7 +36,7 @@ import type { ReactElement, ReactNode } from "react";
 import { Empty, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
-import type { Subject } from "../api/types.js";
+import type { ChatMessage, Subject } from "../api/types.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
@@ -81,6 +81,13 @@ export interface ConversationSplitPanelProps {
    * verbs a thread has). The slot is told the same context on both surfaces.
    */
   renderHeaderActions?: (context: ThreadHeaderActionsContext) => ReactNode;
+  /**
+   * Draw a system line's sentence — forwarded to
+   * `<ConversationThreadPanel renderSystemMessage>`, where the reasoning is.
+   * Here for the same reason the slot above is: this arrangement mounts the
+   * thread panel itself, so a desktop host could not otherwise reach it.
+   */
+  renderSystemMessage?: (message: ChatMessage) => ReactNode;
   /**
    * The right pane while nothing is selected. Default: a quiet empty state
    * saying to pick a conversation — an invitation, not a failure.
@@ -173,6 +180,9 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
               : {})}
             {...(props.renderHeaderActions !== undefined
               ? { renderHeaderActions: props.renderHeaderActions }
+              : {})}
+            {...(props.renderSystemMessage !== undefined
+              ? { renderSystemMessage: props.renderSystemMessage }
               : {})}
           />
         ) : (
