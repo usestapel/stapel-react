@@ -280,7 +280,7 @@
     },
     {
       "package": "@stapel/chat-react",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "entries": [
         {
           "id": "chat.conversations",
@@ -510,7 +510,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.25.0",
+      "version": "0.25.1",
       "entries": [
         {
           "id": "listings.detail",
