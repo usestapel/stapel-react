@@ -64,7 +64,13 @@ describe("a conversation row is one control, not a small button inside a big box
     const opened = vi.fn();
     renderInbox(opened);
     const row = await screen.findByTestId("chat-conversation-row");
-    const control = row.closest("[data-chat-row-open]") ?? row;
+    // The control is the row's OPEN half — an ancestor of the row body, or,
+    // since the subject strip moved out from under it (D420), a descendant of
+    // the row frame. Either arrangement, it is one element and this finds it.
+    const control =
+      row.closest("[data-chat-row-open]") ??
+      row.querySelector("[data-chat-row-open]") ??
+      row;
     // A control the keyboard can land on: an anchor/button, or something
     // carrying an explicit tabindex and role.
     const tag = control.tagName.toLowerCase();
@@ -88,7 +94,9 @@ describe("a conversation row is one control, not a small button inside a big box
     const opened = vi.fn();
     renderInbox(opened);
     const row = await screen.findByTestId("chat-conversation-row");
-    const control = row.closest("[data-chat-row-open]");
+    const control =
+      row.closest("[data-chat-row-open]") ??
+      row.querySelector("[data-chat-row-open]");
     expect(control).not.toBeNull();
     expect(control?.className).toContain(ROW_OPEN_CLASS);
     // The rule itself, since jsdom paints no :focus-visible.

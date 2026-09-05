@@ -18,8 +18,8 @@
  * NO seam wired the row must say it could not name the person, not fall back
  * to a label that looks deliberate.
  */
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useQuery } from "@tanstack/react-query";
 import { ConversationListPanel } from "../src/default/index.js";
 import type { ChatPeopleSlot, ChatPerson, Conversation } from "../src/index.js";
@@ -317,5 +317,102 @@ describe("the inbox row shows what the conversation is about", () => {
       expect(screen.getByTestId("chat-conversation-row")).toBeTruthy()
     );
     expect(screen.queryByTestId("chat-row-subject")).toBeNull();
+  });
+});
+
+/**
+ * D420 — THE INBOX HAD NO WAY TO THE LISTING.
+ *
+ * `chat-conversation-row` carried the thumbnail and the price the subject
+ * card already knew, and not one `a[href^="/l/"]`: a seller reading "Still
+ * available?" could see WHICH thing was being asked about and had to go find
+ * it again by hand. And the photo behind that thumbnail is 120×160 — the
+ * frame it was drawn into was 24×24, so a quarter of every listing photo in
+ * the inbox was cropped away by a shape that had nothing to do with it.
+ *
+ * The two properties are asserted apart, because they fail apart: a link that
+ * swallowed the row would "fix" the first and break the thread, and a frame
+ * that merely grew would fix nothing at all without `object-fit: cover`.
+ */
+describe("the inbox row leads to the listing, without taking the thread with it", () => {
+  it("makes the subject title a link to the subject's own page", async () => {
+    const people = peopleSlot();
+    renderInbox([withListingSubject(listingCard({ url: "/l/42" }))], people.slot);
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-row-subject-link")).toBeTruthy()
+    );
+    const link = screen.getByTestId("chat-row-subject-link");
+    expect(link.tagName).toBe("A");
+    // The card's OWN url — the field the subject provider already serves, so
+    // a deployment that resolves subjects gets the link without wiring one.
+    expect(link.getAttribute("href")).toBe("/l/42");
+    expect(link.textContent).toContain("Bicycle, almost new");
+  });
+
+  it("keeps the row's own control — the thread still opens", async () => {
+    // The whole risk of adding a second destination to a row that IS one
+    // control: the two hit areas are separate, and the row's own is untouched.
+    const opened = vi.fn();
+    const people = peopleSlot();
+    const server = mockServer({
+      "GET /conversations": {
+        body: conversationPage([withListingSubject(listingCard({ url: "/l/42" }))]),
+      },
+    });
+    render(
+      <TestHarness
+        server={server}
+        realtime={{ socketUrl: null }}
+        slots={{ people: people.slot }}
+      >
+        <ConversationListPanel viewerId={BUYER} onOpen={opened} />
+      </TestHarness>
+    );
+    const row = await screen.findByTestId("chat-conversation-row");
+    // The subject link is NOT inside the row's open control, because neither
+    // an anchor nor a `role="button"` may contain a link.
+    const control = row.querySelector("[data-chat-row-open]");
+    expect(control).not.toBeNull();
+    expect(control?.querySelector("[data-testid='chat-row-subject-link']")).toBeNull();
+    fireEvent.click(row.querySelector("[data-chat-row-clock]") as Element);
+    await waitFor(() => expect(opened).toHaveBeenCalledWith(CONVERSATION_ID));
+  });
+
+  it("a host resolver outranks the card, and its silence means plain text", async () => {
+    const people = peopleSlot();
+    const server = mockServer({
+      "GET /conversations": {
+        body: conversationPage([withListingSubject(listingCard({ url: "/l/42" }))]),
+      },
+    });
+    render(
+      <TestHarness
+        server={server}
+        realtime={{ socketUrl: null }}
+        slots={{ people: people.slot }}
+      >
+        <ConversationListPanel viewerId={BUYER} subjectHref={() => undefined} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-row-subject-title")).toBeTruthy()
+    );
+    // A host that says "this subject has nowhere to go" is obeyed — the card's
+    // own url is not quietly used instead.
+    expect(screen.queryByTestId("chat-row-subject-link")).toBeNull();
+  });
+
+  it("draws the thumbnail in a portrait frame, cropped rather than squeezed", async () => {
+    const people = peopleSlot();
+    renderInbox([withListingSubject(listingCard())], people.slot);
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-row-subject-thumb")).toBeTruthy()
+    );
+    const thumb = screen.getByTestId("chat-row-subject-thumb") as HTMLElement;
+    // 24 × 32 — two steps of the token scale, a 3:4 frame for a 120×160 photo,
+    // and `cover` so the photo keeps its own aspect inside it.
+    expect(thumb.style.width).toBe("24px");
+    expect(thumb.style.height).toBe("32px");
+    expect(thumb.style.objectFit).toBe("cover");
   });
 });

@@ -21,6 +21,17 @@
  *
  * Built entirely on the headless `<ConversationList>`: this file makes visual
  * decisions and nothing else.
+ *
+ * ── Two destinations, two hit areas (D420) ────────────────────────────────
+ *
+ * A row leads to its THREAD, and the subject line under it leads to the
+ * LISTING. Neither can contain the other — an anchor inside an anchor is not
+ * a document, a link inside a `role="button"` is a control inside a control —
+ * so the row control covers the identity line and the clock, and the subject
+ * strip sits beneath it as a sibling, indented to the same text column. The
+ * inbox held zero links to a listing before this: the one move a seller
+ * standing in their messages wants to make had to be made by searching for
+ * the listing again.
  */
 import { spacing } from "@stapel/tokens-antd";
 import { ListRow } from "@stapel/tokens-antd/skin";
@@ -38,7 +49,8 @@ import {
   theme as antdTheme,
 } from "antd";
 import { matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
-import type { ChatMessage, Conversation } from "../api/types.js";
+import type { LinkComponent } from "@stapel/core";
+import type { ChatMessage, Conversation, Subject } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
 import { useThreadPreviews } from "../model/previews.js";
 import type { ChatPeopleDirectory } from "../model/slots.js";
@@ -84,6 +96,22 @@ export interface ConversationListPanelProps {
    * renders exactly as before.
    */
   selectedId?: string | null;
+  /**
+   * Where the SUBJECT of a row lives — the listing the thread is about.
+   *
+   * Absent, the row links to the card's own `url`, which is the field the
+   * subject provider already serves (`classified.subject_cards`), so a
+   * deployment that resolves subjects at all needs nothing here. Pass it when
+   * the app's routes are not the ones the provider knows; return `undefined`
+   * for a subject with nowhere to go and the title stays plain text.
+   */
+  subjectHref?: (subject: Subject) => string | undefined;
+  /**
+   * The router's link, for the subject title — so that one target is a
+   * client-side navigation. A plain `<a href>` otherwise: right-clickable and
+   * correct, just a full page load.
+   */
+  linkComponent?: LinkComponent;
 }
 
 function relativeTime(locale: string, iso: string): string {
@@ -110,6 +138,8 @@ function ConversationRow(props: {
   readonly locale: string;
   readonly openHref: ((conversationId: string) => string) | undefined;
   readonly onOpen: ((conversationId: string) => void) | undefined;
+  readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
+  readonly linkComponent: LinkComponent | undefined;
 }): ReactElement {
   const t = useT();
   const { row, viewerId, directory, openHref, onOpen } = props;
@@ -126,8 +156,9 @@ function ConversationRow(props: {
   // The name is TEXT, and the whole row is the control (D65 — see `openRow`
   // below). It used to be the other way round: a link-styled name inside a
   // 300x80 row, so a click on the preview, the subject or the clock did
-  // nothing. Nesting an anchor inside the row-wide anchor is not an option
-  // (and would not be a fix), so the title stops being interactive.
+  // nothing. The person's name leads nowhere the row does not already lead,
+  // so it stays text; the one destination that is NOT this row's — the
+  // listing — gets its own link, outside the row control (see `strip`).
   const title = label;
 
   const preview = props.preview;
@@ -143,22 +174,15 @@ function ConversationRow(props: {
             : preview.body;
 
   const meta =
-    !hasSubjectSummary && previewText === "" ? undefined : (
-      <>
-        {hasSubjectSummary && subject !== null ? (
-          <SubjectRowSummary subject={subject} locale={props.locale} />
-        ) : null}
-        {previewText !== "" ? (
-          <span style={{ display: "block" }} data-testid="chat-row-preview">
-            {previewText}
-          </span>
-        ) : null}
-      </>
+    previewText === "" ? undefined : (
+      <span style={{ display: "block" }} data-testid="chat-row-preview">
+        {previewText}
+      </span>
     );
 
   const inside = (
     <ListRow
-      testId="chat-conversation-row"
+      testId="chat-row-body"
       leading={
         <CounterpartyAvatar
           conversation={row}
@@ -207,8 +231,57 @@ function ConversationRow(props: {
     />
   );
 
-  return openRow(inside, row.id, openHref, onOpen);
+  // THE SUBJECT STRIP IS A SIBLING OF THE ROW CONTROL, NOT ITS CHILD (D420).
+  //
+  // The row is one control that opens the CONVERSATION (D65), and the subject
+  // title is a link that opens the LISTING — two destinations, so two hit
+  // areas, and there is no arrangement in which one contains the other: an
+  // anchor inside an anchor is not a document the browser will parse back,
+  // and a link inside a `role="button"` is a control inside a control. So the
+  // strip moves out from under the row control and sits beneath it, indented
+  // to the text column so the row still reads as one row.
+  const strip =
+    hasSubjectSummary && subject !== null ? (
+      <div
+        style={{ paddingInlineStart: SUBJECT_INDENT, minWidth: 0 }}
+        data-chat-row-subject-slot=""
+      >
+        <SubjectRowSummary
+          subject={subject}
+          locale={props.locale}
+          {...(props.subjectHref !== undefined
+            ? // An explicit resolver's answer WINS, `undefined` included: a
+              // host that says "this subject has nowhere to go" gets plain
+              // text, not a quiet fall back to the card's own url.
+              { href: props.subjectHref(subject) ?? "" }
+            : {})}
+          {...(props.linkComponent !== undefined
+            ? { linkComponent: props.linkComponent }
+            : {})}
+        />
+      </div>
+    ) : null;
+
+  return (
+    <div
+      data-testid="chat-conversation-row"
+      data-chat-conversation-id={row.id}
+      style={{ minWidth: 0 }}
+    >
+      {openRow(inside, row.id, openHref, onOpen)}
+      {strip}
+    </div>
+  );
 }
+
+/**
+ * How far the subject strip is indented so it lines up with the row's text
+ * column instead of starting under the avatar.
+ *
+ * The avatar's own measure plus the gap `ListRow` puts after it — both steps
+ * of the token scale, so a denser skin moves the two together.
+ */
+const SUBJECT_INDENT = spacing[7] + spacing[4];
 
 /** The class the whole-row control carries, for {@link conversationRowCss}. */
 export const ROW_OPEN_CLASS = "stapel-chat-row-open";
@@ -325,6 +398,8 @@ function InboxRows(props: {
   readonly locale: string;
   readonly openHref: ((conversationId: string) => string) | undefined;
   readonly onOpen: ((conversationId: string) => void) | undefined;
+  readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
+  readonly linkComponent: LinkComponent | undefined;
   readonly selectedId: string | null;
 }): ReactElement {
   const { rows, viewerId, selectedId } = props;
@@ -361,6 +436,8 @@ function InboxRows(props: {
                 locale={props.locale}
                 openHref={props.openHref}
                 onOpen={props.onOpen}
+                subjectHref={props.subjectHref}
+                linkComponent={props.linkComponent}
               />
             </List.Item>
           )}
@@ -445,6 +522,8 @@ export function ConversationListPanel(
                   locale={locale}
                   openHref={openHref}
                   onOpen={onOpen}
+                  subjectHref={props.subjectHref}
+                  linkComponent={props.linkComponent}
                   selectedId={selectedId}
                 />
                 {hasNextPage ? (

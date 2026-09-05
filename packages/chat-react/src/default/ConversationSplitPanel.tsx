@@ -35,6 +35,8 @@ import { spacing } from "@stapel/tokens-antd";
 import type { ReactElement, ReactNode } from "react";
 import { Empty, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
+import type { LinkComponent } from "@stapel/core";
+import type { Subject } from "../api/types.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
@@ -54,6 +56,10 @@ export interface ConversationSplitPanelProps {
   openHref?: (conversationId: string) => string;
   /** Where a row leads, in a SPA — forwarded to the list. */
   onOpen?: (conversationId: string) => void;
+  /** Where a row's SUBJECT leads — forwarded to the list. */
+  subjectHref?: (subject: Subject) => string | undefined;
+  /** The router's link for the subject title — forwarded to the list. */
+  linkComponent?: LinkComponent;
   /** Thread page size — forwarded to `<ConversationThreadPanel/>`. */
   limit?: number;
   /** Composer cap — forwarded to `<ConversationThreadPanel/>`. */
@@ -121,6 +127,12 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
           {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
           {...(props.openHref !== undefined ? { openHref: props.openHref } : {})}
           {...(props.onOpen !== undefined ? { onOpen: props.onOpen } : {})}
+          {...(props.subjectHref !== undefined
+            ? { subjectHref: props.subjectHref }
+            : {})}
+          {...(props.linkComponent !== undefined
+            ? { linkComponent: props.linkComponent }
+            : {})}
         />
       </div>
       <div

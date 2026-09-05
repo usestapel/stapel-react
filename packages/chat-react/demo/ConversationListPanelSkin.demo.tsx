@@ -121,14 +121,14 @@ export default defineDemo({
   id: "chat.conversation-list-panel",
   title: "Inbox (default skin)",
   description:
-    "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
+    "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. A row with a subject carries TWO destinations and two hit areas — the row itself opens the thread, the subject title is a link to the listing, and neither contains the other because an anchor inside an anchor is not a document. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
   component: ConversationListPanel,
   covers: ["CounterpartyAvatar"],
   tokens: ["surface-raised", "text", "text-muted", "border-subtle"],
   variants: {
     default: {
       description:
-        "Phone width, the state almost every inbox is in: three threads, the top one with news. The unread badge is a number to the eye and a sentence to a screen reader — it names itself with `aria-label`, because a `title` tooltip is unreachable on the device this variant is drawn for.",
+        "Phone width, the state almost every inbox is in: three threads, the top one with news — and with a subject, so its title is a link out to the listing and its photo sits in a 24×32 portrait frame rather than being cropped square. The unread badge is a number to the eye and a sentence to a screen reader — it names itself with `aria-label`, because a `title` tooltip is unreachable on the device this variant is drawn for.",
       viewport: "phone",
       step: "ready",
       render: () => <Panel demo={READY} />,

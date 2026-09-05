@@ -35,6 +35,7 @@
 import type { CSSProperties, ReactElement } from "react";
 import { Flex, Typography, theme as antdTheme } from "antd";
 import { useI18n, useT } from "@stapel/core";
+import type { LinkComponent } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens-antd";
 import type { Subject } from "../api/types.js";
 import { useChatRuntime } from "../model/context.js";
@@ -152,24 +153,37 @@ const THUMB_SIZE = spacing[7];
  * A thumbnail box: an `<img>` when there is a URL, a themed placeholder when
  * there is not — never a torn-page glyph, never a layout shift.
  *
- * `size` and `testId` are overridable so the same drawing rule serves both
- * the pinned card ({@link THUMB_SIZE}, `chat-subject-thumb`) and the inbox
- * row's smaller inline one ({@link ROW_THUMB_SIZE}, `chat-row-subject-thumb`)
- * without a second copy of the URL-vs-placeholder branch.
+ * `width`/`height` and `testId` are overridable so the same drawing rule
+ * serves both the pinned card (a {@link THUMB_SIZE} square,
+ * `chat-subject-thumb`) and the inbox row's smaller inline one
+ * ({@link ROW_THUMB_WIDTH} × {@link ROW_THUMB_HEIGHT},
+ * `chat-row-subject-thumb`) without a second copy of the URL-vs-placeholder
+ * branch.
+ *
+ * THE FRAME IS THE FRAME AND THE PHOTO IS THE PHOTO. `object-fit: cover` with
+ * an explicit `width`/`height` is what keeps a 120×160 listing photo from
+ * being squeezed into whatever box it lands in: the box is the layout's
+ * decision, the crop is this rule's, and the photo's own aspect is never
+ * distorted to make the two agree. The row frame is portrait for the same
+ * reason — a marketplace's photos are, and a square frame throws away a
+ * quarter of every one of them.
  */
 function Thumb(props: {
   readonly url: string | null;
   readonly alt: string;
-  readonly size?: number;
+  readonly width?: number;
+  readonly height?: number;
   readonly testId?: string;
 }): ReactElement {
   const { token } = antdTheme.useToken();
-  const size = props.size ?? THUMB_SIZE;
+  const width = props.width ?? THUMB_SIZE;
+  const height = props.height ?? width;
   const testId = props.testId ?? "chat-subject-thumb";
   const box: CSSProperties = {
-    width: size,
-    height: size,
+    width,
+    height,
     flex: "0 0 auto",
+    display: "block",
     borderRadius: radii.md,
     background: token.colorFillQuaternary,
     objectFit: "cover",
@@ -190,18 +204,72 @@ function Thumb(props: {
   );
 }
 
-/** Small enough to sit inline on an inbox row, beside the counterparty avatar. */
-const ROW_THUMB_SIZE = spacing[5];
+/**
+ * Small enough to sit inline on an inbox row, beside the counterparty avatar,
+ * and PORTRAIT — 24×32 off the token scale, a 3:4 frame.
+ *
+ * The measured defect (D420): the row asked for a 24×24 square and the CDN
+ * served the 120×160 variant into it, so a marketplace's photos were drawn
+ * with a quarter of themselves cropped away by a frame whose shape had nothing
+ * to do with them. Both numbers are steps of the design system's own scale, so
+ * a denser skin rescales the pair together instead of hardcoding a ratio.
+ */
+const ROW_THUMB_WIDTH = spacing[5];
+const ROW_THUMB_HEIGHT = spacing[6];
+
+/** The class the row's subject link carries, for {@link subjectRowLinkCss}. */
+export const SUBJECT_LINK_CLASS = "stapel-chat-subject-link";
+
+/**
+ * The rules an inline style cannot state: `:hover` and `:focus-visible`.
+ *
+ * This one DOES look like a link, unlike the row-wide control it sits beside
+ * (a hit area with no chrome). It has to: the whole defect is that a person
+ * standing in their inbox had no visible way to reach the listing, and a
+ * second invisible target would not have fixed that. Colour and ring are the
+ * design system's own role tokens, never a literal.
+ */
+export function subjectRowLinkCss(): string {
+  const link = `.${SUBJECT_LINK_CLASS}`;
+  return [
+    `${link}{display:inline-flex;min-inline-size:0;color:var(--stapel-link);`
+      + `text-decoration:none}`,
+    `${link}:hover{color:var(--stapel-link-hover);text-decoration:underline}`,
+    `${link}:focus-visible{outline:2px solid var(--stapel-focus-ring);`
+      + `outline-offset:2px;border-radius:4px}`,
+  ].join("");
+}
 
 /**
  * WHAT the row is about, on one line: thumbnail, title, price — or nothing
  * at all when the conversation carries no subject. Used by the default
  * inbox row (`ConversationListPanel`) in place of the old title-only
  * {@link subjectRowLabel}.
+ *
+ * ── The title is a link to the thing (D420) ───────────────────────────────
+ *
+ * A seller reading "Still available?" wants the listing, and the inbox held
+ * no `a[href^="/l/"]` at all: the one move the row exists to enable had to be
+ * made by searching for the listing again. `href` defaults to the card's own
+ * `url` — the field `classified.subject_cards` already serves and
+ * {@link readSubjectCard} already reads — so a host that resolves subjects at
+ * all gets the link for free; `linkComponent` makes it a client-side
+ * navigation.
+ *
+ * ONLY THE TITLE. The row's own control opens the CONVERSATION, and the two
+ * destinations are different: a link that swallowed the whole strip would
+ * turn "open this thread" into "leave for the listing" for anyone who clicked
+ * a thumbnail. `ConversationListPanel` renders this strip OUTSIDE the
+ * row-wide control for the same reason — an anchor inside an anchor is not a
+ * document, and a link inside a `role="button"` is not a control.
  */
 export function SubjectRowSummary(props: {
   readonly subject: Subject;
   readonly locale: string;
+  /** Where the subject itself lives. Default: the card's own `url`. */
+  readonly href?: string | undefined;
+  /** The router's link, so that target is a client-side navigation. */
+  readonly linkComponent?: LinkComponent | undefined;
 }): ReactElement | null {
   const t = useT();
   const view = readSubjectCard(props.subject, props.locale);
@@ -209,6 +277,30 @@ export function SubjectRowSummary(props: {
   if (view.title === "" && view.price === "" && view.imageUrl === null) return null;
   const label = t(CHAT_I18N_KEYS.subjectLabel);
   const alt = view.title === "" ? label : view.title;
+  const href = props.href ?? view.href;
+  const Link = props.linkComponent;
+  const linked = view.title !== "" && href !== "";
+  const title =
+    view.title === "" ? null : (
+      <Typography.Text
+        ellipsis
+        // INHERIT inside the link, so the anchor's own colour is what paints
+        // the words: antd's Text carries `colorText`, which would otherwise
+        // repaint the one element that has to look like a link.
+        style={{ minWidth: 0, ...(linked ? { color: "inherit" } : {}) }}
+        data-testid="chat-row-subject-title"
+      >
+        {view.title}
+      </Typography.Text>
+    );
+  const linkProps = {
+    href,
+    className: SUBJECT_LINK_CLASS,
+    "data-testid": "chat-row-subject-link",
+    "data-analytics": "none",
+    "data-analytics-reason":
+      "navigation out to the subject — the host app wraps this with its own tracked(); pairs carry no @stapel/analytics runtime dependency by architecture",
+  };
   return (
     <Flex
       align="center"
@@ -219,18 +311,22 @@ export function SubjectRowSummary(props: {
       <Thumb
         url={view.imageUrl}
         alt={alt}
-        size={ROW_THUMB_SIZE}
+        width={ROW_THUMB_WIDTH}
+        height={ROW_THUMB_HEIGHT}
         testId="chat-row-subject-thumb"
       />
-      {view.title !== "" ? (
-        <Typography.Text
-          ellipsis
-          style={{ minWidth: 0 }}
-          data-testid="chat-row-subject-title"
-        >
-          {view.title}
-        </Typography.Text>
-      ) : null}
+      <style href={SUBJECT_LINK_CLASS} precedence="default">
+        {subjectRowLinkCss()}
+      </style>
+      {linked ? (
+        Link !== undefined ? (
+          <Link {...linkProps}>{title}</Link>
+        ) : (
+          <a {...linkProps}>{title}</a>
+        )
+      ) : (
+        title
+      )}
       {view.price !== "" ? (
         <Typography.Text
           type="secondary"
