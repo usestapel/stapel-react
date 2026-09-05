@@ -25,12 +25,16 @@
  *    and printed ONCE for the pane, while every button keeps its
  *    `aria-describedby` pointing at that copy. A screen reader still reads the
  *    reason WITH the control it belongs to: the sentence moves, it does not
- *    disappear, which is the difference between pooling and hiding;
+ *    disappear, which is the difference between pooling and hiding. The
+ *    `signIn` door moves WITH it — one door, in the pooled sentence, not one
+ *    under every card (see `pooledSignInDoor.tsx`). 0.9.0 pooled the reason
+ *    and left the door behind, which is this module's own half-answer;
  *  - `"none"` — this control says nothing and the HOST has said it (a banner
  *    above the list, its own sign-in bar). The last arm is the only one that
  *    can leave a switched-off control unexplained, so it is opt-in and it is
  *    named for what the caller is taking on.
  */
+import { useContext } from "react";
 import type { ReactElement } from "react";
 import { Button, Space, Typography } from "antd";
 import { useActionGate, useErrorDisplay, useT } from "@stapel/core";
@@ -38,8 +42,9 @@ import type { ActionAvailability, SignInCta, SignInCtaProp } from "@stapel/core"
 import type { Conversation } from "../api/types.js";
 import { StartDirectChat } from "../headless/StartDirectChat.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
-import { GatedButton } from "@stapel/tokens-antd/skin";
+import { GatedButton, GateReasonScopeContext } from "@stapel/tokens-antd/skin";
 import { ErrorAlert } from "./ErrorAlert.js";
+import { PooledSignInDoor } from "./pooledSignInDoor.js";
 import { SignInLink } from "./SignInLink.js";
 import { ChatSkinTheme } from "./theme.js";
 
@@ -79,6 +84,10 @@ function StartChatBody(props: {
 }): ReactElement {
   const t = useT();
   const gate = useActionGate(props.availability);
+  // The pane's reason scope, when this button is inside one. It is what makes
+  // "pooled" pooled — and it is also the address of the sentence the door has
+  // to stand in.
+  const scope = useContext(GateReasonScopeContext);
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
   const label = props.isStarting
     ? t(CHAT_I18N_KEYS.startStarting)
@@ -132,6 +141,17 @@ function StartChatBody(props: {
           {gate.reason}
           <SignInLink cta={props.signIn} testId="chat-start-sign-in" />
         </Typography.Text>
+      ) : null}
+      {/* Pooled: the sentence is in the pane's footnote, so the door goes
+          there too — once for the pane, in the sentence it belongs to, rather
+          than once under every card. A reason without a door is half an
+          answer, and pooling the reason must not pool the answer away. */}
+      {props.refusal === "pooled" && props.signIn !== undefined ? (
+        <PooledSignInDoor
+          scope={scope}
+          reason={gate.reason}
+          door={<SignInLink cta={props.signIn} testId="chat-start-sign-in" />}
+        />
       ) : null}
       <ErrorAlert error={errorDisplay(props.error)} />
     </Space>

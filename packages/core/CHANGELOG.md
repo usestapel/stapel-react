@@ -1,5 +1,21 @@
 # @stapel/core
 
+## 0.25.3
+
+### Patch Changes
+
+- A page load no longer signs people out: `SessionManager`'s single-flight refresh now survives a document reload (incident D413).
+
+  Coalescing was a promise in memory, and a full document load throws memory away. The fresh `SessionManager` fired its own bootstrap refresh while the previous page's rotation was still on the wire, presented the refresh token that rotation was in the middle of replacing, and the server — correctly reading a superseded `jti` as a replayed refresh token — revoked the session. Nothing was wrong with the credential, the person, or the network; the trigger was a page load.
+
+  A refresh now leaves a marker in `sessionStorage` — `stapel:auth:refresh-inflight` (`REFRESH_INFLIGHT_MARKER_KEY`), per-tab, and the one store that survives exactly the thing that needs surviving — and clears it when the refresh settles, on success, on a verdict and on no answer at all. A manager that BOOTS and finds a marker younger than the new `refreshHandoffWindowMs` (default 3 s, `REFRESH_HANDOFF_WINDOW_MS`) waits for that rotation to land — the marker's removal ends the wait early, announced in-process and as a `storage` event from the document that wrote it — and then reads the new `readSessionHint()` seam before deciding whether it needs to refresh at all: a hint that says a session exists means the rotation already produced one, and there is nothing left to ask for.
+
+  Only a BOOT PROBE pays the wait — a first refresh fired while the manager is still `"initializing"`, which is the reloaded page and nothing else. A settled session's 401 refresh, and every manager built with an `initialStatus`, go straight out exactly as before; holding those would have taxed every host with a second manager (SSR, multi-tenant) and every 401 that lands early in a page's life, which is a new defect paid for by everyone to fix one.
+
+  Everything else is unchanged by construction: no marker, a marker older than the window (a tab killed mid-rotation must not tax the next boot), an unreadable marker, `refreshHandoffStorage: null`, or a storage that throws — all four are today's behaviour, and none of them can throw.
+
+  This is one half of the fix. The other is a grace window in `stapel-auth` that accepts the immediately-superseded refresh token instead of treating it as a replay, released in parallel. Either half alone narrows the race; both close it.
+
 ## 0.25.2
 
 ### Patch Changes

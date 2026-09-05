@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSessionManager, REFRESH_UNAVAILABLE } from "../src/session.js";
+import {
+  createSessionManager,
+  REFRESH_HANDOFF_WINDOW_MS,
+  REFRESH_INFLIGHT_MARKER_KEY,
+  REFRESH_UNAVAILABLE,
+} from "../src/session.js";
 import type { SessionLogoutReason, SessionStatus } from "../src/session.js";
 
 // NOTE on recursion: `doRefresh`'s own HTTP call must go through a client
@@ -392,5 +397,319 @@ describe("createSessionManager — REFRESH_UNAVAILABLE (no verdict ≠ session l
 
     expect(manager.getStatus()).toBe("authenticated");
     expect(onSessionLost).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ONE PAGE LOAD, TWO ROTATIONS — incident D413.
+ *
+ * `refresh()`'s coalescing is a promise in memory, so a full document reload
+ * throws it away and the fresh `SessionManager` fires its own bootstrap
+ * refresh on top of the previous page's un-answered rotation. The server sees
+ * the superseded `jti`, reads it as a replayed refresh token, and revokes the
+ * session: a person signed out by nothing but a page load.
+ *
+ * The guard is a marker in `sessionStorage` — the one store that survives a
+ * reload of this tab and nothing else. These tests drive two managers over
+ * ONE fake storage, which is exactly the shape of the two documents.
+ */
+function fakeSessionStorage(seed?: Record<string, string>): Storage {
+  const map = new Map<string, string>(Object.entries(seed ?? {}));
+  return {
+    get length() {
+      return map.size;
+    },
+    clear: () => map.clear(),
+    getItem: (key: string) => map.get(key) ?? null,
+    key: (index: number) => [...map.keys()][index] ?? null,
+    removeItem: (key: string) => {
+      map.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      map.set(key, value);
+    },
+  } as Storage;
+}
+
+describe("createSessionManager — the refresh survives a reload (D413)", () => {
+  it("writes the in-flight marker while a refresh is out, and clears it on success", async () => {
+    const store = fakeSessionStorage();
+    let release: (status: SessionStatus) => void = () => {};
+    const manager = createSessionManager({
+      refreshHandoffStorage: store,
+      doRefresh: () =>
+        new Promise<SessionStatus>((resolve) => {
+          release = resolve;
+        }),
+    });
+
+    const pending = manager.refresh();
+    const raw = store.getItem(REFRESH_INFLIGHT_MARKER_KEY);
+    expect(raw).not.toBeNull();
+    expect(typeof (JSON.parse(raw as string) as { startedAt: unknown }).startedAt).toBe(
+      "number"
+    );
+
+    release("authenticated");
+    await pending;
+    expect(store.getItem(REFRESH_INFLIGHT_MARKER_KEY)).toBeNull();
+  });
+
+  it("clears the marker on a FAILED refresh too — a marker outliving its refresh taxes every later boot", async () => {
+    const store = fakeSessionStorage();
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      refreshHandoffStorage: store,
+      doRefresh: async () => {
+        throw new Error("proxy down");
+      },
+    });
+    await expect(manager.refresh()).resolves.toBe(false);
+    expect(store.getItem(REFRESH_INFLIGHT_MARKER_KEY)).toBeNull();
+  });
+
+  it("the SECOND manager waits for the first to settle and never dispatches its own refresh", async () => {
+    const store = fakeSessionStorage();
+    let release: (status: SessionStatus) => void = () => {};
+    const first = vi.fn(
+      () =>
+        new Promise<SessionStatus>((resolve) => {
+          release = resolve;
+        })
+    );
+    const firstManager = createSessionManager({
+      refreshHandoffStorage: store,
+      doRefresh: first,
+    });
+    const rotating = firstManager.refresh();
+
+    // The reload: a brand-new manager over the SAME tab storage, with the
+    // previous document's rotation still out.
+    let signedIn = false;
+    const second = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const secondManager = createSessionManager({
+      refreshHandoffStorage: store,
+      readSessionHint: () => (signedIn ? "authenticated" : null),
+      doRefresh: second,
+    });
+    const booting = secondManager.refresh();
+
+    // It is WAITING, not refreshing: presenting the credential the first
+    // rotation is replacing is exactly what got the session revoked.
+    await Promise.resolve();
+    expect(second).not.toHaveBeenCalled();
+    expect(secondManager.getStatus()).toBe("initializing");
+
+    signedIn = true;
+    release("authenticated");
+    await rotating;
+
+    await expect(booting).resolves.toBe(true);
+    expect(second).not.toHaveBeenCalled();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(secondManager.getStatus()).toBe("authenticated");
+  });
+
+  it("waits, then refreshes anyway when the wait produced no session", async () => {
+    const store = fakeSessionStorage();
+    let release: (status: SessionStatus) => void = () => {};
+    const firstManager = createSessionManager({
+      refreshHandoffStorage: store,
+      doRefresh: () =>
+        new Promise<SessionStatus>((resolve) => {
+          release = resolve;
+        }),
+    });
+    const rotating = firstManager.refresh();
+
+    const second = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const secondManager = createSessionManager({
+      refreshHandoffStorage: store,
+      readSessionHint: () => null,
+      doRefresh: second,
+    });
+    const booting = secondManager.refresh();
+    await Promise.resolve();
+    expect(second).not.toHaveBeenCalled();
+
+    release("authenticated");
+    await rotating;
+    await expect(booting).resolves.toBe(true);
+    // Waiting is not skipping: with no evidence of a session, the boot probe
+    // still runs — just no longer on top of somebody else's rotation.
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it("only the FIRST refresh after a boot pays the wait", async () => {
+    const store = fakeSessionStorage({
+      [REFRESH_INFLIGHT_MARKER_KEY]: JSON.stringify({ startedAt: Date.now() }),
+    });
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const manager = createSessionManager({
+      refreshHandoffWindowMs: 20,
+      refreshHandoffStorage: store,
+      doRefresh,
+    });
+    await manager.refresh();
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+    const before = Date.now();
+    await manager.refresh();
+    expect(doRefresh).toHaveBeenCalledTimes(2);
+    expect(Date.now() - before).toBeLessThan(20);
+  });
+
+  it("a SETTLED session's 401 refresh never waits — the guard is for the boot probe, not for every request", async () => {
+    // The seam this was found on: a pair that holds one refresh open and then
+    // builds a second manager (a phone losing its socket, an SSR host, a
+    // multi-tenant host with two sessions) had every later refresh held for
+    // the whole window. A manager that already knows its status is not a
+    // reloaded page racing its predecessor.
+    const store = fakeSessionStorage({
+      [REFRESH_INFLIGHT_MARKER_KEY]: JSON.stringify({ startedAt: Date.now() }),
+    });
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const readSessionHint = vi.fn((): SessionStatus => "authenticated");
+    const manager = createSessionManager({
+      initialStatus: "authenticated",
+      refreshHandoffWindowMs: 30_000,
+      refreshHandoffStorage: store,
+      readSessionHint,
+      doRefresh,
+    });
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+    expect(readSessionHint).not.toHaveBeenCalled();
+  });
+
+  it("a STALE marker is treated as absent — a tab killed mid-rotation must not tax the next boot", async () => {
+    const store = fakeSessionStorage({
+      [REFRESH_INFLIGHT_MARKER_KEY]: JSON.stringify({
+        startedAt: Date.now() - (REFRESH_HANDOFF_WINDOW_MS + 5_000),
+      }),
+    });
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const readSessionHint = vi.fn((): SessionStatus => "authenticated");
+    const manager = createSessionManager({
+      refreshHandoffStorage: store,
+      readSessionHint,
+      doRefresh,
+    });
+
+    await expect(manager.refresh()).resolves.toBe(true);
+    // No wait, no hint read, and the refresh went out — today's behaviour.
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+    expect(readSessionHint).not.toHaveBeenCalled();
+  });
+
+  it("an unreadable marker is treated as absent too", async () => {
+    const store = fakeSessionStorage({ [REFRESH_INFLIGHT_MARKER_KEY]: "not json" });
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const manager = createSessionManager({ refreshHandoffStorage: store, doRefresh });
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+    expect(store.getItem(REFRESH_INFLIGHT_MARKER_KEY)).toBeNull();
+  });
+
+  it("storage unavailable: exactly today's behaviour, and nothing thrown", async () => {
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const readSessionHint = vi.fn((): SessionStatus => "authenticated");
+    const manager = createSessionManager({
+      refreshHandoffStorage: null,
+      readSessionHint,
+      doRefresh,
+    });
+    await expect(manager.refresh()).resolves.toBe(true);
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(doRefresh).toHaveBeenCalledTimes(2);
+    expect(readSessionHint).not.toHaveBeenCalled();
+  });
+
+  it("a storage that THROWS on every access is unavailable, not a crash", async () => {
+    const hostile = {
+      get length(): number {
+        throw new Error("SecurityError");
+      },
+      clear: () => {
+        throw new Error("SecurityError");
+      },
+      getItem: () => {
+        throw new Error("SecurityError");
+      },
+      key: () => {
+        throw new Error("SecurityError");
+      },
+      removeItem: () => {
+        throw new Error("SecurityError");
+      },
+      setItem: () => {
+        throw new Error("SecurityError");
+      },
+    } as unknown as Storage;
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const manager = createSessionManager({ refreshHandoffStorage: hostile, doRefresh });
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("no marker, no change: the window is never waited out when nothing was in flight", async () => {
+    const store = fakeSessionStorage();
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const manager = createSessionManager({
+      refreshHandoffWindowMs: 5_000,
+      refreshHandoffStorage: store,
+      doRefresh,
+    });
+    const before = Date.now();
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(Date.now() - before).toBeLessThan(1_000);
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("wakes on the `storage` event the OTHER document announces its rotation with", async () => {
+    const store = fakeSessionStorage({
+      [REFRESH_INFLIGHT_MARKER_KEY]: JSON.stringify({ startedAt: Date.now() }),
+    });
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const manager = createSessionManager({
+      // Long enough that finishing at all proves the event woke it, not the
+      // timer.
+      refreshHandoffWindowMs: 30_000,
+      refreshHandoffStorage: store,
+      doRefresh,
+    });
+    const booting = manager.refresh();
+    await Promise.resolve();
+    expect(doRefresh).not.toHaveBeenCalled();
+
+    // The removal is the announcement; a WRITE is another document STARTING a
+    // rotation, which is not news this manager can act on.
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: REFRESH_INFLIGHT_MARKER_KEY,
+        newValue: JSON.stringify({ startedAt: Date.now() }),
+      })
+    );
+    await Promise.resolve();
+    expect(doRefresh).not.toHaveBeenCalled();
+
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: REFRESH_INFLIGHT_MARKER_KEY, newValue: null })
+    );
+    await expect(booting).resolves.toBe(true);
+    expect(doRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up on a writer that never answers, bounded by the window", async () => {
+    const store = fakeSessionStorage({
+      [REFRESH_INFLIGHT_MARKER_KEY]: JSON.stringify({ startedAt: Date.now() }),
+    });
+    const doRefresh = vi.fn(async (): Promise<SessionStatus> => "authenticated");
+    const manager = createSessionManager({
+      refreshHandoffWindowMs: 30,
+      refreshHandoffStorage: store,
+      doRefresh,
+    });
+    await expect(manager.refresh()).resolves.toBe(true);
+    expect(doRefresh).toHaveBeenCalledTimes(1);
   });
 });

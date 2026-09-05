@@ -1,5 +1,19 @@
 # @stapel/chat-react
 
+## 0.9.1
+
+### Patch Changes
+
+- `<StartChatButton refusal="pooled">` gets its sign-in door back.
+
+  0.9.0 fixed the right defect — fourteen listing cards printing "Sign in to message the seller." fourteen times — by pooling the sentence into the enclosing `PaneGate`'s footnote. It also dropped the thing the inline arm has and this module's own rule requires: the door. A pooled pane stated the reason and left the visitor to find the header themselves, which is exactly the half-answer `SignInLink` was written to end (storefront Wave D, G-3): a reason whose next action is a link nobody can find is half an answer.
+
+  The door now stands IN the pooled sentence, and there is one sentence, so there is one door — not one under each of fourteen cards, which is the noise pooling had just removed. It is rendered through the scope's own published address (`GateReasonScope.idFor`), so it lands inside the very element every button's `aria-describedby` points at: assistive tech reads the reason and its way out together. A claim elects one control per pane to render it and hands it on when that control unmounts, so a card scrolled out of a virtualised list cannot take the pane's only way out with it.
+
+  The inline arm is untouched — one control, one sentence, its own door — and a pane whose host passes no `signIn` still gets the reason alone, as it always did.
+
+  `react-dom` joins the declared peers (`>=19`) for the portal. It is not a new install for anyone: `antd`, already a peer here, requires it.
+
 ## 0.9.0
 
 ### Minor Changes

@@ -216,6 +216,8 @@ export {
   createSessionManager,
   getActiveSessionManager,
   REFRESH_UNAVAILABLE,
+  REFRESH_INFLIGHT_MARKER_KEY,
+  REFRESH_HANDOFF_WINDOW_MS,
 } from "./session.js";
 export type {
   SessionManager,

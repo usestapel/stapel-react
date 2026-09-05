@@ -1,6 +1,6 @@
 {
   "name": "@stapel/core",
-  "version": "0.25.2",
+  "version": "0.25.3",
   "description": "Stapel frontend runtime (L0): typed fetch with the Stapel error envelope, auth token/refresh seams, verification-403 interception, TanStack Query layer with per-user persistence, i18n engine, config provider, breakpoints hook.",
   "license": "MIT",
   "repository": {
@@ -33,9 +33,9 @@
   },
   "size-limit": [
     {
-      "name": "index -- the framework floor. RAISED 12 -> 13.5 KB in 0.20.0 for usePermission and its translated pre-prompt copy: four browser capabilities as one state machine, plus the sentences that make a browser prompt answerable, in three locales. RAISED 13.5 -> 14 KB for useRecents: the MRU list every picker in the fleet was otherwise going to re-derive, persisted through the storage ladder that is already here. RAISED 14 -> 14.5 KB for slugify: a per-word Cyrillic (Russian/Ukrainian/Belarusian/Kazakh) transliteration table every pair that builds a listing URL was otherwise going to hand-roll or re-import. A budget is a ceiling to argue with, not a wall to route around -- what bought every raise is a subsystem every pair was otherwise going to re-derive.",
+      "name": "index -- the framework floor. RAISED 12 -> 13.5 KB in 0.20.0 for usePermission and its translated pre-prompt copy: four browser capabilities as one state machine, plus the sentences that make a browser prompt answerable, in three locales. RAISED 13.5 -> 14 KB for useRecents: the MRU list every picker in the fleet was otherwise going to re-derive, persisted through the storage ladder that is already here. RAISED 14 -> 14.5 KB for slugify: a per-word Cyrillic (Russian/Ukrainian/Belarusian/Kazakh) transliteration table every pair that builds a listing URL was otherwise going to hand-roll or re-import. A budget is a ceiling to argue with, not a wall to route around -- what bought every raise is a subsystem every pair was otherwise going to re-derive. RAISED 14.5 -> 15 KB in 0.25.3 for the cross-reload refresh guard (D413): the sessionStorage marker, its staleness/unreadability arms, and the bounded wait a booting manager does on the previous document's rotation. Measured with dependencies held constant, this package's src at the previous commit and then at this one: 14.12 -> 14.52 KB, 400 B to stop a page load from signing a person out.",
       "path": "dist/index.js",
-      "limit": "14.5 KB"
+      "limit": "15 KB"
     }
   ],
   "peerDependencies": {

@@ -76,6 +76,57 @@ export const REFRESH_UNAVAILABLE = "unavailable";
 
 export type RefreshOutcome = SessionStatus | typeof REFRESH_UNAVAILABLE | null;
 
+/**
+ * The cross-reload half of single-flight (incident D413).
+ *
+ * `refresh()`'s coalescing is an in-memory promise, so it holds for exactly as
+ * long as the JS runtime does. A full document reload — the host's own
+ * `location.assign` after a language switch, a hard refresh, an OAuth bounce
+ * back onto the app — throws that promise away and boots a FRESH
+ * `SessionManager`, which fires its own bootstrap refresh. If the previous
+ * page's rotation had not answered yet, the new page presents the refresh
+ * token the old page is in the middle of rotating away: the server sees a
+ * superseded `jti` and does the only safe thing it can with a replayed
+ * refresh token — revokes the session. The person is signed out by nothing
+ * but a page load.
+ *
+ * The guard is a marker in `sessionStorage` — per-tab, and (unlike
+ * `localStorage`) surviving exactly the thing that needs surviving: a reload
+ * of THIS tab. A manager writes it before dispatching a refresh and clears it
+ * when that refresh settles either way; a manager that BOOTS and finds one
+ * younger than {@link CreateSessionManagerOptions.refreshHandoffWindowMs}
+ * waits for the previous page's rotation to land before deciding whether it
+ * needs to refresh at all.
+ *
+ * A marker older than the window is treated as ABSENT — a tab killed mid
+ * rotation must not make the next boot wait, let alone forever.
+ *
+ * The other half of this fix lives in `stapel-auth`: a short grace window in
+ * which the immediately-superseded token is accepted rather than treated as a
+ * replay. Either half alone narrows the race; both close it.
+ */
+export const REFRESH_INFLIGHT_MARKER_KEY = "stapel:auth:refresh-inflight";
+
+/** Default {@link CreateSessionManagerOptions.refreshHandoffWindowMs}. */
+export const REFRESH_HANDOFF_WINDOW_MS = 3_000;
+
+interface RefreshMarker {
+  readonly startedAt: number;
+}
+
+/**
+ * Same-document waiters. A `storage` event only reaches OTHER documents, so
+ * two managers alive in one runtime (the reload window's overlap, tests, an
+ * SSR-hydrated host that builds a second manager) would otherwise wait out the
+ * whole window even though the answer already arrived. The listeners here are
+ * the in-process half of the same announcement.
+ */
+const localHandoffWaiters = new Set<() => void>();
+
+function announceHandoffSettled(): void {
+  for (const waiter of [...localHandoffWaiters]) waiter();
+}
+
 /** Why the logout-hook registry is being run. */
 export type SessionLogoutReason = "logout" | "lost";
 
@@ -123,6 +174,34 @@ export interface CreateSessionManagerOptions {
    * never hardcoded in the framework.
    */
   readonly onSessionLost?: (reason: SessionLostReason) => void | Promise<void>;
+  /**
+   * How long a refresh marker left by the PREVIOUS document counts as "a
+   * rotation is still in flight" — see {@link REFRESH_INFLIGHT_MARKER_KEY}.
+   * Default {@link REFRESH_HANDOFF_WINDOW_MS} (3 s), which is the longest a
+   * refresh round-trip is worth waiting out before deciding the writer died
+   * with the page. Raise it only against a measured refresh latency; it is a
+   * ceiling on the wait, not the wait itself — the marker's removal ends it
+   * as soon as the rotation actually lands.
+   */
+  readonly refreshHandoffWindowMs?: number;
+  /**
+   * Where the marker lives. Default: the ambient `sessionStorage`, and `null`
+   * (or a storage that throws — Safari's private mode, a `SecurityError`
+   * behind a cookie wall) turns the guard off entirely, restoring the
+   * in-memory-only behaviour this manager has always had.
+   */
+  readonly refreshHandoffStorage?: Storage | null;
+  /**
+   * A cheap, synchronous read of whatever NON-httponly evidence the host has
+   * that a session exists — the hint cookie a cookie-mode backend sets beside
+   * the httponly JWT, a bearer token in memory. Read only after waiting out a
+   * previous document's rotation: if it says a session is there, the rotation
+   * we waited for already produced one and this manager has nothing to
+   * refresh, which is the difference between waiting and refreshing anyway.
+   * Absent, or `null`: the boot refresh proceeds as usual, just no longer on
+   * top of someone else's rotation.
+   */
+  readonly readSessionHint?: () => SessionStatus | null;
 }
 
 export interface SessionManager {
@@ -160,6 +239,14 @@ export interface SessionManager {
    * (no answer reached us at all) leaves the session untouched and only emits
    * `session:refresh-unavailable`. See the module doc comment above for
    * `doRefresh`'s recursion contract.
+   *
+   * Single-flight also survives a full document reload — see
+   * {@link REFRESH_INFLIGHT_MARKER_KEY}. A BOOT PROBE (a first refresh fired
+   * while the manager is still `"initializing"`) that follows a boot which
+   * found a live marker waits for the previous page's rotation to land
+   * (bounded by `refreshHandoffWindowMs`) and may then skip `doRefresh`
+   * entirely; every other call — including a settled session's 401 refresh —
+   * behaves exactly as it always has.
    */
   refresh(): Promise<boolean>;
 
@@ -250,6 +337,120 @@ export function createSessionManager(
 
   // Single-flight coalescing (see `refresh()` doc above).
   let inFlight: Promise<boolean> | null = null;
+
+  // ── the cross-reload half of it (D413) ────────────────────────────────────
+  const handoffWindowMs = options.refreshHandoffWindowMs ?? REFRESH_HANDOFF_WINDOW_MS;
+  // `undefined` means "the ambient one"; an explicit `null` switches the guard
+  // off. Reading `sessionStorage` can itself THROW (a cookie wall, a sandboxed
+  // iframe), which is why even the lookup is guarded.
+  const handoffStorage: Storage | null = (() => {
+    if (options.refreshHandoffStorage !== undefined) return options.refreshHandoffStorage;
+    try {
+      // eslint-disable-next-line stapel/no-raw-storage -- Not user data, and not something `createRepository` can hold. What is stored is one timestamp saying "a token rotation is out right now", which must (a) be readable SYNCHRONOUSLY at construction, before any await, or the next document's refresh has already been dispatched by the time we know; (b) live in `sessionStorage` specifically — per-tab, surviving a reload of this tab and nothing else; (c) not be wiped at logout, since a logout is exactly when the last rotation must still be visible to the page that loads next. §43.4's guarantees (encrypt user data, wipe it at logout) are about the opposite kind of value, and `createRepository` is async and session-scoped — it is built ON this manager, so it cannot be what this manager boots through.
+      return typeof sessionStorage === "undefined" ? null : sessionStorage;
+    } catch {
+      return null;
+    }
+  })();
+
+  function readMarker(): RefreshMarker | null {
+    if (handoffStorage === null) return null;
+    let raw: string | null = null;
+    try {
+      raw = handoffStorage.getItem(REFRESH_INFLIGHT_MARKER_KEY);
+    } catch {
+      return null;
+    }
+    if (raw === null) return null;
+    let startedAt: unknown;
+    try {
+      startedAt = (JSON.parse(raw) as { startedAt?: unknown }).startedAt;
+    } catch {
+      startedAt = undefined;
+    }
+    // Unreadable is as good as absent: a marker nobody can date cannot be
+    // aged out, and a guard that never ages out is a permanent 3 s tax.
+    if (typeof startedAt !== "number" || !Number.isFinite(startedAt)) {
+      clearMarker();
+      return null;
+    }
+    return { startedAt };
+  }
+
+  function writeMarker(): void {
+    if (handoffStorage === null) return;
+    try {
+      handoffStorage.setItem(
+        REFRESH_INFLIGHT_MARKER_KEY,
+        JSON.stringify({ startedAt: Date.now() } satisfies RefreshMarker)
+      );
+    } catch {
+      /* quota, private mode, a storage that refuses writes — the guard is an
+         optimisation, never a precondition. */
+    }
+  }
+
+  function clearMarker(): void {
+    if (handoffStorage === null) return;
+    try {
+      handoffStorage.removeItem(REFRESH_INFLIGHT_MARKER_KEY);
+    } catch {
+      /* see writeMarker */
+    }
+    announceHandoffSettled();
+  }
+
+  // Read ONCE, at construction: the only marker that can belong to a previous
+  // document is the one already there when this manager was born. Everything
+  // later is our own. `null` here is the whole "no behaviour change when no
+  // marker exists" clause.
+  const bootMarker = readMarker();
+  let handoffDeadline: number | null =
+    bootMarker === null ? null : bootMarker.startedAt + handoffWindowMs;
+  if (handoffDeadline !== null && handoffDeadline <= Date.now()) {
+    // Stale: the writer died with its page. Treat as absent, and tidy up so
+    // the next boot does not read it either.
+    handoffDeadline = null;
+    clearMarker();
+  }
+
+  /**
+   * Wait out a previous document's rotation: until the marker is removed (the
+   * rotation landed — announced in-process, or as a `storage` event from the
+   * document that wrote it) or until the window closes, whichever is first.
+   * One-shot: `handoffDeadline` is consumed here, so only the FIRST refresh
+   * after a boot ever pays this.
+   */
+  async function awaitHandoff(deadline: number): Promise<void> {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return;
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const settle = (): void => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        localHandoffWaiters.delete(settle);
+        if (typeof window !== "undefined") {
+          window.removeEventListener("storage", onStorage);
+        }
+        resolve();
+      };
+      const onStorage = (event: StorageEvent): void => {
+        // The announcement is the REMOVAL: a rotation that settled clears its
+        // own marker. A write is another document starting one, which is not
+        // news we can act on.
+        if (event.key === REFRESH_INFLIGHT_MARKER_KEY && event.newValue === null) {
+          settle();
+        }
+      };
+      const timer = setTimeout(settle, remaining);
+      localHandoffWaiters.add(settle);
+      if (typeof window !== "undefined") {
+        window.addEventListener("storage", onStorage);
+      }
+    });
+  }
 
   // Logout-in-progress guard (owner-diagnosed live incident, 2026-07-17 —
   // see `sessionLost`'s doc comment on the interface above). Set
@@ -361,7 +562,36 @@ export function createSessionManager(
   function refresh(): Promise<boolean> {
     if (inFlight) return inFlight;
     const p = (async () => {
+      // The cross-reload guard, consumed once (D413): only a BOOT PROBE —
+      // this manager's first refresh, fired while it still has no idea
+      // whether a session exists — after a boot that FOUND a live marker ever
+      // waits, and it waits only until the previous document's rotation
+      // lands. A manager that already knows its status is not the reloaded
+      // page racing its predecessor; it is a live session hitting a 401, and
+      // holding that request for up to three seconds would be a new defect
+      // paid for by every host with a second manager (SSR, multi-tenant) or a
+      // 401 arriving early in a page's life.
+      const deadline = status === "initializing" ? handoffDeadline : null;
+      handoffDeadline = null;
+      if (deadline !== null) {
+        await awaitHandoff(deadline);
+        const hint = options.readSessionHint?.() ?? null;
+        if (hint !== null) {
+          // The rotation we waited out produced a session. Dispatch nothing:
+          // the credential this manager would have presented is the one that
+          // rotation just replaced, and presenting it is what got sessions
+          // revoked.
+          setStatus(hint);
+          return true;
+        }
+        // No hint seam wired, but something else settled us while we waited
+        // (an `adopt()`/`restore()`, the host's own bootstrap).
+        if (status === "authenticated" || status === "anonymous") return true;
+      }
       let outcome: RefreshOutcome = null;
+      // The marker is this document's claim on the rotation, for whatever
+      // document loads next.
+      writeMarker();
       try {
         outcome = await options.doRefresh();
       } catch {
@@ -369,6 +599,10 @@ export function createSessionManager(
         // REFRESH_UNAVAILABLE. Tearing the session down here turned any bug
         // in the refresh path into a forced logout.
         outcome = REFRESH_UNAVAILABLE;
+      } finally {
+        // Settled either way: success, verdict, or no answer at all. A marker
+        // outliving its refresh is the failure mode this guard must not have.
+        clearMarker();
       }
       if (outcome === REFRESH_UNAVAILABLE) {
         // No verdict: leave the session EXACTLY as it was. `false` still goes

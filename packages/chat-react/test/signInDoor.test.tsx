@@ -14,8 +14,9 @@
  * may not".
  */
 import { describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
+import type { ReactElement, ReactNode } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   MandateProvider,
   mandateAsking,
@@ -190,5 +191,130 @@ describe("where the refusal sentence goes", () => {
     expect(
       (screen.getByTestId("chat-start-button") as HTMLButtonElement).disabled
     ).toBe(false);
+  });
+});
+
+/**
+ * THE POOLED SENTENCE CARRIES THE DOOR — and carries exactly one.
+ *
+ * 0.9.0 pooled the reason into the pane's footnote and left the door behind in
+ * the inline arm, which turned a fourteen-card pane back into the half-answer
+ * this module was written to end: "Sign in to message the seller." with no way
+ * to. The door now stands IN the pooled sentence — once for the pane, because
+ * there is one sentence, and fourteen doors under fourteen cards is the noise
+ * pooling had just removed.
+ */
+describe("the pooled refusal keeps its door", () => {
+  function pane(count: number, signIn?: { href: string }): ReactNode {
+    return (
+      <PaneGate gate={actionAvailable()} testId="cards-reasons">
+        {Array.from({ length: count }, (_unused, index) => (
+          <StartChatButton
+            key={`card-${String(index)}`}
+            sellerId={SELLER}
+            refusal="pooled"
+            {...(signIn !== undefined ? { signIn } : {})}
+          />
+        ))}
+      </PaneGate>
+    );
+  }
+
+  it("puts ONE door in the pane's sentence, not one under every card", async () => {
+    renderAs("anonymous", pane(3, { href: "/login?next=/s" }));
+
+    const doors = await screen.findAllByTestId("chat-start-sign-in");
+    expect(doors).toHaveLength(1);
+    expect(doors[0]?.getAttribute("href")).toBe("/login?next=/s");
+
+    // It is IN the sentence — the very element every button's
+    // `aria-describedby` points at — not merely somewhere on the pane. A door
+    // the reason does not carry is a door in a different conversation.
+    const describedBy = screen
+      .getAllByTestId("chat-start-button")
+      .map((button) => button.getAttribute("aria-describedby"));
+    expect(new Set(describedBy).size).toBe(1);
+    const sentence = document.getElementById(describedBy[0] as string);
+    expect(sentence).not.toBeNull();
+    expect(sentence?.contains(doors[0] as HTMLElement)).toBe(true);
+    expect(sentence?.textContent).toContain("Sign in to message the seller.");
+  });
+
+  it("still says the reason once, and only once, with the door in it", async () => {
+    renderAs("anonymous", pane(4, { href: "/login" }));
+    await screen.findByTestId("chat-start-sign-in");
+    const printed = screen
+      .getByTestId("cards-reasons")
+      .querySelectorAll("[data-stapel-gated-reason]");
+    expect(printed).toHaveLength(1);
+    // The sentence never came back to stand beside the buttons.
+    expect(screen.queryAllByTestId("chat-start-blocked")).toHaveLength(0);
+  });
+
+  it("keeps the pane doorless when the host has no sign-in route", async () => {
+    renderAs("anonymous", pane(3));
+    await screen.findByTestId("cards-reasons");
+    expect(screen.queryByTestId("chat-start-sign-in")).toBeNull();
+  });
+
+  it("hands the door on when the card holding it unmounts", async () => {
+    function Shrinking(): ReactElement {
+      const [cards, setCards] = useState(3);
+      return (
+        <>
+          <button type="button" data-testid="drop" onClick={() => setCards(2)}>
+            drop
+          </button>
+          <PaneGate gate={actionAvailable()} testId="cards-reasons">
+            {Array.from({ length: cards }, (_unused, index) => (
+              <StartChatButton
+                key={`card-${String(index)}`}
+                sellerId={SELLER}
+                refusal="pooled"
+                signIn={{ href: "/login" }}
+              />
+            ))}
+          </PaneGate>
+        </>
+      );
+    }
+    renderAs("anonymous", <Shrinking />);
+    await screen.findByTestId("chat-start-sign-in");
+
+    // A virtualised list scrolls the first card away; the pane must not lose
+    // its only way out with it.
+    fireEvent.click(screen.getByTestId("drop"));
+    await waitFor(() => {
+      expect(screen.getAllByTestId("chat-start-button")).toHaveLength(2);
+    });
+    await waitFor(() => {
+      expect(screen.getAllByTestId("chat-start-sign-in")).toHaveLength(1);
+    });
+  });
+
+  it("the INLINE arm still keeps its own door, one per control", () => {
+    renderAs(
+      "anonymous",
+      <>
+        <StartChatButton sellerId={SELLER} signIn={{ href: "/login" }} />
+        <StartChatButton sellerId={SELLER} signIn={{ href: "/login" }} />
+      </>
+    );
+    // Two controls, two sentences, two doors — which is right for a listing
+    // PAGE and is exactly what the pooled arm exists to stop doing in a list.
+    expect(screen.getAllByTestId("chat-start-blocked")).toHaveLength(2);
+    const doors = screen.getAllByTestId("chat-start-sign-in");
+    expect(doors).toHaveLength(2);
+    for (const [index, blocked] of screen
+      .getAllByTestId("chat-start-blocked")
+      .entries()) {
+      expect(blocked.contains(doors[index] as HTMLElement)).toBe(true);
+    }
+  });
+
+  it("no door for a member — the gate is open, there is nothing to explain", async () => {
+    renderAs("member", pane(3, { href: "/login" }));
+    await screen.findAllByTestId("chat-start-button");
+    expect(screen.queryByTestId("chat-start-sign-in")).toBeNull();
   });
 });

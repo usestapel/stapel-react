@@ -270,6 +270,42 @@ refresh mechanics; the SessionManager owns everything generic around them.
 `@stapel/auth-react` wires all of this for you (`createAuthRuntime` →
 `session.getSessionManager()`).
 
+**Single-flight survives a reload (D413).** Coalescing used to be a promise in
+memory, so a full document load threw it away: the fresh manager fired its own
+bootstrap refresh while the previous page's rotation was still out, presented
+the token that rotation was replacing, and the server — correctly reading a
+superseded `jti` as a replayed refresh token — revoked the session. A person
+signed out by nothing but a page load. A refresh now leaves a marker
+(`stapel:auth:refresh-inflight`, keyed by `REFRESH_INFLIGHT_MARKER_KEY`) in
+`sessionStorage` — per-tab, and the one store that survives exactly the thing
+that needs surviving — and clears it when the refresh settles, either way. A
+manager that BOOTS and finds a marker younger than `refreshHandoffWindowMs`
+(default 3 s, `REFRESH_HANDOFF_WINDOW_MS`) waits for the rotation to land — the
+marker's removal ends the wait early — and then reads `readSessionHint()`
+before deciding whether it needs to refresh at all: a hint that says a session
+exists means the rotation already produced one and there is nothing to ask for.
+Only a BOOT PROBE pays that wait — a first refresh fired while the manager is
+still `"initializing"`, which is the reloaded page and nothing else. A settled
+session's 401 refresh, and every manager built with an `initialStatus`, go
+straight out as they always did; holding those would have taxed every host with
+a second manager (SSR, multi-tenant) and every 401 that lands early in a
+page's life. A marker older than the
+window is treated as absent (a tab killed mid-rotation must not tax the next
+boot), and with no marker, or with `refreshHandoffStorage: null` / a storage
+that throws, behaviour is exactly what it always was. The other half of the fix
+is a grace window in `stapel-auth` that accepts the immediately-superseded
+token instead of treating it as a replay; either half alone narrows the race,
+both close it.
+
+```ts
+const sessionManager = createSessionManager({
+  doRefresh,
+  refreshHandoffWindowMs: 3_000,          // the ceiling on the wait, not the wait
+  readSessionHint: () =>
+    document.cookie.includes("stapel_session=1") ? "authenticated" : null,
+});
+```
+
 ### 401 handling lives in the client, not in services (§43.2)
 
 `createStapelClient`'s 401 path: `onAuthRefresh` (wire it to
