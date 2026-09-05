@@ -232,7 +232,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.favorites.load_failed": "Не удалось загрузить избранное",
   "listings.favorites.empty": "Вы ещё ничего не сохранили",
   "listings.favorites.empty_hint":
-    "Нажмите на сердечко в любом объявлении — оно будет ждать здесь.",
+    "Нажмите «В избранное» в любом объявлении — оно будет ждать здесь.",
   "listings.favorites.sign_in_hint":
     "Избранное хранится в аккаунте, поэтому переходит с вами на другие устройства.",
 

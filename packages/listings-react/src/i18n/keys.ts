@@ -458,7 +458,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.favorites.load_failed": "We could not load your favourites",
   "listings.favorites.empty": "You have not saved anything yet",
   "listings.favorites.empty_hint":
-    "Tap the heart on any listing and it will be waiting here.",
+    "Tap 'Save to favourites' on any listing and it will be waiting here.",
   "listings.favorites.sign_in_hint":
     "Favourites are kept with your account, so they follow you between devices.",
 

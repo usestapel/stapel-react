@@ -209,7 +209,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.favorites.load_failed": "No pudimos cargar tus favoritos",
   "listings.favorites.empty": "Todavía no has guardado nada",
   "listings.favorites.empty_hint":
-    "Toca el corazón en cualquier anuncio y te estará esperando aquí.",
+    "Toca «Guardar en favoritos» en cualquier anuncio y te estará esperando aquí.",
   "listings.favorites.sign_in_hint":
     "Los favoritos se guardan en tu cuenta, así que te siguen entre dispositivos.",
 

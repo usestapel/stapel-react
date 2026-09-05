@@ -146,3 +146,20 @@ describe("the blocked-submit key split (spec §13.2, note 3)", () => {
     ).not.toBe("attributes.submit.blocked.unsupported_type");
   });
 });
+
+describe("the favourites empty-state hint names the actual control", () => {
+  // The hint used to say "tap the heart" in every locale while the control it
+  // describes is a text button labelled by `cardFavoriteAdd` — a different
+  // sentence than the one on the screen. It now quotes that label's own
+  // wording, so a person reads the same words twice rather than two
+  // descriptions of one control.
+  it.each(["en", "ru", "es"] as const)(
+    "mentions the %s favorite_add label",
+    (locale) => {
+      const engine = engineFor(locale);
+      const label = engine.t(LISTINGS_I18N_KEYS.cardFavoriteAdd);
+      const hint = engine.t(LISTINGS_I18N_KEYS.favoritesEmptyHint);
+      expect(hint).toContain(label);
+    }
+  );
+});
