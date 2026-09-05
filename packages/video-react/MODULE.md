@@ -27,14 +27,30 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   emits `generated/flows.gen.ts`: swap the shim for re-exports, scaffold
   `createFlowMachine`-based machines (primitive imported from `@stapel/core`)
   and keep them under `gen:flows:check`.
-- **headless/** — `<VideoProvider>` wires the runtime into context.
-  shadcn-copyable (frontend-standard §7).
+- **headless/** — `<VideoProvider>` wires the runtime into context, and
+  `<CallsProvider>` holds the 1:1 CALL for the whole app: the live call, the
+  media grant, the ring clock, the cross-tab claim and the out-of-focus
+  notification. It renders `children` and nothing else — `useCalls()` /
+  `useIncomingCall()` are what a host's own overlay reads. It takes its live
+  frames through a `subscribe` SEAM rather than importing a socket, so the
+  main entry stays socket-free; `/default`'s `<LiveCallsProvider>` is the same
+  provider with `@stapel/realtime` attached. Both shadcn-copyable
+  (frontend-standard §7).
 - **default/** — the antd skin, on its own subpath so the main entry carries no
   visual dependency: `<ScopeUsagePane>` (the wired screen the nav entry mounts)
   and `<ScopeUsageTable>` (the same table with the data handed in). Four arms,
   none collapsible into another — loading, the uniform 404 rendered as an
   explained refusal, any other failure with a retry, and a month that succeeded
   and holds nobody.
+  The call surface lives here too: `<LiveCallsProvider>` + `<IncomingCallOverlay>`
+  are mounted ONCE at the app root (a call arrives while the person is on some
+  other page, so a provider mounted per-screen rings only for whoever was
+  already looking), `<CallPanel>` is the 1:1 `renderMedia` for `<CallStage>`,
+  and `<CallRoute>` is the three of them wired together for a host that just
+  wants one. `callHooks.ts` carries the three phone workarounds — media
+  session, wake lock, audio keep-alive — each a fix for an observed way a call
+  dies in a pocket, and `useRingtone.ts` treats an autoplay refusal as a normal
+  state rather than an error.
 - **nav/** — one `NavEntry`, `admin.usage`, a submenu under the
   container-owned `admin.root`. The id names the MENU rather than the module
   because nobody looks for their team's call time under "Video"; `surface` is
@@ -54,8 +70,13 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   product-linted, smoke-rendered, and projected to a Ladle story (`pnpm gen:demos`).
   The completeness gate requires ≥1 demo per exported headless component;
   `Video.demo.tsx` covers `VideoProvider` and shows the usage read in its three
-  reachable states (rows, a month holding nobody, the uniform refusal). Demos
-  never ship.
+  reachable states (rows, a month holding nobody, the uniform refusal),
+  `Ring.demo.tsx` covers `CallsProvider` by photographing the overlay OVER a
+  page (seeded through `callQueryKeys.active`, because a canned fetch resolves
+  a tick after a static render and four variants of an empty page are
+  byte-identical), and `Calls.demo.tsx` is the call itself. `CallRoute` and
+  `LiveCallsProvider` are in `demo/skin-coverage.allow.json` with why they
+  cannot be photographed. Demos never ship.
 
 ## Extension seams (frontend-standard §7)
 

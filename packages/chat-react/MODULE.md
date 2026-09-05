@@ -266,9 +266,34 @@ says neither that nor "Live".
   REGISTRY is a zero-flow shim: stapel-chat annotates no `@flow_step`, and its
   multi-step-ness lives in the transport, not in a server-declared funnel.
 - **headless/** — render-prop components: `<ConversationList>`,
-  `<ConversationThread>`, `<MessageComposer>`, `<StartDirectChat>`, plus
-  `<ChatProvider>`. shadcn-copyable (frontend-standard §7).
+  `<ConversationThread>`, `<MessageComposer>`, `<StartDirectChat>`,
+  `<StartCall>`, plus `<ChatProvider>`. shadcn-copyable
+  (frontend-standard §7).
 - **default/** — the opt-in antd skin (`@stapel/chat-react/default`).
+
+### The call control, and why it places no call
+
+`<StartCall>` / `<StartCallButton>` answer the question chat owns — may these
+two people talk, about this thing, right now — and then call back. Placing the
+call is `@stapel/video-react`'s (`useCalls().place(…)`), and a thread header
+that imported it to draw a button would put a `livekit-client` peer in the
+bundle of every host that shows a conversation and never calls anybody.
+
+Every blocked arm is a refusal the SERVER would otherwise deliver after the
+press: 403 when the pair is not both in the thread (stapel-video's
+`CALL_AUTHORIZER` requires one — a user id is not a phone number), 409 when
+either is already on a call. That second one is why `busy` is a prop: the call
+is happening over some other page, nothing on this screen says so, and a grey
+button with no sentence reads as a bug.
+
+The `anonymous` arm differs from `<StartDirectChat>`'s on purpose and has no
+elevation path. Minting an account so somebody's typed message can be delivered
+is a trade they understand; minting one so a stranger's phone can ring is not.
+
+`<ConversationThreadPanel renderHeaderActions>` is the slot it mounts in — a
+slot rather than a built-in, because a deployment without stapel-video must not
+grow a control that 404s. It is handed the counterparty id in a direct thread
+and `null` in a group, since a call is between two people.
 - **i18n/** — `CHAT_I18N_KEYS` + en bundle; the generated backend error bundle
   is merged in so every `error.*` code has a fallback. See "Localization" below
   for the one thing that is unusual here.
