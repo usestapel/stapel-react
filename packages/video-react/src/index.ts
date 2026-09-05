@@ -57,6 +57,12 @@ export type {
   ParticipantPageRequest,
 } from "./api/videoApi.js";
 export type {
+  ActiveCallResponse,
+  CallCreateRequest,
+  CallResponse,
+  CallSessionRequest,
+  CallTokenResponse,
+  MediaTokenResponse,
   Schemas,
   ScopeUsageResponse,
   ScopeUsageMonth,
@@ -105,6 +111,7 @@ export {
   videoQueryKeys,
   usageQueryKeys,
   roomQueryKeys,
+  callQueryKeys,
 } from "./model/queryKeys.js";
 
 // ── model (the usage read) ──────────────────────────────────────────────────
@@ -172,6 +179,69 @@ export type {
   WaitingPerson,
 } from "./model/meetingQueries.js";
 
+// ── model (1:1 calls) ───────────────────────────────────────────────────────
+export {
+  CALL_RINGING,
+  CALL_ACCEPTED,
+  CALL_DECLINED,
+  CALL_MISSED,
+  CALL_ENDED,
+  CALL_FAILED,
+  LIVE_CALL_STATES,
+  isCallLive,
+  isRinging,
+  isRingExpired,
+  ringRemainingMs,
+  connectedSeconds,
+  formatCallClock,
+  callRole,
+  otherPartyId,
+  callStateKey,
+  isAudioOnly,
+  isCallNotFound,
+  isCallBusy,
+  isCallStateConflict,
+  isCallNotAllowed,
+  isInvalidCallee,
+  isCallProviderUnavailable,
+} from "./model/calls.js";
+
+export { useActiveCall, useCallActions } from "./model/callQueries.js";
+export type {
+  ActiveCallBag,
+  CallActionsBag,
+  UseActiveCallOptions,
+} from "./model/callQueries.js";
+
+// ── model (the ring's realtime half — data only; no socket is opened here) ──
+export {
+  CALL_FRAME_INCOMING,
+  CALL_FRAME_ACCEPTED,
+  CALL_FRAME_DECLINED,
+  CALL_FRAME_ENDED,
+  CALL_FRAME_TYPES,
+  CALL_INBOX_SOCKET_PATH,
+  callInboxStreamKey,
+  callInboxSocketUrl,
+  decodeCallEvent,
+  applyCallEvent,
+} from "./model/callInbox.js";
+export type {
+  CallFrameLike,
+  CallInboxEvent,
+  IncomingCallEvent,
+  CallAcceptedEvent,
+  CallDeclinedEvent,
+  CallEndedEvent,
+} from "./model/callInbox.js";
+
+export {
+  CALL_TAB_CHANNEL,
+  CALL_TAB_STORAGE_KEY,
+  openCallTabBus,
+} from "./model/callTabs.js";
+export type { CallTabBus, CallTabMessage } from "./model/callTabs.js";
+
 // ── model (the lobby's realtime half — data only; no socket is opened here) ──
 export {
   LOBBY_FRAME_WAITING,
@@ -198,6 +268,17 @@ export { navEntries, ADMIN_ROOT_ID } from "./nav/manifest.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
 export { VideoProvider } from "./headless/VideoProvider.js";
+export {
+  CallsProvider,
+  useCalls,
+  useIncomingCall,
+} from "./headless/CallsProvider.js";
+export type {
+  CallsProviderProps,
+  CallsApi,
+  CallsState,
+  CallGrant,
+} from "./headless/CallsProvider.js";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 export {

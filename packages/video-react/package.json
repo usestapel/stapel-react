@@ -55,14 +55,14 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client, the usage query, the meeting bags, the lobby's frame vocabulary): no antd, no socket",
+      "name": "index — the headless pair (client, the usage query, the meeting bags, the lobby's frame vocabulary, and since 0.3.0 the CALL half: the state machine, the ring clock, the inbox frame vocabulary and the cross-tab bus). Raised 10 -> 13 KB for a second lifecycle, not for drift. Still no antd and no socket — both remain in /default, and the purity test is the teeth on that",
       "path": "dist/index.js",
-      "limit": "10 KB"
+      "limit": "13 KB"
     },
     {
-      "name": "default — the antd skin (the meeting client and the usage report) must stay out of the main bundle",
+      "name": "default — the antd skin (the meeting client, the usage report, and since 0.3.0 the call panel, the ring overlay and the three phone hooks). Raised 14 -> 20 KB: the call surface is a whole screen plus the media-session / wake-lock / audio-keepalive workarounds a call on a phone does not survive without. Must stay out of the main bundle",
       "path": "dist/default/index.js",
-      "limit": "14 KB"
+      "limit": "20 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",

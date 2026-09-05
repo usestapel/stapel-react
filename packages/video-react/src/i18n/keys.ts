@@ -140,6 +140,60 @@ export const VIDEO_I18N_KEYS = {
   stageLeave: "video.stage.leave",
   stageRetry: "video.stage.retry",
 
+  // ── 1:1 calls: the ring ──────────────────────────────────────────────────
+  /** The notification title, on a lock screen, in the reader's language. */
+  callIncomingTitle: "video.call.incoming.title",
+  callIncomingVideo: "video.call.incoming.video",
+  callIncomingAudio: "video.call.incoming.audio",
+  /** The caller's own "calling" state. */
+  callOutgoing: "video.call.outgoing",
+  callAccept: "video.call.accept",
+  callDecline: "video.call.decline",
+  callCancel: "video.call.cancel",
+  /** A person whose name the host could not resolve. Never a blank: the wire
+   * carries ids and never names, so "unknown" is an ordinary answer. */
+  callPeerUnknown: "video.call.peer_unknown",
+
+  /** How a FINISHED call reads — for a host that renders a call in a list or
+   * a thread. Every arm has a sentence, including the one for a state this
+   * version has never heard of: a backend that grows a seventh state must
+   * leave an older client saying something true and vague, not blank. */
+  callStateRinging: "video.call.state.ringing",
+  callStateAccepted: "video.call.state.accepted",
+  callStateDeclined: "video.call.state.declined",
+  callStateMissed: "video.call.state.missed",
+  callStateEnded: "video.call.state.ended",
+  callStateFailed: "video.call.state.failed",
+  callStateUnknown: "video.call.state.unknown",
+
+  // ── 1:1 calls: the call itself ───────────────────────────────────────────
+  callHangUp: "video.call.hang_up",
+  callMute: "video.call.mute",
+  callUnmute: "video.call.unmute",
+  callCameraOn: "video.call.camera_on",
+  callCameraOff: "video.call.camera_off",
+  callFlipCamera: "video.call.flip_camera",
+  callAudioOnly: "video.call.audio_only",
+  callWaitingForVideo: "video.call.waiting_for_video",
+  callReconnecting: "video.call.reconnecting",
+  callConnectionLost: "video.call.connection_lost",
+  callReconnect: "video.call.reconnect",
+  /** What the phone's media-session tile says under the name. */
+  callMediaSessionArtist: "video.call.media_session_artist",
+
+  // Device refusals. A permission denial and an unavailable device are
+  // different sentences because they have different remedies — one is the
+  // browser's site settings, the other is closing whatever holds the device.
+  callMicBlocked: "video.call.mic_blocked",
+  callMicFailed: "video.call.mic_failed",
+  callCameraBlocked: "video.call.camera_blocked",
+  callCameraFailed: "video.call.camera_failed",
+  callCameraSwitchFailed: "video.call.camera_switch_failed",
+
+  /** A verb is in flight — the gate that stops a double tap placing two
+   * calls or accepting twice. */
+  callBlockedPending: "video.call.blocked.pending",
+
   // Backend error keys the pair OWNS the localization of. stapel-video ships
   // English only (no `translations/` directory at all), so its 9 keys are
   // absent from the generated ru/es bundles and are authored in every bundle
@@ -154,6 +208,15 @@ export const VIDEO_I18N_KEYS = {
   errorParticipantNotFound: "error.404.video_participant_not_found",
   errorRoomNotFound: "error.404.video_room_not_found",
   errorScopeNotFound: "error.404.video_scope_not_found",
+  // 0.3.0 — the six the call surface added. Same arrangement as the nine
+  // above: stapel-video ships no `translations/`, so every bundle authors
+  // them and the locale-parity gate can compare keys all three spell out.
+  errorCallNotFound: "error.404.video_call_not_found",
+  errorCallInvalidCallee: "error.400.video_call_invalid_callee",
+  errorCallNotAllowed: "error.403.video_call_not_allowed",
+  errorCallBusy: "error.409.video_call_busy",
+  errorCallState: "error.409.video_call_state",
+  errorCallProviderUnavailable: "error.503.video_call_provider_unavailable",
 } as const;
 
 export type VideoI18nKey =
@@ -317,6 +380,61 @@ export const videoI18nBundleEn: I18nDictionary = {
   "video.stage.no_server": "No media server address is configured",
   "video.stage.leave": "Leave the call",
   "video.stage.retry": "Try connecting again",
+  // ── 1:1 calls ─────────────────────────────────────────────────────────────
+  //
+  // "Call", never "conference": this is one person ringing one other person,
+  // and every string here is read mid-interruption on a phone. Short wins.
+  "video.call.incoming.title": "Incoming call",
+  "video.call.incoming.video": "is calling you",
+  "video.call.incoming.audio": "is calling you — audio only",
+  "video.call.outgoing": "Calling…",
+  "video.call.accept": "Answer",
+  "video.call.decline": "Decline",
+  "video.call.cancel": "Cancel",
+  "video.call.peer_unknown": "Someone",
+
+  "video.call.state.ringing": "Ringing",
+  "video.call.state.accepted": "In progress",
+  "video.call.state.declined": "Declined",
+  "video.call.state.missed": "Missed",
+  "video.call.state.ended": "Call",
+  "video.call.state.failed": "Could not be connected",
+  "video.call.state.unknown": "Call",
+
+  "video.call.hang_up": "Hang up",
+  "video.call.mute": "Mute",
+  "video.call.unmute": "Unmute",
+  "video.call.camera_on": "Turn the camera on",
+  "video.call.camera_off": "Turn the camera off",
+  "video.call.flip_camera": "Switch camera",
+  "video.call.audio_only": "Audio call",
+  "video.call.waiting_for_video": "Waiting for their video…",
+  "video.call.reconnecting": "Reconnecting…",
+  "video.call.connection_lost": "The connection dropped",
+  "video.call.reconnect": "Reconnect",
+  "video.call.media_session_artist": "Call",
+
+  "video.call.mic_blocked":
+    "This site cannot use your microphone. Allow it in your browser's settings for this site.",
+  "video.call.mic_failed": "The microphone could not be turned on",
+  "video.call.camera_blocked":
+    "This site cannot use your camera. Allow it in your browser's settings for this site.",
+  "video.call.camera_failed": "The camera could not be turned on",
+  "video.call.camera_switch_failed": "That camera could not be used",
+  "video.call.blocked.pending": "One moment…",
+
+  // The six backend codes the call surface added. `video_call_not_found` is
+  // the one that matters: it is UNIFORM over "no such call", "not your call"
+  // and "already over", because a call id names two people and the
+  // conversation they are having, so a 403 would confirm a guessed id. The
+  // sentence has to be true of all three — "that call has ended" is not.
+  "error.404.video_call_not_found": "That call is not available",
+  "error.400.video_call_invalid_callee": "That is not someone you can call",
+  "error.403.video_call_not_allowed": "You cannot call this person",
+  "error.409.video_call_busy": "You are already on a call",
+  "error.409.video_call_state": "This call has moved on — check it again",
+  "error.503.video_call_provider_unavailable":
+    "Calling is unavailable right now. Try again in a moment.",
 };
 
 /**

@@ -49,9 +49,12 @@ describe("all three locales carry every key this pair renders", () => {
   });
 });
 
-describe("the nine keys stapel-video owns are authored here, not generated", () => {
-  it("finds all nine", () => {
-    expect(OWNED.length).toBe(9);
+describe("the keys stapel-video owns are authored here, not generated", () => {
+  it("finds all fifteen", () => {
+    // Nine from the room lifecycle, six the 1:1 call surface added in the
+    // backend's 0.11.0. The count is asserted rather than derived so a key
+    // that vanishes from the registry cannot silently stop being checked.
+    expect(OWNED.length).toBe(15);
   });
 
   it.each([

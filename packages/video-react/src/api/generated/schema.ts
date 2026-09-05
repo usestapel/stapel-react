@@ -2,6 +2,168 @@
 // Source: the backend module's own docs/schema.json (§17-native per-module contract).
 // Regenerate: pnpm gen:api   ·   Drift gate: pnpm gen:api:check
 export interface paths {
+    "/video/api/v1/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description ``POST /video/api/v1/calls`` — ring somebody.
+         *
+         *     Answers the CALLER's token. The callee's is minted by ``accept`` and
+         *     never travels on the ring frame.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["video_api_v1_calls_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/api/v1/calls/{call_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ``GET /video/api/v1/calls/{id}`` — one call, for its two parties.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["video_api_v1_calls_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/api/v1/calls/{call_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description ``POST /calls/{id}/accept`` — the callee picks up, and gets a token.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["video_api_v1_calls_accept_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/api/v1/calls/{call_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description ``POST /calls/{id}/decline`` — the callee says no.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["video_api_v1_calls_decline_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/api/v1/calls/{call_id}/hangup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description ``POST /calls/{id}/hangup`` — either party ends it.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["video_api_v1_calls_hangup_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/api/v1/calls/{call_id}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description ``POST /calls/{id}/token`` — a fresh credential for a call in progress.
+         *
+         *     A media token is presented AGAIN on every full reconnect and nothing
+         *     re-mints it automatically, so without this endpoint the token's TTL is a
+         *     hard ceiling on coming back from a tunnel — and the failure looks like a
+         *     network fault rather than an expiry. Live calls only: re-minting a grant
+         *     for a call that is over would hand out a key to a room nobody is in.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["video_api_v1_calls_token_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/api/v1/calls/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ``GET /video/api/v1/calls/active`` — the caller's own live call, if any.
+         *
+         *     The repair for every dropped frame: the socket is best-effort, so a lost
+         *     ``call.incoming`` would be a call that never rang and a lost
+         *     ``call.ended`` a ring that never stops. The front reads this on mount and
+         *     on every realtime reconnect (SPEC §7.1), which is what turns "the socket
+         *     is unreliable" from a defect into a property.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        get: operations["video_api_v1_calls_active_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/video/api/v1/rooms": {
         parameters: {
             query?: never;
@@ -201,12 +363,71 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description This person's live call, or the absence of one. */
+        ActiveCallResponse: {
+            /** @description The live call, or null. Present-and-null rather than a 204, so */
+            call?: components["schemas"]["CallResponse"] | null;
+        };
         /** @description The outcome of a host admit action. */
         AdmitResponse: {
             /** @description The now-admitted participant */
             participant: components["schemas"]["ParticipantResponse"];
             /** @description The join token minted for them */
             token: string;
+        };
+        /** @description Ring somebody. */
+        CallCreateRequest: {
+            /** @description The person to ring */
+            callee_id: string;
+            /** @description The chat conversation this call belongs to. The default */
+            thread_key?: string;
+            /** @description audio / video. Defaults to video */
+            media?: string;
+            /** @description A stable per-browser id, exactly as on */
+            client_session_id?: string | null;
+        };
+        /** @description One call, as both parties see it. */
+        CallResponse: {
+            /** @description Call id (UUID) */
+            id: string;
+            /** @description The chat conversation this call hangs off, echoed back */
+            thread_key: string;
+            /** @description Who rang */
+            caller_id: string;
+            /** @description Who was rung */
+            callee_id: string;
+            /** @description The provider room ref (``call-<id>``) — the name the */
+            room_name: string;
+            /** @description audio / video — what the caller asked for */
+            media: string;
+            /** @description ringing / accepted / declined / missed / ended / failed */
+            state: string;
+            /** @description Why it stopped, "" while it has not */
+            end_reason: string;
+            /** @description When the ring began (ISO-8601) */
+            started_at: string;
+            /** @description When it was accepted, or null */
+            answered_at?: string | null;
+            /** @description When it stopped, or null */
+            ended_at?: string | null;
+            /** @description Connected seconds — ``ended_at - answered_at`` */
+            duration_seconds?: number;
+            /** @description When the ring runs out, while it is ringing; null */
+            expires_at?: string | null;
+        };
+        /** @description Accept a call, or re-mint its token. */
+        CallSessionRequest: {
+            /** @description See ``CallCreateRequest`` */
+            client_session_id?: string | null;
+        };
+        /** @description A call plus the credential and address one party dials with. */
+        CallTokenResponse: {
+            /** @description The call */
+            call: components["schemas"]["CallResponse"];
+            /** @description This party's signed media token. Never anybody else's, and */
+            token: string;
+            /** @description The media server the token is for — where the BROWSER connects, */
+            url: string;
         };
         /** @description Join a room. */
         JoinRequest: {
@@ -228,6 +449,13 @@ export interface components {
         LobbyActionRequest: {
             /** @description The waiting participant's id (UUID) */
             participant_id: string;
+        };
+        /** @description A re-minted credential for a call already in progress. */
+        MediaTokenResponse: {
+            /** @description A fresh signed media token for the caller of this request */
+            token: string;
+            /** @description Where the browser connects */
+            url: string;
         };
         /** @description An anchor-paginated page of participants (mirrors core AnchorPagination). */
         ParticipantListResponse: {
@@ -330,6 +558,167 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    video_api_v1_calls_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CallCreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CallCreateRequest"];
+                "multipart/form-data": components["schemas"]["CallCreateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallTokenResponse"];
+                };
+            };
+        };
+    };
+    video_api_v1_calls_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallResponse"];
+                };
+            };
+        };
+    };
+    video_api_v1_calls_accept_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CallSessionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CallSessionRequest"];
+                "multipart/form-data": components["schemas"]["CallSessionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallTokenResponse"];
+                };
+            };
+        };
+    };
+    video_api_v1_calls_decline_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallResponse"];
+                };
+            };
+        };
+    };
+    video_api_v1_calls_hangup_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallResponse"];
+                };
+            };
+        };
+    };
+    video_api_v1_calls_token_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CallSessionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CallSessionRequest"];
+                "multipart/form-data": components["schemas"]["CallSessionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaTokenResponse"];
+                };
+            };
+        };
+    };
+    video_api_v1_calls_active_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveCallResponse"];
+                };
+            };
+        };
+    };
     video_api_v1_rooms_create: {
         parameters: {
             query?: never;

@@ -26,6 +26,7 @@ const ROOT = "video" as const;
 const USAGE = "usage" as const;
 const ROOM = "room" as const;
 const PARTICIPANTS = "participants" as const;
+const CALL = "call" as const;
 
 export const videoQueryKeys: {
   readonly all: readonly ["video"];
@@ -93,4 +94,27 @@ export const roomQueryKeys: {
     PARTICIPANTS,
     anchor,
   ],
+};
+
+/**
+ * The call half. TWO entries, and the interesting one is `active`.
+ *
+ * `active` is keyed on nothing but its own name — no user id — because it is
+ * a read ABOUT THE CALLER, answered from the session the client already holds.
+ * Putting a user id in it would invite a screen to ask about somebody else,
+ * which the endpoint does not answer, and would leave a stale entry behind on
+ * every sign-out that the cache would happily serve to the next person.
+ * Signing out clears the query cache; the key does not need to encode that.
+ */
+export const callQueryKeys: {
+  /** Everything cached about calls. */
+  readonly all: readonly ["video", "call"];
+  /** The caller's own live call, or its absence. */
+  readonly active: readonly ["video", "call", "active"];
+  /** One call by id, for a screen that holds one. */
+  call(callId: string): readonly ["video", "call", string];
+} = {
+  all: [ROOT, CALL],
+  active: [ROOT, CALL, "active"],
+  call: (callId) => [ROOT, CALL, callId],
 };

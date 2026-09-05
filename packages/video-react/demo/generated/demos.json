@@ -4,6 +4,40 @@
   "version": "0.2.1",
   "demos": [
     {
+      "id": "video.call-panel",
+      "title": "The call",
+      "description": "One remote filling the frame, one local corner picture, and four controls — not a conference grid with two tiles in it. The timer is anchored on the SERVER's answered_at, so both people's screens agree and a reconnect does not restart the clock. There is no chat: messaging is stapel-chat, and the server denies can_publish_data in the grant so a data channel cannot be opened here at all.",
+      "component": "CallPanel",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "connected",
+          "description": "A video call, three minutes in. Mute, camera, camera flip on a phone with two of them, hang up.",
+          "viewport": "phone",
+          "step": "connected"
+        },
+        {
+          "id": "audio-only",
+          "description": "The fallback a bad connection lands in. A STATE, with the person's name and a clock — not an empty rectangle somebody reads as a failure. No camera control at all, because there is nothing for it to do.",
+          "viewport": "phone",
+          "step": "audio"
+        },
+        {
+          "id": "reconnecting",
+          "description": "The media session dropped. The pill says so and offers a reconnect that RE-MINTS the grant — a token is presented again on every full reconnect and nothing re-mints it automatically, so replaying the old one fails exactly when the call has been up long enough to matter.",
+          "viewport": "desktop",
+          "step": "reconnecting"
+        }
+      ],
+      "source": {
+        "file": "demo/Calls.demo.tsx",
+        "line": 21
+      }
+    },
+    {
       "id": "video.call-stage",
       "title": "The call stage",
       "description": "The media session behind an OPTIONAL peer. livekit-client is loaded with import() at the moment a token exists; its absence is a designed screen naming the package and the slot, not a stack trace. A host replaces the whole surface through MeetingPane's renderCallStage.",
@@ -116,6 +150,49 @@
       "source": {
         "file": "demo/Meeting.demo.tsx",
         "line": 19
+      }
+    },
+    {
+      "id": "video.ring",
+      "title": "An incoming call",
+      "description": "Mounted once at the app root, over whatever page the person is on. Full frame on a phone, a card on a desktop. It carries the caller, what the call is ABOUT (a seller with forty conversations needs to know which one this is) and a countdown against the SERVER's own deadline — a client that started its own 45 seconds when the frame arrived would keep ringing for a call that is already over.",
+      "component": "CallsProvider",
+      "covers": [
+        "IncomingCallOverlay"
+      ],
+      "tokens": [
+        "surface-raised",
+        "border-subtle"
+      ],
+      "variants": [
+        {
+          "id": "incoming",
+          "description": "The callee's screen on a phone: full frame, so the tap that answers cannot miss and cannot hit the page underneath.",
+          "viewport": "phone",
+          "step": "incoming"
+        },
+        {
+          "id": "incoming-desktop",
+          "description": "The same call on a desktop, as a card in the corner — the page underneath stays readable, because a full-screen takeover on a large display is a modal nobody asked for.",
+          "viewport": "desktop",
+          "step": "incoming"
+        },
+        {
+          "id": "audio-only",
+          "description": "An audio call, said so on the ring rather than discovered after answering.",
+          "viewport": "phone",
+          "step": "incoming_audio"
+        },
+        {
+          "id": "outgoing",
+          "description": "The CALLER's own screen — the same component, in its calling state with a cancel. One overlay for both ends, because both have to close on the same event and two components would be two chances for one of them not to.",
+          "viewport": "phone",
+          "step": "outgoing"
+        }
+      ],
+      "source": {
+        "file": "demo/Ring.demo.tsx",
+        "line": 96
       }
     },
     {

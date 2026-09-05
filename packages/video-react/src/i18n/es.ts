@@ -163,6 +163,57 @@ export const videoI18nBundleEs: I18nDictionary = {
     "No hay ninguna dirección de servidor de medios configurada",
   "video.stage.leave": "Salir de la llamada",
   "video.stage.retry": "Volver a intentar la conexión",
+  // ── Llamadas uno a uno ────────────────────────────────────────────────────
+  "video.call.incoming.title": "Llamada entrante",
+  "video.call.incoming.video": "te está llamando",
+  "video.call.incoming.audio": "te está llamando — solo audio",
+  "video.call.outgoing": "Llamando…",
+  "video.call.accept": "Responder",
+  "video.call.decline": "Rechazar",
+  "video.call.cancel": "Cancelar",
+  "video.call.peer_unknown": "Alguien",
+
+  "video.call.state.ringing": "Llamando",
+  "video.call.state.accepted": "En curso",
+  "video.call.state.declined": "Rechazada",
+  "video.call.state.missed": "Perdida",
+  "video.call.state.ended": "Llamada",
+  "video.call.state.failed": "No se pudo conectar",
+  "video.call.state.unknown": "Llamada",
+
+  "video.call.hang_up": "Colgar",
+  "video.call.mute": "Silenciar",
+  "video.call.unmute": "Activar el micrófono",
+  "video.call.camera_on": "Encender la cámara",
+  "video.call.camera_off": "Apagar la cámara",
+  "video.call.flip_camera": "Cambiar de cámara",
+  "video.call.audio_only": "Llamada de audio",
+  "video.call.waiting_for_video": "Esperando su vídeo…",
+  "video.call.reconnecting": "Reconectando…",
+  "video.call.connection_lost": "Se ha perdido la conexión",
+  "video.call.reconnect": "Reconectar",
+  "video.call.media_session_artist": "Llamada",
+
+  "video.call.mic_blocked":
+    "Este sitio no puede usar tu micrófono. Permíteselo en los ajustes del navegador para este sitio.",
+  "video.call.mic_failed": "No se pudo encender el micrófono",
+  "video.call.camera_blocked":
+    "Este sitio no puede usar tu cámara. Permíteselo en los ajustes del navegador para este sitio.",
+  "video.call.camera_failed": "No se pudo encender la cámara",
+  "video.call.camera_switch_failed": "Esa cámara no se pudo usar",
+  "video.call.blocked.pending": "Un momento…",
+
+  // Los seis códigos que añadió la superficie de llamadas. El 404 es UNIFORME
+  // para «no existe», «no es tuya» y «ya terminó»: un id de llamada nombra a
+  // dos personas y su conversación, así que un 403 confirmaría un id
+  // adivinado. La frase tiene que ser cierta en los tres casos.
+  "error.404.video_call_not_found": "Esa llamada no está disponible",
+  "error.400.video_call_invalid_callee": "No puedes llamar a esa persona",
+  "error.403.video_call_not_allowed": "No puedes llamar a esta persona",
+  "error.409.video_call_busy": "Ya estás en una llamada",
+  "error.409.video_call_state": "La llamada ha cambiado — vuelve a comprobarla",
+  "error.503.video_call_provider_unavailable":
+    "Las llamadas no están disponibles ahora mismo. Inténtalo en un momento.",
 };
 
 /** Register the Spanish bundle into a core i18n engine. */

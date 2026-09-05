@@ -169,6 +169,58 @@ export const videoI18nBundleRu: I18nDictionary = {
   "video.stage.no_server": "Адрес медиасервера не настроен",
   "video.stage.leave": "Выйти из звонка",
   "video.stage.retry": "Попробовать подключиться снова",
+  // ── 1:1 calls ─────────────────────────────────────────────────────────────
+  "video.call.incoming.title": "Входящий звонок",
+  "video.call.incoming.video": "звонит вам",
+  "video.call.incoming.audio": "звонит вам — только звук",
+  "video.call.outgoing": "Вызов…",
+  "video.call.accept": "Ответить",
+  "video.call.decline": "Отклонить",
+  "video.call.cancel": "Отменить",
+  "video.call.peer_unknown": "Собеседник",
+
+  "video.call.state.ringing": "Звонит",
+  "video.call.state.accepted": "Идёт разговор",
+  "video.call.state.declined": "Отклонён",
+  "video.call.state.missed": "Пропущенный",
+  "video.call.state.ended": "Звонок",
+  "video.call.state.failed": "Не удалось соединить",
+  "video.call.state.unknown": "Звонок",
+
+  "video.call.hang_up": "Завершить",
+  "video.call.mute": "Выключить микрофон",
+  "video.call.unmute": "Включить микрофон",
+  "video.call.camera_on": "Включить камеру",
+  "video.call.camera_off": "Выключить камеру",
+  "video.call.flip_camera": "Другая камера",
+  "video.call.audio_only": "Аудиозвонок",
+  "video.call.waiting_for_video": "Ждём видео собеседника…",
+  "video.call.reconnecting": "Восстанавливаем связь…",
+  "video.call.connection_lost": "Связь прервалась",
+  "video.call.reconnect": "Переподключиться",
+  "video.call.media_session_artist": "Звонок",
+
+  "video.call.mic_blocked":
+    "Сайту закрыт доступ к микрофону. Разрешите его в настройках браузера для этого сайта.",
+  "video.call.mic_failed": "Не удалось включить микрофон",
+  "video.call.camera_blocked":
+    "Сайту закрыт доступ к камере. Разрешите его в настройках браузера для этого сайта.",
+  "video.call.camera_failed": "Не удалось включить камеру",
+  "video.call.camera_switch_failed": "Эта камера недоступна",
+  "video.call.blocked.pending": "Секунду…",
+
+  // The six codes the call surface added. The 404 is UNIFORM over "no such
+  // call", "not your call" and "already over": a call id names two people and
+  // the conversation they are having, so a 403 would confirm a guessed id. The
+  // sentence has to be true of all three, which is why it does not say the
+  // call has ended.
+  "error.404.video_call_not_found": "Этот звонок недоступен",
+  "error.400.video_call_invalid_callee": "Этому человеку нельзя позвонить",
+  "error.403.video_call_not_allowed": "Вы не можете позвонить этому человеку",
+  "error.409.video_call_busy": "Вы уже в звонке",
+  "error.409.video_call_state": "Звонок изменил состояние — обновите",
+  "error.503.video_call_provider_unavailable":
+    "Звонки сейчас недоступны. Попробуйте через минуту.",
 };
 
 /** Register the Russian bundle into a core i18n engine. */

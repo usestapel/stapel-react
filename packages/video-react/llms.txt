@@ -1,6 +1,6 @@
 # @stapel/video-react 0.2.1
 
-Headless React flow pair for stapel-video (contract >=0.9 <0.10) — business + state, zero visual opinion.
+Headless React flow pair for stapel-video (contract >=0.11 <0.12) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -21,6 +21,13 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/video/api/v1/`.
+- video_api_v1_calls_accept_create: POST /calls/{call_id}/accept
+- video_api_v1_calls_active_retrieve: GET /calls/active
+- video_api_v1_calls_create: POST /calls
+- video_api_v1_calls_decline_create: POST /calls/{call_id}/decline
+- video_api_v1_calls_hangup_create: POST /calls/{call_id}/hangup
+- video_api_v1_calls_retrieve: GET /calls/{call_id}
+- video_api_v1_calls_token_create: POST /calls/{call_id}/token
 - video_api_v1_rooms_create: POST /rooms
 - video_api_v1_rooms_join_create: POST /rooms/{join_code}/join
 - video_api_v1_rooms_lobby_admit_create: POST /rooms/{join_code}/lobby/admit
@@ -31,13 +38,15 @@ Paths are relative to `/video/api/v1/`.
 - video_api_v1_webhook_create: POST /webhook
 
 ## Query hooks (server state; keys come only from the key factory)
+- useActiveCall (query) → activeCall
+- useCallActions (mutation) → acceptCall+callToken+createCall+declineCall+hangupCall
 - useLobby (mutation) → admitParticipant+denyParticipant+participants
 - useMeeting (mutation) → createRoom+joinRoom
 - useRoom (query) → getRoom
 - useScopeUsage (query) → scopeUsage
 
 ## Errors (render t(code, params); UX from remediation)
-51 keys (full catalog: manifest.json §errors). By remediation: fix_input 19 · retry 19 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+57 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 22 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -72,9 +81,11 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- video.call-panel → <CallPanel> [connected|audio-only|reconnecting]  demo/Calls.demo.tsx
 - video.call-stage → <CallStage> [no-peer|no-token]  demo/CallStage.demo.tsx
 - video.lobby → <LobbyPanel> [queue|empty|not-host|roster]  demo/Lobby.demo.tsx
 - video.meeting → <RoomsPane> [default|admitted|waiting|denied]  demo/Meeting.demo.tsx
+- video.ring → <CallsProvider> [incoming|incoming-desktop|audio-only|outgoing]  demo/Ring.demo.tsx
 - video.usage → <ScopeUsagePane> [default|nobody|invalid-period|unavailable]  demo/Video.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

@@ -1,9 +1,15 @@
 import type { StapelClient } from "@stapel/core";
 import type {
+  ActiveCallResponse,
   AdmitResponse,
+  CallCreateRequest,
+  CallResponse,
+  CallSessionRequest,
+  CallTokenResponse,
   JoinRequest,
   JoinResponse,
   LobbyActionRequest,
+  MediaTokenResponse,
   ParticipantListResponse,
   RoomCreateRequest,
   RoomResponse,
@@ -153,6 +159,91 @@ export interface VideoApi {
     request: LobbyActionRequest,
     options?: { readonly signal?: AbortSignal }
   ): Promise<LobbyActionRequest>;
+
+  // ── 1:1 calls ────────────────────────────────────────────────────────────
+  //
+  // Seven operations, and every refusal about a call the caller is not party
+  // to is **404** — on accept, decline, hangup and the token re-mint as well
+  // as on the read. A call id names two people and the conversation they are
+  // having, so a 403 would confirm that a guessed id is a real call. Nothing
+  // in this pair tries to tell "gone" from "not yours", because the server
+  // deliberately does not.
+
+  /**
+   * Ring somebody. Answers the CALLER's own token.
+   *
+   * The callee's token is not minted here and never travels on the ring frame
+   * — it comes back from {@link acceptCall}, to an authenticated request by
+   * the person it belongs to. That is why the incoming-call overlay has no
+   * credential to redact.
+   *
+   * Refusals worth branching on: **403** `error.403.video_call_not_allowed`
+   * (the two of you are not both in that conversation), **409**
+   * `error.409.video_call_busy` (one of you is already on a call), **400**
+   * `error.400.video_call_invalid_callee`, and **503**
+   * `error.503.video_call_provider_unavailable` — the media backend, which is
+   * retryable where none of the others are.
+   */
+  createCall(
+    request: CallCreateRequest,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CallTokenResponse>;
+
+  /**
+   * This person's live call, or `{ call: null }`.
+   *
+   * The repair for every dropped frame, and the reason the ring socket is
+   * allowed to be best-effort: a lost `call.incoming` would otherwise be a
+   * call that never rang and a lost `call.ended` a ring that never stops. The
+   * provider re-reads it on mount and on every realtime reconnect.
+   */
+  activeCall(options?: {
+    readonly signal?: AbortSignal;
+  }): Promise<ActiveCallResponse>;
+
+  /** One call, for its two parties. 404 for everyone else, and for a call
+   * that does not exist — the same answer, given once. */
+  getCall(
+    callId: string,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CallResponse>;
+
+  /** The callee picks up, and gets THEIR token. 409 if the ring already ran
+   * out or either party got onto another call meanwhile. */
+  acceptCall(
+    callId: string,
+    request?: CallSessionRequest,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CallTokenResponse>;
+
+  /** The callee says no. Terminal, and the caller is told over the socket. */
+  declineCall(
+    callId: string,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CallResponse>;
+
+  /** Either party ends it, from either live state. A caller hanging up
+   * mid-ring ends the call rather than missing it: somebody was there and
+   * stopped waiting, which is a different fact the thread line records. */
+  hangupCall(
+    callId: string,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CallResponse>;
+
+  /**
+   * A fresh media grant for a call already in progress. Live calls only (409
+   * otherwise).
+   *
+   * Not a nicety: a media token is presented AGAIN on every full reconnect and
+   * nothing re-mints it automatically, so without this the token's TTL is a
+   * hard ceiling on coming back from a tunnel — and the failure reads as a
+   * network fault rather than as an expiry.
+   */
+  callToken(
+    callId: string,
+    request?: CallSessionRequest,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<MediaTokenResponse>;
 }
 
 const signalOf = (options?: {
@@ -184,6 +275,13 @@ function participantQuery(
  * reason the scope key is. */
 function roomPath(joinCode: string, suffix = ""): string {
   return `/rooms/${encodeURIComponent(joinCode)}${suffix}`;
+}
+
+/** A call id is a UUID the server minted, but it reaches this function from a
+ * realtime frame, a URL and a stored draft, so it is encoded like every other
+ * caller-held segment rather than trusted to be path-safe. */
+function callPath(callId: string, suffix = ""): string {
+  return `/calls/${encodeURIComponent(callId)}${suffix}`;
 }
 
 export function createVideoApi(client: StapelClient): VideoApi {
@@ -218,5 +316,27 @@ export function createVideoApi(client: StapelClient): VideoApi {
 
     denyParticipant: (joinCode, request, options) =>
       client.post(roomPath(joinCode, "/lobby/deny"), request, signalOf(options)),
+
+    createCall: (request, options) =>
+      client.post("/calls", request, signalOf(options)),
+
+    // NOT callPath("active"): "active" is a reserved name in this space, not
+    // an id, and routing it through the encoder would be one edit away from
+    // asking for a call whose id is the literal string "active".
+    activeCall: (options) => client.get("/calls/active", signalOf(options)),
+
+    getCall: (callId, options) => client.get(callPath(callId), signalOf(options)),
+
+    acceptCall: (callId, request, options) =>
+      client.post(callPath(callId, "/accept"), request ?? {}, signalOf(options)),
+
+    declineCall: (callId, options) =>
+      client.post(callPath(callId, "/decline"), {}, signalOf(options)),
+
+    hangupCall: (callId, options) =>
+      client.post(callPath(callId, "/hangup"), {}, signalOf(options)),
+
+    callToken: (callId, request, options) =>
+      client.post(callPath(callId, "/token"), request ?? {}, signalOf(options)),
   };
 }

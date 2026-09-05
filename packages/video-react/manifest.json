@@ -4,7 +4,7 @@
   "version": "0.2.1",
   "backend": {
     "module": "stapel-video",
-    "contract": ">=0.9 <0.10"
+    "contract": ">=0.11 <0.12"
   },
   "layers": [
     "api",
@@ -16,6 +16,55 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "video_api_v1_calls_accept_create": {
+      "method": "POST",
+      "path": "/video/api/v1/calls/{call_id}/accept",
+      "tag": "Video",
+      "request": "CallSessionRequest",
+      "response": "CallTokenResponse"
+    },
+    "video_api_v1_calls_active_retrieve": {
+      "method": "GET",
+      "path": "/video/api/v1/calls/active",
+      "tag": "Video",
+      "request": null,
+      "response": "ActiveCallResponse"
+    },
+    "video_api_v1_calls_create": {
+      "method": "POST",
+      "path": "/video/api/v1/calls",
+      "tag": "Video",
+      "request": "CallCreateRequest",
+      "response": "CallTokenResponse"
+    },
+    "video_api_v1_calls_decline_create": {
+      "method": "POST",
+      "path": "/video/api/v1/calls/{call_id}/decline",
+      "tag": "Video",
+      "request": null,
+      "response": "CallResponse"
+    },
+    "video_api_v1_calls_hangup_create": {
+      "method": "POST",
+      "path": "/video/api/v1/calls/{call_id}/hangup",
+      "tag": "Video",
+      "request": null,
+      "response": "CallResponse"
+    },
+    "video_api_v1_calls_retrieve": {
+      "method": "GET",
+      "path": "/video/api/v1/calls/{call_id}",
+      "tag": "Video",
+      "request": null,
+      "response": "CallResponse"
+    },
+    "video_api_v1_calls_token_create": {
+      "method": "POST",
+      "path": "/video/api/v1/calls/{call_id}/token",
+      "tag": "Video",
+      "request": "CallSessionRequest",
+      "response": "MediaTokenResponse"
+    },
     "video_api_v1_rooms_create": {
       "method": "POST",
       "path": "/video/api/v1/rooms",
@@ -74,6 +123,20 @@
     }
   },
   "hooks": {
+    "useActiveCall": {
+      "kind": "query",
+      "operation": "activeCall"
+    },
+    "useCallActions": {
+      "kind": "mutation",
+      "operations": [
+        "acceptCall",
+        "callToken",
+        "createCall",
+        "declineCall",
+        "hangupCall"
+      ]
+    },
     "useLobby": {
       "kind": "mutation",
       "operations": [
@@ -220,6 +283,11 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.400.video_call_invalid_callee": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.video_invalid_access_level": {
       "status": 400,
       "params": [],
@@ -265,6 +333,11 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.403.video_call_not_allowed": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.403.video_join_denied": {
       "status": 403,
       "params": [],
@@ -294,6 +367,11 @@
       "status": 404,
       "params": [],
       "remediation": "verify"
+    },
+    "error.404.video_call_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
     },
     "error.404.video_participant_not_found": {
       "status": 404,
@@ -326,6 +404,16 @@
       "remediation": "retry"
     },
     "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.video_call_busy": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.video_call_state": {
       "status": 409,
       "params": [],
       "remediation": "fix_input"
@@ -381,6 +469,11 @@
       "status": 503,
       "params": [],
       "remediation": "retry"
+    },
+    "error.503.video_call_provider_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
     }
   },
   "events": {
@@ -388,6 +481,21 @@
     "flows": []
   },
   "demos": [
+    {
+      "id": "video.call-panel",
+      "title": "The call",
+      "description": "One remote filling the frame, one local corner picture, and four controls — not a conference grid with two tiles in it. The timer is anchored on the SERVER's answered_at, so both people's screens agree and a reconnect does not restart the clock. There is no chat: messaging is stapel-chat, and the server denies can_publish_data in the grant so a data channel cannot be opened here at all.",
+      "component": "CallPanel",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "connected",
+        "audio-only",
+        "reconnecting"
+      ],
+      "source": "demo/Calls.demo.tsx"
+    },
     {
       "id": "video.call-stage",
       "title": "The call stage",
@@ -444,6 +552,26 @@
       "source": "demo/Meeting.demo.tsx"
     },
     {
+      "id": "video.ring",
+      "title": "An incoming call",
+      "description": "Mounted once at the app root, over whatever page the person is on. Full frame on a phone, a card on a desktop. It carries the caller, what the call is ABOUT (a seller with forty conversations needs to know which one this is) and a countdown against the SERVER's own deadline — a client that started its own 45 seconds when the frame arrived would keep ringing for a call that is already over.",
+      "component": "CallsProvider",
+      "covers": [
+        "IncomingCallOverlay"
+      ],
+      "tokens": [
+        "surface-raised",
+        "border-subtle"
+      ],
+      "variants": [
+        "incoming",
+        "incoming-desktop",
+        "audio-only",
+        "outgoing"
+      ],
+      "source": "demo/Ring.demo.tsx"
+    },
+    {
       "id": "video.usage",
       "title": "Scope usage",
       "description": "GET /video/api/v1/scopes/{scope_key}/usage/ — who inside one partition talked how much, per calendar month, as the workspace-admin screen the nav manifest mounts. Three states, and the point of the pair is that none of them collapses into another: rows, a month that succeeded and holds nobody, and the uniform error.404.video_scope_not_found that covers a missing scope, a scope with no calls and a reader holding no USAGE_MANDATE all at once (a 403 would confirm that a guessed tenant id is real). Below the tablet edge the four-column table becomes one card per person — measured on the pane's own box, not on the viewport, so a 320px sidebar on a desktop gets the same treatment.",
@@ -484,6 +612,7 @@
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
+    "error.400.video_call_invalid_callee",
     "error.400.video_invalid_access_level",
     "error.400.video_invalid_usage_period",
     "error.400.video_invalid_webhook",
@@ -493,12 +622,14 @@
     "error.403.network_blocked",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
+    "error.403.video_call_not_allowed",
     "error.403.video_join_denied",
     "error.403.video_not_room_host",
     "error.403.video_not_room_participant",
     "error.404.ad_not_found",
     "error.404.not_found",
     "error.404.verification_challenge_not_found",
+    "error.404.video_call_not_found",
     "error.404.video_participant_not_found",
     "error.404.video_room_not_found",
     "error.404.video_scope_not_found",
@@ -506,6 +637,8 @@
     "error.406.not_acceptable",
     "error.408.request_timeout",
     "error.409.conflict",
+    "error.409.video_call_busy",
+    "error.409.video_call_state",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.415.unsupported_media_type",
@@ -516,6 +649,40 @@
     "error.429.too_many_requests",
     "error.500.internal",
     "error.503.mandate_unavailable",
+    "error.503.video_call_provider_unavailable",
+    "video.call.accept",
+    "video.call.audio_only",
+    "video.call.blocked.pending",
+    "video.call.camera_blocked",
+    "video.call.camera_failed",
+    "video.call.camera_off",
+    "video.call.camera_on",
+    "video.call.camera_switch_failed",
+    "video.call.cancel",
+    "video.call.connection_lost",
+    "video.call.decline",
+    "video.call.flip_camera",
+    "video.call.hang_up",
+    "video.call.incoming.audio",
+    "video.call.incoming.title",
+    "video.call.incoming.video",
+    "video.call.media_session_artist",
+    "video.call.mic_blocked",
+    "video.call.mic_failed",
+    "video.call.mute",
+    "video.call.outgoing",
+    "video.call.peer_unknown",
+    "video.call.reconnect",
+    "video.call.reconnecting",
+    "video.call.state.accepted",
+    "video.call.state.declined",
+    "video.call.state.ended",
+    "video.call.state.failed",
+    "video.call.state.missed",
+    "video.call.state.ringing",
+    "video.call.state.unknown",
+    "video.call.unmute",
+    "video.call.waiting_for_video",
     "video.error.unknown",
     "video.join.admitted",
     "video.join.denied",
@@ -614,11 +781,27 @@
   "exports": {
     "runtime": [
       "ADMIN_ROOT_ID",
+      "CALL_ACCEPTED",
+      "CALL_DECLINED",
+      "CALL_ENDED",
+      "CALL_FAILED",
+      "CALL_FRAME_ACCEPTED",
+      "CALL_FRAME_DECLINED",
+      "CALL_FRAME_ENDED",
+      "CALL_FRAME_INCOMING",
+      "CALL_FRAME_TYPES",
+      "CALL_INBOX_SOCKET_PATH",
+      "CALL_MISSED",
+      "CALL_RINGING",
+      "CALL_TAB_CHANNEL",
+      "CALL_TAB_STORAGE_KEY",
+      "CallsProvider",
       "DEFAULT_USAGE_MONTHS",
       "DEFAULT_USAGE_TZ",
       "JOIN_ADMITTED",
       "JOIN_DENIED",
       "JOIN_WAITING",
+      "LIVE_CALL_STATES",
       "LOBBY_FRAME_ADMITTED",
       "LOBBY_FRAME_DENIED",
       "LOBBY_FRAME_TYPES",
@@ -636,20 +819,39 @@
       "VideoProvider",
       "VideoRuntimeContext",
       "accessLevelKey",
+      "applyCallEvent",
+      "callInboxSocketUrl",
+      "callInboxStreamKey",
+      "callQueryKeys",
+      "callRole",
+      "callStateKey",
       "clampUsageMonths",
+      "connectedSeconds",
       "createFlowMachine",
       "createVideoApi",
       "createVideoRuntime",
+      "decodeCallEvent",
       "decodeLobbyEvent",
       "explainVideoError",
       "flowEndpoints",
+      "formatCallClock",
       "formatPresence",
+      "isAudioOnly",
+      "isCallBusy",
+      "isCallLive",
+      "isCallNotAllowed",
+      "isCallNotFound",
+      "isCallProviderUnavailable",
+      "isCallStateConflict",
       "isErrorCode",
+      "isInvalidCallee",
       "isInvalidUsagePeriod",
       "isJoinDenied",
       "isNotRoomHost",
       "isNotRoomParticipant",
       "isParticipantNotFound",
+      "isRingExpired",
+      "isRinging",
       "isRoomHost",
       "isRoomNotFound",
       "isScopeUnavailable",
@@ -663,10 +865,13 @@
       "navEntries",
       "normalizeJoinCode",
       "normalizeScopeUsage",
+      "openCallTabBus",
+      "otherPartyId",
       "participantRoleKey",
       "participantStatusKey",
       "presentParticipants",
       "registerVideoI18n",
+      "ringRemainingMs",
       "roomQueryKeys",
       "staticLobbyBag",
       "staticMeetingBag",
@@ -675,7 +880,11 @@
       "usageMonthLabels",
       "usageQueryKeys",
       "usageTotals",
+      "useActiveCall",
+      "useCallActions",
+      "useCalls",
       "useFlow",
+      "useIncomingCall",
       "useLobby",
       "useMeeting",
       "useRoom",
@@ -689,13 +898,32 @@
       "waitingParticipants"
     ],
     "types": [
+      "ActiveCallBag",
+      "ActiveCallResponse",
       "AdmitResponse",
+      "CallAcceptedEvent",
+      "CallActionsBag",
+      "CallCreateRequest",
+      "CallDeclinedEvent",
+      "CallEndedEvent",
+      "CallFrameLike",
+      "CallGrant",
+      "CallInboxEvent",
+      "CallResponse",
+      "CallSessionRequest",
+      "CallTabBus",
+      "CallTabMessage",
+      "CallTokenResponse",
+      "CallsApi",
+      "CallsProviderProps",
+      "CallsState",
       "CreateVideoRuntimeOptions",
       "FlowEndpoint",
       "FlowError",
       "FlowMachine",
       "FlowMachineOptions",
       "FlowStateBase",
+      "IncomingCallEvent",
       "JoinOutcome",
       "JoinRequest",
       "JoinResponse",
@@ -707,6 +935,7 @@
       "LobbyFrameLike",
       "LobbyLiveness",
       "LobbyWaitingEvent",
+      "MediaTokenResponse",
       "MeetingBag",
       "ParticipantListResponse",
       "ParticipantPageRequest",
@@ -723,6 +952,7 @@
       "ScopeUsageRow",
       "UsageMonth",
       "UsageTotals",
+      "UseActiveCallOptions",
       "UseLobbyOptions",
       "UseMeetingOptions",
       "UseScopeUsageOptions",

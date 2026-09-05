@@ -47,4 +47,30 @@ export { ScopeUsagePane } from "./ScopeUsagePane.js";
 export type { ScopeUsagePaneProps } from "./ScopeUsagePane.js";
 export { ScopeUsageTable } from "./ScopeUsageTable.js";
 export type { ScopeUsageTableProps } from "./ScopeUsageTable.js";
+
+// ── 1:1 calls ───────────────────────────────────────────────────────────────
+//
+// `<LiveCallsProvider>` is the headless `<CallsProvider>` with the realtime
+// subscription attached — the socket lives on this side of the entry boundary,
+// exactly as the lobby's does, so a host that only reads usage never carries
+// `@stapel/realtime`. Mount it ONCE at the app root, with
+// `<IncomingCallOverlay>` beside it: a call arrives while the person is on some
+// other page, and a provider mounted per-screen rings only for whoever was
+// already looking.
+export { LiveCallsProvider } from "./LiveCallsProvider.js";
+export type { LiveCallsProviderProps } from "./LiveCallsProvider.js";
+export { IncomingCallOverlay } from "./IncomingCallOverlay.js";
+export type { IncomingCallOverlayProps } from "./IncomingCallOverlay.js";
+export { CallPanel } from "./CallPanel.js";
+export type {
+  CallPanelProps,
+  CallMediaRoom,
+  CallConnectionState,
+} from "./CallPanel.js";
+export { CallRoute } from "./CallRoute.js";
+export type { CallRouteProps } from "./CallRoute.js";
+export { useMediaSession, useWakeLock, useAudioKeepAlive } from "./callHooks.js";
+export { useRingtone, armAudioPlayback } from "./useRingtone.js";
+export type { RingtoneOptions } from "./useRingtone.js";
+
 export type { ThemeModeProp } from "./types.js";
