@@ -74,6 +74,7 @@ export {
   CHIP_BAND_ORDER,
   CHIP_ROW_CAP,
   CHIP_ROW_CLASS,
+  CHIP_ROW_MIN_HEIGHT,
   CHIP_ROW_STYLE_HREF,
   appliedChipTestId,
   buildAppliedChips,

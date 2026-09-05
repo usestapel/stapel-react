@@ -308,6 +308,29 @@ export function orderChipFilters(
 export const CHIP_ROW_CAP = 8;
 
 /**
+ * The row's own block-size — one chip plus the row's padding, reserved from
+ * the FIRST frame wherever a row is expected.
+ *
+ * Measured on the host's phone SERP (`after-avtomobili-390-light`, 2026-09-05):
+ * the results block dropped ~68px the moment the chip row settled, an
+ * intermittent 0.045 CLS on a leaf. The row renders nothing until the answer
+ * lands — nothing is a correct thing to render for a search that will have no
+ * chips — and then it appears and pushes the first card down the page under
+ * the reader's eye.
+ *
+ * So the row reserves its box while the answer is IN FLIGHT AND a row is
+ * predictable: the surface handed a category schema, or the address names a
+ * category, both of which mean the plan will come back with axes. A bare text
+ * query with no category reserves nothing, because for that search the honest
+ * answer really is "no row" and reserving would be the same shift in the
+ * opposite direction.
+ *
+ * 44 is the phone control floor the chips themselves are sized to, plus the
+ * row's two `spacing[1]` bands of focus-ring room.
+ */
+export const CHIP_ROW_MIN_HEIGHT: number = 44 + spacing[1] * 2;
+
+/**
  * The visible row and what the door owes: the first `max` specs — and EVERY
  * applied one, however many, because a constraint on screen must keep the
  * control that removes it (the same rule the barren filter follows). The
@@ -559,7 +582,22 @@ function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
    * keeps its own door.
    */
   const hasChips = showCategoryChip || ordered.length > 0;
-  if (!hasChips) return null;
+  if (!hasChips) {
+    // THE BOX THE ROW WILL ARRIVE INTO — see `CHIP_ROW_MIN_HEIGHT`. Only
+    // while the answer is still in flight and this search is one a row is
+    // predictable for; a settled answer with no chips renders nothing, which
+    // is what it has always done and what it should do.
+    const expected =
+      bag.state.status === "loading" &&
+      ((props.categoryFeatures?.length ?? 0) > 0 || state.category !== undefined);
+    return expected ? (
+      <div
+        aria-hidden="true"
+        data-testid="search-filter-chips-reserve"
+        style={{ minBlockSize: CHIP_ROW_MIN_HEIGHT }}
+      />
+    ) : null;
+  }
 
   return (
     <>

@@ -19,8 +19,14 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { PopularValues, SearchPage, SortSelect } from "../src/default/index.js";
-import { popularValuesLadderCss } from "../src/default/index.js";
+import {
+  CHIP_ROW_MIN_HEIGHT,
+  FilterChips,
+  PopularValues,
+  SearchPage,
+  SortSelect,
+  popularValuesLadderCss,
+} from "../src/default/index.js";
 import type { FacetGroup, SearchParamsAdapter } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
 import {
@@ -251,5 +257,82 @@ describe("<SortSelect> annotates a blocked option at every width", () => {
   it("names it on the row in the compact form too", async () => {
     const row = await distanceRow(true);
     expect(row).toContain("—");
+  });
+});
+
+// --------------------------------------------------------------------------
+// the chip row's box
+// --------------------------------------------------------------------------
+
+/**
+ * THE RESULTS DROPPED 68px WHEN THE CHIP ROW SETTLED.
+ *
+ * Measured on the host's phone SERP (`after-avtomobili-390-light`,
+ * 2026-09-05): an intermittent 0.045 CLS on a leaf. The row renders nothing
+ * until the answer lands — which is the right thing to render for a search
+ * that will have no chips — and then appears and pushes the first card down
+ * the page under the reader's eye.
+ *
+ * So it reserves its own box while the answer is IN FLIGHT and a row is
+ * predictable. A bare text query with no category reserves nothing: for that
+ * search the honest answer really is "no row", and reserving would be the same
+ * shift in the other direction.
+ */
+describe("the phone chip row reserves its height", () => {
+  const CAR_FEATURES = [
+    {
+      slug: "make",
+      name: "Make",
+      config: { type: "ref_select", optionsRef: "car.make" },
+    },
+  ];
+
+  function slowServer(): ReturnType<typeof mockServer> {
+    // No handler for /query at all: the request never resolves to a body the
+    // pane can read, so the panel stays in its loading arm — the frame the
+    // shift was measured in.
+    return mockServer({});
+  }
+
+  it("holds the row's box open while the plan is in flight on a category page", () => {
+    render(
+      <TestHarness
+        server={slowServer()}
+        initialSearch="type=listing&category=32/149"
+      >
+        <FilterChips onOpenAll={() => undefined} categoryFeatures={CAR_FEATURES} />
+      </TestHarness>
+    );
+    const reserve = screen.getByTestId("search-filter-chips-reserve");
+    expect(reserve.style.minBlockSize).toBe(`${String(CHIP_ROW_MIN_HEIGHT)}px`);
+    // A reservation is scaffolding, not content.
+    expect(reserve.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("reserves nothing for a bare text query, where there will be no row", () => {
+    render(
+      <TestHarness server={slowServer()} initialSearch="type=listing&q=bosch">
+        <FilterChips onOpenAll={() => undefined} />
+      </TestHarness>
+    );
+    // The plan comes from a CATEGORY's feature defs; a free-text search with
+    // no category genuinely has no chips, and a box that opened and closed
+    // would be the same shift pointing the other way.
+    expect(screen.queryByTestId("search-filter-chips-reserve")).toBeNull();
+  });
+
+  it("gives the box up to the real row rather than stacking one on the other", async () => {
+    render(
+      <TestHarness
+        server={serverWithFacets()}
+        initialSearch="type=listing&category=32/149"
+      >
+        <FilterChips onOpenAll={() => undefined} categoryFeatures={CAR_FEATURES} />
+      </TestHarness>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("search-filter-chips")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("search-filter-chips-reserve")).toBeNull();
   });
 });

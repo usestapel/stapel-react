@@ -580,6 +580,7 @@
       "variants": [
         "desktop",
         "phone",
+        "catalogue-leaf",
         "unreadable-link"
       ],
       "source": "demo/SearchPage.demo.tsx"
@@ -619,6 +620,7 @@
       ],
       "variants": [
         "desktop",
+        "responsive",
         "narrow-column"
       ],
       "source": "demo/PopularValues.demo.tsx"
@@ -1009,6 +1011,7 @@
       "navEntries",
       "offerableCategories",
       "orderFacetGroupsBySchema",
+      "orderPanelItems",
       "otherCategoryLeaf",
       "ownsParam",
       "parseDegradations",
@@ -1043,12 +1046,14 @@
       "useSearchRuntime",
       "useSearchState",
       "useSuggest",
+      "withheldSlugs",
       "writeSearchState"
     ],
     "types": [
       "BuildFacetGroupsInput",
       "BuildRangeGroupsInput",
       "CreateSearchRuntimeOptions",
+      "FacetAxisKind",
       "FacetCategoryCount",
       "FacetGroup",
       "FacetKeyMap",
@@ -1060,13 +1065,18 @@
       "FacetMeta",
       "FacetOption",
       "FacetPanelBag",
+      "FacetRangeAxis",
       "FacetRangeBounds",
       "FacetRangesMap",
       "FacetSelection",
+      "FacetWithheldAxis",
       "FacetWithheldGroup",
+      "FacetWithheldReason",
       "HistoryMode",
+      "OrderPanelItemsInput",
       "OtherCategoriesBag",
       "OtherCategoryRow",
+      "PanelItem",
       "ParseSearchStateOptions",
       "ParsedSearchState",
       "RangeAxisMemory",

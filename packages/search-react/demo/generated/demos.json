@@ -340,6 +340,12 @@
           "step": "results-phone"
         },
         {
+          "id": "catalogue-leaf",
+          "description": "A page reached by walking the catalogue: the category IS the page, so the «Category» pane goes entirely (`categoryFilter={false}`) rather than printing the id path with a Clear button under it, and the leaf's own words go in `resultsLead` — inside the results column, above the toolbar, and not over the filter rail the way a full-width header would be.",
+          "viewport": "desktop",
+          "step": "catalogue-leaf"
+        },
+        {
           "id": "unreadable-link",
           "description": "A shared link whose location and price range could not be read: the page says which parameters it dropped instead of silently widening the search.",
           "viewport": "phone",
@@ -348,7 +354,7 @@
       ],
       "source": {
         "file": "demo/SearchPage.demo.tsx",
-        "line": 69
+        "line": 92
       }
     },
     {
@@ -420,6 +426,12 @@
           "description": "Twelve makes in three columns with a link into the full control — the shape a desktop feed page draws under its heading.",
           "viewport": "desktop",
           "step": "popular-desktop"
+        },
+        {
+          "id": "responsive",
+          "description": "`columns=\"responsive\"` lets the BLOCK decide: a CSS container query climbs 1 → 2 → 3 → 4 columns by the width of this block rather than of the window, which is the only question with an answer here — the block sits in the results column, i.e. the window minus a 280px filter rail.",
+          "viewport": "desktop",
+          "step": "popular-responsive"
         },
         {
           "id": "narrow-column",
