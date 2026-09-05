@@ -365,6 +365,14 @@ export interface FilterChipsCommonProps {
    * value cannot read one way on a chip and another way inside the sheet.
    */
   readonly resolveFacetLabels?: FacetLabelResolver;
+  /**
+   * Draw a range chip for a slug that already has a bucket-list chip.
+   *
+   * Default `false`, and the same prop the panel takes — the chip row and the
+   * panel must not disagree about which axes exist. See
+   * `BuildRangeGroupsInput.countedFacets`.
+   */
+  readonly bothAxes?: boolean;
 }
 
 export interface FilterChipsOpenerProps extends FilterChipsCommonProps {
@@ -496,6 +504,10 @@ function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
       : {}),
     coreRanges: bag.coreRanges,
     ...(bag.ranges !== undefined ? { ranges: bag.ranges } : {}),
+    // One axis, one chip: a counted slug is already a bucket-list chip in
+    // this row, and a from/to chip beside it writes the same filter twice.
+    countedFacets: bag.counted,
+    ...(props.bothAxes !== undefined ? { bothAxes: props.bothAxes } : {}),
     ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
     t,
   });

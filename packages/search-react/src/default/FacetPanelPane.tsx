@@ -241,6 +241,17 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    * and the chip row cannot print two different words for one value.
    */
   readonly resolveFacetLabels?: FacetLabelResolver;
+  /**
+   * Draw BOTH a bucket list and a from/to picker for a slug the answer
+   * counted, instead of leaving the axis to its group.
+   *
+   * Default `false`, which is the fix: an imported `year` is a vocabulary
+   * choice in the catalogue and a measurement in the plan, and the rail used
+   * to draw a checkbox group of years and a from/to over the same field
+   * further down — two controls writing one filter, neither showing what the
+   * other did. See `BuildRangeGroupsInput.countedFacets`.
+   */
+  readonly bothAxes?: boolean;
   /** The catalogue picker (`categories-react`'s `CategoryPickerField`, bound
    * to a path). Unfilled, an active category still gets a "clear" control. */
   readonly renderCategoryFilter?: (slot: CategoryFilterSlotProps) => ReactNode;
@@ -631,6 +642,12 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
             // schema cannot put back a sparse or unnameable row the server
             // just removed (0.16.0).
             withheld: bag.withheld,
+            // ONE AXIS, ONE CONTROL. A slug the answer COUNTED already has a
+            // bucket list on this rail; a from/to picker over the same field
+            // is a second control writing the same filter. See
+            // `BuildRangeGroupsInput.countedFacets`.
+            countedFacets: bag.counted,
+            ...(props.bothAxes !== undefined ? { bothAxes: props.bothAxes } : {}),
             ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
             t,
           });

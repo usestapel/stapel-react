@@ -39,6 +39,15 @@
  *
  * Plus every slug the URL already carries a range for.
  *
+ * ── One axis, one control ─────────────────────────────────────────────────
+ *
+ * A slug the answer COUNTED already has a bucket list on the rail, and a
+ * from/to picker over the same field is a second control writing the same
+ * filter — ticking 2019 and typing 2015..2020 reach the same URL by different
+ * routes and neither shows what the other did. The counted half wins because
+ * it is the one with evidence in it (a number per value, not two ends). See
+ * {@link BuildRangeGroupsInput.countedFacets} and its `bothAxes` opt-out.
+ *
  * That last clause is the same rule `buildFacetGroups` follows for a filtered
  * slug that fell out of the plan: a constraint that is ACTIVE must always have
  * a control that removes it, even when the schema no longer explains it.
@@ -234,6 +243,39 @@ export interface BuildRangeGroupsInput {
    * reason it keeps a row the schema cannot explain.
    */
   readonly withheld?: readonly FacetWithheldAxis[];
+  /**
+   * The slugs this answer COUNTED (`FacetPanelBag.counted`) — the axes that
+   * already have a bucket list on the rail.
+   *
+   * ONE AXIS, ONE CONTROL. A slug can be a choice and a measurement at once —
+   * an imported `year` is typed as a vocabulary in the catalogue and measured
+   * by the plan — and until now the panel drew BOTH: a checkbox group of
+   * years and, further down the same rail, a from/to picker over the same
+   * field. Measured on a live storefront, which worked around it by removing
+   * the range row itself from the rendered list. Two controls over one filter
+   * is not a choice a reader can make sense of: ticking 2019 and typing
+   * 2015..2020 write the same URL by two different routes, and neither
+   * control shows what the other did.
+   *
+   * The GROUP wins, because it is the half backed by evidence: it carries a
+   * count per value, so a reader sees what is actually there, where a picker
+   * only offers ends. A host that genuinely wants both says so with
+   * {@link bothAxes}.
+   *
+   * A CONSTRAINT still keeps its control: a slug the URL carries a range for
+   * is never dropped, whatever else is on the rail — the same rule the
+   * withheld list is exempt from.
+   */
+  readonly countedFacets?: readonly string[];
+  /**
+   * Draw a range row for a slug that already has a counted facet group
+   * ({@link countedFacets}) instead of leaving it to the group.
+   *
+   * The opt-out, for a surface where the two really are different questions —
+   * a year picker beside a decade grouping, say. Off by default: the shipped
+   * defect was the panel doing this without being asked.
+   */
+  readonly bothAxes?: boolean;
   /** ISO 4217 code for the money axes, when the surface knows one. */
   readonly currency?: string;
   /** Translator for label keys (the schema's `name` is often one). */
@@ -341,6 +383,10 @@ export function buildRangeGroups(
   // The axes this answer planned and declined to offer — sparse, or with no
   // caption anyone could print. Dropped unless the URL constrains them.
   const withheld = new Set(withheldSlugs(input.withheld, "range"));
+  // The axes that already have a bucket list. See `countedFacets`: one axis
+  // gets one control, and the counted half is the one with evidence in it.
+  const counted =
+    input.bothAxes === true ? new Set<string>() : new Set(input.countedFacets ?? []);
   const slugs: string[] = [...core];
   for (const feature of input.categoryFeatures ?? []) {
     // A core slug shadows a same-named attribute — which is exactly what the
@@ -442,6 +488,11 @@ export function buildRangeGroups(
       // unnameable. The schema still declares the same slug, so without this
       // the rail would draw exactly the row the answer withheld.
       if (withheld.has(group.slug)) return false;
+      // The same axis is already a bucket list on this rail. A CORE column is
+      // exempt: it is not part of the category plan (the server reserves the
+      // slug), so a same-named group is a different question and the price
+      // input must not disappear because one arrived.
+      if (!group.core && counted.has(group.slug)) return false;
       // Nobody named it. A from/to picker captioned `kilometrage` is a control
       // whose meaning a reader has to guess out of the numbers inside it,
       // which is not a filter — the same judgement stapel-search 0.16.0 makes

@@ -186,6 +186,80 @@ describe("a numeric axis is one a reader can name", () => {
 });
 
 // --------------------------------------------------------------------------
+// 1b. one axis, one control
+// --------------------------------------------------------------------------
+
+describe("an axis that is a choice AND a measurement gets ONE control", () => {
+  it("leaves a counted slug to its bucket list", () => {
+    const rows = buildRangeGroups({
+      state: stateOf("type=listing"),
+      categoryFeatures: CAR_FEATURES,
+      ranges: {
+        year: { min: 2015, max: 2020, label: "Year", label_translatable: false, order: 2 },
+        mileage: { min: 0, max: 300000, label: "Mileage", label_translatable: false, order: 3 },
+      },
+      // The plan counted `year` — so the rail already carries a list of years
+      // with a number beside each. A from/to over the same field is a second
+      // control writing the same filter.
+      countedFacets: ["make", "year"],
+      t: (key) => key,
+    });
+    expect(rows.map((row) => row.slug)).toEqual(["mileage"]);
+  });
+
+  it("draws both halves for a host that asks for them", () => {
+    const rows = buildRangeGroups({
+      state: stateOf("type=listing"),
+      categoryFeatures: CAR_FEATURES,
+      ranges: {
+        year: { min: 2015, max: 2020, label: "Year", label_translatable: false, order: 2 },
+      },
+      countedFacets: ["year"],
+      bothAxes: true,
+      t: (key) => key,
+    });
+    expect(rows.map((row) => row.slug)).toContain("year");
+  });
+
+  it("keeps the control for a range the URL is CONSTRAINING, counted or not", () => {
+    const rows = buildRangeGroups({
+      // A shared link that narrows by year must carry the control that widens
+      // it again — the same exemption the withheld list gets.
+      state: stateOf("type=listing&r.year=2015..2020"),
+      categoryFeatures: CAR_FEATURES,
+      countedFacets: ["year"],
+      t: (key) => key,
+    });
+    const row = rows.find((entry) => entry.slug === "year");
+    expect(row?.active).toBe(true);
+  });
+
+  it("never silences a CORE axis — the server reserves that slug", () => {
+    const rows = buildRangeGroups({
+      state: stateOf("type=listing"),
+      coreRanges: ["price"],
+      // A category that also declares a counted `price` facet does not take
+      // the price input off the rail: they are not the same axis.
+      countedFacets: ["price"],
+      t: (key) => key,
+    });
+    expect(rows.map((row) => row.slug)).toEqual(["price"]);
+  });
+
+  it("changes nothing for a caller that reports no counted slugs", () => {
+    const rows = buildRangeGroups({
+      state: stateOf("type=listing"),
+      categoryFeatures: CAR_FEATURES,
+      ranges: {
+        year: { min: 2015, max: 2020, label: "Year", label_translatable: false, order: 2 },
+      },
+      t: (key) => key,
+    });
+    expect(rows.map((row) => row.slug)).toEqual(["year", "mileage"]);
+  });
+});
+
+// --------------------------------------------------------------------------
 // 2. one order over both halves
 // --------------------------------------------------------------------------
 
