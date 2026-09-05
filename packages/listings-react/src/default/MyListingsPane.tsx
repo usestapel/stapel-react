@@ -41,6 +41,17 @@
  * ordinary text beside it, and the status is one `<ListingStatusBlock>`.
  * Delete asks first, through the shared `<SkinConfirm>` — a bottom sheet on a
  * phone. It used to fire the mutation on the first click.
+ *
+ * ── And a control with no route behind it is not drawn (D425) ──────────────
+ *
+ * Delete is offered on the rows that CAN be deleted — drafts, archived, sold,
+ * paused, expired — and on a listing that is on sale it is not offered at all.
+ * A published row's own move is Archive, which is in `actions.moves` because
+ * the SERVER put it there, and delete follows the archiving. The alternative
+ * shipped, and the desktop walk measured it: a live-looking button carrying
+ * `aria-disabled="true"`, pressed twenty-six times, opening no dialog and
+ * changing nothing, with its "archive it first" sentence pooled into the
+ * pane's `<PaneGate>` where nobody read it.
  */
 import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
@@ -328,26 +339,42 @@ function MyListingRow(props: {
                 {t(move.labelKey)}
               </GatedButton>
             ))}
-            <GatedButton
-              gate={actions.remove}
-              size="small"
-              // STACK, alone among the row's actions, and measured: this is
-              // the one control that carries a STANDING sentence ("archive it
-              // first — a listing on sale cannot be deleted"), and inline a
-              // button plus sixty characters is one flex item too wide for a
-              // 390px row, so it wrapped inside itself and took four lines.
-              // Under the button the same sentence takes two.
-              layout="stack"
-              danger
-              testId="listings-mine-delete"
-              data-analytics="none"
-              data-analytics-reason="opens the delete confirmation"
-              onClick={() => {
-                props.onAskRemove(props.listing.id);
-              }}
-            >
-              {t(LISTINGS_I18N_KEYS.mineDelete)}
-            </GatedButton>
+            {/* DRAWN ONLY WHERE THERE IS A ROUTE BEHIND IT (D425).
+
+                A listing that is on sale cannot be deleted — the server has no
+                such route — and this control used to be drawn for it anyway,
+                switched off. Pooled into `<PaneGate>`, "switched off" is an
+                `aria-disabled` button with its sentence somewhere else on the
+                screen, which the desktop walk measured as twenty-six presses,
+                zero dialogs and zero effect. The move that IS available for
+                that row is `archived`, and it is in `actions.moves` above;
+                after it the row is archived and this control appears.
+
+                `actions.remove` still carries the reason, so a skin that
+                chooses to draw the control anyway states it rather than
+                showing a bare disabled box. */}
+            {actions.removable ? (
+              <GatedButton
+                gate={actions.remove}
+                size="small"
+                // STACK, alone among the row's actions, and measured: this is
+                // the one control whose gate can carry a sentence at the
+                // moment it is drawn (no mandate, a delete in flight), and
+                // inline a button plus sixty characters is one flex item too
+                // wide for a 390px row, so it wrapped inside itself and took
+                // four lines. Under the button the same sentence takes two.
+                layout="stack"
+                danger
+                testId="listings-mine-delete"
+                data-analytics="none"
+                data-analytics-reason="opens the delete confirmation"
+                onClick={() => {
+                  props.onAskRemove(props.listing.id);
+                }}
+              >
+                {t(LISTINGS_I18N_KEYS.mineDelete)}
+              </GatedButton>
+            ) : null}
           </Flex>
         </Flex>
       </Flex>

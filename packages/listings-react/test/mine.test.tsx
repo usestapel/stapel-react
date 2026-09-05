@@ -592,7 +592,14 @@ describe("a seller can open their own listing", () => {
 });
 
 describe("row actions are gated by the server's own transition table", () => {
-  it("switches off delete for a listing that is on sale", async () => {
+  /**
+   * D425. Delete used to be DRAWN on a listing that is on sale and switched
+   * off — and pooled into `<PaneGate>`, "switched off" is an `aria-disabled`
+   * button whose sentence lives elsewhere on the screen. The desktop walk
+   * pressed it twenty-six times: no dialog, no effect, no reason. A control
+   * with no route behind it is not drawn; the move that IS available is.
+   */
+  it("offers no delete on a listing that is on sale — it offers the archive", async () => {
     const srv = mockServer(dashboard());
     render(
       <TestProviders server={srv}>
@@ -600,10 +607,70 @@ describe("row actions are gated by the server's own transition table", () => {
       </TestProviders>
     );
     await waitFor(() => {
-      expect(
-        screen.getByTestId("listings-mine-delete").getAttribute("aria-disabled")
-      ).toBe("true");
+      expect(screen.getByTestId("listings-mine-row")).toBeTruthy();
     });
+    expect(screen.queryByTestId("listings-mine-delete")).toBeNull();
+    // Not "nothing to do with this row": the row's own next move is there,
+    // enabled, and it is the one that unlocks deleting.
+    const archive = screen.getByTestId("listings-mine-move-archived");
+    expect(archive.getAttribute("aria-disabled")).not.toBe("true");
+  });
+
+  it("offers delete on an archived listing, and the confirmed press deletes it", async () => {
+    const archived = myPage([
+      myCard({ status: "archived", available_transitions: ["draft"] }),
+    ]);
+    const srv = mockServer({
+      ...dashboard(archived),
+      "/7/": { body: { detail: "deleted" } },
+    });
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab="archived" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-delete")).toBeTruthy();
+    });
+    const remove = screen.getByTestId("listings-mine-delete");
+    expect(remove.getAttribute("aria-disabled")).not.toBe("true");
+
+    // The whole way through: ask, confirm, and the request on the wire — not
+    // "the button was enabled", which is what the broken row also reported.
+    fireEvent.click(remove);
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-confirm-ok")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("stapel-confirm-ok"));
+    });
+    await waitFor(() => {
+      expect(
+        srv.matching("/7/").some((call) => call.method === "DELETE")
+      ).toBe(true);
+    });
+  });
+
+  it("offers delete on a draft too", async () => {
+    const drafts = myPage([
+      myCard({
+        status: "draft",
+        moderation_status: "not_submitted",
+        available_transitions: ["pending"],
+      }),
+    ]);
+    const srv = mockServer(dashboard(drafts));
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab="drafts" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-delete")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("listings-mine-delete").getAttribute("aria-disabled")
+    ).not.toBe("true");
   });
 });
 

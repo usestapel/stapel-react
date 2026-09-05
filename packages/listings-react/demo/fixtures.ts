@@ -135,6 +135,23 @@ export const DEMO_MY_PAGE: PaginatedMyListingCards = demoMyPage([
   }),
 ]);
 
+/**
+ * THE ARCHIVED TAB — the state in which deleting is possible at all.
+ *
+ * A listing that is on sale has no delete route behind it, so the pane offers
+ * the ARCHIVE and does not draw a delete control it could only switch off
+ * (D425). This is the row that follows: archived, deletable, and one move
+ * away from being a draft again.
+ */
+export const DEMO_MY_ARCHIVED: PaginatedMyListingCards = demoMyPage([
+  demoMyCard({
+    id: 11,
+    title: "Bosch GSB 1200, boxed",
+    status: "archived",
+    available_transitions: ["draft"],
+  }),
+]);
+
 /** No takedowns — what almost every seller sees. */
 export const DEMO_MY_NONE_BLOCKED: PaginatedMyListingCards = demoMyPage([]);
 

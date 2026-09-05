@@ -83,6 +83,26 @@ export interface ListingActionsBag {
   readonly complete: ActionAvailability;
   readonly remove: ActionAvailability;
   /**
+   * Is deleting this listing a move this row HAS at all — the same question
+   * {@link ListingActionsBag.moves} answers for the lifecycle edges, asked for
+   * the one action that is not one of them.
+   *
+   * `false` for a listing that is on sale (PUBLISHED, PENDING): the server has
+   * no route that deletes it, so there is nothing behind the control. It used
+   * to be drawn anyway, switched off — and the desktop walk measured what that
+   * costs (D425): twenty-six presses of a button that reads as live, carrying
+   * `aria-disabled="true"`, opening no dialog and changing nothing. Whether the
+   * refusal beside it is visible is a layout question, and pooling made the
+   * answer "no" on that screen; a control with nothing behind it does not get
+   * to depend on the answer. The move that IS available — archive — is in
+   * `moves`, and after it the delete control appears and works.
+   *
+   * {@link ListingActionsBag.remove} keeps stating the reason, so a surface
+   * that decides to draw the control anyway still says why it is off rather
+   * than presenting a bare disabled box.
+   */
+  readonly removable: boolean;
+  /**
    * Whether "edit this listing" is offerable — and if not, WHY.
    *
    * Editing is not an endpoint this pair calls: the composer is a screen, and
@@ -219,6 +239,10 @@ export function useListingActions(
     archive: archiveGate,
     complete: completeGate,
     remove: removeGate,
+    // A status nobody has read yet offers nothing: `known` already blocks the
+    // gate, and a control drawn for an unknown row is a control that may turn
+    // out to have had no route behind it.
+    removable: status !== undefined && canDelete(status),
     editGate: (hasEditor) =>
       firstBlock(
         mandate,
