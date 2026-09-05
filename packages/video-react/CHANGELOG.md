@@ -1,5 +1,20 @@
 # @stapel/video-react
 
+## 0.3.2
+
+### Patch Changes
+
+- A call that cannot connect stops dialling, and says so with a way out.
+
+  Measured on the stand (`PASS-17`): a misconfigured media URL answered 404, and ONE call issued **129** signalling requests back to back — `GET …/rtc/v1?access_token=`, no gap between them — on both parties' phones, behind a screen that said "connecting" and offered no control of any kind. The only exit was to close the tab, and the call stayed up on the server for both of them.
+
+  - **The dial is bounded and spaced.** `CALL_DIAL_ATTEMPTS` (5) attempts, doubling from `CALL_DIAL_BACKOFF_MS` (0.4s, 0.8s, 1.6s, 3.2s), then the failed screen. Five is enough to ride out a media server restarting; the sixth is a fact about the deployment and belongs on screen rather than in the network log. A half-connected room is disconnected before the next attempt, so the attempts cannot stack sockets.
+  - **A refusal that will refuse again is terminal.** 404 ("there is no media server at this address") and 403 ("this token is not welcome here") stop at the first answer — `isTerminalDialFailure` is exported so a host wiring its own stage classifies them the same way. Timeouts, dropped sockets and 5xx still get their attempts.
+  - **The loop itself is closed.** `loadPeer` was a dependency of the dialling effect, an inline arrow is a new identity on every render, and every dial causes a render — which is how five attempts became a hundred and twenty-nine. The loader is held in a ref now; what re-dials is a new token, a new server, or a person pressing retry.
+  - **Both stuck screens gained the way out.** The connecting state now carries hang up (it disconnects and reports to the host, which is what ends the call on the server), and the failed state carries it beside the retry — a retry is not an exit, and a call that cannot connect is still ringing somebody with the meter running.
+
+  Measured with dependencies held constant: the `default` bundle 17.60 → 17.74 KB, inside its 20 KB ceiling.
+
 ## 0.3.1
 
 ### Patch Changes
