@@ -66,6 +66,7 @@ export type {
   CallPanelProps,
   CallMediaRoom,
   CallConnectionState,
+  RemoteMediaContext,
 } from "./CallPanel.js";
 export { CallRoute } from "./CallRoute.js";
 export type { CallRouteProps } from "./CallRoute.js";

@@ -9,9 +9,22 @@
  * ABSENCE is a designed screen — a sentence naming the package and the slot,
  * not a stack trace and not a blank rectangle.
  *
- * The specifier is held in a `string`-typed constant on purpose: a literal
- * would make TypeScript resolve a module that is deliberately not installed,
- * and the point of an optional peer is that the build works without it.
+ * ── The specifier is a LITERAL, and that is the fix ──────────────────────
+ *
+ * It used to be held in a `string`-typed constant, so TypeScript would not
+ * resolve a module a host may not have installed. What that actually bought
+ * was a call that could never connect anywhere: `import(someString)` is
+ * invisible to every bundler, so no chunk was ever emitted for it and the
+ * browser was left to resolve a BARE specifier at runtime — which browsers do
+ * not do. Hosts that HAD `livekit-client` installed, and had done nothing
+ * wrong, got the `missing` screen on every call ("video is not available").
+ * A designed absence arm is only honest if the presence arm can happen.
+ *
+ * So the import is `import("livekit-client")`, written out, and bundlers
+ * split it into its own chunk fetched at the moment a token exists. A host
+ * that does not install the peer, or whose build must not see the specifier
+ * at all, passes {@link CallStageProps.loadPeer} — the same seam the tests
+ * use — and the `missing` arm still catches a load that fails at runtime.
  *
  * ── What this component does NOT decide ──────────────────────────────────
  *
@@ -34,10 +47,6 @@ import type { ThemeModeProp } from "./types.js";
 /** The optional peer this stage draws a call with. */
 export const LIVEKIT_PEER = "livekit-client";
 
-/** Typed as `string` so TypeScript treats the `import()` below as dynamic and
- * does not try to resolve a package that may not be installed. */
-const LIVEKIT_SPECIFIER: string = LIVEKIT_PEER;
-
 /** The sliver of the vendor SDK this component touches. */
 export interface CallRoomLike {
   connect(serverUrl: string, token: string): Promise<unknown>;
@@ -52,7 +61,12 @@ interface CallModuleLike {
  * the one where the package is not there — without installing it. */
 export type CallPeerLoader = () => Promise<unknown>;
 
-const defaultLoader: CallPeerLoader = () => import(LIVEKIT_SPECIFIER);
+/**
+ * The default loader, and the whole reason this file carries the note above:
+ * the specifier is written out so a bundler can SEE it and emit the chunk. A
+ * dynamic string here is a call that never connects.
+ */
+const defaultLoader: CallPeerLoader = () => import("livekit-client");
 
 /** Where the session got to. `missing` is a first-class arm, not an error. */
 export type CallStageState =
@@ -74,7 +88,13 @@ export interface CallStageProps extends ThemeModeProp {
   readonly renderMedia?: (room: CallRoomLike) => ReactNode;
   /** Called when the person leaves the call from here. */
   readonly onLeave?: () => void;
-  /** Test seam: replaces the `import("livekit-client")`. */
+  /**
+   * Replaces the built-in `import("livekit-client")`.
+   *
+   * Two callers: a test driving the arms without the SDK, and a host whose
+   * build must not see the specifier at all — an optional peer it does not
+   * install, or a vendored copy of its own.
+   */
   readonly loadPeer?: CallPeerLoader;
 }
 

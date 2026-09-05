@@ -24,15 +24,29 @@ import { useCalls } from "../headless/CallsProvider.js";
 import { CallStage } from "./CallStage.js";
 import type { CallRoomLike } from "./CallStage.js";
 import { CallPanel } from "./CallPanel.js";
-import type { CallMediaRoom, CallConnectionState } from "./CallPanel.js";
+import type {
+  CallMediaRoom,
+  CallConnectionState,
+  RemoteMediaContext,
+} from "./CallPanel.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface CallRouteProps extends ThemeModeProp {
   /** The other person's name — the host's, since the wire carries only ids. */
   readonly nameFor?: (userId: string) => string;
-  /** Draw the remote media from the connected room. The vendor's own track
-   * components go here; everything around them is `<CallPanel>`'s. */
-  readonly renderRemote?: (room: CallMediaRoom) => ReactNode;
+  /**
+   * Draw the remote media from the connected room. The vendor's own track
+   * components go here; everything around them is `<CallPanel>`'s.
+   *
+   * Called on an AUDIO-ONLY call too — the context says so — and what comes
+   * back is mounted off-screen behind the audio-only card, because a remote
+   * audio track needs an element to attach to. See
+   * `CallPanelProps.renderRemote`.
+   */
+  readonly renderRemote?: (
+    room: CallMediaRoom,
+    context: RemoteMediaContext
+  ) => ReactNode;
   /** Draw the local preview. */
   readonly renderLocal?: (room: CallMediaRoom) => ReactNode;
   /** Video inputs for the camera flip, enumerated by the host (asking for
@@ -92,7 +106,11 @@ export function CallRoute(props: CallRouteProps): ReactElement | null {
             onHangup={() => void calls.hangup()}
             onReconnect={() => void calls.remint()}
             {...(renderRemote !== undefined
-              ? { renderRemote: () => <>{renderRemote(room as CallMediaRoom)}</> }
+              ? {
+                  renderRemote: (context: RemoteMediaContext) => (
+                    <>{renderRemote(room as CallMediaRoom, context)}</>
+                  ),
+                }
               : {})}
             {...(renderLocal !== undefined
               ? { renderLocal: () => <>{renderLocal(room as CallMediaRoom)}</> }

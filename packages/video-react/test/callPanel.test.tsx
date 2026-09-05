@@ -186,6 +186,50 @@ describe("audio-only is a state, not a broken video", () => {
     expect(screen.queryByTestId("video-call-camera")).toBeNull();
     expect(screen.getByTestId("video-call-mic")).toBeTruthy();
   });
+
+  /**
+   * …AND THE OTHER PERSON IS STILL AUDIBLE.
+   *
+   * This arm used to draw the card INSTEAD of calling `renderRemote`, so the
+   * host's media node was never mounted and the remote AUDIO track had no
+   * element to attach to: a silent call, on the one kind of call that is
+   * nothing but audio. The card is what a person sees; the sink is what they
+   * hear.
+   */
+  it("still mounts the host's remote media, behind the card", () => {
+    const seen: boolean[] = [];
+    draw({
+      call: accepted({ media: "audio" }),
+      renderRemote: (context) => {
+        seen.push(context.audioOnly);
+        return <audio data-testid="host-remote" />;
+      },
+    });
+    expect(screen.getByTestId("video-call-audio-only")).toBeTruthy();
+    const sink = screen.getByTestId("video-call-audio-sink");
+    expect(sink.contains(screen.getByTestId("host-remote"))).toBe(true);
+    // Present in the layout, not `display: none`: a media element in a hidden
+    // subtree is exactly what a browser may stop feeding.
+    expect(sink.style.display).not.toBe("none");
+    expect(sink.style.position).toBe("absolute");
+    // The slot is TOLD which arm asked, so a host can hand back a sink rather
+    // than a tile without reading the call row a second time.
+    expect(seen).toContain(true);
+    expect(seen).not.toContain(false);
+  });
+
+  it("draws the video arm through the same slot, said to be video", () => {
+    const seen: boolean[] = [];
+    draw({
+      renderRemote: (context) => {
+        seen.push(context.audioOnly);
+        return <div data-testid="host-remote" />;
+      },
+    });
+    expect(screen.getByTestId("host-remote")).toBeTruthy();
+    expect(screen.queryByTestId("video-call-audio-sink")).toBeNull();
+    expect(seen).toContain(false);
+  });
 });
 
 describe("the connection state is visible", () => {

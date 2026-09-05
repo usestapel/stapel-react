@@ -31,7 +31,7 @@
  * Also absent: screen share, hand raise, kick, a participant list.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { Button, Flex, Typography, theme } from "antd";
 import { useT } from "@stapel/core";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
@@ -61,6 +61,48 @@ export interface CallMediaRoom {
 /** How the media session is doing, as this panel reports it. */
 export type CallConnectionState = "connected" | "reconnecting" | "lost";
 
+/**
+ * What {@link CallPanelProps.renderRemote} is told about the arm asking.
+ *
+ * `audioOnly` is the call row's own flag: the panel draws a card with the
+ * caller's name instead of a video tile, and the host's node is mounted
+ * off-screen behind it — a sink for the remote AUDIO track, not a picture.
+ */
+export interface RemoteMediaContext {
+  readonly audioOnly: boolean;
+}
+
+/**
+ * The audio sink's side, in px.
+ *
+ * One, and not a spacing step: this box is not a piece of layout, it is the
+ * smallest real element a media track can be attached to. Zero would let a
+ * browser treat the subtree as having no box at all, which is the thing this
+ * whole arm exists to avoid.
+ */
+const AUDIO_SINK_SIDE = 1;
+
+/**
+ * Where the host's media node goes in the audio-only arm: present in the
+ * layout, one pixel, invisible, unclickable.
+ *
+ * NOT `display: none` and not an unmounted node. A remote track has to be
+ * attached to an element that exists, and a media element inside a
+ * `display: none` subtree is exactly the kind of thing a browser is allowed
+ * to stop feeding. One pixel with `overflow: hidden` is an element that is
+ * really there and that nobody can see.
+ */
+const AUDIO_SINK: CSSProperties = {
+  position: "absolute",
+  width: AUDIO_SINK_SIDE,
+  height: AUDIO_SINK_SIDE,
+  insetInlineStart: 0,
+  insetBlockStart: 0,
+  opacity: 0,
+  overflow: "hidden",
+  pointerEvents: "none",
+};
+
 export interface CallPanelProps extends ThemeModeProp {
   /** The connected room, from `<CallStage renderMedia>`. */
   readonly room: CallMediaRoom;
@@ -74,9 +116,16 @@ export interface CallPanelProps extends ThemeModeProp {
    * its line. A panel that only disconnected would leave a call the meter
    * keeps counting. */
   readonly onHangup: () => void;
-  /** Draw the remote media. The vendor's own track components go here; this
-   * panel owns the frame, the controls and the clock. */
-  readonly renderRemote?: () => ReactElement | null;
+  /**
+   * Draw the remote media. The vendor's own track components go here; this
+   * panel owns the frame, the controls and the clock.
+   *
+   * CALLED IN BOTH ARMS, including audio-only — see {@link RemoteMediaContext}
+   * and the audio-only note at the frame below. The context says which arm is
+   * asking, so a host can hand back an `<audio>` sink instead of a video tile
+   * without inspecting the call row a second time.
+   */
+  readonly renderRemote?: (context: RemoteMediaContext) => ReactElement | null;
   /** Draw the local preview (the corner picture). */
   readonly renderLocal?: () => ReactElement | null;
   /** The media session's health, from the host's own subscription to the
@@ -274,20 +323,32 @@ export function CallPanel(props: CallPanelProps): ReactElement {
             // The audio-only fallback is a STATE, not a broken video. A person
             // on a bad connection who turned the camera off should see the
             // call working, not an empty rectangle they read as a failure.
-            <Flex
-              vertical
-              align="center"
-              justify="center"
-              style={{ height: "100%" }}
-              data-testid="video-call-audio-only"
-            >
-              <Typography.Text strong>{title}</Typography.Text>
-              <Typography.Text type="secondary">
-                {t(VIDEO_I18N_KEYS.callAudioOnly)}
-              </Typography.Text>
-            </Flex>
+            //
+            // …AND THE OTHER PERSON STILL HAS TO BE AUDIBLE. This arm used to
+            // draw the card INSTEAD of calling `renderRemote`, so on an
+            // audio-only call the host's media node was never mounted and
+            // there was no element for the remote audio track to attach to: a
+            // silent call, on the one kind of call that is nothing but audio.
+            // The card is what a person sees; the sink is what they hear.
+            <>
+              <Flex
+                vertical
+                align="center"
+                justify="center"
+                style={{ height: "100%" }}
+                data-testid="video-call-audio-only"
+              >
+                <Typography.Text strong>{title}</Typography.Text>
+                <Typography.Text type="secondary">
+                  {t(VIDEO_I18N_KEYS.callAudioOnly)}
+                </Typography.Text>
+              </Flex>
+              <div style={AUDIO_SINK} data-testid="video-call-audio-sink">
+                {renderRemote?.({ audioOnly: true }) ?? null}
+              </div>
+            </>
           ) : (
-            renderRemote?.() ?? (
+            renderRemote?.({ audioOnly: false }) ?? (
               <Flex
                 align="center"
                 justify="center"

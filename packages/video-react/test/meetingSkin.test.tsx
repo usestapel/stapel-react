@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { actionBlocked, loadReady } from "@stapel/core";
@@ -209,5 +210,31 @@ describe("<CallStage> — the optional peer's absence is a screen", () => {
   it("no token is a sentence, not a failure", () => {
     mount(<CallStage serverUrl="wss://sfu.test" />);
     expect(screen.getByTestId("video-stage-no-token")).toBeTruthy();
+  });
+
+  /**
+   * THE ONE ASSERTION THE ARMS ABOVE CANNOT MAKE.
+   *
+   * Every test here injects `loadPeer`, which is what makes the arms testable
+   * — and it is also why nobody noticed that the built-in loader could never
+   * load anything. The specifier used to be a `string`-typed constant, so no
+   * bundler could see it and the browser was left resolving a BARE specifier
+   * at runtime: hosts that HAD `livekit-client` installed got "video is not
+   * available" on every call. The fix is a written-out `import()`, and the
+   * only way to check it stays written out is to read the source: a mocked
+   * loader proves nothing about the module the bundler compiles.
+   */
+  it("keeps the peer import a LITERAL, so a bundler can emit its chunk", () => {
+    // Read from the package root — vitest runs with the package as cwd, the
+    // same way `pair.test.ts` reads the manifest.
+    const source = readFileSync("src/default/CallStage.tsx", "utf8");
+    expect(source).toContain('import("livekit-client")');
+    // …and never goes back to the indirection that broke it. Comments are
+    // stripped first: this file EXPLAINS the defect, and the explanation
+    // names the shape it warns against.
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    expect(code).not.toMatch(/import\(\s*[A-Za-z_$][\w$]*\s*\)/);
   });
 });
