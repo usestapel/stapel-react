@@ -39,7 +39,7 @@
  * click-only tests stayed green: a synthetic `click` carries no hover in
  * front of it and exercises the one ordering that always worked.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
@@ -109,7 +109,14 @@ async function hoverThenClick(element: HTMLElement): Promise<void> {
 }
 
 describe("the gated heart is never inert", () => {
-  it("carries aria-disabled and a live handler, on every card surface", () => {
+  /**
+   * D431 — live-but-refusing was only half the answer. Measured again on the
+   * phone SERP: `aria-disabled="true"`, a tap that produced nothing at all,
+   * and the only explanation in a hover disclosure a finger never triggers.
+   * Where the surface hands in a door, the press GOES THROUGH IT — and a
+   * control that acts on press is not announced as unavailable.
+   */
+  it("is the door, not a dead control, on every card surface", () => {
     render(
       visitor(
         <>
@@ -125,12 +132,58 @@ describe("the gated heart is never inert", () => {
     );
     for (const id of ["listings-feed-favorite", "listings-serp-favorite"]) {
       const heart = screen.getByTestId(id);
-      expect(heart.getAttribute("aria-disabled"), id).toBe("true");
-      // The html attribute is what makes a button unreachable by focus and
-      // by tap. It must not be there.
+      // Never announced unavailable. (antd's own anchor stamps
+      // `aria-disabled="false"` — the default value, which is the point.)
+      expect(heart.getAttribute("aria-disabled"), id).not.toBe("true");
+      // The html attribute is what makes a control unreachable by focus and
+      // by tap. It must not be there either.
       expect(heart.hasAttribute("disabled"), id).toBe(false);
-      expect(heart).toHaveProperty("disabled", false);
+      // The press is a navigation to the container's door, `next` and all.
+      expect(heart.getAttribute("href"), id).toBe(DOOR);
+      // A link is not a toggle, so it does not claim to be one.
+      expect(heart.hasAttribute("aria-pressed"), id).toBe(false);
     }
+  });
+
+  it("keeps the gated shape where the host handed in no door", () => {
+    render(visitor(<ListingSerpCard listing={CARD} href="/l/7" />));
+    const heart = screen.getByTestId("listings-serp-favorite");
+    // Nothing better for a press to do: blocked, alive, saying why.
+    expect(heart.getAttribute("aria-disabled")).toBe("true");
+    expect(heart.hasAttribute("disabled")).toBe(false);
+    expect(heart).toHaveProperty("disabled", false);
+    expect(heart.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("calls a host that opens its own sign-in, once, and writes nothing", async () => {
+    const server = mockServer({});
+    const onSignIn = vi.fn();
+    render(visitor(<ListingSerpCard listing={CARD} href="/l/7" signIn={{ onSignIn }} />, server));
+    const heart = screen.getByTestId("listings-serp-favorite");
+    // The callback arm stays a button — there is nowhere to navigate to.
+    expect(heart.tagName).toBe("BUTTON");
+    expect(heart.getAttribute("aria-disabled")).toBeNull();
+    tap(heart);
+    await settle(0);
+    expect(onSignIn).toHaveBeenCalledTimes(1);
+    expect(server.matching("/listings/7/favorite/")).toHaveLength(0);
+  });
+
+  it("toggles, and does not sign anybody in, once the gate is open", async () => {
+    const server = mockServer({});
+    const onSignIn = vi.fn();
+    render(
+      <TestProviders server={server}>
+        <ListingSerpCard listing={CARD} href="/l/7" signIn={{ onSignIn }} />
+      </TestProviders>
+    );
+    const heart = screen.getByTestId("listings-serp-favorite");
+    expect(heart.getAttribute("aria-disabled")).toBeNull();
+    tap(heart);
+    await waitFor(() => {
+      expect(server.matching("/listings/7/favorite/").length).toBeGreaterThan(0);
+    });
+    expect(onSignIn).not.toHaveBeenCalled();
   });
 
   it("refuses the WRITE on activation, not by swallowing the event", async () => {
@@ -268,10 +321,18 @@ describe("the standing caption does not come back", () => {
       )
     );
     expect(document.querySelector("[data-stapel-gated-reason]")).not.toBeNull();
-    // And even in the standing arm the heart is not inert.
+    // And even in the standing arm the heart is not inert — nor, with a door
+    // in hand, announced as unavailable (D431): the sentence is a hint beside
+    // a live control, not the only thing behind a dead one.
     const heart = screen.getByTestId("listings-feed-favorite");
-    expect(heart.getAttribute("aria-disabled")).toBe("true");
-    expect(heart).toHaveProperty("disabled", false);
+    expect(heart.getAttribute("aria-disabled")).not.toBe("true");
+    expect(heart.hasAttribute("disabled")).toBe(false);
+    expect(heart.getAttribute("href")).toBe(DOOR);
+    // The reason is still wired to it, which is what makes the hint reachable.
+    const describedBy = heart.getAttribute("aria-describedby");
+    expect(document.getElementById(describedBy ?? "")?.textContent).toContain(
+      REASON
+    );
   });
 });
 

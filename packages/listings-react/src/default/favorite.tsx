@@ -58,9 +58,17 @@ export interface FavoriteHeartProps {
    * tree either way — see {@link GateReasonPopover}.
    */
   readonly blockedReason?: "text" | "popover";
-  /** The surface's sign-in door, rendered INSIDE the disclosure. Absent: the
-   * disclosure holds the reason alone. Only read in the `"popover"` arm; the
-   * standing arm's door is the container's, as it always was. */
+  /**
+   * The surface's sign-in door.
+   *
+   * Given, it is where a VISITOR'S PRESS GOES, in both volumes (D431) — the
+   * heart stops being a control that refuses and becomes the way in, `?next=`
+   * and all. The `"popover"` arm additionally renders it inside the
+   * disclosure, as it always did.
+   *
+   * Absent, nothing changes: the control stays blocked-but-alive and states
+   * its reason, which is all a surface with no sign-in route can offer.
+   */
   readonly signIn?: SignInCta;
   readonly style?: CSSProperties;
 }
@@ -82,6 +90,34 @@ export interface FavoriteHeartProps {
  * was supposed to explain it. Measured on a phone: a signed-out visitor's
  * heart produced no toast, no reason and no navigation, and on a touch device
  * there is no hover to fall back on.
+ *
+ * ── And where there is a DOOR, it is not "blocked" at all (D431) ──────────
+ *
+ * Live-but-refusing was half the answer. On the deployed phone SERP the
+ * visitor's heart still carried `aria-disabled="true"`, a tap still produced
+ * nothing at all, and the only explanation was a hover disclosure a finger
+ * never triggers — the reason had been pooled into the pane's footnote, and
+ * neither this control nor `GatedControl` had ever been handed
+ * `onBlockedActivate`, so the gesture fell into the same hole `GatedControl`
+ * was written to close.
+ *
+ * The owner's ruling: **the control is never inert for a visitor.** Where the
+ * surface hands in a `signIn` door, a press GOES THROUGH IT, and the heart is
+ * therefore not announced as disabled either — a control that acts on press
+ * and calls itself unavailable is lying to exactly the people who most depend
+ * on the announcement. The reason stays where it was (registered with the
+ * pane's scope, wired by `aria-describedby`, hover disclosure and all on the
+ * surfaces that have one); it is now a HINT beside a live control rather than
+ * the only thing behind a dead one.
+ *
+ * Where the host hands in NO door there is nothing better for a press to do,
+ * and the control keeps the gated shape it has always had — blocked, alive,
+ * saying why.
+ *
+ * The `href` arm renders the heart as an anchor, deliberately: the door is a
+ * navigation (`/login?next=…`), and an anchor keeps the `next`, the middle
+ * click, and the person who is not running our JavaScript. `aria-pressed`
+ * comes off in that arm, because a link is not a toggle.
  */
 export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
   const t = useT();
@@ -103,7 +139,30 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
   );
   // The RESOLVED sentence, not the gate's key — `useActionGate` is the one
   // place a blocked reason becomes words in this fleet.
-  const reason = useActionGate(favorite.gate).reason;
+  const gate = useActionGate(favorite.gate);
+  const reason = gate.reason;
+  // D431. A blocked gate plus a door the surface handed in: the press is not
+  // refused, it is ROUTED — through the door, keeping whatever `?next=` the
+  // container put in the href. With no door there is nothing better for the
+  // press to do and the gated shape stands, exactly as before.
+  const door = props.signIn;
+  const opensDoor = gate.disabled && door !== undefined;
+  // Exactly one arm, never both — `SignInCta`'s own rule. The `href` arm
+  // makes antd render an anchor, which is the honest element for a door.
+  const doorPress =
+    !opensDoor || door === undefined
+      ? {}
+      : door.href !== undefined
+        ? { href: door.href }
+        : { onClick: door.onSignIn };
+  // The heart, as the visitor with a door meets it: live, not announced as
+  // unavailable, and not pretending to be a toggle when it is a link.
+  const asDoor = opensDoor
+    ? {
+        ...doorPress,
+        ...(door?.href !== undefined ? {} : { "aria-pressed": favorite.favorited }),
+      }
+    : { "aria-pressed": favorite.favorited, onClick: favorite.toggle };
   // A failed save, stated where the heart is. The rollback already put the
   // icon back; this says why it went back.
   const failure = (
@@ -124,15 +183,17 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
         {(bind) => (
           <Button
             shape="circle"
-            aria-disabled
+            // Announced unavailable ONLY where a press has nothing to do —
+            // see D431 in the header. With a door in hand it is a live
+            // control, and the disclosure stays as the hint beside it.
+            {...(opensDoor ? {} : { "aria-disabled": true })}
             {...bind}
             aria-label={label}
-            aria-pressed={favorite.favorited}
             data-testid={props.testId}
             data-favorited={String(favorite.favorited)}
             data-analytics="none"
             data-analytics-reason="business action — host app wraps with its own tracked()"
-            onClick={favorite.toggle}
+            {...asDoor}
             icon={icon}
             {...(props.style !== undefined ? { style: props.style } : {})}
           />
@@ -144,6 +205,12 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
     <GatedControl
       gate={favorite.gate}
       testId={`${props.testId}-gate`}
+      // With a door in hand the gate no longer REFUSES the person, it
+      // annotates the control: the reason is still registered with the pane's
+      // scope and still wired by `aria-describedby`, and the press — which is
+      // now the way in, not a hole — reaches the handler untouched. Without a
+      // door the gate keeps its default "live" refusal.
+      {...(opensDoor ? { whenBlocked: "annotate" as const } : {})}
       {...(props.layout !== undefined ? { layout: props.layout } : {})}
       {...(props.style !== undefined ? { style: props.style } : {})}
     >
@@ -154,12 +221,11 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
             // See `<ListingCard>`: the substrate's binding, spread whole.
             {...bind}
             aria-label={label}
-            aria-pressed={favorite.favorited}
             data-testid={props.testId}
             data-favorited={String(favorite.favorited)}
             data-analytics="none"
             data-analytics-reason="business action — host app wraps with its own tracked()"
-            onClick={favorite.toggle}
+            {...asDoor}
             icon={icon}
           />
           {failure}
