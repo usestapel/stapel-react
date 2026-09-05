@@ -1,6 +1,6 @@
-# @stapel/reviews-react 0.6.0
+# @stapel/reviews-react 0.7.0
 
-Headless React flow pair for stapel-reviews (contract >=0.4 <0.5) — business + state, zero visual opinion.
+Headless React flow pair for stapel-reviews (contract >=0.6 <0.7) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -22,6 +22,7 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/reviews/api/v1/`.
 - reviews_api_v1_reviews_aggregate_retrieve: GET /reviews/aggregate
+- reviews_api_v1_reviews_aggregates_by_owner_create: POST /reviews/aggregates/by-owner
 - reviews_api_v1_reviews_create: POST /reviews
 - reviews_api_v1_reviews_moderate_create: POST /reviews/{review_id}/moderate
 - reviews_api_v1_reviews_response_create: POST /reviews/{review_id}/response
@@ -29,12 +30,13 @@ Paths are relative to `/reviews/api/v1/`.
 
 ## Query hooks (server state; keys come only from the key factory)
 - useModerateReview (mutation) → moderate
+- useOwnerAggregates (query) → aggregatesByOwner
 - useRespondToReview (mutation) → respond
 - useReviewAggregate (query) → aggregate
 - useSubmitReview (mutation) → createReview
 
 ## Errors (render t(code, params); UX from remediation)
-52 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 17 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+53 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 17 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -47,6 +49,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
+- error.400.reviews_too_many_owner_keys [400] → fix_input {max}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)

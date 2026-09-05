@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/reviews-react",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "backend": {
     "module": "stapel-reviews",
-    "contract": ">=0.4 <0.5"
+    "contract": ">=0.6 <0.7"
   },
   "layers": [
     "api",
@@ -22,6 +22,13 @@
       "tag": "Reviews",
       "request": null,
       "response": "AggregateResponse"
+    },
+    "reviews_api_v1_reviews_aggregates_by_owner_create": {
+      "method": "POST",
+      "path": "/reviews/api/v1/reviews/aggregates/by-owner",
+      "tag": "Reviews",
+      "request": "OwnerAggregatesRequest",
+      "response": null
     },
     "reviews_api_v1_reviews_create": {
       "method": "POST",
@@ -62,6 +69,16 @@
           "{…}",
           "{…}"
         ]
+      ]
+    },
+    "useOwnerAggregates": {
+      "kind": "query",
+      "operation": "aggregatesByOwner",
+      "queryKey": [
+        "reviews",
+        "ownerAggregates",
+        "{…}",
+        "{…}"
       ]
     },
     "useRespondToReview": {
@@ -222,6 +239,13 @@
     "error.400.reviews_response_not_allowed": {
       "status": 400,
       "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_too_many_owner_keys": {
+      "status": 400,
+      "params": [
+        "max"
+      ],
       "remediation": "fix_input"
     },
     "error.400.reviews_unknown_target_type": {
@@ -544,6 +568,7 @@
     "error.400.reviews_invalid_moderation_action",
     "error.400.reviews_invalid_rating",
     "error.400.reviews_response_not_allowed",
+    "error.400.reviews_too_many_owner_keys",
     "error.400.reviews_unknown_target_type",
     "error.400.validation_error",
     "error.400.verification_failed",
@@ -670,6 +695,7 @@
       "REVIEWS_ERROR_INVALID_RATING",
       "REVIEWS_ERROR_NOT_FOUND",
       "REVIEWS_ERROR_RESPONSE_NOT_ALLOWED",
+      "REVIEWS_ERROR_TOO_MANY_OWNER_KEYS",
       "REVIEWS_ERROR_UNKNOWN_TARGET_TYPE",
       "REVIEWS_I18N_KEYS",
       "REVIEWS_I18N_PLURALS",
@@ -695,7 +721,9 @@
       "isReviewGone",
       "isReviewingForbidden",
       "isSignInRequired",
+      "isTooManyOwnerKeys",
       "isUnknownTargetType",
+      "normalizedOwnerKeys",
       "ratingSummary",
       "registerReviewsI18n",
       "reviewVisibility",
@@ -706,6 +734,7 @@
       "starBreakdown",
       "toReviewsError",
       "useModerateReview",
+      "useOwnerAggregates",
       "useRespondToReview",
       "useReviewAggregate",
       "useReviewDateFormat",
@@ -718,6 +747,9 @@
     "types": [
       "CreateReviewsRuntimeOptions",
       "ModerateReviewVariables",
+      "OwnerAggregate",
+      "OwnerAggregatesRequest",
+      "OwnerAggregatesResponse",
       "RatingAggregate",
       "RatingSummary",
       "Remediation",
@@ -753,6 +785,7 @@
       "Schemas",
       "StarBreakdown",
       "SubmitReviewVariables",
+      "UseOwnerAggregatesOptions",
       "UseReviewListOptions"
     ]
   }

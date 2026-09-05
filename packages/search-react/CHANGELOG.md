@@ -1,5 +1,20 @@
 # @stapel/search-react
 
+## 0.31.0
+
+### Minor Changes
+
+- Every search hit now carries `owner_key` — the seller's opaque id, the same
+  key `owner=` filters on, `""` when the source indexed no owner. It rides
+  straight through the generated `SearchItem` (and the package's public
+  `SearchItem` export, which is that same type): not a facet, not a ranking
+  input, nothing else about the seller exposed. A result page can now collect
+  the ids off its own answer and batch-read the seller profiles by id instead
+  of costing one request per card.
+
+  Regenerated against stapel-search 0.15.0 (`schema.ts` moves; `docs/errors.json`
+  is unchanged, so no ru/es bundle shifts).
+
 ## 0.30.1
 
 ### Patch Changes
