@@ -1,5 +1,19 @@
 # @stapel/search-react
 
+## 0.32.5
+
+### Patch Changes
+
+- `<SearchResultsPane columns>` (and `<SearchPage resultsColumns>`) — the results grid's column count, said out loud.
+
+  The grid is `repeat(auto-fill, minmax(260px, 1fr))`: as many readable cards as fit, no breakpoint table to maintain, one column on a phone by the same declaration. That is the right answer for the default card and the wrong one for a deployment whose cards are taller or wider than it — and such a host had exactly one way to say so, an `!important` rule on this pane's grid from outside, against a declaration it could not read back.
+
+  `columns` takes a number (that many tracks at every width, `minmax(0, 1fr)` so one long unbroken title cannot widen the row) or a map keyed by the token breakpoints — `{ phone: 1, tablet: 2 }` is the two-cards-per-row tablet SERP this exists for. The map is emitted as a hoisted `@container` sheet and measured against the **block**, not the window: the results column is the window minus a 280px filter rail, so a media query would hand it a desktop count at a width the cards never have (the same rung ladder `<PopularValues columns="responsive">` already climbs). `layout="list"` ignores it, because one row per result IS one column, and `renderResults` still replaces the arrangement entirely.
+
+  It is on `<SearchPage>` as well, as `resultsColumns`: the page is what a storefront mounts on `/s` and `/c/:slug`, and a prop that exists only on the component nobody mounts is a prop nobody has.
+
+  Ceiling raised deliberately: the `default` bundle 30.40 → 30.65 KB, measured with dependencies held constant, 30.5 → 31 KB.
+
 ## 0.32.4
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @stapel/chat-react
 
+## 0.10.2
+
+### Patch Changes
+
+- `<ConversationThreadPanel renderSystemMessage>` (forwarded by `<ConversationSplitPanel>`) — a system line a reader can read.
+
+  A system message's body is written by whichever module wrote the line, for a reader that does not exist yet: the call surface posts `video.call.ended:188`, and the thread printed exactly that at a person, in every language, under a "system message" label. The chat pair cannot do better on its own — the vocabulary belongs to the module that emitted the line and to the deployment that installed it, and a table of other modules' event names kept in a chat renderer would go stale the day it was written.
+
+  So the host is handed the ROW (the seconds are in the line, and only the host knows what to do with them) and draws the sentence: «Звонок · 3:08». Called only for `kind: "system"` and only in place of the body; returning `undefined` or `null` for a line the host does not recognise gives back the body, which is what every host renders today. The split panel forwards it beside `limit`/`maxLength`/`notifications`, for the same reason it now forwards the header-actions slot: it mounts the thread panel itself.
+
+  Measured with dependencies held constant: the `default` bundle 16.13 → 16.22 KB, inside the 16.5 KB ceiling this wave already raised.
+
 ## 0.10.1
 
 ### Patch Changes

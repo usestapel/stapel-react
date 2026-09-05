@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/search-react",
-  "version": "0.32.4",
+  "version": "0.32.5",
   "demos": [
     {
       "id": "search.box",
