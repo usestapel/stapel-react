@@ -1,5 +1,12 @@
 # @stapel/tokens-mui
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [9b489ef]
+  - @stapel/tokens@0.8.0
+
 ## 0.3.2
 
 ### Patch Changes

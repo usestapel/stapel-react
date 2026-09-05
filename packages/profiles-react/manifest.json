@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/profiles-react",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "backend": {
     "module": "stapel-profiles",
     "contract": ">=0.19 <0.20"
@@ -744,8 +744,7 @@
     "profiles.public.count.following.one",
     "profiles.public.count.following.other",
     "profiles.public.location",
-    "profiles.public.rating",
-    "profiles.public.rating_value",
+    "profiles.public.seller_type",
     "profiles.public.unwritten",
     "profiles.relationship.block",
     "profiles.relationship.blocked",
@@ -763,6 +762,8 @@
     "profiles.relationship.self",
     "profiles.relationship.unblock",
     "profiles.relationship.unfollow",
+    "profiles.seller_type.business",
+    "profiles.seller_type.private",
     "profiles.settings.avatar.change",
     "profiles.settings.avatar.upload_error",
     "profiles.settings.avatar.uploading",

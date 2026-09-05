@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.31.0",
+  "version": "0.32.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.16 <0.17"
