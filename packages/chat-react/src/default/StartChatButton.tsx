@@ -84,56 +84,50 @@ function StartChatBody(props: {
     ? t(CHAT_I18N_KEYS.startStarting)
     : t(CHAT_I18N_KEYS.startButton);
 
-  // POOLED: the sentence is the gate's to place, and inside a `PaneGate` it
-  // lands in the pane's own footnote once, with this button's
-  // `aria-describedby` pointing at it. Outside one it behaves exactly like the
-  // inline arm, so a host that asks for pooling and forgets the scope loses
-  // nothing.
-  //
-  // `GatedButton` rather than a hand-wired `GatedControl`: the binding, the
-  // blocked paint and the reason's placement are the skin's to decide, and a
-  // second copy of that wiring here is a second thing to keep in step with it.
-  if (props.refusal === "pooled") {
-    return (
-      <Space
-        orientation="vertical"
-        style={{ width: props.block ? "100%" : undefined }}
-      >
+  // Only the CONTROL differs between the arms — the column around it, and the
+  // error under it, are the same three nodes in all three. Writing the wrapper
+  // once is 50-odd bytes of skin bundle, and one place for a change to the
+  // column to land rather than two that can drift.
+  const shared = {
+    type: "primary",
+    block: props.block ?? false,
+    loading: props.isStarting,
+    onClick: props.start,
+    "data-analytics": "none",
+    "data-analytics-reason":
+      "business action — host app wraps with its own tracked()",
+  } as const;
+
+  return (
+    <Space orientation="vertical" style={{ width: props.block ? "100%" : undefined }}>
+      {/* POOLED: the sentence is the gate's to place, and inside a `PaneGate`
+          it lands in the pane's own footnote once, with this button's
+          `aria-describedby` pointing at it. Outside one it behaves exactly
+          like the inline arm, so a host that asks for pooling and forgets the
+          scope loses nothing.
+
+          `GatedButton` rather than a hand-wired `GatedControl`: the binding,
+          the blocked paint and the reason's placement are the skin's to
+          decide, and a second copy of that wiring here is a second thing to
+          keep in step with it. */}
+      {props.refusal === "pooled" ? (
         <GatedButton
           gate={props.availability}
           whenBlocked="inert"
           testId="chat-start-button"
-          type="primary"
-          block={props.block ?? false}
-          loading={props.isStarting}
-          onClick={props.start}
-          data-analytics="none"
-          data-analytics-reason="business action — host app wraps with its own tracked()"
+          {...shared}
         >
           {label}
         </GatedButton>
-        <ErrorAlert error={errorDisplay(props.error)} />
-      </Space>
-    );
-  }
-
-  return (
-    <Space orientation="vertical" style={{ width: props.block ? "100%" : undefined }}>
-      <Button
-        type="primary"
-        block={props.block ?? false}
-        disabled={gate.disabled}
-        loading={props.isStarting}
-        onClick={props.start}
-        data-testid="chat-start-button"
-        data-analytics="none"
-        data-analytics-reason="business action — host app wraps with its own tracked()"
-      >
-        {label}
-      </Button>
+      ) : (
+        <Button disabled={gate.disabled} data-testid="chat-start-button" {...shared}>
+          {label}
+        </Button>
+      )}
       {/* `"none"`: the HOST has said it. The one arm that may leave a
-          switched-off control unexplained, which is why it is opt-in. */}
-      {gate.reason && props.refusal !== "none" ? (
+          switched-off control unexplained, which is why it is opt-in.
+          `"pooled"` has already printed it, once, for the pane. */}
+      {gate.reason && props.refusal === "inline" ? (
         <Typography.Text type="secondary" data-testid="chat-start-blocked">
           {gate.reason}
           <SignInLink cta={props.signIn} testId="chat-start-sign-in" />
