@@ -91,7 +91,10 @@ import type {
   OtherCategoryNamer,
 } from "./OtherCategoriesLine.js";
 import { SearchResultsPane } from "./SearchResultsPane.js";
-import type { SearchResultsWrapper } from "./SearchResultsPane.js";
+import type {
+  ResultsColumns,
+  SearchResultsWrapper,
+} from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
 import { SEARCH_BUILTIN_VIEWS, ViewSwitch, resolveView } from "./ViewSwitch.js";
 import type { SearchView } from "./ViewSwitch.js";
@@ -487,10 +490,22 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * own `<h1>` above this page passes a lower level.
    */
   readonly resultsHeadingLevel?: 1 | 2 | 3 | 4 | 5;
+  /**
+   * How many card columns the results grid draws — `<SearchResultsPane
+   * columns>`, forwarded verbatim.
+   *
+   * It is on the PAGE as well as on the pane because the page is what a
+   * storefront mounts on `/s` and `/c/:slug`: a prop that exists only on the
+   * component nobody mounts is a prop nobody has, and a host that wanted two
+   * cards per row on a tablet was left with an `!important` rule against a
+   * grid it could not read back.
+   */
+  readonly resultsColumns?: ResultsColumns;
 }
 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
+  readonly resultsColumns?: ResultsColumns;
   readonly categoryFilter?: boolean;
   readonly resultsLead?: ReactNode;
   readonly dictionaryMode?: "field" | "inline" | "sheet";
@@ -714,6 +729,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(props.wrapResults !== undefined ? { wrapResults: props.wrapResults } : {})}
       {...(view.layout !== undefined ? { layout: view.layout } : {})}
       {...(props.renderCard !== undefined ? { renderCard: props.renderCard } : {})}
+      {...(props.resultsColumns !== undefined
+        ? { columns: props.resultsColumns }
+        : {})}
       {...(props.footer !== undefined ? { footer: props.footer } : {})}
       {...(props.otherCategories !== undefined
         ? { otherCategories: props.otherCategories }
@@ -923,6 +941,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     onViewChange,
     resultsAction,
     resultsHeadingLevel,
+    resultsColumns,
     dictionaryMode,
     visibleGroups,
     pinnedFacets,
@@ -935,6 +954,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
       <SearchStateProvider adapter={adapter} geoOffer={geoOffer} {...parseOptions}>
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
+          {...(resultsColumns !== undefined ? { resultsColumns } : {})}
           {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}
           {...(pinnedFacets !== undefined ? { pinnedFacets } : {})}

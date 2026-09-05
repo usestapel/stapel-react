@@ -35,7 +35,7 @@ import {
   SkinTheme,
   visuallyHidden,
 } from "@stapel/tokens-antd/skin";
-import { spacing } from "@stapel/tokens";
+import { breakpoints, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchItem } from "../api/types.js";
 import { SearchResults } from "../headless/SearchResults.js";
@@ -143,6 +143,64 @@ const RESULTS_LIST: CSSProperties = {
   gridTemplateColumns: "1fr",
 };
 
+/**
+ * HOW MANY CARD COLUMNS, when the host has an opinion.
+ *
+ * A number is that many columns at every width. A map is one number per token
+ * breakpoint, and the two named rungs are the only ones there are: `phone` is
+ * the base, `tablet` and `desktop` take over as the block gets wider. A key
+ * left out inherits the rung below it.
+ */
+export type ResultsColumns =
+  | number
+  | Readonly<Partial<Record<"phone" | "tablet" | "desktop", number>>>;
+
+/** The class the responsive arm's rules are hung on. */
+export const RESULTS_COLUMNS_CLASS = "stapel-search-results-columns";
+/** The `href` the hoisted column sheet is deduplicated by. */
+export const RESULTS_COLUMNS_STYLE_HREF = "stapel-search-results-columns";
+
+/** N equal tracks, each allowed to shrink below its content — `minmax(0,
+ * 1fr)` rather than `1fr`, or one long unbroken title widens the whole row. */
+function fixedColumns(count: number): string {
+  return `repeat(${String(Math.max(1, Math.floor(count)))}, minmax(0, 1fr))`;
+}
+
+/**
+ * The map, as CSS — and the query measures the BLOCK, not the window.
+ *
+ * It has to: this grid sits in the results column, which on a 1440px desktop
+ * is the window minus a 280px filter rail minus the gap. A media query would
+ * hand it a desktop column count at a width it never has, and the same three
+ * rungs are what `<PopularValues columns="responsive">` already climbs one
+ * pane over. The keys NAME the token breakpoints because those are the
+ * numbers a host thinks in; what they are compared against is this block's
+ * own inline size.
+ *
+ * Ascending, so the widest matching rung wins by ordinary cascade order.
+ */
+export function resultsColumnsCss(columns: ResultsColumns): string {
+  const block = `.${RESULTS_COLUMNS_CLASS}`;
+  if (typeof columns === "number") {
+    return `${block}{grid-template-columns:${fixedColumns(columns)}}`;
+  }
+  const rules = [`${block}{container-type:inline-size}`];
+  if (columns.phone !== undefined) {
+    rules.push(`${block}{grid-template-columns:${fixedColumns(columns.phone)}}`);
+  }
+  for (const rung of [
+    { at: breakpoints.tablet, count: columns.tablet },
+    { at: breakpoints.desktop, count: columns.desktop },
+  ]) {
+    if (rung.count === undefined) continue;
+    rules.push(
+      `@container (min-width: ${String(rung.at)}px)` +
+        `{${block}{grid-template-columns:${fixedColumns(rung.count)}}}`
+    );
+  }
+  return rules.join("\n");
+}
+
 export interface SearchResultsPaneProps extends ThemeModeProp {
   /**
    * The card slot (spec §6.2 item 1). A storefront passes
@@ -230,6 +288,26 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * Ignored when `renderResults` replaces the arrangement entirely.
    */
   readonly layout?: SearchResultsLayout;
+  /**
+   * HOW MANY COLUMNS the `"grid"` arrangement draws.
+   *
+   * Default: none of them — `repeat(auto-fill, minmax(260px, 1fr))` decides,
+   * which is the right answer for a storefront that wants as many readable
+   * cards as fit and no breakpoint table to maintain. It is the wrong answer
+   * for a deployment whose cards are taller or wider than the default's, and
+   * such a host had exactly one way to say so: an `!important` rule on this
+   * pane's grid from outside, against a declaration it could not read back.
+   *
+   * A number is that many columns at every width. A map ({@link
+   * ResultsColumns}) is one number per token breakpoint — `{ phone: 1, tablet:
+   * 2 }` is the two-cards-per-row tablet SERP this exists for — compared
+   * against the width of this BLOCK rather than of the window, because the
+   * filter rail takes 280px of that window and the cards never see it.
+   *
+   * Ignored by `layout="list"` (one row per result IS one column) and by
+   * `renderResults`, which replaces the arrangement entirely.
+   */
+  readonly columns?: ResultsColumns;
   /**
    * Heading level for the results caption. Default `4`, which is what every
    * surface that EMBEDS this pane under its own title needs.
@@ -364,6 +442,12 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   const { renderCard, renderResults, wrapResults } = props;
   const scorerName = useScorerNames();
   const maxWidth = props.maxWidth === undefined ? RESULTS_MAX_WIDTH : props.maxWidth;
+  // A column count is the host's opinion about the GRID; the list arrangement
+  // is one column by definition and has nothing to say to it.
+  const columnRules =
+    props.columns === undefined || props.layout === "list"
+      ? null
+      : resultsColumnsCss(props.columns);
 
   return (
     <SkinTheme
@@ -482,9 +566,31 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   ) : (
                     <div
                       style={props.layout === "list" ? RESULTS_LIST : RESULTS_GRID}
+                      // The class carries the host's column count; without one
+                      // it is absent and the `auto-fill` default is the only
+                      // rule in play.
+                      {...(columnRules !== null
+                        ? { className: RESULTS_COLUMNS_CLASS }
+                        : {})}
                       data-testid="search-results-grid"
                       data-layout={props.layout ?? "grid"}
+                      {...(columnRules !== null
+                        ? {
+                            "data-columns":
+                              typeof props.columns === "number"
+                                ? String(props.columns)
+                                : "responsive",
+                          }
+                        : {})}
                     >
+                      {columnRules !== null ? (
+                        <style
+                          href={RESULTS_COLUMNS_STYLE_HREF}
+                          precedence="default"
+                        >
+                          {columnRules}
+                        </style>
+                      ) : null}
                       {items.map((item: SearchItem) => (
                         <div key={item.key}>
                           {renderCard !== undefined ? (

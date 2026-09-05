@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { SearchResultsPane } from "../src/default/index.js";
+import { breakpoints } from "@stapel/tokens";
+import {
+  RESULTS_COLUMNS_CLASS,
+  SearchResultsPane,
+  resultsColumnsCss,
+} from "../src/default/index.js";
 import { SEARCH_SORTS } from "../src/index.js";
 import { errorBody, searchResponse } from "./fixtures.js";
 import { TestHarness, mockServer } from "./harness.js";
@@ -308,5 +313,89 @@ describe("the results are a grid, and a container can bring its own", () => {
       expect(screen.getByTestId("search-empty")).toBeTruthy();
     });
     expect(screen.queryByTestId("own-layout")).toBeNull();
+  });
+});
+
+describe("<SearchResultsPane columns> — the host's own column count", () => {
+  /**
+   * `auto-fill, minmax(260px, 1fr)` is the right answer for a storefront that
+   * wants as many readable cards as fit and no breakpoint table. It is the
+   * wrong one for a deployment whose cards are taller or wider than the
+   * default's, and such a host had exactly one way to say so: an `!important`
+   * rule on this grid from outside, against a declaration it could not read
+   * back.
+   */
+  it("draws exactly N tracks for a number, and says so on the markup", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane columns={2} />
+      </TestHarness>
+    );
+    const grid = await screen.findByTestId("search-results-grid");
+    expect(grid.getAttribute("data-columns")).toBe("2");
+    expect(grid.className).toContain(RESULTS_COLUMNS_CLASS);
+    // `minmax(0, 1fr)` rather than `1fr`: a bare `1fr` is `minmax(auto, 1fr)`,
+    // so one long unbroken title widens the whole row.
+    expect(resultsColumnsCss(2)).toContain("repeat(2, minmax(0, 1fr))");
+    // The rule is a real sheet, because a fixed count has to beat the inline
+    // `auto-fill` declaration the grid still carries.
+    expect(document.querySelector("style")?.textContent ?? "").toBeDefined();
+  });
+
+  it("climbs the token breakpoints for a map — measured on the BLOCK", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane columns={{ phone: 1, tablet: 2, desktop: 4 }} />
+      </TestHarness>
+    );
+    const grid = await screen.findByTestId("search-results-grid");
+    expect(grid.getAttribute("data-columns")).toBe("responsive");
+
+    const css = resultsColumnsCss({ phone: 1, tablet: 2, desktop: 4 });
+    // The grid is its own container: the results column is the window minus a
+    // 280px rail, so a media query would hand it a desktop count at a width it
+    // never has.
+    expect(css).toContain("container-type:inline-size");
+    expect(css).toContain(
+      `@container (min-width: ${String(breakpoints.tablet)}px)`
+    );
+    expect(css).toContain(
+      `@container (min-width: ${String(breakpoints.desktop)}px)`
+    );
+    // Ascending, so the widest matching rung wins by ordinary cascade order.
+    expect(css.indexOf("min-width: 768px")).toBeLessThan(
+      css.indexOf("min-width: 1200px")
+    );
+    // A rung left out inherits the one below it, rather than emitting a rule
+    // that says nothing.
+    expect(resultsColumnsCss({ tablet: 3 })).not.toContain("min-width: 1200px");
+  });
+
+  it("says nothing at all when the host has no opinion", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    const grid = await screen.findByTestId("search-results-grid");
+    expect(grid.hasAttribute("data-columns")).toBe(false);
+    expect(grid.className).not.toContain(RESULTS_COLUMNS_CLASS);
+    expect(grid.style.gridTemplateColumns).toContain("auto-fill");
+  });
+
+  it("is ignored by the list arrangement, which IS one column", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane layout="list" columns={3} />
+      </TestHarness>
+    );
+    const grid = await screen.findByTestId("search-results-grid");
+    expect(grid.getAttribute("data-layout")).toBe("list");
+    expect(grid.hasAttribute("data-columns")).toBe(false);
+    expect(grid.style.gridTemplateColumns).toBe("1fr");
   });
 });

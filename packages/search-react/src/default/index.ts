@@ -63,8 +63,15 @@ export type {
   OtherCategoryNamer,
 } from "./OtherCategoriesLine.js";
 
-export { SearchResultsPane, RESULTS_MAX_WIDTH } from "./SearchResultsPane.js";
+export {
+  SearchResultsPane,
+  RESULTS_MAX_WIDTH,
+  RESULTS_COLUMNS_CLASS,
+  RESULTS_COLUMNS_STYLE_HREF,
+  resultsColumnsCss,
+} from "./SearchResultsPane.js";
 export type {
+  ResultsColumns,
   SearchResultsPaneProps,
   SearchResultsRenderer,
   SearchResultsWrapper,
