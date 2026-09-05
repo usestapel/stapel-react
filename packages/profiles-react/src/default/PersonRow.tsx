@@ -19,14 +19,28 @@
  * have not been told", which is a skeleton, not a blank. Collapsing them into
  * a nullable profile is the exact defect `POST /batch` was built to remove.
  *
- * It is deliberately NOT a link. Routing is the host's (this pair carries no
- * router); `onOpen` makes the row activatable when a host wires one, and
- * without it the row is inert text, not a dead-looking button.
+ * ── A person's name can be a real link ────────────────────────────────────
+ *
+ * For three releases the only activation here was `onOpen`, a click handler on
+ * a `role="button"` div. That is navigation a browser cannot see: no middle
+ * click, no "open in new tab", no "copy link address", no status bar, and
+ * nothing for a crawler — and a seller's name on a listing page is exactly
+ * where a reader reaches for all four (measured on a live storefront, which
+ * wrapped the row in its own anchor and inherited a button inside a link).
+ *
+ * So `href` makes the NAME an anchor, and `linkComponent` swaps that anchor
+ * for the host router's `<Link>` (core's shared seam — this pair still ships
+ * no router, and a library that picked one would pick it for every host).
+ * With `href` the row does not also become a `role="button"`: one activation,
+ * one element, and no button wrapped around a link. `onOpen` still fires on
+ * the click, additively, so a host that instruments the gesture keeps it.
+ * Neither prop given, the row is exactly what it was.
  */
 import type { ReactElement, ReactNode } from "react";
 import { Avatar, Flex, Skeleton, Typography } from "antd";
 import { spacing } from "@stapel/tokens";
 import { useT } from "@stapel/core";
+import type { LinkComponent } from "@stapel/core";
 import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
@@ -69,7 +83,22 @@ export interface PersonRowProps {
   readonly action?: ReactNode;
   /** Replace the default second line (location, else nothing). */
   readonly secondary?: ReactNode;
-  /** Make the row activatable — a host with a router passes navigation. */
+  /**
+   * The person's own page, as a URL. Given, the display NAME becomes a real
+   * link — see the module doc for the four browser affordances a click
+   * handler cannot give back. The pair never builds this route: which path a
+   * profile lives at is the host's, and only the host knows it.
+   */
+  readonly href?: string;
+  /**
+   * The host router's `<Link>` (core's {@link LinkComponent} seam), used for
+   * {@link href}. Absent, `href` renders a plain anchor — correct, and a full
+   * page reload inside a SPA.
+   */
+  readonly linkComponent?: LinkComponent;
+  /** Make the row activatable — a host with a router passes navigation.
+   * Alongside {@link href} it stays a NOTIFICATION (the anchor navigates and
+   * this fires beside it), never a second way to navigate. */
   onOpen?(userId: string): void;
   /** Draw the larger header variant (the public-profile identity block). */
   readonly size?: "row" | "header";
@@ -149,18 +178,53 @@ export function PersonRow(props: PersonRowProps): ReactElement {
         ? location
         : null);
 
+  const nameText = (
+    <Typography.Text
+      strong={props.size === "header"}
+      ellipsis
+      data-stapel-person-name
+    >
+      {name}
+    </Typography.Text>
+  );
+  // The name as a REAL link when the host names the route — see the module
+  // doc. `onOpen` rides along as a notification and never calls
+  // `preventDefault`: the anchor is what navigates.
+  const HostLink = props.linkComponent;
+  const href = props.href;
+  const notify = props.onOpen;
+  const linkAttrs = {
+    "data-stapel-person-link": "",
+    "data-analytics": "none",
+    "data-analytics-reason":
+      "navigation to a host-owned route; the host instruments its own router",
+    ...(notify === undefined
+      ? {}
+      : {
+          onClick: () => {
+            notify(props.userId);
+          },
+        }),
+  } as const;
+  const nameNode: ReactNode =
+    href === undefined ? (
+      nameText
+    ) : HostLink !== undefined ? (
+      <HostLink href={href} {...linkAttrs}>
+        {nameText}
+      </HostLink>
+    ) : (
+      <Typography.Link href={href} {...linkAttrs}>
+        {nameText}
+      </Typography.Link>
+    );
+
   const body = (
     <Flex align="center" gap={spacing[3]} style={{ width: "100%", minWidth: 0 }}>
       <PersonAvatar profile={profile} fallbackName={name} side={side} />
       <Flex vertical style={{ minWidth: 0, flex: 1 }}>
         <Flex align="center" gap={spacing[2]} style={{ minWidth: 0 }}>
-          <Typography.Text
-            strong={props.size === "header"}
-            ellipsis
-            data-stapel-person-name
-          >
-            {name}
-          </Typography.Text>
+          {nameNode}
           {props.isSelf === true && (
             <Typography.Text type="secondary">
               {t(PROFILES_I18N_KEYS.personYou)}
@@ -179,7 +243,10 @@ export function PersonRow(props: PersonRowProps): ReactElement {
     </Flex>
   );
 
-  const open = props.onOpen;
+  // With a real link in the row, the row itself is NOT also a button: one
+  // destination gets one activatable element, and a `role="button"` wrapped
+  // around an anchor is two announcements and an unreachable inner target.
+  const open = href !== undefined ? undefined : props.onOpen;
   if (open === undefined) {
     return (
       <div
