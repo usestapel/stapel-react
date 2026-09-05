@@ -14,7 +14,7 @@ export {
   safeNextPath,
   safeScanRedirect,
 } from "./api/urls.js";
-export type { AuthUrls } from "./api/urls.js";
+export type { AuthUrls, OauthAuthorizeTarget } from "./api/urls.js";
 export {
   isTotpChallenge,
   isAuthResponse,
@@ -35,6 +35,8 @@ export type {
   PasswordOtpChangeResponse,
   PasswordRegisterRequest,
   OtpChannel,
+  OtpVerifyOptions,
+  SignupAttribution,
   OAuthProviderInfo,
   RegistrationCapabilities,
   LoginCapabilities,

@@ -30,7 +30,11 @@ import {
 } from "@stapel/core";
 import type { FlowErrorDisplay } from "@stapel/core";
 import type { FlowError } from "../flows/errors.js";
-import type { OAuthProviderInfo, OtpChannel } from "../api/types.js";
+import type {
+  OAuthProviderInfo,
+  OtpChannel,
+  SignupAttribution,
+} from "../api/types.js";
 import { authUrls } from "../api/urls.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
 import type { SsoState } from "../flows/ssoFlow.js";
@@ -215,6 +219,12 @@ function OtpCodeStep(props: {
 export function OtpPanel(props: {
   channel: OtpChannel;
   /**
+   * Advertising capture from the host's landing page, forwarded on the verify
+   * call — the request that REGISTERS an account on this channel. See
+   * `SignupAttribution`; absent, this panel sends exactly what it always did.
+   */
+  attribution?: SignupAttribution | (() => SignupAttribution | undefined);
+  /**
    * Suppress the field's own "Email"/"Phone" label (owner UX audit
    * 2026-07-17): when this panel IS a main tab, the tab strip already says
    * "Email"/"Phone" — repeating it as the field label read as "Email
@@ -246,7 +256,11 @@ export function OtpPanel(props: {
       : AUTH_I18N_KEYS.uiPhonePlaceholder;
 
   return (
-    <PasswordlessLogin>
+    <PasswordlessLogin
+      {...(props.attribution !== undefined
+        ? { attribution: props.attribution }
+        : {})}
+    >
       {(bag) => {
         const s = bag.state;
         const sent =

@@ -838,3 +838,117 @@ describe("toAntdThemeConfig drives antd's runtime token (AuthPanel's theme sourc
     );
   });
 });
+
+describe("<AuthPanel headingLevel> — whose outline is this", () => {
+  /**
+   * Which level zone A's title takes is a fact about the DOCUMENT the panel
+   * was mounted into. On its own route the title is the page's `<h1>`; inside
+   * a host's own branded card (`chrome="bare"`, under the host's `<h1>`) a
+   * second first-level heading is an outline with two beginnings — and until
+   * this prop existed the host had no way to say which it was.
+   */
+  it("is an h3 by default — the level this panel has always drawn", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPABILITIES))
+    );
+    render(wrap(createAuthRuntime({ baseUrl: BASE }), <AuthPanel mode="light" />));
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-panel-title")).toBeDefined()
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Sign in" })
+    ).toBeDefined();
+  });
+
+  it("takes the level the host states, with the same words in it", async () => {
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPABILITIES))
+    );
+    render(
+      wrap(
+        createAuthRuntime({ baseUrl: BASE }),
+        <AuthPanel mode="light" headingLevel={1} chrome="bare" />
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-panel-title")).toBeDefined()
+    );
+    const title = screen.getByTestId("auth-panel-title");
+    expect(title.tagName.toLowerCase()).toBe("h1");
+    expect(title.textContent).toBe("Sign in");
+    expect(screen.queryByRole("heading", { level: 3, name: "Sign in" })).toBeNull();
+  });
+});
+
+describe("<AuthPanel attribution> reaches the verify call", () => {
+  /**
+   * The verify call is the request that REGISTERS on the email/phone channel,
+   * so it is the only place the landing page's advertising capture can be
+   * attached to the account it creates. Asserted on the WIRE, through the
+   * real panel and the real flow — a hand-built call would prove only that
+   * the api function forwards a field, which is the half that was never in
+   * doubt.
+   */
+  it("carries the host's object on the body the server parses", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(CAPABILITIES)),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      ),
+      http.post(`${BASE}/email/verify/`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({
+          status: "REGISTERED",
+          user: { id: "u1" },
+        });
+      })
+    );
+    render(
+      wrap(
+        createAuthRuntime({ baseUrl: BASE }),
+        <AuthPanel
+          mode="light"
+          attribution={{
+            click_id: "EAIaIQ",
+            click_id_type: "gclid",
+            captured_at: "2026-09-06T10:00:00Z",
+          }}
+        />
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("you@example.com")).toBeDefined()
+    );
+    fireEvent.change(screen.getByPlaceholderText("you@example.com"), {
+      target: { value: "a@b.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    await waitFor(() =>
+      expect(document.querySelectorAll(".ant-otp input").length).toBe(6)
+    );
+    // The code field submits itself on its last character — the panel has no
+    // verify button, so this is how a person actually finishes the flow.
+    const boxes = [
+      ...document.querySelectorAll<HTMLInputElement>(".ant-otp input"),
+    ];
+    "123456".split("").forEach((digit, index) => {
+      const box = boxes[index];
+      if (box === undefined) throw new Error("missing code box");
+      // `input`, not `change`: antd's OTP boxes listen for the real typing
+      // event, and a `change` on them is a gesture no browser sends.
+      box.focus();
+      fireEvent.input(box, { target: { value: digit } });
+    });
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toEqual({
+      email: "a@b.com",
+      code: "123456",
+      attribution: {
+        click_id: "EAIaIQ",
+        click_id_type: "gclid",
+        captured_at: "2026-09-06T10:00:00Z",
+      },
+    });
+  });
+});

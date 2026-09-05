@@ -161,6 +161,51 @@ export type RefreshResponse = Schemas["TokenPairResponse"];
 /** Which identifier channel an OTP flow uses. */
 export type OtpChannel = "email" | "phone";
 
+/**
+ * WHERE A SIGN-UP CAME FROM — the optional `attribution` object a
+ * registration request may carry (stapel-auth ≥0.34).
+ *
+ * HAND-AUTHORED, and the reason is the pin rather than the generator: this
+ * pair is built against the contract `contract-pins.json` names, and that
+ * contract's verify serializers predate the field. The wire shape is
+ * stapel-auth's `SignupAttribution`, transcribed from the released schema —
+ * an advertising click identifier, which of the three kinds it is, when the
+ * client captured it, and the campaign tags off the same landing URL. The
+ * server ignores unknown keys inside it, so a capture library that learns a
+ * new tag does not start refusing sign-ups; a MALFORMED object is refused
+ * with `error.400.attribution_invalid`.
+ *
+ * Nothing here is a value this pair can invent: the whole object is captured
+ * on the host's landing page, minutes before any auth screen is mounted, and
+ * is handed to the call that registers the account. It is stored only when
+ * the call REGISTERS, and ignored on a login.
+ */
+export interface SignupAttribution {
+  /** The click identifier read off the landing URL. */
+  readonly click_id: string;
+  /** Which of the three it is — the offline conversion upload names the field
+   * rather than guessing: `gbraid`/`wbraid` arrive instead of a `gclid` when
+   * the visitor declined app tracking. */
+  readonly click_id_type: "gclid" | "gbraid" | "wbraid";
+  /** When the CLIENT captured it (ISO 8601). Required by the server: a
+   * conversion upload has to state the click time. */
+  readonly captured_at: string;
+  /** The standard campaign tags off the same URL — every one optional. */
+  readonly utm?: {
+    readonly source?: string;
+    readonly medium?: string;
+    readonly campaign?: string;
+    readonly term?: string;
+    readonly content?: string;
+  };
+}
+
+/** What a verify call may carry BESIDES the code — see
+ * {@link SignupAttribution}. */
+export interface OtpVerifyOptions {
+  readonly attribution?: SignupAttribution;
+}
+
 // ── Capabilities ─────────────────────────────────────────────────────────────
 // GENERATED as of stapel-auth 0.6.0: `GET /auth/api/v1/capabilities/` now
 // carries a real response serializer (`AuthCapabilities`) — the endpoint used

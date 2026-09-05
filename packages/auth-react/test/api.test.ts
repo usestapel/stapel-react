@@ -82,6 +82,109 @@ describe("browser-redirect URL builders", () => {
     expect(u.ssoLogin("acme")).toBe("/auth/api/v1/sso/acme/login/");
     expect(u.qrScan("k1")).toBe("/auth/api/v1/qr/k1/scan/");
   });
+
+  /**
+   * A full-page navigation has one channel for anything the host needs to say
+   * on the way out, and the thing a storefront needs to say at this door is
+   * where the sign-up came from — captured on the landing page, navigations
+   * earlier. Before this the host either hand-built the URL or smuggled the
+   * tags inside `redirect_uri`, where they came back on its own address.
+   */
+  it("carries the host's extra query parameters through the authorize door", () => {
+    const u = authUrls("/auth/api/v1");
+    const href = u.oauthAuthorize("google", {
+      redirect_uri: "https://app/after",
+      params: {
+        click_id: "EAIaIQ+bo/gus",
+        click_id_type: "gclid",
+        captured_at: "2026-09-06T10:00:00Z",
+        utm_source: "google",
+      },
+    });
+    const url = new URL(href, "https://app");
+    expect(url.pathname).toBe("/auth/api/v1/oauth/google/authorize/");
+    // Every value survives the round trip through the encoder, punctuation
+    // included — the whole reason this is not a string the host concatenates.
+    expect(url.searchParams.get("redirect_uri")).toBe("https://app/after");
+    expect(url.searchParams.get("click_id")).toBe("EAIaIQ+bo/gus");
+    expect(url.searchParams.get("click_id_type")).toBe("gclid");
+    expect(url.searchParams.get("captured_at")).toBe("2026-09-06T10:00:00Z");
+    expect(url.searchParams.get("utm_source")).toBe("google");
+    // The address stays this module's: `redirect_uri` is written first and a
+    // host cannot displace it from `params`.
+    expect(href.indexOf("redirect_uri=")).toBeLessThan(href.indexOf("click_id="));
+  });
+
+  it("refuses to let params overwrite the redirect it was given", () => {
+    const href = authUrls("/auth/api/v1").oauthAuthorize("google", {
+      redirect_uri: "https://app/after",
+      params: { redirect_uri: "https://evil.example/steal" },
+    });
+    const url = new URL(href, "https://app");
+    expect(url.searchParams.getAll("redirect_uri")).toEqual([
+      "https://app/after",
+    ]);
+    expect(href).not.toContain("evil.example");
+  });
+
+  it("still takes a bare string, byte for byte as before", () => {
+    expect(
+      authUrls("/auth/api/v1").oauthAuthorize("google", {
+        redirect_uri: "https://app/after",
+      })
+    ).toBe(
+      authUrls("/auth/api/v1").oauthAuthorize("google", "https://app/after")
+    );
+  });
+});
+
+describe("otpVerify carries the landing page's attribution", () => {
+  /**
+   * The verify call is the one that REGISTERS on this channel, so it is the
+   * only place an advertising capture can be attached to the account it
+   * created. Asserted on the WIRE — the body the server would parse — because
+   * the value's whole job is to be a key in that JSON.
+   */
+  it("puts the object on the wire verbatim when the caller has one", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post(`${BASE}/email/verify/`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ status: "LOGGED_IN", user: { id: "u1" } });
+      })
+    );
+    await makeApi().otpVerify("email", "a@b.com", "123456", {
+      attribution: {
+        click_id: "EAIaIQ",
+        click_id_type: "gclid",
+        captured_at: "2026-09-06T10:00:00Z",
+        utm: { source: "google", campaign: "spring" },
+      },
+    });
+    expect(body).toEqual({
+      email: "a@b.com",
+      code: "123456",
+      attribution: {
+        click_id: "EAIaIQ",
+        click_id_type: "gclid",
+        captured_at: "2026-09-06T10:00:00Z",
+        utm: { source: "google", campaign: "spring" },
+      },
+    });
+  });
+
+  it("adds NO key at all when the caller has none", async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${BASE}/phone/verify/`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ status: "LOGGED_IN", user: { id: "u1" } });
+      })
+    );
+    await makeApi().otpVerify("phone", "+79990000000", "123456");
+    expect(body).toEqual({ phone: "+79990000000", code: "123456" });
+    expect(body === null ? [] : Object.keys(body)).not.toContain("attribution");
+  });
 });
 
 describe("authApi — OAuth account links (§0.5.9's /oauth/links/ trio)", () => {

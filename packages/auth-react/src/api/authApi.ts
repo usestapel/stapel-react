@@ -16,6 +16,7 @@ import type {
   MfaEnrollSessionResponse,
   OtpChannel,
   OtpRequestResponse,
+  OtpVerifyOptions,
   Passkey,
   PasskeyRegistered,
   PasskeyAuthenticateBeginResponse,
@@ -115,7 +116,19 @@ export interface AuthApi {
 
   // Email / Phone OTP (auth-sa.md §1–2)
   otpRequest(channel: OtpChannel, value: string, captchaToken?: string): Promise<OtpRequestResponse>;
-  otpVerify(channel: OtpChannel, value: string, code: string): Promise<AuthResponse>;
+  /**
+   * Verify the code. `options.attribution` is the landing page's advertising
+   * capture, forwarded verbatim — see {@link OtpVerifyOptions}. It is sent
+   * ONLY when the caller has one: an absent option adds no key to the body,
+   * so a deployment that captures nothing puts exactly the bytes on the wire
+   * it always did.
+   */
+  otpVerify(
+    channel: OtpChannel,
+    value: string,
+    code: string,
+    options?: OtpVerifyOptions
+  ): Promise<AuthResponse>;
 
   // Password (auth-sa.md §3–5)
   passwordLogin(login: string, password: string): Promise<LoginResponse>;
@@ -325,8 +338,14 @@ export function createAuthApi(client: StapelClient): AuthApi {
           : { [channel]: value, captcha_token: captchaToken },
         mutating()
       ),
-    otpVerify: (channel, value, code) =>
-      client.post(`/${channel}/verify/`, { [channel]: value, code }, mutating()),
+    otpVerify: (channel, value, code, options) =>
+      client.post(
+        `/${channel}/verify/`,
+        options?.attribution === undefined
+          ? { [channel]: value, code }
+          : { [channel]: value, code, attribution: options.attribution },
+        mutating()
+      ),
 
     passwordLogin: (login, password) =>
       client.post("/password/login/", { login, password }, mutating()),

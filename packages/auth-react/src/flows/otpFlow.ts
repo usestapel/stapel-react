@@ -1,6 +1,10 @@
 import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
-import type { AuthResponse, OtpChannel } from "../api/types.js";
+import type {
+  AuthResponse,
+  OtpChannel,
+  SignupAttribution,
+} from "../api/types.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { AUTH_FLOWS } from "./generated/flows.gen.js";
@@ -75,6 +79,21 @@ export interface OtpFlowDeps {
   readonly analytics?: Analytics | null;
   /** Called with the session-bearing response on success (token persistence). */
   readonly onAuthenticated?: (result: AuthResponse) => void;
+  /**
+   * WHERE THIS SIGN-UP CAME FROM — carried on the verify call, which is the
+   * request that registers an account on this channel (the request half only
+   * sends a code). See {@link SignupAttribution}: it is captured on the
+   * host's landing page long before this flow is mounted, so nothing in here
+   * can produce it and nothing in here interprets it — the object is
+   * forwarded verbatim and dropped on a login by the server.
+   *
+   * A function rather than only a value, because the capture may still be
+   * landing when the flow is CREATED and is certainly settled by the time a
+   * code is submitted: read at the moment of the call, never at mount.
+   */
+  readonly attribution?:
+    | SignupAttribution
+    | (() => SignupAttribution | undefined);
 }
 
 const LOCKED_STATUS = 423;
@@ -150,7 +169,15 @@ export function createOtpFlow(deps: OtpFlowDeps): OtpFlow {
     const { channel, value, target } = s;
     await machine.run(
       { step: "verifying", channel, value, target },
-      () => deps.api.otpVerify(channel, value, code),
+      () => {
+        const attribution =
+          typeof deps.attribution === "function"
+            ? deps.attribution()
+            : deps.attribution;
+        return attribution === undefined
+          ? deps.api.otpVerify(channel, value, code)
+          : deps.api.otpVerify(channel, value, code, { attribution });
+      },
       {
         resolve: (result): OtpState => {
           deps.onAuthenticated?.(result);

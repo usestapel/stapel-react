@@ -82,7 +82,7 @@ import {
   resolveInteraction,
 } from "./channels.js";
 import type { ChannelId } from "./channels.js";
-import type { AuthMethodInfo } from "../api/types.js";
+import type { AuthMethodInfo, SignupAttribution } from "../api/types.js";
 import {
   MagicLinkPanel,
   OAuthPanel,
@@ -210,6 +210,35 @@ export interface AuthPanelProps {
    *   the chrome already states its identity outside the panel.
    */
   readonly chrome?: "card" | "bare";
+  /**
+   * WHICH HEADING LEVEL zone A's title takes. Default `3`, what this panel
+   * has always rendered, so no existing host changes shape.
+   *
+   * The level is a fact about the DOCUMENT, not about this panel. Mounted on
+   * its own `/sign-in` route the title IS the page's `<h1>`; mounted inside a
+   * host's own branded card under the host's own `<h1>` (`chrome="bare"` —
+   * the same composition that prop exists for) a second first-level heading
+   * is an outline with two beginnings, and a panel in a dialog wants an
+   * `<h2>`. Only the composing surface knows which, and it had no way to say.
+   *
+   * The words are unchanged: this moves the tag, never the copy.
+   */
+  readonly headingLevel?: 1 | 2 | 3;
+  /**
+   * WHERE THIS SIGN-UP CAME FROM — forwarded to the email/phone code panels,
+   * which carry it on the verify call that registers the account. See
+   * `SignupAttribution`; a function is read at the moment of the call, for a
+   * capture that is itself still landing when the screen mounts.
+   *
+   * The panel neither captures nor interprets it: an advertising click
+   * identifier is read off the landing URL minutes before any auth screen
+   * exists, so only the host can hold it, and only the server decides whether
+   * a given verify REGISTERS (where it is stored) or logs in (where it is
+   * ignored).
+   */
+  readonly attribution?:
+    | SignupAttribution
+    | (() => SignupAttribution | undefined);
 }
 
 /**
@@ -326,12 +355,14 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
    * the flag. The overflow/bottom dialog has no tab label in view, so it
    * always gets the full (labelled) panel.
    */
+  const otpAttribution =
+    props.attribution !== undefined ? { attribution: props.attribution } : {};
   function channelPanel(id: ChannelId, opts?: { asMainTab?: boolean }): ReactElement | null {
     switch (id) {
       case "email":
-        return <OtpPanel channel="email" {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
+        return <OtpPanel channel="email" {...otpAttribution} {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "phone":
-        return <OtpPanel channel="phone" {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
+        return <OtpPanel channel="phone" {...otpAttribution} {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "password":
         // By default password is a credential, never a registration anchor,
         // so `enabledRegistrationChannels` does not route it here on the
@@ -446,7 +477,11 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
           {/* Zone A — brand, title, and the single system-notice slot */}
           <Flex vertical gap="small">
             {props.brand ?? (bare ? null : <SlotPlaceholder name="brand" />)}
-            <Typography.Title level={3} style={{ margin: 0 }}>
+            <Typography.Title
+              level={props.headingLevel ?? 3}
+              style={{ margin: 0 }}
+              data-testid="auth-panel-title"
+            >
               {t(
                 variant === "register"
                   ? AUTH_I18N_KEYS.uiRegisterTitle

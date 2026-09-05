@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import type { OtpChannel } from "../api/types.js";
+import type { OtpChannel, SignupAttribution } from "../api/types.js";
 import { createOtpFlow } from "../flows/otpFlow.js";
 import type { OtpState } from "../flows/otpFlow.js";
 import { useFlow } from "@stapel/core";
@@ -30,6 +30,10 @@ export interface PasswordlessLoginBag {
  */
 export function PasswordlessLogin(props: {
   children: (bag: PasswordlessLoginBag) => ReactNode;
+  /** Advertising capture from the host's landing page, carried on the verify
+   * call — see `OtpFlowDeps.attribution`. Absent, the body is byte-identical
+   * to what this flow has always sent. */
+  attribution?: SignupAttribution | (() => SignupAttribution | undefined);
 }): ReactNode {
   const api = useAuthApi();
   const analytics = useAuthAnalytics();
@@ -40,8 +44,11 @@ export function PasswordlessLogin(props: {
         api,
         analytics,
         onAuthenticated: (r) => session.adopt(r),
+        ...(props.attribution !== undefined
+          ? { attribution: props.attribution }
+          : {}),
       }),
-    [api, analytics, session]
+    [api, analytics, session, props.attribution]
   );
   const state = useFlow(flow.machine);
   return props.children({
