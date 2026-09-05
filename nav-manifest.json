@@ -280,7 +280,7 @@
     },
     {
       "package": "@stapel/chat-react",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "entries": [
         {
           "id": "chat.conversations",
@@ -510,7 +510,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.25.6",
+      "version": "0.25.7",
       "entries": [
         {
           "id": "listings.detail",
@@ -1002,7 +1002,7 @@
     },
     {
       "package": "@stapel/video-react",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "entries": [
         {
           "id": "video.rooms",

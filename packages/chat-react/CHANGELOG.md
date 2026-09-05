@@ -1,5 +1,17 @@
 # @stapel/chat-react
 
+## 0.10.1
+
+### Patch Changes
+
+- The call button reaches the desktop split, and can gate a thread that does not exist yet.
+
+  **`<ConversationSplitPanel renderHeaderActions>`.** The slot lived on `<ConversationThreadPanel>` and the desktop arrangement mounts that panel itself, so a host composing the two panes by hand could pass a call button and a host taking this arrangement could not — the same deployment grew one on the phone's thread screen and had none beside the desktop thread. Forwarded verbatim, with the same context on both surfaces; a host that passes nothing gets exactly the header it had.
+
+  **`<StartCall ensureConversation>` (and `<StartCallButton>`'s pass-through).** A call needs a conversation because that is what the server's authorizer reads, and on a listing page there is none yet: nobody has written to this seller. With only `conversationId` to go on the control had one honest answer there — blocked, "open the conversation first" — which is a true sentence on the screen where "Call" is exactly what the person wants, and it left hosts either hiding the button or pre-creating an empty thread for every listing anyone looked at. Supplied, an absent `conversationId` stops blocking and the thread becomes a step of the press: the seam is the host's, because creating one is (`POST /conversations/` needs the subject and participants only the host knows). Every OTHER gate is untouched — a visitor, a missing counterpart, calling yourself, being mid-call all still block before the press, which is the whole point of the component. Resolving to nothing places no call, and anything thrown reaches `bag.error` and, in the skinned button, the pair's own error surface — a press that had to make the thread first can fail before there is a call to fail, and a blocked REASON cannot say that.
+
+  Ceilings raised deliberately, measured with dependencies held constant (src at HEAD, then with the change): index 10.66 → 10.80 KB (11 → 11.25 KB), default 15.95 → 16.13 KB (16.2 → 16.5 KB) — the old line had 70 B of room left, which is a gate that fails on the next honest byte.
+
 ## 0.10.0
 
 ### Minor Changes

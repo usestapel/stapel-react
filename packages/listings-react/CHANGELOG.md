@@ -1,5 +1,23 @@
 # @stapel/listings-react
 
+## 0.25.7
+
+### Patch Changes
+
+- A card's photographs can be swiped on a phone again — the strip's own scroll position is now the truth.
+
+  Measured on the stand with a real touch sequence (probe p23): the gesture and the CSS were fine, the strip received the swipe and scrolled to 335.5px — and 284ms later the same code scrolled it back to 0. Wheel and scripted scrolls ended at 307; every touch drag and fling ended at 0, so on a phone no card's second photograph could be reached at all.
+
+  The cause was two disagreeing answers to "which photograph is on screen". A native scroll moves the strip without telling `useCardGallery`, so its `active` stayed 0 while the browser was showing 1 — and the hook's effect, on the next render, imposed the stale answer by scrolling back. Two changes, both about who owns the position:
+
+  - the effect now drives the strip ONLY for a move the hook asked for (a `requested` ref, honoured once and cleared); an `active` that arrives from the strip is reported, never re-imposed;
+  - `<SkinCarousel onSlideChange>` — which the card already mounts for its dots, so it costs no second listener — feeds the scroll-derived index back in, making the browser's position the source of truth for touch;
+  - and the rewind-to-first on `pointerleave` is a HOVER rule again: a cursor crossing a grid must leave forty tiles as it found them, but `pointerleave` fires for a touch pointer the moment it lifts, which is what rewound every swipe a fraction of a second after it landed.
+
+  The regression test drives a native scroll to the third slide and the re-render that follows a finger lifting, and asserts nothing scrolls back; it fails against the previous code.
+
+  Measured with dependencies held constant: the `default` bundle 24.59 → 24.64 KB, inside its 25 KB ceiling.
+
 ## 0.25.6
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @stapel/video-react
 
+## 0.3.1
+
+### Patch Changes
+
+- A call that can actually load its SDK, and an audio-only call you can hear.
+
+  **The peer import is a literal again.** `<CallStage>` held the specifier in a `string`-typed constant so TypeScript would not resolve a package a host may not install. What it bought was a call that could never connect: `import(someString)` is invisible to every bundler, so no chunk was emitted and the browser was left to resolve a BARE specifier at runtime, which browsers do not do. Hosts that HAD `livekit-client` installed, and had done nothing wrong, got the designed absence screen — "video is not available" — on every call. The import is now written out, so bundlers split it into its own chunk fetched at the moment a token exists; `loadPeer` is the documented override for a host whose build must not see the specifier, and the `missing` arm still catches a load that fails at runtime. A test reads the module source, because every other test in that file injects `loadPeer` and therefore cannot see the loader that ships.
+
+  **The audio-only arm mounts the host's remote media.** It drew a card with the caller's name INSTEAD of calling `renderRemote`, so on an audio-only call there was no element for the remote audio track to attach to — a silent call, on the one kind of call that is nothing but audio. `renderRemote` is now called in both arms and told which one is asking (`{ audioOnly }`, forwarded by `<CallRoute>` too); in the audio-only arm what comes back is mounted in a one-pixel sink behind the card, present in the layout rather than `display: none`, because a media element in a hidden subtree is exactly what a browser may stop feeding. The card is what a person sees; the sink is what they hear.
+
+  Measured with dependencies held constant: the `default` bundle 17.35 → 17.60 KB, inside its 20 KB ceiling.
+
 ## 0.3.0
 
 ### Minor Changes
