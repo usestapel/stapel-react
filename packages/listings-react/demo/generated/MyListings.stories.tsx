@@ -18,6 +18,9 @@ TakenDown.parameters = { stapel: {"viewport":"phone","step":"takedown_above_tabs
 export const Visitor = (): ReactElement => renderDemoVariant(demo, "visitor");
 Visitor.storyName = "visitor";
 Visitor.parameters = { stapel: {"viewport":"phone","step":"no_mandate"} };
+export const Archived = (): ReactElement => renderDemoVariant(demo, "archived");
+Archived.storyName = "archived";
+Archived.parameters = { stapel: {"viewport":"phone","step":"archived_tab_deletable"} };
 export const Failed = (): ReactElement => renderDemoVariant(demo, "failed");
 Failed.storyName = "failed";
 Failed.parameters = { stapel: {"viewport":"desktop","step":"rows_failed"} };

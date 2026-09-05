@@ -1,4 +1,4 @@
-# @stapel/listings-react 0.25.4
+# @stapel/listings-react 0.25.5
 
 Headless React flow pair for stapel-listings (contract >=0.21 <0.22) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -119,7 +119,7 @@ const { tracked } = useTracked();
 - listings.engagement-scope → <ListingEngagementScope> [default|unscoped|visitor|failed]  demo/ListingEngagementScope.demo.tsx
 - listings.favorites → <FavoritesPane> [default|paged|empty|failed|visitor]  demo/Favorites.demo.tsx
 - listings.feed-card → <ListingFeedCard> [default|tile|visitor|wide]  demo/ListingFeedCard.demo.tsx
-- listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|failed]  demo/MyListings.demo.tsx
+- listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|archived|failed]  demo/MyListings.demo.tsx
 - listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
 - listings.photo-strip → <ListingPhotoStrip> [default|single|no photos]  demo/ListingPhotoStrip.demo.tsx
 - listings.serp-card → <ListingSerpCard> [default|trend|visitor|desktop row|bare]  demo/ListingSerpCard.demo.tsx

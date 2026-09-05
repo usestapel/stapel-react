@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/chat-react",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "backend": {
     "module": "stapel-chat",
     "contract": ">=0.8 <0.9"
@@ -537,7 +537,7 @@
     {
       "id": "chat.conversation-list-panel",
       "title": "Inbox (default skin)",
-      "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
+      "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. A row with a subject carries TWO destinations and two hit areas — the row itself opens the thread, the subject title is a link to the listing, and neither contains the other because an anchor inside an anchor is not a document. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
       "component": "ConversationListPanel",
       "covers": [
         "CounterpartyAvatar"
