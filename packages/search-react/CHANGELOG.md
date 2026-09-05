@@ -1,5 +1,23 @@
 # @stapel/search-react
 
+## 0.32.2
+
+### Patch Changes
+
+- `pinnedFacets` on `<SearchPage>` reaches the panel.
+
+  The prop was declared and documented on `SearchPageProps` — "slugs pinned
+  above every other group" — and never forwarded past the page: `SearchPage`
+  did not destructure it, `SearchPageBody` had no slot for it, and the
+  `<FacetPanelPane>` call it renders never received it. A host pinning a facet
+  through `<SearchPage>` (rather than mounting `<FacetPanelPane>` directly) got
+  the plan's own order back, silently.
+
+  `pinnedFacets` now travels `SearchPage` → `SearchPageBody` → `<FacetPanelPane>`.
+  Both places the page draws the panel — the desktop rail and the phone
+  sheet — render the same element, so the one prop reaches both without a
+  separate seam for either.
+
 ## 0.32.1
 
 ### Patch Changes
