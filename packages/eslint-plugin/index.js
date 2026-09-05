@@ -193,6 +193,23 @@ const STORAGE_ALLOWED = [
   "**/core/src/storage.{ts,js}",
   "**/core/src/repository.{ts,js}",
   "**/core/src/query.{ts,js}",
+  // `SessionManager` — the same file `ADHOC_401_ALLOWED` already names, and
+  // for the same structural reason: it is what `createRepository` is BUILT
+  // ON, so it cannot persist through it. Its one raw read is the cross-reload
+  // refresh handoff marker — a per-tab `sessionStorage` timestamp saying "a
+  // token rotation is out right now", which must be readable synchronously at
+  // construction (before any await, or the next document has already
+  // dispatched its own refresh) and must NOT be wiped at logout (a logout is
+  // exactly when the last rotation still has to be visible to the page that
+  // loads next). §43.4's guarantees — encrypt user data, wipe it at logout —
+  // are about the opposite kind of value.
+  //
+  // Carved out HERE rather than disabled at the line: a file that is already
+  // a named exception for one rule of the same seam does not need an inline
+  // essay for the other, and a structural carve-out is visible to anyone
+  // reading the preset, where an inline disable is visible only to whoever
+  // opens that file.
+  "**/core/src/session.{ts,js}",
 ];
 
 // @stapel/core's client + session internals — the ONE legal home of 401

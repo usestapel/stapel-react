@@ -383,3 +383,61 @@ describe("recommended preset — antd 6's Alert rename", () => {
     expect(plugin.rules["antd-alert-title"].meta.fixable).toBe("code");
   });
 });
+
+// ── The session manager's two carve-outs are ONE carve-out ──────────────────
+//
+// `packages/core/src/session.ts` was already the named exception for
+// `no-adhoc-401` (it is where the single-flight refresh lives) and carried an
+// inline `eslint-disable` for `no-raw-storage` on top — a paragraph of
+// justification at a line, invisible to anyone reading the preset. The reason
+// is structural, not local: `SessionManager` is what `createRepository` is
+// BUILT ON, so it cannot persist through it, and its one raw read is the
+// per-tab refresh-handoff marker (synchronous at construction, deliberately
+// not wiped at logout). A structural exception belongs in the structure.
+describe("recommended preset — core's session manager", () => {
+  const RAW_STORAGE = "export const s = sessionStorage.getItem(k);\n";
+  const ADHOC_401 = "export const f = (r) => { if (r.status === 401) { retry(); } };\n";
+
+  it("allows the raw storage read in core/src/session.ts", async () => {
+    const messages = await lintUnder(
+      recommended,
+      "packages/core/src/session.ts",
+      RAW_STORAGE
+    );
+    expect(messages.filter((m) => m.ruleId === "stapel/no-raw-storage")).toHaveLength(0);
+  });
+
+  it("still allows the 401 handling there — the older half of the same seam", async () => {
+    const messages = await lintUnder(
+      recommended,
+      "packages/core/src/session.ts",
+      ADHOC_401
+    );
+    expect(messages.filter((m) => m.ruleId === "stapel/no-adhoc-401")).toHaveLength(0);
+  });
+
+  it("reports the SAME code one file over — the carve-out is a path, not an off switch", async () => {
+    // Without this the assertions above pass for a file ESLint never linted.
+    const messages = await lintUnder(
+      recommended,
+      "packages/core/src/tokenStore.ts",
+      RAW_STORAGE
+    );
+    expect(
+      messages.filter((m) => m.ruleId === "stapel/no-raw-storage").length
+    ).toBeGreaterThan(0);
+  });
+
+  it("does not open the door for another package's session file", async () => {
+    // `**/core/src/session.{ts,js}` — a pair's own `model/session.ts` is a
+    // different file and keeps the rule.
+    const messages = await lintUnder(
+      recommended,
+      "packages/auth-react/src/model/session.ts",
+      RAW_STORAGE
+    );
+    expect(
+      messages.filter((m) => m.ruleId === "stapel/no-raw-storage").length
+    ).toBeGreaterThan(0);
+  });
+});
