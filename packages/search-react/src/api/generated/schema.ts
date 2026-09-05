@@ -351,6 +351,8 @@ export interface components {
             score: number;
             /** @description Whether this result is promoted. Present on EVERY item under EVERY sort, including when false — a mandatory marking (DSA Art. 26), not an optional field. */
             promoted: boolean;
+            /** @description The seller this row belongs to, as the source named them — the same opaque key `owner=` filters on. Present on every item so a result page can draw a seller panel per card and read the profiles in one batched call by id; `""` when the source indexed no owner, never a missing key. It is not a facet and not a ranking input: this module stores the id and nothing else about the seller. */
+            owner_key: string;
             /**
              * Format: double
              * @description Great-circle distance from the searched centre, in km. For an ANONYMOUS reader it is measured from the same ~1.1km grid point the card publishes and floored to that grid's quantum (the cell's diagonal, ~1.574km): a distance finer than the position it came from is the position, three requests away. The listing's own owner, staff and the service transport get the exact number. Coarse is enough for what it drives — a card saying «12 км» does not need metres — and it never overstates proximity, being floored rather than rounded.

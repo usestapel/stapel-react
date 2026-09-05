@@ -110,6 +110,7 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
       key: "l-1001",
       score: 1.42,
       promoted: true,
+      owner_key: "u-1001",
       distance_km: 3.4,
       card: {
         title: "Bosch GSB 13 RE",
@@ -129,6 +130,7 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
       key: "l-1002",
       score: 1.1,
       promoted: false,
+      owner_key: "u-1002",
       distance_km: 11.9,
       card: {
         title: "Makita HP1630",
@@ -144,6 +146,7 @@ export const DEMO_SEARCH_RESPONSE: SearchResponse = {
       key: "l-1003",
       score: 0.8,
       promoted: false,
+      owner_key: "",
       distance_km: null,
       card: {
         title: "Interskol DU-13",
@@ -218,6 +221,7 @@ export const DEMO_PROMOTED_ITEM: SearchItem = {
   key: "l-1001",
   score: 1.42,
   promoted: true,
+  owner_key: "u-1001",
   distance_km: 3.4,
   card: {
     title: "Bosch GSB 13 RE",
@@ -237,6 +241,7 @@ export const DEMO_GALLERY_ITEM: SearchItem = {
   key: "l-1004",
   score: 1.2,
   promoted: false,
+  owner_key: "u-1004",
   distance_km: 1.8,
   card: {
     title: "Makita HP1630, with the case",
@@ -260,6 +265,7 @@ export const DEMO_UNRESOLVED_ITEM: SearchItem = {
   key: "l-1005",
   score: 0.6,
   promoted: false,
+  owner_key: "",
   distance_km: null,
   card: {
     title: "Interskol DU-13",
@@ -276,6 +282,7 @@ export const DEMO_PLAIN_ITEM: SearchItem = {
   key: "l-1003",
   score: 0.8,
   promoted: false,
+  owner_key: "",
   distance_km: null,
   card: {
     title: "Interskol DU-13",

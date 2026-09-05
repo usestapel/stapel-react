@@ -170,3 +170,61 @@ describe("the query string is the contract's, not an invention", () => {
     }
   });
 });
+
+describe("a parsed hit keeps owner_key (stapel-search 0.15.0)", () => {
+  it("survives the JSON.parse round trip on `query`, empty string included", async () => {
+    // The wire text, not a JS object literal: this exercises the actual
+    // Response.json() parse a browser would do, not just the TypeScript
+    // shape. `owner_key` is opaque and required — `""` when the source
+    // indexed no owner — never dropped, never coerced to null/undefined.
+    const wireBody = JSON.stringify({
+      items: [
+        { key: "l-1", score: 1, promoted: false, owner_key: "u-7", distance_km: null, card: {} },
+        { key: "l-2", score: 1, promoted: false, owner_key: "", distance_km: null, card: {} },
+      ],
+      category_resolved: null,
+      facets: {},
+      facet_meta: {
+        approximate: false,
+        candidates: 2,
+        counted: [],
+        skipped: [],
+        dropped_filters: [],
+        core_ranges: [],
+        plan: "category",
+        withheld: [],
+        categories: [],
+      },
+      facet_labels: {},
+      next_anchor: null,
+      prev_anchor: null,
+      has_next: false,
+      has_prev: false,
+      count: 2,
+      count_is_lower_bound: false,
+      exact_total: true,
+      degraded: [],
+      backend: "postgres",
+      language: "en",
+      sort: "relevance",
+      took_ms: 1,
+    });
+    const client = createStapelClient({
+      baseUrl: BASE,
+      fetch: (async () =>
+        new Response(wireBody, {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })) as typeof globalThis.fetch,
+    });
+    const api = createSearchApi(client);
+    const { state } = parseSearchState(new URLSearchParams("type=listing"), {
+      defaultType: "listing",
+    });
+
+    const response = await api.query(state);
+
+    expect(response.items[0]?.owner_key).toBe("u-7");
+    expect(response.items[1]?.owner_key).toBe("");
+  });
+});

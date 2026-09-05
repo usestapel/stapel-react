@@ -85,7 +85,7 @@ const RENDER_META = {
 };
 
 function item(card: Record<string, unknown>): SearchItem {
-  return { key: "l-1", score: 1, promoted: false, distance_km: null, card };
+  return { key: "l-1", score: 1, promoted: false, owner_key: "", distance_km: null, card };
 }
 
 /** `null` means "this deployment wired no resolver" — the live defect. */

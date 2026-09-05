@@ -13,7 +13,7 @@ import { TestProviders, mockServer } from "./harness.js";
 const format = createFormat("en");
 
 function item(card: Record<string, unknown>, promoted = false): SearchItem {
-  return { key: "l-1", score: 1, promoted, distance_km: null, card };
+  return { key: "l-1", score: 1, promoted, owner_key: "", distance_km: null, card };
 }
 
 function renderCard(value: SearchItem): void {
