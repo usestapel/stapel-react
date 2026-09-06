@@ -32,12 +32,18 @@
  */
 import type { ListingsApi } from "../api/listingsApi.js";
 import type { MyListingsParams, PaginatedMyListingCards } from "../api/types.js";
-import type { MyListingsTab } from "./status.js";
+import type { MyListingsCountedTab } from "./status.js";
 import { MY_LISTINGS_TAB_STATUSES } from "./status.js";
 
-/** One page of the caller's own listings, however the host gets them. */
+/**
+ * One page of the caller's own listings, however the host gets them.
+ *
+ * `tab` is one of the three COUNTED tabs and not the fourth: the removed tab
+ * (D407) reads takedowns off `?status=blocked` directly and unpaged, so a host
+ * source is never handed a tab it was not written for.
+ */
 export type MyListingsSource = (args: {
-  readonly tab: MyListingsTab;
+  readonly tab: MyListingsCountedTab;
   readonly page: MyListingsParams;
   readonly signal?: AbortSignal;
 }) => Promise<PaginatedMyListingCards>;

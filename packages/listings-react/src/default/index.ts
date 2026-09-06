@@ -71,6 +71,7 @@ export {
   DETAIL_SPLIT_MEASURE,
   DETAIL_SPLIT_ASIDE,
   DETAIL_PHOTO_MIN,
+  DETAIL_GALLERY_GUTTER,
 } from "./ListingDetailPane.js";
 export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
 export {

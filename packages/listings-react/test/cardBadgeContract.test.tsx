@@ -16,9 +16,14 @@
 import { describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
-import { ListingCard } from "../src/default/index.js";
+import { ListingCard, ListingSerpCard } from "../src/default/index.js";
 import type { ListingCard as ListingCardData } from "../src/index.js";
-import { badgePresentation, cardBadgeText, hasCardBadgeContract } from "../src/index.js";
+import {
+  badgePresentation,
+  cardBadgeText,
+  cardBadgeTexts,
+  hasCardBadgeContract,
+} from "../src/index.js";
 import type { CardBadgeRow } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { CARD } from "./fixtures.js";
@@ -148,5 +153,119 @@ describe("on a card", () => {
       )
     );
     expect(screen.queryByTestId("listings-card-badges")).toBeNull();
+  });
+});
+
+/**
+ * D421 — the spec line under a card's title, measured on a live feed:
+ *
+ *   phones  "HONOR · Model 90 · 256 GB"  ← the caption reads as the value
+ *   flats   "5 fl. · 9 fl. · 54 m²"      ← two axes, one caption, no way to
+ *                                          tell the floor from the number of
+ *                                          floors
+ *
+ * The rows below carry the copy the feed carries; the sentences here are the
+ * same two lines in English.
+ *
+ * Both are about the LINE and neither is about the chip: a chip's border says
+ * where one fact stops, and " · " does not.
+ */
+describe("a spec line is a run of values, not a row of chips (D421)", () => {
+  const PHONE: readonly CardBadgeRow[] = [
+    row({ slug: "vendor", type: "select", value: "honor", label: "HONOR", name: "Производитель", presentation: "value" }),
+    row({ slug: "model", value: 90, name: "Модель", presentation: "name_value" }),
+    row({ slug: "memory", value: 256, unit: "ГБ", name: "Память", presentation: "value_unit" }),
+  ];
+
+  it("marks a caption as a caption, so it cannot be read as the answer", () => {
+    expect(cardBadgeTexts(PHONE, "ru", "line").map((one) => one.text)).toEqual([
+      "HONOR",
+      "Модель: 90",
+      "256 ГБ",
+    ]);
+  });
+
+  it("leaves the CHIP exactly as the 0.22 contract wrote it", () => {
+    // A space and never a colon, inside a border that already separates it
+    // from its neighbour. The same rows, the other surface.
+    expect(cardBadgeTexts(PHONE, "ru").map((one) => one.text)).toEqual([
+      "HONOR",
+      "Модель 90",
+      "256 ГБ",
+    ]);
+    expect(cardBadgeText(PHONE[1] as CardBadgeRow, "ru")).toBe("Модель 90");
+  });
+
+  const FLAT: readonly CardBadgeRow[] = [
+    row({ slug: "floor", value: 5, unit: "эт.", name: "Этаж", presentation: "value_unit" }),
+    row({ slug: "floors", value: 9, unit: "эт.", name: "Этажей", presentation: "value_unit" }),
+    row({ slug: "area", type: "float", value: "54", unit: "м²", name: "Площадь", presentation: "value_unit" }),
+  ];
+
+  it("tells two axes wearing one unit apart, with the catalogue's own names", () => {
+    expect(cardBadgeTexts(FLAT, "ru", "line").map((one) => one.text)).toEqual([
+      "Этаж: 5 эт.",
+      "Этажей: 9 эт.",
+      // The third measures something nothing else on the line does, so it is
+      // not ambiguous and is left alone.
+      "54 м²",
+    ]);
+  });
+
+  it("disambiguates the badge strip too — the collision is in the SET, not the layout", () => {
+    expect(cardBadgeTexts(FLAT, "ru").map((one) => one.text)).toEqual([
+      "Этаж 5 эт.",
+      "Этажей 9 эт.",
+      "54 м²",
+    ]);
+  });
+
+  it("says nothing extra where a caption would not help", () => {
+    // No names to caption with: printing "5 fl. · 9 fl." is bad, and printing
+    // ": 5 fl. · : 9 fl." is worse. Same for one word over both axes — a
+    // caption that does not tell two things apart is noise a reader still has
+    // to read.
+    const nameless: readonly CardBadgeRow[] = [
+      row({ slug: "floor", value: 5, unit: "эт.", presentation: "value_unit" }),
+      row({ slug: "floors", value: 9, unit: "эт.", presentation: "value_unit" }),
+    ];
+    expect(cardBadgeTexts(nameless, "ru", "line").map((one) => one.text)).toEqual([
+      "5 эт.",
+      "9 эт.",
+    ]);
+    const sameName = FLAT.slice(0, 2).map((one) => ({ ...one, name: "Этаж" }));
+    expect(cardBadgeTexts(sameName, "ru", "line").map((one) => one.text)).toEqual([
+      "5 эт.",
+      "9 эт.",
+    ]);
+  });
+
+  it("catches two unitless answers that simply read the same", () => {
+    const twins: readonly CardBadgeRow[] = [
+      row({ slug: "doors", value: 4, name: "Дверей", presentation: "value" }),
+      row({ slug: "seats", value: 4, name: "Мест", presentation: "value" }),
+    ];
+    expect(cardBadgeTexts(twins, "ru", "line").map((one) => one.text)).toEqual([
+      "Дверей: 4",
+      "Мест: 4",
+    ]);
+  });
+
+  it("draws the line through the card, not only through the model", () => {
+    render(
+      providers(
+        <ListingSerpCard
+          listing={{
+            ...cardWith([]),
+            features_title: FLAT as unknown as ListingCardData["features_title"],
+          }}
+          href="/l/7"
+        />,
+        "ru"
+      )
+    );
+    expect(screen.getByTestId("listings-serp-specs-text").textContent).toBe(
+      "Этаж: 5 эт. · Этажей: 9 эт. · 54 м²"
+    );
   });
 });

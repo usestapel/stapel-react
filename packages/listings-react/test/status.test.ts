@@ -3,13 +3,17 @@ import {
   LISTING_STATUSES,
   LISTING_TRANSITIONS,
   MODERATION_STATUSES,
+  MY_LISTINGS_COUNTED_TABS,
+  MY_LISTINGS_REMOVED_TAB,
   MY_LISTINGS_TABS,
   MY_LISTINGS_TAB_STATUSES,
+  MY_LISTINGS_UNTABBED_STATUSES,
   canDelete,
   canTransition,
   isPubliclyVisible,
   lifecycleCaption,
   listingStatusView,
+  countedTabOf,
   listingsI18nBundleEn,
   moderationNotice,
   tabOf,
@@ -167,21 +171,36 @@ describe("the dashboard tabs are the SERVER's grouping", () => {
     expect(MY_LISTINGS_TAB_STATUSES.drafts).toContain("rejected");
   });
 
-  it("leaves BLOCKED out of every tab, and says so by answering undefined", () => {
+  it("leaves BLOCKED out of every COUNTED tab, and says so by answering undefined", () => {
     // `my_counters` counts it nowhere either. A dashboard that quietly filed
     // it under "archived" would hide the listing whose owner most needs to
-    // see it.
-    expect(tabOf("blocked")).toBeUndefined();
-    const counted: ListingLifecycleStatus[] = MY_LISTINGS_TABS.flatMap(
+    // see it — and would read the archive's server counter, which does not
+    // include it, over rows that do.
+    expect(countedTabOf("blocked")).toBeUndefined();
+    const counted: ListingLifecycleStatus[] = MY_LISTINGS_COUNTED_TABS.flatMap(
       (tab) => [...MY_LISTINGS_TAB_STATUSES[tab]]
     );
     expect(counted).not.toContain("blocked");
     expect(new Set(counted).size).toBe(counted.length);
+    expect(MY_LISTINGS_UNTABBED_STATUSES).toEqual(["blocked"]);
   });
 
-  it("assigns every other status to exactly one tab", () => {
+  it("gives the takedown a tab of its own, after the server's three (D407)", () => {
+    // The defect: a listing pulled by moderation was on the page, in no tab
+    // and in no counter, over "Active 0 · Drafts 0 · Archived 0". It has a
+    // home now, and the home is not the archive — see model/status.ts.
+    expect(MY_LISTINGS_TABS).toEqual([
+      ...MY_LISTINGS_COUNTED_TABS,
+      MY_LISTINGS_REMOVED_TAB,
+    ]);
+    expect(tabOf("blocked")).toBe(MY_LISTINGS_REMOVED_TAB);
+    expect(MY_LISTINGS_TAB_STATUSES[MY_LISTINGS_REMOVED_TAB]).toEqual(
+      MY_LISTINGS_UNTABBED_STATUSES
+    );
+  });
+
+  it("assigns every status to exactly one tab", () => {
     for (const status of LISTING_STATUSES) {
-      if (status === "blocked") continue;
       const tabs = MY_LISTINGS_TABS.filter((tab) =>
         MY_LISTINGS_TAB_STATUSES[tab].includes(status)
       );

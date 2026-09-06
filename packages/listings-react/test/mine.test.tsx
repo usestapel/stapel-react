@@ -5,7 +5,9 @@ import type { ReactElement } from "react";
 import { spacing } from "@stapel/tokens";
 import { MyListingsPane, FavoritesPane } from "../src/default/index.js";
 import {
+  LISTINGS_I18N_KEYS,
   MY_LISTINGS_UNTABBED_STATUSES,
+  listingsI18nBundleEn,
   myListingImages,
   myListingPrice,
   myListingTitle,
@@ -92,7 +94,7 @@ describe("the owner's own rows come off the contract's own route", () => {
     expect(MY_LISTINGS_UNTABBED_STATUSES).toEqual(["blocked"]);
   });
 
-  it("shows a takedown ABOVE the tabs, where it cannot be missed", async () => {
+  it("announces a takedown above the tabs, where it cannot be missed", async () => {
     const taken = myPage([
       myCard({ id: 9, status: "blocked", moderation_status: "rejected" }),
     ]);
@@ -105,7 +107,16 @@ describe("the owner's own rows come off the contract's own route", () => {
     await waitFor(() => {
       expect(screen.getByTestId("listings-mine-takedowns")).toBeTruthy();
     });
-    expect(screen.getByTestId("listings-mine-takedowns").textContent).toContain("1");
+    // The LINE, not the rows: the rows are the fourth tab (D407), and one row
+    // printed twice on one screen is not how "do not miss this" is said.
+    expect(screen.getByTestId("listings-mine-takedowns").textContent).toContain(
+      "taken down"
+    );
+    expect(
+      screen.queryAllByTestId("listings-mine-row").filter(
+        (row) => row.getAttribute("data-listing-id") === "9"
+      )
+    ).toHaveLength(0);
   });
 
   it("says nothing at all when there are no takedowns", async () => {
@@ -673,6 +684,167 @@ describe("row actions are gated by the server's own transition table", () => {
     expect(
       screen.getByTestId("listings-mine-delete").getAttribute("aria-disabled")
     ).not.toBe("true");
+  });
+});
+
+/**
+ * D407 — a listing a moderator pulled was on the page, in no tab and in no
+ * counter, over "Active 0 · Drafts 0 · Archived 0" and the active tab's own
+ * "nothing of yours is live". Three statements about one cabinet and the two
+ * loudest of them said the seller had nothing.
+ */
+describe("a takedown has a tab and a number of its own (D407)", () => {
+  const TAKEN = myPage([
+    myCard({ id: 9, status: "blocked", moderation_status: "rejected" }),
+  ]);
+
+  it("draws a fourth tab, counted, when something has been taken down", async () => {
+    const srv = mockServer(dashboard(MY_PAGE, TAKEN));
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-count-removed")).toBeTruthy();
+    });
+    // The number is right while a DIFFERENT tab is open, which is the state
+    // the defect was measured in: the count comes from the takedowns' own
+    // unpaged read, not from `my/counters`, which has no fourth integer.
+    expect(
+      screen.getByTestId("listings-mine-count-removed").textContent?.trim()
+    ).toBe("1");
+    expect(
+      screen.getByTestId("listings-mine-count-active").textContent?.trim()
+    ).toBe(String(COUNTERS.active));
+  });
+
+  it("does not draw the tab for a seller who has none", async () => {
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-mine-row")).toHaveLength(1);
+    });
+    // An empty "Taken down" tab is a scare, and the seller it would scare is
+    // the one it has nothing to tell.
+    expect(screen.queryByTestId("listings-mine-count-removed")).toBeNull();
+  });
+
+  it("opens on the takedown's own rows, off ?status=blocked and not the host source", async () => {
+    const srv = mockServer(dashboard(MY_PAGE, TAKEN));
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab="removed" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId("listings-mine-row")).toHaveLength(1);
+    });
+    expect(
+      screen.getByTestId("listings-mine-row").getAttribute("data-listing-id")
+    ).toBe("9");
+    // The row still says BOTH axes — "taken down" is the lifecycle's word and
+    // the moderation verdict rides beside it.
+    expect(screen.getByTestId("listings-mine").textContent).toContain(
+      listingsI18nBundleEn[LISTINGS_I18N_KEYS.statusBlocked]
+    );
+    // …and the tab asked for exactly the statuses no counter groups.
+    const asked = srv
+      .matching("/listings/my/listings/")
+      .map((call) => new URL(call.url).searchParams.get("status"));
+    expect(asked).toContain("blocked");
+    expect(asked).not.toContain("archived,paused,expired,sold");
+    // Nobody is told twice: the line above the tabs steps aside for the tab.
+    expect(screen.queryByTestId("listings-mine-takedowns")).toBeNull();
+  });
+
+  it("says which emptiness it is when the address names an empty removed tab", async () => {
+    const srv = mockServer(dashboard());
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab="removed" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-empty")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("listings-mine-empty").getAttribute("data-empty-tab")
+    ).toBe("removed");
+  });
+});
+
+describe("the delete dialog does not promise what the row has already spent", () => {
+  async function askToDelete(
+    card: Parameters<typeof myCard>[0],
+    tab: "active" | "drafts" | "archived"
+  ) {
+    const srv = mockServer(dashboard(myPage([myCard(card)])));
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane initialTab={tab} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-mine-delete")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("listings-mine-delete"));
+    await waitFor(() => {
+      expect(screen.getByTestId("stapel-confirm-ok")).toBeTruthy();
+    });
+    return screen.getByTestId("listings-mine-delete-confirm").textContent ?? "";
+  }
+
+  /** The clause the archive tab must not print at somebody already in it. */
+  const PROMISE = "Archiving keeps it";
+
+  it("offers the archive to a draft, which still has it", async () => {
+    const body = await askToDelete(
+      {
+        status: "draft",
+        moderation_status: "not_submitted",
+        available_transitions: ["pending", "archived"],
+      },
+      "drafts"
+    );
+    expect(body).toContain(PROMISE);
+  });
+
+  it("does NOT offer it on the archive tab, where the row is already there", async () => {
+    // Measured on the phone walk: "…and cannot be brought back. Archiving
+    // keeps it." — read by a person deleting FROM the archive.
+    const body = await askToDelete(
+      { status: "archived", available_transitions: ["draft"] },
+      "archived"
+    );
+    expect(body).not.toContain(PROMISE);
+    expect(body).toContain("cannot be brought back");
+  });
+
+  it("keeps offering it to a PAUSED row on the same tab — that one still has it", async () => {
+    // The rule is the row's, not the tab's: the archive tab also holds sold,
+    // paused and expired listings, and for those "archive it instead" is a
+    // real alternative that has not been spent.
+    const body = await askToDelete(
+      { status: "paused", available_transitions: ["published", "archived"] },
+      "archived"
+    );
+    expect(body).toContain(PROMISE);
+  });
+
+  it("reads the SERVER's answer for the row, not the status mirror", async () => {
+    // `OWNER_TRANSITIONS.paused` contains `archived`, so a dialog deciding
+    // from the status alone would promise the archive here. The card says
+    // this listing may only go back on sale.
+    const body = await askToDelete(
+      { status: "paused", available_transitions: ["published"] },
+      "archived"
+    );
+    expect(body).not.toContain(PROMISE);
   });
 });
 

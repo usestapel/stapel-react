@@ -101,7 +101,7 @@ export default defineDemo({
   id: "listings.mine",
   title: "My listings",
   description:
-    "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs; every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
+    "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, gets a fourth tab and a count of its own, announced by a line above the tab strip (D407); every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
   component: MyListingsPane,
   covers: ["MyListings"],
   tokens: ["surface-raised"],
@@ -121,8 +121,9 @@ export default defineDemo({
     },
     "taken-down": {
       viewport: "phone",
-      step: "takedown_above_tabs",
-      description: "One listing removed by moderation, in no tab and impossible to miss.",
+      step: "takedown_tab_and_count",
+      description:
+        "One listing removed by moderation: the fourth tab, its own count, and the line above the tabs that says so before anybody clicks (D407).",
       render: () => <WithTakedown />,
     },
     visitor: {

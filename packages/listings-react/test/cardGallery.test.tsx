@@ -13,7 +13,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { ListingCard } from "../src/default/index.js";
+import { ListingCard, ListingSerpCard } from "../src/default/index.js";
 import {
   SWIPE_MIN_PX,
   cardGalleryCss,
@@ -358,5 +358,65 @@ describe("a finger's own scroll is the source of truth (probe p23)", () => {
     // A grid of forty tiles must be the same forty tiles after a cursor
     // crosses them.
     expect(active(box)).toBe("0");
+  });
+});
+
+/**
+ * The counter — "1 of 16", the thing the reference classifieds lead with and
+ * this card did not have.
+ *
+ * The dots say WHERE in the strip a reader is and stop being countable at
+ * about five; only a number says how deep the strip goes. On a phone, where
+ * the whole strip is one photograph wide, that number is the only thing
+ * saying a swipe is worth making — and the mobile walk measured dots moving
+ * with a real swipe over a card that never said "of 4".
+ */
+describe("the photo counter", () => {
+  function counter(): HTMLElement {
+    return screen.getByTestId("listings-serp-photos-counter");
+  }
+
+  it("counts from one, over a card that has photographs to count", () => {
+    render(providers(<ListingSerpCard listing={MANY} href="/l/7" />));
+    expect(counter().textContent).toBe(`1 of ${String(PHOTOS.length)}`);
+  });
+
+  it("is announced without being asked for, and does not eat the gestures", () => {
+    render(providers(<ListingSerpCard listing={MANY} href="/l/7" />));
+    // A native scroll moves the strip with nothing else to report it, so the
+    // counter is the announcement.
+    expect(counter().getAttribute("aria-live")).toBe("polite");
+    // The box under it owns the scrub and the swipe; a pill that swallowed a
+    // pointer would make one corner of every photograph dead to both.
+    expect(cardGalleryCss()).toContain("pointer-events:none");
+  });
+
+  it("follows the strip's own answer about where it is", async () => {
+    render(providers(<ListingSerpCard listing={MANY} href="/l/7" />));
+    const box = screen.getByTestId("listings-serp-photos-gallery");
+    vi.spyOn(box, "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, right: 400, bottom: 300, width: 400, height: 300,
+      x: 0, y: 0, toJSON: () => ({}),
+    } as DOMRect);
+    // A swipe, the way a finger makes one: past the threshold and further
+    // across than down.
+    await act(async () => {
+      fireEvent.pointerDown(box, { clientX: 300, clientY: 10, pointerType: "touch" });
+      fireEvent.pointerMove(box, {
+        clientX: 300 - SWIPE_MIN_PX - 10,
+        clientY: 10,
+        pointerType: "touch",
+      });
+      fireEvent.pointerUp(box, { pointerType: "touch" });
+    });
+    expect(box.getAttribute("data-gallery-active")).toBe("1");
+    expect(counter().textContent).toBe(`2 of ${String(PHOTOS.length)}`);
+  });
+
+  it("says nothing about a listing with one photograph", () => {
+    render(providers(<ListingSerpCard listing={CARD} href="/l/7" />));
+    // Neither peek nor dots nor a count: there is nothing to count, and "1 of
+    // 1" is a control panel for a still picture.
+    expect(screen.queryByTestId("listings-serp-photos-counter")).toBeNull();
   });
 });

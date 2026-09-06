@@ -77,6 +77,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.card.untitled": "Anuncio sin título",
   "listings.card.sign_in": "Iniciar sesión",
   "listings.card.photos": "Fotos de este anuncio",
+  "listings.card.photo_counter": "{index} de {total}",
   "listings.card.price_was": "Antes",
   "listings.card.price_dropped": "El precio ha bajado",
   "listings.card.price_raised": "El precio ha subido",
@@ -175,6 +176,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.tab.active": "Activos",
   "listings.mine.tab.drafts": "Borradores",
   "listings.mine.tab.archived": "Archivo",
+  "listings.mine.tab.removed": "Retirados",
   "listings.mine.loading": "Cargando tus anuncios…",
   "listings.mine.load_failed": "No pudimos cargar tus anuncios",
   "listings.mine.empty": "Aquí todavía no hay nada",
@@ -183,6 +185,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.empty.active": "No tienes nada publicado ni en revisión",
   "listings.mine.empty.drafts": "Sin borradores: lo que empieces aparecerá aquí",
   "listings.mine.empty.archived": "Nada archivado, pausado, caducado ni vendido todavía",
+  "listings.mine.empty.removed": "Moderación no ha retirado nada tuyo",
   "listings.mine.blocked.title":
     "Moderación retiró {count} de tus anuncios",
   "listings.mine.blocked.title.one": "Moderación retiró uno de tus anuncios",
@@ -203,6 +206,8 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.delete_confirm_title": "¿Borrar este anuncio?",
   "listings.mine.delete_confirm_body":
     "Desaparece de tu panel y no se puede recuperar. Archivarlo lo conserva.",
+  "listings.mine.delete_confirm_body.final":
+    "Desaparece de tu panel y no se puede recuperar.",
 
   "listings.favorites.title": "Favoritos",
   "listings.favorites.loading": "Cargando tus favoritos…",

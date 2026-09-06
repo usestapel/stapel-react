@@ -32,6 +32,7 @@ import { radii, spacing } from "@stapel/tokens";
 import { useListingsRuntime } from "../model/context.js";
 import {
   CARD_GALLERY_CLASS,
+  CARD_GALLERY_COUNTER_CLASS,
   CARD_GALLERY_STYLE_HREF,
   cardGalleryCss,
   useCardGallery,
@@ -312,6 +313,33 @@ export function ListingPhotoStrip(props: {
               )
             )}
       </SkinCarousel>
+
+      {/* HOW MANY PHOTOGRAPHS THERE ARE, and which one this is.
+
+          The dots say WHERE in the strip a reader is and stop being countable
+          at about five; only a number says there are sixteen. The mobile walk
+          measured the card with dots and no counter beside a reference that
+          leads with "1 of 16", and on a phone — where the whole strip is one
+          photograph wide — the count is the only thing that says a swipe is
+          worth making.
+
+          `aria-live="polite"` because it changes without the reader doing
+          anything a screen reader would otherwise report: a swipe scrolls the
+          strip natively and this text is the only announcement of the move.
+          One photograph gets none of it, exactly as it gets no dots and no
+          peek — there is nothing to count. */}
+      {many ? (
+        <span
+          className={CARD_GALLERY_COUNTER_CLASS}
+          data-testid={`${props.testId}-counter`}
+          aria-live="polite"
+        >
+          {t(LISTINGS_I18N_KEYS.cardPhotoCounter, {
+            index: gallery.active + 1,
+            total: images.length,
+          })}
+        </span>
+      ) : null}
     </div>
   );
 }

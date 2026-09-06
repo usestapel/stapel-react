@@ -20,8 +20,8 @@
 import { describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import { spacing } from "@stapel/tokens";
-import { ListingDetailPane } from "../src/default/index.js";
+import { breakpointForWidth, cssVar, responsive, spacing } from "@stapel/tokens";
+import { DETAIL_GALLERY_GUTTER, ListingDetailPane } from "../src/default/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { detail, statusInfo } from "./fixtures.js";
 
@@ -151,5 +151,48 @@ describe("where the seller block sits in the one column", () => {
         .getByTestId("listings-detail-buy-column")
         .contains(screen.getByTestId("host-seller-block"))
     ).toBe(true);
+  });
+});
+
+/**
+ * D418 — the gutter BETWEEN two photographs.
+ *
+ * Measured on the live listing page: `getComputedStyle(gallery).gap` answered
+ * `12px` at 1280 and `12px` at 390, while the page around it declares 4px on
+ * a phone and 24px on a desktop. Neither declared number was ever on screen.
+ *
+ * jsdom lays nothing out and resolves no custom property, so the assertion is
+ * not "the gap is 4px" — it is that the gap is the page's own RESPONSIVE
+ * role, and that the role's own declaration is the 4/24 the page claims. A
+ * test that hardcoded either number would pass against a second flat value.
+ */
+describe("the gallery's gutter is the page's, per breakpoint (D418)", () => {
+  it("reads the responsive token rather than a flat step", async () => {
+    const { container } = render(pane(<ListingDetailPane id={7} />));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-title")).toBeTruthy();
+    });
+    const gallery = container.querySelector<HTMLElement>(
+      '[data-testid="listings-detail-gallery"]'
+    );
+    expect(gallery).toBeTruthy();
+    const gap = getComputedStyle(gallery as HTMLElement).gap;
+    expect(gap).toBe(DETAIL_GALLERY_GUTTER);
+    expect(gap).toContain(cssVar("page-gutter").slice(0, -1));
+    // The flat 12px survives only as the fallback, for a host that loads no
+    // token stylesheet — never as the answer.
+    expect(gap).toBe(`var(--stapel-page-gutter, ${String(spacing[3])}px)`);
+  });
+
+  it("resolves to the two numbers the page declares, at both widths", () => {
+    // The var the gap reads, at the breakpoint each measured width falls in.
+    // 4 and 24 come out of the token, not out of this file.
+    expect(breakpointForWidth(390)).toBe("phone");
+    expect(breakpointForWidth(1280)).toBe("desktop");
+    expect(responsive["page-gutter"][breakpointForWidth(390)]).toBe(4);
+    expect(responsive["page-gutter"][breakpointForWidth(1280)]).toBe(24);
+    // …and they are not the flat value the measurement found at both widths.
+    expect(responsive["page-gutter"][breakpointForWidth(390)]).not.toBe(spacing[3]);
+    expect(responsive["page-gutter"][breakpointForWidth(1280)]).not.toBe(spacing[3]);
   });
 });

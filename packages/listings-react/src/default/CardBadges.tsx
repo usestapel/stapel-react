@@ -56,7 +56,9 @@ export function CardBadges(props: CardBadgesProps): ReactElement | null {
   if (rows.length === 0) return null;
 
   if (hasCardBadgeContract(rows)) {
-    const printed = cardBadgeTexts(rows, locale);
+    // The variant is not only a layout: it decides how a caption is joined to
+    // its answer, because a chip has a border and a line has a dot (D421).
+    const printed = cardBadgeTexts(rows, locale, props.variant === "line" ? "line" : "badge");
     if (printed.length === 0) return null;
     if (props.variant === "line") {
       return (

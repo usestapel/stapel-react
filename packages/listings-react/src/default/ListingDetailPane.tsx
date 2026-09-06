@@ -68,7 +68,7 @@ import {
   useT,
 } from "@stapel/core";
 import type { SignInCta } from "@stapel/core";
-import { spacing } from "@stapel/tokens";
+import { cssVar, spacing } from "@stapel/tokens";
 import { isRedactedValue } from "@stapel/attributes-react";
 import { useListingDetail } from "../headless/ListingDetail.js";
 import { useListingActions } from "../headless/ListingActions.js";
@@ -113,6 +113,28 @@ export const DETAIL_SPLIT_ASIDE = "380px";
  * desktop pane, and no `width: 320` that is near-full-bleed on one and a
  * postage stamp on the other. */
 export const DETAIL_PHOTO_MIN = "14rem";
+
+/**
+ * THE GUTTER BETWEEN TWO PHOTOGRAPHS, and it is the page's own (D418).
+ *
+ * The gallery painted a flat `spacing[3]` — 12px on a 390px phone and 12px on
+ * a 1280px desktop — while the page around it had already decided that its
+ * edge is 4px on a phone and 24px on a desktop. Measured on the live listing:
+ * `getComputedStyle(gallery).gap` answered `12px` at both widths, so neither
+ * of the two declared numbers was ever on screen and the tiles sat closer
+ * together than the page edge on a desktop and three times further apart than
+ * it on a phone.
+ *
+ * `--stapel-page-gutter` is a RESPONSIVE token role (`@stapel/tokens`: 4px
+ * phone, 8px tablet, 24px desktop, declared once with its own media arms), and
+ * reading it as a VAR rather than computing a number is the load-bearing half:
+ * a value picked in JS is applied at render, so a window resized between
+ * renders keeps the gutter it was drawn with, where a var reflows. Written
+ * through `cssVar` so a renamed role fails to compile instead of silently
+ * resolving to nothing, with the flat value this grid used before as the
+ * fallback for a host that loads no token stylesheet.
+ */
+export const DETAIL_GALLERY_GUTTER: string = `${cssVar("page-gutter").slice(0, -1)}, ${String(spacing[3])}px)`;
 
 export interface ListingDetailPaneProps
   extends ThemeModeProp,
@@ -346,7 +368,9 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 style={{
                   display: "grid",
                   gridTemplateColumns: `repeat(auto-fit, minmax(${DETAIL_PHOTO_MIN}, 1fr))`,
-                  gap: spacing[3],
+                  // The page's own edge, per breakpoint — see
+                  // `DETAIL_GALLERY_GUTTER` (D418).
+                  gap: DETAIL_GALLERY_GUTTER,
                 }}
               >
                 {bag.images.length === 0 ? (

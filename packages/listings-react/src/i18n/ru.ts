@@ -97,6 +97,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.card.untitled": "Объявление без названия",
   "listings.card.sign_in": "Войти",
   "listings.card.photos": "Фотографии объявления",
+  "listings.card.photo_counter": "{index} из {total}",
   "listings.card.price_was": "Было",
   "listings.card.price_dropped": "Цена снизилась",
   "listings.card.price_raised": "Цена выросла",
@@ -196,6 +197,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.tab.active": "Активные",
   "listings.mine.tab.drafts": "Черновики",
   "listings.mine.tab.archived": "Архив",
+  "listings.mine.tab.removed": "Снятые",
   "listings.mine.loading": "Загружаем ваши объявления…",
   "listings.mine.load_failed": "Не удалось загрузить ваши объявления",
   "listings.mine.empty": "Здесь пока пусто",
@@ -204,6 +206,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.empty.active": "Ни одно ваше объявление не опубликовано и не ждёт проверки",
   "listings.mine.empty.drafts": "Черновиков нет — всё начатое появится здесь",
   "listings.mine.empty.archived": "Пока ничего не в архиве, не снято, не истекло и не продано",
+  "listings.mine.empty.removed": "Модерация ничего у вас не снимала",
   "listings.mine.blocked.title":
     "Модерация сняла ваших объявлений: {count}",
   "listings.mine.blocked.title.one": "Модерация сняла одно ваше объявление",
@@ -226,6 +229,8 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.delete_confirm_title": "Удалить объявление?",
   "listings.mine.delete_confirm_body":
     "Оно исчезнет из кабинета, и вернуть его будет нельзя. Архив сохраняет его.",
+  "listings.mine.delete_confirm_body.final":
+    "Оно исчезнет из кабинета, и вернуть его будет нельзя.",
 
   "listings.favorites.title": "Избранное",
   "listings.favorites.loading": "Загружаем избранное…",

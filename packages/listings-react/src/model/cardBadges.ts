@@ -56,6 +56,44 @@
  * contract, and it is rendered exactly as it is rendered today — through
  * `@stapel/attributes-react`'s `<FeatureBadges>`, off the stored DAO's own
  * config. Nothing about this module is required for a card to draw.
+ *
+ * ── A CHIP IS NOT A LINE (D421) ───────────────────────────────────────────
+ *
+ * The four presentations produce a piece of text; where that text is PUT
+ * decides how it is read, and the two places this pair puts it are not the
+ * same place:
+ *
+ *   a badge strip   each element is a `<Tag>`, and the chip's own border says
+ *                   where one fact ends and the next begins;
+ *   a spec line     the elements are joined with " · ", so the only thing
+ *                   separating two facts is punctuation, and a SPACE inside
+ *                   one of them is not punctuation.
+ *
+ * Measured on a live feed, translated: "HONOR · Model 90 · 256 GB" — three
+ * facts, and the middle one reads as a value that begins with the word
+ * "Model", because in a run of values a caption joined by a space is
+ * indistinguishable from a two-word answer. So {@link CardBadgeStyle}
+ * `"line"` writes the same pair with a COLON, which is the punctuation that
+ * says "what follows is the answer to this". The chip keeps its space: "Floor 3" inside a border needs
+ * no help, and a colon there is the form-field look the 0.22 contract
+ * deliberately refused.
+ *
+ * ── …AND TWO AXES MUST NOT WEAR ONE CAPTION ───────────────────────────────
+ *
+ * The same feed: "5 fl. · 9 fl. · 54 m²" — the floor a flat is on and the
+ * number of floors in the building, printed as one number and its unit each,
+ * twice, with nothing saying which is which. The server presented both as
+ * `value_unit` and it was right about each of them ALONE; what it cannot see
+ * is that they are on one line together.
+ *
+ * That collision is a property of the SET, so it is resolved once, here, in
+ * {@link cardBadgeTexts}: elements printed without a caption that share a unit
+ * (or that print identical text) get their catalogue names back — the
+ * `name_value` shape the contract already defines, so a disambiguated element
+ * is spelled exactly as a server-captioned one. The rule refuses to act where
+ * it would not help: a group whose names are missing or not distinct is left
+ * alone rather than captioned with the same word twice, because a caption
+ * that does not tell two things apart is noise the reader still has to read.
  */
 import type { ListingCardBadgeElement, ListingFeatureDao } from "../api/types.js";
 
@@ -181,6 +219,23 @@ function isTrue(raw: unknown): boolean {
 }
 
 /**
+ * WHERE the text is going to be put — see the module header.
+ *
+ * `"badge"` is a chip in a strip and is the default, so every existing call
+ * site keeps the bytes it had. `"line"` is one item in a " · "-separated run,
+ * where a caption needs punctuation to be read as one.
+ */
+export type CardBadgeStyle = "badge" | "line";
+
+/** A caption and its answer, joined the way this surface separates them. */
+function caption(name: string, body: string, style: CardBadgeStyle): string {
+  // A SPACE in a chip and a COLON in a line. "Floor 3" is a caption inside a
+  // border; "Floor: 3" is what the same pair has to become when the border is
+  // gone and the neighbours are a dot away.
+  return style === "line" ? `${name}: ${body}` : `${name} ${body}`;
+}
+
+/**
  * One badge element → the text a card prints, or `undefined` for an element
  * that has nothing to say (a false boolean, a blank value).
  *
@@ -189,7 +244,11 @@ function isTrue(raw: unknown): boolean {
  * exists: three cards each re-deciding what a badge says is three places for
  * "Brick · 3 · 9" to come back.
  */
-export function cardBadgeText(row: CardBadgeRow, locale?: string): string | undefined {
+export function cardBadgeText(
+  row: CardBadgeRow,
+  locale?: string,
+  style: CardBadgeStyle = "badge"
+): string | undefined {
   const presentation = badgePresentation(row);
   const name = text(row.name);
   const unit = text(row.unit);
@@ -208,12 +267,11 @@ export function cardBadgeText(row: CardBadgeRow, locale?: string): string | unde
     case "value_unit":
       return withUnit;
     case "name_value":
-      // A SPACE, not a colon. "Floor 3" is a caption; "Floor: 3" is a form
-      // field, and a card is neither a form nor a table — the colon is the
-      // punctuation the spec list uses because a spec list IS the table.
-      // The unit rides along: a named row that dropped it reads "Mileage
-      // 20 000", which is the defect this contract exists to close.
-      return name.length > 0 ? `${name} ${withUnit}` : withUnit;
+      // Joined by the SURFACE's own punctuation (D421): a space inside a
+      // chip, a colon inside a line. The unit rides along either way — a
+      // named row that dropped it reads "Mileage 20 000", which is the defect
+      // this contract exists to close.
+      return name.length > 0 ? caption(name, withUnit, style) : withUnit;
     default:
       // `value`, and an element the server left plain in a list that speaks
       // the contract. The value alone, never the unit — the server said so.
@@ -221,17 +279,71 @@ export function cardBadgeText(row: CardBadgeRow, locale?: string): string | unde
   }
 }
 
-/** Every element that has something to say, in the server's order. */
+/**
+ * Does this element already print its own caption?
+ *
+ * `name` IS the caption, and a `name_value` with a name to print carries one.
+ * Everything else is a bare answer, and two bare answers are what can collide.
+ */
+function alreadyCaptioned(row: CardBadgeRow): boolean {
+  const presentation = badgePresentation(row);
+  if (presentation === "name") return true;
+  return presentation === "name_value" && text(row.name).length > 0;
+}
+
+/**
+ * How a bare answer could be MISTAKEN for its neighbour: by measuring the
+ * same thing (one unit, two axes) or by reading identically.
+ */
+function ambiguityKey(row: CardBadgeRow, printed: string): string {
+  const unit = text(row.unit);
+  return unit.length > 0 ? `unit:${unit}` : `text:${printed}`;
+}
+
+/**
+ * Every element that has something to say, in the server's order, with two
+ * axes that would read alike told apart — see the module header (D421).
+ */
 export function cardBadgeTexts(
   rows: readonly CardBadgeRow[],
-  locale?: string
+  locale?: string,
+  style: CardBadgeStyle = "badge"
 ): readonly { readonly slug: string; readonly text: string }[] {
   const out: { slug: string; text: string }[] = [];
+  const printedRows: CardBadgeRow[] = [];
+  /** Ambiguity key → the positions in `out` that could be confused. */
+  const groups = new Map<string, number[]>();
+
   for (const row of rows) {
-    const printed = cardBadgeText(row, locale);
-    if (printed !== undefined && typeof row.slug === "string" && row.slug.length > 0) {
-      out.push({ slug: row.slug, text: printed });
+    const printed = cardBadgeText(row, locale, style);
+    if (printed === undefined || typeof row.slug !== "string" || row.slug.length === 0) {
+      continue;
     }
+    const at = out.length;
+    out.push({ slug: row.slug, text: printed });
+    printedRows.push(row);
+    if (alreadyCaptioned(row)) continue;
+    const key = ambiguityKey(row, printed);
+    const seen = groups.get(key);
+    if (seen === undefined) groups.set(key, [at]);
+    else seen.push(at);
   }
+
+  for (const positions of groups.values()) {
+    if (positions.length < 2) continue;
+    const names = positions.map((at) => text(printedRows[at]?.name));
+    // Nothing to caption with, or one word for both axes: leave the line as
+    // the server wrote it rather than adding a caption that tells a reader
+    // nothing they did not already have.
+    if (names.some((name) => name.length === 0)) continue;
+    if (new Set(names).size !== names.length) continue;
+    positions.forEach((at, index) => {
+      const entry = out[at];
+      const name = names[index];
+      if (entry === undefined || name === undefined) return;
+      out[at] = { slug: entry.slug, text: caption(name, entry.text, style) };
+    });
+  }
+
   return out;
 }

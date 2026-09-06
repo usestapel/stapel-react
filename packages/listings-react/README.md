@@ -268,15 +268,23 @@ own config. Nothing about the contract is required for a card to draw.
 0.7.0) is the owner-scoped read `GET /listings/` cannot be: `list` answers
 `published()` and takes no owner parameter, so before 0.7.0 a seller's own
 drafts were unreachable by any call the contract offered and this pane named
-the absence instead of drawing an empty grid. Three tabs, each narrowed with
-`?status=` to the SERVER's own groupings, so a tab's rows and its
-`my/counters` badge always describe the same set. `MyListingsSource` is still
-a seam for a deployment that keeps its rows elsewhere.
+the absence instead of drawing an empty grid. Three counted tabs, each
+narrowed with `?status=` to the SERVER's own groupings, so a tab's rows and
+its `my/counters` badge always describe the same set. `MyListingsSource` is
+still a seam for a deployment that keeps its rows elsewhere, and it is typed
+for those three.
 
-**The takedown is not in a tab.** `blocked` is counted by `my/counters` in no
-tab at all, so folding it into one would make a badge and its rows disagree,
-and leaving it out would hide the one listing whose owner most needs to know.
-It is fetched beside the tabs and rendered above them.
+**The takedown gets a fourth tab, and a count (D407).** `blocked` is counted
+by `my/counters` in no tab at all, so a cabinet holding a listing a moderator
+had pulled read "Active 0 · Drafts 0 · Archived 0" over it — the row was on
+the page, in no tab, in no number. It is now the `removed` tab: fetched off
+the same route (`?status=blocked`, unpaged, whichever tab is open) and counted
+from those rows, because there is no fourth integer on the wire to read. The
+tab is drawn only where there is something in it or `?tab=removed` asks for
+it, and a one-line warning above the tab strip says how many there are without
+waiting for a click. Not folded into `archived`: that tab reads the server's
+`archived` number, which does not include takedowns, so the count would go on
+being wrong for everyone not looking at it.
 
 **A draft renders off its twin.** `title` / `price` / `images` are the
 PUBLISHED fields and are empty until a publish promotes them, so the owner

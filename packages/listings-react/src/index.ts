@@ -105,9 +105,12 @@ export type {
 
 // ── model: the two axes ──────────────────────────────────────────────────────
 export {
+  MY_LISTINGS_COUNTED_TABS,
+  MY_LISTINGS_REMOVED_TAB,
   MY_LISTINGS_TABS,
   MY_LISTINGS_TAB_STATUSES,
   MY_LISTINGS_UNTABBED_STATUSES,
+  countedTabOf,
   isPubliclyVisible,
   lifecycleCaption,
   listingStatusView,
@@ -119,6 +122,7 @@ export type {
   ListingStatusTone,
   ListingStatusView,
   ModerationNotice,
+  MyListingsCountedTab,
   MyListingsTab,
 } from "./model/status.js";
 export {
@@ -188,6 +192,7 @@ export type {
   CardBadgeContract,
   CardBadgePresentation,
   CardBadgeRow,
+  CardBadgeStyle,
 } from "./model/cardBadges.js";
 
 // ── model: the engagement axis (already-seen / view count / the overlay) ─────

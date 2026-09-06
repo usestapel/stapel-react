@@ -46,9 +46,12 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
+import { fontSize, radii, spacing } from "@stapel/tokens";
 
 /** The class the gallery's own box carries — see {@link cardGalleryCss}. */
 export const CARD_GALLERY_CLASS = "stapel-listing-gallery";
+/** The class the "3 of 16" pill carries — see {@link cardGalleryCss}. */
+export const CARD_GALLERY_COUNTER_CLASS = "stapel-listing-gallery-count";
 /** The `href` the hoisted gallery stylesheet is deduplicated by. */
 export const CARD_GALLERY_STYLE_HREF = "stapel-listings-card-gallery";
 
@@ -338,7 +341,35 @@ export function useCardGallery(count: number): CardGallery {
  */
 export function cardGalleryCss(): string {
   const box = `.${CARD_GALLERY_CLASS}`;
+  const counter = `.${CARD_GALLERY_COUNTER_CLASS}`;
   return [
+    // The counter is placed against this box, so the box has to be the
+    // containing block. Nothing else about the gallery changes: a `relative`
+    // with no offsets moves no pixel of what is already in it.
+    `${box}{position:relative}`,
+    // "3 of 16", bottom-TRAILING corner — the dots own the bottom centre
+    // (`SkinCarousel`: `inset-inline:0; justify-content:center`) and two
+    // indicators fighting for one spot is worse than neither.
+    //
+    // `pointer-events:none` is load-bearing rather than tidy: this box owns
+    // the hover-scrub and the swipe, and an element that swallowed a pointer
+    // would make one corner of every card's photograph dead to both gestures.
+    //
+    // A FIXED scrim and white text, not a theme role, and this is the one
+    // place in the package where that is the right answer: the pill sits on
+    // an arbitrary PHOTOGRAPH, which is neither light nor dark, so a value
+    // that followed the page's theme would be unreadable on half the photos
+    // in either one.
+    `${counter}{position:absolute;inset-block-end:${String(spacing[2])}px;` +
+      `inset-inline-end:${String(spacing[2])}px;z-index:1;pointer-events:none;` +
+      `padding:${String(spacing[1] / 2)}px ${String(spacing[2])}px;` +
+      `border-radius:${String(radii.full)}px;` +
+      `background:rgba(0,0,0,0.55);color:#fff;` +
+      `font-size:${String(fontSize.xs.fontSize)}px;` +
+      `line-height:${String(fontSize.xs.lineHeight)}px;` +
+      // A counter whose digits change width makes the pill twitch on every
+      // swipe.
+      `font-variant-numeric:tabular-nums}`,
     // THE VERTICAL AXIS IS THE BROWSER'S, and is not negotiable: a card is a
     // small box in a long feed, and the one unacceptable outcome of a gallery
     // gesture is a page that will not scroll. `pan-y` says so at the platform

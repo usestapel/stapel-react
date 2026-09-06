@@ -285,7 +285,8 @@ export function listingStatusView(
 }
 
 /**
- * The dashboard tabs, and the statuses each one folds together.
+ * The three tabs `my/counters` COUNTS, and the statuses each one folds
+ * together.
  *
  * The grouping is the SERVER's (`views.my_counters`), copied here so a tab's
  * caption and its count cannot describe different sets: `active` includes
@@ -294,21 +295,101 @@ export function listingStatusView(
  * working on. A client that grouped them its own way would show "3 active"
  * over two rows.
  */
-export const MY_LISTINGS_TABS = ["active", "drafts", "archived"] as const;
+export const MY_LISTINGS_COUNTED_TABS = ["active", "drafts", "archived"] as const;
 
-export type MyListingsTab = (typeof MY_LISTINGS_TABS)[number];
+/** One of the three tabs `MyCountersResponse` carries a number for. */
+export type MyListingsCountedTab = (typeof MY_LISTINGS_COUNTED_TABS)[number];
 
-export const MY_LISTINGS_TAB_STATUSES: Readonly<
-  Record<MyListingsTab, readonly ListingLifecycleStatus[]>
+const COUNTED_TAB_STATUSES: Readonly<
+  Record<MyListingsCountedTab, readonly ListingLifecycleStatus[]>
 > = {
   active: ["published", "pending"],
   drafts: ["draft", "rejected"],
   archived: ["archived", "paused", "expired", "sold"],
 };
 
-/** Which tab a listing belongs to, or `undefined` for BLOCKED — the one
- * status `my/counters` counts in no tab at all. A dashboard that silently
- * dropped it would hide exactly the listing whose owner most needs to know. */
+/** Which of the three COUNTED tabs a status belongs to, or `undefined` for
+ * one the server's own counter groups nowhere — `blocked`, today. */
+export function countedTabOf(
+  status: ListingLifecycleStatus
+): MyListingsCountedTab | undefined {
+  for (const tab of MY_LISTINGS_COUNTED_TABS) {
+    if (COUNTED_TAB_STATUSES[tab].includes(status)) return tab;
+  }
+  return undefined;
+}
+
+/**
+ * The statuses the server's own counter groups nowhere — `blocked`, and
+ * nothing else today.
+ *
+ * DERIVED, not written down a second time: a status added upstream and left
+ * out of the counter groupings lands here automatically and gets shown, which
+ * is the opposite of what a hardcoded `["blocked"]` would do the day it goes
+ * stale.
+ */
+export const MY_LISTINGS_UNTABBED_STATUSES: readonly ListingLifecycleStatus[] =
+  LISTING_STATUSES.filter((status) => countedTabOf(status) === undefined);
+
+/**
+ * The fourth tab: the rows `my/counters` counts in NO tab at all.
+ *
+ * ── What was on screen (D407) ────────────────────────────────────────────
+ *
+ * A listing pulled by moderation showed "Taken down by a moderator" over a
+ * counter row reading "Active 0 · Drafts 0 · Archived 0", beside the active
+ * tab's own "nothing of yours is live". The object was on the page and in no
+ * tab and in no number — three statements, and the two loudest of them said
+ * the seller had nothing.
+ *
+ * The takedowns had a home before this (a block above the tabs) and that was
+ * the half that was wrong: a row outside the tab strip is a row the counters
+ * do not describe, and a person reads the counters. So they get a TAB, with a
+ * count, like every other state a listing can be in.
+ *
+ * ── Why a fourth tab and not the archive ─────────────────────────────────
+ *
+ * Folding `blocked` into `archived` is the other shape this could take, and
+ * it costs the count: `my/counters` has three integers and no fourth, so an
+ * archive tab holding takedowns would read the server's `archived` number —
+ * `0` — until the tab was opened and its rows could raise it. The fourth tab
+ * is counted from its OWN read (`?status=blocked`, unpaged), so the number is
+ * right while the seller is looking at a different tab, which is exactly the
+ * moment D407 was measured at.
+ *
+ * The archive keeps its meaning too, which is not nothing: "I put this away"
+ * and "a moderator took this down" are not the same sentence and a tab that
+ * said one over rows that meant the other would be the D407 defect wearing a
+ * label.
+ */
+export const MY_LISTINGS_REMOVED_TAB = "removed";
+
+/**
+ * Every tab the dashboard can show: the server's three, then the removed one.
+ *
+ * The removed tab is DRAWN only where there is something in it (see
+ * `headless/MyListings.tsx`) — an empty "Taken down" tab is a scare — but it
+ * is in this list unconditionally, because `?tab=removed` must parse and a
+ * host must be able to name it.
+ */
+export const MY_LISTINGS_TABS: readonly [
+  ...typeof MY_LISTINGS_COUNTED_TABS,
+  typeof MY_LISTINGS_REMOVED_TAB,
+] = [...MY_LISTINGS_COUNTED_TABS, MY_LISTINGS_REMOVED_TAB];
+
+export type MyListingsTab = (typeof MY_LISTINGS_TABS)[number];
+
+export const MY_LISTINGS_TAB_STATUSES: Readonly<
+  Record<MyListingsTab, readonly ListingLifecycleStatus[]>
+> = {
+  ...COUNTED_TAB_STATUSES,
+  [MY_LISTINGS_REMOVED_TAB]: MY_LISTINGS_UNTABBED_STATUSES,
+};
+
+/** Which tab a listing belongs to. Every status has one: the three counted
+ * groupings, and the removed tab for whatever they leave out. `undefined` is
+ * unreachable today and stays in the signature so a status this build has
+ * never heard of cannot be filed under a tab by accident. */
 export function tabOf(
   status: ListingLifecycleStatus
 ): MyListingsTab | undefined {
@@ -317,17 +398,3 @@ export function tabOf(
   }
   return undefined;
 }
-
-/**
- * The statuses no tab folds in — `blocked`, and nothing else today.
- *
- * DERIVED, not written down a second time: a status added upstream and left
- * out of the counter groupings lands here automatically and gets shown, which
- * is the opposite of what a hardcoded `["blocked"]` would do the day it goes
- * stale. The dashboard renders these rows OUTSIDE the tabs (see
- * `default/MyListingsPane.tsx`) rather than folding them into one, because a
- * tab's rows and its `my/counters` badge have to describe the same set — and
- * `my/counters` counts a takedown in no tab at all.
- */
-export const MY_LISTINGS_UNTABBED_STATUSES: readonly ListingLifecycleStatus[] =
-  LISTING_STATUSES.filter((status) => tabOf(status) === undefined);

@@ -79,6 +79,10 @@ export const LISTINGS_I18N_KEYS = {
    * requires one — an unnamed scrollable region is announced as nothing — and
    * the token bridge owns no i18n engine, so the copy is this pair's. */
   cardPhotos: "listings.card.photos",
+  /** "3 of 16" over a card's photo strip. The dots say WHERE in the strip a
+   * reader is; only a counter says how much of it there is, and the reference
+   * classifieds all carry one. */
+  cardPhotoCounter: "listings.card.photo_counter",
   /** The label on the struck-through previous price. The strike is styling and
    * a screen reader announces none of it, so the word is on the line. */
   cardPriceWas: "listings.card.price_was",
@@ -192,6 +196,10 @@ export const LISTINGS_I18N_KEYS = {
   mineTabActive: "listings.mine.tab.active",
   mineTabDrafts: "listings.mine.tab.drafts",
   mineTabArchived: "listings.mine.tab.archived",
+  /** The fourth tab: the rows `my/counters` counts in none of the three
+   * (D407). Drawn only where there is something in it — see
+   * `model/status.ts`. */
+  mineTabRemoved: "listings.mine.tab.removed",
   mineLoading: "listings.mine.loading",
   mineLoadFailed: "listings.mine.load_failed",
   mineEmpty: "listings.mine.empty",
@@ -202,6 +210,10 @@ export const LISTINGS_I18N_KEYS = {
   mineEmptyActive: "listings.mine.empty.active",
   mineEmptyDrafts: "listings.mine.empty.drafts",
   mineEmptyArchived: "listings.mine.empty.archived",
+  /** Reachable by address (`?tab=removed`) rather than by clicking, since the
+   * tab is not drawn when it is empty — so the sentence is the good news it
+   * is, not a shrug. */
+  mineEmptyRemoved: "listings.mine.empty.removed",
   /** The takedowns — the rows no tab folds in (`my/counters` counts them in
    * none), shown outside the tabs so they cannot be missed. */
   mineBlockedTitle: "listings.mine.blocked.title",
@@ -234,7 +246,13 @@ export const LISTINGS_I18N_KEYS = {
   /** Deleting is irreversible, so it asks — through the shared SkinConfirm,
    * which is a bottom sheet on a phone. */
   mineDeleteConfirmTitle: "listings.mine.delete_confirm_title",
+  /** …offering the archive as the alternative, which it only is while
+   * `archived` is a move the listing still has. */
   mineDeleteConfirmBody: "listings.mine.delete_confirm_body",
+  /** The same warning for a row that has already spent that alternative — an
+   * archived, sold or taken-down listing. The archive tab's dialog used to
+   * promise the archive to a person standing in it. */
+  mineDeleteConfirmBodyFinal: "listings.mine.delete_confirm_body.final",
 
   // ── favourites ───────────────────────────────────────────────────────────
   favoritesTitle: "listings.favorites.title",
@@ -320,6 +338,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.card.untitled": "Untitled listing",
   "listings.card.sign_in": "Sign in",
   "listings.card.photos": "Photos of this listing",
+  "listings.card.photo_counter": "{index} of {total}",
   "listings.card.price_was": "Was",
   "listings.card.price_dropped": "The price went down",
   "listings.card.price_raised": "The price went up",
@@ -421,6 +440,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.tab.active": "Active",
   "listings.mine.tab.drafts": "Drafts",
   "listings.mine.tab.archived": "Archived",
+  "listings.mine.tab.removed": "Taken down",
   "listings.mine.loading": "Loading your listings…",
   "listings.mine.load_failed": "We could not load your listings",
   "listings.mine.empty": "Nothing here yet",
@@ -429,6 +449,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.empty.active": "Nothing of yours is live or awaiting review",
   "listings.mine.empty.drafts": "No drafts — anything you start appears here",
   "listings.mine.empty.archived": "Nothing archived, paused, expired or sold yet",
+  "listings.mine.empty.removed": "Nothing of yours has been taken down",
   "listings.mine.blocked.title":
     "{count} of your listings were taken down by moderation",
   "listings.mine.blocked.title.one":
@@ -452,6 +473,8 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.delete_confirm_title": "Delete this listing?",
   "listings.mine.delete_confirm_body":
     "It disappears from your dashboard and cannot be brought back. Archiving keeps it.",
+  "listings.mine.delete_confirm_body.final":
+    "It disappears from your dashboard and cannot be brought back.",
 
   "listings.favorites.title": "Favourites",
   "listings.favorites.loading": "Loading your favourites…",

@@ -15,12 +15,19 @@
  *    listing is offline, or never tell them their edit is being screened.
  *    `moderation_status` is on the owner card, so the row reads the real
  *    value rather than the `"approved"` stand-in it used before 0.7.0.
- * 2. **Takedowns are not in a tab.** The three tabs are the SERVER's status
- *    groupings and `blocked` is in none of them, because `my/counters` counts
- *    it in none of them. Folding it into one would make a tab's rows and its
- *    badge describe different sets; leaving it out entirely would hide the
- *    one listing whose owner most needs to know. So it sits above the tabs,
- *    where it cannot be missed.
+ * 2. **A takedown gets a tab of its own, and a count (D407).** The three
+ *    tabs are the SERVER's status groupings and `blocked` is in none of them,
+ *    because `my/counters` counts it in none of them — so a cabinet holding a
+ *    listing a moderator had pulled read "Active 0 · Drafts 0 · Archived 0"
+ *    over it, and said beside that that nothing of the seller's was live. The
+ *    row was on the page (in a block above the tabs) and in no tab and in no
+ *    number, and a person reads the numbers.
+ *
+ *    So the takedowns are the fourth tab, counted from their own read — see
+ *    `model/status.ts` for why a fourth tab and not the archive. The block
+ *    above the tabs stays as one LINE, without the rows: a takedown must not
+ *    need a click to be discovered, and printing the same row twice on one
+ *    screen is not the way to say so.
  * 3. **An empty tab says which emptiness it is.** "No drafts" and "nothing
  *    sold yet" are different sentences and one generic "nothing here" is
  *    neither.
@@ -85,6 +92,7 @@ const TAB_LABEL: Readonly<Record<MyListingsTab, string>> = {
   active: LISTINGS_I18N_KEYS.mineTabActive,
   drafts: LISTINGS_I18N_KEYS.mineTabDrafts,
   archived: LISTINGS_I18N_KEYS.mineTabArchived,
+  removed: LISTINGS_I18N_KEYS.mineTabRemoved,
 };
 
 /** One empty sentence per tab — see the header, point 3. */
@@ -92,6 +100,7 @@ const TAB_EMPTY: Readonly<Record<MyListingsTab, string>> = {
   active: LISTINGS_I18N_KEYS.mineEmptyActive,
   drafts: LISTINGS_I18N_KEYS.mineEmptyDrafts,
   archived: LISTINGS_I18N_KEYS.mineEmptyArchived,
+  removed: LISTINGS_I18N_KEYS.mineEmptyRemoved,
 };
 
 /** The thumbnail column. A photo marketplace whose seller dashboard is a
@@ -452,12 +461,19 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
   // ONE confirmation for the whole list, keyed by the row that asked — not one
   // mounted dialog per row.
   const [removingId, setRemovingId] = useState<number | null>(null);
-  const removal = useListingActions(
-    removingId ?? 0,
+  const removingRow =
     bag.rows.status === "ready"
-      ? bag.rows.data.find((row) => row.id === removingId)?.status
-      : undefined
-  );
+      ? bag.rows.data.find((row) => row.id === removingId)
+      : undefined;
+  const removal = useListingActions(removingId ?? 0, removingRow?.status, {
+    // The SERVER's answer for THIS row, exactly as the row's own controls
+    // take it. Without it this hook fell back to the mirror, and the mirror
+    // is a table about a status rather than about a listing — which is the
+    // difference between "a sold listing may be archived" and "this one may".
+    ...(removingRow?.available_transitions !== undefined
+      ? { available: removingRow.available_transitions }
+      : {}),
+  });
 
   const paged = bag.prevPage.available || bag.nextPage.available;
 
@@ -501,35 +517,37 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
           />
         ) : (
           <>
-        {/* The rows no tab folds in — see the header, point 2. Rendered
-            only when there are some: an empty takedown section is a scare,
-            and a failure to CHECK is not the same as "none", so it says so. */}
-        {matchList(bag.blockedRows, {
-          loading: () => null,
-          failed: () => (
-            <Typography.Text
-              type="secondary"
-              data-testid="listings-mine-takedowns-failed"
-            >
-              {t(LISTINGS_I18N_KEYS.mineBlockedLoadFailed)}
-            </Typography.Text>
-          ),
-          empty: () => null,
-          ready: (rows) => (
-            <Flex vertical gap={spacing[2]} data-testid="listings-mine-takedowns">
-              <Typography.Text type="warning" strong>
-                {tPlural(LISTINGS_I18N_KEYS.mineBlockedTitle, {
-                  count: rows.length,
-                })}
-              </Typography.Text>
-              <List
-                dataSource={[...rows]}
-                rowKey={(row) => row.id}
-                renderItem={renderRow}
-              />
-            </Flex>
-          ),
-        })}
+        {/* The takedowns, announced above the tabs — see the header, point 2.
+            The LINE only: the rows themselves are the fourth tab, and this
+            says how many there are without waiting for a click. Rendered only
+            when there are some (an empty takedown section is a scare) and not
+            while that tab is open (nobody needs telling twice); a failure to
+            CHECK is not the same as "none", so that says so. */}
+        {bag.tab === "removed"
+          ? null
+          : matchList(bag.blockedRows, {
+              loading: () => null,
+              failed: () => (
+                <Typography.Text
+                  type="secondary"
+                  data-testid="listings-mine-takedowns-failed"
+                >
+                  {t(LISTINGS_I18N_KEYS.mineBlockedLoadFailed)}
+                </Typography.Text>
+              ),
+              empty: () => null,
+              ready: (rows) => (
+                <Typography.Text
+                  type="warning"
+                  strong
+                  data-testid="listings-mine-takedowns"
+                >
+                  {tPlural(LISTINGS_I18N_KEYS.mineBlockedTitle, {
+                    count: rows.length,
+                  })}
+                </Typography.Text>
+              ),
+            })}
 
         <Tabs
           activeKey={bag.tab}
@@ -553,11 +571,13 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
                   // phone instead of collapsing into an overflow menu.
                   //
                   // `tabCounts`, not `counters`: the badge is never allowed to
-                  // read lower than the rows underneath it (D407 — a
-                  // moderator-rejected listing sat in Drafts under a `0`).
+                  // read lower than the rows underneath it, and the fourth tab
+                  // has no server counter at all (D407 — a moderator-rejected
+                  // listing sat in Drafts under a `0`, and a taken-down one
+                  // under no number whatever).
                   ready: (counts) => (
                     <Typography.Text
-                      type="secondary"
+                      type={tab === "removed" ? "warning" : "secondary"}
                       data-testid={`listings-mine-count-${tab}`}
                     >
                       {` ${String(counts[tab])}`}
@@ -680,11 +700,24 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
           </>
         )}
 
+        {/* THE PROMISE IS ONLY MADE WHERE IT CAN BE KEPT.
+            "Archiving keeps it" is a real alternative to offer somebody about
+            to delete a live listing, and an insult to somebody deleting from
+            the archive — measured on the phone walk: the archive tab's own
+            delete dialog promised the archive to a person already standing in
+            it. So the sentence follows the ROW's state rather than the
+            wording, and the state that decides it is the one the seller would
+            have to act on: whether `archived` is a move this listing still
+            has. Archived, sold and taken-down rows have spent it. */}
         <SkinConfirm
           open={removingId !== null}
           danger
           title={t(LISTINGS_I18N_KEYS.mineDeleteConfirmTitle)}
-          body={t(LISTINGS_I18N_KEYS.mineDeleteConfirmBody)}
+          body={t(
+            removal.moves.some((move) => move.to === "archived")
+              ? LISTINGS_I18N_KEYS.mineDeleteConfirmBody
+              : LISTINGS_I18N_KEYS.mineDeleteConfirmBodyFinal
+          )}
           confirmLabel={t(LISTINGS_I18N_KEYS.mineDelete)}
           confirming={removal.inFlight}
           data-testid="listings-mine-delete-confirm"

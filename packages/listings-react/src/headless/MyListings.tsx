@@ -20,8 +20,13 @@ import type { MyListingsSource } from "../model/mineSource.js";
 import { useListingsApi } from "../model/context.js";
 import { useMyCounters } from "../model/queries.js";
 import { listingsQueryKeys, pageKey } from "../model/queryKeys.js";
-import { MY_LISTINGS_TABS, MY_LISTINGS_UNTABBED_STATUSES } from "../model/status.js";
-import type { MyListingsTab } from "../model/status.js";
+import {
+  MY_LISTINGS_COUNTED_TABS,
+  MY_LISTINGS_REMOVED_TAB,
+  MY_LISTINGS_TABS,
+  MY_LISTINGS_UNTABBED_STATUSES,
+} from "../model/status.js";
+import type { MyListingsCountedTab, MyListingsTab } from "../model/status.js";
 import { browserAddress, tabFromSearch } from "../model/tabAddress.js";
 import type { MyListingsAddress } from "../model/tabAddress.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
@@ -37,45 +42,66 @@ import { useMandateGate } from "./useMandateGate.js";
  * keeps the argument and the seam that came out of it.
  *
  * TWO reads, not one, and the second one is the point of this file's shape:
- * the three tabs are the SERVER's status groupings, and `blocked` — a
+ * the three counted tabs are the SERVER's status groupings, and `blocked` — a
  * moderation takedown — is in none of them, because `my/counters` counts it
  * in none of them. A dashboard that only ever asked for a tab's statuses
  * would hide exactly the listing whose owner most needs to know. So
  * `blockedRows` is fetched beside them, off the same route, narrowed to
  * whatever `MY_LISTINGS_UNTABBED_STATUSES` derives.
+ *
+ * That second read is also the fourth tab's COUNT (D407). `my/counters` has
+ * three integers and no fourth, so the removed tab is counted from the rows it
+ * holds — which is honest exactly because that read is unpaged and runs
+ * whichever tab is open. The one thing it cannot describe is a page cap: a
+ * seller with more takedowns than one page of `my/listings` would see the page
+ * count and not the total, and there is no counter on the wire to check it
+ * against (see `MyListingsBag.tabCounts`).
  */
 
 export interface MyListingsBag {
   readonly tab: MyListingsTab;
+  /**
+   * The tabs to DRAW, in order.
+   *
+   * The server's three always; the removed one only where there is something
+   * in it or the person asked for it by address. An empty "Taken down" tab is
+   * a scare, and the seller it would scare is the one it has nothing to tell.
+   */
   readonly tabs: readonly MyListingsTab[];
   setTab(tab: MyListingsTab): void;
   /** The three real counts, as the server reports them. */
   readonly counters: LoadState<MyCounters>;
   /**
    * The number to DRAW on each tab — the server's counter, raised to what is
-   * actually on screen.
+   * actually on screen, plus the fourth tab's own.
    *
-   * D407: a moderator-rejected listing was on the Drafts tab under a badge
-   * reading `0`. The two sets are grouped in two places — `my/counters`
-   * aggregates server-side, `MY_LISTINGS_TAB_STATUSES` decides which statuses
-   * a tab ASKS for — and any disagreement between them (a deployment running
-   * an older counter, a status added upstream, a grouping changed on one side)
-   * lands as a badge contradicting the rows underneath it.
+   * D407, twice over. The first half: a moderator-rejected listing was on the
+   * Drafts tab under a badge reading `0`. The two sets are grouped in two
+   * places — `my/counters` aggregates server-side, `MY_LISTINGS_TAB_STATUSES`
+   * decides which statuses a tab ASKS for — and any disagreement between them
+   * (a deployment running an older counter, a status added upstream, a
+   * grouping changed on one side) lands as a badge contradicting the rows
+   * underneath it. A count smaller than what a person can see is not a count,
+   * so the loaded rows are treated as evidence: for the OPEN tab the number is
+   * never below `rows.length`. It is a floor and not a replacement — the rows
+   * are one keyset page and the counter is the whole set, so the counter still
+   * wins whenever it is the larger of the two.
    *
-   * A count smaller than what a person can see is not a count, so the loaded
-   * rows are treated as evidence: for the OPEN tab the number is never below
-   * `rows.length`. It is a floor and not a replacement — the rows are one
-   * keyset page and the counter is the whole set, so the counter still wins
-   * whenever it is the larger of the two.
+   * The second half: a takedown was in no tab and therefore in no number, so
+   * a cabinet holding one read "Active 0 · Drafts 0 · Archived 0" over it.
+   * `removed` is counted from `blockedRows` — there is no server counter to
+   * read, and the rows are the only evidence on the wire.
    */
   readonly tabCounts: LoadState<Readonly<Record<MyListingsTab, number>>>;
-  /** The rows for the current tab. */
+  /** The rows for the current tab — {@link MyListingsBag.blockedRows} while
+   * the removed tab is open, and the tab's own keyset page otherwise. */
   readonly rows: LoadState<readonly MyListingCard[]>;
   /**
-   * The rows no tab folds in — a moderation takedown, today. Empty for
-   * almost every seller; when it is not, it is the most important thing on
-   * the screen. Never `failed` in a way that hides the tabs: this read is
-   * independent of `rows` and a skin renders it beside them.
+   * The rows the server's own counter folds into no tab — a moderation
+   * takedown, today; the removed tab's whole contents and its count. Empty
+   * for almost every seller; when it is not, it is the most important thing
+   * on the screen. Never `failed` in a way that hides the tabs: this read is
+   * independent of the tab's own and a skin renders it beside them.
    */
   readonly blockedRows: LoadState<readonly MyListingCard[]>;
   readonly page: MyListingsParams;
@@ -136,11 +162,18 @@ export function useMyListings(
     [injected, api]
   );
   const ready = sessionReady && gate.available;
+  // The fourth tab is served by `blockedQuery` below, not by the host's
+  // source: `MyListingsSource` is typed for the three counted tabs and a host
+  // that implemented it before D407 has no answer for a fourth.
+  const removed = tab === MY_LISTINGS_REMOVED_TAB;
+  const countedTab: MyListingsCountedTab = removed
+    ? MY_LISTINGS_COUNTED_TABS[0]
+    : (tab as MyListingsCountedTab);
 
   const rowsQuery = useQuery({
-    queryKey: listingsQueryKeys.mine(tab, pageKey(page)),
-    queryFn: ({ signal }) => source({ tab, page, signal }),
-    enabled: ready,
+    queryKey: listingsQueryKeys.mine(countedTab, pageKey(page)),
+    queryFn: ({ signal }) => source({ tab: countedTab, page, signal }),
+    enabled: ready && !removed,
     retry: false,
   });
 
@@ -155,12 +188,6 @@ export function useMyListings(
     retry: false,
   });
 
-  const rows: LoadState<readonly MyListingCard[]> = useMemo(() => {
-    if (rowsQuery.status === "error") return loadFailed(rowsQuery.error);
-    if (rowsQuery.data !== undefined) return loadReady(rowsQuery.data.items);
-    return loadLoading();
-  }, [rowsQuery.status, rowsQuery.error, rowsQuery.data]);
-
   const blockedRows: LoadState<readonly MyListingCard[]> = useMemo(() => {
     if (MY_LISTINGS_UNTABBED_STATUSES.length === 0) return loadReady([]);
     if (blockedQuery.status === "error") return loadFailed(blockedQuery.error);
@@ -168,9 +195,26 @@ export function useMyListings(
     return loadLoading();
   }, [blockedQuery.status, blockedQuery.error, blockedQuery.data]);
 
-  const envelope = rowsQuery.data;
+  const tabRows: LoadState<readonly MyListingCard[]> = useMemo(() => {
+    if (rowsQuery.status === "error") return loadFailed(rowsQuery.error);
+    if (rowsQuery.data !== undefined) return loadReady(rowsQuery.data.items);
+    return loadLoading();
+  }, [rowsQuery.status, rowsQuery.error, rowsQuery.data]);
 
-  // D407, the floor: never a number smaller than the rows on screen. See
+  const rows = removed ? blockedRows : tabRows;
+
+  // The takedown count, when it is known. Not a `0` while the read is in
+  // flight: the tab strip is drawn off this number and a tab that appeared a
+  // beat after the page settled would move the three beside it.
+  const blockedCount =
+    blockedRows.status === "ready" ? blockedRows.data.length : undefined;
+
+  // Paging belongs to the tab's own keyset read. The takedowns are fetched
+  // unpaged on purpose, so the removed tab has nowhere to go and says so.
+  const envelope = removed ? undefined : rowsQuery.data;
+
+  // D407, the floor: never a number smaller than the rows on screen — and a
+  // number for the fourth tab, which the server counts nowhere. See
   // `MyListingsBag.tabCounts`.
   const tabCounts: LoadState<Readonly<Record<MyListingsTab, number>>> =
     useMemo(() => {
@@ -178,19 +222,26 @@ export function useMyListings(
       if (counters.data === undefined) return loadLoading();
       const server = counters.data;
       const visible = rows.status === "ready" ? rows.data.length : 0;
-      return loadReady(
-        Object.fromEntries(
-          MY_LISTINGS_TABS.map((one) => [
+      return loadReady({
+        ...(Object.fromEntries(
+          MY_LISTINGS_COUNTED_TABS.map((one) => [
             one,
             one === tab ? Math.max(server[one], visible) : server[one],
           ])
-        ) as Readonly<Record<MyListingsTab, number>>
-      );
-    }, [counters.status, counters.error, counters.data, rows, tab]);
+        ) as Readonly<Record<MyListingsCountedTab, number>>),
+        [MY_LISTINGS_REMOVED_TAB]: blockedCount ?? 0,
+      });
+    }, [counters.status, counters.error, counters.data, rows, tab, blockedCount]);
+
+  // The removed tab is drawn where it has something to say — or where the
+  // address named it, so `?tab=removed` opens a real (if empty) tab rather
+  // than an activeKey pointing at nothing.
+  const tabs: readonly MyListingsTab[] =
+    removed || (blockedCount ?? 0) > 0 ? MY_LISTINGS_TABS : MY_LISTINGS_COUNTED_TABS;
 
   return {
     tab,
-    tabs: MY_LISTINGS_TABS,
+    tabs,
     setTab: (next) => {
       // A cursor belongs to ONE ordered candidate set. Carried across a tab
       // change it either bounces or honestly returns page four of a
