@@ -78,6 +78,12 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.list.unread": "Непрочитанных: {count}",
   "chat.list.open": "Открыть",
 
+  "chat.list.search.label": "Поиск по диалогам",
+  "chat.list.search.placeholder": "Имя, объявление или сообщение",
+  "chat.list.filter.unread": "Непрочитанные",
+  "chat.list.no_matches": "Ничего не найдено.",
+  "chat.list.filter.scope": "Фильтр — среди загруженных диалогов.",
+
   "chat.kind.direct": "Личная переписка",
   "chat.kind.group": "Групповой диалог",
   "chat.kind.support": "Поддержка",

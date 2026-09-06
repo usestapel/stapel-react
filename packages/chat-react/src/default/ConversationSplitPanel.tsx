@@ -39,6 +39,7 @@ import type { LinkComponent } from "@stapel/core";
 import type { ChatMessage, Subject } from "../api/types.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
+import type { ConversationListPanelProps } from "./ConversationListPanel.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 import type { ThreadHeaderActionsContext } from "./ConversationThreadPanel.js";
 import { ChatSkinTheme } from "./theme.js";
@@ -61,6 +62,25 @@ export interface ConversationSplitPanelProps {
   subjectHref?: (subject: Subject) => string | undefined;
   /** The router's link for the subject title — forwarded to the list. */
   linkComponent?: LinkComponent;
+  /**
+   * The list pane's toolbar — search text, the unread chip and whether the
+   * controls are drawn at all. Forwarded verbatim to
+   * `<ConversationListPanel/>`, which documents each one.
+   *
+   * They are here for the reason `renderHeaderActions` is: this arrangement
+   * mounts the list panel ITSELF, so a host composing the two panes by hand
+   * could keep its filter in the URL and a host taking this arrangement could
+   * not — the same deployment filtering on the phone and losing the filter on
+   * a reload of the desktop split. A host that passes none of them gets the
+   * self-managing toolbar, which is what the storefront gets today.
+   */
+  search?: string;
+  defaultSearch?: string;
+  onSearchChange?: (search: string) => void;
+  unreadOnly?: boolean;
+  defaultUnreadOnly?: boolean;
+  onUnreadOnlyChange?: (unreadOnly: boolean) => void;
+  filters?: boolean;
   /** Thread page size — forwarded to `<ConversationThreadPanel/>`. */
   limit?: number;
   /** Composer cap — forwarded to `<ConversationThreadPanel/>`. */
@@ -119,6 +139,36 @@ export function ConversationSplitPanel(
   );
 }
 
+/**
+ * The toolbar half of the props, forwarded only where the host really set it.
+ *
+ * One pass rather than seven inline spreads at the call site, and `undefined`
+ * is DROPPED rather than passed on: under `exactOptionalPropertyTypes` an
+ * explicit `search={undefined}` is a different thing from an absent `search`,
+ * and passing it would put the list panel into controlled mode with no value.
+ */
+function toolbarProps(
+  props: ConversationSplitPanelProps
+): Partial<ConversationListPanelProps> {
+  return {
+    ...(props.search !== undefined ? { search: props.search } : {}),
+    ...(props.defaultSearch !== undefined
+      ? { defaultSearch: props.defaultSearch }
+      : {}),
+    ...(props.onSearchChange !== undefined
+      ? { onSearchChange: props.onSearchChange }
+      : {}),
+    ...(props.unreadOnly !== undefined ? { unreadOnly: props.unreadOnly } : {}),
+    ...(props.defaultUnreadOnly !== undefined
+      ? { defaultUnreadOnly: props.defaultUnreadOnly }
+      : {}),
+    ...(props.onUnreadOnlyChange !== undefined
+      ? { onUnreadOnlyChange: props.onUnreadOnlyChange }
+      : {}),
+    ...(props.filters !== undefined ? { filters: props.filters } : {}),
+  };
+}
+
 /** Split out so `useToken`/`useT` are read under the skin's own theme root. */
 function SplitBody(props: ConversationSplitPanelProps): ReactElement {
   const t = useT();
@@ -155,6 +205,7 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
           {...(props.linkComponent !== undefined
             ? { linkComponent: props.linkComponent }
             : {})}
+          {...toolbarProps(props)}
         />
       </div>
       <div

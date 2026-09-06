@@ -263,6 +263,31 @@ subject card, names the counterparty in its header, and puts report/block
 behind one overflow control. Dialogs go through `@stapel/tokens-antd/skin`'s
 `SkinDialog`, so every one of them is a bottom sheet on a phone.
 
+**Finding one conversation.** The list pane carries a toolbar: a search box
+over the three things a row draws — the counterpart's name, the listing it is
+about, the last line when this client holds one — and an "Unread" chip over
+the server's own `unread_count`. Both are controlled-or-not, and a storefront
+that passes nothing gets a working toolbar:
+
+```tsx
+<ConversationListPanel viewerId={me.id} />                       {/* self-managing */}
+<ConversationListPanel
+  search={params.q ?? ""}                                        {/* host-owned  */}
+  onSearchChange={(q) => setParams({ q })}
+  unreadOnly={params.unread === "1"}
+  onUnreadOnlyChange={(on) => setParams({ unread: on ? "1" : undefined })}
+/>
+```
+
+`filters={false}` hides the controls and keeps the filter, for a host that
+drives both from chrome of its own. `<ConversationSplitPanel/>` forwards all
+of them. **Both filters are client-side**, over the pages already loaded:
+`GET /conversations` takes `anchor`/`direction`/`limit` and nothing else, so
+the pane states its scope whenever there is another page to load, and the
+filtered-empty arm says "nothing found" rather than borrowing the empty
+inbox's "no conversations yet". A `search` parameter and an `unread` filter on
+the list endpoint are named in `MODULE.md`'s upstream notes.
+
 **No preview on first paint, and why.** `ConversationResponse` carries no last
 message — not a body, not a snippet — so a row shows the last line only for
 threads this client has open (read from the cache, no request). Naming it on

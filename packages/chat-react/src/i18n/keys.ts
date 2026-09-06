@@ -22,6 +22,19 @@ export const CHAT_I18N_KEYS = {
   listUnread: "chat.list.unread",
   listOpen: "chat.list.open",
 
+  // FINDING ONE CONVERSATION. The list endpoint takes anchor/direction/limit
+  // and nothing else, so both controls narrow what is already loaded — and
+  // `listFilterScope` is the sentence that says so, shown only while there
+  // really is more to load. A search box that quietly reads one page of
+  // twenty and answers "nothing found" over an inbox of three hundred is the
+  // defect these four keys exist to avoid.
+  listSearchLabel: "chat.list.search.label",
+  listSearchPlaceholder: "chat.list.search.placeholder",
+  listUnreadOnly: "chat.list.filter.unread",
+  /** The filtered list found nothing — NOT the same sentence as an empty inbox. */
+  listNoMatches: "chat.list.no_matches",
+  listFilterScope: "chat.list.filter.scope",
+
   // Conversation kinds. NOT a row title any more: the inbox used to title
   // every row with its kind, so a seller with ten buyers read ten rows
   // saying "Direct message" and told them apart by the clock. A kind is now
@@ -231,6 +244,12 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.list.retry": "Try again",
   "chat.list.unread": "{count} unread",
   "chat.list.open": "Open",
+
+  "chat.list.search.label": "Search conversations",
+  "chat.list.search.placeholder": "Name, listing or message",
+  "chat.list.filter.unread": "Unread",
+  "chat.list.no_matches": "Nothing found.",
+  "chat.list.filter.scope": "Filtering among the conversations loaded so far.",
 
   "chat.kind.direct": "Direct message",
   "chat.kind.group": "Group",

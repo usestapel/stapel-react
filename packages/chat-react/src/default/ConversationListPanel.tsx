@@ -32,9 +32,21 @@
  * inbox held zero links to a listing before this: the one move a seller
  * standing in their messages wants to make had to be made by searching for
  * the listing again.
+ *
+ * ── Finding one of them ───────────────────────────────────────────────────
+ *
+ * The pane heading carries a toolbar: a search box over the three things a
+ * row is made of (WHO / WHAT / the last line) and an "Unread" chip over the
+ * server's own `unread_count`. Both narrow the conversations this client has
+ * LOADED, because the list endpoint takes anchor/direction/limit and nothing
+ * else — so while there is more to load the pane says which conversations it
+ * is filtering (`inboxFilter.ts` carries the reasoning and the upstream ask).
+ * The two empty states stay different sentences: "no conversations" is the
+ * inbox being empty, "nothing found" is the filter finding nothing in it.
  */
 import { spacing } from "@stapel/tokens-antd";
 import { ListRow } from "@stapel/tokens-antd/skin";
+import { useCallback, useState } from "react";
 import type { ReactElement } from "react";
 import {
   Badge,
@@ -42,9 +54,11 @@ import {
   Card,
   Empty,
   Flex,
+  Input,
   List,
   Space,
   Spin,
+  Tag,
   Typography,
   theme as antdTheme,
 } from "antd";
@@ -62,9 +76,16 @@ import {
   CounterpartyAvatar,
   PeopleScope,
   conversationPeopleIds,
+  counterpartyLabel,
   useCounterpartyLabel,
 } from "./people.js";
-import { SubjectRowSummary, readSubjectCard } from "./subjectCard.js";
+import { SubjectRowSummary, readSubjectCard, subjectRowLabel } from "./subjectCard.js";
+import {
+  inboxFilterActive,
+  matchesInboxFilter,
+  normalizeSearch,
+  previewSearchText,
+} from "./inboxFilter.js";
 
 export interface ConversationListPanelProps {
   /**
@@ -112,6 +133,41 @@ export interface ConversationListPanelProps {
    * correct, just a full page load.
    */
   linkComponent?: LinkComponent;
+
+  // ── The toolbar (search + unread) ─────────────────────────────────────────
+  //
+  // Both controls are CONTROLLED-OR-NOT, the platform's own `value` /
+  // `defaultValue` shape: a storefront that passes nothing gets a working
+  // toolbar with no wiring at all, and a host that wants the query in its URL
+  // passes `search` + `onSearchChange` and owns it. That is the whole reason
+  // this is a pair of props rather than one — a screen whose filter survives
+  // a reload cannot be built on internal state, and a screen that just wants
+  // a search box should not have to build one.
+
+  /**
+   * The search text, CONTROLLED. Given, this panel never changes it on its
+   * own — pair it with {@link onSearchChange}.
+   */
+  search?: string;
+  /** The search text a self-managing toolbar starts with. Default `""`. */
+  defaultSearch?: string;
+  /** Fired on every keystroke, in both modes. */
+  onSearchChange?: (search: string) => void;
+  /** The unread chip, CONTROLLED. Pair with {@link onUnreadOnlyChange}. */
+  unreadOnly?: boolean;
+  /** What the chip starts as when this panel owns it. Default `false`. */
+  defaultUnreadOnly?: boolean;
+  /** Fired when the chip is pressed, in both modes. */
+  onUnreadOnlyChange?: (unreadOnly: boolean) => void;
+  /**
+   * Draw the toolbar. Default: yes.
+   *
+   * `false` hides the CONTROLS, not the filter — a host that drives `search`
+   * / `unreadOnly` from chrome of its own (a page-level search field, a tab
+   * bar) still gets a filtered list, which is the only reason to switch the
+   * built-in one off.
+   */
+  filters?: boolean;
 }
 
 function relativeTime(locale: string, iso: string): string {
@@ -391,7 +447,16 @@ function openRow(
   return inside;
 }
 
-/** The rows, once the names for the whole page have been asked for once. */
+/**
+ * The rows, once the names for the whole page have been asked for once — and
+ * once the toolbar has had its say.
+ *
+ * THE FILTER RUNS INSIDE THE PEOPLE SCOPE, and it has to: a row is searchable
+ * by the counterpart's NAME, and the name only exists once the host's seam has
+ * answered. The ids handed to that seam are the whole loaded page's, never the
+ * visible subset — narrowing them would re-key the batch on every keystroke
+ * and pay a profile request per character typed.
+ */
 function InboxRows(props: {
   readonly rows: readonly Conversation[];
   readonly viewerId: string | null;
@@ -401,18 +466,49 @@ function InboxRows(props: {
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
   readonly selectedId: string | null;
+  /** Already normalized (`normalizeSearch`); `""` filters nothing. */
+  readonly needle: string;
+  readonly unreadOnly: boolean;
 }): ReactElement {
-  const { rows, viewerId, selectedId } = props;
+  const { rows, viewerId, selectedId, needle, unreadOnly, locale } = props;
+  const t = useT();
   const previews = useThreadPreviews(rows.map((row) => row.id));
   // The selected-item background comes from the token bag, never a literal:
   // a hex here would be right in exactly one of the two theme modes.
   const { token } = antdTheme.useToken();
   return (
     <PeopleScope userIds={conversationPeopleIds(rows, viewerId)}>
-      {(directory) => (
+      {(directory) => {
+        const visible = rows.filter((row) =>
+          matchesInboxFilter(
+            row,
+            {
+              // The same three strings the row draws — see `counterpartyLabel`
+              // on why the label's rules are not written twice.
+              person: counterpartyLabel(row, viewerId, directory, t),
+              subject: row.subject ? subjectRowLabel(row.subject, locale) : "",
+              preview: previewSearchText(previews(row.id)),
+            },
+            { needle, unreadOnly, locale }
+          )
+        );
+        // The filter found nothing — which is NOT "no conversations yet", and
+        // saying so with the inbox's own empty copy would tell a person with
+        // three hundred threads that they have none.
+        if (visible.length === 0) {
+          return (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              style={{ marginTop: spacing[4] }}
+              data-testid="chat-conversation-list-no-matches"
+              description={t(CHAT_I18N_KEYS.listNoMatches)}
+            />
+          );
+        }
+        return (
         <List<Conversation>
           style={{ marginTop: spacing[4] }}
-          dataSource={[...rows]}
+          dataSource={[...visible]}
           rowKey={(row) => row.id}
           renderItem={(row) => (
             <List.Item
@@ -442,8 +538,93 @@ function InboxRows(props: {
             </List.Item>
           )}
         />
-      )}
+        );
+      }}
     </PeopleScope>
+  );
+}
+
+/**
+ * A value this panel owns until a host takes it — the platform's own
+ * `value` / `defaultValue` shape, written once for both controls.
+ *
+ * `onChange` fires in BOTH modes: a host that only wants to observe the query
+ * (to put it in the URL, to count it) passes the callback and nothing else,
+ * and a host that passes the value owns it completely — this panel then never
+ * moves it on its own, which is what makes a filter survive a reload.
+ */
+function useControlledValue<T>(
+  controlled: T | undefined,
+  initial: T,
+  onChange: ((next: T) => void) | undefined
+): readonly [T, (next: T) => void] {
+  const [own, setOwn] = useState(initial);
+  const isControlled = controlled !== undefined;
+  const value = isControlled ? controlled : own;
+  const set = useCallback(
+    (next: T) => {
+      if (!isControlled) setOwn(next);
+      onChange?.(next);
+    },
+    [isControlled, onChange]
+  );
+  return [value, set] as const;
+}
+
+/**
+ * The toolbar under the pane heading: one row that wraps.
+ *
+ * ONE ROW, WRAPPING — not a bar that scrolls and not two rows on a phone. The
+ * input takes the width that is left (`flex: 1 1 …`, `minWidth: 0`, so a long
+ * placeholder cannot widen the pane it sits in) and the chip keeps its own,
+ * so a narrow phone pane drops the chip onto a second line rather than
+ * squeezing the field to nothing.
+ *
+ * Both controls are keyboard-reachable as they stand: the input is an input,
+ * and antd's `Tag.CheckableTag` renders `role="checkbox"` with `tabIndex={0}`
+ * and answers Space — so the chip is a real toggle to a screen reader, with
+ * its state announced, rather than a coloured `<span>` a mouse can press.
+ */
+function InboxToolbar(props: {
+  readonly search: string;
+  readonly onSearch: (next: string) => void;
+  readonly unreadOnly: boolean;
+  readonly onUnreadOnly: (next: boolean) => void;
+}): ReactElement {
+  const t = useT();
+  return (
+    <Flex
+      gap={spacing[2]}
+      align="center"
+      wrap="wrap"
+      style={{ marginTop: spacing[3] }}
+      data-testid="chat-list-toolbar"
+    >
+      <Input
+        allowClear
+        value={props.search}
+        onChange={(event) => {
+          props.onSearch(event.target.value);
+        }}
+        placeholder={t(CHAT_I18N_KEYS.listSearchPlaceholder)}
+        // The label is the accessible NAME, not a placeholder: a placeholder
+        // disappears the moment there is text in the field, which is exactly
+        // when a reader arriving on it needs to be told what it is.
+        aria-label={t(CHAT_I18N_KEYS.listSearchLabel)}
+        data-testid="chat-list-search"
+        style={{ flex: "1 1 12rem", minWidth: 0 }}
+        data-analytics="none"
+        data-analytics-reason="a local filter over already-loaded rows — no request, nothing to attribute; the host app wraps its own tracking"
+      />
+      <Tag.CheckableTag
+        checked={props.unreadOnly}
+        onChange={props.onUnreadOnly}
+        data-testid="chat-list-unread-filter"
+        style={{ cursor: "pointer", marginInlineEnd: 0 }}
+      >
+        {t(CHAT_I18N_KEYS.listUnreadOnly)}
+      </Tag.CheckableTag>
+    </Flex>
   );
 }
 
@@ -461,6 +642,18 @@ export function ConversationListPanel(
     props.viewerId === null || props.viewerId === undefined
       ? null
       : String(props.viewerId);
+  const [search, setSearch] = useControlledValue(
+    props.search,
+    props.defaultSearch ?? "",
+    props.onSearchChange
+  );
+  const [unreadOnly, setUnreadOnly] = useControlledValue(
+    props.unreadOnly,
+    props.defaultUnreadOnly ?? false,
+    props.onUnreadOnlyChange
+  );
+  const needle = normalizeSearch(search, locale);
+  const filtering = inboxFilterActive({ needle, unreadOnly });
 
   return (
     <ConversationList
@@ -516,6 +709,29 @@ export function ConversationListPanel(
             ),
             ready: (rows) => (
               <Space orientation="vertical" style={{ width: "100%" }}>
+                {/* Drawn in this arm only. A search box over a loading list
+                    filters nothing, and over an EMPTY inbox it invites a
+                    person to look for conversations they do not have. */}
+                {props.filters === false ? null : (
+                  <InboxToolbar
+                    search={search}
+                    onSearch={setSearch}
+                    unreadOnly={unreadOnly}
+                    onUnreadOnly={setUnreadOnly}
+                  />
+                )}
+                {/* The scope, stated only while it is TRUE. With every
+                    conversation loaded the filter really is over all of them,
+                    and a standing caveat nobody can act on is the sentence
+                    people learn to stop reading. */}
+                {filtering && hasNextPage ? (
+                  <Typography.Text
+                    type="secondary"
+                    data-testid="chat-list-filter-scope"
+                  >
+                    {t(CHAT_I18N_KEYS.listFilterScope)}
+                  </Typography.Text>
+                ) : null}
                 <InboxRows
                   rows={rows}
                   viewerId={viewerId}
@@ -525,6 +741,8 @@ export function ConversationListPanel(
                   subjectHref={props.subjectHref}
                   linkComponent={props.linkComponent}
                   selectedId={selectedId}
+                  needle={needle}
+                  unreadOnly={unreadOnly}
                 />
                 {hasNextPage ? (
                   <Button

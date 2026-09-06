@@ -58,8 +58,19 @@ export {
   PeopleScope,
   conversationPeopleIds,
   counterpartyIds,
+  counterpartyLabel,
   useCounterpartyLabel,
 } from "./people.js";
+// The inbox toolbar's predicate, as functions rather than a component: a host
+// that draws its own thread list gets the SAME rules the shipped one filters
+// by (and the note on why they are client-side at all).
+export {
+  inboxFilterActive,
+  matchesInboxFilter,
+  normalizeSearch,
+  previewSearchText,
+} from "./inboxFilter.js";
+export type { InboxRowText } from "./inboxFilter.js";
 export type { SignInLinkProps } from "./SignInLink.js";
 // The skin's own theme root. Every surface above already wraps itself in it;
 // it is exported so a host composing loose parts can wrap them once.

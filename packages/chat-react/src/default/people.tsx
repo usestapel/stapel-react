@@ -16,6 +16,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Avatar, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
+import type { TranslateFn } from "@stapel/core";
 import { spacing } from "@stapel/tokens-antd";
 import type { Conversation } from "../api/types.js";
 import { useChatRuntime } from "../model/context.js";
@@ -81,6 +82,23 @@ export function useCounterpartyLabel(
   directory: ChatPeopleDirectory
 ): string {
   const t = useT();
+  return counterpartyLabel(conversation, viewerId, directory, t);
+}
+
+/**
+ * The pure half of {@link useCounterpartyLabel}, with `t` handed in.
+ *
+ * It exists because the inbox's search filter has to compare against the SAME
+ * words the row draws, and a hook cannot be called once per row inside a
+ * filter — a second copy of these rules, kept in step by hand, is how a
+ * search stops finding the name that is visibly on the screen.
+ */
+export function counterpartyLabel(
+  conversation: Conversation,
+  viewerId: string | null,
+  directory: ChatPeopleDirectory,
+  t: TranslateFn
+): string {
   if (conversation.kind === "support") return t(CHAT_I18N_KEYS.kindSupport);
   const ids = counterpartyIds(conversation, viewerId);
   if (ids.length === 0) return t(CHAT_I18N_KEYS.personUnnamed);

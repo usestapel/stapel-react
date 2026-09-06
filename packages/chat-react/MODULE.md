@@ -237,6 +237,16 @@ says neither that nor "Live".
   serves. The generated type therefore makes them optional and every consumer
   must handle an absence the server never produces.
   `chatStreamForConversation` reads them when present and derives when not.
+- **`GET /conversations` cannot be searched or filtered.** Its only query
+  parameters are `anchor`, `direction` and `limit` (stapel-chat 0.8.0,
+  `docs/schema.json`), so the thread list's toolbar — search over the
+  counterpart's name / the subject title / the last line, and the "Unread"
+  chip over `unread_count` — narrows the pages this client has ALREADY
+  loaded, and the pane says so whenever another page is unloaded. What would
+  make both server-side and exact: a `search` parameter over those fields and
+  an `unread=true` filter on the list endpoint. Related, and the same shape:
+  the missing `last_message` projection below — without it a row can only be
+  found by its last line once its thread has been opened this session.
 - ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
   It was true: `@stapel/realtime` reported a stream as `reconnecting` while
   core's refresh was in flight, so a pair could not tell "renewing your
