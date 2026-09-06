@@ -30,6 +30,13 @@
       "request": "CreateConversationRequest",
       "response": "ConversationResponse"
     },
+    "chat_api_v1_conversations_destroy": {
+      "method": "DELETE",
+      "path": "/chat/api/v1/conversations/{conversation_id}",
+      "tag": "Chat",
+      "request": null,
+      "response": null
+    },
     "chat_api_v1_conversations_list": {
       "method": "GET",
       "path": "/chat/api/v1/conversations",
@@ -116,6 +123,16 @@
         "chat",
         "conversation",
         "{conversationId}"
+      ]
+    },
+    "useLeaveConversation": {
+      "kind": "mutation",
+      "operation": "leaveConversation",
+      "invalidates": [
+        [
+          "chat",
+          "conversations"
+        ]
       ]
     },
     "useLoadOlderMessages": {
@@ -601,6 +618,25 @@
       "source": "demo/ConversationList.demo.tsx"
     },
     {
+      "id": "chat.leave",
+      "title": "Leaving a conversation (default skin)",
+      "description": "The way off a thread, and the sentence that says what that is. The verb on the wire is DELETE and the act is not a delete — the conversation leaves ONE person's list while every message, the other party's copy and the leaver's own access by id stay untouched, and a reply from the other side brings it back. The confirmation is the only place that difference is ever stated, so it is the frame worth having.",
+      "component": "LeaveConversationDialog",
+      "covers": [
+        "LeaveConversationTrigger"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "in-the-menu"
+      ],
+      "source": "demo/LeaveConversation.demo.tsx"
+    },
+    {
       "id": "chat.presence",
       "title": "Presence and transport (default skin)",
       "description": "Who is actually there, and whether this browser's own connection is healthy — two different facts, in two different controls. Presence is a server-side fact about the OTHER participant's connections; the transport tag talks about this client and says nothing at all while nothing is wrong.",
@@ -734,6 +770,10 @@
     "chat.kind.direct",
     "chat.kind.group",
     "chat.kind.support",
+    "chat.leave.action",
+    "chat.leave.body",
+    "chat.leave.confirm",
+    "chat.leave.pending",
     "chat.list.empty",
     "chat.list.end",
     "chat.list.filter.unread",
@@ -758,8 +798,10 @@
     "chat.notify.not_now",
     "chat.notify.title",
     "chat.person.loading",
+    "chat.person.someone",
     "chat.person.unnamed",
     "chat.presence.last_seen",
+    "chat.presence.left",
     "chat.presence.online",
     "chat.presence.unknown",
     "chat.split.empty",
@@ -775,6 +817,7 @@
     "chat.subject.open",
     "chat.subject.unavailable",
     "chat.subject.unresolved",
+    "chat.system.participant_left",
     "chat.thread.beginning",
     "chat.thread.empty",
     "chat.thread.empty_subject",
@@ -879,12 +922,14 @@
       "CHAT_FRAME_SEND",
       "CHAT_I18N_KEYS",
       "CHAT_INBOX_SOCKET_PATH",
+      "CHAT_MARKER_PARTICIPANT_LEFT",
       "CHAT_SIGNAL_ACTIVITY",
       "CHAT_SIGNAL_DELIVERED",
       "CHAT_SIGNAL_INBOX",
       "CHAT_SIGNAL_PRESENCE",
       "CHAT_SIGNAL_READ",
       "CHAT_STREAM_MODULE",
+      "CHAT_SYSTEM_LINE_LABELS",
       "CHAT_WS_ERRORS",
       "CONVERSATION_LIST_INTERVAL_MS",
       "ChatProvider",
@@ -935,6 +980,8 @@
       "nextReadMarker",
       "noPeopleSlot",
       "normalizeInboxSearch",
+      "participantHasLeft",
+      "participantLeftAt",
       "participantPresence",
       "presenceExpired",
       "presenceExpiryDelay",
@@ -945,8 +992,10 @@
       "readChatMessageFrame",
       "readChatMessagePayload",
       "readChatPresenceFrame",
+      "readSystemMarker",
       "registerChatI18n",
       "so",
+      "systemLineText",
       "threadFirstSeq",
       "threadLastMessage",
       "threadLastRevSeq",
@@ -962,11 +1011,7 @@
       "useConversations",
       "useDebouncedValue",
       "useFlow",
-      "useLoadOlderMessages",
-      "useMarkRead",
-      "useSendMessage",
       "useSettledInboxFilter",
-      "useStartDirectChat",
       "useThread",
       "withRenewingCredential"
     ],
@@ -1017,6 +1062,7 @@
       "ChatStream",
       "ChatSubjectCardSlot",
       "ChatSubjectCardSlotProps",
+      "ChatSystemMarker",
       "ChatThreadActionSlot",
       "ChatThreadActionSlotProps",
       "ChatThreadWindow",

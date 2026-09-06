@@ -89,6 +89,7 @@ export const chatI18nBundleEs: I18nDictionary = {
 
   "chat.person.unnamed": "Nombre no disponible",
   "chat.person.loading": "Cargando…",
+  "chat.person.someone": "La otra persona",
   "chat.list.preview_own": "Tú: {text}",
   "chat.list.preview_deleted": "Mensaje eliminado",
   "chat.list.preview_system": "Mensaje del sistema",
@@ -109,6 +110,16 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.thread.empty_subject":
     "Aún no hay mensajes sobre esto. Saluda: la conversación se queda con ello.",
   "chat.thread.menu": "Opciones de la conversación",
+
+  // None of these words is "delete": the wire verb is DELETE and nothing is
+  // deleted. The confirmation states both halves in one sentence — what
+  // happens to your list, and what the other person keeps.
+  "chat.leave.action": "Salir de la conversación",
+  "chat.leave.body":
+    "La conversación desaparecerá de tu lista. La otra persona conserva los mensajes.",
+  "chat.leave.confirm": "Salir",
+  "chat.leave.pending": "Saliendo…",
+  "chat.system.participant_left": "{name} salió de la conversación",
 
   "chat.split.empty": "Elige una conversación",
 
@@ -149,6 +160,7 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.presence.online": "en línea",
   "chat.presence.last_seen": "última vez {when}",
   "chat.presence.unknown": "sin conexión",
+  "chat.presence.left": "Salió de la conversación",
 
   "chat.transport.live": "En directo",
   "chat.transport.connecting": "Conectando…",

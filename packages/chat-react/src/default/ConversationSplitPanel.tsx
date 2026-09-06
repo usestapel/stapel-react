@@ -32,6 +32,7 @@
  * ```
  */
 import { spacing } from "@stapel/tokens-antd";
+import { useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Empty, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
@@ -109,6 +110,16 @@ export interface ConversationSplitPanelProps {
    */
   renderSystemMessage?: (message: ChatMessage) => ReactNode;
   /**
+   * The reader LEFT the open conversation (stapel-chat 0.8.5).
+   *
+   * This arrangement needs no wiring to close the pane — it owns which thread
+   * the right side shows and stops showing that one on its own. The callback
+   * is for the host's ROUTE: `selectedId` typically comes from the URL, and a
+   * URL still naming a thread that is off this person's list is a page that
+   * reopens it on the next reload.
+   */
+  onLeft?: (conversationId: string) => void;
+  /**
    * The right pane while nothing is selected. Default: a quiet empty state
    * saying to pick a conversation — an invitation, not a failure.
    */
@@ -174,6 +185,22 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
   const t = useT();
   const { token } = antdTheme.useToken();
   const selectedId = props.selectedId ?? null;
+  // THE PANE CLOSES ITSELF ON A LEAVE.
+  //
+  // `selectedId` is the HOST's (it is usually the route), so this arrangement
+  // cannot clear it — and a right pane still showing a thread that just left
+  // the list beside it is the two halves of one screen disagreeing. So the
+  // one id that was left is remembered until the selection moves, which is
+  // exactly as long as the disagreement can last. Reset during render on a
+  // new selection: opening another thread is a new question, and a thread
+  // that came back and was picked again is open.
+  const [leftId, setLeftId] = useState<string | null>(null);
+  const [lastSelection, setLastSelection] = useState<string | null>(selectedId);
+  if (lastSelection !== selectedId) {
+    setLastSelection(selectedId);
+    setLeftId(null);
+  }
+  const openId = selectedId !== null && selectedId === leftId ? null : selectedId;
   const threadViewerId =
     props.viewerId === null || props.viewerId === undefined
       ? null
@@ -205,6 +232,12 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
           {...(props.linkComponent !== undefined
             ? { linkComponent: props.linkComponent }
             : {})}
+          // A row left from the LIST's own menu closes the pane beside it too:
+          // the two halves of one screen must not disagree about a thread.
+          onLeft={(conversationId) => {
+            setLeftId(conversationId);
+            props.onLeft?.(conversationId);
+          }}
           {...toolbarProps(props)}
         />
       </div>
@@ -217,13 +250,17 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
           paddingInlineStart: spacing[4],
         }}
       >
-        {selectedId !== null ? (
+        {openId !== null ? (
           <ConversationThreadPanel
             // Keyed by conversation: a half-typed draft must not follow the
             // reader from one counterparty's thread into another's.
-            key={selectedId}
-            conversationId={selectedId}
+            key={openId}
+            conversationId={openId}
             viewerId={threadViewerId}
+            onLeft={(conversationId) => {
+              setLeftId(conversationId);
+              props.onLeft?.(conversationId);
+            }}
             {...(props.limit !== undefined ? { limit: props.limit } : {})}
             {...(props.maxLength !== undefined ? { maxLength: props.maxLength } : {})}
             {...(props.notifications !== undefined

@@ -7,8 +7,11 @@
  * host-supplied slots. What this file pins is the part a host cannot get
  * wrong on its own:
  *
- *   - with neither slot wired there is NO overflow control, because a menu
- *     that opens onto nothing promises an action the deployment lacks;
+ *   - with neither slot wired the menu is STILL there and holds exactly one
+ *     entry, because leaving is this pair's own verb (stapel-chat 0.8.5) and
+ *     not a host's. It used to be absent in that state, on the rule that a
+ *     menu opening onto nothing promises an action the deployment lacks —
+ *     the rule stands, and the menu is no longer ever empty;
  *   - with a slot wired the menu opens as a BOTTOM SHEET on a phone and as a
  *     modal above it (the fleet rule, `@stapel/tokens-antd/skin`), which is
  *     asserted at both widths rather than assumed at one;
@@ -56,12 +59,17 @@ function actionSlot(testId: string, seen: ChatThreadActionSlotProps[]) {
 }
 
 describe("the thread's overflow menu", () => {
-  it("is absent when the host wired neither verb", async () => {
+  it("holds this pair's own verb when the host wired neither of theirs", async () => {
     renderThread({});
     await waitFor(() =>
       expect(screen.getAllByTestId("chat-message")).toHaveLength(2)
     );
-    expect(screen.queryByTestId("chat-thread-menu-open")).toBeNull();
+    // The menu exists — leaving is stapel-chat's endpoint, not a slot — and
+    // what it opens onto is exactly one control, not an empty sheet.
+    screen.getByTestId("chat-thread-menu-open").click();
+    await waitFor(() => expect(screen.getByTestId("chat-leave-open")).toBeTruthy());
+    expect(screen.queryByTestId("host-report")).toBeNull();
+    expect(screen.queryByTestId("host-block")).toBeNull();
   });
 
   it("opens as a MODAL above phone widths, carrying both verbs", async () => {

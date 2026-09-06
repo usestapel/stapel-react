@@ -8,6 +8,7 @@
  * socket-fed thread and a polled one.
  */
 import { fontSize, spacing } from "@stapel/tokens-antd";
+import { useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Card, Empty, Flex, Input, Space, Spin, Typography } from "antd";
 import {
@@ -23,6 +24,7 @@ import { ConversationThread } from "../headless/ConversationThread.js";
 import { MessageComposer } from "../headless/MessageComposer.js";
 import { useChatNotifications } from "../model/notifications.js";
 import { useConversation } from "../model/queries.js";
+import { systemLineText } from "../model/systemLines.js";
 import type { ChatPeopleDirectory } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
@@ -36,6 +38,7 @@ import {
   CounterpartyAvatar,
   PeopleScope,
   counterpartyIds,
+  threadPeopleIds,
   useCounterpartyLabel,
 } from "./people.js";
 
@@ -88,6 +91,17 @@ export interface ConversationThreadPanelProps {
    * gets today.
    */
   renderSystemMessage?: (message: ChatMessage) => ReactNode;
+  /**
+   * The reader LEFT this conversation (stapel-chat 0.8.5) and the `204` has
+   * landed: the row is already out of the inbox cache and this screen is
+   * showing a thread that is no longer on their list.
+   *
+   * A panel cannot unmount itself, and the route is the host's — so this is
+   * where a thread SCREEN navigates back to the inbox.
+   * `<ConversationSplitPanel/>` needs no wiring: it owns which thread its
+   * right pane shows and closes it on its own.
+   */
+  onLeft?: (conversationId: string) => void;
 }
 
 /** What the header-actions slot is told. */
@@ -119,6 +133,7 @@ function ThreadHeader(props: {
   readonly renderHeaderActions:
     | ((context: ThreadHeaderActionsContext) => ReactNode)
     | undefined;
+  readonly onLeft: ((conversationId: string) => void) | undefined;
 }): ReactElement {
   const t = useT();
   const { conversation, viewerId } = props;
@@ -192,6 +207,7 @@ function ThreadHeader(props: {
           conversationId={props.conversationId}
           counterpartyId={others.length === 1 ? (others[0] ?? null) : null}
           viewerId={viewerId}
+          {...(props.onLeft !== undefined ? { onLeft: props.onLeft } : {})}
         />
       </Flex>
     </Flex>
@@ -216,18 +232,33 @@ function MessageRow(props: {
   message: ChatMessage;
   viewerId: string | null | undefined;
   locale: string;
+  directory: ChatPeopleDirectory;
   renderSystemMessage:
     | ((message: ChatMessage) => ReactNode)
     | undefined;
 }): ReactElement {
   const t = useT();
-  const { message, viewerId, locale } = props;
+  const { message, viewerId, locale, directory } = props;
   const isSystem = message.kind === "system";
-  // The host's sentence for a system line, when it recognises the line. Not
-  // a fallback ladder: `undefined` and `null` both mean "not mine", and the
-  // body — the machine string this panel has always printed — is what a
-  // reader gets then.
-  const said = isSystem ? props.renderSystemMessage?.(message) : undefined;
+  // WHO SAYS WHAT A SYSTEM LINE MEANS — three answers, in this order.
+  //
+  // The HOST first: it knows which modules it installed, so its sentence wins
+  // over anything guessed here. `undefined` and `null` both mean "not mine".
+  //
+  // Then THIS PAIR's own table, for the markers stapel-chat itself writes
+  // (`chat.participant.left:<uuid>` — `model/systemLines.ts`). Those are the
+  // one vocabulary this package is entitled to translate: the module that
+  // emits them ships as its pair, and it deliberately owns no words for them.
+  //
+  // Then the body, the machine string this panel has always printed, which is
+  // still the honest answer for a marker nobody here can read.
+  const said =
+    (isSystem ? props.renderSystemMessage?.(message) : undefined) ??
+    (isSystem
+      ? systemLineText(message.body, t, (userId) =>
+          directory.lookup(userId)?.displayName ?? null
+        )
+      : undefined);
   const isOwn =
     !isSystem && viewerId != null && message.sender_id === viewerId;
   const bubble: CSSProperties = {
@@ -387,6 +418,12 @@ export function ConversationThreadPanel(
   const viewerId = props.viewerId ?? null;
   const subject = conversation?.subject ?? null;
   const notifications = props.notifications ?? true;
+  // A stable list — a fresh `[]` (or a fresh `map`) per render would re-run a
+  // host's `useProfilesBatch` on every keystroke in the composer.
+  const peopleIds = useMemo(
+    () => (conversation === undefined ? NO_PEOPLE : threadPeopleIds(conversation)),
+    [conversation]
+  );
 
   // A notification for a message that arrived while this tab was behind
   // something else. It spends a permission somebody granted and asks for
@@ -422,6 +459,16 @@ export function ConversationThreadPanel(
       }) => (
         <ChatSkinTheme>
           <Card data-testid="chat-thread">
+          {/* ONE BATCH FOR THE WHOLE SCREEN. The scope wraps the header AND
+              the transcript because both name people: the header names the
+              other side, and a system line names whoever left
+              (`chat.participant.left:<uuid>`) — which is the READER when they
+              open a thread they left by id, so the scope is every participant
+              and not only the counterparties. Two scopes would be two batches
+              for one screen. */}
+          <PeopleScope userIds={peopleIds}>
+            {(directory) => (
+              <>
           {/* The header WRAPS, and the tag's own text wraps inside it. The
               degradation copy is a full sentence ("Live messages stopped —
               sign in again to get them back"), and in a nowrap row at 390px it
@@ -430,20 +477,13 @@ export function ConversationThreadPanel(
               on this screen a person can ACT on was the part that went off the
               edge. Mobile first is not a width the desktop layout survives —
               it is the width the layout is decided at. */}
-          <PeopleScope
-            userIds={
-              conversation === undefined
-                ? NO_PEOPLE
-                : counterpartyIds(conversation, viewerId)
-            }
-          >
-            {(directory) => (
               <ThreadHeader
                 conversation={conversation}
                 viewerId={viewerId}
                 directory={directory}
                 conversationId={props.conversationId}
                 renderHeaderActions={props.renderHeaderActions}
+                onLeft={props.onLeft}
                 transportTag={
                   <TransportTag
                     transport={transport}
@@ -452,8 +492,6 @@ export function ConversationThreadPanel(
                   />
                 }
               />
-            )}
-          </PeopleScope>
 
           {/* WHAT THIS IS ABOUT, pinned. A thread with a subject shows the
               subject owner's own card; a thread without one shows nothing,
@@ -519,6 +557,7 @@ export function ConversationThreadPanel(
                       message={message}
                       viewerId={props.viewerId}
                       locale={locale}
+                      directory={directory}
                       renderSystemMessage={props.renderSystemMessage}
                     />
                   ))}
@@ -526,6 +565,9 @@ export function ConversationThreadPanel(
               </Space>
             ),
           })}
+              </>
+            )}
+          </PeopleScope>
 
           <div style={{ marginTop: spacing[4] }}>
             <Composer

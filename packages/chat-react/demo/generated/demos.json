@@ -137,6 +137,38 @@
       }
     },
     {
+      "id": "chat.leave",
+      "title": "Leaving a conversation (default skin)",
+      "description": "The way off a thread, and the sentence that says what that is. The verb on the wire is DELETE and the act is not a delete — the conversation leaves ONE person's list while every message, the other party's copy and the leaver's own access by id stay untouched, and a reply from the other side brings it back. The confirmation is the only place that difference is ever stated, so it is the frame worth having.",
+      "component": "LeaveConversationDialog",
+      "covers": [
+        "LeaveConversationTrigger"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Phone. The confirmation is a bottom sheet — the fleet dialog rule — and it says both halves in one sentence: what happens to your list, and what the other person keeps. 'Leave' is the affirmative, never 'Delete', because the module deletes nothing and copy that said so would be inviting a press for the wrong reason.",
+          "viewport": "phone",
+          "step": "asked"
+        },
+        {
+          "id": "in-the-menu",
+          "description": "Where the control is offered from — the thread's overflow sheet and, identically, an inbox row's menu — at desk width. It is last in that list because it is the exit and not the first thing to try, and it opens the question rather than acting: the trigger holds no state of its own, so the menu can close before the confirmation appears without taking the confirmation down with it.",
+          "viewport": "desktop",
+          "step": "offered"
+        }
+      ],
+      "source": {
+        "file": "demo/LeaveConversation.demo.tsx",
+        "line": 89
+      }
+    },
+    {
       "id": "chat.presence",
       "title": "Presence and transport (default skin)",
       "description": "Who is actually there, and whether this browser's own connection is healthy — two different facts, in two different controls. Presence is a server-side fact about the OTHER participant's connections; the transport tag talks about this client and says nothing at all while nothing is wrong.",

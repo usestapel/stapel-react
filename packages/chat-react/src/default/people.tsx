@@ -42,6 +42,21 @@ export function counterpartyIds(
   return others.map((participant) => participant.user_id);
 }
 
+/**
+ * EVERYBODY in a thread, the reader included — the id set a THREAD needs.
+ *
+ * The header names the other side and so asks for {@link counterpartyIds};
+ * the transcript is about all of them. A system line records a departure as
+ * `chat.participant.left:<user_id>`, and the leaver is the reader themselves
+ * whenever they open a thread they left by id — a scope that had subtracted
+ * the viewer would answer "the other person" about the person reading it.
+ */
+export function threadPeopleIds(
+  conversation: Conversation | undefined
+): readonly string[] {
+  return (conversation?.participants ?? []).map((participant) => participant.user_id);
+}
+
 /** Every id a page of rows will need, de-duplicated, in first-seen order. */
 export function conversationPeopleIds(
   conversations: readonly Conversation[],

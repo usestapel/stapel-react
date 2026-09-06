@@ -125,6 +125,26 @@ export interface ChatApi {
    * `model/readMarker.ts`.
    */
   markRead(conversationId: string, uptoSeq: number): Promise<void>;
+  /**
+   * LEAVE the conversation (stapel-chat 0.8.5). `204`, and `204` again on a
+   * retry.
+   *
+   * `DELETE` on this URL is the caller leaving, and the verb is the one thing
+   * about it that can be misread: it deletes NOTHING. The messages stay, the
+   * other party's copy of the thread is untouched, the leaver still reaches
+   * their own history by id, and the participant row is kept (stamped
+   * `left_at`) because it carries the read markers and is what a direct
+   * thread's uniqueness is built on. What changes is one person's inbox: the
+   * thread drops off their list, out of their unread counts and out of
+   * `?search=`, and their live subscription to it is revoked.
+   *
+   * IDEMPOTENT BY CONTRACT — a client that lost the response and retried, and
+   * a client leaving a thread it already left, are the same request and get
+   * the same `204`; the second call writes no second system line. A caller who
+   * is not a party gets `error.403.chat_not_participant`, the same answer
+   * `GET` on this exact URL gives them.
+   */
+  leaveConversation(conversationId: string): Promise<void>;
 }
 
 export function createChatApi(client: StapelClient): ChatApi {
@@ -175,5 +195,10 @@ export function createChatApi(client: StapelClient): ChatApi {
         { upto_seq: uptoSeq },
         mutating()
       ),
+
+    // 204 No Content: there is no body to type, and `void` is what the
+    // caller gets rather than an empty object it might be tempted to read.
+    leaveConversation: (conversationId) =>
+      client.delete(conversationPath(conversationId), mutating()),
   };
 }

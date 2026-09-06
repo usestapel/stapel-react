@@ -53,6 +53,19 @@ export const CHAT_I18N_KEYS = {
   personUnnamed: "chat.person.unnamed",
   /** The lookup is in flight — nobody has failed yet, so do not say so. */
   personLoading: "chat.person.loading",
+  /**
+   * The person a SENTENCE is about when the seam could not name them —
+   * "{name} left the conversation" with nobody to put in the hole.
+   *
+   * Deliberately NOT `personUnnamed`. That key reads as a failure because it
+   * stands where a name was promised (a row title, a header); this one stands
+   * inside a sentence about somebody who is definitely there, where "Name
+   * unavailable left the conversation" would be a broken line rather than an
+   * honest one. Printing the raw user id instead is the third option and the
+   * worst of them: a uuid at a reader is machine vocabulary, which is the
+   * exact thing this whole contour exists to keep off the screen.
+   */
+  personSomeone: "chat.person.someone",
   /** Prefix on a preview of the reader's OWN last line. */
   listPreviewOwn: "chat.list.preview_own",
   /**
@@ -112,6 +125,34 @@ export const CHAT_I18N_KEYS = {
   threadEmptySubject: "chat.thread.empty_subject",
   /** The overflow menu: its trigger's accessible name and its sheet's title. */
   threadMenu: "chat.thread.menu",
+
+  // ── LEAVING A CONVERSATION (stapel-chat 0.8.5) ───────────────────────────
+  //
+  // The verb on the wire is `DELETE` and the copy must never be: nothing is
+  // deleted. The confirmation's whole job is to say which of the two things
+  // this is, in one sentence, BEFORE the press — what happens to your list,
+  // and what happens to the other person's copy. A person who reads "delete"
+  // and means "tidy" will not press it; a person who reads "delete" and means
+  // "destroy it for both of us" will press it and be wrong.
+  /** The control, in the thread's overflow menu and on an inbox row. */
+  leaveAction: "chat.leave.action",
+  /** The one sentence the confirmation is FOR: your list, and their copy. */
+  leaveBody: "chat.leave.body",
+  /** The affirmative. Not "Delete", and not the module's verb. */
+  leaveConfirm: "chat.leave.confirm",
+  /** In flight. The request is one round trip, but a phone on a train is not. */
+  leavePending: "chat.leave.pending",
+
+  /**
+   * The system line THIS module writes when somebody leaves
+   * (`chat.participant.left:<user_id>` — see `model/systemLines.ts`).
+   *
+   * `{name}` comes from the host's people seam. stapel-chat writes the marker
+   * and owns no words for it on purpose: the id after the colon is there so a
+   * client can name the person without the backend inventing a sentence in a
+   * language it does not own.
+   */
+  systemParticipantLeft: "chat.system.participant_left",
 
   /**
    * The right pane of the desktop split inbox before anything is open. An
@@ -187,6 +228,14 @@ export const CHAT_I18N_KEYS = {
   presenceOnline: "chat.presence.online",
   presenceLastSeen: "chat.presence.last_seen",
   presenceUnknown: "chat.presence.unknown",
+  /**
+   * They are not in the thread any more (`participants[].left_at`). It REPLACES
+   * the presence sentence rather than joining it: "Online" about somebody who
+   * has left the room is the same lie as the tag that read "Live" off the
+   * reader's own socket, and "Last seen 5 minutes ago" invites a reply to
+   * somebody who will not see it.
+   */
+  presenceLeft: "chat.presence.left",
 
   transportLive: "chat.transport.live",
   transportConnecting: "chat.transport.connecting",
@@ -278,6 +327,7 @@ export const chatI18nBundleEn: I18nDictionary = {
 
   "chat.person.unnamed": "Name unavailable",
   "chat.person.loading": "Loading…",
+  "chat.person.someone": "The other person",
   "chat.list.preview_own": "You: {text}",
   "chat.list.preview_deleted": "Message deleted",
   "chat.list.preview_system": "System message",
@@ -299,6 +349,13 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.thread.empty_subject":
     "No messages about this yet. Say hello — this conversation stays with it.",
   "chat.thread.menu": "Conversation options",
+
+  "chat.leave.action": "Leave conversation",
+  "chat.leave.body":
+    "This conversation will disappear from your list. The other person keeps the messages.",
+  "chat.leave.confirm": "Leave",
+  "chat.leave.pending": "Leaving…",
+  "chat.system.participant_left": "{name} left the conversation",
 
   "chat.split.empty": "Pick a conversation",
 
@@ -345,6 +402,7 @@ export const chatI18nBundleEn: I18nDictionary = {
   // Never seen connect — a different fact from "seen long ago". Saying
   // nothing beats inventing a date.
   "chat.presence.unknown": "Offline",
+  "chat.presence.left": "Left the conversation",
 
   "chat.transport.live": "Live",
   "chat.transport.connecting": "Connecting…",

@@ -33,6 +33,20 @@
  * which is the answer the server was already giving. A body with no deadline
  * (an older server) arms nothing and behaves exactly as before.
  *
+ * ── Why a participant who LEFT gets no presence at all ────────────────────
+ *
+ * `participants[].left_at` (stapel-chat 0.8.5) says they are not in the thread
+ * any more, and their live subscription is revoked server-side — so "Online"
+ * about them is the same lie the old transport tag told, one layer further
+ * down, and "Last seen 5 minutes ago" is worse: it invites a reply to somebody
+ * who will not see it. The departure REPLACES the presence sentence rather
+ * than joining it, and `data-online` reads `false` with it, so nothing keyed
+ * off that attribute (a dot, a ring) paints them as present.
+ *
+ * The state is read off the conversation body, never off a system line this
+ * session happened to receive: "have I seen the marker" is a property of this
+ * client's connection, and the header is about the thread.
+ *
  * ── Why the relative time comes from core ─────────────────────────────────
  *
  * `useFormat().relative()` is the fleet's one relative-time ladder
@@ -47,6 +61,7 @@ import type { ReactElement } from "react";
 import { Typography } from "antd";
 import { useFormat, useT } from "@stapel/core";
 import type { Conversation } from "../api/types.js";
+import { participantHasLeft } from "../model/membership.js";
 import {
   participantPresence,
   presenceAt,
@@ -96,6 +111,25 @@ export function PresenceLine(props: PresenceLineProps): ReactElement | null {
   }, [delay, raw.onlineUntil]);
 
   if (conversation === undefined || counterpartyId === null) return null;
+
+  // Gone from the thread — one fact, and it outranks every presence fact
+  // there is. Rendered in the same element so a header that was showing
+  // presence does not grow a second line, and with `data-online="false"` so
+  // no dot, ring or typing affordance keyed off that attribute lights up.
+  if (participantHasLeft(conversation, counterpartyId)) {
+    return (
+      <Typography.Text
+        type="secondary"
+        data-testid="chat-presence"
+        data-online="false"
+        data-left="true"
+        style={{ fontSize: "0.85em" }}
+      >
+        {t(CHAT_I18N_KEYS.presenceLeft)}
+      </Typography.Text>
+    );
+  }
+
   const presence = presenceAt(raw, now);
 
   // Offline with no last-seen: this deployment has never seen them connect.

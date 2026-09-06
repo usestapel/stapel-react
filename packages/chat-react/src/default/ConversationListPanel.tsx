@@ -50,7 +50,7 @@
  * to keep the toolbar on screen, because it is the way back out.
  */
 import { spacing } from "@stapel/tokens-antd";
-import { ListRow } from "@stapel/tokens-antd/skin";
+import { ListRow, SkinDialog } from "@stapel/tokens-antd/skin";
 import { useCallback, useState } from "react";
 import type { ReactElement } from "react";
 import {
@@ -67,7 +67,14 @@ import {
   Typography,
   theme as antdTheme,
 } from "antd";
-import { isLoadReady, matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
+import {
+  STAPEL_UI_KEYS,
+  isLoadReady,
+  matchList,
+  useErrorDisplay,
+  useI18n,
+  useT,
+} from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import type { Conversation, Subject } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
@@ -85,6 +92,11 @@ import {
   useCounterpartyLabel,
 } from "./people.js";
 import { SubjectRowSummary, readSubjectCard } from "./subjectCard.js";
+import { OverflowGlyph } from "./ThreadActionsMenu.js";
+import {
+  LeaveConversationDialog,
+  LeaveConversationTrigger,
+} from "./LeaveConversation.js";
 
 export interface ConversationListPanelProps {
   /**
@@ -132,6 +144,16 @@ export interface ConversationListPanelProps {
    * correct, just a full page load.
    */
   linkComponent?: LinkComponent;
+  /**
+   * A row was LEFT from its own menu (stapel-chat 0.8.5) and the `204` has
+   * landed — the row is already out of every cached narrowing of this list.
+   *
+   * The inbox itself needs nothing: the row is gone on the next paint. This
+   * is for a host that is showing that thread SOMEWHERE ELSE on the same
+   * screen — the desktop split's right pane, which is why
+   * `<ConversationSplitPanel/>` wires it.
+   */
+  onLeft?: (conversationId: string) => void;
 
   // ── The toolbar (search + unread) ─────────────────────────────────────────
   //
@@ -193,6 +215,74 @@ function relativeTime(locale: string, iso: string): string {
 }
 
 /**
+ * A ROW'S OWN MENU — one entry, and it is the way out (stapel-chat 0.8.5).
+ *
+ * ── Why it is not inside the row control ──────────────────────────────────
+ *
+ * The whole row is one control that opens the thread (D65), and this is a
+ * second control with a different act. A button inside an anchor (or inside a
+ * `role="button"`) is a control inside a control — the same nesting D420
+ * moved the subject strip out of — so the menu is a SIBLING of the row
+ * control, in a flex line beside it, and the row shrinks by its width.
+ *
+ * ── Why leaving is offered from here at all ───────────────────────────────
+ *
+ * The inbox is where a person decides a thread is finished with. Making them
+ * open the conversation to get rid of it is the same shape as having to open
+ * a message to delete it: the decision is taken in the list, and the control
+ * has to be where the decision is.
+ */
+function ConversationRowMenu(props: {
+  readonly conversationId: string;
+  readonly onLeft: ((conversationId: string) => void) | undefined;
+}): ReactElement {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  return (
+    <>
+      <Button
+        type="text"
+        size="small"
+        icon={<OverflowGlyph />}
+        // An icon-only control carries its name, and it is the one the sheet
+        // it opens is titled with.
+        aria-label={t(CHAT_I18N_KEYS.threadMenu)}
+        onClick={() => setOpen(true)}
+        data-testid="chat-row-menu-open"
+        style={{ flex: "0 0 auto" }}
+        data-analytics="none"
+        data-analytics-reason="opens a row menu; the host app wraps its own controls with tracked()"
+      />
+      <SkinDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t(CHAT_I18N_KEYS.threadMenu)}
+        dismissLabel={t(STAPEL_UI_KEYS.dismiss)}
+        data-testid="chat-row-menu"
+      >
+        <LeaveConversationTrigger
+          onPress={() => {
+            // The sheet steps out of the way first, and the confirmation is
+            // its SIBLING rather than its child — a `SkinDialog` destroys its
+            // children when it hides, so a confirmation nested in here would
+            // be unmounted by the press that opened it.
+            setOpen(false);
+            setLeaving(true);
+          }}
+        />
+      </SkinDialog>
+      <LeaveConversationDialog
+        conversationId={props.conversationId}
+        open={leaving}
+        onClose={() => setLeaving(false)}
+        {...(props.onLeft !== undefined ? { onLeft: props.onLeft } : {})}
+      />
+    </>
+  );
+}
+
+/**
  * One row of the inbox. A COMPONENT, not a callback: it reads the i18n
  * engine, and hooks called from inside a `renderItem` lambda would be ordered
  * by how many rows the page happens to have.
@@ -206,6 +296,7 @@ function ConversationRow(props: {
   readonly onOpen: ((conversationId: string) => void) | undefined;
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
+  readonly onLeft: ((conversationId: string) => void) | undefined;
 }): ReactElement {
   const t = useT();
   const { row, viewerId, directory, openHref, onOpen } = props;
@@ -339,10 +430,17 @@ function ConversationRow(props: {
     <div
       data-testid="chat-conversation-row"
       data-chat-conversation-id={row.id}
-      style={{ minWidth: 0 }}
+      // The row control and the row's menu are SIBLINGS on one line — neither
+      // may contain the other (see `ConversationRowMenu`). `align: start` so
+      // the menu sits on the identity line and does not centre itself against
+      // a two-line row with a subject strip under it.
+      style={{ minWidth: 0, display: "flex", alignItems: "flex-start", gap: spacing[1] }}
     >
-      {openRow(inside, row.id, openHref, onOpen)}
-      {strip}
+      <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+        {openRow(inside, row.id, openHref, onOpen)}
+        {strip}
+      </div>
+      <ConversationRowMenu conversationId={row.id} onLeft={props.onLeft} />
     </div>
   );
 }
@@ -487,6 +585,7 @@ function InboxRows(props: {
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
   readonly selectedId: string | null;
+  readonly onLeft: ((conversationId: string) => void) | undefined;
 }): ReactElement {
   const { rows, viewerId, selectedId } = props;
   // The selected-item background comes from the token bag, never a literal:
@@ -522,6 +621,7 @@ function InboxRows(props: {
                 onOpen={props.onOpen}
                 subjectHref={props.subjectHref}
                 linkComponent={props.linkComponent}
+                onLeft={props.onLeft}
               />
             </List.Item>
           )}
@@ -756,6 +856,7 @@ export function ConversationListPanel(
                   subjectHref={props.subjectHref}
                   linkComponent={props.linkComponent}
                   selectedId={selectedId}
+                  onLeft={props.onLeft}
                 />
                 {hasNextPage ? (
                   <Button

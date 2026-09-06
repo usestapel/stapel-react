@@ -1,11 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
+  InfiniteData,
   QueryClient,
   UseMutationOptions,
   UseMutationResult,
 } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
-import type { ChatMessage, Conversation, SubjectRef } from "../api/types.js";
+import type {
+  ChatMessage,
+  Conversation,
+  ConversationPage,
+  SubjectRef,
+} from "../api/types.js";
 import { useChatApi } from "./context.js";
 import { chatQueryKeys } from "./queryKeys.js";
 import { nextReadMarker } from "./readMarker.js";
@@ -216,6 +222,101 @@ export function useLoadOlderMessages(
     onSuccess: (window) => {
       if (window === null) return;
       queryClient.setQueryData(key, window);
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Take one row out of EVERY cached narrowing of the inbox.
+ *
+ * The list is keyed by its filter since stapel-chat 0.8.2 (`queryKeys.ts`), so
+ * "the conversation list" is a family of cache entries — the unfiltered one,
+ * the unread chip's, and one per search a person has typed. A row removed from
+ * the entry that happens to be on screen would still be sitting in the other
+ * three, waiting to be drawn again by a chip press. So this writes through the
+ * two-element PREFIX, which is what that prefix is for.
+ *
+ * `count` follows the row it lost: a paginator's total that disagrees with the
+ * items beside it is the kind of number that later gets rendered.
+ */
+function forgetConversationRow(
+  queryClient: QueryClient,
+  conversationId: string
+): void {
+  queryClient.setQueriesData<InfiniteData<ConversationPage, string | undefined>>(
+    { queryKey: chatQueryKeys.conversations() },
+    (data) => {
+      if (data === undefined) return data;
+      let removed = false;
+      const pages = data.pages.map((page) => {
+        const items = page.items.filter((row) => row.id !== conversationId);
+        if (items.length === page.items.length) return page;
+        removed = true;
+        return {
+          ...page,
+          items,
+          count: Math.max(0, page.count - (page.items.length - items.length)),
+        };
+      });
+      return removed ? { ...data, pages } : data;
+    }
+  );
+}
+
+/**
+ * LEAVE a conversation (stapel-chat 0.8.5) — the caller's own membership, and
+ * nothing else.
+ *
+ * The variable is the conversation id rather than a hook argument, because
+ * this is pressed from an inbox ROW as well as from inside a thread: one hook
+ * serves a whole list instead of one per row.
+ *
+ * ── What moves in the cache, and what deliberately does not ───────────────
+ *
+ * The row is taken out of every cached list narrowing here, so the inbox
+ * answers the press instead of blinking through a refetch — and then the list
+ * is invalidated, because the server is the authority on what is on it.
+ *
+ * The THREAD's own cache entries are left alone. Leaving hides a thread; it
+ * erases nothing, and the leaver still reaches their history by id — so a
+ * client that dropped the window on the way out would be enforcing a rule the
+ * contract does not have.
+ *
+ * ── No "I left" is remembered ─────────────────────────────────────────────
+ *
+ * There is no local set of left ids, on purpose (`model/membership.ts` states
+ * it once). An AUTHORED message from the other side clears the marker for
+ * everyone, so the row comes back on the next list read all by itself: it has
+ * to simply APPEAR. A client suppressing it would need to be told to forget,
+ * by an event nobody sends.
+ *
+ * ── The one refusal, and why it is not retried ────────────────────────────
+ *
+ * `DELETE` is idempotent — a second call is another `204` — so the only
+ * failure that is really this request's is `error.403.chat_not_participant`,
+ * which means the answer will be the same every time. `retry: false` says so
+ * rather than spending three round trips on a settled question, and the row
+ * is removed on the `204` and not on the press, so a refusal leaves the inbox
+ * exactly as the person left it.
+ */
+export function useLeaveConversation(): UseMutationResult<
+  void,
+  StapelApiError,
+  string
+> {
+  const api = useChatApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (conversationId) => api.leaveConversation(conversationId),
+    retry: false,
+    onSuccess: (_answer, conversationId) => {
+      forgetConversationRow(queryClient, conversationId);
+      // The server's own answer to "what is on this list" — and the path a
+      // re-surfaced thread arrives back down.
+      void queryClient.invalidateQueries({
+        queryKey: chatQueryKeys.conversations(),
+      });
     },
   };
   return useMutation(options);

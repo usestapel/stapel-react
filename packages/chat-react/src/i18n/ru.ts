@@ -89,6 +89,7 @@ export const chatI18nBundleRu: I18nDictionary = {
 
   "chat.person.unnamed": "Имя недоступно",
   "chat.person.loading": "Загружаем…",
+  "chat.person.someone": "Собеседник",
   "chat.list.preview_own": "Вы: {text}",
   "chat.list.preview_deleted": "Сообщение удалено",
   "chat.list.preview_system": "Системное сообщение",
@@ -109,6 +110,19 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.thread.empty_subject":
     "Сообщений об этом пока нет. Напишите первым — переписка останется здесь.",
   "chat.thread.menu": "Действия с диалогом",
+
+  // None of these words is "delete": the wire verb is DELETE and nothing is
+  // deleted. The confirmation has to state both halves in one sentence — what
+  // happens to your list, and what the other person keeps.
+  "chat.leave.action": "Покинуть диалог",
+  "chat.leave.body":
+    "Диалог исчезнет из вашего списка. Собеседник сохранит переписку.",
+  "chat.leave.confirm": "Покинуть",
+  "chat.leave.pending": "Выходим…",
+  // Both genders at once, like the last-seen line above: the contract knows a
+  // user id and never a gender, and picking one would be wrong for half a
+  // marketplace.
+  "chat.system.participant_left": "{name} покинул(а) диалог",
 
   "chat.split.empty": "Выберите диалог",
 
@@ -151,6 +165,7 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.presence.online": "в сети",
   "chat.presence.last_seen": "был(а) в сети {when}",
   "chat.presence.unknown": "не в сети",
+  "chat.presence.left": "покинул(а) диалог",
 
   "chat.transport.live": "На связи",
   "chat.transport.connecting": "Подключаемся…",

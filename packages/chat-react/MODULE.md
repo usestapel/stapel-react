@@ -268,6 +268,17 @@ says neither that nor "Live".
   and a blank line there would say "nothing has been said here" — a different
   row's sentence. That arm is the pre-0.8.4 reading, marked as such where it
   is, and `inboxRows.test.tsx` pins it apart from the rule.
+- **A thread you left is unreachable from the product once you leave it.**
+  stapel-chat 0.8.5 hides it correctly — it is off `inbox_of`, off the unread
+  counts and off `?search=` — and it is deliberately not destroyed: the
+  messages are still there and `GET /conversations/{id}` still serves them to
+  the person who left. But there is no listing that includes a left thread, so
+  a person who pressed «Покинуть диалог» by mistake has no way back to it
+  except a URL they kept. The ask is a way to ASK for them (a `left=true` on
+  the list, or an archived view), not a change to the default: the whole point
+  of leaving is that they are not on the list. Until then this pair offers no
+  "restore", because a control that could only work for a thread the person
+  can already reach by id would be a promise about the ones they cannot.
 - ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
   It was true: `@stapel/realtime` reported a stream as `reconnecting` while
   core's refresh was in flight, so a pair could not tell "renewing your
@@ -443,6 +454,20 @@ core floors only `en` and `ru`.
 
 ## Done since 0.4.0
 
+- **A person can leave a conversation** (stapel-chat 0.8.5 `DELETE
+  /conversations/{id}`, which answered 405 until then). The verb is `DELETE`
+  and the act is not: the thread leaves ONE list and nothing else moves, so
+  the copy says so in one sentence before the press and the affirmative is
+  «Покинуть», never «Удалить». Offered from the thread's overflow sheet — now
+  never empty, because leaving is this pair's own verb and not a host slot —
+  and from an inbox row's own menu, which is a SIBLING of the row control
+  (a button inside an anchor is the nesting D420 already moved the subject
+  strip out of). The row leaves every cached narrowing on the `204` and the
+  request is not retried; nothing caches "I left", so a re-surfaced thread
+  simply appears. `participants[].left_at` replaces the header's presence
+  sentence, and `chat.participant.left:<uuid>` is drawn as a sentence with the
+  person's name in it — the first entry in `CHAT_SYSTEM_LINE_LABELS`, which
+  holds stapel-chat's OWN markers and no other module's.
 - **The inbox row draws the line it carries** (stapel-chat 0.8.3
   `last_message`). One projection per row, annotated for the whole page inside
   the query the list already runs, so a first visit shows previews instead of

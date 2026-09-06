@@ -53,6 +53,16 @@ export type { PresenceLineProps } from "./PresenceLine.js";
 export { TransportTag } from "./TransportTag.js";
 export { ThreadActionsMenu } from "./ThreadActionsMenu.js";
 export type { ThreadActionsMenuProps } from "./ThreadActionsMenu.js";
+// LEAVING A THREAD (stapel-chat 0.8.5). Exported as two pieces because they
+// are two pieces: a `SkinDialog` destroys its children when it hides, so the
+// confirmation cannot live inside the menu the trigger sits in — the menu
+// closes, and the dialog is rendered beside it. A host composing its own
+// inbox row or thread header wires the same two.
+export {
+  LeaveConversationDialog,
+  LeaveConversationTrigger,
+} from "./LeaveConversation.js";
+export type { LeaveConversationDialogProps } from "./LeaveConversation.js";
 export {
   CounterpartyAvatar,
   PeopleScope,

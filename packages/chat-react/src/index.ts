@@ -194,6 +194,12 @@ export type { ChatInboxFilter, InboxRowText } from "./model/inboxQuery.js";
 // projection has no words to give, which 0.8.4 tells apart by name.
 export { inboxPreviewLine, previewReason } from "./model/previews.js";
 export {
+  // LEAVING (stapel-chat 0.8.5). `DELETE /conversations/{id}` is the caller
+  // leaving and not a delete: the thread goes off THEIR list and nothing else
+  // moves. The hook takes the id as its VARIABLE, so one instance serves a
+  // whole inbox, and it does not retry — the only refusal this request has is
+  // `chat_not_participant`, which is a settled answer.
+  useLeaveConversation,
   useLoadOlderMessages,
   useMarkRead,
   useSendMessage,
@@ -221,6 +227,25 @@ export {
   presenceExpiryDelay,
 } from "./model/presence.js";
 export type { ChatPresence } from "./model/presence.js";
+// WHO IS STILL IN THE ROOM — `participants[].left_at`. Read it; never derive
+// it from whether this session happened to see the departure line, which is a
+// property of this client's connection and not of the thread.
+export {
+  participantHasLeft,
+  participantLeftAt,
+} from "./model/membership.js";
+// The system lines THIS module writes, and the sentences for them. The table
+// holds stapel-chat's OWN markers and nothing else: another module's
+// vocabulary stays the host's to draw (`<ConversationThreadPanel
+// renderSystemMessage>`), because a chat renderer carrying a table of other
+// modules' event names is a copy going stale from the day it is written.
+export {
+  CHAT_MARKER_PARTICIPANT_LEFT,
+  CHAT_SYSTEM_LINE_LABELS,
+  readSystemMarker,
+  systemLineText,
+} from "./model/systemLines.js";
+export type { ChatSystemMarker } from "./model/systemLines.js";
 // Browser notifications for messages that land while the tab is hidden. It
 // SPENDS a permission; the asking is the skin's `<ChatNotificationsPrompt/>`,
 // at a moment that has earned the question.

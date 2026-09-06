@@ -304,6 +304,34 @@ spends a `GET /messages?limit=1` per row. `null` is a thread nobody has written
 in and the row draws no line at all; the reader's own line is prefixed
 ("You: …").
 
+**Leaving a conversation.** `DELETE /conversations/{id}` (stapel-chat 0.8.5)
+is the caller LEAVING, and the copy never says "delete", because nothing is
+deleted: the thread drops off *their* list, counts and search while every
+message, the other party's copy and the leaver's own access by id stay exactly
+as they were — and an authored reply from the other side brings it back. The
+control sits in the thread's overflow menu and in an inbox row's own menu, and
+both open one confirmation that states both halves before anything is sent
+(«Диалог исчезнет из вашего списка. Собеседник сохранит переписку.»).
+
+```tsx
+<ConversationThreadPanel conversationId={id} onLeft={() => router.push("/chat")} />
+<ConversationSplitPanel selectedId={id} onLeft={() => router.push("/chat")} />
+```
+
+`onLeft` is for the host's ROUTE; the split arrangement empties its own right
+pane without it. The row leaves every cached narrowing of the list on the
+`204` and the request is not retried — its one refusal,
+`error.403.chat_not_participant`, is a settled answer the confirmation stays
+open to show. Nothing caches "I left": a thread that comes back simply appears
+on the next inbox frame.
+
+The departure is recorded in the transcript as `chat.participant.left:<uuid>`
+and drawn as «<имя> покинул(а) диалог» (the name through the `people` seam,
+«Собеседник» when nothing can name them). `participants[].left_at` carries the
+durable half, so the thread header says they left instead of claiming they are
+online. A marker belonging to another module — `video.call.ended:188` — is
+still the host's to draw through `renderSystemMessage`.
+
 **A line with no words says WHICH kind of no words it is.** `preview_reason`
 (stapel-chat 0.8.4) is the discriminator: `deleted` → "Message deleted",
 `attachment` → "Attachment", `system` → "System message", and `null` means the

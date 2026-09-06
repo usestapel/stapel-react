@@ -36,14 +36,38 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Retrieve a single conversation (participant-only).
+         * @description Retrieve a single conversation, or LEAVE it (participant-only).
+         *
+         *     ``DELETE`` is the caller leaving — never a hard delete of the thread. It
+         *     answered ``405`` until 0.8.5, so a person had no way out of a
+         *     conversation at all and a test fixture had no way to clean one up. What
+         *     it does and does not touch is stated once, in
+         *     :func:`stapel_chat.services.leave_conversation`; the short version is
+         *     that it hides the thread from the caller and takes nothing away from
+         *     anybody else. Staff erasure is not on this surface: user data has one
+         *     deletion path in this fleet (``user.deleted`` →
+         *     :class:`~stapel_chat.gdpr.ChatGDPRProvider`), and a second door onto the
+         *     same rows is a second door to get wrong.
          *
          *     **Permissions:** `IsAuthenticated`
          */
         get: operations["chat_api_v1_conversations_retrieve"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * @description Leave the conversation. ``204``, and ``204`` again on a retry.
+         *
+         *     Idempotent on purpose: a client that lost the response and retried,
+         *     and a client leaving a thread it already left, are the same request
+         *     and get the same answer. A second call posts no second system line —
+         *     the service returns False and writes nothing.
+         *
+         *     A caller who is not a party gets ``403`` with the module's one
+         *     membership key, the same answer ``GET`` on this exact URL gives them.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        delete: operations["chat_api_v1_conversations_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -505,6 +529,11 @@ export interface components {
              * @description When this ``online`` stops being believable — the lease
              */
             online_until?: string | null;
+            /**
+             * Format: date-time
+             * @description When this participant LEFT the thread, or ``null`` while
+             */
+            left_at?: string | null;
         };
         /** @description Replace a message's body. Author only. */
         PatchedEditMessageRequest: {
@@ -638,6 +667,26 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConversationResponse"];
                 };
+            };
+        };
+    };
+    chat_api_v1_conversations_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
