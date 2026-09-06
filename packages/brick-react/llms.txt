@@ -1,0 +1,94 @@
+# @stapel/brick-react 0.0.0
+
+Stapel 4-bit brick games: a tiny fixed-step engine (seeded RNG, input queue, grid model) with Tetris/Snake/Arkanoid/Racing/Tanks/Memory as pure modules, a <BrickConsole> LCD skin drawn in DS tokens with a phone keypad, local high scores, and a <WaitingGame> host helper for the seconds a person spends waiting.
+
+No backend Django module of its own — this is the 4-bit BRICK GAME console: a fixed-step engine (seeded RNG, input queue, grid model) with six games as pure modules, a token-drawn LCD skin with a phone keypad, local high scores through core's createRepository, and the <WaitingGame> helper a host drops into the seconds someone spends waiting.
+
+## Exports (call these, never hand-roll the equivalent) — see full
+signatures/JSDoc in the package README and src/index.ts.
+### runtime
+- ARKANOID
+- BRICK_GAMES
+- BRICK_GAME_IDS
+- BRICK_I18N_KEYS
+- HIGHSCORES_NAMESPACE
+- INPUT_QUEUE_LIMIT
+- MAX_STEPS_PER_FRAME
+- MEMORY
+- RACING
+- SNAKE
+- TANKS
+- TETRIS
+- brickI18nBundleEn
+- clearGrid
+- createBrickSession
+- createGrid
+- createHighScoreStore
+- createInputQueue
+- createLoop
+- createNullHighScoreStore
+- createRng
+- fillRect
+- findGame
+- getCell
+- gridSignature
+- registerBrickI18n
+- setCell
+- stepMsForLevel
+
+### types
+- BrickGameId
+- BrickI18nKey
+- BrickInput
+- BrickSession
+- BrickSessionOptions
+- CellLevel
+- Game
+- GameCompleteness
+- GameContext
+- GameDefinition
+- GameStatus
+- Grid
+- HighScoreStore
+- InputQueue
+- Loop
+- LoopOptions
+- MutableGrid
+- Rng
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- brick.console → <BrickConsole> [default|snake|arkanoid|racing|tanks|memory|menu|phone]  demo/BrickConsole.demo.tsx
+- brick.waiting → <WaitingGame> [default|processing|done]  demo/WaitingGame.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// One-provider setup (StapelConfigProvider + QueryClientProvider + I18nProvider).
+const client = createStapelClient({ baseUrl, getAccessToken });
+<StapelProvider client={client} queryClient={queryClient} i18n={i18n}>
+  <App />
+</StapelProvider>
+```
+```tsx
+// Error narrowing — never a cast (stapel/no-raw-error-shape).
+if (isStapelApiError(err)) return <Alert>{t(err.code, err.params)}</Alert>;
+```

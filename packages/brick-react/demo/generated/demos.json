@@ -1,0 +1,121 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/brick-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "brick.console",
+      "title": "The console, and its six games",
+      "description": "A 4-bit LCD drawn with the token palette: four shades from the unlit segment ghost up to the lit pixel, a side panel with score, best, level and (for Tetris) the next piece, and — on a coarse pointer only — the keypad the original handheld had. Each variant is one game at its opening frame, dealt from a fixed seed.",
+      "component": "BrickConsole",
+      "covers": [
+        "Keypad"
+      ],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "surface-sunken",
+        "border",
+        "border-subtle",
+        "text",
+        "text-muted",
+        "text-subtle",
+        "brand",
+        "brand-subtle"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Tetris on its 10x20 panel: the piece, its landing shadow, the next box.",
+          "viewport": "desktop",
+          "step": "tetris"
+        },
+        {
+          "id": "snake",
+          "description": "Snake on 20x20 — three segments, one pellet, no next box at all.",
+          "viewport": "desktop",
+          "step": "snake"
+        },
+        {
+          "id": "arkanoid",
+          "description": "Arkanoid: four rows of two-wide bricks, a paddle, one ball.",
+          "viewport": "desktop",
+          "step": "arkanoid"
+        },
+        {
+          "id": "racing",
+          "description": "Racing: four lanes between two dashed verges.",
+          "viewport": "desktop",
+          "step": "racing"
+        },
+        {
+          "id": "tanks",
+          "description": "Tanks: the player's tank in its home band, barrel up.",
+          "viewport": "desktop",
+          "step": "tanks"
+        },
+        {
+          "id": "memory",
+          "description": "Memory: sixteen tiles face down, the cursor on the first.",
+          "viewport": "desktop",
+          "step": "memory"
+        },
+        {
+          "id": "menu",
+          "description": "Three games allowed: the console draws a menu, and the current one is pressed.",
+          "viewport": "desktop",
+          "step": "menu"
+        },
+        {
+          "id": "phone",
+          "description": "The keypad a coarse pointer gets: a four-way pad and OK / Start / Reset, every target at the phone control height, every button carrying its own accessible name.",
+          "viewport": "phone",
+          "step": "keypad"
+        }
+      ],
+      "source": {
+        "file": "demo/BrickConsole.demo.tsx",
+        "line": 43
+      }
+    },
+    {
+      "id": "brick.waiting",
+      "title": "Something to do while you wait",
+      "description": "<WaitingGame> is one caption and one console. It is controlled by the host's own `active` flag: while the wait is on it plays, and on the edge where the wait ends it unmounts itself — loop, key listener and frames all gone — and calls `onDone` exactly once.",
+      "component": "WaitingGame",
+      "covers": [],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "border-subtle",
+        "text",
+        "text-muted",
+        "success"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Waiting to be admitted to a room, on a phone.",
+          "viewport": "phone",
+          "step": "waiting"
+        },
+        {
+          "id": "processing",
+          "description": "Waiting for an analysis, with three games allowed — the menu is the console's, the caption is the wait's.",
+          "viewport": "desktop",
+          "step": "processing"
+        },
+        {
+          "id": "done",
+          "description": "The wait ended: `active={false}`, the console is gone, and the card the host owns is all that is left.",
+          "viewport": "phone",
+          "step": "done"
+        }
+      ],
+      "source": {
+        "file": "demo/WaitingGame.demo.tsx",
+        "line": 61
+      }
+    }
+  ]
+}

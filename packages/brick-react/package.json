@@ -1,0 +1,95 @@
+{
+  "name": "@stapel/brick-react",
+  "version": "0.0.0",
+  "description": "Stapel 4-bit brick games: a tiny fixed-step engine (seeded RNG, input queue, grid model) with Tetris/Snake/Arkanoid/Racing/Tanks/Memory as pure modules, a <BrickConsole> LCD skin drawn in DS tokens with a phone keypad, local high scores, and a <WaitingGame> host helper for the seconds a person spends waiting.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/brick-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "MODULE.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.demo.json && vitest run",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — the engine and the six games, with no React and no DOM in it",
+      "path": "dist/index.js",
+      "limit": "6 KB"
+    },
+    {
+      "name": "default — the console skin, the keypad and the waiting host (the engine travels with them)",
+      "path": "dist/default/index.js",
+      "limit": "9 KB"
+    },
+    {
+      "name": "i18n/ru — one locale bundle, opt-in",
+      "path": "dist/i18n/ru.js",
+      "limit": "1 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.20.0 <1.0.0",
+    "@stapel/tokens": ">=0.7.0",
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

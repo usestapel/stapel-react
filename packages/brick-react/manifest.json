@@ -1,0 +1,153 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/brick-react",
+  "version": "0.0.0",
+  "backend": null,
+  "description": "Stapel 4-bit brick games: a tiny fixed-step engine (seeded RNG, input queue, grid model) with Tetris/Snake/Arkanoid/Racing/Tanks/Memory as pure modules, a <BrickConsole> LCD skin drawn in DS tokens with a phone keypad, local high scores, and a <WaitingGame> host helper for the seconds a person spends waiting.",
+  "flows": {},
+  "machines": [],
+  "operations": {},
+  "hooks": {},
+  "errors": {},
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "brick.console",
+      "title": "The console, and its six games",
+      "description": "A 4-bit LCD drawn with the token palette: four shades from the unlit segment ghost up to the lit pixel, a side panel with score, best, level and (for Tetris) the next piece, and — on a coarse pointer only — the keypad the original handheld had. Each variant is one game at its opening frame, dealt from a fixed seed.",
+      "component": "BrickConsole",
+      "covers": [
+        "Keypad"
+      ],
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "surface-sunken",
+        "border",
+        "border-subtle",
+        "text",
+        "text-muted",
+        "text-subtle",
+        "brand",
+        "brand-subtle"
+      ],
+      "variants": [
+        "default",
+        "snake",
+        "arkanoid",
+        "racing",
+        "tanks",
+        "memory",
+        "menu",
+        "phone"
+      ],
+      "source": "demo/BrickConsole.demo.tsx"
+    },
+    {
+      "id": "brick.waiting",
+      "title": "Something to do while you wait",
+      "description": "<WaitingGame> is one caption and one console. It is controlled by the host's own `active` flag: while the wait is on it plays, and on the edge where the wait ends it unmounts itself — loop, key listener and frames all gone — and calls `onDone` exactly once.",
+      "component": "WaitingGame",
+      "tokens": [
+        "surface",
+        "surface-raised",
+        "border-subtle",
+        "text",
+        "text-muted",
+        "success"
+      ],
+      "variants": [
+        "default",
+        "processing",
+        "done"
+      ],
+      "source": "demo/WaitingGame.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "brick.console.label",
+    "brick.console.menu",
+    "brick.console.screen",
+    "brick.game.arkanoid",
+    "brick.game.memory",
+    "brick.game.racing",
+    "brick.game.snake",
+    "brick.game.tanks",
+    "brick.game.tetris",
+    "brick.pad.down",
+    "brick.pad.label",
+    "brick.pad.left",
+    "brick.pad.ok",
+    "brick.pad.reset",
+    "brick.pad.right",
+    "brick.pad.start",
+    "brick.pad.up",
+    "brick.panel.hiscore",
+    "brick.panel.level",
+    "brick.panel.next",
+    "brick.panel.score",
+    "brick.status.over",
+    "brick.status.paused",
+    "brick.status.ready",
+    "brick.status.record",
+    "brick.wait.admission",
+    "brick.wait.processing",
+    "brick.wait.queue",
+    "brick.wait.upload"
+  ],
+  "exports": {
+    "runtime": [
+      "ARKANOID",
+      "BRICK_GAMES",
+      "BRICK_GAME_IDS",
+      "BRICK_I18N_KEYS",
+      "HIGHSCORES_NAMESPACE",
+      "INPUT_QUEUE_LIMIT",
+      "MAX_STEPS_PER_FRAME",
+      "MEMORY",
+      "RACING",
+      "SNAKE",
+      "TANKS",
+      "TETRIS",
+      "brickI18nBundleEn",
+      "clearGrid",
+      "createBrickSession",
+      "createGrid",
+      "createHighScoreStore",
+      "createInputQueue",
+      "createLoop",
+      "createNullHighScoreStore",
+      "createRng",
+      "fillRect",
+      "findGame",
+      "getCell",
+      "gridSignature",
+      "registerBrickI18n",
+      "setCell",
+      "stepMsForLevel"
+    ],
+    "types": [
+      "BrickGameId",
+      "BrickI18nKey",
+      "BrickInput",
+      "BrickSession",
+      "BrickSessionOptions",
+      "CellLevel",
+      "Game",
+      "GameCompleteness",
+      "GameContext",
+      "GameDefinition",
+      "GameStatus",
+      "Grid",
+      "HighScoreStore",
+      "InputQueue",
+      "Loop",
+      "LoopOptions",
+      "MutableGrid",
+      "Rng"
+    ]
+  }
+}
