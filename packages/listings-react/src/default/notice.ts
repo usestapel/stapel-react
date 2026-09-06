@@ -30,12 +30,42 @@
  * the heart's state is on the heart. This is the AMPLIFIER, never the record.
  * A future `SkinNotice` in the substrate replaces the body of this function
  * and nothing else; the callers already speak in resolved sentences.
+ *
+ * ── An amplifier may not outlive what it amplifies ────────────────────────
+ *
+ * Both arms hand the notice to a holder MOUNTED OUTSIDE this component tree —
+ * antd's `<App>` holder in the first arm, and in the second a React root antd
+ * renders into the document the first time the static entry is called. Neither
+ * is unmounted by unmounting the surface that spoke, and a standing notice is
+ * not an idle DOM node: `@rc-component/notification` counts its two seconds
+ * down with a `requestAnimationFrame` LOOP (`useNoticeTimer`), which is live
+ * work driven from a root nothing in this package owns.
+ *
+ * So the notices raised here are RETIRED when the surface that raised them
+ * goes. Two things follow, and both are the intent:
+ *
+ *  - a person who presses the heart and immediately navigates away does not
+ *    get "Saved" floating over the next page, about a listing they left;
+ *  - nothing this pair started keeps running after the tree it started in is
+ *    gone. Measured as CI flake: the detail page's heart toast kept stepping
+ *    its rAF loop past the end of the test file that raised it, and the frame
+ *    that landed after the environment was torn down threw
+ *    `ReferenceError: window is not defined` out of react-dom — from a suite
+ *    in which every test had passed.
  */
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { App, message as staticMessage } from "antd";
 
 /** Say one short sentence. Resolved copy — this is the skin, not a bag. */
 export type Notice = (text: string) => void;
+
+/**
+ * What antd hands back for a raised notice: CALL it to close the notice early,
+ * `then` it to learn that it closed on its own. Typed structurally rather than
+ * imported (`antd/es/message/interface`) so this file keeps to antd's public
+ * entry — the shape is antd's documented `MessageType` either way.
+ */
+type RaisedNotice = (() => void) & PromiseLike<unknown>;
 
 /**
  * How long a confirmation stands, in seconds.
@@ -51,18 +81,40 @@ export const NOTICE_SECONDS = 2;
 export function useNotice(): Notice {
   const app = App.useApp();
   const contextual = app.message.success;
+  // The notices this surface has raised and that have not closed themselves
+  // yet — see the header. A notice retires itself the moment it closes, so
+  // this holds at most the handful still on screen.
+  const standing = useRef<Set<RaisedNotice>>(new Set());
+  useEffect(
+    () => () => {
+      const open = standing.current;
+      standing.current = new Set();
+      for (const close of open) close();
+    },
+    []
+  );
+  const hold = useCallback((raised: RaisedNotice): void => {
+    standing.current.add(raised);
+    const retire = (): void => {
+      standing.current.delete(raised);
+    };
+    // Closed by its own timer, by our unmount, or by a host calling
+    // `message.destroy()` — every ending resolves this, and a rejection is an
+    // ending too. Nothing is awaited: the notice is already on screen.
+    raised.then(retire, retire);
+  }, []);
   return useCallback(
     (text: string): void => {
       if (typeof contextual === "function") {
-        contextual(text, NOTICE_SECONDS);
+        hold(contextual(text, NOTICE_SECONDS) as RaisedNotice);
         return;
       }
       // No `<App>` above us. antd's static entry renders its own holder into
       // the document, which is exactly right for a host that never opted in,
       // and is a no-op on a server where there is no document to render into.
       if (typeof document === "undefined") return;
-      staticMessage.success(text, NOTICE_SECONDS);
+      hold(staticMessage.success(text, NOTICE_SECONDS) as RaisedNotice);
     },
-    [contextual]
+    [contextual, hold]
   );
 }

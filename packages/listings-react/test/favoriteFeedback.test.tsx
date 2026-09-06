@@ -197,7 +197,7 @@ describe("the detail page's heart, same contract", () => {
   }
 
   it("flips on the gesture rather than waiting for the refetch", async () => {
-    pane({ is_favorited: false });
+    const server = pane({ is_favorited: false });
     await waitFor(() => {
       expect(screen.getByTestId("listings-detail-favorite")).toBeTruthy();
     });
@@ -209,6 +209,13 @@ describe("the detail page's heart, same contract", () => {
     expect(during.favorited).toBe("true");
     expect(during.pressed).toBe("true");
     expect(during.fill).not.toBe("none");
+    // The claim above is about the gesture and is already made. This waits for
+    // the write the gesture started, so the test OWNS it: a POST left in
+    // flight settles into a tree the next `cleanup()` has already unmounted,
+    // and on a loaded runner it settles after the file has ended.
+    await waitFor(() => {
+      expect(server.matching("/listings/7/favorite/")).toHaveLength(1);
+    });
   });
 
   it("rolls back and states the failure", async () => {
