@@ -1,5 +1,13 @@
 # @stapel/listings-react
 
+## 0.25.9
+
+### Patch Changes
+
+- `<MyListingsPane gutter>` — the seller's own listings stop being indented twice.
+
+  The same defect `<ListingDetailPane gutter>` closes, on the pane beside it: this one painted a flat `spacing[4]` INSIDE a shell whose content box had already placed the page edge with `--stapel-page-gutter` (a responsive role — 4px on a phone, 24px on a desktop), so the dashboard sat two gutters in from a page that had already decided where its edge was. `"own"` (default) is unchanged; `"shell"` adds none. Only the host knows whether it has a frame, which is why this is a prop and not a context read — and the reading measure is untouched either way, because the edge is not the width.
+
 ## 0.25.8
 
 ### Patch Changes

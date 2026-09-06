@@ -3,7 +3,7 @@
   "packages": [
     {
       "package": "@stapel/auth-react",
-      "version": "0.19.2",
+      "version": "0.19.3",
       "entries": [
         {
           "id": "auth.login",
@@ -236,7 +236,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.22.2",
+      "version": "0.22.3",
       "entries": [
         {
           "id": "categories.catalog",
@@ -510,7 +510,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.25.8",
+      "version": "0.25.9",
       "entries": [
         {
           "id": "listings.detail",

@@ -1,5 +1,15 @@
 # @stapel/auth-react
 
+## 0.19.3
+
+### Patch Changes
+
+- `<SecuritySettings gutter>` — the security page stops adding a second page gutter inside a shell.
+
+  Its `PAGE_STYLE` painted a flat `spacing[4]` on all four sides, which is right for a screen mounted straight into a router and wrong inside `@stapel/shell-react`, whose content box already carries `--stapel-page-gutter` (4px on a phone, 24px on a desktop): the security screen then sat further in than the header above it and the footer below it — the three-left-edges defect the shared token role exists to end.
+
+  `"own"` (default) is byte-compatible. `"shell"` drops the INLINE half only: vertical rhythm between a header and a page's first line is this page's own business, and it was the inline half being paid twice. A prop rather than a context read, for the reason the same prop on `<CategoryPage>` and `<ListingDetailPane>` gives — whether there is a gutter outside this component is a fact about the composition, and only the composing surface knows it.
+
 ## 0.19.2
 
 ### Patch Changes

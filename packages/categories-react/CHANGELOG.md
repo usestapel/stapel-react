@@ -1,5 +1,15 @@
 # @stapel/categories-react
 
+## 0.22.3
+
+### Patch Changes
+
+- The reserved tile row is the SHAPE of the row that arrives.
+
+  `<CategoryTileGrid>`'s loading arm — and, since it was shared, the `reserve` box a host-owned fetch waits in — drew every skeleton at `4 / 3`, the cozy tile's ratio, while a `density="compact"` tile is a square and a `size="compact"` tile is `8 / 3`. So the row was one height while it waited and a different one when it landed: 0.024 of layout shift on the storefront's home, paid on every cold load, by the arm that exists to prevent exactly that. The shape is now read off `tileStyle()` — the one place that already knows which anatomy is being drawn — rather than restated beside it, because a second copy of that decision is a copy that drifts.
+
+  Ceiling raised deliberately: the `default` bundle 17.43 → 17.56 KB across this wave, measured with dependencies held constant, 17.6 → 17.8 KB (40 B of room left is a gate that fails on the next honest byte).
+
 ## 0.22.2
 
 ### Patch Changes
