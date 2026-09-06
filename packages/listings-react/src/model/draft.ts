@@ -266,7 +266,7 @@ export interface DraftPatchOptions {
  * live container over two cold loads of one draft: a reopen's own
  * settled-photo save fires in the first commit, before the row's category has
  * even been adopted, and the row alternated between the draft's answers and
- * none of them (`darom-storefront` README, "Named gaps").
+ * none of them (a client storefront's README, "Named gaps").
  *
  * `{}` is a claim — "this listing has no characteristics" — and a caller with
  * no schema is in no position to make it. So the key is OMITTED entirely
