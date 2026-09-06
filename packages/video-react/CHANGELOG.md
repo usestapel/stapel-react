@@ -1,5 +1,23 @@
 # @stapel/video-react
 
+## 0.3.3
+
+### Patch Changes
+
+- Five defects between a call connecting and a call working, all proven in jsdom against the storefront's own wiring.
+
+  **A connected call published nothing.** `setMicrophoneEnabled`/`setCameraEnabled` were reached only from `<CallPanel>`'s two toggles, which OPENED drawn as "on" — so a connected call was silent in both directions while both controls said the opposite, and the first thing either person did was press mute (turning the microphone on for the first time) to be heard. The panel now publishes on mount (`autoPublish`, default `true`), microphone and camera requested SEPARATELY and in that order so a refused camera leaves a working voice call, an audio-only call never asks for a camera, and the toggles show what was actually granted. `false` for a host that publishes from its own device picker.
+
+  **The other party's page could end your live call.** `<CallsProvider>` dropped the call for any id another tab said was `resolved`, in any state — so a dismissal arriving after acceptance unmounted a call mid-connect (the stand caught the media session torn down 9 ms after "signal connected"). A dismissal is about a RING and now only applies while the call is ringing, the same guard the `incoming` predicate already carried. And the cross-tab bus is per-ORIGIN, which is not per-person: `CallTabMessage` carries the sender's `user` id and a tab ignores a message about somebody else's call — two accounts on one browser stop dismissing each other. The field is optional, so an older tab's message is treated exactly as before.
+
+  **The stage stranded itself under StrictMode.** Every step of the dial past an `await` is guarded now: unguarded, a development remount let the first run's room be created after the second run's, overwrite the ref with a room nobody is connected to, and leave the stage on "connecting" for the rest of the session — which is every developer's local call. A room created after its own effect was torn down is disconnected rather than left holding a socket.
+
+  **A re-render aborted the connect.** The effect that dials also disconnects in its cleanup, so anything in its dependency list can abort a call that is dialling — and the loader prop was in it, which for a host passing an inline arrow (as every host did while the built-in one was broken) is a fresh identity on every parent render. The dependency list is primitives only now — the address, the token, and the retry counter — with the loader held in a ref, and there is a test for the storefront's own shape: five parent re-renders with fresh object props during a pending connect, one dial, no abort. What may legitimately re-dial is a new address, a new token, or a person pressing retry.
+
+  **`<CallRoute loadPeer>`** is forwarded to the stage it mounts. The seam existed on a component no host mounts directly, so a build that must not see the `livekit-client` specifier could not reach it.
+
+  Measured with dependencies held constant: the `default` bundle 17.74 → 17.91 KB and the main entry 11.16 → 11.24 KB, both inside their ceilings (20 KB / 13 KB).
+
 ## 0.3.2
 
 ### Patch Changes
