@@ -1,6 +1,6 @@
 # @stapel/moderation-react 0.1.3
 
-Headless React flow pair for stapel-moderation (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-moderation (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -100,9 +100,10 @@ const { tracked } = useTracked();
 - moderation.appeal-panel → <AppealPanel> [default|writing|with-history]  demo/AppealPanel.demo.tsx
 - moderation.appeals-queue → <AppealsQueue> [default|decided|empty]  demo/AppealsQueue.demo.tsx
 - moderation.case → <CaseDetail> [default|no-content|held-by-another]  demo/CaseDetail.demo.tsx
+- moderation.dlq → <DlqQueue> [default|phone|empty|not-staff]  demo/DlqQueue.demo.tsx
 - moderation.policy → <PolicyDisclosurePane> [default|human-only|failed]  demo/PolicyDisclosurePane.demo.tsx
 - moderation.provider → <ModerationProvider> [default]  demo/Moderation.demo.tsx
-- moderation.queue → <ModerationQueue> [default|phone|empty|not-staff]  demo/ModerationQueue.demo.tsx
+- moderation.queue → <ModerationQueue> [default|phone|empty|not-staff|dlq]  demo/ModerationQueue.demo.tsx
 - moderation.report-button → <ReportButton> [default|compact|block]  demo/ReportButton.demo.tsx
 - moderation.report-sheet → <ReportSheet> [default|no-automation|no-reasons|policy-failed]  demo/ReportSheet.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).

@@ -75,7 +75,15 @@ export interface ModerationApi {
 
   // ── moderator console ────────────────────────────────────────────────────
 
-  /** One keyset page of the cross-target queue. `GET cases` — no slash. */
+  /**
+   * One keyset page of the cross-target queue. `GET cases` — no slash.
+   *
+   * **Pass a `state`.** Since backend 0.7.0 an unfiltered read returns
+   * dead-lettered rows alongside the human queue, so the moderator's list asks
+   * for `state: "queued"` and the dead-letter tab asks for `state: "dlq"`
+   * (optionally narrowed by `errorClass`). A caller that sends neither gets
+   * both, which is the mixture the split exists to prevent.
+   */
   cases(filters?: CaseFilters, options?: RequestExtras): Promise<readonly Case[]>;
 
   /** One case card, with the target's content read live. */
@@ -92,7 +100,13 @@ export interface ModerationApi {
    */
   release(caseId: string): Promise<Case>;
 
-  /** Re-run the automatic stage. 202: the case is in `screening` again. */
+  /**
+   * Re-run the automatic stage. 202: the case is in `screening` again.
+   *
+   * Also the way OUT of the dead-letter park (backend 0.7.0): a `dlq` case is
+   * revived and put back on the ladder, which is why the DLQ tab's row action
+   * and its "rescan them all" are this one call and not a second route.
+   */
   rescan(caseId: string): Promise<RescanResult>;
 
   /** Decide, optionally with the consequence in the same act. */
@@ -178,6 +192,12 @@ export interface CaseFilters extends KeysetPage {
   readonly scopeKey?: string;
   readonly severityMin?: number;
   readonly subjectUserId?: string;
+  /**
+   * Narrows the dead-letter tab to one class of failure (backend 0.7.0). Only
+   * meaningful beside `state: "dlq"` — every other state has an empty
+   * `last_error_class`, so the pair never sends it on its own.
+   */
+  readonly errorClass?: string;
 }
 
 /** The optional sanction attached to a verdict (`SanctionRequest`). */
@@ -309,6 +329,7 @@ export function createModerationApi(client: StapelClient): ModerationApi {
           scope_key: filters?.scopeKey,
           severity_min: filters?.severityMin,
           subject_user_id: filters?.subjectUserId,
+          error_class: filters?.errorClass,
           before: filters?.before,
           limit: filters?.limit,
         }),

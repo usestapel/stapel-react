@@ -113,6 +113,48 @@
       }
     },
     {
+      "id": "moderation.dlq",
+      "title": "Dead-letter park (engineering)",
+      "description": "Cases the screening seam gave up on, which are NOT the moderator's queue: they carry no verdict, nothing looked at them, and they are repaired rather than decided. Grouped by `last_error_class` with the class as a chip and the server's own message one click away, because the stand this state was built for was running two unrelated faults at once and a single 'screening unavailable' counter sent people to fix the wrong one. Every row can be sent back through the screener, and so can all of them at once — a per-row call with a progress count, because there is no bulk route on the wire and a button that said 'done' after firing twenty requests it never watched would be the same lie in a smaller place.",
+      "component": "DlqQueue",
+      "covers": [],
+      "tokens": [
+        "surface-base",
+        "surface-raised",
+        "error"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two faults at once — a content function asked for a key that names nothing, and an unreachable screener — as two groups, biggest first.",
+          "viewport": "desktop",
+          "step": "grouped"
+        },
+        {
+          "id": "phone",
+          "description": "One fault, on a phone. The rows are cards at every width: a dead letter has few facts and one of them is a stack-trace tail, which no table column can hold.",
+          "viewport": "phone",
+          "step": "populated"
+        },
+        {
+          "id": "empty",
+          "description": "Nothing has failed screening — the only empty state in this console that is good news about the machines rather than about people.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "not-staff",
+          "description": "A signed-in person without the mandate. Named as a door, not rendered as an operations failure — the nav axis cannot say 'staff'.",
+          "viewport": "phone",
+          "step": "forbidden"
+        }
+      ],
+      "source": {
+        "file": "demo/DlqQueue.demo.tsx",
+        "line": 54
+      }
+    },
+    {
       "id": "moderation.policy",
       "title": "Content rules (public)",
       "description": "DSA Art. 15, rendered rather than written: `GET policy` builds its answer from the live configuration — the registered reasons, the screening stages actually wired, the confidence floor actually applied, whether an appeal really goes to a different moderator. Turning the screener off changes this page on the next load with no copy change anywhere, which is the only version of a transparency page that cannot go stale. It is the module's one anonymous route, because a rules page that demanded a session would be the page nobody could check the rules on.",
@@ -169,7 +211,7 @@
     {
       "id": "moderation.queue",
       "title": "Moderation queue (staff)",
-      "description": "Table where there is room, cards where there is not — decided by the ELEMENT's width, not the viewport's, because a console lives in an admin shell's content column as often as on a full page and antd's grid breakpoints would give a 380px panel on a 1920px desktop the eight-column table. The target column shows `type:key` and nothing else unless the host fills `renderTarget`: the module is domain-blind and the backend serves content on the case card only, so a thumbnail here can only come from whoever owns the target. The mandate refusal is named, not rendered as a failed read — the nav axis has no 'staff' value, so the screen does the explaining.",
+      "description": "Two tabs: the moderator's queue (asked for as `state=queued` — an unfiltered read now returns dead letters beside it) and the DLQ, which belongs to whoever repairs the screening seam. Table where there is room, cards where there is not — decided by the ELEMENT's width, not the viewport's, because a console lives in an admin shell's content column as often as on a full page and antd's grid breakpoints would give a 380px panel on a 1920px desktop the eight-column table. The target column shows `type:key` and nothing else unless the host fills `renderTarget`: the module is domain-blind and the backend serves content on the case card only, so a thumbnail here can only come from whoever owns the target. The mandate refusal is named, not rendered as a failed read — the nav axis has no 'staff' value, so the screen does the explaining.",
       "component": "ModerationQueue",
       "covers": [],
       "tokens": [
@@ -202,11 +244,17 @@
           "description": "A signed-in person without the mandate. The door is visible and explains itself, instead of an operations error nobody can act on.",
           "viewport": "phone",
           "step": "forbidden"
+        },
+        {
+          "id": "dlq",
+          "description": "The second tab, seeded through `initialTab` so it can be photographed rather than clicked to. The header carries two numbers and not their sum: 15 waiting for a moderator, 3 nobody ever screened. Adding them is how a broken screening seam spent twelve days on a client stand looking like a busy queue.",
+          "viewport": "desktop",
+          "step": "dlq"
         }
       ],
       "source": {
         "file": "demo/ModerationQueue.demo.tsx",
-        "line": 51
+        "line": 68
       }
     },
     {

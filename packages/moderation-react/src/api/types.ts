@@ -11,7 +11,7 @@
  *    Django `TextChoices` on the backend and a bare `CharField` in DRF, so the
  *    schema types them `string`. The presenter aliases below re-type exactly
  *    those fields against `api/enums.ts`, which is pinned to `models.py` by
- *    `test/enums.test.ts`. Widening back to `string` would let a console ship
+ *    `test/contract.test.ts`. Widening back to `string` would let a console ship
  *    with `"needs-review"` in a radio group and compile.
  * 2. **`policy.reasons` / `policy.rules`** are `{[k: string]: unknown}[]` in
  *    the schema (drf-spectacular cannot see inside a dict built in a service).
@@ -31,6 +31,7 @@ import type {
   CaseOrigin,
   CaseState,
   Decision,
+  ErrorClass,
   SanctionKind,
   SanctionState,
   VerdictSource,
@@ -39,16 +40,26 @@ import type {
 /** The generated schema table — the one source of truth for wire shapes. */
 export type Schemas = components["schemas"];
 
-/** One queue row. */
+/**
+ * One queue row.
+ *
+ * Since backend 0.7.0 the row also carries the dead-letter stamps — `dlq_at`,
+ * `last_error_class`, `last_error`, `escalated_at` — precisely so the DLQ tab
+ * can group and sort without opening every card.
+ */
 export type Case = Omit<
   Schemas["CasePresenterDTO"],
-  "state" | "origin" | "last_decision"
+  "state" | "origin" | "last_decision" | "last_error_class"
 > & {
   readonly state: CaseState;
   readonly origin: CaseOrigin;
   /** `""` until a verdict exists — the backend defaults it to the empty
    * string rather than omitting it, and an empty string is not a decision. */
   readonly last_decision?: Decision | "";
+  /** `""` on every case that never failed a screening. `services.error_class_of`
+   * clamps the wire value to {@link ErrorClass}, which is what makes it safe to
+   * group a tab by and to label a metric with. */
+  readonly last_error_class?: ErrorClass | "";
 };
 
 /** One complaint, as a moderator sees it. */

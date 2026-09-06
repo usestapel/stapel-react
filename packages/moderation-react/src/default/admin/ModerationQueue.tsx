@@ -23,6 +23,17 @@
  * and nothing else. `createModerationRuntime({ renderTarget })` is where a host
  * that owns the target puts a thumbnail; unfilled, the row shows `type:key`,
  * which is the truth rather than a blank column.
+ *
+ * ── Two tabs, two numbers, and never their sum ────────────────────────────
+ *
+ * Backend 0.7.0 gave a screening FAILURE its own state, and this screen is
+ * where that split has to survive contact with a person. The queue tab asks
+ * for `state=queued` explicitly (an unfiltered read now returns dead letters
+ * too); the DLQ tab is `<DlqQueue>` and belongs to whoever repairs the seam.
+ * The header prints `queue_total` and `dlq_total` side by side and does NOT
+ * print `open_total`, which adds them: that sum is precisely how a 78%
+ * screening failure rate spent twelve days on a client stand looking like a
+ * busy queue, and a console that shows it puts the defect back.
  */
 import { useState } from "react";
 import type { ReactElement } from "react";
@@ -37,6 +48,7 @@ import {
   Select,
   Statistic,
   Table,
+  Tabs,
   Tag,
   Typography,
 } from "antd";
@@ -58,38 +70,35 @@ import {
   useTPlural,
 } from "@stapel/core";
 import { CASE_STATES } from "../../api/enums.js";
-import type { CaseState } from "../../api/enums.js";
 import type { Case } from "../../api/types.js";
 import {
   MODERATION_I18N_KEYS,
   caseOriginKey,
   caseStateKey,
 } from "../../i18n/keys.js";
-import { useModerationQueue } from "../../headless/useModerationQueue.js";
+import {
+  DEFAULT_QUEUE_STATE,
+  useModerationQueue,
+} from "../../headless/useModerationQueue.js";
 import { useModerationRuntime } from "../../model/context.js";
 import { formatInstant, shortId } from "../../model/format.js";
 import { usePolicyText } from "../copy.js";
 import { isNarrowWidth, useElementWidth } from "../elementWidth.js";
 import type { ThemeModeProp } from "../types.js";
 import { CaseDetail } from "./CaseDetail.js";
+import { DlqQueue } from "./DlqQueue.js";
+import { STATE_TONE } from "./tone.js";
 
-/** antd semantic presets only. A queue state is operational, not decorative. */
-const STATE_TONE: Readonly<Record<CaseState, string>> = {
-  open: "processing",
-  screening: "processing",
-  queued: "warning",
-  claimed: "default",
-  resolved: "success",
-};
-
-/** The filter bar's "no filter" sentinel — an empty query value, not a word
- * the backend could mistake for a state. */
-const ANY = "";
+/** Which half of the console is showing. */
+export type ModerationQueueTab = "queue" | "dlq";
 
 export interface ModerationQueueProps extends ThemeModeProp {
   /** Who the reader is, so their own lease is told apart from a colleague's.
    * This module has no `/me`; the host knows. */
   readonly viewerId?: string;
+  /** Which tab opens first. A host that routes `/moderation/dlq` at this
+   * screen passes `"dlq"`; the default is the moderator's own work. */
+  readonly initialTab?: ModerationQueueTab;
   readonly "data-testid"?: string;
 }
 
@@ -105,6 +114,7 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
   const narrow = isNarrowWidth(width);
   const [openCaseId, setOpenCaseId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [tab, setTab] = useState<ModerationQueueTab>(props.initialTab ?? "queue");
 
   const label = (userId: string): string =>
     runtime.userLabel !== undefined ? runtime.userLabel(userId) : shortId(userId);
@@ -196,19 +206,28 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
     },
   ];
 
-  const stateOptions = [
-    { value: ANY, label: t(MODERATION_I18N_KEYS.queueFilterAny) },
-    ...CASE_STATES.map((state) => ({
-      value: state as string,
-      label: t(caseStateKey(state)),
-    })),
-  ];
+  /**
+   * Every state a MODERATOR's list can be narrowed to.
+   *
+   * Two members are gone since backend 0.7.0, for the same reason. `dlq` is
+   * not a filter of this list at all — it is the other tab, and offering it
+   * here would put an outage back in a moderator's queue with one click. And
+   * there is no "Any" any more: "any state" is spelled as an empty `state` on
+   * the wire, which is exactly the read that returns dead letters mixed in.
+   * The control therefore always names a state, and `queued` is where it
+   * starts.
+   */
+  const stateOptions = CASE_STATES.filter((state) => state !== "dlq").map(
+    (state) => ({ value: state as string, label: t(caseStateKey(state)) })
+  );
 
   /** How many filters are narrowing the queue right now — the one fact the
    * phone arm's collapsed "Filters" button has to carry, since the fields
    * themselves are behind it. */
   const activeFilterCount = [
-    bag.filters.state,
+    bag.filters.state !== undefined && bag.filters.state !== DEFAULT_QUEUE_STATE
+      ? bag.filters.state
+      : undefined,
     bag.filters.targetType,
     bag.filters.reasonCode,
     bag.filters.severityMin,
@@ -252,15 +271,11 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
               right edge. It scrolls inside its own box instead. */}
           <div style={{ maxWidth: "100%", overflowX: "auto" }}>
             <Segmented
-              value={bag.filters.state ?? ANY}
+              value={bag.filters.state ?? DEFAULT_QUEUE_STATE}
               options={stateOptions}
               data-testid={`${testId}-filter-state`}
               onChange={(value) => {
-                const next = String(value);
-                bag.setFilters({
-                  ...bag.filters,
-                  ...(next !== ANY ? { state: next } : { state: undefined }),
-                });
+                bag.setFilters({ ...bag.filters, state: String(value) });
               }}
             />
           </div>
@@ -405,9 +420,18 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
               failed: () => null,
               ready: (stats) => (
                 <>
+                  {/* Two numbers, never one. `queue_total` is what a
+                      MODERATOR owes and `dlq_total` is what an ENGINEER owes;
+                      `open_total` is their sum and is deliberately not drawn
+                      here, because reading it as "the queue" is the mistake
+                      that hid a 78% screening failure rate for twelve days. */}
                   <Statistic
-                    title={t(MODERATION_I18N_KEYS.statsOpen)}
-                    value={stats.open_total ?? 0}
+                    title={t(MODERATION_I18N_KEYS.statsQueue)}
+                    value={stats.queue_total ?? 0}
+                  />
+                  <Statistic
+                    title={t(MODERATION_I18N_KEYS.statsDlq)}
+                    value={stats.dlq_total ?? 0}
                   />
                   <Statistic
                     title={t(MODERATION_I18N_KEYS.statsResolved)}
@@ -418,95 +442,139 @@ export function ModerationQueue(props: ModerationQueueProps): ReactElement {
             })}
           </Flex>
 
-          {filterBlock()}
+          <Tabs
+            activeKey={tab}
+            data-testid={`${testId}-tabs`}
+            onChange={(key) => {
+              setTab(key as ModerationQueueTab);
+            }}
+            items={[
+              {
+                key: "queue",
+                label: t(MODERATION_I18N_KEYS.queueTabQueue),
+                children: (
+                  <Flex vertical gap={spacing["4"]}>
+                    {filterBlock()}
 
-          <LoadList
-            state={bag.rows}
-            testId={testId}
-            skeletonRows={4}
-            onRetry={bag.refetch}
-            failed={(error) =>
-              bag.access === "staff_only" ? (
-                <EmptyState
-                  testId={`${testId}-staff-only`}
-                  title={t(MODERATION_I18N_KEYS.queueStaffOnly)}
-                  hint={t(MODERATION_I18N_KEYS.queueStaffOnlyHint)}
-                />
-              ) : (
-                <ErrorAlert
-                  testId={`${testId}-failed`}
-                  thrown={error}
-                  onRetry={bag.refetch}
-                />
-              )
-            }
-            empty={
-              <EmptyState
-                testId={`${testId}-empty`}
-                title={t(MODERATION_I18N_KEYS.queueEmpty)}
-                hint={t(MODERATION_I18N_KEYS.queueEmptyHint)}
-              />
-            }
-          >
-            {(rows) => (
-              <Flex vertical gap={spacing["3"]}>
-                {narrow ? (
-                  <List
-                    dataSource={[...rows]}
-                    rowKey={(row: Case) => row.id}
-                    data-testid={`${testId}-cards`}
-                    renderItem={(row: Case) => (
-                      <List.Item>
-                        <Flex vertical gap={spacing["1"]} style={{ width: "100%" }}>
-                          <Flex gap={spacing["2"]} align="center" wrap>
-                            <Tag color={STATE_TONE[row.state]}>
-                              {t(caseStateKey(row.state))}
-                            </Tag>
-                            <Typography.Text type="secondary">
-                              {t(MODERATION_I18N_KEYS.caseSeverity, {
-                                value: row.severity,
-                              })}
-                            </Typography.Text>
-                            <Typography.Text type="secondary">
-                              {tPlural(MODERATION_I18N_KEYS.caseReportCount, {
-                                count: row.report_count,
-                              })}
-                            </Typography.Text>
-                          </Flex>
-                          {targetOf(row)}
-                          <Typography.Text type="secondary">
-                            {formatInstant(row.updated_at, locale)}
-                          </Typography.Text>
-                          {openButton(row)}
+                    <LoadList
+                      state={bag.rows}
+                      testId={testId}
+                      skeletonRows={4}
+                      onRetry={bag.refetch}
+                      failed={(error) =>
+                        bag.access === "staff_only" ? (
+                          <EmptyState
+                            testId={`${testId}-staff-only`}
+                            title={t(MODERATION_I18N_KEYS.queueStaffOnly)}
+                            hint={t(MODERATION_I18N_KEYS.queueStaffOnlyHint)}
+                          />
+                        ) : (
+                          <ErrorAlert
+                            testId={`${testId}-failed`}
+                            thrown={error}
+                            onRetry={bag.refetch}
+                          />
+                        )
+                      }
+                      empty={
+                        <EmptyState
+                          testId={`${testId}-empty`}
+                          title={t(MODERATION_I18N_KEYS.queueEmpty)}
+                          hint={t(MODERATION_I18N_KEYS.queueEmptyHint)}
+                        />
+                      }
+                    >
+                      {(rows) => (
+                        <Flex vertical gap={spacing["3"]}>
+                          {narrow ? (
+                            <List
+                              dataSource={[...rows]}
+                              rowKey={(row: Case) => row.id}
+                              data-testid={`${testId}-cards`}
+                              renderItem={(row: Case) => (
+                                <List.Item>
+                                  <Flex vertical gap={spacing["1"]} style={{ width: "100%" }}>
+                                    <Flex gap={spacing["2"]} align="center" wrap>
+                                      <Tag color={STATE_TONE[row.state]}>
+                                        {t(caseStateKey(row.state))}
+                                      </Tag>
+                                      <Typography.Text type="secondary">
+                                        {t(MODERATION_I18N_KEYS.caseSeverity, {
+                                          value: row.severity,
+                                        })}
+                                      </Typography.Text>
+                                      <Typography.Text type="secondary">
+                                        {tPlural(MODERATION_I18N_KEYS.caseReportCount, {
+                                          count: row.report_count,
+                                        })}
+                                      </Typography.Text>
+                                    </Flex>
+                                    {targetOf(row)}
+                                    <Typography.Text type="secondary">
+                                      {formatInstant(row.updated_at, locale)}
+                                    </Typography.Text>
+                                    {openButton(row)}
+                                  </Flex>
+                                </List.Item>
+                              )}
+                            />
+                          ) : (
+                            <Table
+                              size="small"
+                              pagination={false}
+                              scroll={{ x: "max-content" }}
+                              rowKey={(row: Case) => row.id}
+                              dataSource={[...rows]}
+                              columns={columns}
+                              data-testid={`${testId}-rows`}
+                            />
+                          )}
+                          {bag.hasMore ? (
+                            <GatedButton
+                              gate={bag.loadMore}
+                              testId={`${testId}-more`}
+                              data-analytics="none"
+                              data-analytics-reason="pagination — the same list, one keyset page further"
+                              onClick={bag.runLoadMore}
+                            >
+                              {t(MODERATION_I18N_KEYS.queueLoadMore)}
+                            </GatedButton>
+                          ) : null}
                         </Flex>
-                      </List.Item>
-                    )}
+                      )}
+                    </LoadList>
+                  </Flex>
+                ),
+              },
+              {
+                key: "dlq",
+                // The label is the literal "DLQ" in every locale, with the
+                // translated sentence under it. The word is an ENGINEER's
+                // word and it stays untranslated on purpose: a moderator who
+                // does not recognise it is being told correctly that this tab
+                // is not theirs, which a friendly translation would hide.
+                label: (
+                  <Flex vertical align="flex-start">
+                    <Typography.Text>
+                      {t(MODERATION_I18N_KEYS.dlqLabel)}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      {t(MODERATION_I18N_KEYS.dlqSubtitle)}
+                    </Typography.Text>
+                  </Flex>
+                ),
+                children: (
+                  <DlqQueue
+                    data-testid={`${testId}-dlq`}
+                    {...(props.viewerId !== undefined
+                      ? { viewerId: props.viewerId }
+                      : {})}
+                    {...(props.mode !== undefined ? { mode: props.mode } : {})}
                   />
-                ) : (
-                  <Table
-                    size="small"
-                    pagination={false}
-                    scroll={{ x: "max-content" }}
-                    rowKey={(row: Case) => row.id}
-                    dataSource={[...rows]}
-                    columns={columns}
-                    data-testid={`${testId}-rows`}
-                  />
-                )}
-                {bag.hasMore ? (
-                  <GatedButton
-                    gate={bag.loadMore}
-                    testId={`${testId}-more`}
-                    data-analytics="none"
-                    data-analytics-reason="pagination — the same list, one keyset page further"
-                    onClick={bag.runLoadMore}
-                  >
-                    {t(MODERATION_I18N_KEYS.queueLoadMore)}
-                  </GatedButton>
-                ) : null}
-              </Flex>
-            )}
-          </LoadList>
+                ),
+              },
+            ]}
+          />
         </Flex>
 
         <SkinDialog

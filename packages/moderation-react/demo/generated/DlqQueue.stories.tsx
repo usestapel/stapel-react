@@ -2,22 +2,19 @@
 // CSF story projected from a defineDemo() source (frontend-guardrails §4.1).
 import type { ReactElement } from "react";
 import { renderDemoVariant } from "@stapel/showcase";
-import demo from "../ModerationQueue.demo.js";
+import demo from "../DlqQueue.demo.js";
 
-export default { title: "moderation-react / Moderation queue (staff)" };
+export default { title: "moderation-react / Dead-letter park (engineering)" };
 
 export const Default = (): ReactElement => renderDemoVariant(demo, "default");
 Default.storyName = "default";
-Default.parameters = { stapel: {"viewport":"desktop","step":"populated"} };
+Default.parameters = { stapel: {"viewport":"desktop","step":"grouped"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
-Phone.parameters = { stapel: {"viewport":"phone","step":"cards"} };
+Phone.parameters = { stapel: {"viewport":"phone","step":"populated"} };
 export const Empty = (): ReactElement => renderDemoVariant(demo, "empty");
 Empty.storyName = "empty";
 Empty.parameters = { stapel: {"viewport":"phone","step":"empty"} };
 export const NotStaff = (): ReactElement => renderDemoVariant(demo, "not-staff");
 NotStaff.storyName = "not-staff";
 NotStaff.parameters = { stapel: {"viewport":"phone","step":"forbidden"} };
-export const Dlq = (): ReactElement => renderDemoVariant(demo, "dlq");
-Dlq.storyName = "dlq";
-Dlq.parameters = { stapel: {"viewport":"desktop","step":"dlq"} };

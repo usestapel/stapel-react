@@ -140,8 +140,40 @@ export const MODERATION_I18N_KEYS = {
   queueFiltersClear: "moderation.queue.filtersClear",
   queueFiltersNone: "moderation.queue.filtersNone",
   queueFiltersActive: "moderation.queue.filtersActive",
-  statsOpen: "moderation.stats.open",
+  queueTabQueue: "moderation.queue.tab.queue",
+  // The two headline numbers, and they are two on purpose: `statsQueue` is
+  // work a MODERATOR owes and `statsDlq` is work an ENGINEER owes. There is
+  // deliberately no key for `open_total` any more — it SUMS them, and the sum
+  // is what let a broken screening seam look like a busy queue.
+  statsQueue: "moderation.stats.queue",
+  statsDlq: "moderation.stats.dlq",
   statsResolved: "moderation.stats.resolved",
+
+  // ── the dead-letter park (console) ────────────────────────────────────
+  // `dlqLabel` is the literal "DLQ" in every locale: it names an engineering
+  // concept the tab exists to keep OUT of a moderator's vocabulary, and a
+  // translated euphemism for it would put it back in.
+  dlqLabel: "moderation.dlq.label",
+  dlqSubtitle: "moderation.dlq.subtitle",
+  dlqExplain: "moderation.dlq.explain",
+  dlqEmpty: "moderation.dlq.empty",
+  dlqEmptyHint: "moderation.dlq.emptyHint",
+  dlqRescan: "moderation.dlq.rescan",
+  dlqRescanAll: "moderation.dlq.rescanAll",
+  dlqRescanProgress: "moderation.dlq.rescanProgress",
+  dlqRescanFailed: "moderation.dlq.rescanFailed",
+  dlqRescanningAll: "moderation.dlq.rescanningAll",
+  dlqNothingToRescan: "moderation.dlq.nothingToRescan",
+  dlqRevived: "moderation.dlq.revived",
+  dlqFilterErrorClass: "moderation.dlq.filterErrorClass",
+  dlqFilterAny: "moderation.dlq.filterAny",
+  dlqUnknownClass: "moderation.dlq.unknownClass",
+  dlqShowError: "moderation.dlq.showError",
+  dlqHideError: "moderation.dlq.hideError",
+  dlqSince: "moderation.dlq.since",
+  dlqGroupCount: "moderation.dlq.groupCount",
+  dlqLoadMore: "moderation.dlq.loadMore",
+  caseDlq: "moderation.case.dlq",
 
   // ── case card ─────────────────────────────────────────────────────────
   caseTitle: "moderation.case.title",
@@ -449,8 +481,35 @@ export const moderationI18nBundleEn: I18nDictionary = {
   "moderation.queue.filtersActive": "{count} filters on",
   "moderation.queue.filtersActive.one": "{count} filter on",
   "moderation.queue.filtersActive.other": "{count} filters on",
-  "moderation.stats.open": "Open",
+  "moderation.queue.tab.queue": "Queue",
+  "moderation.stats.queue": "Waiting for a moderator",
+  "moderation.stats.dlq": "Never screened",
   "moderation.stats.resolved": "Resolved",
+
+  "moderation.dlq.label": "DLQ",
+  "moderation.dlq.subtitle": "Screening failures, not decisions",
+  "moderation.dlq.explain":
+    "Nothing looked at these cases: the automatic check broke. They carry no decision and there is nothing to moderate here — repair what is failing, then send them back through.",
+  "moderation.dlq.empty": "Nothing has failed screening.",
+  "moderation.dlq.emptyHint":
+    "When the automatic check breaks, the cases it could not read land here instead of in the moderation queue.",
+  "moderation.dlq.rescan": "Screen it again",
+  "moderation.dlq.rescanAll": "Screen them all again",
+  "moderation.dlq.rescanProgress": "{done} of {total} sent back",
+  "moderation.dlq.rescanFailed": "{count} stayed here",
+  "moderation.dlq.rescanningAll": "Sending them all back…",
+  "moderation.dlq.nothingToRescan": "Everything here has been sent back.",
+  "moderation.dlq.revived": "Sent back for screening.",
+  "moderation.dlq.filterErrorClass": "What broke",
+  "moderation.dlq.filterAny": "Anything",
+  "moderation.dlq.unknownClass": "Not recorded",
+  "moderation.dlq.showError": "Show the error",
+  "moderation.dlq.hideError": "Hide the error",
+  "moderation.dlq.since": "Here since {date}",
+  "moderation.dlq.groupCount": "{count} cases",
+  "moderation.dlq.groupCount.one": "{count} case",
+  "moderation.dlq.groupCount.other": "{count} cases",
+  "moderation.dlq.loadMore": "Show more",
 
   "moderation.case.title": "Case {caseRef}",
   "moderation.case.untitled": "Reported content",
@@ -496,6 +555,8 @@ export const moderationI18nBundleEn: I18nDictionary = {
   "moderation.case.noVerdicts": "No decision yet.",
   "moderation.case.noSanctions": "No sanctions on this case.",
   "moderation.case.noAppeals": "No appeals on this case.",
+  "moderation.case.dlq":
+    "This case was never screened — the automatic check broke. No decision was recorded, and none is owed until it has been read.",
 
   "moderation.verdict.title": "Decide",
   "moderation.verdict.reason": "Reason",
@@ -607,11 +668,21 @@ export const moderationI18nBundleEn: I18nDictionary = {
   "moderation.reason.low_confidence.label": "The automatic check was unsure",
   "moderation.reason.low_confidence.description":
     "The screener's answer was below the confidence needed to act on it.",
+  "moderation.reason.media_unavailable.label": "The attached files could not be read",
+  "moderation.reason.media_unavailable.description":
+    "The pictures or files on this item could not be fetched for the automatic check.",
+  "moderation.reason.subject_gone.label": "The item no longer exists",
+  "moderation.reason.subject_gone.description":
+    "There is nothing left to look at — the content this case is about cannot be found any more.",
+  "moderation.reason.screening_failed.label": "The automatic check broke",
+  "moderation.reason.screening_failed.description":
+    "The screening could not run and kept failing. This is not a decision about the content.",
 
   "moderation.case.state.open": "New",
   "moderation.case.state.screening": "Being screened",
   "moderation.case.state.queued": "Waiting for a person",
   "moderation.case.state.claimed": "Being worked on",
+  "moderation.case.state.dlq": "Never screened",
   "moderation.case.state.resolved": "Decided",
 
   "moderation.case.origin.submission": "Submitted for review",
@@ -619,6 +690,7 @@ export const moderationI18nBundleEn: I18nDictionary = {
   "moderation.case.origin.manual": "Opened by a moderator",
   "moderation.case.origin.rescan": "Screened again",
   "moderation.case.origin.appeal": "Reopened by an appeal",
+  "moderation.case.origin.draft": "Refused before it was published",
 
   "moderation.case.content.unavailable.no_content_function":
     "This app does not serve the content of this kind of item, so there is nothing to show.",

@@ -8,6 +8,8 @@ import { ModerationDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
 import {
   CASE_CLAIMED,
+  CASE_DLQ_CONTENT,
+  CASE_DLQ_SCREENER,
   CASE_QUEUED,
   POLICY,
   STAFF_ONLY,
@@ -40,10 +42,25 @@ const NOT_STAFF: DemoHandlers = {
   "/cases": STAFF_ONLY,
 };
 
-function Queue(props: { handlers: DemoHandlers }): ReactElement {
+/** The park behind the second tab. `state=dlq` is matched BEFORE the bare
+ * `/cases`, so the two tabs of one screen answer with different rows — which
+ * is the whole claim this variant is here to show. */
+const PARKED: DemoHandlers = {
+  "/stats": STATS,
+  "/policy": POLICY,
+  "state=dlq": [CASE_DLQ_CONTENT, CASE_DLQ_SCREENER],
+  "/cases": [CASE_QUEUED, CASE_CLAIMED],
+};
+
+function Queue(props: {
+  handlers: DemoHandlers;
+  initialTab?: "queue" | "dlq";
+}): ReactElement {
   return (
     <ModerationDemoHarness handlers={props.handlers}>
-      <ModerationQueue />
+      <ModerationQueue
+        {...(props.initialTab !== undefined ? { initialTab: props.initialTab } : {})}
+      />
     </ModerationDemoHarness>
   );
 }
@@ -52,7 +69,7 @@ export default defineDemo({
   id: "moderation.queue",
   title: "Moderation queue (staff)",
   description:
-    "Table where there is room, cards where there is not — decided by the ELEMENT's width, not the viewport's, because a console lives in an admin shell's content column as often as on a full page and antd's grid breakpoints would give a 380px panel on a 1920px desktop the eight-column table. The target column shows `type:key` and nothing else unless the host fills `renderTarget`: the module is domain-blind and the backend serves content on the case card only, so a thumbnail here can only come from whoever owns the target. The mandate refusal is named, not rendered as a failed read — the nav axis has no 'staff' value, so the screen does the explaining.",
+    "Two tabs: the moderator's queue (asked for as `state=queued` — an unfiltered read now returns dead letters beside it) and the DLQ, which belongs to whoever repairs the screening seam. Table where there is room, cards where there is not — decided by the ELEMENT's width, not the viewport's, because a console lives in an admin shell's content column as often as on a full page and antd's grid breakpoints would give a 380px panel on a 1920px desktop the eight-column table. The target column shows `type:key` and nothing else unless the host fills `renderTarget`: the module is domain-blind and the backend serves content on the case card only, so a thumbnail here can only come from whoever owns the target. The mandate refusal is named, not rendered as a failed read — the nav axis has no 'staff' value, so the screen does the explaining.",
   component: ModerationQueue,
   tokens: ["surface-base", "surface-raised", "warning", "success"],
   variants: {
@@ -81,6 +98,13 @@ export default defineDemo({
       viewport: "phone",
       step: "forbidden",
       render: () => <Queue handlers={NOT_STAFF} />,
+    },
+    dlq: {
+      description:
+        "The second tab, seeded through `initialTab` so it can be photographed rather than clicked to. The header carries two numbers and not their sum: 15 waiting for a moderator, 3 nobody ever screened. Adding them is how a broken screening seam spent twelve days on a client stand looking like a busy queue.",
+      viewport: "desktop",
+      step: "dlq",
+      render: () => <Queue handlers={PARKED} initialTab="dlq" />,
     },
   },
 });

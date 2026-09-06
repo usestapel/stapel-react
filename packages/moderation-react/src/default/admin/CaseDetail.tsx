@@ -829,6 +829,41 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
                 {leaseLine(detail)}
               </Typography.Text>
 
+              {/* A dead letter states itself before the content block, because
+                  everything below it is about a decision and there is no
+                  decision here to read: the machine never looked. The class
+                  and the server's own message are shown as they are — this is
+                  a repair notice, and its reader is an engineer. */}
+              {bag.dlq !== null ? (
+                <Flex
+                  vertical
+                  gap={spacing["1"]}
+                  data-testid={`${testId}-dlq`}
+                >
+                  <Flex gap={spacing["2"]} align="center" wrap>
+                    <Tag color="error">{t(MODERATION_I18N_KEYS.dlqLabel)}</Tag>
+                    {bag.dlq.errorClass !== "" ? (
+                      <Typography.Text type="secondary">
+                        {bag.dlq.errorClass}
+                      </Typography.Text>
+                    ) : null}
+                    <Typography.Text type="secondary">
+                      {t(MODERATION_I18N_KEYS.dlqSince, {
+                        date: instant(bag.dlq.at),
+                      })}
+                    </Typography.Text>
+                  </Flex>
+                  <Typography.Text>
+                    {t(MODERATION_I18N_KEYS.caseDlq)}
+                  </Typography.Text>
+                  {bag.dlq.error !== "" ? (
+                    <Typography.Text code data-testid={`${testId}-dlq-error`}>
+                      {bag.dlq.error}
+                    </Typography.Text>
+                  ) : null}
+                </Flex>
+              ) : null}
+
               {bag.state.step === "screening" ? (
                 <Typography.Text type="secondary" role="status">
                   {t(MODERATION_I18N_KEYS.caseRescanQueued)}

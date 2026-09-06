@@ -11,6 +11,7 @@ import type {
   Appeal,
   Case,
   CaseDetail,
+  CaseEvent,
   PolicyDisclosure,
   Stats,
 } from "../src/api/types.js";
@@ -210,12 +211,129 @@ export const CASE_DETAIL_CLAIMED: CaseDetail = {
   appeals: [],
 };
 
+/**
+ * The two seams broken at once, as the client stand had them on 2026-09-06:
+ * a content function asked for a key that names nothing, and an LLM proxy
+ * nobody could reach. Two classes, deliberately, because one counter could not
+ * tell them apart and that is the whole reason the DLQ tab groups.
+ */
+const DLQ_AT_OLD = "2026-09-01T04:12:00Z";
+const DLQ_AT_NEW = "2026-09-05T22:41:00Z";
+
+/** Parked by a content function that could not resolve the target key. */
+export const CASE_DLQ_CONTENT: Case = {
+  ...CASE_QUEUED,
+  id: "6f2c9b41-73ae-4d05-8c19-4b7e5a0d3f62",
+  target_type: "listing",
+  target_key: "draft:71bde8564c",
+  origin: "submission",
+  state: "dlq",
+  report_count: 0,
+  dlq_at: DLQ_AT_OLD,
+  last_error_class: "ContentUnavailable",
+  last_error:
+    "ContentUnavailable(\"function 'listings.moderation_content' failed remotely: LookupError('listing draft:71bde8564c not found')\")",
+};
+
+/** The same fault, a second case — so the group carries a count. */
+export const CASE_DLQ_CONTENT_2: Case = {
+  ...CASE_DLQ_CONTENT,
+  id: "0d51a7e3-9c26-4f8b-a410-63d2e8f1b905",
+  target_key: "draft:9a0c1de772",
+  dlq_at: DLQ_AT_NEW,
+};
+
+/** Parked by an unreachable screener — an unrelated fault, running at once. */
+export const CASE_DLQ_SCREENER: Case = {
+  ...CASE_QUEUED,
+  id: "3e8b6d02-1f47-45a9-9d63-8c07f2a1e4b8",
+  target_type: "review",
+  target_key: "3391",
+  state: "dlq",
+  report_count: 1,
+  dlq_at: DLQ_AT_NEW,
+  last_error_class: "ScreeningUnavailable",
+  last_error:
+    'ScreeningUnavailable("llm.complete failed remotely: ConnectionError(\'proxy: connection refused\')")',
+};
+
+/**
+ * The card of a dead-lettered case: state `dlq`, and NO verdict — the whole
+ * point of the state is that nothing looked.
+ *
+ * It carries NONE of the dlq stamps on purpose. `CaseDetailPresenter` does not
+ * present them (backend 0.7.0), and a fixture that added them would document a
+ * card the backend cannot send and let the console pass a test for a field it
+ * will never receive.
+ */
+export const CASE_DETAIL_DLQ: CaseDetail = {
+  ...CASE_DETAIL,
+  id: CASE_DLQ_CONTENT.id,
+  target_type: CASE_DLQ_CONTENT.target_type,
+  target_key: CASE_DLQ_CONTENT.target_key,
+  origin: CASE_DLQ_CONTENT.origin,
+  state: "dlq",
+  report_count: 0,
+  reports: [],
+  verdicts: [],
+  sanctions: [],
+  appeals: [],
+  content: { available: false, error: "target_not_found" },
+};
+
+/** The audit trail the card reads the failure off — `CaseDetailPresenterDTO`
+ * does not carry the dlq stamps, the `dead_lettered` row's payload does. */
+export const CASE_EVENTS_DLQ: readonly CaseEvent[] = [
+  {
+    id: "aa1f6c78-2b90-4e35-83d1-7c0a4e6b2915",
+    kind: "screen_failed",
+    from_state: "screening",
+    to_state: "screening",
+    payload: { error_class: "ContentUnavailable" },
+    created_at: "2026-09-01T04:11:00Z",
+    actor_id: null,
+  },
+  {
+    id: "b72e0d19-5a34-4c86-91f0-2d5c8b7e0463",
+    kind: "dead_lettered",
+    from_state: "screening",
+    to_state: "dlq",
+    payload: {
+      error_class: CASE_DLQ_CONTENT.last_error_class,
+      error: CASE_DLQ_CONTENT.last_error,
+      reason_code: "screening_failed",
+    },
+    created_at: DLQ_AT_OLD,
+    actor_id: null,
+  },
+];
+
+/**
+ * The console header's counters.
+ *
+ * `queue_total` and `dlq_total` are separate on the wire and stay separate on
+ * the glass; `open_total` is their sum plus the transient states, and this
+ * fixture keeps it only because the backend sends it — nothing in the console
+ * draws it any more.
+ */
 export const STATS: Stats = {
-  by_state: { queued: 12, claimed: 3, resolved: 154 },
+  by_state: { queued: 12, claimed: 3, dlq: 3, resolved: 154 },
   by_target_type: { listing: 9, review: 6 },
   by_severity: { "70": 4 },
-  open_total: 15,
+  open_total: 18,
   resolved_total: 154,
+  queue_total: 15,
+  dlq_total: 3,
+  dlq_by_error_class: { ContentUnavailable: 2, ScreeningUnavailable: 1 },
+};
+
+/** Nothing broken: the good empty of the DLQ tab. */
+export const STATS_CLEAR_DLQ: Stats = {
+  ...STATS,
+  by_state: { queued: 12, claimed: 3, resolved: 154 },
+  open_total: 15,
+  dlq_total: 0,
+  dlq_by_error_class: {},
 };
 
 /** An appeal waiting for a moderator who did not decide the case. */

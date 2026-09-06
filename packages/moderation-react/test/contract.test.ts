@@ -28,8 +28,17 @@ import { moderationI18nBundleEs } from "../src/i18n/es.js";
  * renamed there — the drift the comments name is then a red test, not a
  * console with a word in it the backend has never heard of.
  */
+/**
+ * The default is `../../..` and not `../..`: vitest runs with the PACKAGE as
+ * its cwd (`packages/moderation-react`), so two levels up is this repo's root
+ * and the siblings live one further out. Spelled `../..` the read always
+ * missed, `source` fell back to `""`, and every case below degraded to
+ * "the mirror is non-empty" — which is how `rescreened` and `escalated` sat
+ * in `models.py` for a release without reddening anything. CI sets
+ * `SIBLING_ROOT` to the pinned worktree and is unaffected either way.
+ */
 const MODELS = resolve(
-  process.env["SIBLING_ROOT"] ?? "../..",
+  process.env["SIBLING_ROOT"] ?? "../../..",
   "stapel-moderation/models.py"
 );
 

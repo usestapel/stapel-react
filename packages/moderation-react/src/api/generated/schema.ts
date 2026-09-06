@@ -80,6 +80,11 @@ export interface paths {
         /**
          * @description One keyset page of the cross-target queue.
          *
+         *     ``?state=dlq`` is the dead-letter tab — cases the screening seam gave up
+         *     on, which are emphatically NOT the human queue (``?state=queued``). A
+         *     console that shows them together tells a moderator there is work where
+         *     there is an outage; ``/stats`` counts them apart for the same reason.
+         *
          *     **Permissions:** `HasModerationMandate_queue_view`
          */
         get: operations["moderation_api_v1_cases_list"];
@@ -186,6 +191,11 @@ export interface paths {
         put?: never;
         /**
          * @description Send a case back through the automatic screener.
+         *
+         *     Also the way out of the dead-letter park: a case in ``dlq`` is revived and
+         *     put back on the ladder, so repairing the seam and emptying the DLQ tab is
+         *     one action per case (or one management command for all of them —
+         *     ``manage.py moderation_rescreen --state dlq``).
          *
          *     **Permissions:** `HasModerationMandate_case_rescan`
          */
@@ -453,6 +463,14 @@ export interface components {
             last_decision?: string;
             first_reported_at?: string | null;
             resolved_at?: string | null;
+            /** @description When screening gave up on this case. Null unless state is dlq. */
+            dlq_at?: string | null;
+            /** @description Class of the last screening failure - ContentUnavailable, ScreeningUnavailable, TargetNotFound, other. Closed vocabulary; group the DLQ tab by it. */
+            last_error_class?: string;
+            /** @description The last failure's message, truncated. For a human to read. */
+            last_error?: string;
+            /** @description Set when the automatic re-screen sweep spent its cap and stopped. */
+            escalated_at?: string | null;
         };
         /**
          * @description The target's live content, as read at the moment the card was opened.
@@ -610,7 +628,15 @@ export interface components {
             /** @default  */
             note: string;
         };
-        /** @description Queue counters for the console header and DSA Art. 24(1) reporting. */
+        /**
+         * @description Queue counters for the console header and DSA Art. 24(1) reporting.
+         *
+         *     ``queue_total`` and ``dlq_total`` are separate headline numbers and must
+         *     stay separate in any console that renders them: the first is work a
+         *     MODERATOR owes, the second is work an ENGINEER owes. Adding them together
+         *     is how a broken screening seam spent twelve days on a client stand
+         *     looking like a busy moderation queue.
+         */
         StatsDTO: {
             by_state?: {
                 [key: string]: number;
@@ -623,6 +649,11 @@ export interface components {
             };
             open_total?: number;
             resolved_total?: number;
+            queue_total?: number;
+            dlq_total?: number;
+            dlq_by_error_class?: {
+                [key: string]: number;
+            };
         };
         /** @description Presents one append-only decision. */
         VerdictPresenterDTO: {

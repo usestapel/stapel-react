@@ -21,6 +21,7 @@ import {
 import {
   AppealsQueue,
   CaseDetail,
+  DlqQueue,
   ModerationQueue,
 } from "../src/default/admin/index.js";
 import {
@@ -34,6 +35,8 @@ import {
   APPEAL_OPEN,
   CASE_CLAIMED,
   CASE_DETAIL,
+  CASE_DLQ_CONTENT,
+  CASE_DLQ_SCREENER,
   CASE_QUEUED,
   POLICY,
   STATS,
@@ -47,6 +50,10 @@ function everyRead(): MockServer {
     "/policy": { body: POLICY },
     "/stats": { body: STATS },
     "/appeals/queue": { body: [APPEAL_OPEN] },
+    // Before the bare `/cases`: the park and the queue are two reads and a
+    // matrix that answered both with the queue would prove nothing about the
+    // screen that exists to keep them apart.
+    "GET state=dlq": { body: [CASE_DLQ_CONTENT, CASE_DLQ_SCREENER] },
     "/cases/": { body: CASE_DETAIL },
     "/cases": { body: [CASE_QUEUED, CASE_CLAIMED] },
     "/appeals/": { body: [APPEAL_OPEN] },
@@ -64,6 +71,8 @@ const SURFACES: readonly (readonly [string, () => ReactElement])[] = [
   ["AppealPanel", () => <AppealPanel caseId={CASE_QUEUED.id} />],
   ["PolicyDisclosurePane", () => <PolicyDisclosurePane />],
   ["ModerationQueue", () => <ModerationQueue />],
+  ["ModerationQueue-dlq-tab", () => <ModerationQueue initialTab="dlq" />],
+  ["DlqQueue", () => <DlqQueue />],
   [
     "CaseDetail",
     () => <CaseDetail open caseId={CASE_DETAIL.id} onClose={() => {}} />,

@@ -62,9 +62,25 @@ console, a subpath of its own so a storefront bundle never carries it.
 | `./default` | `ReportSheet` | the Art. 16(2) complaint form — a bottom sheet on a phone |
 | `./default` | `AppealPanel` | `/account/appeals?case=<uuid>` — the Art. 20 composer plus the appeals already sent |
 | `./default` | `PolicyDisclosurePane` | the public Art. 15 rules page (anonymous-safe) |
-| `./default/admin` | `ModerationQueue` | the triage list, with filters, counters and the case card |
+| `./default/admin` | `ModerationQueue` | two tabs — the triage list (filters, counters, the case card) and the DLQ |
+| `./default/admin` | `DlqQueue` | the dead-letter park: what the screener could not check, grouped by what broke |
 | `./default/admin` | `CaseDetail` | one case: the live content, the trail, claim/release/rescan, the verdict |
 | `./default/admin` | `AppealsQueue` | the appeal desk |
+
+### `queued` and `dlq` are two different people's work
+
+Since backend 0.7.0 a screening that BROKE dead-letters instead of recording a
+`needs_review` verdict, and the two states are kept apart everywhere in this
+pair: `useModerationQueue` always asks for `state=queued` (an unfiltered `GET
+cases` now returns dead letters too), `useModerationDlq` asks for `state=dlq`,
+and the header prints `queue_total` and `dlq_total` as two numbers — never
+`open_total`, which is their sum. A queue that includes the park tells a
+moderator there is work where there is an outage; on a client stand that
+reading hid a 78% screening failure rate for twelve days.
+
+`<ModerationQueue initialTab="dlq">` seeds the second tab, for a host that
+routes it as its own page. `<DlqQueue>` is exported on its own so a deployment
+can put the park on an operations dashboard instead.
 
 The console takes `viewerId` — the signed-in moderator's id. This module has no
 `/me` and every actor on its wire is an opaque UUID, so without it the card

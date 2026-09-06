@@ -9,25 +9,56 @@
  * `string`. A console whose decision radio group, sanction ladder and state
  * tags were typed `string` would compile with a typo in it, so the words live
  * here — WITH the source line beside each set, so the drift is greppable — and
- * `test/enums.test.ts` re-reads the sibling's `models.py` and fails when a
+ * `test/contract.test.ts` re-reads the sibling's `models.py` and fails when a
  * member is added, removed or renamed there.
  *
  * Nothing here is a UI decision: order is the backend's declaration order,
  * which for `SANCTION_KINDS` is also the escalation ladder.
  */
 
-/** `models.py:33` `CaseState` — the single status vocabulary of the module. */
+/**
+ * `models.py:33` `CaseState` — the single status vocabulary of the module.
+ *
+ * `dlq` (backend 0.7.0) is NOT a sixth flavour of queue. A screening that
+ * broke records no verdict and lands here; a screening that ran and abstained
+ * records one and lands in `queued`. The two are different tabs, different
+ * counters and different people's work, and the reason the distinction exists
+ * at all is that summing them let a 78% screening failure rate look like a
+ * busy queue for twelve days on a client stand.
+ */
 export const CASE_STATES = [
   "open",
   "screening",
   "queued",
   "claimed",
+  "dlq",
   "resolved",
 ] as const;
 export type CaseState = (typeof CASE_STATES)[number];
 
 /**
- * `models.py:75` `VerdictDecision`. `needs_review` is the machine saying "a
+ * `models.py:83` `HUMAN_QUEUE_STATES` — the subset a MODERATOR works, and the
+ * states `stats.queue_total` counts. `dlq` is deliberately outside it.
+ */
+export const HUMAN_QUEUE_STATES = ["queued", "claimed"] as const;
+
+/**
+ * `services.py:618` `ERROR_CLASSES` — the closed vocabulary of
+ * `Case.last_error_class`, which the DLQ tab groups by and the backend's
+ * metrics label with. Closed on purpose: an open one is a cardinality
+ * incident in Prometheus and an unusable filter here.
+ */
+export const ERROR_CLASSES = [
+  "ContentUnavailable",
+  "ScreeningUnavailable",
+  "TargetNotFound",
+  "InvalidTransition",
+  "other",
+] as const;
+export type ErrorClass = (typeof ERROR_CLASSES)[number];
+
+/**
+ * `models.py:115` `VerdictDecision`. `needs_review` is the machine saying "a
  * person must look" — it is NOT terminal for the case, which is why the
  * console disables the sanction block under it.
  */
@@ -39,10 +70,10 @@ export const DECISIONS = [
 ] as const;
 export type Decision = (typeof DECISIONS)[number];
 
-/** `models.py:99` `TERMINAL_DECISIONS` — the three that close a case. */
+/** `models.py:139` `TERMINAL_DECISIONS` — the three that close a case. */
 export const TERMINAL_DECISIONS = ["approved", "rejected", "dismissed"] as const;
 
-/** `models.py:106` `VerdictSource` — who or what produced a verdict. */
+/** `models.py:146` `VerdictSource` — who or what produced a verdict. */
 export const VERDICT_SOURCES = [
   "llm",
   "rule",
@@ -52,17 +83,27 @@ export const VERDICT_SOURCES = [
 ] as const;
 export type VerdictSource = (typeof VERDICT_SOURCES)[number];
 
-/** `models.py:116` `CaseOrigin` — how the case came into being. */
+/**
+ * `models.py:156` `CaseOrigin` — how the case came into being.
+ *
+ * `draft` is a case that exists ONLY because a refusal has to be appealable:
+ * the composer turned a draft down before anything was published, and the
+ * `target_key` is a synthetic `draft:<uuid>` that names no live row anywhere.
+ * It arrived with backend 0.5.0 and was mirrored here late — the drift gate
+ * that should have caught it was reading a path that does not exist (see
+ * `test/contract.test.ts`).
+ */
 export const CASE_ORIGINS = [
   "submission",
   "report",
   "manual",
   "rescan",
   "appeal",
+  "draft",
 ] as const;
 export type CaseOrigin = (typeof CASE_ORIGINS)[number];
 
-/** `models.py:126` `CaseEventKind` — the append-only audit vocabulary. */
+/** `models.py:174` `CaseEventKind` — the append-only audit vocabulary. */
 export const CASE_EVENT_KINDS = [
   "created",
   "reported",
@@ -79,10 +120,14 @@ export const CASE_EVENT_KINDS = [
   "appealed",
   "reopened",
   "notified",
+  "rescreened",
+  "escalated",
+  "dead_lettered",
+  "revived",
 ] as const;
 export type CaseEventKind = (typeof CASE_EVENT_KINDS)[number];
 
-/** `models.py:146` `SanctionKind` — declared in escalation order. */
+/** `models.py:198` `SanctionKind` — declared in escalation order. */
 export const SANCTION_KINDS = [
   "warning",
   "content_removed",
@@ -92,7 +137,7 @@ export const SANCTION_KINDS = [
 ] as const;
 export type SanctionKind = (typeof SANCTION_KINDS)[number];
 
-/** `models.py:156` `SanctionState` — a sanction's own lifecycle. */
+/** `models.py:208` `SanctionState` — a sanction's own lifecycle. */
 export const SANCTION_STATES = [
   "active",
   "expired",
@@ -101,7 +146,7 @@ export const SANCTION_STATES = [
 ] as const;
 export type SanctionState = (typeof SANCTION_STATES)[number];
 
-/** `models.py:173` `AppealState` (DSA Art. 20). */
+/** `models.py:225` `AppealState` (DSA Art. 20). */
 export const APPEAL_STATES = [
   "open",
   "upheld",
@@ -140,14 +185,23 @@ export const BUILTIN_REASON_CODES = [
 export type BuiltinReasonCode = (typeof BUILTIN_REASON_CODES)[number];
 
 /**
- * Reason codes the MODULE produces (`registry.py:228-231`). A person never
- * picks one, but a verdict and a policy disclosure name them, so they need
- * copy exactly as the complaint reasons do.
+ * Reason codes the MODULE produces (`registry.py:228-240`). A person never
+ * picks one, but a verdict, a policy disclosure and a case's audit trail name
+ * them, so they need copy exactly as the complaint reasons do.
+ *
+ * `subject_gone` and `screening_failed` arrive with backend 0.7.0 — the first
+ * closes a case whose target key names nothing, the second is carried by the
+ * DLQ audit row and NEVER by a verdict. `media_unavailable` predates them and
+ * had no copy here at all, which is a raw key on the glass; it is filled in
+ * with the other two rather than left as a known hole.
  */
 export const SYSTEM_REASON_CODES = [
   "screening_unavailable",
   "screening_held",
   "low_confidence",
+  "media_unavailable",
+  "subject_gone",
+  "screening_failed",
 ] as const;
 export type SystemReasonCode = (typeof SYSTEM_REASON_CODES)[number];
 

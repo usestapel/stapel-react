@@ -185,6 +185,7 @@ export function useCasesQuery(filters: CaseFilters): PagedRows<Case> {
     scope_key: filters.scopeKey,
     severity_min: filters.severityMin,
     subject_user_id: filters.subjectUserId,
+    error_class: filters.errorClass,
   });
   const query = useInfiniteQuery<readonly Case[], StapelApiError>({
     queryKey: moderationQueryKeys.casePage(key),

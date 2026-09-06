@@ -47,7 +47,7 @@ export type {
   Verdict,
 } from "./api/types.js";
 
-// ── vocabularies (hand-mirrored from models.py, pinned by test/enums.test.ts)
+// ── vocabularies (hand-mirrored from models.py, pinned by test/contract.test.ts)
 export {
   APPEAL_OUTCOMES,
   APPEAL_STATES,
@@ -57,6 +57,8 @@ export {
   CASE_STATES,
   CONTENT_UNAVAILABLE_REASONS,
   DECISIONS,
+  ERROR_CLASSES,
+  HUMAN_QUEUE_STATES,
   SANCTION_KINDS,
   SANCTION_STATES,
   SYSTEM_REASON_CODES,
@@ -73,6 +75,7 @@ export type {
   CaseState,
   ContentUnavailableReason,
   Decision,
+  ErrorClass,
   SanctionKind,
   SanctionState,
   SystemReasonCode,
@@ -192,12 +195,24 @@ export type {
 } from "./headless/useReport.js";
 export { useAppeal } from "./headless/useAppeal.js";
 export type { AppealBag, UseAppealOptions } from "./headless/useAppeal.js";
-export { useModerationQueue } from "./headless/useModerationQueue.js";
+export {
+  DEFAULT_QUEUE_STATE,
+  useModerationQueue,
+} from "./headless/useModerationQueue.js";
 export type {
   ModerationQueueBag,
   QueueAccess,
   QueueFilters,
 } from "./headless/useModerationQueue.js";
+export {
+  groupByErrorClass,
+  useModerationDlq,
+} from "./headless/useModerationDlq.js";
+export type {
+  DlqGroup,
+  DlqRescanProgress,
+  ModerationDlqBag,
+} from "./headless/useModerationDlq.js";
 export { useCase } from "./headless/useCase.js";
 export type {
   CaseBag,

@@ -60,9 +60,9 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (18 operations, the bags and their gates): no antd",
+      "name": "index — the headless pair (18 operations, the bags and their gates, the dead-letter park): no antd",
       "path": "dist/index.js",
-      "limit": "14 KB"
+      "limit": "16 KB"
     },
     {
       "name": "default — the member-facing skin (report button + sheet, appeals, the public policy page)",
@@ -70,19 +70,19 @@
       "limit": "14 KB"
     },
     {
-      "name": "default/admin — the console must not ride in a storefront's bundle",
+      "name": "default/admin — the console (queue + DLQ tab + case card) must not ride in a storefront's bundle",
       "path": "dist/default/admin/index.js",
-      "limit": "18 KB"
+      "limit": "20 KB"
     },
     {
-      "name": "i18n/ru — 271 hand-written keys plus the 70-code backend catalogue; opt-in",
+      "name": "i18n/ru — 321 hand-written keys plus the 70-code backend catalogue; opt-in",
       "path": "dist/i18n/ru.js",
-      "limit": "12 KB"
+      "limit": "13 KB"
     },
     {
       "name": "i18n/es — same deal for Spanish: a host pays for the locales it ships",
       "path": "dist/i18n/es.js",
-      "limit": "10 KB"
+      "limit": "11 KB"
     }
   ],
   "peerDependencies": {
