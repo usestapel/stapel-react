@@ -61,6 +61,7 @@ import { featureRequiredUnder } from "../validate.js";
 import { featureBounds } from "../bounds.js";
 import { answerLabel } from "./labels.js";
 import { resolveValueEditor } from "../registry.js";
+import type { FeatureChangeSource } from "../registry.js";
 import { VOCABULARY_BACKED_TYPES, useVocabularyClient } from "../vocabulary.js";
 import { BUILTIN_VALUE_EDITORS } from "./editors.js";
 import { ATTRIBUTES_I18N_KEYS } from "../i18n/keys.js";
@@ -147,7 +148,19 @@ export interface FeatureFieldsProps {
   /** Current answers keyed by slug. The DTO envelope is built at submit time
    * with `toFeaturesDto`, not held here. */
   readonly values: Readonly<Record<string, unknown>>;
-  onChange(slug: string, value: unknown): void;
+  /**
+   * Report an answer — and WHO wrote it.
+   *
+   * `source` is the third argument and it is optional, so every existing host
+   * keeps compiling and keeps behaving: a two-argument handler simply ignores
+   * it. What it closes is a defect a host could not work around from outside
+   * — this component performs two write-backs of its own (the cascade reset
+   * and the bake, both documented below), and they arrived through the same
+   * callback a person's typing does. A storefront recording provenance
+   * stamped the reset as the seller's answer and locked a field that held
+   * nothing. See {@link FeatureChangeSource}.
+   */
+  onChange(slug: string, value: unknown, source: FeatureChangeSource): void;
   /** Refusals keyed by slug — mirrored or from the server, folded through
    * `featureErrorsBySlug` either way. */
   readonly errors?: Readonly<Record<string, FlowError>>;
@@ -653,7 +666,9 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
       if (seen === undefined || seen === canon) continue;
       if (stringify(values[feature.slug]).length > 0) {
         bakedValues.current.delete(feature.slug);
-        onChange(feature.slug, undefined);
+        // Write-back 1: the parent moved, so the child's answer belonged to a
+        // question that is no longer being asked. Nobody typed this.
+        onChange(feature.slug, undefined, "cascade");
       }
     }
     for (const feature of features) {
@@ -666,13 +681,17 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
       const current = values[feature.slug];
       if (sole !== undefined) {
         bakedValues.current.set(feature.slug, sole);
-        if (!sameAnswer(current, sole)) onChange(feature.slug, sole);
+        // Write-back 2: exactly one answer is possible, so the form commits
+        // it. A person who never saw a choice did not make one.
+        if (!sameAnswer(current, sole)) onChange(feature.slug, sole, "bake");
         continue;
       }
       const prior = bakedValues.current.get(feature.slug);
       if (prior === undefined) continue;
       bakedValues.current.delete(feature.slug);
-      if (sameAnswer(current, prior)) onChange(feature.slug, undefined);
+      // …and its release: the collapse stopped holding, so the value the bake
+      // put there is taken back out. Still the bake's write, not a person's.
+      if (sameAnswer(current, prior)) onChange(feature.slug, undefined, "bake");
     }
   }, [features, values, states, gated, broken, onChange]);
 
@@ -755,7 +774,9 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                         value={props.values[feature.slug]}
                         siblings={props.values}
                         siblingNames={siblingNames}
-                        onChange={(value) => props.onChange(feature.slug, value)}
+                        onChange={(value, source) =>
+                          props.onChange(feature.slug, value, source ?? "user")
+                        }
                         error={errors[feature.slug]}
                         disabled={props.disabled === true || baked}
                         required={required}

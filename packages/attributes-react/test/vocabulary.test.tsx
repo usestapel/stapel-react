@@ -299,7 +299,9 @@ describe("RefSelectEditor", () => {
         client
       )
     );
-    await waitFor(() => expect(onChange).toHaveBeenCalledWith("model", undefined));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith("model", undefined, "cascade")
+    );
   });
 
   it("keeps a stored code pickable even before the level is searched", () => {

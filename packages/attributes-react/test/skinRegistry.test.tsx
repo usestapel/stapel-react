@@ -44,7 +44,7 @@ function renderFields(withProvider: boolean): ReturnType<typeof vi.fn> {
   registerAttributesI18n(i18n);
   const fields = (
     <I18nProvider i18n={i18n}>
-      <FeatureFields features={[STRING_FEATURE]} values={{}} onChange={(slug, next) => onChange(slug, next)} />
+      <FeatureFields features={[STRING_FEATURE]} values={{}} onChange={(slug, next, source) => onChange(slug, next, source)} />
     </I18nProvider>
   );
   render(withProvider ? <SkinProvider components={{ Input: HostInput }}>{fields}</SkinProvider> : fields);
@@ -57,7 +57,7 @@ describe("the skin component registry", () => {
     const input = screen.getByLabelText("title");
     expect(input.closest("[data-host-input]")).not.toBeNull();
     fireEvent.change(input, { target: { value: "Golf" } });
-    expect(onChange).toHaveBeenCalledWith("title", "Golf");
+    expect(onChange).toHaveBeenCalledWith("title", "Golf", "user");
   });
 
   it("without a provider the editor stays the antd default", () => {

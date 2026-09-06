@@ -47,7 +47,7 @@ function renderOne(
       <FeatureFields
         features={[f]}
         values={value === undefined ? {} : { [f.slug]: value }}
-        onChange={(slug, next) => onChange(slug, next)}
+        onChange={(slug, next, source) => onChange(slug, next, source)}
       />
     </I18nProvider>
   );
@@ -60,7 +60,7 @@ describe("string", () => {
     const { onChange } = renderOne(STRING_FEATURE);
     const input = screen.getByLabelText("title");
     fireEvent.change(input, { target: { value: "Golf" } });
-    expect(onChange).toHaveBeenCalledWith("title", "Golf");
+    expect(onChange).toHaveBeenCalledWith("title", "Golf", "user");
   });
 
   it("renders a textarea when config.multiline is set", () => {
@@ -78,13 +78,13 @@ describe("int / float", () => {
   it("emits a number for int", () => {
     const { onChange } = renderOne(INT_FEATURE);
     fireEvent.change(screen.getByLabelText("year"), { target: { value: "2010" } });
-    expect(onChange).toHaveBeenCalledWith("year", 2010);
+    expect(onChange).toHaveBeenCalledWith("year", 2010, "user");
   });
 
   it("emits a fractional number for float", () => {
     const { onChange } = renderOne(FLOAT_FEATURE);
     fireEvent.change(screen.getByLabelText("engine"), { target: { value: "2.5" } });
-    expect(onChange).toHaveBeenCalledWith("engine", 2.5);
+    expect(onChange).toHaveBeenCalledWith("engine", 2.5, "user");
   });
 });
 
@@ -93,7 +93,7 @@ describe("bool", () => {
     const { onChange } = renderOne(BOOL_FEATURE, false);
     expect(screen.getByText("Fixed price")).toBeDefined();
     fireEvent.click(screen.getByRole("switch"));
-    expect(onChange).toHaveBeenCalledWith("negotiable", true);
+    expect(onChange).toHaveBeenCalledWith("negotiable", true, "user");
   });
 });
 
@@ -101,7 +101,7 @@ describe("select — always a LIST, even for a single choice", () => {
   it("wraps a single chip choice in an array", () => {
     const { onChange } = renderOne(SELECT_FEATURE);
     fireEvent.click(screen.getByText("Diesel"));
-    expect(onChange).toHaveBeenCalledWith("fuel", ["diesel"]);
+    expect(onChange).toHaveBeenCalledWith("fuel", ["diesel"], "user");
   });
 
   it("draws a CAPPED multiple choice inline, and emits an array", () => {
@@ -110,7 +110,7 @@ describe("select — always a LIST, even for a single choice", () => {
     // draft and could not stop at the cap. Every option is on screen.
     expect(screen.getByText("Sunroof")).toBeDefined();
     fireEvent.click(screen.getByText("ESP"));
-    expect(onChange).toHaveBeenCalledWith("extras", ["abs", "esp"]);
+    expect(onChange).toHaveBeenCalledWith("extras", ["abs", "esp"], "user");
   });
 
   it("shows the current selection as pressed chips", () => {
@@ -142,7 +142,7 @@ describe("date — a Unix timestamp on the wire", () => {
   it("clearing the field emits undefined, never 0 — 1970 is a real date", () => {
     const { onChange } = renderOne(DATE_FEATURE, 1_276_560_000);
     fireEvent.change(screen.getByLabelText("registered"), { target: { value: "" } });
-    expect(onChange).toHaveBeenCalledWith("registered", undefined);
+    expect(onChange).toHaveBeenCalledWith("registered", undefined, "user");
     expect(inputValueToTimestamp("")).toBeUndefined();
   });
 
@@ -186,13 +186,13 @@ describe("convertible_unit — a number tagged with its unit", () => {
   it("emits {value, unit} and defaults the unit to the metric code", () => {
     const { onChange } = renderOne(CONVERTIBLE_FEATURE);
     fireEvent.change(screen.getByLabelText("length"), { target: { value: "4.2" } });
-    expect(onChange).toHaveBeenCalledWith("length", { value: 4.2, unit: "m" });
+    expect(onChange).toHaveBeenCalledWith("length", { value: 4.2, unit: "m" }, "user");
   });
 
   it("keeps the submitted unit rather than converting client-side", () => {
     const { onChange } = renderOne(CONVERTIBLE_FEATURE, { value: 12, unit: "ft" });
     fireEvent.change(screen.getByLabelText("length"), { target: { value: "14" } });
-    expect(onChange).toHaveBeenCalledWith("length", { value: 14, unit: "ft" });
+    expect(onChange).toHaveBeenCalledWith("length", { value: 14, unit: "ft" }, "user");
   });
 });
 

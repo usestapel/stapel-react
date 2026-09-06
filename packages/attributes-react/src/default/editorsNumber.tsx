@@ -364,7 +364,10 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   useEffect(() => {
     if (!baked || allowed === null) return;
     if (current === allowed[0]) return;
-    onChange(allowed[0]);
+    // The bake, reported as one: the set narrowed to a single year and this
+    // editor committed it. Nobody chose it, and a host recording provenance
+    // must not stamp it as the seller's answer — see `FeatureChangeSource`.
+    onChange(allowed[0], "bake");
   }, [baked, allowed, current, onChange]);
 
   const loaded = allowed !== null && !baked;
@@ -644,7 +647,10 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
       return;
     }
     setCleared(true);
-    onChange(undefined);
+    // The bound MOVED under a parent's answer and the value no longer fits, so
+    // the form drops it. Nobody typed that either — `"cascade"` is the same
+    // provenance the dependent-field reset carries, and for the same reason.
+    onChange(undefined, "cascade");
   }, [min, max, current, onChange]);
 
   const commit = (next: number | undefined): void => {

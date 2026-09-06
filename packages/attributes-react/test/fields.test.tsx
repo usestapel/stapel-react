@@ -58,7 +58,7 @@ describe("rows", () => {
     const onChange = vi.fn();
     render(wrap(<FeatureFields features={FEATURES} values={{}} onChange={onChange} />));
     fireEvent.change(screen.getByLabelText("title"), { target: { value: "Golf" } });
-    expect(onChange).toHaveBeenCalledWith("title", "Golf");
+    expect(onChange).toHaveBeenCalledWith("title", "Golf", "user");
   });
 
   it("goes read-only while a submit is in flight", () => {

@@ -48,6 +48,26 @@ import { VOCABULARY_BACKED_TYPES } from "./vocabulary.js";
 import { ATTRIBUTES_I18N_KEYS } from "./i18n/keys.js";
 
 /**
+ * WHO WROTE THIS ANSWER.
+ *
+ * A form's `onChange` used to report only a slug and a value, and a host that
+ * records provenance — which answers the seller typed and which the catalogue
+ * decided — had no way to tell them apart. Measured: a parent change fires
+ * the dependent field's RESET through the same callback a person's typing
+ * takes, the host stamped it as the seller's answer, and the field locked as
+ * "answered by hand" holding nothing.
+ *
+ *  - `"user"` — the person operated a control. The default in every arm, and
+ *    what an omitted argument means for a host that ignores this.
+ *  - `"cascade"` — a dependent field's answer was cleared because its PARENT
+ *    moved; the old answer belonged to the old parent.
+ *  - `"bake"` — the narrowed config leaves exactly one possible answer, so
+ *    the form committed it (or released it again when the collapse stopped
+ *    holding). Nobody chose it.
+ */
+export type FeatureChangeSource = "user" | "cascade" | "bake";
+
+/**
  * What every value editor receives. One feature, one value, one setter, one
  * error — the editor never touches an API layer or the rest of the form.
  */
@@ -60,7 +80,7 @@ export interface ValueEditorProps<T = unknown> {
   /** Report a new answer. Pass the type's own DTO `value` — bare for the
    * scalar types, an array for `select`/`hierarchical_select`, an object for
    * `hex_color` and `convertible_unit` (see `toFeaturesDto`). */
-  onChange(value: T | undefined): void;
+  onChange(value: T | undefined, source?: FeatureChangeSource): void;
   /** The feature's current refusal (client mirror or server verdict), or
    * `undefined`. */
   readonly error?: FlowError | undefined;

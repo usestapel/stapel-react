@@ -57,7 +57,7 @@ function renderOne(
         <FeatureFields
           features={[f]}
           values={value === undefined ? {} : { [f.slug]: value }}
-          onChange={(slug, next) => onChange(slug, next)}
+          onChange={(slug, next, source) => onChange(slug, next, source)}
         />
       </VocabularyClientProvider>
     </I18nProvider>
@@ -90,7 +90,7 @@ describe("a short closed list is chips", () => {
     const { onChange } = renderOne(MULTI_SELECT_FEATURE);
     expect(screen.queryByTestId("attributes-select-trigger")).toBeNull();
     fireEvent.click(screen.getByText("ABS"));
-    expect(onChange).toHaveBeenCalledWith("extras", ["abs"]);
+    expect(onChange).toHaveBeenCalledWith("extras", ["abs"], "user");
   });
 
   it("switches the remaining chips off AT the cap, with the reason as text", () => {
@@ -107,7 +107,7 @@ describe("a short closed list is chips", () => {
     expect(onChange).not.toHaveBeenCalled();
     // A chosen chip stays live: the cap must not trap a mis-tap.
     fireEvent.click(screen.getByText("ABS"));
-    expect(onChange).toHaveBeenCalledWith("extras", ["esp", "ac"]);
+    expect(onChange).toHaveBeenCalledWith("extras", ["esp", "ac"], "user");
   });
 });
 
@@ -118,7 +118,7 @@ describe("a long closed list is a sheet", () => {
     fireEvent.click(screen.getByTestId("attributes-select-trigger"));
     expect(rows().length).toBe(8);
     fireEvent.click(row("Harbour office"));
-    expect(onChange).toHaveBeenCalledWith("city", ["harbour"]);
+    expect(onChange).toHaveBeenCalledWith("city", ["harbour"], "user");
   });
 
   it("filters locally — every option is already here", () => {
@@ -140,7 +140,7 @@ describe("a long closed list is a sheet", () => {
     // sheet's, and dismissing it discards the draft.
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.click(done());
-    expect(onChange).toHaveBeenCalledWith("stops", ["north", "west"]);
+    expect(onChange).toHaveBeenCalledWith("stops", ["north", "west"], "user");
   });
 });
 
@@ -153,7 +153,7 @@ describe("an unanswered required bool is neither yes nor no", () => {
     const chips = Array.from(group.querySelectorAll("button"));
     expect(chips.map((chip) => chip.getAttribute("aria-pressed"))).toEqual(["false", "false"]);
     fireEvent.click(screen.getByText("No"));
-    expect(onChange).toHaveBeenCalledWith("roadworthy", false);
+    expect(onChange).toHaveBeenCalledWith("roadworthy", false, "user");
   });
 
   it("says so in one attribute, so unanswered and false are not one state", () => {
@@ -185,11 +185,11 @@ describe("a bound is a hint, never a clamp", () => {
     // min 1900: typing towards 1950 passes through 1 and 19, and an
     // InputNumber would have rewritten both.
     fireEvent.change(box, { target: { value: "19" } });
-    expect(onChange).toHaveBeenLastCalledWith("year", 19);
+    expect(onChange).toHaveBeenLastCalledWith("year", 19, "user");
     expect(box.value).toBe("19");
     fireEvent.blur(box);
     expect(box.value).toBe("19");
-    expect(onChange).toHaveBeenLastCalledWith("year", 19);
+    expect(onChange).toHaveBeenLastCalledWith("year", 19, "user");
   });
 
   it("shows the range instead, as the empty box's placeholder", () => {
@@ -231,7 +231,7 @@ describe("a code is counted, monospaced and stripped on paste", () => {
     fireEvent.paste(box, {
       clipboardData: { getData: () => " WVW ZZZ1KZ AW000001\n" },
     });
-    expect(onChange).toHaveBeenCalledWith("vin", "WVWZZZ1KZAW000001");
+    expect(onChange).toHaveBeenCalledWith("vin", "WVWZZZ1KZAW000001", "user");
   });
 
   it("says the field is not published, at the field", () => {
@@ -328,7 +328,7 @@ describe("a chain answers one rung at a time", () => {
     fireEvent.click(screen.getByTestId("attributes-ref-rung-trigger-0"));
     await waitFor(() => expect(rows().length).toBeGreaterThan(0));
     fireEvent.click(row("Volkswagen"));
-    expect(onChange).toHaveBeenCalledWith("make_model", ["volkswagen"]);
+    expect(onChange).toHaveBeenCalledWith("make_model", ["volkswagen"], "user");
     await waitFor(() =>
       expect(
         (screen.getByTestId("attributes-ref-rung-trigger-1") as HTMLButtonElement).disabled
@@ -349,7 +349,7 @@ describe("a chain answers one rung at a time", () => {
     fireEvent.click(row("Škoda"));
     // The model and the generation belonged to the previous make; keeping
     // them would be a refusal waiting to happen at publish time.
-    expect(onChange).toHaveBeenCalledWith("make_model", ["skoda"]);
+    expect(onChange).toHaveBeenCalledWith("make_model", ["skoda"], "user");
   });
 
   it("echoes the chosen path in one line, elided in the MIDDLE when long", async () => {
@@ -428,7 +428,7 @@ describe("the codes a person picks come back to the top", () => {
     search("zeta");
     await waitFor(() => expect(rows().some((r) => r.textContent === "Zeta")).toBe(true));
     fireEvent.click(row("Zeta"));
-    expect(onChange).toHaveBeenLastCalledWith("vendor", ["zzz"]);
+    expect(onChange).toHaveBeenLastCalledWith("vendor", ["zzz"], "user");
 
     // Reopen: the pick is remembered, above the level's first page.
     await open();
@@ -442,7 +442,7 @@ describe("the codes a person picks come back to the top", () => {
     // what is typed are the stale-list defect wearing a heading.
     expect(sections().some((text) => text.startsWith("Recent"))).toBe(false);
     fireEvent.click(row("Yotta"));
-    expect(onChange).toHaveBeenLastCalledWith("vendor", ["yyy"]);
+    expect(onChange).toHaveBeenLastCalledWith("vendor", ["yyy"], "user");
 
     await act(async () => {
       await Promise.resolve();

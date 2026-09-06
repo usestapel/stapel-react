@@ -570,7 +570,10 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   useEffect(() => {
     if (seenParent.current === parent) return;
     seenParent.current = parent;
-    onChange(undefined);
+    // The parent moved, so this answer belonged to a question that is no
+    // longer being asked. Reported as the cascade's write, not the person's —
+    // see `FeatureChangeSource`.
+    onChange(undefined, "cascade");
   }, [parent, onChange]);
 
   // Auto-bake (the bake rule): once the parent is answered, probe the rung — a
@@ -604,7 +607,9 @@ const RefSelectEditor: ValueEditor = (props: ValueEditorProps) => {
   useEffect(() => {
     if (soleTerm === undefined) return;
     if (codes.length === 1 && codes[0] === soleTerm.code) return;
-    onChange([soleTerm.code]);
+    // The rung has exactly one child, so the form commits it. A person who
+    // was never offered a choice did not make one.
+    onChange([soleTerm.code], "bake");
   }, [soleTerm, codes, onChange]);
   const bakedNow = soleTerm !== undefined;
 

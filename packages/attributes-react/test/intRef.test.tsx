@@ -160,7 +160,7 @@ describe("constrained int editor", () => {
     const { onChange } = renderYear({ generation: ["g15"] });
     await waitFor(() => expect(yearInput()).toBeTruthy());
     fireEvent.change(yearInput(), { target: { value: "2010" } });
-    expect(onChange).toHaveBeenCalledWith("year", 2010);
+    expect(onChange).toHaveBeenCalledWith("year", 2010, "user");
     await waitFor(() => {
       expect(screen.queryByTestId("attributes-int-suggestions")).toBeNull();
     });
@@ -189,7 +189,7 @@ describe("constrained int editor", () => {
       (one) => one.textContent === "2011"
     ) as HTMLElement;
     fireEvent.click(row);
-    expect(onChange).toHaveBeenCalledWith("year", 2011);
+    expect(onChange).toHaveBeenCalledWith("year", 2011, "user");
   });
 
   it("steppers walk the allowed set and grey out at the ends", async () => {
@@ -201,10 +201,10 @@ describe("constrained int editor", () => {
     const down = screen.getByTestId("attributes-int-step-down");
     expect(up.hasAttribute("disabled")).toBe(false);
     fireEvent.click(up);
-    expect(onChange).toHaveBeenCalledWith("year", 2011);
+    expect(onChange).toHaveBeenCalledWith("year", 2011, "user");
     // The walk continues from where the person is, not from the stale prop.
     fireEvent.click(down);
-    expect(onChange).toHaveBeenLastCalledWith("year", 2010);
+    expect(onChange).toHaveBeenLastCalledWith("year", 2010, "user");
 
     rerenderWith({ generation: ["g15"], year: 2012 });
     await waitFor(() => {
@@ -223,7 +223,7 @@ describe("constrained int editor", () => {
   it("a single allowed value bakes: committed, grey, non-interactive", async () => {
     const { onChange } = renderYear({ generation: ["solo"] });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", 2020);
+      expect(onChange).toHaveBeenCalledWith("year", 2020, "bake");
     });
     expect(screen.getByTestId("attributes-baked-year")).toBeTruthy();
     await waitFor(() => {
@@ -239,7 +239,7 @@ describe("constrained int editor", () => {
     await waitFor(() => expect(yearInput()).toBeTruthy());
     rerenderWith({ generation: ["solo"], year: 2010 });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", undefined);
+      expect(onChange).toHaveBeenCalledWith("year", undefined, "cascade");
     });
   });
 });

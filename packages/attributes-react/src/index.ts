@@ -130,6 +130,7 @@ export {
   unsupportedTypes,
 } from "./registry.js";
 export type {
+  FeatureChangeSource,
   RenderabilityOptions,
   ValueEditor,
   ValueEditorProps,

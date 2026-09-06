@@ -96,7 +96,7 @@ describe("select auto-bake", () => {
   it("commits the sole remaining option and greys the control", async () => {
     const { onChange } = renderFields([CONDITION, GRADE], { condition: ["new"] });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("grade", ["perfect"]);
+      expect(onChange).toHaveBeenCalledWith("grade", ["perfect"], "bake");
     });
     expect(screen.getByTestId("attributes-baked-grade")).toBeTruthy();
   });
@@ -109,7 +109,7 @@ describe("select auto-bake", () => {
     });
     const { onChange } = renderFields([solo], {});
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("solo", ["only"]);
+      expect(onChange).toHaveBeenCalledWith("solo", ["only"], "bake");
     });
   });
 
@@ -129,12 +129,12 @@ describe("select auto-bake", () => {
       condition: ["new"],
     });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("grade", ["perfect"]);
+      expect(onChange).toHaveBeenCalledWith("grade", ["perfect"], "bake");
     });
     // The host applied the bake, then the person changed the controller.
     rerenderWith({ condition: ["used"], grade: ["perfect"] });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("grade", undefined);
+      expect(onChange).toHaveBeenCalledWith("grade", undefined, "bake");
     });
   });
 
@@ -147,7 +147,7 @@ describe("select auto-bake", () => {
     });
     rerenderWith({ condition: [], grade: ["damaged"] });
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(onChange).not.toHaveBeenCalledWith("grade", undefined);
+    expect(onChange).not.toHaveBeenCalledWith("grade", undefined, "bake");
   });
 });
 
@@ -170,7 +170,7 @@ describe("int limit collapse", () => {
   it("bakes the pinned number", async () => {
     const { onChange } = renderFields([CONDITION, YEAR], { condition: ["new"] });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", 2024);
+      expect(onChange).toHaveBeenCalledWith("year", 2024, "bake");
     });
     expect(screen.getByTestId("attributes-baked-year")).toBeTruthy();
   });
@@ -180,11 +180,11 @@ describe("int limit collapse", () => {
       condition: ["new"],
     });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", 2024);
+      expect(onChange).toHaveBeenCalledWith("year", 2024, "bake");
     });
     rerenderWith({ condition: ["used"], year: 2024 });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", undefined);
+      expect(onChange).toHaveBeenCalledWith("year", undefined, "bake");
     });
   });
 });
@@ -216,7 +216,7 @@ describe("chained ref_select single child", () => {
       carClient({ lada: [{ code: "granta", label: "Granta" }] })
     );
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("model", ["granta"]);
+      expect(onChange).toHaveBeenCalledWith("model", ["granta"], "bake");
     });
     expect(screen.getByTestId("attributes-baked-model")).toBeTruthy();
   });

@@ -9,7 +9,7 @@
  * as before — this is a second gate, not a rewrite of the first.
  */
 import { describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach } from "vitest";
 import type { ReactElement } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
@@ -93,7 +93,7 @@ describe("progressive disclosure", () => {
     rerenderCar({ model: ["m3"] });
     expect(screen.queryByTestId(featureRowTestId("model"))).toBeNull();
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("model", undefined);
+      expect(onChange).toHaveBeenCalledWith("model", undefined, "cascade");
     });
   });
 
@@ -101,7 +101,7 @@ describe("progressive disclosure", () => {
     const { onChange, rerenderCar } = renderCar({ make: ["bmw"], model: ["m3"] });
     rerenderCar({ make: ["audi"], model: ["m3"] });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("model", undefined);
+      expect(onChange).toHaveBeenCalledWith("model", undefined, "cascade");
     });
   });
 
@@ -146,5 +146,63 @@ describe("payload", () => {
       model: ["m3"],
     });
     expect(Object.keys(dto).sort()).toEqual(["make", "model"]);
+  });
+});
+
+describe("who wrote the answer (`source`)", () => {
+  /**
+   * The form performs write-backs of its own — a dependent field's reset when
+   * its parent moves, and the bake of a sole possible value — and they used to
+   * arrive through the same two-argument callback a person's typing does. A
+   * host recording provenance stamped the reset as the seller's answer and
+   * locked a field that held nothing.
+   */
+  it("reports a parent-driven reset as `cascade`, not as the person's answer", async () => {
+    const { onChange, rerenderCar } = renderCar({ make: ["bmw"], model: ["m3"] });
+    rerenderCar({ make: ["audi"], model: ["m3"] });
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith("model", undefined, "cascade");
+    });
+    // Nothing in this exchange was the person's: they moved the MAKE, and
+    // that write is the host's own (this form never saw it).
+    for (const call of onChange.mock.calls) expect(call[2]).toBe("cascade");
+  });
+
+  it("reports a person's own edit as `user`", () => {
+    const { onChange } = renderCar({ make: ["bmw"] });
+    const field = screen.getByLabelText("price");
+    fireEvent.change(field, { target: { value: "1200" } });
+    expect(onChange).toHaveBeenCalledWith("price", 1200, "user");
+  });
+
+  it("keeps a two-argument host working, which is every host today", async () => {
+    // The third argument is additive: a handler that never declared it is
+    // called exactly as before and behaves exactly as before.
+    const seen: [string, unknown][] = [];
+    const view = render(
+      wrap(
+        <FeatureFields
+          features={CAR}
+          values={{ make: ["bmw"], model: ["m3"] }}
+          onChange={(slug, value) => {
+            seen.push([slug, value]);
+          }}
+        />
+      )
+    );
+    view.rerender(
+      wrap(
+        <FeatureFields
+          features={CAR}
+          values={{ make: ["audi"], model: ["m3"] }}
+          onChange={(slug, value) => {
+            seen.push([slug, value]);
+          }}
+        />
+      )
+    );
+    await waitFor(() => {
+      expect(seen).toContainEqual(["model", undefined]);
+    });
   });
 });

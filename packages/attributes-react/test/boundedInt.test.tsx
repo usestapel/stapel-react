@@ -156,7 +156,7 @@ describe("the bound as a mechanism, not as prose", () => {
     fireEvent.click(screen.getByTestId("attributes-int-open"));
     expect(suggestions().length).toBe(7);
     fireEvent.change(box("year"), { target: { value: "2021" } });
-    expect(onChange).toHaveBeenCalledWith("year", 2021);
+    expect(onChange).toHaveBeenCalledWith("year", 2021, "user");
     expect(suggestions()).toEqual([]);
     expect(screen.queryByTestId("attributes-int-out-of-range")).toBeNull();
   });
@@ -174,7 +174,7 @@ describe("the bound as a mechanism, not as prose", () => {
       (one) => one.textContent === "2022"
     ) as HTMLElement;
     fireEvent.click(row);
-    expect(onChange).toHaveBeenLastCalledWith("year", 2022);
+    expect(onChange).toHaveBeenLastCalledWith("year", 2022, "user");
   });
 
   it("an out-of-bounds value opens the FULL set and names the answers that set the bound", () => {
@@ -184,7 +184,7 @@ describe("the bound as a mechanism, not as prose", () => {
     const hint = screen.getByTestId("attributes-int-out-of-range");
     expect(hint.textContent).toBe("For G20 the value is from 2018 to 2024.");
     // Said, never enforced: what was typed is what the caller is told.
-    expect(onChange).toHaveBeenLastCalledWith("year", 1995);
+    expect(onChange).toHaveBeenLastCalledWith("year", 1995, "user");
     expect(box("year").value).toBe("1995");
   });
 
@@ -213,7 +213,7 @@ describe("the bound as a mechanism, not as prose", () => {
     const up = screen.getByTestId("attributes-int-step-up");
     expect(up.hasAttribute("disabled")).toBe(false);
     fireEvent.click(up);
-    expect(onChange).toHaveBeenLastCalledWith("year", 2024);
+    expect(onChange).toHaveBeenLastCalledWith("year", 2024, "user");
 
     rerenderWith({ generation: ["g20"], year: 2024 });
     expect(screen.getByTestId("attributes-int-step-up").hasAttribute("disabled")).toBe(true);
@@ -226,7 +226,7 @@ describe("the bound as a mechanism, not as prose", () => {
   it("bakes when the bound leaves exactly one value: committed, grey, non-editable", async () => {
     const { onChange } = renderFields([GENERATION, PINNED_YEAR], { generation: ["g20"] });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", 2020);
+      expect(onChange).toHaveBeenCalledWith("year", 2020, "bake");
     });
     expect(screen.getByTestId("attributes-baked-year")).toBeTruthy();
     expect(box("year").hasAttribute("disabled")).toBe(true);
@@ -241,10 +241,12 @@ describe("the bound as a mechanism, not as prose", () => {
     expect(onChange).not.toHaveBeenCalled();
     rerenderWith({ generation: ["g20"], year: 2010 });
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("year", undefined);
+      expect(onChange).toHaveBeenCalledWith("year", undefined, "cascade");
     });
     // Not 2018, not 2024, not 2010 kept: cleared, with the reason on screen.
-    for (const call of onChange.mock.calls) expect(call).toEqual(["year", undefined]);
+    for (const call of onChange.mock.calls) {
+      expect(call).toEqual(["year", undefined, "cascade"]);
+    }
     expect(screen.getByTestId("attributes-int-out-of-range").textContent).toBe(
       "For G20 the value is from 2018 to 2024."
     );

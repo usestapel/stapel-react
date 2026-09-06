@@ -42,7 +42,7 @@ function renderGroup(
       <FeatureFields
         features={[drawn]}
         values={value === undefined ? {} : { [f.slug]: value }}
-        onChange={(slug, next) => onChange(slug, next)}
+        onChange={(slug, next, source) => onChange(slug, next, source)}
       />
     </I18nProvider>
   );
@@ -139,7 +139,7 @@ describe("add and remove", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add row" }));
     // The blank row carries nothing, so it is not emitted — a row becomes real
     // when a cell is filled in, not when a button is pressed.
-    expect(onChange).toHaveBeenCalledWith("discount_ladder", [{ quantity: 10, discount: 5 }]);
+    expect(onChange).toHaveBeenCalledWith("discount_ladder", [{ quantity: 10, discount: 5 }], "user");
   });
 
   it("removes the row that was pressed", () => {
@@ -150,7 +150,7 @@ describe("add and remove", () => {
     const remove = screen.getAllByRole("button", { name: "Remove" });
     expect(remove).toHaveLength(2);
     fireEvent.click(remove[1] as HTMLElement);
-    expect(onChange).toHaveBeenCalledWith("discount_ladder", [{ quantity: 10, discount: 5 }]);
+    expect(onChange).toHaveBeenCalledWith("discount_ladder", [{ quantity: 10, discount: 5 }], "user");
   });
 
   it("offers no remove at repeat.min — an unpressable control is worse than none", () => {
@@ -194,13 +194,13 @@ describe("the value", () => {
     expect(onChange).toHaveBeenCalledWith("discount_ladder", [
       { quantity: 10, discount: 5 },
       { quantity: 50, discount: 20 },
-    ]);
+    ], "user");
   });
 
   it("clearing the last cell of the last row empties the answer rather than storing a blank row", () => {
     const { onChange } = renderGroup(GROUP_FEATURE, [{ quantity: 10 }]);
     fireEvent.change(screen.getByLabelText(/quantity/), { target: { value: "" } });
-    expect(onChange).toHaveBeenCalledWith("discount_ladder", undefined);
+    expect(onChange).toHaveBeenCalledWith("discount_ladder", undefined, "user");
   });
 
   it("rides the `{type, value}` envelope like every other type", () => {
