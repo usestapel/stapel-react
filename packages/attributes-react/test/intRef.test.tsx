@@ -375,3 +375,75 @@ describe("the constrained int says which state it is in", () => {
     expect(screen.queryByTestId("attributes-int-refusal-range")).toBeNull();
   });
 });
+
+describe("the three states where the set is NOT loaded still refuse a number", () => {
+  /**
+   * `allowed === null` covers three situations — the fetch is in flight, the
+   * parent is unanswered, and a level this side cannot know — and the field
+   * refused NOTHING in any of them: a year decades outside the catalogue's
+   * own `min`/`max` was taken without a word, on a screen whose whole job is
+   * to say what is allowed. The static bound is not the live set and never
+   * claims to be; it is the truest thing this field has while the set is
+   * missing, and the server applies it too.
+   */
+  it("falls back to the catalogue's min/max while the fetch is in flight", () => {
+    renderYear({ generation: ["g15"] });
+    // First frame, before any answer: the state says so.
+    expect(
+      screen.getByTestId("attributes-int-ref").getAttribute("data-state")
+    ).toBe("loading");
+    fireEvent.change(yearInput(), { target: { value: "1850" } });
+    const hint = screen.getByTestId("attributes-int-out-of-set");
+    expect(hint.textContent).toContain("1900");
+    expect(hint.textContent).toContain("2027");
+  });
+
+  it("refuses a value already in hand, before any set can be fetched", () => {
+    // A seeded draft — the row arrives with a year the catalogue's own bound
+    // rules out, and nothing on screen said so.
+    renderYear({ generation: ["g15"], year: 1850 });
+    expect(
+      screen.getByTestId("attributes-int-ref").getAttribute("data-state")
+    ).toBe("loading");
+    expect(screen.getByTestId("attributes-int-out-of-set").textContent).toContain(
+      "1900"
+    );
+  });
+
+  it("says nothing about a number that fits the catalogue's bound", () => {
+    renderYear({ generation: ["g15"] });
+    fireEvent.change(yearInput(), { target: { value: "1999" } });
+    expect(screen.queryByTestId("attributes-int-out-of-set")).toBeNull();
+  });
+
+  it("binds the refusal to the input, so it is not a line addressed by nothing", async () => {
+    renderYear({ generation: ["g15"] });
+    await waitFor(() => expect(yearInput()).toBeTruthy());
+    fireEvent.change(yearInput(), { target: { value: "2013" } });
+    const hint = await screen.findByTestId("attributes-int-out-of-set");
+    const describedBy = yearInput().getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    // The id is on the field's own error line — the sentence a screen reader
+    // is handed with the control, not a paragraph beside it.
+    const described = document.getElementById(describedBy ?? "");
+    expect(described?.contains(hint)).toBe(true);
+    expect(described?.textContent).toContain("2008");
+  });
+
+  it("still prefers the LIVE set's ends once they land", async () => {
+    renderYear({ generation: ["g15"] });
+    await waitFor(() => expect(yearInput()).toBeTruthy());
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("attributes-int-ref").getAttribute("data-state")
+      ).toBe("bounded")
+    );
+    fireEvent.change(yearInput(), { target: { value: "2013" } });
+    const hint = await screen.findByTestId("attributes-int-out-of-set");
+    // The catalogue says 1900–2027; the set says 2008–2012, and the set is
+    // what the server will apply.
+    expect(hint.textContent).toContain("2008");
+    expect(hint.textContent).toContain("2012");
+    expect(hint.textContent).not.toContain("2027");
+  });
+});

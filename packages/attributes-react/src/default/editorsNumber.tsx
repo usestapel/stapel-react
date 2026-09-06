@@ -306,6 +306,7 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   // side cannot know — it is still the truest thing the element can say.
   const cfgMin = numberish(cfg["min"]);
   const cfgMax = numberish(cfg["max"]);
+  const rangeHint = useRangeHint();
   const listId = useId();
 
   // The allowed set for the CURRENT parent, ascending; `null` while loading
@@ -404,15 +405,53 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   const refusedNotInOptions =
     props.error?.code === ERROR_CODE_TO_KEY.not_in_options;
 
+  /*
+   * THE BOUND THAT STANDS IN FOR THE SET WHILE THERE IS NONE.
+   *
+   * `allowed === null` covers three situations — the fetch is in flight, the
+   * parent is unanswered, or this side cannot know the level — and in all
+   * three this field refused NOTHING: a walker typed a year decades outside
+   * the catalogue's own `min`/`max` and the control took it without a word,
+   * on a screen whose whole job is to say what is allowed. The static bound
+   * is not the live set, and it never claims to be; it is the truest thing
+   * this field has while the set is missing, and the server applies it too.
+   *
+   * The loaded set still wins where it exists — its ends ARE the constraint.
+   */
+  const boundLow = lowest ?? cfgMin;
+  const boundHigh = highest ?? cfgMax;
+  const outOfBound =
+    !loaded &&
+    typed !== undefined &&
+    (boundLow !== undefined || boundHigh !== undefined) &&
+    !withinBounds(typed, boundLow, boundHigh);
+  /**
+   * The refusal, in words — one sentence, wherever it came from.
+   *
+   * Routed through `SkinNumberField`'s `errorText` rather than printed in a
+   * line of our own underneath: that is what ties it to the input with
+   * `aria-describedby`, so the person who cannot see the line beside the
+   * field is told the same thing as the person who can. It used to be a
+   * `<HintLine>` sibling, addressed by nothing.
+   */
+  const refusalText =
+    !(outOfSet || outOfBound || refusedNotInOptions)
+      ? undefined
+      : boundLow !== undefined && boundHigh !== undefined
+        ? t(ATTRIBUTES_I18N_KEYS.intOutOfAllowed, {
+            min: String(boundLow),
+            max: String(boundHigh),
+          })
+        : rangeHint(
+            boundLow === undefined ? undefined : String(boundLow),
+            boundHigh === undefined ? undefined : String(boundHigh)
+          );
+
   // What the ELEMENT says about the set, beside what the panel and the
   // steppers do with it. The ends of the loaded set win over the catalogue's
   // static bound, because they are the constraint the server will apply.
   const listed = loaded && (allowed?.length ?? 0) > 0;
-  const dom = intDomBounds(
-    lowest ?? cfgMin,
-    highest ?? cfgMax,
-    listed ? listId : undefined
-  );
+  const dom = intDomBounds(boundLow, boundHigh, listed ? listId : undefined);
 
   return (
     <div
@@ -443,6 +482,21 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
             {...dom}
             {...(postfix.length > 0 ? { unit: postfix } : {})}
             {...(placeholder.length > 0 ? { hintPlaceholder: placeholder } : {})}
+            {...(refusalText !== undefined
+              ? {
+                  errorText: (
+                    <span
+                      data-testid={
+                        outOfSet || outOfBound
+                          ? "attributes-int-out-of-set"
+                          : "attributes-int-refusal-range"
+                      }
+                    >
+                      {refusalText}
+                    </span>
+                  ),
+                }
+              : {})}
             onValueChange={commit}
           />
           {listed && <IntAllowedList id={listId} values={allowed ?? []} />}
@@ -482,24 +536,6 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
           onPick={commit}
         />
       )}
-      {(outOfSet || refusedNotInOptions) &&
-        lowest !== undefined &&
-        highest !== undefined && (
-          <HintLine>
-            <span
-              data-testid={
-                outOfSet
-                  ? "attributes-int-out-of-set"
-                  : "attributes-int-refusal-range"
-              }
-            >
-              {t(ATTRIBUTES_I18N_KEYS.intOutOfAllowed, {
-                min: String(lowest),
-                max: String(highest),
-              })}
-            </span>
-          </HintLine>
-        )}
       {baked && (
         <Typography.Text
           type="secondary"
