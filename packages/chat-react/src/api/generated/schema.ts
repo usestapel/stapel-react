@@ -398,6 +398,8 @@ export interface components {
             sender_id?: string | null;
             /** @description The text the row DRAWS for that line, or ``null`` */
             body_preview?: string | null;
+            /** @description Which of the three ``null`` cases this is, or */
+            preview_reason?: string | null;
         };
         /** @description Advance the requesting user's read/delivery markers. */
         MarkReadRequest: {

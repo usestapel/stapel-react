@@ -285,8 +285,8 @@ export function listingStatusView(
 }
 
 /**
- * The three tabs `my/counters` COUNTS, and the statuses each one folds
- * together.
+ * The three tabs whose ROWS come off a keyset page, and the statuses each one
+ * folds together.
  *
  * The grouping is the SERVER's (`views.my_counters`), copied here so a tab's
  * caption and its count cannot describe different sets: `active` includes
@@ -294,10 +294,17 @@ export function listingStatusView(
  * both because a listing in those states is something the owner is still
  * working on. A client that grouped them its own way would show "3 active"
  * over two rows.
+ *
+ * The name is about the SOURCE, not about the counter: `MyCountersResponse`
+ * carries four integers since stapel-listings 0.22.4 (`blocked` joined the
+ * three), and this is still the set a {@link MyListingsCountedTab} —
+ * `MyListingsSource`'s whole parameter type — may name. The removed tab reads
+ * its rows off `?status=blocked` directly and unpaged, so a host that
+ * implemented the seam before the fourth tab existed is never handed it.
  */
 export const MY_LISTINGS_COUNTED_TABS = ["active", "drafts", "archived"] as const;
 
-/** One of the three tabs `MyCountersResponse` carries a number for. */
+/** One of the three tabs a `MyListingsSource` is asked for. */
 export type MyListingsCountedTab = (typeof MY_LISTINGS_COUNTED_TABS)[number];
 
 const COUNTED_TAB_STATUSES: Readonly<
@@ -308,8 +315,9 @@ const COUNTED_TAB_STATUSES: Readonly<
   archived: ["archived", "paused", "expired", "sold"],
 };
 
-/** Which of the three COUNTED tabs a status belongs to, or `undefined` for
- * one the server's own counter groups nowhere — `blocked`, today. */
+/** Which of the three keyset-paged tabs a status belongs to, or `undefined`
+ * for one none of them folds in — `blocked`, today, which has a tab and a
+ * counter of its own and a different row source under it. */
 export function countedTabOf(
   status: ListingLifecycleStatus
 ): MyListingsCountedTab | undefined {
@@ -320,13 +328,16 @@ export function countedTabOf(
 }
 
 /**
- * The statuses the server's own counter groups nowhere — `blocked`, and
- * nothing else today.
+ * The statuses none of the three paged tabs folds in — `blocked`, and nothing
+ * else today.
  *
  * DERIVED, not written down a second time: a status added upstream and left
- * out of the counter groupings lands here automatically and gets shown, which
- * is the opposite of what a hardcoded `["blocked"]` would do the day it goes
- * stale.
+ * out of the tab groupings lands here automatically and gets shown, which is
+ * the opposite of what a hardcoded `["blocked"]` would do the day it goes
+ * stale. That the server now has a `blocked` COUNTER for the same set does not
+ * make the derivation redundant: the counter names one status and this names
+ * whatever the three groupings leave over, which is the set the fourth tab
+ * must ASK for.
  */
 export const MY_LISTINGS_UNTABBED_STATUSES: readonly ListingLifecycleStatus[] =
   LISTING_STATUSES.filter((status) => countedTabOf(status) === undefined);
@@ -350,12 +361,16 @@ export const MY_LISTINGS_UNTABBED_STATUSES: readonly ListingLifecycleStatus[] =
  * ── Why a fourth tab and not the archive ─────────────────────────────────
  *
  * Folding `blocked` into `archived` is the other shape this could take, and
- * it costs the count: `my/counters` has three integers and no fourth, so an
- * archive tab holding takedowns would read the server's `archived` number —
- * `0` — until the tab was opened and its rows could raise it. The fourth tab
- * is counted from its OWN read (`?status=blocked`, unpaged), so the number is
- * right while the seller is looking at a different tab, which is exactly the
- * moment D407 was measured at.
+ * it cost the count: when D407 was written `my/counters` had three integers
+ * and no fourth, so an archive tab holding takedowns would have read the
+ * server's `archived` number — `0` — until the tab was opened and its rows
+ * could raise it. The fourth tab was counted from its OWN read
+ * (`?status=blocked`, unpaged) so that the number was right while the seller
+ * was looking at a different tab, which is exactly the moment D407 was
+ * measured at. stapel-listings 0.22.4 puts `blocked` in the counter, so the
+ * number is the server's now and that read is only the tab's rows — but the
+ * property it was there to defend is the same one, and it is now defended by
+ * the wire instead of by a page.
  *
  * The archive keeps its meaning too, which is not nothing: "I put this away"
  * and "a moderator took this down" are not the same sentence and a tab that

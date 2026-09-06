@@ -439,15 +439,18 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Listings CRUD plus owner lifecycle actions and favorites.
+         * @description One integer per cabinet tab, over the caller's own listings.
          *
-         *     Read and write live in one class, so the guest wall
-         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
-         *     is applied per ACTION and never as a class permission: an anonymous
-         *     session must keep browsing and keep its favorites, and only the
-         *     authorship actions — ``create``, ``update``/``partial_update``,
-         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
-         *     seller.
+         *     The tab groupings are the SERVER's — ``my/listings?status=`` takes
+         *     the same sets — so a cabinet never has to re-derive which statuses
+         *     make up "active". Every lifecycle status is in exactly one group:
+         *     ``blocked`` (a moderation takedown) is its own count rather than
+         *     being folded into ``archived``, because the two tell the seller
+         *     different things and only one of them is theirs to undo.
+         *
+         *     Owner-scoped at the queryset via ``owned_by``, soft-deleted rows
+         *     excluded by the default manager — the same scope as
+         *     ``my/listings``, so a tab's rows and its count always agree.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -500,7 +503,7 @@ export interface paths {
          * @description The caller's OWN listings, in every status.
          *
          *     The counterpart of ``my/counters``: the same owner scope and the same
-         *     status grouping, but the rows behind the three numbers. ``list`` is
+         *     status grouping, but the rows behind the four numbers. ``list`` is
          *     the shop window (``published()``, narrowable to nobody), so this is
          *     the only route by which a person can be shown their own drafts.
          *
@@ -1129,11 +1132,18 @@ export interface components {
          * @enum {string}
          */
         ModerationStatusEnum: "not_submitted" | "pending" | "approved" | "rejected" | "needs_review";
-        /** @description Listing counts by tab for the current user. */
+        /**
+         * @description Listing counts by tab for the current user.
+         *
+         *     One integer per cabinet tab, and every lifecycle status belongs to
+         *     exactly one of them — ``blocked`` included, so a listing a moderator
+         *     took down is counted somewhere instead of vanishing from the totals.
+         */
         MyCountersResponse: {
             active: number;
             archived: number;
             drafts: number;
+            blocked: number;
         };
         /**
          * @description The owner's own card — the public card plus what only an owner sees.

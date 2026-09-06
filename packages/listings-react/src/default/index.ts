@@ -73,7 +73,20 @@ export {
   DETAIL_PHOTO_MIN,
   DETAIL_GALLERY_GUTTER,
 } from "./ListingDetailPane.js";
-export type { ListingDetailPaneProps } from "./ListingDetailPane.js";
+export type {
+  ListingDetailPaneProps,
+  ListingActionsPlacement,
+} from "./ListingDetailPane.js";
+// The gallery's two shapes, its class and the stylesheet behind them — a host
+// that wants a third writes CSS against these rather than `!important` over an
+// inline `display`.
+export {
+  LISTINGS_GALLERY_CLASS,
+  LISTINGS_GALLERY_STYLE_HREF,
+  LISTINGS_GALLERY_STRIP_BASIS,
+  detailGalleryCss,
+} from "./detailGallery.js";
+export type { ListingGalleryLayout } from "./detailGallery.js";
 export {
   ListingComposerPage,
   COMPOSER_DETAILS_PLACEMENT,

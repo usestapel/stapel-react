@@ -22,7 +22,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useQuery } from "@tanstack/react-query";
 import { ConversationListPanel } from "../src/default/index.js";
-import type { ChatPeopleSlot, ChatPerson, Conversation } from "../src/index.js";
+import type {
+  ChatPeopleSlot,
+  ChatPerson,
+  Conversation,
+  LastMessage,
+} from "../src/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 import {
   BUYER,
@@ -30,6 +35,7 @@ import {
   conversation,
   conversationPage,
   lastMessage,
+  wordlessLastMessage,
 } from "./fixtures.js";
 
 const NAMES: Readonly<Record<string, string>> = {
@@ -230,22 +236,106 @@ describe("the inbox names the person, not the kind", () => {
     );
   });
 
-  it("says what a preview with no words IS, by kind", async () => {
-    // `body_preview: null` means "this line has no drawable words", and
-    // `kind` is the only thing that says which case it is. A system marker
-    // this deployment gave no words to is not an attachment, and neither of
-    // them is a blank row. The third case — a tombstone — arrives as the same
-    // null with kind `text`, which is the follow-up named in previews.ts.
+  it("says what a preview with no words IS, because the SERVER says which", async () => {
+    // `body_preview: null` means "this line has no drawable words", and until
+    // stapel-chat 0.8.4 nothing on the wire said which of the three cases it
+    // was: a tombstone and an attachment-only message arrived as one null with
+    // `kind: "text"`, so the row drew "Attachment" over a deleted message.
+    // `preview_reason` is that discriminator, and `kind` decides nothing here
+    // any more — the system row below carries `kind: "system"` because the
+    // server sends one, and the DELETED row is `kind: "text"`, which under the
+    // old rule was the arm that guessed.
     const people = peopleSlot();
-    const [first, second] = threeConversations();
+    const [first, second, third] = threeConversations();
     const rows = [
       {
         ...(first as Conversation),
-        last_message: lastMessage({ kind: "system", sender_id: null, body_preview: null }),
+        last_message: wordlessLastMessage("deleted"),
       },
       {
         ...(second as Conversation),
-        last_message: lastMessage({ body_preview: null }),
+        last_message: wordlessLastMessage("attachment"),
+      },
+      {
+        ...(third as Conversation),
+        last_message: wordlessLastMessage("system"),
+      },
+    ];
+    const server = mockServer({
+      "GET /conversations": { body: conversationPage(rows) },
+    });
+    render(
+      <TestHarness
+        server={server}
+        realtime={{ socketUrl: null }}
+        slots={{ people: people.slot }}
+      >
+        <ConversationListPanel viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-row-preview")).toHaveLength(3)
+    );
+    const drawn = screen
+      .getAllByTestId("chat-row-preview")
+      .map((node) => node.textContent);
+    // The first is the sentence this pair has carried the copy for since it
+    // had an inbox and could not reach until now.
+    expect(drawn).toEqual(["Message deleted", "Attachment", "System message"]);
+  });
+
+  it("draws the WORDS when there is no reason to give — the fourth case", async () => {
+    // `preview_reason: null` is what the server sends whenever the line has
+    // words, so the reason must not shadow them.
+    const people = peopleSlot();
+    const rows = [
+      {
+        ...(threeConversations()[0] as Conversation),
+        last_message: lastMessage({
+          body_preview: "Still available?",
+          preview_reason: null,
+        }),
+      },
+    ];
+    const server = mockServer({
+      "GET /conversations": { body: conversationPage(rows) },
+    });
+    render(
+      <TestHarness
+        server={server}
+        realtime={{ socketUrl: null }}
+        slots={{ people: people.slot }}
+      >
+        <ConversationListPanel viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-row-preview").textContent).toBe(
+        "Still available?"
+      )
+    );
+  });
+
+  it("falls back to the pre-0.8.4 reading when a server sends no reason", async () => {
+    // The manifest announces `>=0.8 <0.9`, so a deployment on 0.8.3 is inside
+    // the range this pair claims and sends a body with no `preview_reason` at
+    // all. A blank line there would say "nothing has been said here", which is
+    // a DIFFERENT row's sentence — so the old reading stands, on that server
+    // only, and `previews.ts` says so where the arm is.
+    const people = peopleSlot();
+    const [first, second] = threeConversations();
+    const legacy = (over: Partial<LastMessage>): LastMessage => {
+      const { preview_reason: _dropped, ...rest } = lastMessage(over);
+      return rest as LastMessage;
+    };
+    const rows = [
+      {
+        ...(first as Conversation),
+        last_message: legacy({ kind: "system", sender_id: null, body_preview: null }),
+      },
+      {
+        ...(second as Conversation),
+        last_message: legacy({ body_preview: null }),
       },
     ];
     const server = mockServer({
@@ -263,10 +353,9 @@ describe("the inbox names the person, not the kind", () => {
     await waitFor(() =>
       expect(screen.getAllByTestId("chat-row-preview")).toHaveLength(2)
     );
-    const drawn = screen
-      .getAllByTestId("chat-row-preview")
-      .map((node) => node.textContent);
-    expect(drawn).toEqual(["System message", "Attachment"]);
+    expect(
+      screen.getAllByTestId("chat-row-preview").map((node) => node.textContent)
+    ).toEqual(["System message", "Attachment"]);
   });
 });
 

@@ -49,13 +49,23 @@ import { useMandateGate } from "./useMandateGate.js";
  * `blockedRows` is fetched beside them, off the same route, narrowed to
  * whatever `MY_LISTINGS_UNTABBED_STATUSES` derives.
  *
- * That second read is also the fourth tab's COUNT (D407). `my/counters` has
- * three integers and no fourth, so the removed tab is counted from the rows it
- * holds — which is honest exactly because that read is unpaged and runs
- * whichever tab is open. The one thing it cannot describe is a page cap: a
- * seller with more takedowns than one page of `my/listings` would see the page
- * count and not the total, and there is no counter on the wire to check it
- * against (see `MyListingsBag.tabCounts`).
+ * That second read used to be the fourth tab's COUNT as well (D407):
+ * `my/counters` had three integers and no fourth, so the removed tab was
+ * counted from the rows it holds — honest, because that read is unpaged and
+ * runs whichever tab is open, and blind to exactly one thing: a page cap. A
+ * seller with more takedowns than one page of `my/listings` saw the page count
+ * and not the total, and there was no counter on the wire to check it against.
+ *
+ * **stapel-listings 0.22.4 answers it**: `MyCountersResponse.blocked`, required
+ * beside the other three, over the same owner scope and the same grouping. So
+ * the tab's number is the SERVER's now and the unpaged read is what it always
+ * was underneath — the removed tab's ROWS. The two consequences are both
+ * visible: the tab appears from the counter (a beat earlier, and without the
+ * seller's whole takedown page having to land first), and a seller with more
+ * takedowns than fit on a page is told how many there are rather than how many
+ * arrived. A deployment on a server older than 0.22.4 sends no `blocked` at
+ * all, and then the rows are the count again — degraded to the previous
+ * answer, never to a `0` (see `MyListingsBag.tabCounts`).
  */
 
 export interface MyListingsBag {
@@ -66,10 +76,16 @@ export interface MyListingsBag {
    * The server's three always; the removed one only where there is something
    * in it or the person asked for it by address. An empty "Taken down" tab is
    * a scare, and the seller it would scare is the one it has nothing to tell.
+   *
+   * "Something in it" is `counters.blocked` (stapel-listings 0.22.4) and no
+   * longer the unpaged takedown page: the two reads settle independently, and
+   * the one that decides whether a tab strip has three tabs or four should be
+   * the one that answers in three integers rather than the one that answers in
+   * a page of listings.
    */
   readonly tabs: readonly MyListingsTab[];
   setTab(tab: MyListingsTab): void;
-  /** The three real counts, as the server reports them. */
+  /** The four real counts, as the server reports them. */
   readonly counters: LoadState<MyCounters>;
   /**
    * The number to DRAW on each tab — the server's counter, raised to what is
@@ -89,8 +105,13 @@ export interface MyListingsBag {
    *
    * The second half: a takedown was in no tab and therefore in no number, so
    * a cabinet holding one read "Active 0 · Drafts 0 · Archived 0" over it.
-   * `removed` is counted from `blockedRows` — there is no server counter to
-   * read, and the rows are the only evidence on the wire.
+   * `removed` was counted from `blockedRows`, because there was no server
+   * counter to read and the rows were the only evidence on the wire. There is
+   * one now — `MyCountersResponse.blocked`, stapel-listings 0.22.4 — and it is
+   * what the fourth tab draws, under the same floor as the other three: the
+   * open tab's number is never below the rows on screen. `blockedRows` stays
+   * the FALLBACK for a deployment whose server predates the field, which is a
+   * count that is right up to a page and never a `0` over a visible row.
    */
   readonly tabCounts: LoadState<Readonly<Record<MyListingsTab, number>>>;
   /** The rows for the current tab — {@link MyListingsBag.blockedRows} while
@@ -206,8 +227,17 @@ export function useMyListings(
   // The takedown count, when it is known. Not a `0` while the read is in
   // flight: the tab strip is drawn off this number and a tab that appeared a
   // beat after the page settled would move the three beside it.
-  const blockedCount =
+  //
+  // The SERVER's integer first (stapel-listings 0.22.4), the unpaged page's
+  // length only where a deployment's backend predates it. `counters.data` is
+  // typed with `blocked` required, so the runtime check is the honest one and
+  // not a type-driven one: an older server answers 200 with three keys, and a
+  // `?? 0` there would print "Taken down 0" over a row the seller can see.
+  const rowsBlockedCount =
     blockedRows.status === "ready" ? blockedRows.data.length : undefined;
+  const serverBlockedCount =
+    typeof counters.data?.blocked === "number" ? counters.data.blocked : undefined;
+  const blockedCount = serverBlockedCount ?? rowsBlockedCount;
 
   // Paging belongs to the tab's own keyset read. The takedowns are fetched
   // unpaged on purpose, so the removed tab has nowhere to go and says so.
@@ -229,13 +259,23 @@ export function useMyListings(
             one === tab ? Math.max(server[one], visible) : server[one],
           ])
         ) as Readonly<Record<MyListingsCountedTab, number>>),
-        [MY_LISTINGS_REMOVED_TAB]: blockedCount ?? 0,
+        // The fourth tab takes the same floor as the other three: the server's
+        // number, raised to what is on screen while this tab is the open one.
+        // The counter and the unpaged page are two reads of one set and either
+        // may be the staler — a badge under its own rows is not a count.
+        [MY_LISTINGS_REMOVED_TAB]:
+          tab === MY_LISTINGS_REMOVED_TAB
+            ? Math.max(blockedCount ?? 0, visible)
+            : (blockedCount ?? 0),
       });
     }, [counters.status, counters.error, counters.data, rows, tab, blockedCount]);
 
   // The removed tab is drawn where it has something to say — or where the
   // address named it, so `?tab=removed` opens a real (if empty) tab rather
   // than an activeKey pointing at nothing.
+  //
+  // "Something to say" is the COUNTER since 0.22.4, so the tab arrives with
+  // `my/counters` rather than waiting for a page of takedowns to come back.
   const tabs: readonly MyListingsTab[] =
     removed || (blockedCount ?? 0) > 0 ? MY_LISTINGS_TABS : MY_LISTINGS_COUNTED_TABS;
 

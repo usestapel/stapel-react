@@ -203,7 +203,15 @@ export const DEMO_DETAIL: ListingDetailData = {
   is_favorited: false,
 };
 
-export const DEMO_COUNTERS: MyCounters = { active: 2, archived: 1, drafts: 3 };
+/** All FOUR tab counts — `blocked` joined the other three in stapel-listings
+ * 0.22.4 and is required, so a body without it is one no server can send. `0`:
+ * this demo seller has had nothing taken down, so the fourth tab is not drawn. */
+export const DEMO_COUNTERS: MyCounters = {
+  active: 2,
+  archived: 1,
+  drafts: 3,
+  blocked: 0,
+};
 
 /** A listing with a second page behind it — the only state in which the pager
  * is drawn at all. */

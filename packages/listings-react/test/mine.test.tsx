@@ -44,12 +44,31 @@ function myListingsHandler(
   });
 }
 
+/** How many rows a `?status=blocked` fixture holds, for the counter beside it. */
+function blockedPageSize(blocked: unknown): number {
+  const items = (blocked as { items?: unknown } | null)?.items;
+  return Array.isArray(items) ? items.length : 0;
+}
+
+/**
+ * The two owner reads, wired so they cannot contradict each other by accident.
+ *
+ * `my/counters` carries FOUR integers since stapel-listings 0.22.4, and
+ * `blocked` is the one the removed tab draws — so the default counter body is
+ * derived from the `?status=blocked` page this same server serves. A test that
+ * wants the two to disagree (a takedown page capped below the total, a server
+ * older than the field) says so by passing `counters` explicitly, which is the
+ * only way that disagreement should ever reach a fixture.
+ */
 function dashboard(
   rows: unknown = MY_PAGE,
-  blocked: unknown = NO_BLOCKED
+  blocked: unknown = NO_BLOCKED,
+  counters?: unknown
 ): Record<string, Handler | { body: unknown }> {
   return {
-    "/listings/my/counters/": { body: COUNTERS },
+    "/listings/my/counters/": {
+      body: counters ?? { ...COUNTERS, blocked: blockedPageSize(blocked) },
+    },
     "/listings/my/listings/": myListingsHandler(rows, blocked),
   };
 }
@@ -692,6 +711,12 @@ describe("row actions are gated by the server's own transition table", () => {
  * counter, over "Active 0 · Drafts 0 · Archived 0" and the active tab's own
  * "nothing of yours is live". Three statements about one cabinet and the two
  * loudest of them said the seller had nothing.
+ *
+ * The tab was counted from its own unpaged read while `my/counters` had three
+ * integers. stapel-listings 0.22.4 added the fourth, so the badge is the
+ * SERVER's — and the two things that changes are asserted apart below, because
+ * they fail apart: a total larger than one page, and a tab that arrives with
+ * the counter rather than with the page.
  */
 describe("a takedown has a tab and a number of its own (D407)", () => {
   const TAKEN = myPage([
@@ -709,14 +734,75 @@ describe("a takedown has a tab and a number of its own (D407)", () => {
       expect(screen.getByTestId("listings-mine-count-removed")).toBeTruthy();
     });
     // The number is right while a DIFFERENT tab is open, which is the state
-    // the defect was measured in: the count comes from the takedowns' own
-    // unpaged read, not from `my/counters`, which has no fourth integer.
+    // the defect was measured in.
     expect(
       screen.getByTestId("listings-mine-count-removed").textContent?.trim()
     ).toBe("1");
     expect(
       screen.getByTestId("listings-mine-count-active").textContent?.trim()
     ).toBe(String(COUNTERS.active));
+  });
+
+  it("takes the badge from `counters.blocked`, not from the page under it", async () => {
+    // The one thing the old count could not describe: a seller with more
+    // takedowns than fit on a page saw the PAGE's length. `my/counters` is the
+    // whole set, exactly as it is for the other three tabs.
+    const srv = mockServer(
+      dashboard(MY_PAGE, TAKEN, { ...COUNTERS, blocked: 12 })
+    );
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("listings-mine-count-removed").textContent?.trim()
+      ).toBe("12");
+    });
+  });
+
+  it("draws the tab off the counter alone, before any takedown row is in hand", async () => {
+    // The counter and the unpaged page settle independently, and the one that
+    // decides whether the strip has three tabs or four is the one that answers
+    // in integers. `?status=blocked` never returns here at all, which is the
+    // strongest form of "the page is not what draws it".
+    const srv = mockServer({
+      "/listings/my/counters/": { body: { ...COUNTERS, blocked: 2 } },
+      "/listings/my/listings/": (call) =>
+        call.url.includes("status=blocked")
+          ? { status: 503, body: {} }
+          : { body: MY_PAGE },
+    });
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("listings-mine-count-removed").textContent?.trim()
+      ).toBe("2");
+    });
+  });
+
+  it("falls back to the rows on a server that has no fourth integer", async () => {
+    // A deployment older than 0.22.4 answers `my/counters` with three keys.
+    // The rows are the count again — the answer this pane shipped for two
+    // releases — and never a `0`, which is the defect wearing the new field.
+    const srv = mockServer(
+      dashboard(MY_PAGE, TAKEN, { active: 2, archived: 1, drafts: 3 })
+    );
+    render(
+      <TestProviders server={srv}>
+        <MyListingsPane />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("listings-mine-count-removed").textContent?.trim()
+      ).toBe("1");
+    });
   });
 
   it("does not draw the tab for a seller who has none", async () => {

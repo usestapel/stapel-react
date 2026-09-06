@@ -32,6 +32,7 @@ export type {
   ConversationPage,
   CreateConversationRequest,
   LastMessage,
+  LastMessagePreviewReason,
   MarkReadRequest,
   MessageHistoryParams,
   MessageKind,
@@ -190,8 +191,8 @@ export {
 export type { ChatInboxFilter, InboxRowText } from "./model/inboxQuery.js";
 // The one line a row draws for its last message (stapel-chat 0.8.3's
 // `last_message` projection), localized — including the three cases where the
-// projection has no words to give.
-export { inboxPreviewLine } from "./model/previews.js";
+// projection has no words to give, which 0.8.4 tells apart by name.
+export { inboxPreviewLine, previewReason } from "./model/previews.js";
 export {
   useLoadOlderMessages,
   useMarkRead,

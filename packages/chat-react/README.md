@@ -298,14 +298,22 @@ toolbar, because the toolbar is the way back out.
 
 **The last line comes with the row.** `ConversationResponse.last_message`
 (stapel-chat 0.8.3) is a projection — `{seq, kind, sender_id, created_at,
-body_preview}` — annotated for the whole page inside the query the list
-already runs, so every row paints its line on FIRST load and no client spends
-a `GET /messages?limit=1` per row. `null` is a thread nobody has written in
-and the row draws no line at all; the reader's own line is prefixed ("You: …").
-A `body_preview` of `null` means the line has no drawable words: with kind
-`system` the row says "System message", otherwise "Attachment" — the one thing
-the projection does not say is whether that null was a tombstone, which is the
-follow-up named in `MODULE.md`.
+body_preview, preview_reason}` — annotated for the whole page inside the query
+the list already runs, so every row paints its line on FIRST load and no client
+spends a `GET /messages?limit=1` per row. `null` is a thread nobody has written
+in and the row draws no line at all; the reader's own line is prefixed
+("You: …").
+
+**A line with no words says WHICH kind of no words it is.** `preview_reason`
+(stapel-chat 0.8.4) is the discriminator: `deleted` → "Message deleted",
+`attachment` → "Attachment", `system` → "System message", and `null` means the
+line has words and the row draws them. Until that release the projection said
+only that there were no words, so a tombstone and an attachment arrived as one
+`null` with `kind: "text"` and the row printed "Attachment" over a message
+somebody had deleted — right for the common case, and a lie about their words
+for the other. `kind` decides nothing about this line any more; the only place
+it is still read is the arm for a 0.8.3 server, which sends no reason at all
+(see `src/model/previews.ts`).
 
 ## Locales
 

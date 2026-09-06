@@ -49,8 +49,34 @@
  * as CategoryPage's `subcategories`: a decision taken once by the component
  * that knows the viewport it granted, never a media query guessed in a leaf —
  * and the default `"column"` renders exactly what existing hosts already get.
+ *
+ * ── The reader's cluster can be in TWO places, and is ONE thing ────────────
+ *
+ * A phone reads this page over four screens. Past the first, the reference
+ * classified draws a condensed bar — back, the title, and the two verbs — and
+ * a container building one had to mount a `<ListingActions>` of its own,
+ * because `actionsPlacement` took a single value and the pane exposed no
+ * target for the cluster it builds. That second mount is a second
+ * `useFavoriteToggle` on one page: two hearts that agree only after a refetch,
+ * two `aria-pressed` controls, and a second set of test ids kept in step by
+ * hand so the pane's own stayed single.
+ *
+ * `actionsPlacement={["header", "bar"]}` + `renderActionsBar` is the answer,
+ * and the shape is deliberate: the render prop is handed a MOUNT POINT, not
+ * the cluster. `<ListingActions>` is rendered once through a portal and the
+ * portal's container is moved between the two slots as a DOM node, so the
+ * component mounts once, holds one hook, and is literally the same element in
+ * both places (`movableCluster.tsx` has the argument; the test holds the
+ * favourite across the move and compares identity). A render prop handed the
+ * cluster's ELEMENT would have read the same at a call site and mounted twice,
+ * which is the defect with the pair's name on it.
+ *
+ * `onTitleVisible` is the other half: the same container watched the pane's
+ * `<h1>` through its published test id and a `MutationObserver`, for a
+ * boolean the pane already knows. It is an `IntersectionObserver` on the
+ * title, never a scroll listener.
  */
-import { isValidElement } from "react";
+import { isValidElement, useCallback, useEffect, useRef } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Descriptions, Divider, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
@@ -81,6 +107,13 @@ import { GateReasonPopover } from "./GateReasonPopover.js";
 import { ListingActions } from "./ListingActions.js";
 import type { ListingActionsConfig } from "./ListingActions.js";
 import { LISTING_ACTION_CLASS } from "./actionRow.js";
+import {
+  LISTINGS_GALLERY_CLASS,
+  LISTINGS_GALLERY_STYLE_HREF,
+  detailGalleryCss,
+} from "./detailGallery.js";
+import type { ListingGalleryLayout } from "./detailGallery.js";
+import { useMovableCluster } from "./movableCluster.js";
 import { useNotice } from "./notice.js";
 import { ListingSpecColumns, ListingSpecList } from "./ListingSpecList.js";
 import { SignInLink } from "./SignInLink.js";
@@ -113,12 +146,9 @@ export const DETAIL_SPLIT_MEASURE = "75rem";
  */
 export const DETAIL_SPLIT_ASIDE = "380px";
 
-/** The narrowest a gallery tile may get before the grid drops a column. A
- * measure rather than a pixel: the tiles then fill whatever the ELEMENT is,
- * which is §83's geometry rule — one photo per row on a phone, three on a
- * desktop pane, and no `width: 320` that is near-full-bleed on one and a
- * postage stamp on the other. */
-export const DETAIL_PHOTO_MIN = "14rem";
+/** Re-exported: the tile floor is declared beside the track it feeds, in
+ * `detailGallery.ts`. */
+export { DETAIL_PHOTO_MIN } from "./detailGallery.js";
 
 /**
  * THE GUTTER BETWEEN TWO PHOTOGRAPHS, and it is the page's own (D418).
@@ -262,9 +292,96 @@ export interface ListingDetailPaneProps
    *    photo counter owns the bottom trailing corner;
    *  - `"buy-box"` — inside `listings-detail-actions`, beside "message the
    *    seller", which is where the favourite alone used to live. The escape
-   *    hatch for a host whose page was laid out around it.
+   *    hatch for a host whose page was laid out around it;
+   *  - `"bar"` — the condensed top bar the host draws through
+   *    {@link renderActionsBar}. Only meaningful in a LIST beside one of the
+   *    three above, and only with that render prop: it names a second place
+   *    the one cluster may travel to, never a home of its own.
+   *
+   * A LIST is how a host says "both": `["header", "bar"]` keeps the cluster
+   * beside the title and lends it to the bar for as long as the bar is on
+   * screen. Exactly one home placement is honoured — the first non-`"bar"`
+   * entry — because two homes would need two instances, which is the defect
+   * this closes rather than the feature it adds.
    */
-  readonly actionsPlacement?: "header" | "gallery" | "buy-box";
+  readonly actionsPlacement?:
+    | ListingActionsPlacement
+    | readonly ListingActionsPlacement[];
+  /**
+   * THE SAME CLUSTER, IN A SECOND PLACE — a condensed bar, typically.
+   *
+   * Called with the bar's MOUNT POINT, not with a copy of the cluster: return
+   * it wrapped in whatever chrome the bar is (`position: fixed`, a back arrow,
+   * the title), and the pane moves its one `<ListingActions>` into it. Return
+   * `null` while the bar is not on screen and the cluster goes back where it
+   * came from — the same DOM node, the same hooks, an optimistic favourite
+   * still in flight uninterrupted.
+   *
+   * Requires `"bar"` in {@link actionsPlacement}. Pair it with
+   * {@link onTitleVisible} for the usual rule: the bar appears when the title
+   * leaves the fold.
+   *
+   * ```tsx
+   * <ListingDetailPane
+   *   actionsPlacement={["header", "bar"]}
+   *   onTitleVisible={(visible) => { setBarShown(!visible); }}
+   *   renderActionsBar={(cluster) =>
+   *     barShown ? <div className="topbar">{back}{title}{cluster}</div> : null
+   *   }
+   * />
+   * ```
+   *
+   * A container that mounted its own second `<ListingActions>` for this can
+   * delete it: two `useFavoriteToggle` instances on one page, two hearts that
+   * agree only after a refetch, and a second set of test ids to keep the
+   * pane's own single are all what this prop exists to end.
+   */
+  readonly renderActionsBar?: (cluster: ReactNode) => ReactNode;
+  /**
+   * IS THE TITLE STILL IN THE FOLD?
+   *
+   * An `IntersectionObserver` on the pane's own `<h1>` — never a `scroll`
+   * listener, which asks the question on every frame of a page whose job is
+   * scrolling photographs and answers it no better. Called on each crossing
+   * and not on every scroll: `false` when the title leaves, `true` when it
+   * comes back.
+   *
+   * It exists because the chrome a host hangs on this had no way to ask. A
+   * container drawing a condensed bar found the title by the pane's published
+   * `data-testid` and waited for it with a `MutationObserver`, because the
+   * title lands with the listing and not with the first frame — a private
+   * selector and a subscription, for a boolean the pane already knows.
+   *
+   * NOT called at all where the environment has no `IntersectionObserver`:
+   * the honest answer there is "this page cannot tell", and a fabricated
+   * `true` would leave a host's bar wedged open on the arm that has no
+   * scrolling anyway.
+   *
+   * Pass a STABLE function (a `useState` setter, a `useCallback`). The
+   * observer is created once for the title node and reads the latest callback
+   * through a ref, so an inline arrow works and does not re-observe.
+   */
+  readonly onTitleVisible?: (visible: boolean) => void;
+  /**
+   * WHAT SHAPE THE PHOTOGRAPHS ARE IN.
+   *
+   *  - `"grid"` (default) — the element-width grid this pane has always drawn,
+   *    `repeat(auto-fit, minmax(14rem, 1fr))`: three tiles across a desktop
+   *    pane, one across a phone;
+   *  - `"strip"` — a snap-scrolling horizontal strip, one photograph visible
+   *    with the next peeking. On a 390px phone the grid resolves to one
+   *    column, so a listing with three pictures pushes its own title and price
+   *    nearly three screens down — the first thing a person sees after tapping
+   *    a search result is a photograph with nothing beside it.
+   *
+   * The HOST names it, the same rule as {@link layout} and for the same
+   * reason: the side that knows the viewport it granted decides, and no media
+   * query is guessed in a leaf. A live storefront was carrying
+   * `display: flex !important` against this pane's inline `display: grid` to
+   * say exactly this; that declaration is a class now, so even a host wanting
+   * a third shape needs a selector rather than an `!important`.
+   */
+  readonly galleryLayout?: ListingGalleryLayout;
   /**
    * The container's sign-in door, rendered beside the favourite's refusal —
    * the same `SignInCta` seam the three card skins already take. The pane was
@@ -296,6 +413,82 @@ export interface ListingDetailPaneProps
    */
   readonly headingLevel?: 1 | 2 | 3;
   readonly footer?: ReactNode;
+}
+
+/**
+ * Where the reader's cluster may sit. Three homes and one loan — see
+ * {@link ListingDetailPaneProps.actionsPlacement}.
+ */
+export type ListingActionsPlacement =
+  | "header"
+  | "gallery"
+  | "buy-box"
+  | "bar";
+
+/** The cluster's HOME: the first entry that is not the borrowed bar. */
+function homePlacement(
+  placement: ListingDetailPaneProps["actionsPlacement"]
+): Exclude<ListingActionsPlacement, "bar"> {
+  if (placement === undefined) return "header";
+  if (typeof placement === "string") {
+    // `"bar"` alone names no home — the cluster still has to live somewhere
+    // while the bar is off screen, and that somewhere is the default.
+    return placement === "bar" ? "header" : placement;
+  }
+  for (const one of placement) {
+    if (one !== "bar") return one;
+  }
+  return "header";
+}
+
+/** Did the host ask for the borrowed placement at all? */
+function wantsBar(
+  placement: ListingDetailPaneProps["actionsPlacement"]
+): boolean {
+  if (placement === undefined) return false;
+  if (typeof placement === "string") return placement === "bar";
+  return placement.includes("bar");
+}
+
+/** Priorities for the two mount points: the bar wins while it is on screen. */
+const CLUSTER_HOME = 0;
+const CLUSTER_BAR = 1;
+
+/**
+ * The pane's own title, watched — see
+ * {@link ListingDetailPaneProps.onTitleVisible}.
+ *
+ * Returns a callback ref for the heading element. The observer is created once
+ * per node and disconnected by React 19's ref cleanup; the host's callback is
+ * read through a ref at call time, so an inline arrow does not re-observe on
+ * every render of a page that re-renders on every query update.
+ */
+function useTitleVisibility(
+  onTitleVisible: ((visible: boolean) => void) | undefined
+): (node: HTMLElement | null) => (() => void) | undefined {
+  const latest = useRef(onTitleVisible);
+  useEffect(() => {
+    latest.current = onTitleVisible;
+  });
+  const wanted = onTitleVisible !== undefined;
+  return useCallback(
+    (node: HTMLElement | null): (() => void) | undefined => {
+      if (node === null || !wanted) return undefined;
+      // No observer, no answer. A fabricated `true` would wedge a host's bar
+      // open on an arm that has no scrolling to close it with.
+      if (typeof IntersectionObserver === "undefined") return undefined;
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[entries.length - 1];
+        if (entry === undefined) return;
+        latest.current?.(entry.isIntersecting);
+      });
+      observer.observe(node);
+      return () => {
+        observer.disconnect();
+      };
+    },
+    [wanted]
+  );
 }
 
 /**
@@ -335,7 +528,18 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   // leaves rendering the reason to `<GatedControl>`, which computes its own.
   const favoriteView = useActionGate(bag.favoriteGate);
   const split = props.layout === "split";
-  const placement = props.actionsPlacement ?? "header";
+  const placement = homePlacement(props.actionsPlacement);
+  /* THE SECOND PLACEMENT IS A LOAN, NOT A COPY. Both halves have to be asked
+     for: `"bar"` in the placement list says the cluster may travel, and
+     `renderActionsBar` is the only thing that can put it anywhere. With
+     neither — every existing mount — nothing below changes: one cluster,
+     rendered inline where it always was, no portal and no slot divs. */
+  const galleryLayout: ListingGalleryLayout = props.galleryLayout ?? "grid";
+  const renderBar = props.renderActionsBar;
+  const barred = wantsBar(props.actionsPlacement) && renderBar !== undefined;
+  const movable = useMovableCluster(barred);
+  const moving = barred && movable.portable;
+  const titleRef = useTitleVisibility(props.onTitleVisible);
   // The two arms of `actions` — see `isActionsConfig`.
   const actionsConfig: ListingActionsConfig | undefined = isActionsConfig(
     props.actions
@@ -570,14 +774,48 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               />
             );
 
+            /* What the PAGE draws where the cluster lives. With the bar in
+               play that is a slot and not the cluster itself: the cluster is
+               rendered once into `clusterLayer` below and travels between the
+               two slots as a DOM node, so it mounts once, holds one
+               `useFavoriteToggle`, and keeps its element identity across the
+               move. Without it, the cluster is drawn inline exactly as it has
+               always been. */
+            const homeActions = moving
+              ? movable.slot(CLUSTER_HOME, placement)
+              : readerActions;
+
+            /* The one instance, plus the host's bar around the slot that may
+               borrow it. Rendered at the end of the page's own flow: the
+               portal has no position of its own (its content is wherever the
+               winning slot is), and a bar is `position: fixed` chrome whose
+               place in the document order is not its place on the screen. */
+            const clusterLayer =
+              !moving || renderBar === undefined ? null : (
+                <>
+                  {movable.render(readerActions)}
+                  {/* NOT a slot with a silent absence: `renderBar` is the only
+                      thing that makes `moving` true, so this arm is
+                      unreachable without one and the host's own `null` (the
+                      bar off screen) is the answer that sends the cluster
+                      home. There is no hole to place a `<SlotPlaceholder>` in
+                      — the cluster is at its primary placement instead. */}
+                  {renderBar(movable.slot(CLUSTER_BAR, "bar"))}
+                </>
+              );
+
             /* Element-width tiles: the grid decides how many fit, the
                photos fill them. */
             const gallery = (
               <div
                 data-testid="listings-detail-gallery"
+                className={LISTINGS_GALLERY_CLASS}
+                // The layout is a CLASS and an attribute, not an inline
+                // `display`: a host with a shape neither arm offers can then
+                // write CSS for it at its own breakpoints without `!important`
+                // over a pair's own geometry. See `detailGallery.ts`.
+                data-gallery-layout={galleryLayout}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(auto-fit, minmax(${DETAIL_PHOTO_MIN}, 1fr))`,
                   // The page's own edge, per breakpoint — see
                   // `DETAIL_GALLERY_GUTTER` (D418).
                   gap: DETAIL_GALLERY_GUTTER,
@@ -587,6 +825,9 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   position: "relative",
                 }}
               >
+                <style href={LISTINGS_GALLERY_STYLE_HREF} precedence="default">
+                  {detailGalleryCss()}
+                </style>
                 {bag.images.length === 0 ? (
                   <ListingPhoto
                     imageRef={undefined}
@@ -604,7 +845,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     />
                   ))
                 )}
-                {placement === "gallery" ? readerActions : null}
+                {placement === "gallery" ? homeActions : null}
               </div>
             );
 
@@ -621,12 +862,13 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 <Flex align="flex-start" justify="space-between" gap={spacing[3]}>
                   <Typography.Title
                     level={props.headingLevel ?? 3}
+                    ref={titleRef}
                     data-testid="listings-detail-title"
                     style={{ minWidth: 0, flex: "1 1 auto" }}
                   >
                     {listing.title ?? ""}
                   </Typography.Title>
-                  {placement === "header" ? readerActions : null}
+                  {placement === "header" ? homeActions : null}
                 </Flex>
 
                 {/* The `show_at_title` projection, formatted from the stored
@@ -741,7 +983,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 {/* The reader's two actions live in the cluster now (see
                     `actionsPlacement`); the buy box keeps them only when a
                     host asks for the layout this page used to have. */}
-                {placement === "buy-box" ? readerActions : null}
+                {placement === "buy-box" ? homeActions : null}
 
                 {actionsNode}
               </Flex>
@@ -888,6 +1130,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   {meta}
                   {asideAfterActions ? null : aside}
                   {props.footer}
+                  {clusterLayer}
                 </>
               );
             }
@@ -938,6 +1181,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     {aside}
                   </Flex>
                 </div>
+                {clusterLayer}
               </>
             );
           },

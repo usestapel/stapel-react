@@ -23,8 +23,11 @@
  *    row was on the page (in a block above the tabs) and in no tab and in no
  *    number, and a person reads the numbers.
  *
- *    So the takedowns are the fourth tab, counted from their own read — see
- *    `model/status.ts` for why a fourth tab and not the archive. The block
+ *    So the takedowns are the fourth tab. It was counted from its own read
+ *    while the counter had three integers; since stapel-listings 0.22.4 the
+ *    counter has four and the badge is the SERVER's, so the tab appears and
+ *    is right without the takedown page having landed — see `model/status.ts`
+ *    for why a fourth tab and not the archive. The block
  *    above the tabs stays as one LINE, without the rows: a takedown must not
  *    need a click to be discovered, and printing the same row twice on one
  *    screen is not the way to say so.
@@ -571,10 +574,11 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
                   // phone instead of collapsing into an overflow menu.
                   //
                   // `tabCounts`, not `counters`: the badge is never allowed to
-                  // read lower than the rows underneath it, and the fourth tab
-                  // has no server counter at all (D407 — a moderator-rejected
-                  // listing sat in Drafts under a `0`, and a taken-down one
-                  // under no number whatever).
+                  // read lower than the rows underneath it, and the fourth
+                  // tab's number degrades to its own rows on a server older
+                  // than 0.22.4 (D407 — a moderator-rejected listing sat in
+                  // Drafts under a `0`, and a taken-down one under no number
+                  // whatever).
                   ready: (counts) => (
                     <Typography.Text
                       type={tab === "removed" ? "warning" : "secondary"}

@@ -1,0 +1,97 @@
+/**
+ * HOW THE LISTING PAGE LAYS OUT ITS PHOTOGRAPHS — and why the answer is a
+ * class and a prop rather than an inline `display`.
+ *
+ * ── The defect a container was carrying ───────────────────────────────────
+ *
+ * The gallery is an element-width grid (`repeat(auto-fit, minmax(14rem,
+ * 1fr))`), which on a 390px phone resolves to ONE column: a listing with three
+ * pictures pushes its own title and price nearly three screens down, and the
+ * first thing a person sees after tapping a search result is a photograph with
+ * nothing beside it. A phone lays photographs out as a snap-scrolling STRIP —
+ * one visible with the next peeking, title and price directly under it.
+ *
+ * That is layout, and layout is the container's to decide. But the pane wrote
+ * `display: grid` INLINE, and an inline declaration is beaten by nothing that
+ * is not `!important` — so a live storefront carried
+ * `[data-testid="listings-detail-gallery"] { display: flex !important }`
+ * against a pair's own geometry, named by a test id, to say a thing the pair
+ * offered no way to say (`darom-storefront/src/storefront.css` §2).
+ *
+ * ── The seam ──────────────────────────────────────────────────────────────
+ *
+ * Two halves, and both matter:
+ *
+ *  1. `<ListingDetailPane galleryLayout>` — the pane ships BOTH layouts and
+ *     the host names one, exactly as it already names `layout="split"` and
+ *     `gutter`. The host is the side that knows the viewport it granted;
+ *     a media query guessed in a leaf is the thing this package does not do.
+ *  2. `display` and the track are no longer inline. They live on this
+ *     stylesheet, at one class plus one attribute, so a host that wants
+ *     something neither arm offers can still write CSS for it at its own
+ *     breakpoints — and needs no `!important` to be heard, only a selector of
+ *     its own (`[data-testid="listings-detail-gallery"][data-gallery-layout]`
+ *     ties; add any third condition and it wins).
+ *
+ * What stays inline is what nobody overrides and what a stylesheet would make
+ * worse: the `gap` (the page's own responsive gutter token, D418 — a var, so
+ * a resize reflows it) and `position: relative`, which is the containing block
+ * the `actionsPlacement="gallery"` overlay is pinned to.
+ */
+/**
+ * The narrowest a gallery tile may get before the grid drops a column. A
+ * measure rather than a pixel: the tiles then fill whatever the ELEMENT is,
+ * which is §83's geometry rule — one photo per row on a phone, three on a
+ * desktop pane, and no `width: 320` that is near-full-bleed on one and a
+ * postage stamp on the other.
+ *
+ * Declared here rather than in `<ListingDetailPane>` because this is the file
+ * that writes the track it feeds; the pane re-exports it, so the public name
+ * is unchanged.
+ */
+export const DETAIL_PHOTO_MIN = "14rem";
+
+/** Which shape the photographs take. See the file header. */
+export type ListingGalleryLayout = "grid" | "strip";
+
+/** The class the gallery box carries. */
+export const LISTINGS_GALLERY_CLASS = "stapel-listings-detail-gallery";
+
+/** The `href` the hoisted gallery stylesheet is deduplicated by. */
+export const LISTINGS_GALLERY_STYLE_HREF = "stapel-listings-detail-gallery";
+
+/**
+ * How much of the strip's width ONE photograph takes.
+ *
+ * Not 100: the remaining sliver of the next picture is the only thing on a
+ * phone that says the strip scrolls at all. Exported so a host laying out
+ * beside it measures against the same number instead of guessing it back out
+ * of a screenshot.
+ */
+export const LISTINGS_GALLERY_STRIP_BASIS = "86%";
+
+/**
+ * The gallery's layout rules, for the hoisted `<style>`.
+ *
+ * The strip's child rule (`> *`) is the reason this is a stylesheet and not
+ * two more inline properties: an inline style cannot reach a child, and the
+ * flex basis is what makes the strip a strip rather than a row of squeezed
+ * photographs.
+ */
+export function detailGalleryCss(): string {
+  return `
+.${LISTINGS_GALLERY_CLASS}[data-gallery-layout="grid"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(${DETAIL_PHOTO_MIN}, 1fr));
+}
+.${LISTINGS_GALLERY_CLASS}[data-gallery-layout="strip"] {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+.${LISTINGS_GALLERY_CLASS}[data-gallery-layout="strip"] > * {
+  flex: 0 0 ${LISTINGS_GALLERY_STRIP_BASIS};
+  scroll-snap-align: start;
+}
+`.trim();
+}

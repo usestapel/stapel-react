@@ -153,6 +153,48 @@ the document base); `window.location.href` is consulted only when a host
 supplies nothing, because the address a visitor is standing on carries the SERP
 query they arrived from and whatever tracking parameters came with them.
 
+**The same cluster can be in two places, and is one thing.** A phone reads the
+listing page over four screens, so past the first one a classified draws a
+condensed bar: back, the title, the two verbs. `actionsPlacement` takes a LIST
+for that, and `renderActionsBar` is handed the cluster's MOUNT POINT — not a
+copy of the cluster:
+
+```tsx
+const [inFold, setInFold] = useState(true);
+
+<ListingDetailPane
+  id={id}
+  actionsPlacement={["header", "bar"]}   // home, plus the place it may travel to
+  onTitleVisible={setInFold}             // an IntersectionObserver on the pane's own <h1>
+  renderActionsBar={(cluster) =>
+    inFold ? null : <div className="topbar">{back}{title}{cluster}</div>
+  }
+/>
+```
+
+`<ListingActions>` is rendered ONCE, through a portal, and the portal's
+container is moved between the two mount points as a DOM node. So the cluster
+mounts once, holds one `useFavoriteToggle`, and is literally the same element
+in both placements — a favourite in flight survives the move, and a probe
+counting `listings-detail-reader-actions` still finds exactly one. Return
+`null` from `renderActionsBar` and the cluster goes home; ask for `"bar"`
+without the render prop and nothing changes at all. `onTitleVisible` fires on
+each crossing and never on a scroll frame, and is not called at all in an
+environment with no `IntersectionObserver` — "this page cannot tell" is an
+answer and `true` would not be.
+
+**The photographs take the shape the host names.** `galleryLayout="grid"`
+(default) is the element-width grid this pane has always drawn;
+`galleryLayout="strip"` is a snap-scrolling horizontal strip, one photograph
+visible with the next peeking. On a 390px phone the grid resolves to one
+column, and a listing with three pictures pushes its own title and price nearly
+three screens down. The host names it, like `layout` and for the same reason —
+the side that knows the viewport it granted decides. And the pane no longer
+writes `display` inline: it is on `LISTINGS_GALLERY_CLASS` with a
+`data-gallery-layout` attribute (`detailGalleryCss()` is exported), so a host
+that wants a third shape at its own breakpoints writes a selector rather than
+an `!important` over a pair's geometry.
+
 **Confirmations are said twice.** "Link copied" stands inside the open menu AND
 goes out as a two-second toast; the heart's fill is the state and
 "Added to favourites" is the acknowledgement. The toast seam is antd's own —
@@ -339,7 +381,10 @@ by `my/counters` in no tab at all, so a cabinet holding a listing a moderator
 had pulled read "Active 0 · Drafts 0 · Archived 0" over it — the row was on
 the page, in no tab, in no number. It is now the `removed` tab: fetched off
 the same route (`?status=blocked`, unpaged, whichever tab is open) and counted
-from those rows, because there is no fourth integer on the wire to read. The
+by `MyCountersResponse.blocked`, the fourth integer stapel-listings 0.22.4
+added beside the other three. The rows were the count until that release and
+are still the count for a deployment whose server predates it — never a `0`,
+which is the one answer that would put the defect back. The
 tab is drawn only where there is something in it or `?tab=removed` asks for
 it, and a one-line warning above the tab strip says how many there are without
 waiting for a click. Not folded into `archived`: that tab reads the server's

@@ -133,6 +133,7 @@ own length refusal under. One routing table covers both.
 | 1 | An owner-scoped list | **stapel-listings 0.7.0** — `GET my/listings/`, the caller's own rows in every status, `?status=` for a set, the same `IDAnchorPagination` envelope. `defaultMyListingsSource` is what the dashboard runs on; `MyListingsSource` survives as a seam for a host that keeps its rows elsewhere, and the missing-source error is gone rather than kept as a comment about something that no longer happens. |
 | 3 | `_get_own` in front of `update` / `partial_update` | **stapel-listings 0.6.2.** This pair still writes through `save-draft` (one write path is enough), but the endpoints are no longer a hole anything else that speaks the contract can walk through. |
 | 4 | An owner check on `retrieve` | **stapel-listings 0.6.2** — `ListingQuerySet.visible_to(user)`: a stranger's draft now 404s from the same code path an absent id does. The pair's `publiclyVisible` report stays, addressed at the one reader who still reaches an unpublished listing there: its owner. |
+| 7 | A counter for the takedowns | **stapel-listings 0.22.4** — `MyCountersResponse.blocked`, required beside the other three. D407's fourth tab was counted from its own unpaged `?status=blocked` page, which is right up to a page and blind past one; the badge is the server's now and the page is only the tab's rows. A deployment older than the field degrades to the page's length — never to a `0`, which is the defect wearing the new field. |
 
 ## 4. The three seams, and why none of them is an import
 
@@ -285,7 +286,8 @@ make it pass by copying the other package's keys in.
 the weight:
 
 - `status.test.ts` — the 9 × 4 table, the tab grouping (including BLOCKED,
-  which `my_counters` counts in no tab at all), and the transition mirror;
+  which the three paged tabs fold in nowhere and `my_counters` has counted
+  separately since 0.22.4), and the transition mirror;
 - `draft.test.ts` — the payload, in both directions: type tagging from the
   category schema, blanks omitted rather than nulled, the countable/stock
   cross-field rule, code-point length, the two kinds of publish 400;

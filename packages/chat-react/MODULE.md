@@ -247,17 +247,27 @@ says neither that nor "Live".
   change, debounces the text 300 ms, and runs NO client-side predicate
   alongside — see the note under "Not in this version" on why a second filter
   over a server-filtered page hides rows.
-- **A `body_preview` of `null` does not say WHICH null it is.**
-  `services.drawn_last_line` collapses three cases into one absent string: a
-  tombstone, an attachment-only message, and a system marker this deployment
-  gave no words to. `kind` separates the third; the first two are
-  indistinguishable on the wire. So an inbox row that would have said "Message
-  deleted" (the pair has the copy, `chat.list.preview_deleted`) says
-  "Attachment" instead — right for the common case, vague for the other, and
-  never "deleted" over a picture. What would close it: a discriminator on the
-  projection (`preview_reason: "deleted" | "attachment" | "unlabelled"`, or
-  simply the `deleted` flag the message row already carries). It is a contract
-  change in stapel-chat, not something a skin can paper over.
+- ~~**A `body_preview` of `null` does not say WHICH null it is.**~~ **Fixed
+  upstream (stapel-chat 0.8.4).** It was true: `services.drawn_last_line`
+  collapsed three cases into one absent string — a tombstone, an
+  attachment-only message, and a system marker this deployment gave no words
+  to. `kind` separated the third; the first two were indistinguishable on the
+  wire, so an inbox row that should have said "Message deleted" (the pair had
+  the copy, `chat.list.preview_deleted`, and no way to reach it) said
+  "Attachment" instead. The ask named a discriminator on the projection and
+  that is exactly what landed: `LastMessageResponse.preview_reason`, decided by
+  `services.last_line_reason` over the same columns `drawn_last_line` reads —
+  `"deleted" | "attachment" | "system"`, or `null` when the line has words.
+  `model/previews.ts` reads it and nothing else; the guess is deleted rather
+  than kept beside it, and `chat.list.preview_deleted` is drawn for the first
+  time since it was written. The schema declares no enum for the field (a bare
+  nullable string), so the union is narrowed at this pair's own edge in
+  `api/types.ts`, the same correction `MessageKind` and `ConversationKind`
+  already carry. ONE arm still reads `kind`: a 0.8.3 server is inside the
+  `>=0.8 <0.9` range this pair announces and sends no `preview_reason` at all,
+  and a blank line there would say "nothing has been said here" — a different
+  row's sentence. That arm is the pre-0.8.4 reading, marked as such where it
+  is, and `inboxRows.test.tsx` pins it apart from the rule.
 - ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
   It was true: `@stapel/realtime` reported a stream as `reconnecting` while
   core's refresh was in flight, so a pair could not tell "renewing your

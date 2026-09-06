@@ -7,6 +7,7 @@ import type {
   Conversation,
   ConversationPage,
   LastMessage,
+  LastMessagePreviewReason,
   MessagePage,
 } from "../src/index.js";
 
@@ -43,6 +44,10 @@ export function conversation(overrides: Partial<Conversation> = {}): Conversatio
  * message: no id, no attachments, no `rev_seq`. Deliberately not a default on
  * {@link conversation}: a thread nobody has written in sends `last_message:
  * null`, and that is the row this pair must draw with no line at all.
+ *
+ * `preview_reason` (0.8.4) is `null` here because this default HAS words: the
+ * server sends a reason exactly when `body_preview` does not, so a fixture
+ * carrying both would be a body the server cannot produce.
  */
 export function lastMessage(overrides: Partial<LastMessage> = {}): LastMessage {
   return {
@@ -51,8 +56,29 @@ export function lastMessage(overrides: Partial<LastMessage> = {}): LastMessage {
     created_at: "2026-08-21T18:12:00Z",
     sender_id: SELLER,
     body_preview: "Is the bicycle still available?",
+    preview_reason: null,
     ...overrides,
   };
+}
+
+/**
+ * A row whose last line has NO WORDS, and the server's reason for it.
+ *
+ * The pair-shaped fixture: `body_preview: null` and a reason are one state on
+ * the wire, and writing them apart is how a test ends up asserting against a
+ * body `services.drawn_last_line` / `services.last_line_reason` never produce
+ * together.
+ */
+export function wordlessLastMessage(
+  reason: LastMessagePreviewReason,
+  overrides: Partial<LastMessage> = {}
+): LastMessage {
+  return lastMessage({
+    body_preview: null,
+    preview_reason: reason,
+    ...(reason === "system" ? { kind: "system", sender_id: null } : {}),
+    ...overrides,
+  });
 }
 
 export function conversationPage(

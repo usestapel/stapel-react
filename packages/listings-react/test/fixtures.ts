@@ -186,7 +186,21 @@ export const DRAFT: ListingDraft = {
   updated_at: "2026-08-22T09:00:00Z",
 };
 
-export const COUNTERS: MyCounters = { active: 2, archived: 1, drafts: 3 };
+/**
+ * `my/counters`, all four integers.
+ *
+ * `blocked` joined the other three in stapel-listings 0.22.4 and is REQUIRED
+ * in the schema, so a fixture without it stopped being a body the server can
+ * send. `0` here: the default dashboard has no takedowns, and `dashboard()`
+ * in `mine.test.tsx` overrides it from the `?status=blocked` page so the
+ * counter and the rows in one mock cannot disagree by accident.
+ */
+export const COUNTERS: MyCounters = {
+  active: 2,
+  archived: 1,
+  drafts: 3,
+  blocked: 0,
+};
 
 /**
  * A category schema exactly as `GET /categories/{id}/features/` sends it:

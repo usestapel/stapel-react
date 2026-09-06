@@ -34,7 +34,8 @@ export type ChatMessage = Schemas["MessageResponse"];
  *
  * `body_preview` is what the row DRAWS, already flattened to one line and
  * capped at 140 characters upstream — never a body to re-derive a preview
- * from. It is `null` in three cases the projection does not tell apart (see
+ * from. It is `null` in three cases, and since stapel-chat 0.8.4
+ * `preview_reason` says WHICH (see {@link LastMessagePreviewReason} and
  * `model/previews.ts`).
  */
 export type LastMessage = Schemas["LastMessageResponse"];
@@ -88,6 +89,23 @@ export type ConversationKind = "direct" | "group" | "support";
  * bare `string` in the schema cannot make and a renderer must.
  */
 export type MessageKind = "text" | "system";
+
+/**
+ * WHICH of the three `body_preview: null` cases an inbox row is in
+ * (stapel-chat 0.8.4, `services.last_line_reason`).
+ *
+ * The generated schema types the field as a bare nullable `string` — the
+ * server declares no enum — so the union lives here, at the pair's own edge,
+ * exactly like {@link MessageKind} and {@link ConversationKind} above. `null`
+ * (and, on a 0.8.3 server, absent) means the projection has words and the row
+ * draws them.
+ *
+ * It exists because a client could not tell a tombstone from an attachment:
+ * both arrived as one `null` with `kind: "text"` beside them, so the row said
+ * "Attachment" over a deleted message — right for the common case, wrong for
+ * the one where being wrong is a lie about somebody's words.
+ */
+export type LastMessagePreviewReason = "deleted" | "attachment" | "system";
 
 /**
  * Support lifecycle. Empty string for non-support threads — the serializer

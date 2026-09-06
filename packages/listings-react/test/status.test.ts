@@ -171,11 +171,13 @@ describe("the dashboard tabs are the SERVER's grouping", () => {
     expect(MY_LISTINGS_TAB_STATUSES.drafts).toContain("rejected");
   });
 
-  it("leaves BLOCKED out of every COUNTED tab, and says so by answering undefined", () => {
-    // `my_counters` counts it nowhere either. A dashboard that quietly filed
-    // it under "archived" would hide the listing whose owner most needs to
-    // see it — and would read the archive's server counter, which does not
-    // include it, over rows that do.
+  it("leaves BLOCKED out of every paged tab, and says so by answering undefined", () => {
+    // `my_counters` folds it into none of the three either — since
+    // stapel-listings 0.22.4 it counts `blocked` SEPARATELY, which is the
+    // fourth tab's badge and not a fourth grouping. A dashboard that quietly
+    // filed the status under "archived" would hide the listing whose owner
+    // most needs to see it, and would read the archive's server counter, which
+    // does not include it, over rows that do.
     expect(countedTabOf("blocked")).toBeUndefined();
     const counted: ListingLifecycleStatus[] = MY_LISTINGS_COUNTED_TABS.flatMap(
       (tab) => [...MY_LISTINGS_TAB_STATUSES[tab]]
@@ -188,7 +190,9 @@ describe("the dashboard tabs are the SERVER's grouping", () => {
   it("gives the takedown a tab of its own, after the server's three (D407)", () => {
     // The defect: a listing pulled by moderation was on the page, in no tab
     // and in no counter, over "Active 0 · Drafts 0 · Archived 0". It has a
-    // home now, and the home is not the archive — see model/status.ts.
+    // home now, and the home is not the archive — see model/status.ts. The
+    // counter caught up in 0.22.4; the GROUPING did not move, which is what
+    // this asserts.
     expect(MY_LISTINGS_TABS).toEqual([
       ...MY_LISTINGS_COUNTED_TABS,
       MY_LISTINGS_REMOVED_TAB,
