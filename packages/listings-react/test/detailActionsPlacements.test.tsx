@@ -2,7 +2,7 @@
  * ONE CLUSTER, TWO PLACEMENTS — and the sentinel that tells a host when to ask
  * for the second one.
  *
- * The gap a live storefront filed (`darom-storefront`, "Named gaps"): the pane
+ * The gap a live storefront filed (the storefront spec, "Named gaps"): the pane
  * mounted its reader actions at exactly ONE `actionsPlacement` and offered no
  * portal target and no render prop, so a container that wanted the two verbs
  * beside the title AND in a condensed top bar mounted a second

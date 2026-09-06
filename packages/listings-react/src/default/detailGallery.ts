@@ -16,7 +16,7 @@
  * is not `!important` — so a live storefront carried
  * `[data-testid="listings-detail-gallery"] { display: flex !important }`
  * against a pair's own geometry, named by a test id, to say a thing the pair
- * offered no way to say (`darom-storefront/src/storefront.css` §2).
+ * offered no way to say (a client storefront's own stylesheet, §2).
  *
  * ── The seam ──────────────────────────────────────────────────────────────
  *
