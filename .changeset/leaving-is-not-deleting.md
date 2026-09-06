@@ -4,8 +4,9 @@
 
 chat: a person can leave a conversation, and the screen says that is not a delete
 
-Pin → **stapel-chat v0.8.5** (commit `f98201a`, the commit the tag is cut
-from). Contract range `>=0.8 <0.9` is unchanged; `docs/errors.json` is
+Pin → **stapel-chat v0.8.5** (commit `500c54e`, the commit the tag is cut
+from — `f98201a` is the annotated tag OBJECT, which is not what a pin names).
+Contract range `>=0.8 <0.9` is unchanged; `docs/errors.json` is
 BYTE-IDENTICAL across 0.8.4..0.8.5, so `gen:errors` regenerates unchanged and
 no locale bundle shifts. `docs/schema.json` is what moves, and with it this
 pair's generated client.
