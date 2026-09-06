@@ -31,6 +31,7 @@ export type {
   ConversationListParams,
   ConversationPage,
   CreateConversationRequest,
+  LastMessage,
   MarkReadRequest,
   MessageHistoryParams,
   MessageKind,
@@ -171,11 +172,26 @@ export {
   useChatAnalytics,
 } from "./model/context.js";
 export { chatQueryKeys } from "./model/queryKeys.js";
+export type { ChatConversationsKeyFilter } from "./model/queryKeys.js";
 export { THREAD_PAGE, useConversation, useConversations, useThread } from "./model/queries.js";
-// The last line of each thread this client already holds — no request; see
-// `model/previews.ts` for the upstream gap it works around.
-export { useThreadPreviews } from "./model/previews.js";
-export type { ChatPreviews } from "./model/previews.js";
+// FINDING ONE CONVERSATION. The inbox toolbar's rules, as the QUERY sees them
+// — what goes in the key, what goes on the wire, and when a keystroke becomes
+// a request. Exported so a host that draws its own thread list narrows it the
+// same way the shipped one does instead of writing a second predicate that
+// disagrees with the server (`model/inboxQuery.ts` says why there is no
+// client-side predicate at all any more).
+export {
+  INBOX_SEARCH_DEBOUNCE_MS,
+  inboxFilterActive,
+  normalizeInboxSearch,
+  useDebouncedValue,
+  useSettledInboxFilter,
+} from "./model/inboxQuery.js";
+export type { ChatInboxFilter, InboxRowText } from "./model/inboxQuery.js";
+// The one line a row draws for its last message (stapel-chat 0.8.3's
+// `last_message` projection), localized — including the three cases where the
+// projection has no words to give.
+export { inboxPreviewLine } from "./model/previews.js";
 export {
   useLoadOlderMessages,
   useMarkRead,

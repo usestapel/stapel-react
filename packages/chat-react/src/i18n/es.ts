@@ -82,7 +82,6 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.list.search.placeholder": "Nombre, anuncio o mensaje",
   "chat.list.filter.unread": "Sin leer",
   "chat.list.no_matches": "No se ha encontrado nada.",
-  "chat.list.filter.scope": "Filtrando entre las conversaciones ya cargadas.",
 
   "chat.kind.direct": "Mensaje directo",
   "chat.kind.group": "Grupo",
@@ -92,6 +91,8 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.person.loading": "Cargando…",
   "chat.list.preview_own": "Tú: {text}",
   "chat.list.preview_deleted": "Mensaje eliminado",
+  "chat.list.preview_system": "Mensaje del sistema",
+  "chat.list.preview_attachment": "Archivo adjunto",
 
   "chat.subject.label": "De qué trata esta conversación",
   "chat.subject.open": "Abrir",

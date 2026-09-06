@@ -22,18 +22,17 @@ export const CHAT_I18N_KEYS = {
   listUnread: "chat.list.unread",
   listOpen: "chat.list.open",
 
-  // FINDING ONE CONVERSATION. The list endpoint takes anchor/direction/limit
-  // and nothing else, so both controls narrow what is already loaded — and
-  // `listFilterScope` is the sentence that says so, shown only while there
-  // really is more to load. A search box that quietly reads one page of
-  // twenty and answers "nothing found" over an inbox of three hundred is the
-  // defect these four keys exist to avoid.
+  // FINDING ONE CONVERSATION. Since stapel-chat 0.8.2 both controls are the
+  // SERVER's own `search` / `unread` parameters, filtering before the page is
+  // taken — so there is no longer a scope to caveat, and the sentence that
+  // used to say "among the conversations loaded so far"
+  // (`chat.list.filter.scope`) is gone from all three locales rather than
+  // left standing as a lie about a filter that is now total.
   listSearchLabel: "chat.list.search.label",
   listSearchPlaceholder: "chat.list.search.placeholder",
   listUnreadOnly: "chat.list.filter.unread",
   /** The filtered list found nothing — NOT the same sentence as an empty inbox. */
   listNoMatches: "chat.list.no_matches",
-  listFilterScope: "chat.list.filter.scope",
 
   // Conversation kinds. NOT a row title any more: the inbox used to title
   // every row with its kind, so a seller with ten buyers read ten rows
@@ -56,8 +55,31 @@ export const CHAT_I18N_KEYS = {
   personLoading: "chat.person.loading",
   /** Prefix on a preview of the reader's OWN last line. */
   listPreviewOwn: "chat.list.preview_own",
-  /** A tombstone still occupies the last-line slot; it is not blank. */
+  /**
+   * A tombstone still occupies the last-line slot; it is not blank.
+   *
+   * DORMANT ON THE INBOX ROW, deliberately. `last_message` (stapel-chat
+   * 0.8.3) collapses "tombstone", "attachment-only" and "unlabelled system
+   * marker" into one `body_preview: null` with `kind` beside it, so a row
+   * cannot tell a withdrawn message from a picture. The key stays — it is the
+   * copy the thread itself uses and the copy the row will use again the day
+   * the projection says WHY it is null (`model/previews.ts` names the ask).
+   */
   listPreviewDeleted: "chat.list.preview_deleted",
+  /**
+   * The last line is a system marker this deployment gave no words to
+   * (`SYSTEM_LINE_LABELS` is empty out of the box). Something happened in the
+   * thread and the row says only that — machine vocabulary like
+   * `video.call.ended:188` is not a sentence to show anybody.
+   */
+  listPreviewSystem: "chat.list.preview_system",
+  /**
+   * The last line has no drawable words and is not a system line: an
+   * attachment-only message (and, until the projection distinguishes them, a
+   * tombstone). "A picture was sent" is right for the first and vague for the
+   * second — calling a picture "deleted" would be wrong for both.
+   */
+  listPreviewAttachment: "chat.list.preview_attachment",
 
   // WHAT the thread is about (stapel-chat 0.6.0 subjects). The card itself is
   // the subject owner's, resolved server-side; these name the states chat can
@@ -249,7 +271,6 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.list.search.placeholder": "Name, listing or message",
   "chat.list.filter.unread": "Unread",
   "chat.list.no_matches": "Nothing found.",
-  "chat.list.filter.scope": "Filtering among the conversations loaded so far.",
 
   "chat.kind.direct": "Direct message",
   "chat.kind.group": "Group",
@@ -259,6 +280,8 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.person.loading": "Loading…",
   "chat.list.preview_own": "You: {text}",
   "chat.list.preview_deleted": "Message deleted",
+  "chat.list.preview_system": "System message",
+  "chat.list.preview_attachment": "Attachment",
 
   "chat.subject.label": "What this conversation is about",
   "chat.subject.open": "Open",

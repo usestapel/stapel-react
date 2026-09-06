@@ -14,8 +14,9 @@
  *         a peer pair this one may not import), and said to be UNAVAILABLE
  *         when nothing answered, never quietly replaced by a category label;
  *   WHAT  the subject the thread is about (stapel-chat 0.6.0), and the last
- *         line when this client holds it (`model/previews.ts` — the list
- *         endpoint serves no preview, and inventing one is worse than none);
+ *         line the row itself carries (`last_message`, stapel-chat 0.8.3 —
+ *         a projection annotated for the whole page, so the line is there on
+ *         FIRST paint and not only for the threads this session has opened);
  *   WHEN  the clock, as `Intl` renders it for the reader's locale;
  *   NEWS  the server's own unread count, with its accessible sentence.
  *
@@ -37,12 +38,16 @@
  *
  * The pane heading carries a toolbar: a search box over the three things a
  * row is made of (WHO / WHAT / the last line) and an "Unread" chip over the
- * server's own `unread_count`. Both narrow the conversations this client has
- * LOADED, because the list endpoint takes anchor/direction/limit and nothing
- * else — so while there is more to load the pane says which conversations it
- * is filtering (`inboxFilter.ts` carries the reasoning and the upstream ask).
- * The two empty states stay different sentences: "no conversations" is the
- * inbox being empty, "nothing found" is the filter finding nothing in it.
+ * server's own `unread_count`. BOTH ARE THE SERVER'S OWN FILTERS since
+ * stapel-chat 0.8.2 — they narrow the whole inbox, not the pages this client
+ * happens to hold, they apply before the page is taken, and they live in the
+ * query key (`model/inboxQuery.ts`, which also says why no client-side
+ * predicate runs alongside them and why the "loaded so far" caveat is gone).
+ *
+ * The two empty states stay different sentences, and now they arrive by two
+ * different routes: "no conversations" is an empty answer with no filter on,
+ * "nothing found" is an empty answer with one — so the filtered-empty arm has
+ * to keep the toolbar on screen, because it is the way back out.
  */
 import { spacing } from "@stapel/tokens-antd";
 import { ListRow } from "@stapel/tokens-antd/skin";
@@ -62,11 +67,12 @@ import {
   Typography,
   theme as antdTheme,
 } from "antd";
-import { matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
+import { isLoadReady, matchList, useErrorDisplay, useI18n, useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
-import type { ChatMessage, Conversation, Subject } from "../api/types.js";
+import type { Conversation, Subject } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
-import { useThreadPreviews } from "../model/previews.js";
+import { inboxPreviewLine } from "../model/previews.js";
+import { inboxFilterActive } from "../model/inboxQuery.js";
 import type { ChatPeopleDirectory } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
@@ -76,16 +82,9 @@ import {
   CounterpartyAvatar,
   PeopleScope,
   conversationPeopleIds,
-  counterpartyLabel,
   useCounterpartyLabel,
 } from "./people.js";
-import { SubjectRowSummary, readSubjectCard, subjectRowLabel } from "./subjectCard.js";
-import {
-  inboxFilterActive,
-  matchesInboxFilter,
-  normalizeSearch,
-  previewSearchText,
-} from "./inboxFilter.js";
+import { SubjectRowSummary, readSubjectCard } from "./subjectCard.js";
 
 export interface ConversationListPanelProps {
   /**
@@ -143,6 +142,9 @@ export interface ConversationListPanelProps {
   // this is a pair of props rather than one — a screen whose filter survives
   // a reload cannot be built on internal state, and a screen that just wants
   // a search box should not have to build one.
+  //
+  // Both values travel to the SERVER (stapel-chat 0.8.2 `?search=`/`?unread=`),
+  // so what a host owns here is a query parameter, not a local predicate.
 
   /**
    * The search text, CONTROLLED. Given, this panel never changes it on its
@@ -159,6 +161,15 @@ export interface ConversationListPanelProps {
   defaultUnreadOnly?: boolean;
   /** Fired when the chip is pressed, in both modes. */
   onUnreadOnlyChange?: (unreadOnly: boolean) => void;
+  /**
+   * How long a keystroke waits before it becomes a request, in ms. Default
+   * 300 (`INBOX_SEARCH_DEBOUNCE_MS`). `0` sends every keystroke — for a host
+   * that already debounced the value it owns.
+   *
+   * It does not delay what the FIELD shows: the box is controlled by `search`
+   * and repaints on every keystroke either way. What waits is the query.
+   */
+  searchDebounceMs?: number;
   /**
    * Draw the toolbar. Default: yes.
    *
@@ -190,7 +201,6 @@ function ConversationRow(props: {
   readonly row: Conversation;
   readonly viewerId: string | null;
   readonly directory: ChatPeopleDirectory;
-  readonly preview: ChatMessage | undefined;
   readonly locale: string;
   readonly openHref: ((conversationId: string) => string) | undefined;
   readonly onOpen: ((conversationId: string) => void) | undefined;
@@ -217,21 +227,28 @@ function ConversationRow(props: {
   // listing — gets its own link, outside the row control (see `strip`).
   const title = label;
 
-  const preview = props.preview;
-  const previewText =
-    preview === undefined
-      ? ""
-      : preview.deleted === true
-        ? t(CHAT_I18N_KEYS.listPreviewDeleted)
-        : preview.kind === "system"
-          ? t(CHAT_I18N_KEYS.threadSystem)
-          : viewerId !== null && preview.sender_id === viewerId
-            ? t(CHAT_I18N_KEYS.listPreviewOwn, { text: preview.body })
-            : preview.body;
+  // THE LINE THE ROW DRAWS COMES WITH THE ROW (stapel-chat 0.8.3). It used to
+  // be read out of the thread windows this session happened to hold, which
+  // meant a first visit showed no previews at all — the rows a person has
+  // never opened are precisely the ones they are scanning for.
+  //
+  // ONE LINE, TRUNCATED. The server already flattens and caps it at 140
+  // characters; the ellipsis here is for the width of THIS pane, which the
+  // server cannot know, and for the one long unbroken word a cap does not
+  // help with.
+  const previewText = inboxPreviewLine(props.row.last_message, viewerId, t);
 
   const meta =
     previewText === "" ? undefined : (
-      <span style={{ display: "block" }} data-testid="chat-row-preview">
+      <span
+        style={{
+          display: "block",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+        data-testid="chat-row-preview"
+      >
         {previewText}
       </span>
     );
@@ -448,14 +465,18 @@ function openRow(
 }
 
 /**
- * The rows, once the names for the whole page have been asked for once — and
- * once the toolbar has had its say.
+ * The rows, once the names for the whole page have been asked for once.
  *
- * THE FILTER RUNS INSIDE THE PEOPLE SCOPE, and it has to: a row is searchable
- * by the counterpart's NAME, and the name only exists once the host's seam has
- * answered. The ids handed to that seam are the whole loaded page's, never the
- * visible subset — narrowing them would re-key the batch on every keystroke
- * and pay a profile request per character typed.
+ * NOTHING IS FILTERED HERE ANY MORE. The rows arrive already narrowed
+ * (stapel-chat 0.8.2 filters before the page is taken), and re-applying the
+ * toolbar locally would be a second, WORSE filter over the same answer: the
+ * counterpart's name lives behind the host's people seam and may still be
+ * pending, the subject title is matched at fields only that subject type
+ * knows, and both absences read as "no match" to a predicate. A row the
+ * server correctly returned would blink out of the list — see
+ * `model/inboxQuery.ts`. So this component draws what it is given.
+ *
+ * The ids handed to the people seam are the whole page's, in one batch.
  */
 function InboxRows(props: {
   readonly rows: readonly Conversation[];
@@ -466,49 +487,17 @@ function InboxRows(props: {
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
   readonly selectedId: string | null;
-  /** Already normalized (`normalizeSearch`); `""` filters nothing. */
-  readonly needle: string;
-  readonly unreadOnly: boolean;
 }): ReactElement {
-  const { rows, viewerId, selectedId, needle, unreadOnly, locale } = props;
-  const t = useT();
-  const previews = useThreadPreviews(rows.map((row) => row.id));
+  const { rows, viewerId, selectedId } = props;
   // The selected-item background comes from the token bag, never a literal:
   // a hex here would be right in exactly one of the two theme modes.
   const { token } = antdTheme.useToken();
   return (
     <PeopleScope userIds={conversationPeopleIds(rows, viewerId)}>
-      {(directory) => {
-        const visible = rows.filter((row) =>
-          matchesInboxFilter(
-            row,
-            {
-              // The same three strings the row draws — see `counterpartyLabel`
-              // on why the label's rules are not written twice.
-              person: counterpartyLabel(row, viewerId, directory, t),
-              subject: row.subject ? subjectRowLabel(row.subject, locale) : "",
-              preview: previewSearchText(previews(row.id)),
-            },
-            { needle, unreadOnly, locale }
-          )
-        );
-        // The filter found nothing — which is NOT "no conversations yet", and
-        // saying so with the inbox's own empty copy would tell a person with
-        // three hundred threads that they have none.
-        if (visible.length === 0) {
-          return (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              style={{ marginTop: spacing[4] }}
-              data-testid="chat-conversation-list-no-matches"
-              description={t(CHAT_I18N_KEYS.listNoMatches)}
-            />
-          );
-        }
-        return (
+      {(directory) => (
         <List<Conversation>
           style={{ marginTop: spacing[4] }}
-          dataSource={[...visible]}
+          dataSource={[...rows]}
           rowKey={(row) => row.id}
           renderItem={(row) => (
             <List.Item
@@ -528,7 +517,6 @@ function InboxRows(props: {
                 row={row}
                 viewerId={viewerId}
                 directory={directory}
-                preview={previews(row.id)}
                 locale={props.locale}
                 openHref={props.openHref}
                 onOpen={props.onOpen}
@@ -538,8 +526,7 @@ function InboxRows(props: {
             </List.Item>
           )}
         />
-        );
-      }}
+      )}
     </PeopleScope>
   );
 }
@@ -614,7 +601,7 @@ function InboxToolbar(props: {
         data-testid="chat-list-search"
         style={{ flex: "1 1 12rem", minWidth: 0 }}
         data-analytics="none"
-        data-analytics-reason="a local filter over already-loaded rows — no request, nothing to attribute; the host app wraps its own tracking"
+        data-analytics-reason="a search field whose value travels to the server as ?search= — the request is the list read the host app already wraps with its own tracked()"
       />
       <Tag.CheckableTag
         checked={props.unreadOnly}
@@ -652,13 +639,21 @@ export function ConversationListPanel(
     props.defaultUnreadOnly ?? false,
     props.onUnreadOnlyChange
   );
-  const needle = normalizeSearch(search, locale);
-  const filtering = inboxFilterActive({ needle, unreadOnly });
+  // What the QUERY is narrowed by. The panel hands the raw value down and the
+  // query layer settles it (trim, debounce, key) — one place, so a host
+  // calling `useConversations` directly gets the same pause and the same
+  // "blank is no search" rule this toolbar does.
+  const filtering = inboxFilterActive({ search, unreadOnly });
 
   return (
     <ConversationList
       {...(props.limit !== undefined ? { limit: props.limit } : {})}
       {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
+      search={search}
+      unreadOnly={unreadOnly}
+      {...(props.searchDebounceMs !== undefined
+        ? { searchDebounceMs: props.searchDebounceMs }
+        : {})}
     >
       {({
         state,
@@ -669,7 +664,15 @@ export function ConversationListPanel(
         transport,
         degraded,
         status,
-      }) => (
+      }) => {
+        // Drawn whenever there is something to narrow OR something already
+        // narrowed. `filtering` alone is not enough (the first paint of a
+        // host-controlled search has no rows yet) and "has rows" alone is not
+        // either (a filter that found nothing must keep its own way out).
+        const showToolbar =
+          props.filters !== false &&
+          (filtering || (isLoadReady(state) && state.data.length > 0));
+        return (
         <ChatSkinTheme>
           <Card data-testid="chat-conversation-list">
           {/* The list has a socket of its own now (`ws/chat/inbox`), so it
@@ -682,6 +685,28 @@ export function ConversationListPanel(
             </Typography.Title>
             <TransportTag transport={transport} degraded={degraded} status={status} />
           </Flex>
+
+          {/* THE TOOLBAR SITS OUTSIDE THE STATE MACHINE, on purpose.
+              A typed search is a NEW query — its own key, its own first page
+              — so the list goes back through `loading` and comes out `empty`
+              as often as `ready`. A toolbar drawn inside those arms would be
+              unmounted and rebuilt by the very keystroke that moved the
+              state: the field would lose focus mid-word and the caret would
+              jump. Here it is one element in one place, and only its props
+              change.
+
+              It is still not drawn over an inbox that is EMPTY AND UNFILTERED
+              — a search box there invites a person to look for conversations
+              they do not have — and not over a failure, which has one arm and
+              one thing to say. */}
+          {showToolbar ? (
+            <InboxToolbar
+              search={search}
+              onSearch={setSearch}
+              unreadOnly={unreadOnly}
+              onUnreadOnly={setUnreadOnly}
+            />
+          ) : null}
 
           {matchList(state, {
             loading: () => <Spin style={{ marginTop: spacing[4] }} />,
@@ -700,38 +725,28 @@ export function ConversationListPanel(
                 </Button>
               </div>
             ),
-            empty: () => (
-              <Empty
-                style={{ marginTop: spacing[4] }}
-                data-testid="chat-conversation-list-empty"
-                description={t(CHAT_I18N_KEYS.listEmpty)}
-              />
-            ),
+            // TWO EMPTY ANSWERS, TWO SENTENCES. Both now arrive the same way
+            // — an empty page from the server — so the only thing that tells
+            // them apart is whether a filter was on. Telling a person with
+            // three hundred threads that they have none is the failure this
+            // branch exists to prevent.
+            empty: () =>
+              filtering ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ marginTop: spacing[4] }}
+                  data-testid="chat-conversation-list-no-matches"
+                  description={t(CHAT_I18N_KEYS.listNoMatches)}
+                />
+              ) : (
+                <Empty
+                  style={{ marginTop: spacing[4] }}
+                  data-testid="chat-conversation-list-empty"
+                  description={t(CHAT_I18N_KEYS.listEmpty)}
+                />
+              ),
             ready: (rows) => (
               <Space orientation="vertical" style={{ width: "100%" }}>
-                {/* Drawn in this arm only. A search box over a loading list
-                    filters nothing, and over an EMPTY inbox it invites a
-                    person to look for conversations they do not have. */}
-                {props.filters === false ? null : (
-                  <InboxToolbar
-                    search={search}
-                    onSearch={setSearch}
-                    unreadOnly={unreadOnly}
-                    onUnreadOnly={setUnreadOnly}
-                  />
-                )}
-                {/* The scope, stated only while it is TRUE. With every
-                    conversation loaded the filter really is over all of them,
-                    and a standing caveat nobody can act on is the sentence
-                    people learn to stop reading. */}
-                {filtering && hasNextPage ? (
-                  <Typography.Text
-                    type="secondary"
-                    data-testid="chat-list-filter-scope"
-                  >
-                    {t(CHAT_I18N_KEYS.listFilterScope)}
-                  </Typography.Text>
-                ) : null}
                 <InboxRows
                   rows={rows}
                   viewerId={viewerId}
@@ -741,8 +756,6 @@ export function ConversationListPanel(
                   subjectHref={props.subjectHref}
                   linkComponent={props.linkComponent}
                   selectedId={selectedId}
-                  needle={needle}
-                  unreadOnly={unreadOnly}
                 />
                 {hasNextPage ? (
                   <Button
@@ -763,7 +776,8 @@ export function ConversationListPanel(
           })}
           </Card>
         </ChatSkinTheme>
-      )}
+        );
+      }}
     </ConversationList>
   );
 }

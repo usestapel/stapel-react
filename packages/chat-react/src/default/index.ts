@@ -61,16 +61,17 @@ export {
   counterpartyLabel,
   useCounterpartyLabel,
 } from "./people.js";
-// The inbox toolbar's predicate, as functions rather than a component: a host
-// that draws its own thread list gets the SAME rules the shipped one filters
-// by (and the note on why they are client-side at all).
-export {
-  inboxFilterActive,
-  matchesInboxFilter,
-  normalizeSearch,
-  previewSearchText,
-} from "./inboxFilter.js";
-export type { InboxRowText } from "./inboxFilter.js";
+// The inbox toolbar's rules moved to the MAIN entry (`model/inboxQuery.ts`)
+// when stapel-chat 0.8.2 made the filter the server's: what used to be a
+// predicate over loaded rows is now a query parameter, which is a headless
+// concern and not a skin's. `inboxFilterActive` and `InboxRowText` are still
+// re-exported here so a host composing its own thread list beside this skin
+// keeps one import path; `matchesInboxFilter` and `previewSearchText` are
+// gone, and deliberately not replaced — see `model/inboxQuery.ts` on why a
+// second, client-side filter over a server-filtered page is a DOUBLE filter
+// that hides rows the server correctly returned.
+export { inboxFilterActive } from "../model/inboxQuery.js";
+export type { ChatInboxFilter, InboxRowText } from "../model/inboxQuery.js";
 export type { SignInLinkProps } from "./SignInLink.js";
 // The skin's own theme root. Every surface above already wraps itself in it;
 // it is exported so a host composing loose parts can wrap them once.

@@ -31,6 +31,11 @@ export interface ConversationListBag {
    * must not read "0" while the list is failing to load. Server-computed per
    * conversation (`unread_count`), summed here; a host that pages deeper sees
    * the number grow, which is honest for a badge over a paginated list.
+   *
+   * IT IS A SUM OVER THIS LIST, filter included. A `search` narrows the rows,
+   * so it narrows this number too — which is right for "unread in what you
+   * are looking at" and wrong for a global unread badge. A host that wants
+   * the second one reads an unfiltered list.
    */
   readonly unreadTotal: LoadState<number>;
   readonly hasNextPage: boolean;
@@ -57,7 +62,9 @@ export interface ConversationListBag {
 
 /**
  * Headless conversation list — a renderless load-more list over
- * `GET /chat/api/v1/conversations`, kept fresh through the transport seam.
+ * `GET /chat/api/v1/conversations`, kept fresh through the transport seam and
+ * narrowed, where a host asks for it, by the endpoint's OWN `search` /
+ * `unread` filters (stapel-chat 0.8.2).
  *
  * ```tsx
  * <ConversationList>
@@ -86,11 +93,37 @@ export function ConversationList(props: {
    */
   viewerId?: string | number | null;
   limit?: number;
+  /**
+   * Narrow the list SERVER-SIDE (stapel-chat 0.8.2): a case-insensitive
+   * substring over the three things a row draws — the counterpart's display
+   * name, the subject card's title and the last line. Blank or whitespace-only
+   * is no search at all.
+   *
+   * It is in the query key and it filters before the page is taken, so paging
+   * a search walks the filtered list and `hasNextPage` means what it says.
+   * The value is debounced by the query layer (`useSettledInboxFilter`) —
+   * hand it the raw field value, not a pre-delayed one.
+   */
+  search?: string;
+  /**
+   * Keep only the conversations whose `unread_count` is above zero — the same
+   * subquery the badge on each row is produced from, so a chip and a badge
+   * cannot disagree. Applied immediately; only the search waits.
+   */
+  unreadOnly?: boolean;
+  /** Debounce for `search`, in ms. Default 300; `0` sends every keystroke. */
+  searchDebounceMs?: number;
   /** Poll period in ms; `0` turns the list's own freshness off entirely. */
   refreshIntervalMs?: number;
   children: (bag: ConversationListBag) => ReactNode;
 }): ReactNode {
-  const query = useConversations(props.limit);
+  const query = useConversations(props.limit, {
+    ...(props.search !== undefined ? { search: props.search } : {}),
+    ...(props.unreadOnly !== undefined ? { unreadOnly: props.unreadOnly } : {}),
+    ...(props.searchDebounceMs !== undefined
+      ? { searchDebounceMs: props.searchDebounceMs }
+      : {}),
+  });
   const mapKeys = useCallback(
     (_signal: ChatSignal) => [chatQueryKeys.conversations()],
     []

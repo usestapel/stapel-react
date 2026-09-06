@@ -257,17 +257,17 @@ Importing the subpath is the opt-in; consumers who bring their own visuals
 never pull `antd` into their bundle.
 
 An inbox row carries the four things a chat row is made of — who it is with
-(name + avatar), what it is about (the subject, and the last line when this
-client already holds it), when, and the unread badge. The thread pins the
+(name + avatar), what it is about (the subject, and the last line the row
+itself carries), when, and the unread badge. The thread pins the
 subject card, names the counterparty in its header, and puts report/block
 behind one overflow control. Dialogs go through `@stapel/tokens-antd/skin`'s
 `SkinDialog`, so every one of them is a bottom sheet on a phone.
 
 **Finding one conversation.** The list pane carries a toolbar: a search box
 over the three things a row draws — the counterpart's name, the listing it is
-about, the last line when this client holds one — and an "Unread" chip over
-the server's own `unread_count`. Both are controlled-or-not, and a storefront
-that passes nothing gets a working toolbar:
+about, and its last line — and an "Unread" chip over the server's own
+`unread_count`. Both are controlled-or-not, and a storefront that passes
+nothing gets a working toolbar:
 
 ```tsx
 <ConversationListPanel viewerId={me.id} />                       {/* self-managing */}
@@ -281,19 +281,31 @@ that passes nothing gets a working toolbar:
 
 `filters={false}` hides the controls and keeps the filter, for a host that
 drives both from chrome of its own. `<ConversationSplitPanel/>` forwards all
-of them. **Both filters are client-side**, over the pages already loaded:
-`GET /conversations` takes `anchor`/`direction`/`limit` and nothing else, so
-the pane states its scope whenever there is another page to load, and the
-filtered-empty arm says "nothing found" rather than borrowing the empty
-inbox's "no conversations yet". A `search` parameter and an `unread` filter on
-the list endpoint are named in `MODULE.md`'s upstream notes.
+of them.
 
-**No preview on first paint, and why.** `ConversationResponse` carries no last
-message — not a body, not a snippet — so a row shows the last line only for
-threads this client has open (read from the cache, no request). Naming it on
-first paint needs a `last_message` projection on stapel-chat's conversation
-serializer; a `GET /messages?limit=1` per row is not an answer, and a made-up
-line is worse than a blank one.
+**Both filters are the SERVER's** (stapel-chat 0.8.2 `?search=` / `?unread=`).
+They narrow the whole inbox rather than the pages this client happens to hold,
+they apply before the page is taken — so "load more" walks the filtered list —
+and they live in the query key, which is why a new search starts its paging
+over instead of resuming somebody else's anchor. Typing is debounced 300 ms
+(`INBOX_SEARCH_DEBOUNCE_MS`; `searchDebounceMs` overrides it, `0` disables it);
+the FIELD never lags, only the query does. No client-side predicate runs on top
+of the answer — that would be a second, blinder filter over the same rows, and
+it would hide rows the server matched on a field this client cannot see (see
+`src/model/inboxQuery.ts`). The filtered-empty arm says "nothing found" rather
+than borrowing the empty inbox's "no conversations yet", and it keeps the
+toolbar, because the toolbar is the way back out.
+
+**The last line comes with the row.** `ConversationResponse.last_message`
+(stapel-chat 0.8.3) is a projection — `{seq, kind, sender_id, created_at,
+body_preview}` — annotated for the whole page inside the query the list
+already runs, so every row paints its line on FIRST load and no client spends
+a `GET /messages?limit=1` per row. `null` is a thread nobody has written in
+and the row draws no line at all; the reader's own line is prefixed ("You: …").
+A `body_preview` of `null` means the line has no drawable words: with kind
+`system` the row says "System message", otherwise "Attachment" — the one thing
+the projection does not say is whether that null was a tombstone, which is the
+follow-up named in `MODULE.md`.
 
 ## Locales
 

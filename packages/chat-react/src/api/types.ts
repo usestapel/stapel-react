@@ -21,6 +21,23 @@ export type Conversation = Schemas["ConversationResponse"];
 export type Participant = Schemas["ParticipantResponse"];
 /** A single message. `seq` is the total order — never sort by `created_at`. */
 export type ChatMessage = Schemas["MessageResponse"];
+/**
+ * THE LINE AN INBOX ROW DRAWS — a projection, not a message (stapel-chat
+ * 0.8.3).
+ *
+ * It carries exactly what paints a row (`seq`, `kind`, `sender_id`,
+ * `created_at`, `body_preview`) and deliberately not enough to stand in for
+ * the thread: no id, no attachments, no `rev_seq`. A client that wants those
+ * opens the conversation. It is annotated for a whole page inside the query
+ * the list already runs, which is why a row no longer costs a
+ * `GET /messages?limit=1` of its own.
+ *
+ * `body_preview` is what the row DRAWS, already flattened to one line and
+ * capped at 140 characters upstream — never a body to re-derive a preview
+ * from. It is `null` in three cases the projection does not tell apart (see
+ * `model/previews.ts`).
+ */
+export type LastMessage = Schemas["LastMessageResponse"];
 /** POST /conversations request body. */
 export type CreateConversationRequest = Schemas["CreateConversationRequest"];
 /** POST /conversations/{id}/messages request body. */
@@ -92,12 +109,35 @@ export type ParticipantRole = "member" | "operator";
  */
 export type AnchorDirection = "next" | "prev" | "center";
 
-/** Query for `GET /conversations` (anchored on `updated_at`). */
+/**
+ * Query for `GET /conversations` (anchored on `updated_at`).
+ *
+ * `search` and `unread` are the SERVER's filters (stapel-chat 0.8.2) and they
+ * apply BEFORE the page is taken, so `anchor` / `direction` / `limit` mean
+ * exactly what they mean without them: paging a search walks the filtered
+ * list and can never surface a row the search excluded.
+ */
 export interface ConversationListParams {
   /** Anchor value to paginate from (exclusive) — a page's `next_anchor`. */
   readonly anchor?: string;
   readonly direction?: AnchorDirection;
   readonly limit?: number;
+  /**
+   * Case-insensitive substring over the three things a row DRAWS: the
+   * counterpart's display name, the subject card's title, and the last
+   * message's body — the very text `last_message.body_preview` ships, one
+   * rule for both, so a row can never come back for a word nobody can see on
+   * it. Blank or whitespace-only is no search at all (the server says so, and
+   * this pair does not send one).
+   */
+  readonly search?: string;
+  /**
+   * `true` keeps only the conversations whose `unread_count` is above zero
+   * for the caller — the same subquery the number on the row is produced
+   * from, so the chip and the badge cannot disagree. Any other value is no
+   * filter, so this pair sends the parameter only when it is `true`.
+   */
+  readonly unread?: boolean;
 }
 
 /** Query for `GET /conversations/{id}/messages` (anchored on `seq`). */

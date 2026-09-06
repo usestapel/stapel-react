@@ -42,6 +42,25 @@ function pageQuery(
 }
 
 /**
+ * The conversation list's own two filters on top of the paging trio
+ * (stapel-chat 0.8.2).
+ *
+ * BOTH ARE OMITTED RATHER THAN SENT EMPTY. `search=` and `unread=false` are
+ * "no filter" to the server, so sending them buys nothing and costs a
+ * distinct URL for every state a toolbar passes through — which is a distinct
+ * cache entry and a request per keystroke of an empty box.
+ */
+function conversationQuery(
+  params: ConversationListParams | undefined
+): Record<string, string | number> {
+  const query = pageQuery(params);
+  const search = params?.search?.trim() ?? "";
+  if (search !== "") query.search = search;
+  if (params?.unread === true) query.unread = "true";
+  return query;
+}
+
+/**
  * The pair's typed operation surface — one method per stapel-chat endpoint a
  * buyer/seller client may call, bound to the injected {@link StapelClient}
  * (the per-module override seam of frontend-standard §7.2). Paths are relative
@@ -65,7 +84,11 @@ function pageQuery(
 export interface ChatApi {
   readonly client: StapelClient;
 
-  /** A page of the caller's conversations, newest activity first. */
+  /**
+   * A page of the caller's conversations, newest activity first — narrowed by
+   * `search` / `unread` where they are given (stapel-chat 0.8.2: both filter
+   * BEFORE the page is taken).
+   */
   conversations(params?: ConversationListParams): Promise<ConversationPage>;
   /** One conversation (participant-only; 403 otherwise). */
   conversation(conversationId: string): Promise<Conversation>;
@@ -112,7 +135,7 @@ export function createChatApi(client: StapelClient): ChatApi {
     client,
 
     conversations: (params) =>
-      client.get("/conversations", { query: pageQuery(params) }),
+      client.get("/conversations", { query: conversationQuery(params) }),
 
     conversation: (conversationId) => client.get(conversationPath(conversationId)),
 

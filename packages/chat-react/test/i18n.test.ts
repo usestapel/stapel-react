@@ -98,6 +98,32 @@ describe("the pair's own UI copy", () => {
     expect(UI_KEYS.filter((key) => !(key in chatI18nBundleEs))).toEqual([]);
   });
 
+  it("the retired scope line is gone from ALL THREE, not one of them", async () => {
+    // "Filtering among the conversations loaded so far" was true while the
+    // toolbar was a client-side predicate and is a lie now that stapel-chat
+    // 0.8.2 filters the whole inbox. A key removed from the English floor and
+    // left in a locale bundle is how a retired sentence comes back in one
+    // language only.
+    const retired = "chat.list.filter.scope";
+    for (const bundle of [chatI18nBundleEn, chatI18nBundleRu, chatI18nBundleEs]) {
+      expect(bundle).not.toHaveProperty(retired);
+    }
+    expect(Object.values(CHAT_I18N_KEYS)).not.toContain(retired);
+  });
+
+  it("the row's two wordless previews are said in every locale, and differently", async () => {
+    // `body_preview: null` is not one state: a system marker nobody labelled
+    // and a message with no text are different rows, and one sentence for
+    // both would be this pair deciding they are the same.
+    for (const bundle of [chatI18nBundleEn, chatI18nBundleRu, chatI18nBundleEs]) {
+      const system = String(bundle[CHAT_I18N_KEYS.listPreviewSystem]);
+      const attachment = String(bundle[CHAT_I18N_KEYS.listPreviewAttachment]);
+      expect(system).not.toBe("");
+      expect(attachment).not.toBe("");
+      expect(system).not.toBe(attachment);
+    }
+  });
+
   it("interpolation slots survive translation", () => {
     for (const bundle of [chatI18nBundleEn, chatI18nBundleRu, chatI18nBundleEs]) {
       expect(String(bundle["chat.list.unread"])).toContain("{count}");

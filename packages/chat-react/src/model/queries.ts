@@ -8,6 +8,8 @@ import { useActiveSessionReady } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type { Conversation, ConversationPage } from "../api/types.js";
 import { useChatApi } from "./context.js";
+import { useSettledInboxFilter } from "./inboxQuery.js";
+import type { ChatInboxFilter } from "./inboxQuery.js";
 import { chatQueryKeys } from "./queryKeys.js";
 import {
   mergeNewerPage,
@@ -48,23 +50,44 @@ export function useConversation(
 /**
  * The caller's conversations as an infinite (load-more) list, anchored on
  * `updated_at`. `unread_count` is computed server-side per conversation, so
- * the badge needs no second request.
+ * the badge needs no second request, and every row carries the line it draws
+ * (`last_message`, stapel-chat 0.8.3) so the first paint needs none either.
+ *
+ * THE FILTER IS THE SERVER'S (stapel-chat 0.8.2), which makes three things
+ * true at once and all three are properties of the query, not of a skin:
+ *
+ *  · it is IN THE KEY, so a search has its own cache entry and its own pages
+ *    — the answer to "bicycle" can never be stitched onto the answer to
+ *    everything;
+ *  · PAGING RESTARTS on any change, because a new key is a new entry whose
+ *    `initialPageParam` is `undefined` — a "load more" pressed under one
+ *    search cannot carry its anchor into the next;
+ *  · the SEARCH IS DEBOUNCED here rather than at a call site
+ *    (`useSettledInboxFilter`), so every consumer of this hook gets the same
+ *    pause and no host has to remember to add one. The chip is not.
  */
 export function useConversations(
-  limit: number = CONVERSATIONS_PAGE
+  limit: number = CONVERSATIONS_PAGE,
+  filter?: ChatInboxFilter
 ): UseInfiniteQueryResult<
   InfiniteData<ConversationPage, string | undefined>,
   StapelApiError
 > {
   const api = useChatApi();
   const sessionReady = useActiveSessionReady();
+  const settled = useSettledInboxFilter(filter);
   return useInfiniteQuery({
-    queryKey: chatQueryKeys.conversations(),
+    queryKey: chatQueryKeys.conversationList(settled),
     queryFn: ({ pageParam }) =>
       api.conversations({
         direction: "next",
         limit,
         ...(pageParam !== undefined ? { anchor: pageParam } : {}),
+        // Omitted rather than sent empty — `conversationQuery` in the client
+        // is where that rule lives, and it is the same rule the server
+        // states: a blank search is no search.
+        ...(settled.search !== "" ? { search: settled.search } : {}),
+        ...(settled.unreadOnly ? { unread: true } : {}),
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>

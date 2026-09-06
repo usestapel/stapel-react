@@ -211,10 +211,14 @@ export function seedInbox(
 ): DemoSeed {
   const page = inboxPage(rows, options);
   return (queryClient) => {
-    queryClient.setQueryData(chatQueryKeys.conversations(), {
-      pages: [page],
-      pageParams: [undefined],
-    });
+    // The UNFILTERED entry. Since stapel-chat 0.8.2 the list is filtered
+    // server-side, so a narrowing is a different cache entry — a demo that
+    // seeded the bare `conversations()` prefix would seed a key nothing
+    // reads and photograph a spinner.
+    queryClient.setQueryData(
+      chatQueryKeys.conversationList({ search: "", unreadOnly: false }),
+      { pages: [page], pageParams: [undefined] }
+    );
   };
 }
 
@@ -634,7 +638,21 @@ export const DEMO_SUBJECT_GONE: NonNullable<Conversation["subject"]> =
  */
 export const DEMO_THREAD_CONVERSATION: Conversation = conversation(
   "8f14e45f-ceea-467a-9b58-2f0b0b1a6b21",
-  { unread_count: 2, subject: DEMO_SUBJECT }
+  {
+    unread_count: 2,
+    subject: DEMO_SUBJECT,
+    // The line the row DRAWS (stapel-chat 0.8.3). Every row carries one, so
+    // the catalogue shows the inbox a person actually lands on — before this
+    // projection existed a first visit had no previews at all, and the shots
+    // documented three rows of name-and-clock.
+    last_message: {
+      seq: 3,
+      kind: "text",
+      sender_id: "u-seller",
+      created_at: "2026-08-21T18:12:00Z",
+      body_preview: "It is still available — when would you like to pick it up?",
+    },
+  }
 );
 
 export const DEMO_INBOX: readonly Conversation[] = [
@@ -645,11 +663,30 @@ export const DEMO_INBOX: readonly Conversation[] = [
       { user_id: DEMO_VIEWER, role: "member", last_read_seq: 3 },
       { user_id: "u-anton", role: "member", last_read_seq: 3 },
     ],
+    // The reader's own last line — the row prefixes it, which is how a person
+    // tells "they answered" from "I did" without opening anything.
+    last_message: {
+      seq: 7,
+      kind: "text",
+      sender_id: DEMO_VIEWER,
+      created_at: "2026-08-21T11:40:00Z",
+      body_preview: "Thanks! I will take it.",
+    },
   }),
   conversation("aa11bb22-cc33-4d44-9e55-ff6677889900", {
     kind: "support",
     support_status: "open",
     updated_at: "2026-08-20T16:05:00Z",
+    // An attachment-only last line: `body_preview` is null and `kind` says it
+    // was not a system marker, so the row says a file arrived rather than
+    // drawing an empty strip.
+    last_message: {
+      seq: 2,
+      kind: "text",
+      sender_id: "u-support",
+      created_at: "2026-08-20T16:05:00Z",
+      body_preview: null,
+    },
   }),
 ];
 

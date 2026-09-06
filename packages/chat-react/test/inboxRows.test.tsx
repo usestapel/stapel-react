@@ -24,13 +24,12 @@ import { useQuery } from "@tanstack/react-query";
 import { ConversationListPanel } from "../src/default/index.js";
 import type { ChatPeopleSlot, ChatPerson, Conversation } from "../src/index.js";
 import { TestHarness, mockServer } from "./harness.js";
-import { ConversationThreadPanel } from "../src/default/index.js";
 import {
   BUYER,
   CONVERSATION_ID,
   conversation,
   conversationPage,
-  messagePage,
+  lastMessage,
 } from "./fixtures.js";
 
 const NAMES: Readonly<Record<string, string>> = {
@@ -160,9 +159,17 @@ describe("the inbox names the person, not the kind", () => {
     expect(screen.getByLabelText("2 unread")).toBeTruthy();
   });
 
-  it("shows the last line this client already holds, and asks nobody for it", async () => {
+  it("draws the line the ROW carries, on first paint, and asks nobody for it", async () => {
+    // The projection (stapel-chat 0.8.3) arrives with the page, so a preview
+    // is there before any thread has been opened — and the list still does
+    // not spend a `GET /messages?limit=1` per row to invent one, which is the
+    // fifty-request alternative the projection exists to end.
     const people = peopleSlot();
-    const rows = threeConversations();
+    const rows = threeConversations().map((row, index) =>
+      index === 0
+        ? { ...row, last_message: lastMessage({ body_preview: "Still available?" }) }
+        : row
+    );
     const server = mockServer({
       "GET /conversations": { body: conversationPage(rows) },
     });
@@ -178,29 +185,34 @@ describe("the inbox names the person, not the kind", () => {
     await waitFor(() =>
       expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(3)
     );
-    // No thread was opened this session, so no preview is claimed — and the
-    // list did NOT go and fetch one per row to invent it.
-    expect(screen.queryAllByTestId("chat-row-preview")).toHaveLength(0);
+    expect(screen.getByTestId("chat-row-preview").textContent).toBe(
+      "Still available?"
+    );
     expect(server.calls.filter((call) => call.url.includes("/messages"))).toEqual([]);
   });
 
-  it("shows the last line for a thread the client HAS, marked as the reader's own", async () => {
-    // The other half of the same rule: a preview is rendered exactly when this
-    // client honestly holds the message. Opening the thread is what makes it
-    // hold one — and the row then reads it out of the cache, not off the wire.
+  it("a thread nobody has written in draws no line at all", async () => {
+    // `last_message: null` is the empty thread, and an empty grey strip under
+    // the name would say something was said and could not be shown.
     const people = peopleSlot();
-    const row = conversation({
-      id: CONVERSATION_ID,
-      participants: [
-        { user_id: BUYER, role: "member", last_read_seq: 0 },
-        { user_id: "u-anna", role: "member", last_read_seq: 0 },
-      ],
-    });
+    renderInbox(threeConversations(), people.slot);
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(3)
+    );
+    expect(screen.queryAllByTestId("chat-row-preview")).toHaveLength(0);
+  });
+
+  it("marks the reader's OWN last line, comparing the id as a string", async () => {
+    // A host may hold the viewer id as a number; the wire always sends text.
+    const people = peopleSlot();
+    const rows = [
+      {
+        ...(threeConversations()[0] as Conversation),
+        last_message: lastMessage({ sender_id: BUYER, body_preview: "On my way" }),
+      },
+    ];
     const server = mockServer({
-      // Declared first: the messages URL contains "/conversations" too.
-      "GET /messages": { body: messagePage([1, 2]) },
-      "POST /read": { body: {} },
-      "GET /conversations": { body: conversationPage([row]) },
+      "GET /conversations": { body: conversationPage(rows) },
     });
     render(
       <TestHarness
@@ -208,15 +220,53 @@ describe("the inbox names the person, not the kind", () => {
         realtime={{ socketUrl: null }}
         slots={{ people: people.slot }}
       >
-        <ConversationThreadPanel conversationId={CONVERSATION_ID} viewerId={BUYER} />
         <ConversationListPanel viewerId={BUYER} />
       </TestHarness>
     );
     await waitFor(() =>
       expect(screen.getByTestId("chat-row-preview").textContent).toBe(
-        "You: message 2"
+        "You: On my way"
       )
     );
+  });
+
+  it("says what a preview with no words IS, by kind", async () => {
+    // `body_preview: null` means "this line has no drawable words", and
+    // `kind` is the only thing that says which case it is. A system marker
+    // this deployment gave no words to is not an attachment, and neither of
+    // them is a blank row. The third case — a tombstone — arrives as the same
+    // null with kind `text`, which is the follow-up named in previews.ts.
+    const people = peopleSlot();
+    const [first, second] = threeConversations();
+    const rows = [
+      {
+        ...(first as Conversation),
+        last_message: lastMessage({ kind: "system", sender_id: null, body_preview: null }),
+      },
+      {
+        ...(second as Conversation),
+        last_message: lastMessage({ body_preview: null }),
+      },
+    ];
+    const server = mockServer({
+      "GET /conversations": { body: conversationPage(rows) },
+    });
+    render(
+      <TestHarness
+        server={server}
+        realtime={{ socketUrl: null }}
+        slots={{ people: people.slot }}
+      >
+        <ConversationListPanel viewerId={BUYER} />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-row-preview")).toHaveLength(2)
+    );
+    const drawn = screen
+      .getAllByTestId("chat-row-preview")
+      .map((node) => node.textContent);
+    expect(drawn).toEqual(["System message", "Attachment"]);
   });
 });
 

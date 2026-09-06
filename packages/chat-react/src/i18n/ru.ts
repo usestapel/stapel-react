@@ -82,7 +82,6 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.list.search.placeholder": "Имя, объявление или сообщение",
   "chat.list.filter.unread": "Непрочитанные",
   "chat.list.no_matches": "Ничего не найдено.",
-  "chat.list.filter.scope": "Фильтр — среди загруженных диалогов.",
 
   "chat.kind.direct": "Личная переписка",
   "chat.kind.group": "Групповой диалог",
@@ -92,6 +91,8 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.person.loading": "Загружаем…",
   "chat.list.preview_own": "Вы: {text}",
   "chat.list.preview_deleted": "Сообщение удалено",
+  "chat.list.preview_system": "Системное сообщение",
+  "chat.list.preview_attachment": "Вложение",
 
   "chat.subject.label": "О чём этот диалог",
   "chat.subject.open": "Открыть",

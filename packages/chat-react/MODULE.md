@@ -237,16 +237,27 @@ says neither that nor "Live".
   serves. The generated type therefore makes them optional and every consumer
   must handle an absence the server never produces.
   `chatStreamForConversation` reads them when present and derives when not.
-- **`GET /conversations` cannot be searched or filtered.** Its only query
-  parameters are `anchor`, `direction` and `limit` (stapel-chat 0.8.0,
-  `docs/schema.json`), so the thread list's toolbar — search over the
-  counterpart's name / the subject title / the last line, and the "Unread"
-  chip over `unread_count` — narrows the pages this client has ALREADY
-  loaded, and the pane says so whenever another page is unloaded. What would
-  make both server-side and exact: a `search` parameter over those fields and
-  an `unread=true` filter on the list endpoint. Related, and the same shape:
-  the missing `last_message` projection below — without it a row can only be
-  found by its last line once its thread has been opened this session.
+- ~~**`GET /conversations` cannot be searched or filtered.**~~ **Fixed
+  upstream (stapel-chat 0.8.2).** It was true, and the toolbar this pair
+  shipped in 0.11.0 could only narrow the pages already loaded. The endpoint
+  now takes `search` (the counterpart's display name, the subject card's
+  title, the last line — the three things a row DRAWS, one rule for the
+  preview and the search) and `unread=true`, both filtering BEFORE the page is
+  taken. The pair sends them from the query key, restarts paging on any
+  change, debounces the text 300 ms, and runs NO client-side predicate
+  alongside — see the note under "Not in this version" on why a second filter
+  over a server-filtered page hides rows.
+- **A `body_preview` of `null` does not say WHICH null it is.**
+  `services.drawn_last_line` collapses three cases into one absent string: a
+  tombstone, an attachment-only message, and a system marker this deployment
+  gave no words to. `kind` separates the third; the first two are
+  indistinguishable on the wire. So an inbox row that would have said "Message
+  deleted" (the pair has the copy, `chat.list.preview_deleted`) says
+  "Attachment" instead — right for the common case, vague for the other, and
+  never "deleted" over a picture. What would close it: a discriminator on the
+  projection (`preview_reason: "deleted" | "attachment" | "unlabelled"`, or
+  simply the `deleted` flag the message row already carries). It is a contract
+  change in stapel-chat, not something a skin can paper over.
 - ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
   It was true: `@stapel/realtime` reported a stream as `reconnecting` while
   core's refresh was in flight, so a pair could not tell "renewing your
@@ -407,18 +418,33 @@ core floors only `en` and `ru`.
   but does nothing is worse than one that is absent.
 - **The support console.** `/support/queue`, assign / resolve / reopen — an
   operator surface, not this one.
-- **A last-message preview on the conversation list.** `ConversationResponse`
-  carries `last_seq`, `unread_count`, `updated_at`, `subject` and
-  `participants` — and no message. A row therefore shows its last line only
-  for a thread this client already holds (`useThreadPreviews`, cache-only, no
-  request). NAMED UPSTREAM GAP: a `last_message` projection on the
-  conversation serializer would let every row paint one on first load. A
-  `GET /messages?limit=1` per row is not an answer.
+- **A client-side filter over the conversation list.** Deliberately absent,
+  and not as an optimisation. The server matches a row on fields this client
+  does not hold — the counterpart's display name lives behind the host's
+  people seam and may still be pending, and the subject card's title is
+  matched at the fields only that subject type's policy names — so a local
+  predicate re-applied on top of a server-filtered page reads those absences
+  as "no match" and blinks a correctly-returned row out of the list, for the
+  length of the debounce and the round trip. One authority over what matches,
+  and it is the one that can see every field (`src/model/inboxQuery.ts`).
 - **Names.** Resolved through the host `people` seam, because they belong to
   `@stapel/profiles-react`, a peer this pair never imports. With no seam a row
   says "Name unavailable" — the failure, in words.
 
 ## Done since 0.4.0
+
+- **The inbox row draws the line it carries** (stapel-chat 0.8.3
+  `last_message`). One projection per row, annotated for the whole page inside
+  the query the list already runs, so a first visit shows previews instead of
+  a column of names and clocks. What it replaced was `useThreadPreviews` — a
+  cache-only reader that showed a line for the threads this session had opened
+  and nothing for the rest — which is now deleted rather than kept as a
+  fallback: a second source for the same line is a second answer to disagree
+  with.
+- **The thread list is searched by the server** (stapel-chat 0.8.2 `search` /
+  `unread`). In the query key, debounced, paging restarted on change, and with
+  the "among the conversations loaded so far" caveat removed from all three
+  locales — it described a scope that no longer exists.
 
 - **A thread scoped to a listing.** `CreateConversationRequest.scope_key` is
   still ignored by the server, but stapel-chat 0.6.0's `(subject_type,

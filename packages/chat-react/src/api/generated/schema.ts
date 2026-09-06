@@ -356,6 +356,8 @@ export interface components {
             assigned_operator_id?: string | null;
             /** @description What the thread is about, with its rendered card inlined — */
             subject?: components["schemas"]["SubjectResponse"] | null;
+            /** @description The line this row draws under the title, or ``null`` */
+            last_message?: components["schemas"]["LastMessageResponse"] | null;
             /** @description The conversation's participants */
             participants?: components["schemas"]["ParticipantResponse"][];
         };
@@ -371,6 +373,31 @@ export interface components {
             subject_key?: string;
             /** @description Ignored — the scope is resolved server-side from the */
             scope_key?: string;
+        };
+        /**
+         * @description The one line an inbox row draws under the title.
+         *
+         *     A projection, not a message: enough to PAINT the row, and deliberately not
+         *     enough to stand in for the thread (no id, no attachments, no revision
+         *     cursor — a client that wants those opens the conversation). It is annotated
+         *     for a whole page in the same query the list already costs, because the
+         *     alternative a client is otherwise driven to — ``GET /messages?limit=1`` per
+         *     row — is fifty requests for a fifty-row inbox.
+         */
+        LastMessageResponse: {
+            /** @description That message's position in the thread — the newest one in it */
+            seq: number;
+            /** @description ``text`` or ``system`` */
+            kind: string;
+            /**
+             * Format: date-time
+             * @description When it was posted — what the row timestamps
+             */
+            created_at: string;
+            /** @description Author's user id, or null for a system line */
+            sender_id?: string | null;
+            /** @description The text the row DRAWS for that line, or ``null`` */
+            body_preview?: string | null;
         };
         /** @description Advance the requesting user's read/delivery markers. */
         MarkReadRequest: {
@@ -545,6 +572,10 @@ export interface operations {
                 direction?: "next" | "prev" | "center";
                 /** @description Number of items (default 50, max 200) */
                 limit?: number;
+                /** @description Case-insensitive substring over the three things an inbox row draws: the COUNTERPART'S DISPLAY NAME (the user-model fields STAPEL_CHAT['SEARCH_NAME_FIELDS'] names — username, first name and last name out of the box), the SUBJECT CARD'S TITLE where the thread carries a subject (the fields that subject type's `search_fields` policy names, `title` by default), and the LAST MESSAGE'S body — the very text that row's `last_message.body_preview` ships, one rule for both. A tombstone is never matched (it draws as deleted), and neither is a system marker, unless this deployment gave that marker words in STAPEL_CHAT['SYSTEM_LINE_LABELS'] — then the row draws the label and those words find it. Filters BEFORE paging: anchor, direction and limit walk the filtered list and mean exactly what they mean without a search. Blank or whitespace-only is no search at all. Title matching covers the newest STAPEL_CHAT['SEARCH_SUBJECT_SCAN'] subject threads (500 by default); older ones are still matched by name and last line. */
+                search?: string;
+                /** @description `true` returns only conversations whose `unread_count` is above zero for the caller — the same rule that produces the number on each row (messages past your read marker, written by somebody else, tombstones and system lines excluded). Any other value is no filter. Composes with `search` (both narrow, then the page is taken). */
+                unread?: boolean;
             };
             header?: never;
             path?: never;

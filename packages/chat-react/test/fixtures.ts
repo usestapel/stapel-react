@@ -6,6 +6,7 @@ import type {
   ChatMessage,
   Conversation,
   ConversationPage,
+  LastMessage,
   MessagePage,
 } from "../src/index.js";
 
@@ -33,6 +34,23 @@ export function conversation(overrides: Partial<Conversation> = {}): Conversatio
       { user_id: BUYER, role: "member", last_read_seq: 1 },
       { user_id: SELLER, role: "member", last_read_seq: 3 },
     ],
+    ...overrides,
+  };
+}
+
+/**
+ * The line an inbox row draws (stapel-chat 0.8.3) — a PROJECTION, not a
+ * message: no id, no attachments, no `rev_seq`. Deliberately not a default on
+ * {@link conversation}: a thread nobody has written in sends `last_message:
+ * null`, and that is the row this pair must draw with no line at all.
+ */
+export function lastMessage(overrides: Partial<LastMessage> = {}): LastMessage {
+  return {
+    seq: 3,
+    kind: "text",
+    created_at: "2026-08-21T18:12:00Z",
+    sender_id: SELLER,
+    body_preview: "Is the bicycle still available?",
     ...overrides,
   };
 }
