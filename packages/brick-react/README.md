@@ -5,8 +5,8 @@ handheld everybody had — as a frontend-only Stapel library: a tiny fixed-step
 engine, six games as pure modules, a console skin drawn entirely in §68 design
 tokens, a phone keypad, and local high scores.
 
-It exists for the waits a product cannot shorten: meettoday's *waiting to be
-admitted to the room*, ironmemo's *uploading / analysing*. Those screens are a
+It exists for the waits a product cannot shorten: a meeting product's *waiting to be
+admitted to the room*, a recordings product's *uploading / analysing*. Those screens are a
 spinner and a sentence today. This puts a console under the sentence, and takes
 it away the moment the wait ends.
 

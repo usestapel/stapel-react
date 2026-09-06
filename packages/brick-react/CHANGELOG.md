@@ -5,8 +5,8 @@
 ### Minor Changes
 
 - 3342e96: New package: **stapel 4-bit games** — the pixel brick-game handheld as a
-  frontend-only library, for the waits a product cannot shorten (meettoday's
-  "waiting to be admitted to the room", ironmemo's "uploading / analysing").
+  frontend-only library, for the waits a product cannot shorten (a meeting product's
+  "waiting to be admitted to the room", a recordings product's "uploading / analysing").
 
   - **The engine** (`@stapel/brick-react`, no React in it): `createLoop` — a
     fixed simulation step fed by accumulated frame deltas, so a 120Hz phone and a

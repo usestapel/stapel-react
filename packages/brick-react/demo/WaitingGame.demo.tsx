@@ -15,7 +15,7 @@ import {
   demoHighScores,
 } from "./_harness.js";
 
-/** The meettoday case: the room exists, the host has not let you in yet. */
+/** The meeting-admission case: the room exists, the host has not let you in yet. */
 function Admission(props: { readonly active: boolean }) {
   const t = useT();
   return (
@@ -38,7 +38,7 @@ function Admission(props: { readonly active: boolean }) {
   );
 }
 
-/** The ironmemo case: the upload landed, the analysis has not. */
+/** The recording-processing case: the upload landed, the analysis has not. */
 function Processing() {
   const t = useT();
   return (

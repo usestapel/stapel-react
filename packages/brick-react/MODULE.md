@@ -9,9 +9,9 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog);
 One sentence: **a product cannot always shorten a wait, so it can at least stop
 pretending the wait is a screen.**
 
-Two waits in the fleet started this. meettoday's *waiting to be admitted to the
+Two waits in the fleet started this. a meeting product's *waiting to be admitted to the
 room* — the host has been pinged, and there is nothing on screen but a spinner
-and a name. ironmemo's *uploading / analysing* — two minutes for a
+and a name. a recordings product's *uploading / analysing* — two minutes for a
 forty-minute call, and the only feedback is a bar. Both are places where a
 person is held, told nothing actionable, and left with a browser tab. A brick
 console is the smallest honest thing to put there: it costs nothing, it needs
