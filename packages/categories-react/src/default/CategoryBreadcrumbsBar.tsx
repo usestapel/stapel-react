@@ -47,6 +47,20 @@ export interface CategoryBreadcrumbsBarProps
    * consulted — see `CategoryBreadcrumbsProps.unlink`.
    */
   readonly unlink?: (crumb: CategoryCrumbInput) => boolean;
+  /**
+   * Hold the trail that is on the glass while the next category's rows are in
+   * flight, instead of swapping it for the skeleton. Default `false` — a bar
+   * mounted alone in a header keeps the behaviour it has.
+   *
+   * `<CategoryPage>` passes `true` (and the id of the frame it is HOLDING),
+   * because a page that keeps its heading, its sub-categories and its
+   * listings across a sibling press, and blanks the one row above them to a
+   * skeleton, is the same rebuild the page's own `keepPrevious` removed —
+   * just narrower. The kept trail carries `data-stapel-load-refreshing="true"`
+   * (`<LoadBoundary>`) until the newer rows land, so the wait is stated
+   * without being drawn as an absence.
+   */
+  readonly keepPrevious?: boolean;
 }
 
 export function CategoryBreadcrumbsBar(
@@ -87,6 +101,9 @@ export function CategoryBreadcrumbsBar(
           ? { categoryId: props.categoryId }
           : {})}
         {...(props.unlink !== undefined ? { unlink: props.unlink } : {})}
+        {...(props.keepPrevious !== undefined
+          ? { keepPrevious: props.keepPrevious }
+          : {})}
       >
         {(bag) => (
           <LoadBoundary

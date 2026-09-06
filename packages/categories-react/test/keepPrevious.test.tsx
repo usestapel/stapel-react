@@ -60,6 +60,11 @@ let goTo: (id: number) => void = () => undefined;
 function Switcher(props: {
   readonly keepPrevious?: boolean;
   readonly start: number;
+  /** The trail is off by default here: every assertion about MOUNTS is about
+   * the slot under the boundary, and the bar sits above it. The breadcrumb
+   * suite below turns it on, because that row is the one the boundary does
+   * not cover. */
+  readonly breadcrumbs?: boolean;
 }): ReactElement {
   const [id, setId] = useState(props.start);
   goTo = setId;
@@ -67,7 +72,7 @@ function Switcher(props: {
     <CategoryPage
       categoryId={id}
       subcategories="none"
-      breadcrumbs={false}
+      breadcrumbs={props.breadcrumbs === true}
       {...(props.keepPrevious !== undefined
         ? { keepPrevious: props.keepPrevious }
         : {})}
@@ -217,5 +222,84 @@ describe("<CategoryPage> keeps the page it is showing", () => {
       expect(screen.getByTestId("categories-category-failed")).toBeTruthy()
     );
     expect(screen.queryByTestId("host-listings")).toBeNull();
+  });
+});
+
+/** Every moment at which the trail was a skeleton, not just the moments a
+ * synchronous assertion happens to look at. The count is taken on every DOM
+ * mutation batch, so a flash that appeared and was replaced between two
+ * `waitFor` polls is still recorded. */
+function watchBreadcrumbSkeleton(): { count: () => number; stop: () => void } {
+  let seen = trailSkeletons();
+  const observer = new MutationObserver(() => {
+    seen += trailSkeletons();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return {
+    count: () => seen,
+    stop: () => {
+      observer.disconnect();
+    },
+  };
+}
+
+/** The loading arm stamps `-loading` on its wrapper AND the bar stamps it on
+ * the `Skeleton.Input` inside — so this counts nodes rather than asserting
+ * one. */
+function trailSkeletons(): number {
+  return screen.queryAllByTestId("categories-breadcrumbs-loading").length;
+}
+
+describe("<CategoryPage> holds the TRAIL with the frame", () => {
+  it("never draws the breadcrumbs skeleton on a sibling change, and keeps the trail's element", async () => {
+    const watch = watchBreadcrumbSkeleton();
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <Switcher start={PHONES.id} breadcrumbs />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("host-listings").textContent).toBe("phones")
+    );
+    // The trail's own ancestor reads land after the page's two, so it is
+    // waited for separately — the point of this test starts once it is whole.
+    const trail = await screen.findByTestId("categories-breadcrumbs");
+    expect(trail.textContent).toContain("category.phones");
+    // The first mount is allowed exactly one skeleton — there was nothing
+    // behind it. Everything after this line is measured against that.
+    const beforeThePress = watch.count();
+
+    act(() => {
+      goTo(LAPTOPS.id);
+    });
+
+    // The render that used to blank the trail while the heading, the
+    // sub-categories and the listings all stood: root → current is still
+    // there, still naming the category the rest of the page is drawing.
+    expect(trailSkeletons()).toBe(0);
+    expect(screen.getByTestId("categories-breadcrumbs")).toBe(trail);
+    expect(trail.textContent).toContain("category.phones");
+
+    await waitFor(() => expect(trail.textContent).toContain("category.laptops"));
+    expect(screen.getByTestId("host-listings").textContent).toBe("laptops");
+    // Same element throughout — which is the structural proof, since a
+    // skeleton at any point would have unmounted this node and the trail that
+    // came back would be a different one.
+    expect(screen.getByTestId("categories-breadcrumbs")).toBe(trail);
+    expect(watch.count()).toBe(beforeThePress);
+    watch.stop();
+  });
+
+  it("still draws the breadcrumbs skeleton on a FIRST mount", () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <Switcher start={PHONES.id} breadcrumbs />
+      </TestProviders>
+    );
+    // Synchronously, before any read has landed. A held trail is a memory;
+    // on the first paint there is nothing to remember, and saying "loading"
+    // is the honest answer there.
+    expect(trailSkeletons()).toBeGreaterThan(0);
+    expect(screen.queryByTestId("categories-breadcrumbs")).toBeNull();
   });
 });

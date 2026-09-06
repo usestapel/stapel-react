@@ -29,7 +29,7 @@
  * chains against each other on a fixture, so a divergence stays a red test.
  */
 import type { ReactNode } from "react";
-import { loadFailed, loadLoading, loadReady, mapLoad } from "@stapel/core";
+import { loadFailed, loadLoading, loadReady, mapLoad, useKeptLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import { loadStateFromQuery } from "@stapel/core";
 import type { Category } from "../api/types.js";
@@ -103,6 +103,20 @@ export interface CategoryBreadcrumbsProps
    * crumb. Omitted, the automatic check runs.
    */
   unlink?: (crumb: CategoryCrumbInput) => boolean;
+  /**
+   * Hold the trail that is on the glass while the NEXT category's rows are in
+   * flight, instead of answering `loading`. Default `false` — a bar mounted
+   * alone keeps the behaviour it has.
+   *
+   * A trail is one slice of a frame, and a screen that HOLDS its frame
+   * (`<CategoryPage keepPrevious>`) must not have a hole punched in it by the
+   * one surface that did not: root → current is the cheapest part of the page
+   * to keep and the most conspicuous part to lose. The kept answer arrives
+   * stamped {@link LoadReady.refreshing}, so the skin can say so in place; a
+   * REFUSAL is never held, and neither is a first load, which has nothing
+   * behind it. See `useKeptLoad` in @stapel/core.
+   */
+  keepPrevious?: boolean;
   children: (bag: CategoryBreadcrumbsBag) => ReactNode;
 }
 
@@ -136,6 +150,7 @@ export function CategoryBreadcrumbs(
     categoryId,
     children,
     unlink,
+    keepPrevious,
     includeDeleted,
     includeInactive,
     includeTest,
@@ -158,9 +173,18 @@ export function CategoryBreadcrumbs(
     enabled: bySlug && (props.enabled ?? true),
   });
 
+  const catalog = loadStateFromQuery(catalogQuery);
+
+  // Both addresses land here — one `state`, one `useKeptLoad` below. A hook
+  // cannot be called past a `return`, and the trail must keep its memory on
+  // whichever address the host used.
+  let state: LoadState<readonly CategoryCrumb[]>;
+  let unknownSlug = false;
+  let refetch: () => void;
+
   if (!bySlug) {
     const current = currentQuery.data ?? null;
-    const state: LoadState<readonly CategoryCrumb[]> =
+    state =
       currentQuery.error != null
         ? loadFailed(currentQuery.error)
         : ancestors.error != null
@@ -187,24 +211,16 @@ export function CategoryBreadcrumbs(
                   unlink
                 )
               );
-    return children({
-      state,
-      unknownSlug: false,
-      refetch: () => {
-        void currentQuery.refetch();
-      },
-    });
-  }
-
-  const catalog = loadStateFromQuery(catalogQuery);
-  const index = catalog.status === "ready" ? catalog.data.index : null;
-  let current: CategoryNode | null = null;
-  if (index !== null && slug !== undefined) {
-    current = resolveCategorySlug(index, slug) ?? null;
-  }
-
-  return children({
-    state: mapLoad(catalog, (data) => {
+    refetch = () => {
+      void currentQuery.refetch();
+    };
+  } else {
+    const index = catalog.status === "ready" ? catalog.data.index : null;
+    let current: CategoryNode | null = null;
+    if (index !== null && slug !== undefined) {
+      current = resolveCategorySlug(index, slug) ?? null;
+    }
+    state = mapLoad(catalog, (data) => {
       const path = categoryBreadcrumbs(data.index, current?.id);
       return attachLinked(
         path.map((node, i) => ({
@@ -214,10 +230,14 @@ export function CategoryBreadcrumbs(
         })),
         unlink
       );
-    }),
-    unknownSlug: catalog.status === "ready" && current === null,
-    refetch: () => {
+    });
+    unknownSlug = catalog.status === "ready" && current === null;
+    refetch = () => {
       void catalogQuery.refetch();
-    },
-  });
+    };
+  }
+
+  const kept = useKeptLoad(state, { keepPrevious: keepPrevious === true });
+
+  return children({ state: kept, unknownSlug, refetch });
 }

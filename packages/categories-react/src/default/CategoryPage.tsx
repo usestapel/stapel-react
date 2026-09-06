@@ -508,6 +508,11 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * `data-stapel-load-refreshing="true"` (`<LoadBoundary>`), so a host that
    * wants to dim or announce the wait can, without owning the state.
    *
+   * The breadcrumb bar sits ABOVE that boundary and is held with it: it reads
+   * the row the frame holds rather than the address, so the one line the
+   * boundary does not cover cannot blank on its own — see
+   * `CategoryBreadcrumbsBarProps.keepPrevious`.
+   *
    * `false` restores the old behaviour exactly: every change of address goes
    * through `loading` first. For a host that draws its OWN held frame and
    * would otherwise hold one on top of another.
@@ -845,6 +850,22 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
       ? { keepPrevious: props.keepPrevious }
       : {}),
   });
+  const keeping = props.keepPrevious !== false;
+  /**
+   * The category the page is DRAWING, which during a held frame is not the
+   * one it was asked for.
+   *
+   * The trail belongs to the frame, not to the address bar: handed the raw
+   * `categoryId`, `<CategoryBreadcrumbsBar>` started the new category's own
+   * reads while everything under it still showed the previous one, went
+   * `loading`, and drew a lone `ant-skeleton-input-sm` where root → current
+   * had been — a hole in a frame the page was deliberately holding whole. So
+   * it reads the held row, and moves when the frame moves. `null` (a first
+   * mount, or `keepPrevious={false}`) falls back to the address, which is
+   * what makes the first paint unchanged.
+   */
+  const heldId =
+    source.state.status === "ready" ? (source.state.data.current?.id ?? null) : null;
 
   return (
     <SkinTheme
@@ -870,10 +891,11 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
         {props.breadcrumbs === false ? null : (
           <CategoryBreadcrumbsBar
             {...(props.categoryId !== null && props.categoryId !== undefined
-              ? { categoryId: props.categoryId }
+              ? { categoryId: heldId ?? props.categoryId }
               : props.slug !== undefined
                 ? { slug: props.slug }
                 : {})}
+            keepPrevious={keeping}
             basePath={base}
             onAbsent="quiet"
             {...(typeof props.breadcrumbs === "object" &&

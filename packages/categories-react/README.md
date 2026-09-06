@@ -604,6 +604,23 @@ a dead category wearing the last live one is a dead link that looks alive. And
 a category this page has never shown still loads with the skeleton — there is
 genuinely nothing behind it.
 
+**The trail is held with it.** `<CategoryBreadcrumbsBar>` sits ABOVE that
+boundary, so it was the one row a sibling press could still blank: handed the
+raw `categoryId` it started the new category's reads while everything under it
+stood, and drew a lone `ant-skeleton-input-sm` where root → current had been.
+The page now hands it the row the FRAME holds, and passes `keepPrevious` down,
+so the trail refreshes IN PLACE — marked `data-stapel-load-refreshing="true"`
+while the newer rows land, never replaced by a skeleton.
+
+A bar mounted ALONE — in a header, away from any page — is unchanged:
+`<CategoryBreadcrumbsBar keepPrevious>` (and the headless
+`<CategoryBreadcrumbs keepPrevious>`) default to `false`, and a surface that
+wants the same behaviour asks for it.
+
+```tsx
+<CategoryBreadcrumbsBar categoryId={id} keepPrevious />
+```
+
 ## The first row does not wait for a scrollbar: `eagerCount`
 
 Every tile image used to be `loading="lazy"`, including a whole first row that
