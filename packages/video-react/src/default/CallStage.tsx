@@ -196,14 +196,31 @@ export function CallStage(props: CallStageProps): ReactElement {
           if (!cancelled) setState("missing");
           return;
         }
+        // EVERY step past an await is guarded, and the guard is not decoration
+        // (item 18): React StrictMode mounts, cleans up and mounts again, so
+        // the first run's `dial` is still in flight when the second run starts
+        // its own. Unguarded, the first run's room was created AFTER the
+        // second's and overwrote `roomRef` with a room nobody is connected to
+        // — the stage sat on "connecting" for the rest of the session, which
+        // is every developer's local call.
+        if (cancelled) return;
         const next = new RoomCtor();
-        roomRef.current = next;
-        if (!cancelled) {
-          setRoom(next);
-          setState("connecting");
+        if (cancelled) {
+          // Created after the effect was torn down: it is nobody's room, and
+          // leaving it undisconnected is a socket held open for the tab's
+          // lifetime.
+          next.disconnect();
+          return;
         }
+        roomRef.current = next;
+        setRoom(next);
+        setState("connecting");
         await next.connect(serverUrl as string, token as string);
-        if (!cancelled) setState("connected");
+        if (cancelled) {
+          next.disconnect();
+          return;
+        }
+        setState("connected");
       } catch (thrown) {
         if (cancelled) return;
         if (isPeerMissing(thrown)) {
@@ -238,6 +255,17 @@ export function CallStage(props: CallStageProps): ReactElement {
       roomRef.current = null;
       if (held !== null) held.disconnect();
     };
+    // PRIMITIVES ONLY, and that is a contract rather than an accident.
+    //
+    // This effect's cleanup disconnects the room, so anything in this list is
+    // something that can ABORT an in-flight connect. A prop function or an
+    // options object in here is a fresh identity on every parent render, and
+    // the storefront's own page re-renders several times while a call is
+    // dialling: the signal socket closed with code 1000 ("Close method called
+    // on signal client") 9 ms after "signal connected", before a transport
+    // even existed. The loader lives in a ref for exactly this reason; what
+    // may legitimately re-dial is a new address, a new token, or a person
+    // pressing retry.
   }, [ready, token, serverUrl, attempt]);
 
   const retry = useCallback((): void => {

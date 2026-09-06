@@ -138,6 +138,27 @@ export interface CallPanelProps extends ThemeModeProp {
    * control; fewer hides it, because a button that cannot do anything is
    * worse than an absent one. */
   readonly cameras?: readonly { deviceId: string; label: string }[];
+  /**
+   * PUBLISH THIS BROWSER'S MICROPHONE (and camera) WHEN THE PANEL MOUNTS.
+   *
+   * Default `true`, and it is a fix rather than a feature: nothing in this
+   * pair ever published local media. `setMicrophoneEnabled` and
+   * `setCameraEnabled` were reached only from the two toggles below, which
+   * OPENED drawn as "on" — so a connected call was silent in both directions
+   * and the controls said the opposite, and the first thing either person did
+   * was press mute (turning the microphone ON for the first time) to be
+   * heard.
+   *
+   * The two devices are requested SEPARATELY and in that order: a refused
+   * camera must leave a working voice call, which one combined request cannot
+   * do. Each refusal is the same sentence a refused toggle already produces,
+   * and the toggles then show what is really published — the honest state
+   * being the point.
+   *
+   * `false` for a host that publishes from its own pre-call device picker.
+   * An audio-only call never asks for a camera whatever this says.
+   */
+  readonly autoPublish?: boolean;
   /** Injectable clock, so the timer is testable without waiting. */
   readonly now?: () => number;
 }
@@ -159,8 +180,13 @@ export function CallPanel(props: CallPanelProps): ReactElement {
   } = props;
 
   const audioOnly = isAudioOnly(call);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(!audioOnly);
+  // The toggles OPEN as "nothing is published", because nothing is — see
+  // `autoPublish`, which publishes and then sets these to what the browser
+  // actually granted. A control that draws "on" over a track that does not
+  // exist is the defect this pair shipped: two people on a connected call,
+  // each seeing "microphone on", neither audible.
+  const [micOn, setMicOn] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [notice, setNotice] = useState<string | undefined>(undefined);
   const [cameraIndex, setCameraIndex] = useState(0);
 
@@ -225,6 +251,38 @@ export function CallPanel(props: CallPanelProps): ReactElement {
       camBusy.current = false;
     }
   }, [room, camOn]);
+
+  /**
+   * PUBLISH ON MOUNT — the call's first frame of audio.
+   *
+   * Once per mounted panel (the ref, not the state: this must not re-run when
+   * a toggle moves), mic first and camera second, each in its own try so a
+   * refused camera leaves a voice call standing. Whatever the browser
+   * actually granted is what the toggles then show.
+   */
+  const publishedOnce = useRef(false);
+  const autoPublish = props.autoPublish ?? true;
+  useEffect(() => {
+    if (!autoPublish || publishedOnce.current) return;
+    publishedOnce.current = true;
+    void (async (): Promise<void> => {
+      try {
+        await room.localParticipant?.setMicrophoneEnabled?.(true);
+        setMicOn(true);
+      } catch (thrown) {
+        setNotice(deviceNoticeKey(thrown, "mic"));
+      }
+      if (audioOnly) return;
+      try {
+        await room.localParticipant?.setCameraEnabled?.(true);
+        setCamOn(true);
+      } catch (thrown) {
+        // The voice call survives a refused camera, and says so rather than
+        // failing the whole call.
+        setNotice(deviceNoticeKey(thrown, "cam"));
+      }
+    })();
+  }, [autoPublish, audioOnly, room]);
 
   /**
    * Flip the camera by CYCLING THE DEVICE LIST, not by swapping a

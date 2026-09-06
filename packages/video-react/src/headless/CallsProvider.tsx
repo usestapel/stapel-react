@@ -260,6 +260,19 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
   useEffect(() => {
     if (!enabled) return undefined;
     const bus = openBus((message) => {
+      // NOT MINE. The bus is per-origin and an origin is not a person: two
+      // accounts on one browser share every message, and the other party's
+      // page dismissing its incoming call used to dismiss this one's live
+      // call. A message that names no user is from an older tab and is
+      // treated as it always was — a mismatch is ignored, an absence is not a
+      // mismatch.
+      if (
+        message.user !== undefined &&
+        userId !== undefined &&
+        message.user !== userId
+      ) {
+        return;
+      }
       if (message.kind === "claim") {
         // Somebody else got there first. Show the overlay; make no sound.
         setRingOwner((current) => current ?? message.from);
@@ -276,7 +289,7 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
       busRef.current = null;
       bus.close();
     };
-  }, [enabled, openBus, refresh]);
+  }, [enabled, openBus, refresh, userId]);
 
   // Claim the sound for a ring this tab has not seen before. The FIRST tab to
   // claim wins; there is no election, because the answer only has to be "one
@@ -293,8 +306,13 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
       return;
     }
     setRingOwner((current) => current ?? bus.id);
-    bus.post({ kind: "claim", callId, from: bus.id });
-  }, [ringing, callId, role]);
+    bus.post({
+      kind: "claim",
+      callId,
+      from: bus.id,
+      ...(userId !== undefined ? { user: userId } : {}),
+    });
+  }, [ringing, callId, role, userId]);
 
   // A ring that is over releases the claim, or the next call in this tab is
   // silent forever.
@@ -304,13 +322,20 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
     setRingOwner(undefined);
   }, [ringing]);
 
-  const announceResolved = useCallback((id: string): void => {
-    busRef.current?.post({
-      kind: "resolved",
-      callId: id,
-      from: busRef.current.id,
-    });
-  }, []);
+  const announceResolved = useCallback(
+    (id: string): void => {
+      const bus = busRef.current;
+      if (bus === null) return;
+      bus.post({
+        kind: "resolved",
+        callId: id,
+        from: bus.id,
+        // Whose dismissal this is — see `CallTabMessage.user`.
+        ...(userId !== undefined ? { user: userId } : {}),
+      });
+    },
+    [userId]
+  );
 
   // ── the realtime subscription ───────────────────────────────────────────
   const onEvent = useCallback(
@@ -400,7 +425,24 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
     const connected = call?.state === "accepted";
     const owned = busRef.current?.id;
     return {
-      call: dismissed !== undefined && dismissed === callId ? undefined : call,
+      /*
+       * A DISMISSAL IS ABOUT A RING, and only about a ring.
+       *
+       * Another tab (or, on a shared browser, the other party's page) posts
+       * `resolved` when it deals with an INCOMING call — accept, decline,
+       * timeout. This line dropped the call for that id whatever state it was
+       * in, so a dismissal that arrived after the call was accepted unmounted
+       * a LIVE call: the stand caught the media session being torn down 9 ms
+       * after "signal connected" (walker defect D441), which reads as a call that hangs up
+       * the instant it connects.
+       *
+       * `ringing &&` is the same guard the `incoming` predicate above already
+       * carries. Past the ring, what ends a call is the server saying so.
+       */
+      call:
+        ringing && dismissed !== undefined && dismissed === callId
+          ? undefined
+          : call,
       role,
       peerId: call !== undefined ? otherPartyId(call, userId) : undefined,
       incoming,

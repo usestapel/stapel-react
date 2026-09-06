@@ -14,11 +14,12 @@
  * stapel-video actually sends, with its own field names.
  */
 import { describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { CallsProvider, useCalls } from "../src/index.js";
 import type { CallFrameLike } from "../src/index.js";
 import type { CallTabBus, CallTabMessage } from "../src/index.js";
+import { CallRoute } from "../src/default/CallRoute.js";
 import { IncomingCallOverlay } from "../src/default/IncomingCallOverlay.js";
 import { TestProviders, mockServer } from "./harness.js";
 import type { HandlerResult, MockServer } from "./harness.js";
@@ -234,6 +235,9 @@ describe("only one tab rings aloud", () => {
       kind: "claim",
       callId: "call-1",
       from: "tab-under-test",
+      // Whose ring this is. The bus is per-ORIGIN and an origin is not a
+      // person: two accounts on one browser share every message.
+      user: BOB,
     });
   });
 
@@ -307,5 +311,173 @@ describe("the provider is not optional", () => {
     const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(<Probe />)).toThrow(/CallsProvider/u);
     quiet.mockRestore();
+  });
+});
+
+describe("a dismissal is about a RING, and about whose ring it is", () => {
+  /**
+   * The stand caught the whole failure in one timeline (walker defect D441):
+   * a media session torn down 9 ms after "signal connected". Two mechanisms
+   * behind it, both here.
+   *
+   * The cross-tab bus is scoped to the ORIGIN, and an origin is not a person:
+   * the other party's page, on the same browser, dismissed its own incoming
+   * call and this side dropped the LIVE one. And the `resolved` message was
+   * honoured in any state, so a dismissal arriving after acceptance unmounted
+   * a call that was connecting.
+   */
+  it("ignores a resolved message once the call is past ringing", async () => {
+    const bus = fakeBus();
+    const server = mockServer({
+      "GET /calls/active": {
+        body: {
+          call: ringingCall({
+            state: "accepted",
+            answered_at: new Date().toISOString(),
+          }),
+        },
+      },
+    });
+    mount(server, { openBus: bus.open });
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-state").textContent).toBe("accepted");
+    });
+    await act(async () => {
+      bus.deliver({
+        kind: "resolved",
+        callId: "call-1",
+        from: "another-tab",
+        user: BOB,
+      });
+    });
+    // Still there: past the ring, what ends a call is the server saying so.
+    expect(screen.getByTestId("probe-state").textContent).toBe("accepted");
+  });
+
+  it("still closes a RINGING call another tab dealt with", async () => {
+    const bus = fakeBus();
+    const server = mockServer({
+      "GET /calls/active": { body: { call: ringingCall() } },
+    });
+    mount(server, { openBus: bus.open });
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-incoming").textContent).toBe("true");
+    });
+    await act(async () => {
+      bus.deliver({
+        kind: "resolved",
+        callId: "call-1",
+        from: "another-tab",
+        user: BOB,
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-state").textContent).toBe("none");
+    });
+  });
+
+  it("ignores a message about somebody ELSE's call on the same browser", async () => {
+    const bus = fakeBus();
+    const server = mockServer({
+      "GET /calls/active": { body: { call: ringingCall() } },
+    });
+    mount(server, { openBus: bus.open });
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-incoming").textContent).toBe("true");
+    });
+    await act(async () => {
+      bus.deliver({
+        kind: "resolved",
+        callId: "call-1",
+        from: "the-other-party-tab",
+        user: ALICE,
+      });
+    });
+    expect(screen.getByTestId("probe-state").textContent).toBe("ringing");
+    expect(screen.getByTestId("probe-incoming").textContent).toBe("true");
+  });
+
+  it("treats a message with no user id as an older tab, not as a mismatch", async () => {
+    const bus = fakeBus();
+    const server = mockServer({
+      "GET /calls/active": { body: { call: ringingCall() } },
+    });
+    mount(server, { openBus: bus.open });
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-incoming").textContent).toBe("true");
+    });
+    await act(async () => {
+      bus.deliver({ kind: "resolved", callId: "call-1", from: "old-tab" });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-state").textContent).toBe("none");
+    });
+  });
+});
+
+describe("<CallRoute> hands the stage the loader it was given", () => {
+  /**
+   * The route MOUNTS the stage, so a host whose build must not see the
+   * `livekit-client` specifier — or whose test drives the arms without the
+   * SDK — had no way to reach the `loadPeer` seam at all: it existed on a
+   * component nobody mounts.
+   */
+  it("forwards `loadPeer`, so the stage connects through the host's loader", async () => {
+    const asked: string[] = [];
+    class Room {
+      connect = vi.fn().mockResolvedValue(undefined);
+      disconnect = vi.fn();
+    }
+    // The grant arrives the way it does in life: the callee accepts, and the
+    // accept answers with the token and the media server's address.
+    let accepted = false;
+    const server = mockServer({
+      "GET /calls/active": () => ({
+        body: {
+          call: accepted
+            ? ringingCall({
+                state: "accepted",
+                answered_at: new Date().toISOString(),
+              })
+            : ringingCall(),
+        },
+      }),
+      // The accept answers with the CALL and this browser's own grant, which
+      // is what makes the route mount.
+      "POST /accept": () => {
+        accepted = true;
+        return {
+          body: {
+            call: ringingCall({
+              state: "accepted",
+              answered_at: new Date().toISOString(),
+            }),
+            token: "tok",
+            url: "wss://sfu.test",
+          },
+        };
+      },
+    });
+    render(
+      <TestProviders server={server}>
+        <CallsProvider userId={BOB} notifyWhenHidden={false}>
+          <IncomingCallOverlay />
+          <CallRoute
+            loadPeer={async () => {
+              asked.push("host loader");
+              return { Room };
+            }}
+          />
+        </CallsProvider>
+      </TestProviders>
+    );
+    await waitFor(() => expect(screen.getByTestId("video-ring-accept")).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("video-ring-accept"));
+    });
+    // The stage asked the HOST's loader, not the built-in import.
+    await waitFor(() => {
+      expect(asked).toEqual(["host loader"]);
+    });
   });
 });

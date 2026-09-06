@@ -77,6 +77,11 @@ describe("the controls", () => {
   it("mutes and unmutes through the room", async () => {
     const media = room();
     draw({ room: media });
+    // The panel publishes the microphone on mount — see `autoPublish`. The
+    // toggle is what MUTES it afterwards, which is the gesture this asserts.
+    await waitFor(() => {
+      expect(media.localParticipant?.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+    });
     fireEvent.click(screen.getByTestId("video-call-mic"));
     await waitFor(() => {
       expect(media.localParticipant?.setMicrophoneEnabled).toHaveBeenCalledWith(false);
@@ -101,7 +106,9 @@ describe("the controls", () => {
         setCameraEnabled: vi.fn().mockResolvedValue(undefined),
       },
     });
-    draw({ room: media });
+    // `autoPublish={false}`: this is about the double-tap guard, and a panel
+    // publishing on mount would be a second caller of the same method.
+    draw({ room: media, autoPublish: false });
     const button = screen.getByTestId("video-call-mic");
     fireEvent.click(button);
     fireEvent.click(button);
@@ -247,5 +254,86 @@ describe("the connection state is visible", () => {
     expect(screen.getByTestId("video-call-connection")).toBeTruthy();
     fireEvent.click(screen.getByTestId("video-call-reconnect"));
     expect(onReconnect).toHaveBeenCalled();
+  });
+});
+
+describe("a connected call publishes this browser's microphone", () => {
+  /**
+   * Nothing in this pair ever published local media: `setMicrophoneEnabled`
+   * and `setCameraEnabled` were reached only from the two toggles, which
+   * OPENED drawn as "on". So a connected call was silent in both directions
+   * while both controls claimed otherwise, and the first thing either person
+   * did was press mute — turning the microphone on for the first time — to be
+   * heard.
+   *
+   * Both controls are MUTE toggles, so `aria-pressed="false"` is the device
+   * being live: pressed means muted / camera off.
+   */
+  it("publishes mic and camera on mount, and the toggles say so", async () => {
+    const media = room();
+    draw({ room: media });
+    await waitFor(() => {
+      expect(media.localParticipant?.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+    });
+    expect(media.localParticipant?.setCameraEnabled).toHaveBeenCalledWith(true);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("video-call-mic").getAttribute("aria-pressed")
+      ).toBe("false");
+    });
+    expect(
+      screen.getByTestId("video-call-camera").getAttribute("aria-pressed")
+    ).toBe("false");
+  });
+
+  it("asks for the two devices SEPARATELY: a refused camera leaves a voice call", async () => {
+    const media = room({
+      localParticipant: {
+        setMicrophoneEnabled: vi.fn().mockResolvedValue(undefined),
+        setCameraEnabled: vi
+          .fn()
+          .mockRejectedValue(
+            Object.assign(new Error("denied"), { name: "NotAllowedError" })
+          ),
+      },
+    });
+    draw({ room: media });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("video-call-mic").getAttribute("aria-pressed")
+      ).toBe("false");
+    });
+    // The camera is off and SAYS so; the microphone is unaffected, which one
+    // combined request could not have managed.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("video-call-camera").getAttribute("aria-pressed")
+      ).toBe("true");
+    });
+    expect(screen.getByTestId("video-call-device-notice")).toBeTruthy();
+  });
+
+  it("asks for no camera at all on an audio-only call", async () => {
+    const media = room();
+    draw({ room: media, call: accepted({ media: "audio" }) });
+    await waitFor(() => {
+      expect(media.localParticipant?.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+    });
+    expect(media.localParticipant?.setCameraEnabled).not.toHaveBeenCalled();
+  });
+
+  it("publishes NOTHING when the host says it owns the devices", async () => {
+    const media = room();
+    draw({ room: media, autoPublish: false });
+    await waitFor(() => {
+      expect(screen.getByTestId("video-call-mic")).toBeTruthy();
+    });
+    expect(media.localParticipant?.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(media.localParticipant?.setCameraEnabled).not.toHaveBeenCalled();
+    // …and the control says what is true: nothing is published, so the mute
+    // toggle reads as pressed.
+    expect(screen.getByTestId("video-call-mic").getAttribute("aria-pressed")).toBe(
+      "true"
+    );
   });
 });

@@ -38,6 +38,22 @@ export interface CallTabMessage {
   readonly callId: string;
   /** The sender's own tab id, so a tab ignores its own echo. */
   readonly from: string;
+  /**
+   * WHOSE call this message is about — the sender's own user id.
+   *
+   * The bus is scoped to the ORIGIN, and an origin is not a person: two
+   * accounts signed in on one browser (a seller testing their own listing,
+   * two people sharing a laptop, a support agent beside a customer) share
+   * every tab message. Without this, the OTHER party's page dismissing an
+   * incoming call dismissed the live one — the stand watched a media session
+   * torn down 9 ms after it connected (walker defect D441).
+   *
+   * Optional on the wire because a tab running an older build posts none, and
+   * a message with no user id is treated as it always was: a mismatch is
+   * ignored, an absence is not a mismatch. It is an id, not a credential —
+   * the same id every tab of that session already holds.
+   */
+  readonly user?: string;
 }
 
 /** The channel/storage name. One per origin, shared by every tab. */
@@ -165,6 +181,7 @@ function isMessage(value: unknown): value is CallTabMessage {
   return (
     (m["kind"] === "claim" || m["kind"] === "resolved") &&
     typeof m["callId"] === "string" &&
-    typeof m["from"] === "string"
+    typeof m["from"] === "string" &&
+    (m["user"] === undefined || typeof m["user"] === "string")
   );
 }

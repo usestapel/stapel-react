@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { actionBlocked, loadReady } from "@stapel/core";
@@ -377,5 +378,124 @@ describe("a call that cannot connect (stand walk PASS-17)", () => {
       );
     }
     expect(connect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the stage survives a StrictMode remount", () => {
+  /**
+   * React StrictMode mounts, tears down and mounts again in development, so
+   * the first run's dial is still in flight when the second starts its own.
+   * Unguarded, the first run created its room AFTER the second had created
+   * (and stored) its own, overwrote the ref with a room nobody is connected
+   * to, and left the stage on "connecting" for the rest of the session —
+   * which is every developer's local call.
+   */
+  it("connects under StrictMode instead of stranding on «connecting»", async () => {
+    const connects: string[] = [];
+    const disconnects: string[] = [];
+    let made = 0;
+    class Room {
+      public readonly tag = `room-${String((made += 1))}`;
+      connect = async (): Promise<void> => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        connects.push(this.tag);
+      };
+      disconnect = (): void => {
+        disconnects.push(this.tag);
+      };
+    }
+    await act(async () => {
+      render(
+        <StrictMode>
+          <TestProviders server={mockServer({})}>
+            <CallStage
+              token="tok"
+              serverUrl="wss://sfu.test"
+              loadPeer={() => Promise.resolve({ Room })}
+            />
+          </TestProviders>
+        </StrictMode>
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy()
+    );
+    // Every room this ran up is either the live one or disconnected: a room
+    // created after its own effect was torn down is a socket held open for
+    // the life of the tab.
+    expect(disconnects.length).toBe(made - 1);
+  });
+});
+
+describe("a re-render never aborts a connect in flight", () => {
+  /**
+   * The effect that dials also disconnects the room in its cleanup, so
+   * anything in its dependency list can abort a call that is connecting. A
+   * prop function or an options object there is a fresh identity on every
+   * parent render — and the storefront's page re-renders several times while
+   * a call is dialling: the signal socket closed with code 1000 ("Close
+   * method called on signal client") 9 ms after "signal connected", before a
+   * transport connection even existed.
+   */
+  it("survives five parent re-renders with fresh object props mid-dial", async () => {
+    let settle: (() => void) | undefined;
+    const connect = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          settle = resolve;
+        })
+    );
+    const disconnect = vi.fn();
+    class Room {
+      connect = connect;
+      disconnect = disconnect;
+    }
+    const view = render(
+      <TestProviders server={mockServer({})}>
+        <CallStage
+          token="tok"
+          serverUrl="wss://sfu.test"
+          loadPeer={() => Promise.resolve({ Room })}
+          renderMedia={() => <span data-testid="host-media" />}
+          onLeave={() => undefined}
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("video-stage-connecting")).toBeTruthy()
+    );
+
+    // Five renders, every callback and object prop a new identity each time —
+    // which is what a parent that holds no memoised props actually does.
+    for (let i = 0; i < 5; i += 1) {
+      await act(async () => {
+        view.rerender(
+          <TestProviders server={mockServer({})}>
+            <CallStage
+              token="tok"
+              serverUrl="wss://sfu.test"
+              loadPeer={() => Promise.resolve({ Room })}
+              renderMedia={() => <span data-testid="host-media" />}
+              onLeave={() => undefined}
+            />
+          </TestProviders>
+        );
+      });
+    }
+
+    // One dial, no abort: the room the person is connecting through is still
+    // the room that was created for them.
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(disconnect).not.toHaveBeenCalled();
+
+    // …and it completes.
+    await act(async () => {
+      settle?.();
+      await Promise.resolve();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy()
+    );
+    expect(disconnect).not.toHaveBeenCalled();
   });
 });

@@ -22,7 +22,7 @@ import type { ReactElement, ReactNode } from "react";
 import { theme } from "antd";
 import { useCalls } from "../headless/CallsProvider.js";
 import { CallStage } from "./CallStage.js";
-import type { CallRoomLike } from "./CallStage.js";
+import type { CallPeerLoader, CallRoomLike } from "./CallStage.js";
 import { CallPanel } from "./CallPanel.js";
 import type {
   CallMediaRoom,
@@ -55,6 +55,17 @@ export interface CallRouteProps extends ThemeModeProp {
   /** The media session's health, from the host's own subscription to the
    * vendor's connection events. */
   readonly connection?: CallConnectionState;
+  /**
+   * Replace the built-in `import("livekit-client")` — `<CallStage loadPeer>`,
+   * forwarded.
+   *
+   * It is here because this route MOUNTS the stage: a host whose build must
+   * not see the specifier, or whose tests drive the arms without the SDK,
+   * could set it on `<CallStage>` and had no way to reach the one this
+   * component renders. A prop that exists only on the component nobody mounts
+   * is a prop nobody has.
+   */
+  readonly loadPeer?: CallPeerLoader;
 }
 
 export function CallRoute(props: CallRouteProps): ReactElement | null {
@@ -90,6 +101,7 @@ export function CallRoute(props: CallRouteProps): ReactElement | null {
         token={grant.token}
         serverUrl={grant.url}
         {...(props.mode !== undefined ? { mode: props.mode } : {})}
+        {...(props.loadPeer !== undefined ? { loadPeer: props.loadPeer } : {})}
         // `<CallStage>`'s own Leave disconnects this browser. A call has to end
         // on the SERVER — the other person's screen closes, the meter stops,
         // the thread gets its line — so both paths go through the provider's
