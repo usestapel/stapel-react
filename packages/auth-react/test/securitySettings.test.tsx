@@ -11,6 +11,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement, ReactNode } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
+import { spacing } from "@stapel/tokens";
 import { createAuthRuntime } from "../src/model/runtime.js";
 import type { AuthRuntime } from "../src/model/runtime.js";
 import { AuthProvider } from "../src/headless/AuthProvider.js";
@@ -158,5 +159,47 @@ describe("<SecuritySettings/> — composed, grouped page", () => {
     await waitFor(() => expect(screen.getByTestId("audit-log-panel")).toBeDefined());
     expect(screen.queryByRole("heading", { level: 4, name: "Connected accounts" })).toBeNull();
     expect(screen.queryByTestId("oauth-links")).toBeNull();
+  });
+});
+
+describe("who owns the page edge", () => {
+  /**
+   * The same defect `<ListingDetailPane gutter>` and `<CategoryPage gutter>`
+   * close: this page painted a flat `spacing[4]` INSIDE a shell whose content
+   * box already carried `--stapel-page-gutter` (4px on a phone, 24px on a
+   * desktop), so the security screen sat further in than the header above it
+   * and the footer below it — the three-left-edges defect the shared token
+   * role exists to end.
+   */
+  async function pageRoot(gutter?: "own" | "shell"): Promise<HTMLElement> {
+    mockEverything();
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        gutter === undefined ? (
+          <SecuritySettings />
+        ) : (
+          <SecuritySettings gutter={gutter} />
+        )
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("security-settings-page")).toBeDefined()
+    );
+    return screen.getByTestId("security-settings-page");
+  }
+
+  it("keeps its own gutter by default — the page on a bare route", async () => {
+    const root = await pageRoot();
+    expect(root.style.padding).toBe(`${String(spacing[4])}px`);
+  });
+
+  it("drops the INLINE half inside a shell that already placed the edge", async () => {
+    const root = await pageRoot("shell");
+    expect(root.style.paddingInline).toBe("0");
+    // The block padding stays: vertical rhythm between a header and a page's
+    // first line is this page's own business.
+    expect(root.style.paddingTop).toBe(`${String(spacing[4])}px`);
   });
 });

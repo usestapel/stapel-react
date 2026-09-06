@@ -50,7 +50,34 @@ const PAGE_STYLE: CSSProperties = {
   boxSizing: "border-box",
 };
 
+/** The same page, inside a frame that has already placed the edge — see
+ * {@link SecuritySettingsProps.gutter}. The block padding stays: vertical
+ * rhythm between a header and a page's first line is this page's own
+ * business, and it is the INLINE half that was being paid twice. */
+const PAGE_STYLE_IN_SHELL: CSSProperties = {
+  ...PAGE_STYLE,
+  paddingInline: 0,
+};
+
 export interface SecuritySettingsProps {
+  /**
+   * WHO OWNS THE PAGE EDGE.
+   *
+   * `"own"` (default, byte-compatible) keeps this page's own `spacing[4]`,
+   * which is right for a screen mounted straight into a router with nothing
+   * around it. `"shell"` says a page frame already placed that edge:
+   * `@stapel/shell-react` pads its content box with `--stapel-page-gutter` (a
+   * RESPONSIVE role — 4px on a phone, 24px on a desktop) and this page then
+   * stacked a flat 16px inside it, so the security screen sat further in than
+   * the header above it and the footer below it. The block padding is kept
+   * either way; it is the inline half that was paid twice.
+   *
+   * A prop rather than a context read, for the reason the same prop on
+   * `<CategoryPage>` and `<ListingDetailPane>` gives: whether there is a
+   * gutter outside this component is a fact about the COMPOSITION, and the
+   * composing surface is the only party that knows it.
+   */
+  readonly gutter?: "own" | "shell";
   /** Drives the passkeys section's `navigator.credentials.create()` ceremony
    * automatically when supplied — see `PasskeysManagerProps`. */
   readonly webauthnCreate?: WebauthnBinding;
@@ -122,7 +149,11 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
        is what puts the whole page on the project's token palette instead of
        antd's stock blue (visual pass C11) and keeps its typography legible on
        a dark document (CF-1). */
-    <SkinTheme surface="base" style={PAGE_STYLE} data-testid="security-settings-page">
+    <SkinTheme
+      surface="base"
+      style={props.gutter === "shell" ? PAGE_STYLE_IN_SHELL : PAGE_STYLE}
+      data-testid="security-settings-page"
+    >
       <Flex
         vertical
         gap="large"
