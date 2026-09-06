@@ -9,7 +9,11 @@ import {
   loadReady,
 } from "@stapel/core";
 import type { ActionAvailability, FlowError, LoadState } from "@stapel/core";
-import type { FeatureDef, FeaturesDto } from "@stapel/attributes-react";
+import type {
+  FeatureChangeSource,
+  FeatureDef,
+  FeaturesDto,
+} from "@stapel/attributes-react";
 import {
   initialFeatureValues,
   toFeaturesDto,
@@ -191,6 +195,20 @@ export interface UseListingComposerOptions {
   readonly onCategoryChange?: (categoryId: string) => void;
   /** Seed for a brand-new draft (a category preselected from the URL, say). */
   readonly initialValues?: Partial<ListingDraftValues>;
+  /**
+   * Every answer to a category feature, and WHO wrote it.
+   *
+   * The composer records provenance for itself ({@link
+   * ListingComposerBag.featureSources}); this is the same fact pushed to a
+   * host that keeps its own ledger — the storefront deciding whether a
+   * generated suggestion may overwrite a field, say. It fires on every
+   * `setFeature`, including the ones nobody chose (`"cascade"`, `"bake"`).
+   */
+  onFeatureChange?: (
+    slug: string,
+    value: unknown,
+    source: FeatureChangeSource
+  ) => void;
   onDraftCreated?: (draft: ListingDraft) => void;
   onPublished?: (response: PublishResponse, outcome: PublishOutcome) => void;
 }
@@ -214,7 +232,31 @@ export interface ListingComposerBag {
     value: ListingDraftValues[K]
   ): void;
   setLocation(location: ListingLocation): void;
-  setFeature(slug: string, value: unknown): void;
+  /**
+   * Answer one category feature — and say WHO answered it.
+   *
+   * `source` is the third argument `<FeatureFields onChange>` has emitted
+   * since `@stapel/attributes-react` 0.16.4, and it was being dropped on the
+   * floor here: this bag's setter took two arguments, so the rendering half's
+   * own write-backs — a dependent field RESET because its parent moved
+   * (`"cascade"`) and a value the narrowed config left as the only possible
+   * one (`"bake"`) — arrived indistinguishable from a person typing. A host
+   * recording provenance stamped the reset as the seller's answer and locked
+   * a field holding nothing.
+   *
+   * Optional, and `"user"` when omitted: a two-argument caller keeps
+   * compiling and keeps meaning what it meant.
+   */
+  setFeature(slug: string, value: unknown, source?: FeatureChangeSource): void;
+  /**
+   * Who wrote each feature answer, keyed by slug — `"user"`, `"cascade"` or
+   * `"bake"`, and absent for an answer that arrived with the draft or from
+   * the catalogue's own default rather than through {@link setFeature}.
+   *
+   * Pruned with the values themselves when a category change drops a slug, so
+   * a slug that comes back later comes back unattributed.
+   */
+  readonly featureSources: Readonly<Record<string, FeatureChangeSource>>;
   /** Changing category keeps the answers the new schema also asks for. */
   setCategory(categoryId: string): void;
   /** Slugs cleared by the last category change — named, not silently lost. */
@@ -281,6 +323,9 @@ export function useListingComposer(
   }));
   const [showErrors, setShowErrors] = useState(false);
   const [dropped, setDropped] = useState<readonly string[]>([]);
+  const [featureSources, setFeatureSources] = useState<
+    Readonly<Record<string, FeatureChangeSource>>
+  >({});
   const [refusal, setRefusal] = useState<PublishRefusal | undefined>(undefined);
   const [outcome, setOutcome] = useState<PublishOutcome | undefined>(undefined);
   const [saved, setSaved] = useState(false);
@@ -354,7 +399,17 @@ export function useListingComposer(
         if (kept[slug] === undefined) seeded[slug] = value;
       }
       if (gone.length === 0 && Object.keys(seeded).length === 0) return current;
-      if (gone.length > 0) setDropped(gone);
+      if (gone.length > 0) {
+        setDropped(gone);
+        // The provenance goes with the value it is about. Left behind, a slug
+        // the new category happens to ask for again would come back already
+        // stamped as somebody's answer.
+        setFeatureSources((sources) =>
+          Object.fromEntries(
+            Object.entries(sources).filter(([slug]) => !gone.includes(slug))
+          )
+        );
+      }
       return { ...current, features: { ...kept, ...seeded } };
     });
   }, [schemaSettled, features]);
@@ -632,12 +687,20 @@ export function useListingComposer(
       setSaved(false);
       setValues((current) => ({ ...current, location }));
     },
-    setFeature: (slug, value) => {
+    setFeature: (slug, value, source) => {
+      // An omitted source is a person operating a control — the same default
+      // `FeatureChangeSource` states, so a two-argument host is not silently
+      // reclassified.
+      const from: FeatureChangeSource = source ?? "user";
       setSaved(false);
       setValues((current) => ({
         ...current,
         features: { ...current.features, [slug]: value },
       }));
+      setFeatureSources((current) =>
+        current[slug] === from ? current : { ...current, [slug]: from }
+      );
+      options.onFeatureChange?.(slug, value, from);
     },
     setCategory: (categoryId) => {
       setSaved(false);
@@ -659,6 +722,7 @@ export function useListingComposer(
       setRefusal(undefined);
     },
     droppedOnCategoryChange: dropped,
+    featureSources,
 
     mirror,
     fieldErrors,
