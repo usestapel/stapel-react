@@ -1,5 +1,15 @@
 # @stapel/search-react
 
+## 0.32.6
+
+### Patch Changes
+
+- The phone's results caption stops being clipped when the host wrote it.
+
+  `<SearchResultsPane header="compact">` — the arm `<SearchPage>` picks below the sheet breakpoint — hid the results heading unconditionally. For the pair's own word that is right: "Results" over a list of results, on a screen whose fold holds four things, says nothing the person did not just do, and clipping it keeps it in the document for a screen reader. A caption the HOST supplied is the opposite — it is the page's own name, passed with `resultsHeadingLevel={1}` because on a results screen it IS the page's heading — and the phone rendered it into a 4×4 pixel box.
+
+  So the default is now the honest one: a host-supplied `heading` is drawn in the compact arm, the pair's own is not. `<SearchResultsPane headingVisible>` (and `<SearchPage resultsHeadingVisible>`) overrides either way, for a host whose app bar already carries the title or one that wants the pair's word on screen. The banner arm is untouched — it never hid anything.
+
 ## 0.32.5
 
 ### Patch Changes

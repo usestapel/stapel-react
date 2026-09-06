@@ -1,6 +1,6 @@
 {
   "package": "@stapel/chat-react",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "entries": [
     {
       "id": "chat.conversations",

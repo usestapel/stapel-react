@@ -1,5 +1,15 @@
 # @stapel/chat-react
 
+## 0.10.3
+
+### Patch Changes
+
+- The call button stops swallowing the tap that was meant to explain it.
+
+  `<StartCallButton>` rendered `<Button disabled={gate.disabled}>`. An html-disabled button is inert — it takes no focus and receives no pointer events — so on a phone, where there is no hover to fall back on, a blocked "Call" answered a press with nothing at all, and the sentence beside it was bound to nothing.
+
+  It is `aria-disabled` with a live handler now, the same shape `<FavoriteHeart>` and the `GatedControl` substrate follow, plus `aria-describedby` tying the button to its reason. Nothing leaks: the refusal lives in `<StartCall>` — `call()` is a no-op while the gate is blocked — so a press on a blocked control cannot place a call however it arrives. The reason keeps its `chat-call-blocked` test id, which is why the shape is written out here rather than wrapped in `GatedControl` (the substrate owns that element and stamps it differently).
+
 ## 0.10.2
 
 ### Patch Changes

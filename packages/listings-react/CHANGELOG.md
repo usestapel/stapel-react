@@ -1,5 +1,15 @@
 # @stapel/listings-react
 
+## 0.25.8
+
+### Patch Changes
+
+- The desktop grid card mounts the shared `<FavoriteHeart>`, so a guest's press opens the door.
+
+  `<ListingCard>` drew its own heart — a `<Button aria-disabled>` with `onClick={favorite.toggle}` behind it — and that copy stopped tracking `<FavoriteHeart>` the day the sign-in door landed (D431). Measured consequence: on the desktop GRID a visitor's press reached a no-op toggle, the control announced itself unavailable, and nothing happened, while the same press on a SERP row or a feed card opened sign-in with `?next=` intact. One control, one refusal shape, one door — the card now mounts the shared component and the duplicate is gone (the `default` bundle is 70 B SMALLER for it: 24.64 → 24.57 KB).
+
+  Nothing a host addresses moves: `FavoriteHeart` gained `gateTestId`/`signInTestId` so this card keeps publishing `listings-card-actions` and `listings-card-sign-in`, and the heart, its reason line and its error keep their own ids. What changes is the behaviour the ids were hiding — with a `signIn` door in hand the heart is a live control that navigates rather than an `aria-disabled` one that does nothing, exactly as on every other surface since 0.25.6.
+
 ## 0.25.7
 
 ### Patch Changes

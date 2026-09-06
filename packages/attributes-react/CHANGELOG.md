@@ -1,5 +1,17 @@
 # @stapel/attributes-react
 
+## 0.16.3
+
+### Patch Changes
+
+- The vocabulary-backed int refuses a number even when its allowed set is not loaded — and the refusal is bound to the field.
+
+  `RefIntEditor`'s `allowed === null` covers three situations (the fetch is in flight, the parent is unanswered, or this side cannot know the level) and in all three the field refused NOTHING: a year decades outside the catalogue's own `min`/`max` was accepted without a word, on a control whose whole job is to say what is allowed. It now falls back to `cfg.min`/`cfg.max` — not a claim to be the live set, just the truest thing the field has while the set is missing, and the same bound the server applies. The loaded set still wins wherever it exists, because its ends ARE the constraint.
+
+  The sentence moved too: it is `SkinNumberField`'s `errorText` now rather than a line of our own underneath, so `aria-describedby` ties it to the input and the person who cannot see it beside the field is told the same thing as the person who can. The test ids (`attributes-int-out-of-set`, `attributes-int-refusal-range`) are unchanged.
+
+  Ceiling raised deliberately: the `default` bundle 18.97 → 19.05 KB measured with dependencies held constant, 19 → 19.25 KB.
+
 ## 0.16.2
 
 ### Patch Changes
