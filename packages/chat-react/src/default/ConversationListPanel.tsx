@@ -48,6 +48,27 @@
  * different routes: "no conversations" is an empty answer with no filter on,
  * "nothing found" is an empty answer with one — so the filtered-empty arm has
  * to keep the toolbar on screen, because it is the way back out.
+ *
+ * ── The threads you left (stapel-chat 0.8.6) ──────────────────────────────
+ *
+ * The pane has TWO TABS, «Conversations» and «Left», because the endpoint
+ * has two lists: `?left=true` is the EXACT COMPLEMENT of the default one, so
+ * a thread is on one of them and never on both. That is why it is a tab pair
+ * and not a "show left conversations too" switch — a switch says the two can
+ * be seen together, and the server cannot produce that answer.
+ *
+ * A left row is a different row and says so: it carries the date the person
+ * walked out («Left <date>», from the row's own `left_at`) and the one
+ * control that matters there — «Return to conversation» — instead of the overflow
+ * menu whose single entry was the way out they have already taken. Both sit
+ * BELOW the row control as its siblings, on the same rule the subject strip
+ * moved out under (D420): the row is one control that opens the thread, and a
+ * button inside it would be a control inside a control.
+ *
+ * The toolbar stays, and its search reaches the server the same way — with
+ * one honest difference in the FIELD's placeholder, because a left thread's
+ * last line is the departure marker and nothing finds an unlabelled marker.
+ * See `CHAT_I18N_KEYS.listSearchPlaceholderLeft`.
  */
 import { spacing } from "@stapel/tokens-antd";
 import { ListRow, SkinDialog } from "@stapel/tokens-antd/skin";
@@ -61,6 +82,7 @@ import {
   Flex,
   Input,
   List,
+  Segmented,
   Space,
   Spin,
   Tag,
@@ -80,9 +102,12 @@ import type { Conversation, Subject } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
 import { inboxPreviewLine } from "../model/previews.js";
 import { inboxFilterActive } from "../model/inboxQuery.js";
+import type { ChatInboxView } from "../model/inboxQuery.js";
+import { conversationLeftAt } from "../model/membership.js";
 import type { ChatPeopleDirectory } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ErrorAlert } from "./ErrorAlert.js";
+import { RejoinConversationButton } from "./RejoinConversation.js";
 import { TransportTag } from "./TransportTag.js";
 import { ChatSkinTheme } from "./theme.js";
 import {
@@ -154,6 +179,37 @@ export interface ConversationListPanelProps {
    * `<ConversationSplitPanel/>` wires it.
    */
   onLeft?: (conversationId: string) => void;
+  /**
+   * A row was RETURNED to from the «Left» tab (stapel-chat 0.8.6) and
+   * the `204` has landed — the row is already out of the left list's cache and
+   * the inbox has been asked to re-read.
+   *
+   * The mirror of {@link onLeft}, and it exists for the same host: one showing
+   * that thread somewhere else on the same screen.
+   */
+  onRejoined?: (conversationId: string) => void;
+
+  // ── The two lists (stapel-chat 0.8.6) ─────────────────────────────────────
+  //
+  // CONTROLLED-OR-NOT, the same shape as the toolbar below: a storefront that
+  // passes nothing gets working tabs, and a host that wants the tab in its URL
+  // passes `view` + `onViewChange` and owns it.
+
+  /** Which list is showing, CONTROLLED. Pair with {@link onViewChange}. */
+  view?: ChatInboxView;
+  /** Which list a self-managing pane starts on. Default `"inbox"`. */
+  defaultView?: ChatInboxView;
+  /** Fired when a tab is pressed, in both modes. */
+  onViewChange?: (view: ChatInboxView) => void;
+  /**
+   * Draw the tab pair. Default: yes.
+   *
+   * `false` hides the CONTROLS, not the list — a host driving `view` from
+   * chrome of its own still gets whichever list it asked for. It is also the
+   * switch for a deployment that does not want to offer the left list at all;
+   * with it off and `view` unset, this pane is exactly the inbox it was.
+   */
+  leftView?: boolean;
 
   // ── The toolbar (search + unread) ─────────────────────────────────────────
   //
@@ -297,9 +353,12 @@ function ConversationRow(props: {
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
   readonly onLeft: ((conversationId: string) => void) | undefined;
+  readonly onRejoined: ((conversationId: string) => void) | undefined;
+  readonly view: ChatInboxView;
 }): ReactElement {
   const t = useT();
   const { row, viewerId, directory, openHref, onOpen } = props;
+  const isLeftRow = props.view === "left";
   const label = useCounterpartyLabel(row, viewerId, directory);
   const subject = row.subject ?? null;
   const subjectView = subject === null ? null : readSubjectCard(subject, props.locale);
@@ -426,6 +485,41 @@ function ConversationRow(props: {
       </div>
     ) : null;
 
+  // WHAT A LEFT ROW SAYS AND OFFERS (stapel-chat 0.8.6), on its own line
+  // beneath the row control for the same reason the subject strip is there:
+  // the row IS a control that opens the thread, and a button inside it would
+  // be a control inside a control (D420).
+  //
+  // The date comes off the row's OWN top-level `left_at` — the requesting
+  // user's departure, which is what this list is ordered by — and not from
+  // hunting the participants array for the viewer's id, which would need this
+  // pane to have been told who is reading and would silently draw nothing
+  // where it has not. Absent (a 0.8.5 body, which has no such field) the
+  // sentence is not drawn: a row says what it carries.
+  const leftAt = isLeftRow ? conversationLeftAt(row) : null;
+  const departure = isLeftRow ? (
+    <Flex
+      align="center"
+      justify="space-between"
+      wrap="wrap"
+      gap={spacing[2]}
+      style={{ paddingInlineStart: SUBJECT_INDENT, minWidth: 0 }}
+      data-chat-row-departure=""
+    >
+      {leftAt === null ? (
+        <span />
+      ) : (
+        <Typography.Text type="secondary" data-testid="chat-row-left-at">
+          {t(CHAT_I18N_KEYS.leftAt, { date: relativeTime(props.locale, leftAt) })}
+        </Typography.Text>
+      )}
+      <RejoinConversationButton
+        conversationId={row.id}
+        {...(props.onRejoined !== undefined ? { onRejoined: props.onRejoined } : {})}
+      />
+    </Flex>
+  ) : null;
+
   return (
     <div
       data-testid="chat-conversation-row"
@@ -439,8 +533,14 @@ function ConversationRow(props: {
       <div style={{ flex: "1 1 auto", minWidth: 0 }}>
         {openRow(inside, row.id, openHref, onOpen)}
         {strip}
+        {departure}
       </div>
-      <ConversationRowMenu conversationId={row.id} onLeft={props.onLeft} />
+      {/* The overflow menu holds exactly one entry and it is the way out. On
+          a thread this person has already left there is nothing for it to
+          offer, so it is absent rather than present-and-empty. */}
+      {isLeftRow ? null : (
+        <ConversationRowMenu conversationId={row.id} onLeft={props.onLeft} />
+      )}
     </div>
   );
 }
@@ -586,6 +686,8 @@ function InboxRows(props: {
   readonly linkComponent: LinkComponent | undefined;
   readonly selectedId: string | null;
   readonly onLeft: ((conversationId: string) => void) | undefined;
+  readonly onRejoined: ((conversationId: string) => void) | undefined;
+  readonly view: ChatInboxView;
 }): ReactElement {
   const { rows, viewerId, selectedId } = props;
   // The selected-item background comes from the token bag, never a literal:
@@ -622,6 +724,8 @@ function InboxRows(props: {
                 subjectHref={props.subjectHref}
                 linkComponent={props.linkComponent}
                 onLeft={props.onLeft}
+                onRejoined={props.onRejoined}
+                view={props.view}
               />
             </List.Item>
           )}
@@ -677,6 +781,7 @@ function InboxToolbar(props: {
   readonly onSearch: (next: string) => void;
   readonly unreadOnly: boolean;
   readonly onUnreadOnly: (next: boolean) => void;
+  readonly view: ChatInboxView;
 }): ReactElement {
   const t = useT();
   return (
@@ -693,7 +798,18 @@ function InboxToolbar(props: {
         onChange={(event) => {
           props.onSearch(event.target.value);
         }}
-        placeholder={t(CHAT_I18N_KEYS.listSearchPlaceholder)}
+        // THE PLACEHOLDER IS THE ONE THING THAT DIFFERS BETWEEN THE TABS, and
+        // it is not decoration: the server's search rule is identical on both
+        // lists, but a left thread's last line is the departure marker, an
+        // unlabelled marker draws nothing and is found by nothing — so the
+        // inbox's "or message" is a promise this list cannot keep, and
+        // keeping it would send a person hunting for a word they can
+        // genuinely remember reading.
+        placeholder={t(
+          props.view === "left"
+            ? CHAT_I18N_KEYS.listSearchPlaceholderLeft
+            : CHAT_I18N_KEYS.listSearchPlaceholder
+        )}
         // The label is the accessible NAME, not a placeholder: a placeholder
         // disappears the moment there is text in the field, which is exactly
         // when a reader arriving on it needs to be told what it is.
@@ -712,6 +828,36 @@ function InboxToolbar(props: {
         {t(CHAT_I18N_KEYS.listUnreadOnly)}
       </Tag.CheckableTag>
     </Flex>
+  );
+}
+
+/**
+ * WHICH OF THE TWO LISTS (stapel-chat 0.8.6).
+ *
+ * A `Segmented`, not two chips and not a switch. The lists are exact
+ * complements — a thread is on one of them and never on both — which is a
+ * single-choice question, and `Segmented` is what antd renders as a radio
+ * group: exclusive by construction, with the choice announced. Two
+ * `CheckableTag`s would be checkboxes, and a checkbox pair says a person may
+ * tick both and see the union, which is an answer the endpoint has no way to
+ * give.
+ */
+function ListViewTabs(props: {
+  readonly view: ChatInboxView;
+  readonly onView: (next: ChatInboxView) => void;
+}): ReactElement {
+  const t = useT();
+  return (
+    <Segmented<ChatInboxView>
+      value={props.view}
+      onChange={props.onView}
+      options={[
+        { label: t(CHAT_I18N_KEYS.listTabInbox), value: "inbox" },
+        { label: t(CHAT_I18N_KEYS.listTabLeft), value: "left" },
+      ]}
+      style={{ marginTop: spacing[3] }}
+      data-testid="chat-list-view-tabs"
+    />
   );
 }
 
@@ -739,6 +885,12 @@ export function ConversationListPanel(
     props.defaultUnreadOnly ?? false,
     props.onUnreadOnlyChange
   );
+  const [view, setView] = useControlledValue<ChatInboxView>(
+    props.view,
+    props.defaultView ?? "inbox",
+    props.onViewChange
+  );
+  const isLeftView = view === "left";
   // What the QUERY is narrowed by. The panel hands the raw value down and the
   // query layer settles it (trim, debounce, key) — one place, so a host
   // calling `useConversations` directly gets the same pause and the same
@@ -751,6 +903,7 @@ export function ConversationListPanel(
       {...(props.viewerId !== undefined ? { viewerId: props.viewerId } : {})}
       search={search}
       unreadOnly={unreadOnly}
+      view={view}
       {...(props.searchDebounceMs !== undefined
         ? { searchDebounceMs: props.searchDebounceMs }
         : {})}
@@ -786,6 +939,15 @@ export function ConversationListPanel(
             <TransportTag transport={transport} degraded={degraded} status={status} />
           </Flex>
 
+          {/* THE TABS ARE DRAWN IN EVERY ARM, including the empty ones and
+              the failure. They are not chrome over the rows — they are how a
+              person gets back to the other list, and an «Left» tab
+              with nothing on it that could not be left again would be a
+              corner of the product with no exit. */}
+          {props.leftView === false ? null : (
+            <ListViewTabs view={view} onView={setView} />
+          )}
+
           {/* THE TOOLBAR SITS OUTSIDE THE STATE MACHINE, on purpose.
               A typed search is a NEW query — its own key, its own first page
               — so the list goes back through `loading` and comes out `empty`
@@ -805,6 +967,7 @@ export function ConversationListPanel(
               onSearch={setSearch}
               unreadOnly={unreadOnly}
               onUnreadOnly={setUnreadOnly}
+              view={view}
             />
           ) : null}
 
@@ -839,10 +1002,21 @@ export function ConversationListPanel(
                   description={t(CHAT_I18N_KEYS.listNoMatches)}
                 />
               ) : (
+                // THREE empty answers now, and the third is not the first
+                // one's wording. "No conversations yet" over the left tab
+                // would tell a person with three hundred threads that they
+                // have none — the same lie the filtered arm above exists to
+                // prevent, arriving by a different route.
                 <Empty
                   style={{ marginTop: spacing[4] }}
-                  data-testid="chat-conversation-list-empty"
-                  description={t(CHAT_I18N_KEYS.listEmpty)}
+                  data-testid={
+                    isLeftView
+                      ? "chat-conversation-list-none-left"
+                      : "chat-conversation-list-empty"
+                  }
+                  description={t(
+                    isLeftView ? CHAT_I18N_KEYS.leftEmpty : CHAT_I18N_KEYS.listEmpty
+                  )}
                 />
               ),
             ready: (rows) => (
@@ -857,6 +1031,8 @@ export function ConversationListPanel(
                   linkComponent={props.linkComponent}
                   selectedId={selectedId}
                   onLeft={props.onLeft}
+                  onRejoined={props.onRejoined}
+                  view={view}
                 />
                 {hasNextPage ? (
                   <Button

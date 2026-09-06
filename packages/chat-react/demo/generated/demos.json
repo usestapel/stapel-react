@@ -37,6 +37,12 @@
           "step": "empty"
         },
         {
+          "id": "left",
+          "description": "«Left» — the exact complement of the tab beside it (stapel-chat 0.8.6 `?left=true`), so a thread is on one of the two and never on both; that is why the pane offers a tab pair and not a switch that would imply a union the endpoint cannot produce. A left row says WHEN it was left, off the row's own top-level `left_at`, and it carries «Return to conversation» instead of the overflow menu whose one entry was the exit already taken. The way back does not ask first: it puts a thread back on one list and takes nothing from anybody, and a confirmation there would be a speed bump on the recovery from a mistake. Note the search field's placeholder: it drops the inbox's «or message», because a left thread's last line is the departure marker and an unlabelled marker draws nothing and is found by nothing.",
+          "viewport": "phone",
+          "step": "left"
+        },
+        {
           "id": "row-identity",
           "description": "The row's identity glyph in all three answers the people seam can give: a resolved name (their initial), a resolved picture (the picture), and a directory that could not name this person (a neutral outline — never an initial invented from a user id, which is how a hole in a list gets mistaken for a design).",
           "viewport": "phone",
@@ -45,7 +51,7 @@
       ],
       "source": {
         "file": "demo/ConversationListPanelSkin.demo.tsx",
-        "line": 120
+        "line": 150
       }
     },
     {
@@ -217,6 +223,38 @@
       "source": {
         "file": "demo/PresenceSkin.demo.tsx",
         "line": 143
+      }
+    },
+    {
+      "id": "chat.rejoin",
+      "title": "Returning to a conversation (default skin)",
+      "description": "The undo of a departure (stapel-chat 0.8.6 POST /conversations/{id}/rejoin -> 204). It clears the caller's left_at and nothing else — read markers and updated_at are untouched, so the thread comes back with the badge it had and where the departure left it, not at the top of the inbox — which is why the pair re-reads the list instead of splicing the row in at a position it would have had to invent. It asks no confirmation: leaving is the half of this choice that needs a question, and putting a thread back on one list takes nothing from anybody.",
+      "component": "RejoinConversationButton",
+      "covers": [],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "error"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A row off the «Left» tab at phone width: when this person left, and the one control that thread has left to offer. The overflow menu is absent — its single entry was the exit they have already taken.",
+          "viewport": "phone",
+          "step": "offered"
+        },
+        {
+          "id": "refused",
+          "description": "The one refusal this request has, on a thread the caller is not a party to: `error.403.chat_not_participant`, the same key GET and DELETE on that URL give them — because returning is an undo and never a door into a conversation nobody put you in. It is not retried (the answer is settled, and three round trips would buy the same sentence) and the control stays on screen underneath it, so a person is told rather than left pressing a button that visibly does nothing.",
+          "viewport": "phone",
+          "step": "refused",
+          "play": true
+        }
+      ],
+      "source": {
+        "file": "demo/RejoinConversation.demo.tsx",
+        "line": 116
       }
     },
     {

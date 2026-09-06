@@ -63,6 +63,12 @@ export {
   LeaveConversationTrigger,
 } from "./LeaveConversation.js";
 export type { LeaveConversationDialogProps } from "./LeaveConversation.js";
+// THE WAY BACK (stapel-chat 0.8.6). One control and no dialog beside it: the
+// undo of a departure needs no confirmation, because it puts a thread back on
+// one list and takes nothing from anybody. It renders NOTHING on a deployment
+// whose `POST …/rejoin` answered 404 — see `RejoinConversation.tsx`.
+export { RejoinConversationButton } from "./RejoinConversation.js";
+export type { RejoinConversationButtonProps } from "./RejoinConversation.js";
 export {
   CounterpartyAvatar,
   PeopleScope,

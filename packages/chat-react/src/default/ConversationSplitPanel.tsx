@@ -38,6 +38,7 @@ import { Empty, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import type { ChatMessage, Subject } from "../api/types.js";
+import type { ChatInboxView } from "../model/inboxQuery.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
 import type { ConversationListPanelProps } from "./ConversationListPanel.js";
@@ -124,6 +125,25 @@ export interface ConversationSplitPanelProps {
    * saying to pick a conversation — an invitation, not a failure.
    */
   empty?: ReactNode;
+
+  // ── The two lists (stapel-chat 0.8.6), forwarded to the left pane ─────────
+  //
+  // Forwarded for the same reason the toolbar is: this arrangement mounts the
+  // list panel itself, so a desktop host that wanted the tab in its URL — or
+  // did not want the tab at all — could not otherwise reach it, and the same
+  // deployment would answer that product question differently on the phone
+  // and on the desk. See `ConversationListPanelProps`.
+
+  /** Which list the left pane shows, CONTROLLED. Pair with {@link onViewChange}. */
+  view?: ChatInboxView;
+  /** Which list a self-managing left pane starts on. Default `"inbox"`. */
+  defaultView?: ChatInboxView;
+  /** Fired when a tab is pressed, in both modes. */
+  onViewChange?: (view: ChatInboxView) => void;
+  /** Draw the tab pair in the left pane. Default: yes. */
+  leftView?: boolean;
+  /** A thread was returned to from the «Left» tab (0.8.6). */
+  onRejoined?: (conversationId: string) => void;
 }
 
 /**
@@ -177,6 +197,13 @@ function toolbarProps(
       ? { onUnreadOnlyChange: props.onUnreadOnlyChange }
       : {}),
     ...(props.filters !== undefined ? { filters: props.filters } : {}),
+    ...(props.view !== undefined ? { view: props.view } : {}),
+    ...(props.defaultView !== undefined ? { defaultView: props.defaultView } : {}),
+    ...(props.onViewChange !== undefined
+      ? { onViewChange: props.onViewChange }
+      : {}),
+    ...(props.leftView !== undefined ? { leftView: props.leftView } : {}),
+    ...(props.onRejoined !== undefined ? { onRejoined: props.onRejoined } : {}),
   };
 }
 

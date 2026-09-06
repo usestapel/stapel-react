@@ -59,12 +59,30 @@ export interface InboxRowText {
   readonly preview: string;
 }
 
-/** What a thread list is narrowed by. Both halves travel to the server. */
+/**
+ * WHICH OF THE TWO LISTS a thread pane is showing.
+ *
+ * `"inbox"` is the conversations a person is in; `"left"` is the ones they
+ * walked out of (stapel-chat 0.8.6 `?left=true`). They are exact complements
+ * — every thread a person is party to is on one and never on both — which is
+ * why this is one axis with two values and not a filter that could be off.
+ */
+export type ChatInboxView = "inbox" | "left";
+
+/** What a thread list is narrowed by. Every half travels to the server. */
 export interface ChatInboxFilter {
   /** Free text. Blank or whitespace-only is no search at all. */
   readonly search?: string;
   /** Keep only conversations with a non-zero `unread_count`. */
   readonly unreadOnly?: boolean;
+  /**
+   * Ask for the LEFT threads instead of the inbox (stapel-chat 0.8.6).
+   *
+   * NOT DEBOUNCED and never merged with the inbox's pages: it is a different
+   * list with a different ordering, so it takes its own cache entry and its
+   * own anchor chain (`model/queryKeys.ts`).
+   */
+  readonly view?: ChatInboxView;
   /**
    * How long a keystroke waits before it becomes a request, in ms. Default
    * {@link INBOX_SEARCH_DEBOUNCE_MS}. `0` sends every keystroke — for a test
@@ -128,17 +146,27 @@ export function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 /**
- * The filter the QUERY runs on: the chip immediately, the text once typing
- * has paused.
+ * The filter the QUERY runs on: the chip and the tab immediately, the text
+ * once typing has paused.
  *
  * Only the search is debounced. A chip is one press with one meaning and
  * delaying it would be a control that lags for no reason; a search box is a
- * sequence of intermediate words nobody asked to see the answer to.
+ * sequence of intermediate words nobody asked to see the answer to. The tab
+ * is not a filter at all — it is which list this is — so delaying it would
+ * leave a person looking at the other one.
  */
 export function useSettledInboxFilter(
   filter: ChatInboxFilter | undefined
-): { readonly search: string; readonly unreadOnly: boolean } {
+): {
+  readonly search: string;
+  readonly unreadOnly: boolean;
+  readonly left: boolean;
+} {
   const delay = filter?.searchDebounceMs ?? INBOX_SEARCH_DEBOUNCE_MS;
   const search = useDebouncedValue(normalizeInboxSearch(filter?.search), delay);
-  return { search, unreadOnly: filter?.unreadOnly === true };
+  return {
+    search,
+    unreadOnly: filter?.unreadOnly === true,
+    left: filter?.view === "left",
+  };
 }

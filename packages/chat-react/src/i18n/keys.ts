@@ -34,6 +34,49 @@ export const CHAT_I18N_KEYS = {
   /** The filtered list found nothing — NOT the same sentence as an empty inbox. */
   listNoMatches: "chat.list.no_matches",
 
+  // ── THE TWO LISTS (stapel-chat 0.8.6) ────────────────────────────────────
+  //
+  // `?left=true` is the exact complement of the inbox, so the pane offers two
+  // tabs and never a "show left conversations too" switch: a thread is on one
+  // of them and never on both, and a control that could put them side by side
+  // would be describing a state the server cannot produce.
+  /** The default tab: the conversations this person is in. */
+  listTabInbox: "chat.list.tab.inbox",
+  /** The other one: the conversations they walked out of. */
+  listTabLeft: "chat.list.tab.left",
+  /**
+   * The left list, empty. NOT `chat.list.empty` — "no conversations yet" over
+   * an inbox of three hundred that this person has simply never left any of
+   * would be the same lie the filtered-empty arm exists to prevent.
+   */
+  leftEmpty: "chat.left.empty",
+  /** WHEN this person left, on the row. `{date}` is `Intl`-rendered. */
+  leftAt: "chat.left.at",
+  /**
+   * The search field's placeholder ON THE LEFT TAB, and it differs from the
+   * inbox's for a reason a person would otherwise report as a bug.
+   *
+   * The server's search rule is the same on both lists — the counterpart's
+   * name, the subject card's title, and the last line the row DRAWS — but a
+   * left thread's last line IS the departure marker, and an unlabelled marker
+   * draws nothing and is therefore found by nothing. So the inbox's promise
+   * ("Name, listing or message") is one third false here, and the field says
+   * what it can actually find instead of inviting a search that will come
+   * back empty for a word the person can remember reading.
+   */
+  listSearchPlaceholderLeft: "chat.list.search.placeholder_left",
+
+  // ── THE WAY BACK (stapel-chat 0.8.6 POST /conversations/{id}/rejoin) ─────
+  //
+  // Leaving destroys nothing, so it must be undoable, and the undo needs no
+  // confirmation of its own: it is the SAFE direction of the same choice —
+  // it puts a thread back on one list and takes nothing from anybody. The
+  // control therefore acts on the press, where leaving asks first.
+  /** The control on a left row. */
+  rejoinAction: "chat.rejoin.action",
+  /** In flight. One round trip, and a phone on a train is still a phone on a train. */
+  rejoinPending: "chat.rejoin.pending",
+
   // Conversation kinds. NOT a row title any more: the inbox used to title
   // every row with its kind, so a seller with ten buyers read ten rows
   // saying "Direct message" and told them apart by the clock. A kind is now
@@ -318,8 +361,16 @@ export const chatI18nBundleEn: I18nDictionary = {
 
   "chat.list.search.label": "Search conversations",
   "chat.list.search.placeholder": "Name, listing or message",
+  "chat.list.search.placeholder_left": "Name or listing",
   "chat.list.filter.unread": "Unread",
   "chat.list.no_matches": "Nothing found.",
+
+  "chat.list.tab.inbox": "Conversations",
+  "chat.list.tab.left": "Left",
+  "chat.left.empty": "You haven't left any conversations.",
+  "chat.left.at": "Left {date}",
+  "chat.rejoin.action": "Return to conversation",
+  "chat.rejoin.pending": "Returning…",
 
   "chat.kind.direct": "Direct message",
   "chat.kind.group": "Group",

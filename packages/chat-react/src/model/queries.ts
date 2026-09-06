@@ -65,6 +65,26 @@ export function useConversation(
  *  · the SEARCH IS DEBOUNCED here rather than at a call site
  *    (`useSettledInboxFilter`), so every consumer of this hook gets the same
  *    pause and no host has to remember to add one. The chip is not.
+ *
+ * ── THE OTHER LIST (stapel-chat 0.8.6) ────────────────────────────────────
+ *
+ * `filter.view === "left"` swaps the inbox for its exact complement: the
+ * threads this person has LEFT, newest departure first. It is the same
+ * endpoint with the same filter vocabulary, and it is nevertheless a
+ * DIFFERENT LIST in every way a cache cares about — a different ordering, so
+ * a different first page and a different anchor chain, and an `anchor` that
+ * is a `left_at` where the inbox's is an `updated_at`. So it takes its own
+ * cache entry (the `left` segment of the key) and its cursor is never handed
+ * to the inbox. Sharing one entry would let a "load more" pressed on one tab
+ * page the other with the wrong cursor, and produce a plausible wrong list
+ * rather than an error.
+ *
+ * `search` narrows the left list exactly as it narrows the inbox, over the
+ * same rule — with one consequence that looks like a bug and is not: a left
+ * thread's last line IS the departure marker, an unlabelled marker draws
+ * nothing and is found by nothing, so these rows are found by the
+ * counterpart's name and the subject card's title and never by the last thing
+ * said in them. The skin says so in the field's own placeholder.
  */
 export function useConversations(
   limit: number = CONVERSATIONS_PAGE,
@@ -88,6 +108,7 @@ export function useConversations(
         // states: a blank search is no search.
         ...(settled.search !== "" ? { search: settled.search } : {}),
         ...(settled.unreadOnly ? { unread: true } : {}),
+        ...(settled.left ? { left: true } : {}),
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>

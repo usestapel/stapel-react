@@ -79,6 +79,13 @@
       "request": "MarkReadRequest",
       "response": null
     },
+    "chat_api_v1_conversations_rejoin_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/conversations/{conversation_id}/rejoin",
+      "tag": "Chat",
+      "request": null,
+      "response": null
+    },
     "chat_api_v1_conversations_retrieve": {
       "method": "GET",
       "path": "/chat/api/v1/conversations/{conversation_id}",
@@ -158,6 +165,20 @@
           "chat",
           "read-marker",
           "{conversationId}"
+        ]
+      ]
+    },
+    "useRejoinConversation": {
+      "kind": "mutation",
+      "operation": "rejoinConversation",
+      "invalidates": [
+        [
+          "chat",
+          "conversations"
+        ],
+        [
+          "chat",
+          "rejoin-supported"
         ]
       ]
     },
@@ -569,6 +590,7 @@
         "default",
         "more-to-load",
         "empty",
+        "left",
         "row-identity"
       ],
       "source": "demo/ConversationListPanelSkin.demo.tsx"
@@ -658,6 +680,23 @@
         "notifications-ask"
       ],
       "source": "demo/PresenceSkin.demo.tsx"
+    },
+    {
+      "id": "chat.rejoin",
+      "title": "Returning to a conversation (default skin)",
+      "description": "The undo of a departure (stapel-chat 0.8.6 POST /conversations/{id}/rejoin -> 204). It clears the caller's left_at and nothing else — read markers and updated_at are untouched, so the thread comes back with the badge it had and where the departure left it, not at the top of the inbox — which is why the pair re-reads the list instead of splicing the row in at a position it would have had to invent. It asks no confirmation: leaving is the half of this choice that needs a question, and putting a thread back on one list takes nothing from anybody.",
+      "component": "RejoinConversationButton",
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted",
+        "error"
+      ],
+      "variants": [
+        "default",
+        "refused"
+      ],
+      "source": "demo/RejoinConversation.demo.tsx"
     },
     {
       "id": "chat.sign-in-link",
@@ -774,6 +813,8 @@
     "chat.leave.body",
     "chat.leave.confirm",
     "chat.leave.pending",
+    "chat.left.at",
+    "chat.left.empty",
     "chat.list.empty",
     "chat.list.end",
     "chat.list.filter.unread",
@@ -788,6 +829,9 @@
     "chat.list.retry",
     "chat.list.search.label",
     "chat.list.search.placeholder",
+    "chat.list.search.placeholder_left",
+    "chat.list.tab.inbox",
+    "chat.list.tab.left",
     "chat.list.title",
     "chat.list.unread",
     "chat.nav.conversations",
@@ -804,6 +848,8 @@
     "chat.presence.left",
     "chat.presence.online",
     "chat.presence.unknown",
+    "chat.rejoin.action",
+    "chat.rejoin.pending",
     "chat.split.empty",
     "chat.start.blocked.mandate_unknown",
     "chat.start.blocked.self",
@@ -1102,7 +1148,8 @@
       "SubjectRef",
       "SupportStatus",
       "ThreadMergeResult",
-      "UseChatNotificationsOptions"
+      "UseChatNotificationsOptions",
+      "so"
     ]
   }
 }

@@ -1,3 +1,4 @@
+import { useCallback, useSyncExternalStore } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   InfiniteData,
@@ -227,8 +228,18 @@ export function useLoadOlderMessages(
   return useMutation(options);
 }
 
+/** Is this cache entry the LEFT list rather than the inbox? */
+function keyIsLeftList(queryKey: readonly unknown[]): boolean {
+  const filter = queryKey[2];
+  return (
+    typeof filter === "object" &&
+    filter !== null &&
+    (filter as { left?: unknown }).left === true
+  );
+}
+
 /**
- * Take one row out of EVERY cached narrowing of the inbox.
+ * Take one row out of every cached narrowing of ONE of the two lists.
  *
  * The list is keyed by its filter since stapel-chat 0.8.2 (`queryKeys.ts`), so
  * "the conversation list" is a family of cache entries — the unfiltered one,
@@ -237,15 +248,27 @@ export function useLoadOlderMessages(
  * three, waiting to be drawn again by a chip press. So this writes through the
  * two-element PREFIX, which is what that prefix is for.
  *
+ * WHICH OF THE TWO LISTS IS AN ARGUMENT, and it has to be (stapel-chat 0.8.6).
+ * The inbox and the left list are exact complements under one prefix, so every
+ * act that takes a row off one PUTS IT ON the other: leaving removes it from
+ * the inbox and the left list is where it now belongs; returning removes it
+ * from the left list and the inbox is where it now belongs. A helper that
+ * swept the whole prefix would delete the row from the list it had just moved
+ * to, and the person would watch it vanish out of both.
+ *
  * `count` follows the row it lost: a paginator's total that disagrees with the
  * items beside it is the kind of number that later gets rendered.
  */
 function forgetConversationRow(
   queryClient: QueryClient,
-  conversationId: string
+  conversationId: string,
+  from: "inbox" | "left"
 ): void {
   queryClient.setQueriesData<InfiniteData<ConversationPage, string | undefined>>(
-    { queryKey: chatQueryKeys.conversations() },
+    {
+      queryKey: chatQueryKeys.conversations(),
+      predicate: (query) => keyIsLeftList(query.queryKey) === (from === "left"),
+    },
     (data) => {
       if (data === undefined) return data;
       let removed = false;
@@ -291,6 +314,16 @@ function forgetConversationRow(
  * to simply APPEAR. A client suppressing it would need to be told to forget,
  * by an event nobody sends.
  *
+ * ── And the row is not moved to the other list by hand ────────────────────
+ *
+ * The row is dropped from the INBOX narrowings only; nothing writes it into
+ * the LEFT list's pages (stapel-chat 0.8.6). It belongs there now, but where
+ * exactly is the server's answer: that list is ordered by `left_at`, an
+ * instant this client does not have and must not invent, and the invalidation
+ * below is what fetches it. Placing the row optimistically would put it at
+ * whatever position the client guessed, and the guess would be corrected
+ * under the person's eyes a moment later.
+ *
  * ── The one refusal, and why it is not retried ────────────────────────────
  *
  * `DELETE` is idempotent — a second call is another `204` — so the only
@@ -311,13 +344,110 @@ export function useLeaveConversation(): UseMutationResult<
     mutationFn: (conversationId) => api.leaveConversation(conversationId),
     retry: false,
     onSuccess: (_answer, conversationId) => {
-      forgetConversationRow(queryClient, conversationId);
+      forgetConversationRow(queryClient, conversationId, "inbox");
       // The server's own answer to "what is on this list" — and the path a
-      // re-surfaced thread arrives back down.
+      // re-surfaced thread arrives back down. The prefix reaches BOTH lists,
+      // which is the point: the thread has just moved from one to the other.
       void queryClient.invalidateQueries({
         queryKey: chatQueryKeys.conversations(),
       });
     },
   };
   return useMutation(options);
+}
+
+/**
+ * RETURN to a conversation this person left (stapel-chat 0.8.6) — the undo of
+ * {@link useLeaveConversation}, and the reason the left list exists at all.
+ *
+ * The variable is the conversation id for the same reason leaving's is: this
+ * is pressed from a ROW, and one hook serves the whole list rather than one
+ * per row.
+ *
+ * ── What moves in the cache ───────────────────────────────────────────────
+ *
+ * The row is taken out of every cached narrowing of the LEFT list on the
+ * `204`, so the view answers the press, and then the whole two-element prefix
+ * is invalidated so the inbox re-reads. Nothing is written into the inbox
+ * pages by hand: the thread comes back with the badge it had and at the
+ * position its `updated_at` gives it — `services.rejoin_conversation` touches
+ * neither — and a client that spliced the row in would be choosing that
+ * position itself and re-sorting the person's list under their eyes when the
+ * server disagreed a moment later.
+ *
+ * The THREAD's own cache entries are untouched, exactly as on the way out:
+ * the leaver never lost their history and is not being given it back.
+ *
+ * ── The two refusals, and why one of them is a fact about the server ──────
+ *
+ * `403 error.403.chat_not_participant` is this request's own: an undo is not
+ * a door into a conversation nobody put you in. It is settled — the same
+ * answer every time — so `retry: false`, and the surface that made the press
+ * renders it.
+ *
+ * `404` is not about this thread at all. `POST …/rejoin` does not exist on a
+ * 0.8.5 server, and that is the ONLY way this pair can learn it: `?left=true`
+ * is an unknown query parameter there, silently ignored rather than refused,
+ * so the listing comes back looking like a perfectly good answer. The `404`
+ * is therefore recorded against the DEPLOYMENT rather than the row
+ * (`chatQueryKeys.rejoinSupported`), and every rejoin control on the screen
+ * stops being offered at once — a control that cannot work must not be drawn
+ * a second time for a person to press again.
+ */
+export function useRejoinConversation(): UseMutationResult<
+  void,
+  StapelApiError,
+  string
+> {
+  const api = useChatApi();
+  const queryClient = useQueryClient();
+  const options: UseMutationOptions<void, StapelApiError, string> = {
+    mutationFn: (conversationId) => api.rejoinConversation(conversationId),
+    retry: false,
+    onError: (error) => {
+      // A missing ENDPOINT, not a missing thread: this URL carries no
+      // resource of its own to be absent, so the only thing a 404 on it can
+      // mean is that the deployment predates the verb.
+      if (error.status === 404) {
+        queryClient.setQueryData(chatQueryKeys.rejoinSupported(), false);
+      }
+    },
+    onSuccess: (_answer, conversationId) => {
+      forgetConversationRow(queryClient, conversationId, "left");
+      void queryClient.invalidateQueries({
+        queryKey: chatQueryKeys.conversations(),
+      });
+    },
+  };
+  return useMutation(options);
+}
+
+/**
+ * Does this deployment have the way back at all?
+ *
+ * `true` until a `404` says otherwise — the honest default, because the pair
+ * announces `>=0.8 <0.9` and every release in that range from 0.8.6 has it,
+ * and because a control hidden on suspicion is a feature withheld from every
+ * up-to-date deployment to spare one old one a refusal.
+ *
+ * Subscribed to the query cache rather than read out of it: the flag is set by
+ * whichever row was pressed, and every OTHER row's control has to go at the
+ * same moment. Reading `getQueryData` at render time would leave the rest of
+ * the list offering a control that is known not to work until something else
+ * happened to repaint it.
+ */
+export function useRejoinSupported(): boolean {
+  const queryClient = useQueryClient();
+  const subscribe = useCallback(
+    (onChange: () => void) => queryClient.getQueryCache().subscribe(onChange),
+    [queryClient]
+  );
+  const read = useCallback(
+    () => queryClient.getQueryData<boolean>(chatQueryKeys.rejoinSupported()) ?? true,
+    [queryClient]
+  );
+  // The server snapshot is the same default: nothing has been refused during
+  // a render on the server, and an SSR pass that drew no control where the
+  // client draws one would hydrate into a mismatch.
+  return useSyncExternalStore(subscribe, read, () => true);
 }

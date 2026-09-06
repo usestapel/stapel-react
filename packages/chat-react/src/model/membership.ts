@@ -59,3 +59,36 @@ export function participantHasLeft(
 ): boolean {
   return participantLeftAt(conversation, userId) !== null;
 }
+
+/**
+ * WHEN THE READER THEMSELVES LEFT this thread — the top-level `left_at`
+ * stapel-chat 0.8.6 puts on every conversation body, ISO 8601, or `null`.
+ *
+ * ── Why a second reader, next to `participantLeftAt` ───────────────────────
+ *
+ * They answer different questions and only one of them can be asked without
+ * knowing who is reading. `participantLeftAt(conversation, userId)` is "has
+ * THAT person left" — the header's question about the counterpart, and it
+ * needs an id. This is "have *I* left", answered by the server for the
+ * requesting user out of the row it already had; a row rendered from it needs
+ * no `viewerId` at all, which is exactly what a LEFT-list row is rendered
+ * from. Deriving it by hunting the participants array for the viewer's id
+ * would be the same answer computed from a field the pair has to be told the
+ * key to — and would be silently wrong on any surface with no viewer wired.
+ *
+ * ── The absent field, again ───────────────────────────────────────────────
+ *
+ * It is not in the schema's `required` list, so a 0.8.5 body has no such
+ * field and this reads `null`: "nobody has left", which is what that server
+ * means, and the same degrade direction `participantLeftAt` takes. It is also
+ * why the LEFT LIST cannot be feature-detected from a listing — a 0.8.5
+ * server ignores the unknown `?left=` and answers with the inbox, whose rows
+ * legitimately have no `left_at` either. The way back
+ * (`useRejoinConversation`) is where a 0.8.5 deployment names itself, with a
+ * `404`.
+ */
+export function conversationLeftAt(
+  conversation: Conversation | undefined
+): string | null {
+  return conversation?.left_at ?? null;
+}

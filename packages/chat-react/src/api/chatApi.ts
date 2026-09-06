@@ -42,13 +42,13 @@ function pageQuery(
 }
 
 /**
- * The conversation list's own two filters on top of the paging trio
- * (stapel-chat 0.8.2).
+ * The conversation list's own filters on top of the paging trio — `search`
+ * and `unread` (stapel-chat 0.8.2), and `left` (0.8.6).
  *
- * BOTH ARE OMITTED RATHER THAN SENT EMPTY. `search=` and `unread=false` are
- * "no filter" to the server, so sending them buys nothing and costs a
- * distinct URL for every state a toolbar passes through — which is a distinct
- * cache entry and a request per keystroke of an empty box.
+ * ALL THREE ARE OMITTED RATHER THAN SENT EMPTY. `search=`, `unread=false` and
+ * `left=false` are "no filter" to the server, so sending them buys nothing
+ * and costs a distinct URL for every state a toolbar passes through — which
+ * is a distinct cache entry and a request per keystroke of an empty box.
  */
 function conversationQuery(
   params: ConversationListParams | undefined
@@ -57,6 +57,7 @@ function conversationQuery(
   const search = params?.search?.trim() ?? "";
   if (search !== "") query.search = search;
   if (params?.unread === true) query.unread = "true";
+  if (params?.left === true) query.left = "true";
   return query;
 }
 
@@ -88,6 +89,12 @@ export interface ChatApi {
    * A page of the caller's conversations, newest activity first — narrowed by
    * `search` / `unread` where they are given (stapel-chat 0.8.2: both filter
    * BEFORE the page is taken).
+   *
+   * `params.left` swaps the list for its exact complement — the threads this
+   * person has LEFT, newest departure first (stapel-chat 0.8.6). One method,
+   * because it is one endpoint with one paging contract and one filter
+   * vocabulary; what differs is what `anchor` is a value OF, and that belongs
+   * in the caller's cache key rather than in a second function.
    */
   conversations(params?: ConversationListParams): Promise<ConversationPage>;
   /** One conversation (participant-only; 403 otherwise). */
@@ -145,6 +152,29 @@ export interface ChatApi {
    * `GET` on this exact URL gives them.
    */
   leaveConversation(conversationId: string): Promise<void>;
+  /**
+   * TAKE BACK A DEPARTURE (stapel-chat 0.8.6). `204`, and `204` again on a
+   * retry.
+   *
+   * A named POST beside `read` rather than a `PATCH` clearing a field —
+   * `left_at` has exactly one legal value on the way back and the server is
+   * the one who writes it, so there is no body to send and none is sent.
+   *
+   * What it does NOT touch is the whole content of it: read markers stay, so
+   * the thread returns with the badge it had, and `updated_at` stays, so it
+   * returns where the departure left it rather than at the top of the inbox.
+   * No participant row is created — a caller who is not a party gets
+   * `error.403.chat_not_participant`, the same key `GET` and `DELETE` on that
+   * thread give them: this is an undo, never a door into a conversation
+   * nobody put you in.
+   *
+   * ON A 0.8.5 SERVER THIS URL DOES NOT EXIST AND ANSWERS `404`. That is the
+   * pair's feature detection, and the only one available: `?left=true` is
+   * silently ignored by a server that has never heard of it (an unknown query
+   * parameter is not an error), so a listing cannot tell the two apart — the
+   * refusal on the way back can. See `useRejoinConversation`.
+   */
+  rejoinConversation(conversationId: string): Promise<void>;
 }
 
 export function createChatApi(client: StapelClient): ChatApi {
@@ -200,5 +230,11 @@ export function createChatApi(client: StapelClient): ChatApi {
     // caller gets rather than an empty object it might be tempted to read.
     leaveConversation: (conversationId) =>
       client.delete(conversationPath(conversationId), mutating()),
+
+    // `undefined`, not `{}`: the operation declares `requestBody?: never`, and
+    // an empty object would put a `Content-Type: application/json` and two
+    // bytes on the wire to say nothing.
+    rejoinConversation: (conversationId) =>
+      client.post(`${conversationPath(conversationId)}/rejoin`, undefined, mutating()),
   };
 }

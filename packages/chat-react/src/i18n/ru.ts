@@ -80,8 +80,20 @@ export const chatI18nBundleRu: I18nDictionary = {
 
   "chat.list.search.label": "Поиск по диалогам",
   "chat.list.search.placeholder": "Имя, объявление или сообщение",
+  // The inbox's third promise is dropped here, not translated: a left
+  // thread's last line is the departure marker, an unlabelled marker draws
+  // nothing, and nothing finds it. The field says what it can find.
+  "chat.list.search.placeholder_left": "Имя или объявление",
   "chat.list.filter.unread": "Непрочитанные",
   "chat.list.no_matches": "Ничего не найдено.",
+
+  // Two lists, not a list and a switch: a thread is on exactly one of them.
+  "chat.list.tab.inbox": "Диалоги",
+  "chat.list.tab.left": "Оставленные",
+  "chat.left.empty": "Вы не покидали ни одного диалога.",
+  "chat.left.at": "покинут {date}",
+  "chat.rejoin.action": "Вернуться в диалог",
+  "chat.rejoin.pending": "Возвращаемся…",
 
   "chat.kind.direct": "Личная переписка",
   "chat.kind.group": "Групповой диалог",

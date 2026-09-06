@@ -6,6 +6,7 @@ import type { RealtimeStreamStatus } from "@stapel/realtime";
 import type { NoProviderStatus } from "@stapel/realtime/react";
 import type { Conversation } from "../api/types.js";
 import { useConversations } from "../model/queries.js";
+import type { ChatInboxView } from "../model/inboxQuery.js";
 import { chatQueryKeys } from "../model/queryKeys.js";
 import {
   CONVERSATION_LIST_INTERVAL_MS,
@@ -111,6 +112,20 @@ export function ConversationList(props: {
    * cannot disagree. Applied immediately; only the search waits.
    */
   unreadOnly?: boolean;
+  /**
+   * WHICH OF THE TWO LISTS to read (stapel-chat 0.8.6). `"inbox"` (default)
+   * is the conversations this person is in; `"left"` is its exact complement
+   * — the ones they walked out of, newest departure first, each carrying its
+   * own `left_at`.
+   *
+   * It is not a filter over the inbox and is not merged with it: the two are
+   * ordered by different columns, so the left list gets its own cache entry
+   * and its own anchor chain (`model/queryKeys.ts`), and a "load more" on one
+   * can never page the other.
+   *
+   * `search` and `unreadOnly` compose here exactly as they do on the inbox.
+   */
+  view?: ChatInboxView;
   /** Debounce for `search`, in ms. Default 300; `0` sends every keystroke. */
   searchDebounceMs?: number;
   /** Poll period in ms; `0` turns the list's own freshness off entirely. */
@@ -120,6 +135,7 @@ export function ConversationList(props: {
   const query = useConversations(props.limit, {
     ...(props.search !== undefined ? { search: props.search } : {}),
     ...(props.unreadOnly !== undefined ? { unreadOnly: props.unreadOnly } : {}),
+    ...(props.view !== undefined ? { view: props.view } : {}),
     ...(props.searchDebounceMs !== undefined
       ? { searchDebounceMs: props.searchDebounceMs }
       : {}),

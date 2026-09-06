@@ -44,7 +44,10 @@ export interface paths {
          *     it does and does not touch is stated once, in
          *     :func:`stapel_chat.services.leave_conversation`; the short version is
          *     that it hides the thread from the caller and takes nothing away from
-         *     anybody else. Staff erasure is not on this surface: user data has one
+         *     anybody else. Since 0.8.6 it is undoable: the hidden thread is listed by
+         *     ``GET /conversations?left=true`` and put back by
+         *     :class:`RejoinConversationView`. Staff erasure is not on this surface:
+         *     user data has one
          *     deletion path in this fleet (``user.deleted`` →
          *     :class:`~stapel_chat.gdpr.ChatGDPRProvider`), and a second door onto the
          *     same rows is a second door to get wrong.
@@ -193,6 +196,46 @@ export interface paths {
          *     **Permissions:** `IsAuthenticated`
          */
         post: operations["chat_api_v1_conversations_read_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chat/api/v1/conversations/{conversation_id}/rejoin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Take back a departure — ``POST /conversations/{id}/rejoin`` -> ``204``.
+         *
+         *     The way back from ``DELETE`` on the same thread, and the reason
+         *     ``?left=true`` exists at all: leaving destroys nothing, so a person who
+         *     pressed it by mistake needs a listing that shows the thread and a control
+         *     that undoes it, or the thread is reachable only by a URL they kept.
+         *
+         *     A verb beside ``read`` rather than a ``PATCH`` on the conversation: this
+         *     module spells its state transitions as named POSTs (``read``,
+         *     ``activity``, ``assign``, ``resolve``, ``reopen``), and a ``PATCH`` with a
+         *     ``left_at: null`` body would invite a caller to send some other instant —
+         *     a field whose only legal value is the one the server writes is not a field.
+         *
+         *     ``204``, and ``204`` again on a retry: a client that lost the response and
+         *     a client rejoining a thread it is already in are the same request. The
+         *     thread comes back with the badge it had and where the departure left it —
+         *     :func:`services.rejoin_conversation` touches the read markers and the
+         *     conversation's ``updated_at`` not at all. A caller who is not a party gets
+         *     ``403`` with the module's one membership key: this is an undo, never a way
+         *     into a conversation nobody put you in.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["chat_api_v1_conversations_rejoin_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -384,6 +427,11 @@ export interface components {
             last_message?: components["schemas"]["LastMessageResponse"] | null;
             /** @description The conversation's participants */
             participants?: components["schemas"]["ParticipantResponse"][];
+            /**
+             * Format: date-time
+             * @description When the REQUESTING user left this thread — ``null`` while
+             */
+            left_at?: string | null;
         };
         /** @description Create a conversation. */
         CreateConversationRequest: {
@@ -601,6 +649,8 @@ export interface operations {
                 anchor?: string;
                 /** @description Pagination direction */
                 direction?: "next" | "prev" | "center";
+                /** @description `true` returns ONLY the threads the caller has LEFT — the exact complement of the default list, never a widening of it, so a thread is on one of the two and never on both. It exists because leaving destroys nothing: without a listing that shows them, a thread left by mistake is reachable only by a URL somebody kept. Ordered by WHEN THE CALLER LEFT, newest departure first — so `anchor` is that timestamp on this list, not `updated_at` — and every row carries it as `left_at`. `search` and `unread` compose exactly as they do on the default list. Any other value is the default list, unchanged. `POST /conversations/{id}/rejoin` is the way back. */
+                left?: boolean;
                 /** @description Number of items (default 50, max 200) */
                 limit?: number;
                 /** @description Case-insensitive substring over the three things an inbox row draws: the COUNTERPART'S DISPLAY NAME (the user-model fields STAPEL_CHAT['SEARCH_NAME_FIELDS'] names — username, first name and last name out of the box), the SUBJECT CARD'S TITLE where the thread carries a subject (the fields that subject type's `search_fields` policy names, `title` by default), and the LAST MESSAGE'S body — the very text that row's `last_message.body_preview` ships, one rule for both. A tombstone is never matched (it draws as deleted), and neither is a system marker, unless this deployment gave that marker words in STAPEL_CHAT['SYSTEM_LINE_LABELS'] — then the row draws the label and those words find it. Filters BEFORE paging: anchor, direction and limit walk the filtered list and mean exactly what they mean without a search. Blank or whitespace-only is no search at all. Title matching covers the newest STAPEL_CHAT['SEARCH_SUBJECT_SCAN'] subject threads (500 by default); older ones are still matched by name and last line. */
@@ -840,6 +890,26 @@ export interface operations {
         responses: {
             /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chat_api_v1_conversations_rejoin_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

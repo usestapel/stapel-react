@@ -11,6 +11,25 @@ const ROOT = "chat" as const;
 export interface ChatConversationsKeyFilter {
   readonly search: string;
   readonly unreadOnly: boolean;
+  /**
+   * WHICH OF THE TWO LISTS this entry holds — the inbox (`false`) or the
+   * threads the caller has LEFT (`true`, stapel-chat 0.8.6).
+   *
+   * IT IS IN THE KEY BECAUSE THE ANCHOR MEANS SOMETHING ELSE ON EACH. The
+   * inbox is ordered by `updated_at` and the left list by `left_at`, so a
+   * `next_anchor` taken from one is a timestamp of a different thing on the
+   * other: one shared entry would let a "load more" pressed on one tab walk
+   * into pages the other tab's cursor selected, and the rows would be a
+   * plausible, wrong list. Separate entries, separate first pages, separate
+   * chains — the same reason `search` is in here.
+   *
+   * It is still the THIRD segment, under the shared `conversations()` prefix,
+   * so "the inbox moved" (a sent message, a read marker, a departure, a
+   * return) invalidates both lists at once. It has to: the two are exact
+   * complements, and every event that adds a thread to one takes it off the
+   * other.
+   */
+  readonly left: boolean;
 }
 
 export const chatQueryKeys: {
@@ -22,6 +41,7 @@ export const chatQueryKeys: {
   conversation(conversationId: string): readonly ["chat", "conversation", string];
   thread(conversationId: string): readonly ["chat", "thread", string];
   readMarker(conversationId: string): readonly ["chat", "read-marker", string];
+  rejoinSupported(): readonly ["chat", "rejoin-supported"];
 } = {
   all: [ROOT],
   // The infinite list shares one root key across pages (its pages live under
@@ -51,4 +71,13 @@ export const chatQueryKeys: {
   // reported. Lives in the query cache so it survives a remount and is wiped
   // at logout with everything else (frontend-core-architecture-v2 §43.3).
   readMarker: (conversationId) => [ROOT, "read-marker", conversationId],
+  // Not a server read either: does THIS deployment have
+  // `POST /conversations/{id}/rejoin` at all (stapel-chat 0.8.6)? A 0.8.5
+  // server answers `404` to it, which is the only signal there is — an
+  // unknown `?left=` query parameter is silently ignored rather than refused,
+  // so the LISTING cannot tell the two servers apart and the way back can.
+  // Cached rather than held in a module variable so it is per-runtime, wiped
+  // at logout with everything else, and readable by every row at once instead
+  // of once per row.
+  rejoinSupported: () => [ROOT, "rejoin-supported"],
 };

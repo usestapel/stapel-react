@@ -80,8 +80,20 @@ export const chatI18nBundleEs: I18nDictionary = {
 
   "chat.list.search.label": "Buscar conversaciones",
   "chat.list.search.placeholder": "Nombre, anuncio o mensaje",
+  // The inbox's third promise is dropped here, not translated: a left
+  // thread's last line is the departure marker, an unlabelled marker draws
+  // nothing, and nothing finds it. The field says what it can find.
+  "chat.list.search.placeholder_left": "Nombre o anuncio",
   "chat.list.filter.unread": "Sin leer",
   "chat.list.no_matches": "No se ha encontrado nada.",
+
+  // Two lists, not a list and a switch: a thread is on exactly one of them.
+  "chat.list.tab.inbox": "Conversaciones",
+  "chat.list.tab.left": "Abandonadas",
+  "chat.left.empty": "No has abandonado ninguna conversación.",
+  "chat.left.at": "abandonada el {date}",
+  "chat.rejoin.action": "Volver a la conversación",
+  "chat.rejoin.pending": "Volviendo…",
 
   "chat.kind.direct": "Mensaje directo",
   "chat.kind.group": "Grupo",

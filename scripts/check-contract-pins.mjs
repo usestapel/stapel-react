@@ -21,8 +21,9 @@
 //   node scripts/check-contract-pins.mjs
 //   pnpm check:contract-pins
 import { readFile, readdir } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -60,6 +61,33 @@ function parseVersion(text) {
 const show = (v) => v.join(".");
 
 /**
+ * WHAT KIND OF OBJECT a sha names in a checkout — `"commit"`, `"tag"`,
+ * `"tree"`, `"blob"` — or `null` when the repository has no such object at all.
+ *
+ * ASKED WITHOUT A PEELING SUFFIX, AND THAT IS THE WHOLE POINT. This check used
+ * to probe `git cat-file -e <ref>^{commit}`, which asks a different question
+ * than the one it was written for: `^{commit}` DEREFERENCES, so an annotated
+ * tag's own sha peels to the commit it points at and the probe answers "yes"
+ * — the exact class the comment below says it catches walked straight through
+ * it. `git cat-file -t <ref>` reports the object AS STORED and cannot peel, so
+ * a tag object comes back `tag` and is refused.
+ *
+ * (`v0.8.6` in stapel-chat is an annotated tag: `rev-parse v0.8.6` gives
+ * 13ad78be…, `rev-parse 'v0.8.6^{commit}'` gives e6486cd9…, and only the second
+ * is a pin. Under the old probe both passed.)
+ */
+export function refObjectType(dir, ref) {
+  try {
+    return execFileSync("git", ["-C", dir, "cat-file", "-t", ref], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * A pin is a 40-hex commit sha copied from `git rev-parse <tag>^{commit}`. Two
  * ways to write one that LOOKS right and is not: a short hash "expanded" by
  * hand (the 2026-08-26 stapel-geo pin shared 7 chars with the release commit
@@ -68,6 +96,12 @@ const show = (v) => v.join(".");
  * the sibling checkout on disk, so they fail at the desk instead of on the
  * runner. Unlike a stale range this is never a listing matter: a pin nobody
  * can fetch is not a pin.
+ *
+ * The two are DIFFERENT findings and are reported apart: a fabricated sha is
+ * nothing in this repository, while a tag object is a real object of the wrong
+ * kind — one is a typo, the other is one missing `^{commit}` in the command
+ * whose output was pasted, and telling a person which they did is the whole
+ * value of the message.
  */
 function checkPinsResolve(pins) {
   const bad = [];
@@ -79,15 +113,89 @@ function checkPinsResolve(pins) {
     }
     const dir = resolve(ROOT, SIBLING_ROOT, module);
     if (!existsSync(resolve(dir, ".git"))) continue; // not checked out here — CI fetches it
-    try {
-      execFileSync("git", ["-C", dir, "cat-file", "-e", `${ref}^{commit}`], { stdio: "ignore" });
-    } catch {
-      bad.push(`${module}: ${ref} does not resolve to a commit in ${dir} (fabricated, or a tag object)`);
+    const type = refObjectType(dir, ref);
+    if (type === null) {
+      bad.push(`${module}: ${ref} is no object at all in ${dir} — fabricated, or a short hash expanded by hand`);
+    } else if (type !== "commit") {
+      bad.push(`${module}: ${ref} is a ${type} object in ${dir}, not a commit — this is what \`git rev-parse <tag>\` prints for an ANNOTATED tag; \`git rev-parse '<tag>^{commit}'\` is the pin`);
     }
   }
   if (bad.length > 0) {
     console.error(`✖ contract-pins: ${bad.length} pin(s) cannot be fetched:\n` + bad.map((b) => `    - ${b}`).join("\n") +
       `\n  A pin is the output of \`git -C <sibling> rev-parse <tag>^{commit}\`, pasted, never typed.`);
+    process.exit(1);
+  }
+}
+
+/**
+ * THE GATE PROVING IT CAN STILL CATCH THE THING IT IS FOR — run before the
+ * pins are read, on every invocation.
+ *
+ * This exists because the tag-object case above was *documented* as caught and
+ * was not, for as long as the probe peeled. A comment claiming a finding is
+ * not a finding; the only thing that establishes one is a fixture the check is
+ * actually pointed at. So a throwaway repository is built here with one commit
+ * and one ANNOTATED tag over it, and {@link refObjectType} is asked about all
+ * three shas: the commit (must be `commit`), the tag object (must NOT be —
+ * this is the regression), and a sha of nothing (must be `null`).
+ *
+ * A fixture that cannot be BUILT is not a finding either way: a sandbox with
+ * no writable temp dir or no usable `git` says so on one line and the real
+ * check carries on. Every git invocation carries its own identity and skips
+ * hooks, so a runner with no `user.email` and a host with a global
+ * `core.hooksPath` both build it.
+ */
+function selfCheckRefProbe() {
+  const dir = mkdtempSync(resolve(tmpdir(), "contract-pins-selfcheck-"));
+  const ABSENT = "0".repeat(39) + "1"; // a well-formed sha of nothing
+  const git = (...args) =>
+    execFileSync(
+      "git",
+      ["-C", dir, "-c", "user.email=gate@stapel.dev", "-c", "user.name=gate",
+       "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-c", "core.hooksPath=", ...args],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+    ).trim();
+  let commitSha;
+  let tagSha;
+  try {
+    execFileSync("git", ["init", "-q", dir], { stdio: "ignore" });
+    writeFileSync(resolve(dir, "pyproject.toml"), 'version = "0.0.1"\n');
+    git("add", "pyproject.toml");
+    git("commit", "-q", "--no-verify", "-m", "fixture");
+    git("tag", "-a", "v0.0.1", "-m", "annotated, like every release tag in this fleet");
+    commitSha = git("rev-parse", "v0.0.1^{commit}");
+    tagSha = git("rev-parse", "v0.0.1");
+  } catch (error) {
+    console.error(
+      `  ? contract-pins: the pin probe's own self-check could not build its fixture ` +
+        `(${String(error).split("\n")[0]}) — the probe below ran unverified`
+    );
+    rmSync(dir, { recursive: true, force: true });
+    return;
+  }
+
+  const failures = [];
+  if (commitSha === tagSha) {
+    // Nothing to prove against: `git tag -a` produced a lightweight tag, so
+    // the fixture has no tag object and the case is untested here.
+    failures.push("the fixture's annotated tag has no tag object of its own");
+  }
+  if (refObjectType(dir, commitSha) !== "commit") failures.push("a commit sha is not read as a commit");
+  if (refObjectType(dir, tagSha) === "commit")
+    failures.push(
+      "AN ANNOTATED TAG'S OWN SHA IS ACCEPTED AS A COMMIT — the probe is peeling " +
+        "(`<ref>^{commit}` or `rev-parse --verify <ref>^{commit}`), and every tag-object pin passes it"
+    );
+  if (refObjectType(dir, ABSENT) !== null) failures.push("a sha of nothing is not reported as absent");
+  rmSync(dir, { recursive: true, force: true });
+
+  if (failures.length > 0) {
+    console.error(
+      `✖ contract-pins: the pin probe fails its own self-check:\n` +
+        failures.map((f) => `    - ${f}`).join("\n") +
+        `\n  Every pin below was checked by a probe that does not work. Fix \`refObjectType\`` +
+        `\n  before reading its verdict on anything.`
+    );
     process.exit(1);
   }
 }
@@ -234,6 +342,8 @@ function checkPinsFresh(pins) {
 
 async function main() {
   const pins = JSON.parse(await readFile(resolve(ROOT, "contract-pins.json"), "utf8"));
+  // Before the verdict, the instrument.
+  selfCheckRefProbe();
   checkPinsResolve(pins);
   checkPinsFresh(pins);
   const dirs = (await readdir(resolve(ROOT, "packages"), { withFileTypes: true }))

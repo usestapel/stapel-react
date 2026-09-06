@@ -216,7 +216,29 @@ export function seedInbox(
     // seeded the bare `conversations()` prefix would seed a key nothing
     // reads and photograph a spinner.
     queryClient.setQueryData(
-      chatQueryKeys.conversationList({ search: "", unreadOnly: false }),
+      chatQueryKeys.conversationList({ search: "", unreadOnly: false, left: false }),
+      { pages: [page], pageParams: [undefined] }
+    );
+  };
+}
+
+/**
+ * Seed the OTHER list — the threads the reader has left (stapel-chat 0.8.6).
+ *
+ * A separate seed and not an option on {@link seedInbox} because it is a
+ * separate cache entry, and that is the point being documented: the two lists
+ * are ordered by different columns, so they hold different pages under
+ * different anchors and a demo that seeded one key for both would photograph
+ * the inbox under the «Left» tab.
+ */
+export function seedLeftList(
+  rows: readonly Conversation[],
+  options?: { readonly hasNext?: boolean }
+): DemoSeed {
+  const page = inboxPage(rows, options);
+  return (queryClient) => {
+    queryClient.setQueryData(
+      chatQueryKeys.conversationList({ search: "", unreadOnly: false, left: true }),
       { pages: [page], pageParams: [undefined] }
     );
   };
@@ -692,6 +714,58 @@ export const DEMO_INBOX: readonly Conversation[] = [
 
 /** The thread the panel demos open, ascending by `seq`. */
 export const DEMO_THREAD_ID: string = DEMO_THREAD_CONVERSATION.id;
+
+/**
+ * THE OTHER LIST (stapel-chat 0.8.6) — two threads this reader walked out of.
+ *
+ * Every row carries the TOP-LEVEL `left_at` the server puts on it, because
+ * that is what the row is drawn from and what the list is ordered by; a
+ * fixture without it would photograph a left row with no departure on it,
+ * which is the 0.8.5 body and not this list's. `unread_count` is zero on both:
+ * leaving takes a thread out of the counts, so a left row with a badge is a
+ * body the server cannot produce.
+ */
+export const DEMO_LEFT_LIST: readonly Conversation[] = [
+  conversation("6b7a1f0e-9c3d-4a52-8f11-2d4e6f8a0b13", {
+    unread_count: 0,
+    updated_at: "2026-08-18T09:15:00Z",
+    left_at: "2026-08-20T15:45:00Z",
+    subject: DEMO_SUBJECT_GONE,
+    participants: [
+      { user_id: DEMO_VIEWER, role: "member", last_read_seq: 4 },
+      { user_id: "u-seller", role: "member", last_read_seq: 4 },
+    ],
+    // The last line of a left thread is the departure marker, and a marker
+    // this deployment gave no words to draws nothing — which is also why the
+    // search field on this tab promises the name and the listing and not the
+    // message.
+    last_message: {
+      seq: 5,
+      kind: "system",
+      sender_id: null,
+      created_at: "2026-08-20T15:45:00Z",
+      body_preview: null,
+      preview_reason: "system",
+    },
+  }),
+  conversation("0d2c4e6a-8b1f-4357-9ac2-5e7f9b0d1c34", {
+    unread_count: 0,
+    updated_at: "2026-08-11T20:02:00Z",
+    left_at: "2026-08-12T08:30:00Z",
+    participants: [
+      { user_id: DEMO_VIEWER, role: "member", last_read_seq: 9 },
+      { user_id: "u-anton", role: "member", last_read_seq: 9 },
+    ],
+    last_message: {
+      seq: 9,
+      kind: "system",
+      sender_id: null,
+      created_at: "2026-08-12T08:30:00Z",
+      body_preview: null,
+      preview_reason: "system",
+    },
+  }),
+];
 
 function message(
   seq: number,

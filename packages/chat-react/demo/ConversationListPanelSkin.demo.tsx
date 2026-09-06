@@ -19,11 +19,14 @@ import { ChatSkinTheme } from "../src/default/theme.js";
 import {
   ChatDemoHarness,
   DEMO_INBOX,
+  DEMO_LEFT_LIST,
   DEMO_PHOTO,
   DEMO_THREAD_CONVERSATION,
   DEMO_VIEWER,
   inboxPage,
+  seedAll,
   seedInbox,
+  seedLeftList,
 } from "./_harness.js";
 import { useT } from "@stapel/core";
 import { CHAT_I18N_KEYS } from "../src/index.js";
@@ -62,13 +65,40 @@ const READY = inboxDemo(DEMO_INBOX);
 const PAGED = inboxDemo(DEMO_INBOX, { hasNext: true });
 const EMPTY = inboxDemo([]);
 
-function Panel(props: { demo: { seed: DemoSeed; handlers: DemoHandlers } }): ReactElement {
+/**
+ * THE OTHER TAB (stapel-chat 0.8.6) — and it takes two seeds and two handlers,
+ * which is the fact being documented.
+ *
+ * `?left=true` is the exact complement of the inbox and is ordered by
+ * `left_at`, so it is a different cache entry with a different anchor chain.
+ * The handler for it is declared FIRST because `mockFetch` matches by suffix
+ * in order and `left=true` is inside the same `/conversations` URL: declared
+ * second, the inbox's handler would answer both and the catalogue would
+ * photograph the inbox under the «Left» tab, which is exactly the
+ * confusion the split cache entry exists to prevent.
+ */
+const LEFT: { seed: DemoSeed; handlers: DemoHandlers } = {
+  seed: seedAll(seedInbox(DEMO_INBOX), seedLeftList(DEMO_LEFT_LIST)),
+  handlers: {
+    "left=true": inboxPage(DEMO_LEFT_LIST),
+    "/conversations": inboxPage(DEMO_INBOX),
+  },
+};
+
+function Panel(props: {
+  demo: { seed: DemoSeed; handlers: DemoHandlers };
+  view?: "inbox" | "left";
+}): ReactElement {
   return (
     <ChatDemoHarness seed={props.demo.seed} handlers={props.demo.handlers}>
       {/* The reader is named, which is what lets a row name the OTHER person
           — and what lets the inbox open its own socket instead of polling and
           wearing the degradation sentence in every frame of the catalogue. */}
-      <ConversationListPanel viewerId={DEMO_VIEWER} openHref={href} />
+      <ConversationListPanel
+        viewerId={DEMO_VIEWER}
+        openHref={href}
+        {...(props.view !== undefined ? { defaultView: props.view } : {})}
+      />
     </ChatDemoHarness>
   );
 }
@@ -146,6 +176,13 @@ export default defineDemo({
       viewport: "phone",
       step: "empty",
       render: () => <Panel demo={EMPTY} />,
+    },
+    left: {
+      description:
+        "«Left» — the exact complement of the tab beside it (stapel-chat 0.8.6 `?left=true`), so a thread is on one of the two and never on both; that is why the pane offers a tab pair and not a switch that would imply a union the endpoint cannot produce. A left row says WHEN it was left, off the row's own top-level `left_at`, and it carries «Return to conversation» instead of the overflow menu whose one entry was the exit already taken. The way back does not ask first: it puts a thread back on one list and takes nothing from anybody, and a confirmation there would be a speed bump on the recovery from a mistake. Note the search field's placeholder: it drops the inbox's «or message», because a left thread's last line is the departure marker and an unlabelled marker draws nothing and is found by nothing.",
+      viewport: "phone",
+      step: "left",
+      render: () => <Panel demo={LEFT} view="left" />,
     },
     "row-identity": {
       description:

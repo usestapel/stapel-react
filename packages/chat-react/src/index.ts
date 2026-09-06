@@ -188,7 +188,14 @@ export {
   useDebouncedValue,
   useSettledInboxFilter,
 } from "./model/inboxQuery.js";
-export type { ChatInboxFilter, InboxRowText } from "./model/inboxQuery.js";
+export type {
+  ChatInboxFilter,
+  // WHICH OF THE TWO LISTS a pane is showing (stapel-chat 0.8.6). Not a
+  // filter: `?left=true` is the exact complement of the inbox, so a thread is
+  // on one of them and never on both.
+  ChatInboxView,
+  InboxRowText,
+} from "./model/inboxQuery.js";
 // The one line a row draws for its last message (stapel-chat 0.8.3's
 // `last_message` projection), localized — including the three cases where the
 // projection has no words to give, which 0.8.4 tells apart by name.
@@ -202,6 +209,16 @@ export {
   useLeaveConversation,
   useLoadOlderMessages,
   useMarkRead,
+  // THE WAY BACK (stapel-chat 0.8.6). `POST /conversations/{id}/rejoin`
+  // clears the caller's `left_at` and nothing else — the thread returns with
+  // the badge it had and where the departure left it — so the hook takes the
+  // row out of the LEFT list and lets the server say where it lands on the
+  // inbox. `useRejoinSupported` is the deployment's answer to "is there a way
+  // back at all": `false` once a 404 has said this server predates the verb,
+  // which is the only signal there is (an unknown `?left=` is ignored, not
+  // refused).
+  useRejoinConversation,
+  useRejoinSupported,
   useSendMessage,
   useStartDirectChat,
 } from "./model/mutations.js";
@@ -231,6 +248,9 @@ export type { ChatPresence } from "./model/presence.js";
 // it from whether this session happened to see the departure line, which is a
 // property of this client's connection and not of the thread.
 export {
+  // "Have *I* left" — the row's own top-level `left_at` (stapel-chat 0.8.6),
+  // which is what a LEFT-list row is drawn from and needs no viewer id.
+  conversationLeftAt,
   participantHasLeft,
   participantLeftAt,
 } from "./model/membership.js";

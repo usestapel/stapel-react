@@ -268,17 +268,31 @@ says neither that nor "Live".
   and a blank line there would say "nothing has been said here" — a different
   row's sentence. That arm is the pre-0.8.4 reading, marked as such where it
   is, and `inboxRows.test.tsx` pins it apart from the rule.
-- **A thread you left is unreachable from the product once you leave it.**
-  stapel-chat 0.8.5 hides it correctly — it is off `inbox_of`, off the unread
-  counts and off `?search=` — and it is deliberately not destroyed: the
-  messages are still there and `GET /conversations/{id}` still serves them to
-  the person who left. But there is no listing that includes a left thread, so
-  a person who pressed «Покинуть диалог» by mistake has no way back to it
-  except a URL they kept. The ask is a way to ASK for them (a `left=true` on
-  the list, or an archived view), not a change to the default: the whole point
-  of leaving is that they are not on the list. Until then this pair offers no
-  "restore", because a control that could only work for a thread the person
-  can already reach by id would be a promise about the ones they cannot.
+- ~~**A thread you left is unreachable from the product once you leave it.**~~
+  **Fixed upstream (stapel-chat 0.8.6).** It was true: 0.8.5 hid a left thread
+  correctly — off `inbox_of`, off the unread counts, off `?search=` — and
+  deliberately did not destroy it, so the messages were all still there and
+  `GET /conversations/{id}` still served them, to a person who had no listing
+  that would show them the thread and therefore no way back to it except a URL
+  they had kept. The ask was for a way to ASK for them, explicitly not a change
+  to the default, and that is exactly what landed: `?left=true` is the EXACT
+  COMPLEMENT of the inbox (`services.left_of` written as the negation of
+  `services.inbox_of`, so a thread is on one of the two and never on both, and
+  none can fall between them), ordered by `left_at` — which is why the anchor
+  on that list is a departure instant and this pair gives it its own cache
+  entry rather than letting one list's cursor page the other. `POST
+  /conversations/{id}/rejoin` is the way back, and clearing the caller's
+  `left_at` is the entire verb: read markers and `updated_at` are untouched, so
+  the thread returns with the badge it had and where the departure left it —
+  which is why nothing here re-sorts the inbox optimistically and the server is
+  asked instead. The pair's «Оставленные» tab and its «Вернуться в диалог» are
+  built on the two. ONE THING STILL CANNOT BE DETECTED FROM A LISTING: a 0.8.5
+  server ignores the unknown `?left=` rather than refusing it, so the tab there
+  shows the inbox and looks like a good answer. The `404` on `…/rejoin` is the
+  only signal a deployment predates the verb, and it is recorded against the
+  deployment (`useRejoinSupported`) rather than the row — every rejoin control
+  on the screen goes at once, because a control known not to work must not be
+  offered for a second press.
 - ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
   It was true: `@stapel/realtime` reported a stream as `reconnecting` while
   core's refresh was in flight, so a pair could not tell "renewing your
@@ -454,6 +468,31 @@ core floors only `en` and `ru`.
 
 ## Done since 0.4.0
 
+- **A thread you left has a listing, and a way back** (stapel-chat 0.8.6
+  `GET /conversations?left=true` + `POST /conversations/{id}/rejoin`). The
+  inbox pane has two tabs, «Диалоги» and «Оставленные», and it is a tab pair
+  rather than a "show left ones too" switch because the two lists are exact
+  complements: a thread is on one of them and never on both, so a control that
+  implied a union would be promising an answer the endpoint cannot give. The
+  left list is a DIFFERENT list in every way a cache cares about — ordered by
+  `left_at`, so its `anchor` is a departure instant where the inbox's is an
+  `updated_at` — and it therefore takes its own query key and its own page
+  chain; sharing one entry would let a «Load more» pressed on one tab page the
+  other with the wrong cursor and produce a plausible wrong list rather than an
+  error. A left row draws the date off the row's OWN top-level `left_at` («покинут
+  <дата>»), which needs no `viewerId`, and swaps the overflow menu — whose one
+  entry was the exit already taken — for «Вернуться в диалог». That control does
+  NOT confirm: it is the safe direction of the same choice, and a speed bump on
+  the recovery from a mistake is a speed bump aimed at the wrong press. On the
+  `204` the row leaves every narrowing of the left list and the whole
+  `["chat","conversations"]` prefix is invalidated, so the inbox re-reads;
+  nothing is spliced into the inbox by hand, because `rejoin` touches neither
+  the read markers nor `updated_at` and the position is the server's answer, not
+  a guess to be corrected under the person's eyes. The search box stays and
+  reaches the server the same way, with one honest difference in the field's
+  placeholder: a left thread's last line is the departure marker, an unlabelled
+  marker draws nothing and is found by nothing, so the promise there is the
+  counterpart's name and the subject card's title and not "or message".
 - **A person can leave a conversation** (stapel-chat 0.8.5 `DELETE
   /conversations/{id}`, which answered 405 until then). The verb is `DELETE`
   and the act is not: the thread leaves ONE list and nothing else moves, so

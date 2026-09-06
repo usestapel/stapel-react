@@ -45,7 +45,10 @@ export type CreateConversationRequest = Schemas["CreateConversationRequest"];
 export type SendMessageRequest = Schemas["SendMessageRequest"];
 /** POST /conversations/{id}/read request body. */
 export type MarkReadRequest = Schemas["MarkReadRequest"];
-/** GET /conversations 200 body — anchor-paginated on `updated_at`. */
+/**
+ * GET /conversations 200 body — anchor-paginated on `updated_at`, or on
+ * `left_at` when it was asked with `?left=true` (stapel-chat 0.8.6).
+ */
 export type ConversationPage = Schemas["PaginatedConversationResponseList"];
 /** GET /conversations/{id}/messages 200 body — anchor-paginated on `seq`. */
 export type MessagePage = Schemas["PaginatedMessageResponseList"];
@@ -128,7 +131,8 @@ export type ParticipantRole = "member" | "operator";
 export type AnchorDirection = "next" | "prev" | "center";
 
 /**
- * Query for `GET /conversations` (anchored on `updated_at`).
+ * Query for `GET /conversations` (anchored on `updated_at` — or, with
+ * {@link ConversationListParams.left}, on `left_at`).
  *
  * `search` and `unread` are the SERVER's filters (stapel-chat 0.8.2) and they
  * apply BEFORE the page is taken, so `anchor` / `direction` / `limit` mean
@@ -136,10 +140,34 @@ export type AnchorDirection = "next" | "prev" | "center";
  * list and can never surface a row the search excluded.
  */
 export interface ConversationListParams {
-  /** Anchor value to paginate from (exclusive) — a page's `next_anchor`. */
+  /**
+   * Anchor value to paginate from (exclusive) — a page's `next_anchor`.
+   *
+   * WHAT IT IS A VALUE OF DEPENDS ON `left`. The inbox is ordered by
+   * `updated_at` and the left list by `left_at` (newest departure first), so
+   * the two anchor chains are not interchangeable and a cursor taken from one
+   * list means nothing on the other — which is why the pair keys them apart
+   * (`model/queryKeys.ts`) rather than letting one "load more" walk into the
+   * other's pages.
+   */
   readonly anchor?: string;
   readonly direction?: AnchorDirection;
   readonly limit?: number;
+  /**
+   * `true` asks for the threads the caller has LEFT, and only those
+   * (stapel-chat 0.8.6).
+   *
+   * THE EXACT COMPLEMENT OF THE DEFAULT LIST, never a widening of it:
+   * `services.left_of` is written as the negation of `services.inbox_of`, so
+   * every thread a person is party to is on exactly one of the two lists and
+   * none can fall between them. `search` and `unread` compose here exactly as
+   * they do on the inbox.
+   *
+   * Sent only when `true` — anything else is the default list, so the pair
+   * omits the parameter rather than spending a distinct URL (and a distinct
+   * cache entry) on `left=false`.
+   */
+  readonly left?: boolean;
   /**
    * Case-insensitive substring over the three things a row DRAWS: the
    * counterpart's display name, the subject card's title, and the last
