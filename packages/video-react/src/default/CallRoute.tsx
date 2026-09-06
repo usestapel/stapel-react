@@ -17,9 +17,33 @@
  *
  * A host that DOES want a dedicated URL renders `<CallPanel>` itself and reads
  * the call from `useCalls()`. Nothing here is load-bearing for that.
+ *
+ * ── THE SESSION IS LATCHED, and that is the whole point of this file ──────
+ *
+ * This component used to mount the stage off a live conjunction —
+ * `connected && call !== undefined && grant !== undefined` — evaluated on
+ * every render. Unmounting the stage DISCONNECTS THE ROOM (that is its
+ * cleanup, and rightly so), so any single frame in which one of those three
+ * went momentarily false tore down a working call: an in-flight
+ * `GET /calls/active` answering `{call: null}` between two truths, a sibling
+ * tab posting `resolved` for the ring this browser had just answered, a
+ * `connected` that follows the row rather than the socket. None of those is an
+ * END. They are blips in a read, and a media session is far too expensive to
+ * spend on one.
+ *
+ * So the session is LATCHED BY `call.id`: it opens the first frame the
+ * conjunction is true, holds the token, the url and the last call row it saw
+ * for that id, and survives every later frame that merely fails to confirm
+ * it. What closes it is an END — the provider withdrawing the grant, which is
+ * exactly `decline` / `hangup` / `call.ended` — or a DIFFERENT call becoming
+ * this browser's live one. The grant is the credential for one call and the
+ * provider now binds it to that call's id, so "the grant is gone" is a
+ * statement about this session and nothing else.
  */
+import { useEffect, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { theme } from "antd";
+import type { CallResponse } from "../api/types.js";
 import { useCalls } from "../headless/CallsProvider.js";
 import { CallStage } from "./CallStage.js";
 import type { CallPeerLoader, CallRoomLike } from "./CallStage.js";
@@ -56,6 +80,17 @@ export interface CallRouteProps extends ThemeModeProp {
    * vendor's connection events. */
   readonly connection?: CallConnectionState;
   /**
+   * Publish this browser's microphone (and camera) when the panel mounts —
+   * `<CallPanel autoPublish>`, forwarded. Default `true`, there and here.
+   *
+   * It is here for the same reason `loadPeer` is: this route MOUNTS the
+   * panel, so a host that publishes from its own pre-call device picker could
+   * set `autoPublish={false}` on a `<CallPanel>` it does not render and had no
+   * way to reach the one this component does. A prop that exists only on the
+   * component nobody mounts is a prop nobody has.
+   */
+  readonly autoPublish?: boolean;
+  /**
    * Replace the built-in `import("livekit-client")` — `<CallStage loadPeer>`,
    * forwarded.
    *
@@ -68,22 +103,74 @@ export interface CallRouteProps extends ThemeModeProp {
   readonly loadPeer?: CallPeerLoader;
 }
 
+/**
+ * The call this browser is IN, held across the frames that fail to confirm it.
+ *
+ * `call` is the last row seen for `id` rather than the live one, so the panel
+ * keeps its clock and its audio-only flag through a blip instead of being
+ * handed `undefined` and unmounting.
+ */
+interface LatchedSession {
+  readonly id: string;
+  readonly token: string;
+  readonly url: string;
+  readonly call: CallResponse;
+  readonly peerId: string | undefined;
+}
+
 export function CallRoute(props: CallRouteProps): ReactElement | null {
   const { token } = theme.useToken();
   const calls = useCalls();
   const { nameFor, renderRemote, renderLocal, cameras, connection } = props;
 
-  const call = calls.call;
-  const grant = calls.grant;
-  // `connected` AND a grant: the state says the server thinks the call is up,
-  // the grant says THIS browser has a credential for it. A tab that learned
-  // about the call from a frame has the former and not the latter, and
-  // rendering a stage with no token would show it a "no token" screen for
-  // somebody else's connection.
-  if (!calls.connected || call === undefined || grant === undefined) return null;
+  const [session, setSession] = useState<LatchedSession | undefined>(undefined);
 
+  const live = calls.call;
+  const grant = calls.grant;
+  const connected = calls.connected;
+  const peerId = calls.peerId;
+
+  useEffect(() => {
+    // WITHDRAWN. The provider clears the grant on decline, on hangup, and on
+    // the server's `call.ended` — and, since it binds a grant to the call it
+    // was minted for, on nothing else. That is the end of this session.
+    if (grant === undefined) {
+      setSession(undefined);
+      return;
+    }
+    if (connected && live !== undefined) {
+      const id = String(live.id);
+      setSession((current) =>
+        current !== undefined &&
+        current.id === id &&
+        current.call === live &&
+        current.token === grant.token &&
+        current.url === grant.url &&
+        current.peerId === peerId
+          ? current
+          : { id, token: grant.token, url: grant.url, call: live, peerId }
+      );
+      return;
+    }
+    if (live !== undefined) {
+      // A live call that is NOT the latched one: this browser moved on, so
+      // the old session is over whatever the old row still says.
+      setSession((current) =>
+        current !== undefined && current.id !== String(live.id)
+          ? undefined
+          : current
+      );
+      return;
+    }
+    // No call in hand and the grant still held: a read in flight, a frame not
+    // yet arrived. A blip, not an end — hold what we have.
+  }, [connected, live, grant, peerId]);
+
+  if (session === undefined) return null;
+
+  const call = session.call;
   const peerName =
-    calls.peerId !== undefined ? nameFor?.(calls.peerId) : undefined;
+    session.peerId !== undefined ? nameFor?.(session.peerId) : undefined;
 
   return (
     <div
@@ -98,8 +185,8 @@ export function CallRoute(props: CallRouteProps): ReactElement | null {
       }}
     >
       <CallStage
-        token={grant.token}
-        serverUrl={grant.url}
+        token={session.token}
+        serverUrl={session.url}
         {...(props.mode !== undefined ? { mode: props.mode } : {})}
         {...(props.loadPeer !== undefined ? { loadPeer: props.loadPeer } : {})}
         // `<CallStage>`'s own Leave disconnects this browser. A call has to end
@@ -115,6 +202,9 @@ export function CallRoute(props: CallRouteProps): ReactElement | null {
             {...(props.mode !== undefined ? { mode: props.mode } : {})}
             {...(cameras !== undefined ? { cameras } : {})}
             {...(connection !== undefined ? { connection } : {})}
+            {...(props.autoPublish !== undefined
+              ? { autoPublish: props.autoPublish }
+              : {})}
             onHangup={() => void calls.hangup()}
             onReconnect={() => void calls.remint()}
             {...(renderRemote !== undefined

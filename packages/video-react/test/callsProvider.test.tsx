@@ -481,3 +481,233 @@ describe("<CallRoute> hands the stage the loader it was given", () => {
     });
   });
 });
+
+/**
+ * The in-call screen survives a frame that merely fails to confirm the call.
+ *
+ * `<CallRoute>` mounts `<CallStage>`, and unmounting the stage DISCONNECTS the
+ * room. So every condition the route mounts on is a way to hang up a working
+ * call by accident, and the route used to mount on a live conjunction
+ * re-evaluated every render: an active-call read answering `{call: null}`
+ * between two truths, or a sibling tab's `resolved` landing while this tab's
+ * cached row still said `ringing`, tore down the media session mid-call — and
+ * unrecoverably, because the same frame dropped the grant.
+ *
+ * Nothing below hand-shapes the state under test: the call is accepted through
+ * the overlay, the grant comes back from `POST /accept` the way it does in
+ * life, and the blips are the bodies `GET /calls/active` really answers.
+ */
+describe("<CallRoute> latches the media session by call id", () => {
+  function acceptedCall(overrides: Record<string, unknown> = {}): unknown {
+    return ringingCall({
+      state: "accepted",
+      answered_at: new Date().toISOString(),
+      ...overrides,
+    });
+  }
+
+  interface Session {
+    readonly rooms: { disconnect: ReturnType<typeof vi.fn> }[];
+    readonly frame: (f: CallFrameLike) => void;
+    readonly bus: ReturnType<typeof fakeBus>;
+  }
+
+  /**
+   * Ring, accept, and wait until the media session is up.
+   *
+   * `after` is what `GET /calls/active` answers ONCE THE CALL HAS BEEN
+   * ACCEPTED — the phase each test is about. Before that it answers the ring,
+   * because the grant has to arrive the way it does in life: out of
+   * `POST /accept`, pressed on the overlay.
+   */
+  async function connectCall(
+    after: () => HandlerResult,
+    options: { autoPublish?: boolean } = {}
+  ): Promise<Session> {
+    const rooms: { disconnect: ReturnType<typeof vi.fn> }[] = [];
+    class Room {
+      connect = vi.fn().mockResolvedValue(undefined);
+      disconnect = vi.fn();
+      localParticipant = {
+        setMicrophoneEnabled: vi.fn().mockResolvedValue(undefined),
+        setCameraEnabled: vi.fn().mockResolvedValue(undefined),
+      };
+      constructor() {
+        rooms.push(this);
+      }
+    }
+    let answered = false;
+    let deliver: ((f: CallFrameLike) => void) | undefined;
+    const bus = fakeBus();
+    const server = mockServer({
+      "GET /calls/active": () =>
+        answered ? after() : { body: { call: ringingCall() } },
+      "POST /accept": () => {
+        answered = true;
+        return {
+          body: { call: acceptedCall(), token: "tok", url: "wss://sfu.test" },
+        };
+      },
+      "POST /hangup": () => ({ body: { call: acceptedCall({ state: "ended" }) } }),
+    });
+    render(
+      <TestProviders server={server}>
+        <CallsProvider
+          userId={BOB}
+          notifyWhenHidden={false}
+          openBus={bus.open}
+          subscribe={({ onFrame }) => {
+            deliver = onFrame;
+            return () => {
+              deliver = undefined;
+            };
+          }}
+        >
+          <IncomingCallOverlay />
+          <CallRoute
+            {...(options.autoPublish !== undefined
+              ? { autoPublish: options.autoPublish }
+              : {})}
+            loadPeer={async () => ({ Room })}
+          />
+        </CallsProvider>
+      </TestProviders>
+    );
+    await waitFor(() => expect(screen.getByTestId("video-ring-accept")).toBeTruthy());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("video-ring-accept"));
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy()
+    );
+    return {
+      rooms,
+      bus,
+      frame: (f) => {
+        deliver?.(f);
+      },
+    };
+  }
+
+  it("holds the call through an active-call read that answers `{call: null}`", async () => {
+    // The read is the module's own repair, and it races everything it repairs:
+    // a request issued before the accept landed answers the world as it was.
+    // One `null` is not an end.
+    let blip = false;
+    const session = await connectCall(() => {
+      if (blip) {
+        blip = false;
+        return { body: { call: null } };
+      }
+      return { body: { call: acceptedCall() } };
+    });
+    blip = true;
+    // A frame this pair acts on by RE-READING — the ordinary way a refetch
+    // starts — rather than a test poking the query cache.
+    await act(async () => {
+      session.frame({ type: "call.accepted", payload: { call_id: "call-1" } });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy();
+    });
+    expect(session.rooms).toHaveLength(1);
+    expect(session.rooms[0]?.disconnect).not.toHaveBeenCalled();
+  });
+
+  it("holds the call through a sibling tab's `resolved` during connect", async () => {
+    // The accepting tab announces `resolved` and re-reads; a sibling's
+    // dismissal can therefore land while this tab still holds the pre-accept
+    // row. A browser holding the grant for that call is IN it, whatever a
+    // stale row says.
+    let stale = false;
+    const session = await connectCall(() =>
+      stale ? { body: { call: ringingCall() } } : { body: { call: acceptedCall() } }
+    );
+    stale = true;
+    await act(async () => {
+      session.bus.deliver({
+        kind: "resolved",
+        callId: "call-1",
+        from: "another-tab-of-mine",
+        user: BOB,
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy();
+    });
+    expect(session.rooms[0]?.disconnect).not.toHaveBeenCalled();
+    // And the read that follows puts the row back without a second dial.
+    stale = false;
+    await act(async () => {
+      session.frame({ type: "call.accepted", payload: { call_id: "call-1" } });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy();
+    });
+    expect(session.rooms).toHaveLength(1);
+    expect(session.rooms[0]?.disconnect).not.toHaveBeenCalled();
+  });
+
+  it("closes on `call.ended` — the one frame that ends a session", async () => {
+    let over = false;
+    const session = await connectCall(() =>
+      over ? { body: { call: null } } : { body: { call: acceptedCall() } }
+    );
+    over = true;
+    await act(async () => {
+      session.frame({
+        type: "call.ended",
+        payload: {
+          call_id: "call-1",
+          state: "ended",
+          end_reason: "hangup",
+          duration_seconds: 42,
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("video-call-route")).toBeNull();
+    });
+    expect(session.rooms[0]?.disconnect).toHaveBeenCalled();
+  });
+
+  it("ignores a `call.ended` about somebody else's call", async () => {
+    const session = await connectCall(() => ({ body: { call: acceptedCall() } }));
+    await act(async () => {
+      session.frame({
+        type: "call.ended",
+        payload: { call_id: "call-9", state: "ended", end_reason: "hangup" },
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("video-stage-connected")).toBeTruthy();
+    });
+    expect(session.rooms[0]?.disconnect).not.toHaveBeenCalled();
+  });
+
+  it("forwards `autoPublish` to the panel it mounts", async () => {
+    // The route mounts the panel, so a host that publishes from its own device
+    // picker could set this on a `<CallPanel>` it never renders and had no way
+    // to reach the one that is really on screen.
+    const off = await connectCall(() => ({ body: { call: acceptedCall() } }), {
+      autoPublish: false,
+    });
+    await waitFor(() => expect(screen.getByTestId("video-call-panel")).toBeTruthy());
+    expect(
+      (off.rooms[0] as unknown as {
+        localParticipant: { setMicrophoneEnabled: ReturnType<typeof vi.fn> };
+      }).localParticipant.setMicrophoneEnabled
+    ).not.toHaveBeenCalled();
+  });
+
+  it("publishes on mount when the host says nothing", async () => {
+    const on = await connectCall(() => ({ body: { call: acceptedCall() } }));
+    await waitFor(() => {
+      expect(
+        (on.rooms[0] as unknown as {
+          localParticipant: { setMicrophoneEnabled: ReturnType<typeof vi.fn> };
+        }).localParticipant.setMicrophoneEnabled
+      ).toHaveBeenCalledWith(true);
+    });
+  });
+});

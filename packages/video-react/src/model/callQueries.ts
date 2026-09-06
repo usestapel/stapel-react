@@ -60,6 +60,20 @@ export interface ActiveCallBag {
    * screen does not flash "nobody is calling" before it knows. */
   readonly loading: boolean;
   readonly error: unknown;
+  /**
+   * When this read last SETTLED, as a millisecond stamp that changes on every
+   * answer — including one that answers "no call".
+   *
+   * A caller that has to tell "there is no call" from "there is no call YET"
+   * cannot do it from {@link call} alone: absence is the same `undefined`
+   * before the first read, between two reads, and after the last one. This
+   * stamp is what turns a single absent answer into a CONFIRMED one — read
+   * again, and believe it only if a later answer still says nothing. The
+   * provider uses exactly that to decide whether a media grant is stale, and
+   * a value rather than a boolean because "is fetching" flickers while a
+   * stamp only ever moves forward.
+   */
+  readonly updatedAt: number;
   /** Re-read. The repair for a dropped frame; the provider wires it to mount
    * and to every realtime reconnect. */
   readonly refetch: () => void;
@@ -123,6 +137,7 @@ export function useActiveCall(options?: UseActiveCallOptions): ActiveCallBag {
     call,
     loading: query.isPending && enabled,
     error: query.error,
+    updatedAt: query.dataUpdatedAt,
     refetch,
     setCall,
   };

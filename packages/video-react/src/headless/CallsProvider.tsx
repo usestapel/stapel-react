@@ -79,6 +79,19 @@ export interface CallGrant {
   readonly url: string;
 }
 
+/**
+ * The grant plus the call it was minted FOR.
+ *
+ * Internal, and the reason this type exists at all: a bearer credential for a
+ * room is only meaningful next to the call it belongs to. Held anonymously, a
+ * grant could only be cleared by "there is no call right now" — which is true
+ * for one frame every time a read is in flight, and clearing it there tore
+ * down live calls (see the withdrawal effect below).
+ */
+interface HeldGrant extends CallGrant {
+  readonly callId: string;
+}
+
 /** What the whole app can see about the call in progress. */
 export interface CallsState {
   /** The live call, or `undefined`. */
@@ -241,7 +254,13 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
 
   const active = useActiveCall({ enabled: enabled && userId !== undefined });
   const actions = useCallActions();
-  const [grant, setGrant] = useState<CallGrant | undefined>(undefined);
+  const [held, setHeld] = useState<HeldGrant | undefined>(undefined);
+  const heldRef = useRef<HeldGrant | undefined>(undefined);
+  heldRef.current = held;
+  const grant = useMemo<CallGrant | undefined>(
+    () => (held === undefined ? undefined : { token: held.token, url: held.url }),
+    [held]
+  );
   const [ringOwner, setRingOwner] = useState<string | undefined>(undefined);
   const [remaining, setRemaining] = useState<number | undefined>(undefined);
 
@@ -351,7 +370,16 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
           return;
         case "declined":
         case "ended":
-          setGrant(undefined);
+          // THE END, and the only frame that withdraws a grant. Named by call
+          // id, because a frame about a call this browser is not in must not
+          // take the credential for the one it is in — the same rule
+          // `applyCallEvent` keeps for the row.
+          if (
+            heldRef.current !== undefined &&
+            heldRef.current.callId === String(event.callId)
+          ) {
+            setHeld(undefined);
+          }
           refresh();
           return;
         default:
@@ -414,11 +442,52 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
     t(VIDEO_I18N_KEYS.callIncomingTitle)
   );
 
-  // A call that ends clears the grant. Held here rather than in the panel so
-  // a token never survives the call it was minted for.
+  /**
+   * THE GRANT OUTLIVES A BLIP AND NOT AN END.
+   *
+   * This effect used to be one line — `if (call === undefined)
+   * setGrant(undefined)` — and that line ended live calls. `call` is absent
+   * for a frame every time a read is in flight and answers `{call: null}`
+   * between two truths, and for a frame every time a sibling tab's `resolved`
+   * lands while this one is connecting. Dropping the credential there is
+   * unrecoverable: the next read brings the call back and there is no token
+   * left to be in it with, so the in-call screen unmounts, the room
+   * disconnects, and nothing ever puts it back.
+   *
+   * What the grant is now cleared by:
+   *
+   *  - an END the server states — `call.ended` / `call.declined` above, or
+   *    this browser's own decline/hangup;
+   *  - a DIFFERENT call becoming the live one, because a grant names one call;
+   *  - an absence CONFIRMED by a second read. That last arm is the repair the
+   *    whole provider is built on rather than a timer: notice the absence,
+   *    re-read, and believe it only if a later answer (`updatedAt` moved) says
+   *    the same thing. It is what stops a lost `call.ended` on a best-effort
+   *    socket from leaving a full-screen call nobody is on.
+   */
+  const absence = useRef<{ id: string; at: number } | null>(null);
   useEffect(() => {
-    if (call === undefined) setGrant(undefined);
-  }, [call]);
+    const heldId = held?.callId;
+    if (heldId === undefined) {
+      absence.current = null;
+      return;
+    }
+    if (call !== undefined) {
+      if (String(call.id) !== heldId) setHeld(undefined);
+      absence.current = null;
+      return;
+    }
+    const seen = absence.current;
+    if (seen === null || seen.id !== heldId) {
+      absence.current = { id: heldId, at: active.updatedAt };
+      refresh();
+      return;
+    }
+    if (active.updatedAt > seen.at) {
+      setHeld(undefined);
+      absence.current = null;
+    }
+  }, [call, held, active.updatedAt, refresh]);
 
   const value = useMemo<CallsApi>(() => {
     const outgoing = ringing && role === "caller";
@@ -438,9 +507,19 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
        *
        * `ringing &&` is the same guard the `incoming` predicate above already
        * carries. Past the ring, what ends a call is the server saying so.
+       *
+       * The grant is the second half of that guard, and it is about a RACE
+       * rather than a state: the accepting tab announces `resolved` and
+       * re-reads, so a sibling's dismissal can land while this tab's cached
+       * row still says `ringing`. A browser holding the grant for that call is
+       * IN it, whatever a stale row says, and a ring nobody is on any more
+       * cannot be dismissed out from under it.
        */
       call:
-        ringing && dismissed !== undefined && dismissed === callId
+        ringing &&
+        dismissed !== undefined &&
+        dismissed === callId &&
+        held?.callId !== callId
           ? undefined
           : call,
       role,
@@ -460,31 +539,35 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
           ...(args.threadKey !== undefined ? { thread_key: args.threadKey } : {}),
           ...(args.media !== undefined ? { media: args.media } : {}),
         });
-        setGrant({ token: answer.token, url: answer.url });
+        setHeld({
+          callId: String(answer.call.id),
+          token: answer.token,
+          url: answer.url,
+        });
         return answer;
       },
       accept: async () => {
         if (callId === undefined) return;
         const answer = await actions.accept(callId);
-        setGrant({ token: answer.token, url: answer.url });
+        setHeld({ callId, token: answer.token, url: answer.url });
         announceResolved(callId);
       },
       decline: async () => {
         if (callId === undefined) return;
         await actions.decline(callId);
-        setGrant(undefined);
+        setHeld(undefined);
         announceResolved(callId);
       },
       hangup: async () => {
         if (callId === undefined) return;
         await actions.hangup(callId);
-        setGrant(undefined);
+        setHeld(undefined);
         announceResolved(callId);
       },
       remint: async () => {
         if (callId === undefined) return undefined;
         const next = await actions.remint(callId);
-        setGrant(next);
+        setHeld({ callId, token: next.token, url: next.url });
         return next;
       },
       refresh,
@@ -498,6 +581,7 @@ export function CallsProvider(props: CallsProviderProps): ReactElement {
     incoming,
     ringing,
     grant,
+    held,
     ringOwner,
     remaining,
     active.loading,
