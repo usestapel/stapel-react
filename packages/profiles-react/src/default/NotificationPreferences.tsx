@@ -43,6 +43,7 @@ import {
   type NotificationChannel,
 } from "../headless/NotificationPreferences.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { sectionCardChrome } from "./parts.js";
 
 /** The narrowest a "<channel> [switch]" line may get before the grid drops a
  * column. A length, named rather than inlined (see `no-raw-dimensions`). */
@@ -74,6 +75,18 @@ export interface NotificationPreferencesProps {
    * whole page of its own (the `profiles.notifications` route).
    */
   readonly surface?: SkinSurface;
+  /**
+   * WHO OWNS THE EDGE — `"own"` (default) or `"shell"`.
+   *
+   * This section draws an antd `Card`, whose `paddingLG` + 1px border put its
+   * content 25px in from wherever it was placed. Mounted on a bare route that
+   * IS the page frame; inside a shell that already pads its content box with
+   * `--stapel-page-gutter` it is a second one, and on a phone the rows then
+   * sat ~29px in under a header sitting at 4. `"shell"` drops the inline
+   * padding and the border and keeps every vertical measure — see
+   * `sectionCardChrome`.
+   */
+  readonly gutter?: "own" | "shell";
 }
 
 export function NotificationPreferences(
@@ -88,7 +101,7 @@ export function NotificationPreferences(
           surface={props.surface ?? "bare"}
           {...(props.mode !== undefined ? { mode: props.mode } : {})}
         >
-          <Card data-testid="notification-preferences" style={{ width: "100%" }}>
+          <Card data-testid="notification-preferences" {...sectionCardChrome(props.gutter)}>
             <Typography.Title level={4} style={{ marginTop: 0 }}>
               {t(PROFILES_I18N_KEYS.notifPrefsTitle)}
             </Typography.Title>

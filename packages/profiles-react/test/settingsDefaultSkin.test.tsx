@@ -791,3 +791,81 @@ describe("<NotificationPreferences/> (default skin)", () => {
     await waitFor(() => expect(calls).toBe(2));
   });
 });
+
+describe("who owns the edge of a settings section", () => {
+  /**
+   * The three-left-edges defect, in this pair's spelling. Every section here
+   * is an antd `Card` — `paddingLG` (24) plus a 1px border — and inside a
+   * shell whose content box already carries `--stapel-page-gutter` (4px on a
+   * phone) the rows sat ~29px in under a header sitting at 4.
+   *
+   * The assertions read the DOM antd actually produced (the card root and its
+   * own body element), not a style object the test built: the whole point is
+   * where the padding ends up once the component library has had its say.
+   */
+  function serveProfile(): void {
+    server.use(
+      http.get(`${BASE}/field-manifest`, () => HttpResponse.json(FIELD_MANIFEST)),
+      http.get(`${BASE}/me`, () => HttpResponse.json(MY_PROFILE_EXT)),
+      http.get(`${BASE}/languages/`, () =>
+        HttpResponse.json([{ code: "en", name: "English", flag: null }])
+      )
+    );
+  }
+
+  function body(card: HTMLElement): HTMLElement {
+    const found = card.querySelector<HTMLElement>(".ant-card-body");
+    if (found === null) throw new Error("the card drew no body");
+    return found;
+  }
+
+  it("keeps the card's own edge by default — a section on a bare route", async () => {
+    serveProfile();
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings showLanguage={false} showNotifications={false} />));
+    const card = await screen.findByTestId("profile-settings");
+    expect(card.style.borderWidth).toBe("");
+    expect(body(card).style.paddingInline).toBe("");
+  });
+
+  it("drops the side padding and the border inside a shell", async () => {
+    serveProfile();
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <ProfileSettings gutter="shell" showLanguage={false} showNotifications={false} />
+      )
+    );
+    const card = await screen.findByTestId("profile-settings");
+    expect(card.style.borderWidth).toBe("0px");
+    expect(body(card).style.paddingInline).toBe("0");
+    // The vertical measures are untouched: the rhythm between a section title
+    // and whatever sits above it is this screen's own business, and no shell
+    // supplies it.
+    expect(body(card).style.paddingBlock).toBe("");
+  });
+
+  it("hands the word to the two sections it composes", async () => {
+    // One word settles the whole page, or the language and notification cards
+    // keep the inset the profile card just gave up — three edges again, this
+    // time inside one screen.
+    serveProfile();
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <ProfileSettings gutter="shell" />));
+    const language = await screen.findByTestId("language-settings");
+    const notifications = await screen.findByTestId("notification-preferences");
+    expect(body(language).style.paddingInline).toBe("0");
+    expect(language.style.borderWidth).toBe("0px");
+    expect(body(notifications).style.paddingInline).toBe("0");
+    expect(notifications.style.borderWidth).toBe("0px");
+  });
+
+  it("is settable on either section on its own — they are routes too", async () => {
+    serveProfile();
+    const runtime = createProfilesRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <LanguageSettings gutter="shell" />));
+    const card = await screen.findByTestId("language-settings");
+    expect(body(card).style.paddingInline).toBe("0");
+  });
+});

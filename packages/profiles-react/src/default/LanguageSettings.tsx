@@ -28,7 +28,7 @@ import { useMyProfile } from "../model/queries.js";
 import { useUpdateMyProfile } from "../model/mutations.js";
 import { useLanguages } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
-import { SettingRow } from "./parts.js";
+import { SettingRow, sectionCardChrome } from "./parts.js";
 
 const AUTO = "auto";
 
@@ -56,6 +56,18 @@ export interface LanguageSettingsProps {
    * `profiles.language` route).
    */
   readonly surface?: SkinSurface;
+  /**
+   * WHO OWNS THE EDGE — `"own"` (default) or `"shell"`.
+   *
+   * This section draws an antd `Card`, whose `paddingLG` + 1px border put its
+   * content 25px in from wherever it was placed. Mounted on a bare route that
+   * IS the page frame; inside a shell that already pads its content box with
+   * `--stapel-page-gutter` it is a second one, and on a phone the rows then
+   * sat ~29px in under a header sitting at 4. `"shell"` drops the inline
+   * padding and the border and keeps every vertical measure — see
+   * `sectionCardChrome`.
+   */
+  readonly gutter?: "own" | "shell";
   /** Called after a successfully-applied pick with the newly picked app
    * language code — the hook the host uses to reload its i18n engine (e.g.
    * `loadTranslations(code)`, stapel-translate-driven). Not called when
@@ -130,7 +142,7 @@ export function LanguageSettings(props: LanguageSettingsProps): ReactElement {
       surface={props.surface ?? "bare"}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
-      <Card data-testid="language-settings" style={{ width: "100%" }}>
+      <Card data-testid="language-settings" {...sectionCardChrome(props.gutter)}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
           {t(PROFILES_I18N_KEYS.languageTitle)}
         </Typography.Title>

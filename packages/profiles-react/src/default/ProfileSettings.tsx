@@ -88,7 +88,7 @@ import { Image } from "@stapel/image";
 import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 import { EditPencilIcon } from "./icons.js";
-import { SettingRow, SEGMENTED_TRACK } from "./parts.js";
+import { SettingRow, SEGMENTED_TRACK, sectionCardChrome } from "./parts.js";
 import { LanguageSettings, SETTINGS_MAX_WIDTH } from "./LanguageSettings.js";
 import { NotificationPreferences } from "./NotificationPreferences.js";
 import type { MyProfile, ProfileFieldManifestEntry, ProfileUpdate } from "../api/types.js";
@@ -184,6 +184,19 @@ export interface ProfileSettingsProps {
    * see {@link ProfileSettingsProps.showLanguage}.
    */
   readonly showNotifications?: boolean;
+  /**
+   * WHO OWNS THE EDGE — `"own"` (default) or `"shell"`.
+   *
+   * This section draws an antd `Card`, whose `paddingLG` + 1px border put its
+   * content 25px in from wherever it was placed. Mounted on a bare route that
+   * IS the page frame; inside a shell that already pads its content box with
+   * `--stapel-page-gutter` it is a second one, and on a phone the rows then
+   * sat ~29px in under a header sitting at 4. `"shell"` drops the inline
+   * padding and the border and keeps every vertical measure — see
+   * `sectionCardChrome`. Forwarded to the two sections this screen composes,
+   * so one word settles the whole page.
+   */
+  readonly gutter?: "own" | "shell";
   /** Forwarded to the composed `<LanguageSettings onSaved=…>` — the hook a
    * host uses to reload its i18n engine after a language pick. */
   onLanguageSaved?(appLanguageCode: string): void;
@@ -567,7 +580,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
           marginInline: "auto",
         }}
       >
-      <Card data-testid="profile-settings" style={{ width: "100%" }}>
+      <Card data-testid="profile-settings" {...sectionCardChrome(props.gutter)}>
         <Typography.Title level={4} style={{ marginTop: 0 }}>
           {t(PROFILES_I18N_KEYS.settingsTitle)}
         </Typography.Title>
@@ -716,12 +729,14 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
       {(props.showLanguage ?? true) && (
         <LanguageSettings
           {...(props.mode !== undefined ? { mode: props.mode } : {})}
+          {...(props.gutter !== undefined ? { gutter: props.gutter } : {})}
           {...(props.onLanguageSaved ? { onSaved: props.onLanguageSaved } : {})}
         />
       )}
       {(props.showNotifications ?? true) && (
         <NotificationPreferences
           {...(props.mode !== undefined ? { mode: props.mode } : {})}
+          {...(props.gutter !== undefined ? { gutter: props.gutter } : {})}
         />
       )}
       </Flex>
