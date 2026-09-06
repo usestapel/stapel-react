@@ -21,6 +21,20 @@
  * from. Unwired = absent: a menu entry that is visibly offered and does
  * nothing is worse than one that is not there.
  *
+ * ── A HOST VERB WAITS FOR ITS TARGET ──────────────────────────────────────
+ *
+ * Both host entries are about a PERSON, and this menu opens on the first
+ * paint — before `GET /conversations/` has answered, when the header has no
+ * counterparty yet and hands `null` down. Rendering the entries then offered
+ * "block" with nothing to block: a slot that reads `counterpartyId` for the
+ * subject of its call would have fired at whoever is in scope, or at nobody,
+ * and one that guards on `null` would have had to invent a disabled state
+ * this package never asked it for. So the entries are not drawn until there
+ * IS a target — which is also the answer for a GROUP or a support thread,
+ * where there is no single other person and never will be. Leaving is this
+ * pair's own verb and needs no target, so the menu still opens, and still
+ * onto something, in every one of those states.
+ *
  * WHAT HAPPENS AFTER A BLOCK, so the thread does not look broken: stapel-chat
  * 0.6.1 refuses to CREATE a thread for a blocked pair and refuses a send with
  * `error.403.chat_send_refused`, while still serving the history. The
@@ -37,6 +51,7 @@ import { STAPEL_UI_KEYS, useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens-antd";
 import { SkinDialog } from "@stapel/tokens-antd/skin";
 import { useChatRuntime } from "../model/context.js";
+import type { ChatThreadActionSlotProps } from "../model/slots.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import {
   LeaveConversationDialog,
@@ -89,12 +104,19 @@ export function ThreadActionsMenu(props: ThreadActionsMenuProps): ReactElement {
   const close = (): void => {
     setOpen(false);
   };
-  const slotProps = {
-    conversationId: props.conversationId,
-    counterpartyId: props.counterpartyId,
-    viewerId: props.viewerId,
-    close,
-  };
+  // `null` while the conversation is still in flight, and for good in a group:
+  // either way there is nobody for a host verb to be about, so the entries
+  // wait rather than render onto a guess (see the header of this file).
+  const target = props.counterpartyId;
+  const slotProps: ChatThreadActionSlotProps | null =
+    target === null
+      ? null
+      : {
+          conversationId: props.conversationId,
+          counterpartyId: target,
+          viewerId: props.viewerId,
+          close,
+        };
 
   return (
     <>
@@ -119,8 +141,12 @@ export function ThreadActionsMenu(props: ThreadActionsMenuProps): ReactElement {
         data-testid="chat-thread-menu"
       >
         <Flex vertical gap={spacing[3]} style={{ width: "100%" }}>
-          {Report !== undefined ? <Report {...slotProps} /> : null}
-          {Block !== undefined ? <Block {...slotProps} /> : null}
+          {slotProps !== null && Report !== undefined ? (
+            <Report {...slotProps} />
+          ) : null}
+          {slotProps !== null && Block !== undefined ? (
+            <Block {...slotProps} />
+          ) : null}
           {/* Last: it is the exit, not the first thing to try. */}
           <LeaveConversationTrigger
             onPress={() => {

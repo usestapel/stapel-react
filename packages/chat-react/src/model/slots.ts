@@ -123,6 +123,13 @@ export interface ChatThreadActionSlotProps {
   /**
    * The other person, when the thread has exactly one — `null` for a group or
    * a support case, where "block them" has no single target.
+   *
+   * The SHIPPED menu never calls a slot with `null` here: the entry is not
+   * drawn until there is a target (`default/ThreadActionsMenu.tsx`), which
+   * covers both the group and the first paint, where the conversation has not
+   * been read yet. The field stays nullable because a host may mount
+   * `<ThreadActionsMenu>` itself, and a slot is free to keep whatever guard
+   * it already has — what it no longer needs is one.
    */
   readonly counterpartyId: string | null;
   readonly viewerId: string | null;
@@ -140,8 +147,12 @@ export interface ChatThreadActionSlotProps {
  * `@stapel/profiles-react`'s `useBlock` / `useRelationship`).
  *
  * Rendered when supplied, absent when not: a menu entry that is visibly
- * offered and does nothing is worse than one that is not there. When NEITHER
- * is supplied the skin draws no overflow control at all.
+ * offered and does nothing is worse than one that is not there. It is also
+ * absent while {@link ChatThreadActionSlotProps.counterpartyId} is `null` —
+ * both verbs are about a person, and an entry offered before the thread has
+ * one is the same empty promise one render earlier.
+ *
+ * The menu itself is always drawn: leaving is this pair's own verb.
  */
 export type ChatThreadActionSlot = (props: ChatThreadActionSlotProps) => ReactNode;
 

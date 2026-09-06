@@ -150,6 +150,12 @@ const People: ChatPeopleSlot = ({ userIds, children }) => {
 // REPORT / BLOCK. Rendered inside the thread's overflow menu — a bottom sheet
 // on a phone, a modal above it. `close()` dismisses that menu when your own
 // control takes the screen over.
+//
+// The `null` arms below are now unreachable from the shipped menu, which does
+// not draw a host entry until it HAS a counterparty — not on the first paint,
+// while the conversation is still being read, and not in a group, where there
+// is no single other person. They stay in the type (and in this example)
+// because a host may mount `<ThreadActionsMenu>` itself.
 const Report: ChatThreadActionSlot = ({ conversationId, counterpartyId, close }) =>
   counterpartyId === null ? null : (
     <ReportButton
@@ -176,8 +182,11 @@ const runtime = createChatRuntime({
 "Name unavailable" — the failure, in words — rather than falling back to the
 conversation's kind, which is what made ten different buyers look like ten
 copies of "Direct message". With neither `report` nor `block` the overflow
-control is not drawn at all, because a menu that opens onto nothing promises
-an action the deployment does not have.
+menu still opens — leaving a conversation is this pair's own verb (stapel-chat
+0.8.5), so the menu holds exactly one entry rather than nothing — and a host
+entry is withheld while there is no counterparty for it to be about, because
+"block" pointed at nobody is a promise as empty as a menu that opens onto
+nothing.
 
 **After a block the thread is not broken.** stapel-chat refuses to create a
 thread for a blocked pair and refuses a send with `error.403.chat_send_refused`

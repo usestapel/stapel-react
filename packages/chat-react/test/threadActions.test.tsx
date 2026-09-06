@@ -16,13 +16,22 @@
  *     modal above it (the fleet rule, `@stapel/tokens-antd/skin`), which is
  *     asserted at both widths rather than assumed at one;
  *   - the slot is told which person the thread is with, so "block" has a
- *     target it did not have to guess.
+ *     target it did not have to guess — and it is not rendered AT ALL until
+ *     there is one. The menu opens on the first paint, before
+ *     `GET /conversations/` answers and while the header still has no
+ *     counterparty, and the host entries used to be drawn in that gap with
+ *     `counterpartyId: null`. So this samples the SETTLED props, and asserts
+ *     separately that no render of either slot ever saw a null target.
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { ConversationThreadPanel } from "../src/default/index.js";
-import type { ChatSlots, ChatThreadActionSlotProps } from "../src/index.js";
+import type {
+  ChatSlots,
+  ChatThreadActionSlotProps,
+  Conversation,
+} from "../src/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 import { BUYER, CONVERSATION_ID, SELLER, conversation, messagePage } from "./fixtures.js";
 
@@ -33,11 +42,11 @@ afterEach(() => {
   window.innerWidth = DESK_WIDTH;
 });
 
-function renderThread(slots: ChatSlots): void {
+function renderThread(slots: ChatSlots, row: Conversation = conversation()): void {
   const server = mockServer({
     "GET /messages": { body: messagePage([1, 2]) },
     "POST /read": { body: {} },
-    "GET /conversations/": { body: conversation() },
+    "GET /conversations/": { body: row },
   });
   render(
     <TestHarness server={server} realtime={{ socketUrl: null }} slots={slots}>
@@ -79,9 +88,11 @@ describe("the thread's overflow menu", () => {
       report: actionSlot("host-report", seen),
       block: actionSlot("host-block", seen),
     });
-    await waitFor(() =>
-      expect(screen.getByTestId("chat-thread-menu-open")).toBeTruthy()
-    );
+    // Opened on the FIRST paint — no `await` above this line, so
+    // `GET /conversations/` has certainly not answered and the header still
+    // has no counterparty. That frame is what CI caught and what the sampling
+    // below is about; waiting first would only sometimes reproduce it, which
+    // is how this passed here and went red there.
     screen.getByTestId("chat-thread-menu-open").click();
     await waitFor(() => expect(screen.getByTestId("host-report")).toBeTruthy());
     expect(screen.getByTestId("host-block")).toBeTruthy();
@@ -89,9 +100,45 @@ describe("the thread's overflow menu", () => {
       screen.getByTestId("chat-thread-menu").getAttribute("data-stapel-dialog-surface")
     ).toBe("modal");
     // The slot knows who it is about — a block with no target is a guess.
-    expect(seen[0]?.counterpartyId).toBe(SELLER);
-    expect(seen[0]?.viewerId).toBe(BUYER);
-    expect(seen[0]?.conversationId).toBe(CONVERSATION_ID);
+    await waitFor(() => expect(seen.at(-1)?.counterpartyId).toBe(SELLER));
+    expect(seen.at(-1)?.viewerId).toBe(BUYER);
+    expect(seen.at(-1)?.conversationId).toBe(CONVERSATION_ID);
+    // And it never had to: not one render of either entry was handed a null
+    // target, which is what "the entry waits for the conversation" means.
+    // Asserting only the settled props would pass with the entry drawn onto
+    // nothing first — the state this whole rule exists to remove.
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((props) => props.counterpartyId !== null)).toBe(true);
+  });
+
+  it("withholds the host's verbs on a group — there is no single target", async () => {
+    const seen: ChatThreadActionSlotProps[] = [];
+    renderThread(
+      {
+        report: actionSlot("host-report", seen),
+        block: actionSlot("host-block", seen),
+      },
+      conversation({
+        kind: "group",
+        participants: [
+          { user_id: BUYER, role: "member", last_read_seq: 1 },
+          { user_id: SELLER, role: "member", last_read_seq: 3 },
+          { user_id: "u-third", role: "member", last_read_seq: 0 },
+        ],
+      })
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-message")).toHaveLength(2)
+    );
+    screen.getByTestId("chat-thread-menu-open").click();
+    // The way off the thread is still offered — leaving needs no target — and
+    // it is the only entry: "block them" among three people is a guess the
+    // settled conversation cannot resolve either, so the wait never ends here
+    // and the entry is simply not drawn.
+    await waitFor(() => expect(screen.getByTestId("chat-leave-open")).toBeTruthy());
+    expect(screen.queryByTestId("host-report")).toBeNull();
+    expect(screen.queryByTestId("host-block")).toBeNull();
+    expect(seen).toHaveLength(0);
   });
 
   it("opens as a BOTTOM SHEET on a phone", async () => {
