@@ -27,11 +27,15 @@ import type { ReactElement } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
 import { breakpoints, spacing } from "@stapel/tokens";
 import {
+  DEFAULT_HEADER_SCROLL_THRESHOLDS,
   HEADER_HEIGHT_DESKTOP,
   HEADER_HEIGHT_PHONE,
   HEADER_HEIGHT_VAR,
+  PUBLIC_HEADER_CLASS,
   PUBLIC_SHELL_CLASS,
   PublicShell,
+  SCROLL_SENTINEL_HEIGHT,
+  headerScrollThresholds,
   publicShellCss,
 } from "../src/default/index.js";
 import type { PublicShellProps } from "../src/default/index.js";
@@ -158,11 +162,14 @@ describe("the header height is the shell's to publish", () => {
  * specificity and order, which is exactly what the browser decided on.
  */
 describe("D449 — which rung wins is decided by order, not by an attribute", () => {
-  /** The two rules, in the order the sheet declares them. */
+  /** The two HEIGHT rules, in the order the sheet declares them. The sheet also
+   * carries the pinned header's seam rules (below), which say nothing about the
+   * property and take no part in this cascade. */
   function rules(): readonly { readonly selector: string; readonly inMedia: boolean }[] {
     const css = publicShellCss();
     const out: { selector: string; inMedia: boolean }[] = [];
     for (const line of css.split("\n")) {
+      if (!line.includes(HEADER_HEIGHT_VAR)) continue;
       const media = line.startsWith("@media");
       const body = media ? line.slice(line.indexOf("{") + 1) : line;
       const selector = body.slice(0, body.indexOf("{"));
@@ -291,12 +298,21 @@ describe("headerSticky", () => {
 });
 
 describe("the scroll flag", () => {
-  /** A stand-in observer whose callback the test drives — jsdom ships none. */
-  function stubObserver(): { fire: (intersecting: boolean) => void } {
-    let callback: IntersectionObserverCallback | undefined;
+  /**
+   * A stand-in observer whose callbacks the test drives — jsdom ships none.
+   *
+   * The shell puts TWO observers on one sentinel, one per edge of the
+   * hysteresis, and they are told apart the way the browser tells them apart:
+   * by their `rootMargin`. The ON edge is the observer with none.
+   */
+  function stubObserver(): {
+    fire: (edge: "on" | "off", intersecting: boolean) => void;
+    readonly margins: readonly string[];
+  } {
+    const registered: { margin: string; cb: IntersectionObserverCallback }[] = [];
     class Stub {
-      constructor(cb: IntersectionObserverCallback) {
-        callback = cb;
+      constructor(cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        registered.push({ margin: options?.rootMargin ?? "", cb });
       }
       observe(): void {
         /* the test fires by hand */
@@ -316,12 +332,19 @@ describe("the scroll flag", () => {
     }
     vi.stubGlobal("IntersectionObserver", Stub);
     return {
-      fire(intersecting: boolean): void {
+      get margins() {
+        return registered.map((entry) => entry.margin);
+      },
+      fire(edge, intersecting): void {
         act(() => {
-          callback?.(
-            [{ isIntersecting: intersecting } as IntersectionObserverEntry],
-            {} as IntersectionObserver
-          );
+          for (const entry of registered) {
+            const isOn = entry.margin === "";
+            if (isOn !== (edge === "on")) continue;
+            entry.cb(
+              [{ isIntersecting: intersecting } as IntersectionObserverEntry],
+              {} as IntersectionObserver
+            );
+          }
         });
       },
     };
@@ -345,9 +368,9 @@ describe("the scroll flag", () => {
     render(wrap({ headerSticky: true, headerScrollFlag: true }));
     const header = screen.getByTestId("public-shell-header");
     expect(header.dataset["scrolled"]).toBe("false");
-    observer.fire(false);
+    observer.fire("on", false);
     expect(header.dataset["scrolled"]).toBe("true");
-    observer.fire(true);
+    observer.fire("off", true);
     expect(header.dataset["scrolled"]).toBe("false");
   });
 
@@ -355,11 +378,13 @@ describe("the scroll flag", () => {
     stubObserver();
     setViewportWidth(DESKTOP);
     render(wrap({ headerScrollFlag: true }));
-    // 1px taken and 1px given back: a sentinel that reserved height would be
-    // the shift the whole mechanism exists to avoid.
+    // Taken and given straight back: a sentinel that reserved height would be
+    // the shift the whole mechanism exists to avoid. The height is the ON edge
+    // now rather than one pixel — the box is what measures the threshold.
     const sentinel = screen.getByTestId("public-shell-scroll-sentinel");
-    expect(sentinel.style.blockSize).toBe("1px");
-    expect(sentinel.style.marginBlockEnd).toBe("-1px");
+    const on = DEFAULT_HEADER_SCROLL_THRESHOLDS.on;
+    expect(sentinel.style.blockSize).toBe(`${String(on)}px`);
+    expect(sentinel.style.marginBlockEnd).toBe(`-${String(on)}px`);
     // Above the header in the DOM, so "the page has moved" is measured at the
     // document's first pixel rather than at the header's own.
     expect(
@@ -375,5 +400,261 @@ describe("the scroll flag", () => {
     render(wrap({ headerScrollFlag: true }));
     expect(add.mock.calls.filter(([type]) => type === "scroll")).toEqual([]);
     add.mockRestore();
+  });
+});
+
+/**
+ * D459 — ONE EDGE IS A THRESHOLD, NOT A HYSTERESIS.
+ *
+ * The flag flipped off a single 1px sentinel, and a trackpad's rubber-band
+ * around the top of a page crosses that edge repeatedly inside ONE gesture: the
+ * attribute strobed, and with it whatever a brand hung on it. The fleet's
+ * storefront was fading its hairline over 120ms so a crossing would at least
+ * read as a crossing rather than a flicker — a paint covering for a fact that
+ * was wrong.
+ *
+ * Two edges. On at {@link DEFAULT_HEADER_SCROLL_THRESHOLDS}`.on`, off only back
+ * at `.off`, and NOTHING in between — which is what makes the region a person's
+ * finger lives in during a rubber-band a region where the flag does not move.
+ *
+ * jsdom lays nothing out and scrolls nothing, so what is driven here is the
+ * observers themselves: each edge is a callback, and the assertion is that
+ * neither of them writes the other's answer.
+ */
+describe("D459 — the scroll flag has two edges", () => {
+  function stub(): {
+    fire: (edge: "on" | "off", intersecting: boolean) => void;
+    readonly margins: readonly string[];
+  } {
+    const registered: { margin: string; cb: IntersectionObserverCallback }[] = [];
+    class Stub {
+      constructor(cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        registered.push({ margin: options?.rootMargin ?? "", cb });
+      }
+      observe(): void {
+        /* driven by hand */
+      }
+      disconnect(): void {
+        /* nothing to release */
+      }
+      unobserve(): void {
+        /* nothing to release */
+      }
+      takeRecords(): [] {
+        return [];
+      }
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+    }
+    vi.stubGlobal("IntersectionObserver", Stub);
+    return {
+      get margins() {
+        return registered.map((entry) => entry.margin);
+      },
+      fire(edge, intersecting): void {
+        act(() => {
+          for (const entry of registered) {
+            if ((entry.margin === "") !== (edge === "on")) continue;
+            entry.cb(
+              [{ isIntersecting: intersecting } as IntersectionObserverEntry],
+              {} as IntersectionObserver
+            );
+          }
+        });
+      },
+    };
+  }
+
+  it("normalises what a host asks for, and never lets the edges cross", () => {
+    expect(headerScrollThresholds(undefined)).toBeNull();
+    expect(headerScrollThresholds(false)).toBeNull();
+    expect(headerScrollThresholds(true)).toEqual(DEFAULT_HEADER_SCROLL_THRESHOLDS);
+    expect(headerScrollThresholds({ on: 24, off: 4 })).toEqual({ on: 24, off: 4 });
+    // A negative `off` is a scroll position that does not exist, and an `on`
+    // under `off` is not a hysteresis — it is two edges in the wrong order,
+    // which would flip the flag both ways inside one pixel.
+    expect(headerScrollThresholds({ on: 3, off: -10 })).toEqual({ on: 3, off: 0 });
+    expect(headerScrollThresholds({ on: 2, off: 9 })).toEqual({ on: 9, off: 9 });
+    // Whole pixels: the sentinel's own height is one of these numbers, and a
+    // fractional box is the rounding this mechanism is hardened against.
+    expect(headerScrollThresholds({ on: 8.7, off: 0.9 })).toEqual({ on: 8, off: 0 });
+  });
+
+  it("does not flip while a rubber-band crosses the OFF edge over and over", () => {
+    const observer = stub();
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerSticky: true, headerScrollFlag: { on: 8, off: 0 } }));
+    const header = screen.getByTestId("public-shell-header");
+    const seen: string[] = [header.dataset["scrolled"] ?? ""];
+    // The gesture: 0 → 1 → 0 → 1 → 0 px. The ON edge (8px) is never reached,
+    // so its observer keeps reporting the sentinel as intersecting; the OFF
+    // edge's observer toggles with every pixel.
+    for (let pass = 0; pass < 3; pass += 1) {
+      observer.fire("off", false);
+      observer.fire("on", true);
+      seen.push(header.dataset["scrolled"] ?? "");
+      observer.fire("off", true);
+      observer.fire("on", true);
+      seen.push(header.dataset["scrolled"] ?? "");
+    }
+    // Not one flip in six crossings.
+    expect(new Set(seen)).toEqual(new Set(["false"]));
+  });
+
+  it("flips on at the ON edge and off again only at the OFF edge", () => {
+    const observer = stub();
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerSticky: true, headerScrollFlag: true }));
+    const header = screen.getByTestId("public-shell-header");
+    // Past 8px: the sentinel is above the window and the flag comes on.
+    observer.fire("on", false);
+    expect(header.dataset["scrolled"]).toBe("true");
+    // Back into the band between the edges — 4px, say. The ON observer sees
+    // the sentinel again; the flag must NOT follow it back.
+    observer.fire("on", true);
+    expect(header.dataset["scrolled"]).toBe("true");
+    // …and only the OFF edge puts it back.
+    observer.fire("off", true);
+    expect(header.dataset["scrolled"]).toBe("false");
+  });
+
+  it("measures both edges off ONE sentinel, with the OFF root shifted", () => {
+    const observer = stub();
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerScrollFlag: { on: 8, off: 0 } }));
+    expect(screen.getAllByTestId("public-shell-scroll-sentinel")).toHaveLength(1);
+    // The ON observer takes the viewport as it is; the OFF observer's root top
+    // is moved to `height - off - 1`, so it reports the sentinel as intersecting
+    // exactly while the page is at `off` px or less.
+    expect([...observer.margins].sort()).toEqual(["", "-7px 0px 0px 0px"]);
+    const sentinel = screen.getByTestId("public-shell-scroll-sentinel");
+    expect(sentinel.dataset["scrollOn"]).toBe("8");
+    expect(sentinel.dataset["scrollOff"]).toBe("0");
+  });
+
+  it("gives a host back the single 1px edge with `{ on: 0, off: 0 }`", () => {
+    const observer = stub();
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerScrollFlag: { on: 0, off: 0 } }));
+    // The sentinel never goes under one pixel — a zero-area box is not
+    // reliably reported as intersecting anything — and with both edges at the
+    // document's first pixel the OFF root needs no shift at all.
+    const sentinel = screen.getByTestId("public-shell-scroll-sentinel");
+    expect(sentinel.style.blockSize).toBe(`${String(SCROLL_SENTINEL_HEIGHT)}px`);
+    expect([...observer.margins].sort()).toEqual(["", "0px 0px 0px 0px"]);
+  });
+});
+
+/**
+ * D458 — THE PINNED HEADER PAINTS ITS OWN SEAM.
+ *
+ * At a fractional scroll offset a one-pixel row of the page showed above the
+ * pinned header: the sticky box and the content under it snap to device pixels
+ * independently, so at 0.5px there is a device row belonging to neither. The
+ * stand's frame-synced scan says the header does not move (`top` 0 and a
+ * constant height at every integer step from 0 to 300, at 1570 and at 390), so
+ * this is paint and not layout — and paint belongs with the declaration that
+ * causes it, which is this component's `position: sticky`.
+ *
+ * The fleet's storefront was carrying all three rules in its own sheet, over
+ * `[data-testid="public-shell-header"]`, with a note saying so.
+ *
+ * jsdom composites nothing; what is checkable is what the sheet DECLARES and
+ * what the header is handed, which is exactly where the defect lived.
+ */
+describe("D458 — the sticky header's seam", () => {
+  const header = `.${PUBLIC_HEADER_CLASS}[data-sticky="true"]`;
+
+  it("paints one pixel above its own box, in its own background", () => {
+    const css = publicShellCss();
+    const rule = css
+      .split("\n")
+      .find((line) => line.startsWith(`${header}::before`));
+    expect(rule).toBeDefined();
+    expect(rule).toContain('content:""');
+    expect(rule).toContain("position:absolute");
+    expect(rule).toContain("inset-block-start:-1px");
+    expect(rule).toContain("block-size:1px");
+    expect(rule).toContain("inset-inline:0");
+    // `inherit` and never a colour or a token: the header's background is the
+    // theme's container role resolved per theme AND per brand, so a second
+    // answer here would be right on one deployment and wrong on the next.
+    expect(rule).toContain("background:inherit");
+    expect(rule).not.toContain("var(--stapel");
+    expect(rule).not.toMatch(/#[0-9a-f]{3}/i);
+    // Out of flow: it may not cost the box a pixel of height, because
+    // `--stapel-header-height` is what four other surfaces pin against.
+    for (const property of ["margin", "padding", "min-block-size", "height"]) {
+      expect(rule, property).not.toContain(`${property}:`);
+    }
+  });
+
+  it("does NOT promote the header to its own layer by default", () => {
+    /* The field note, and the reason the promotion is a prop: on the owner's
+       own Chrome — headed, dark theme, a listing page — a screenshot at ~30px
+       of scroll shows the header VISUALLY ABSENT while the DOM reports
+       `top: 0`, height 56, opaque, `z-index: 1000`. Reproduced three times,
+       and no headless probe ever saw it. A sticky element handed its own layer
+       is the suspect, and a header that is not there is a worse defect than a
+       hairline — so the strip closes the seam on its own and the layer is
+       something a deployment turns on after looking at it.
+
+       `will-change` exists in the sheet exactly once, behind `data-layer`. */
+    const css = publicShellCss();
+    expect(css).toContain(`${header}[data-layer="true"]{will-change:transform}`);
+    expect(css.match(/will-change/g)).toHaveLength(1);
+    expect(css).toContain(`${header}{transition:box-shadow`);
+    // An actual `transform` would also make the header a containing block for
+    // every `position: fixed` descendant, which is a second effect nobody
+    // asked for — `will-change` is the promotion and nothing else.
+    expect(css).not.toMatch(/[^-]transform:/);
+
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerSticky: true }));
+    // Absent, not `"false"`: nothing may match on it by accident.
+    expect(
+      screen.getByTestId("public-shell-header").hasAttribute("data-layer")
+    ).toBe(false);
+  });
+
+  it("promotes it when a deployment has asked, and only then", () => {
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerSticky: true, headerLayer: true }));
+    expect(screen.getByTestId("public-shell-header").dataset["layer"]).toBe("true");
+    cleanup();
+    // The rule needs BOTH hooks, so an unpinned header holds no layer however
+    // the prop is set: there is no seam to smooth there.
+    render(wrap({ headerSticky: false, headerLayer: true }));
+    const node = screen.getByTestId("public-shell-header");
+    expect(node.dataset["layer"]).toBe("true");
+    expect(node.dataset["sticky"]).toBe("false");
+  });
+
+  it("transitions the shadow a host hangs on the flag, and not under reduced motion", () => {
+    const css = publicShellCss();
+    expect(css).toContain("transition:box-shadow 120ms ease-out");
+    expect(css).toContain(
+      `@media (prefers-reduced-motion:reduce){${header}{transition:none}}`
+    );
+    // The shadow itself stays the host's: this pair transitions whatever a
+    // brand declared and declares none of its own.
+    expect(css).not.toContain("box-shadow:");
+  });
+
+  it("hangs all of it on the header's own class, gated on the pin", () => {
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerSticky: true }));
+    const node = screen.getByTestId("public-shell-header");
+    expect(node.classList.contains(PUBLIC_HEADER_CLASS)).toBe(true);
+    expect(node.dataset["sticky"]).toBe("true");
+    // The inline declaration the seam exists for is untouched — and it is
+    // inline, which is why the sheet does not try to reach it.
+    expect(node.style.position).toBe("sticky");
+    expect(node.style.top).toBe("0px");
+    cleanup();
+    // Unpinned: no seam to paint, so the rules do not apply.
+    render(wrap({ headerSticky: false }));
+    expect(screen.getByTestId("public-shell-header").dataset["sticky"]).toBe("false");
   });
 });

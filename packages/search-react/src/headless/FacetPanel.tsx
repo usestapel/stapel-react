@@ -30,6 +30,17 @@ export interface FacetPanelBag {
    */
   readonly state: LoadState<readonly FacetGroup[]>;
   /**
+   * The groups in hand belong to the PREVIOUS answer, and a newer one is in
+   * flight — `LoadReady.refreshing`, lifted out of the state so a skin can
+   * read it without narrowing the union first.
+   *
+   * A skin holds its geometry still while this is `true`: the axes are about
+   * to change, and a rail that resizes group by group as they arrive is the
+   * 0.0586 CLS a partition press measured (p43). It is never `true` on a
+   * first load — there is nothing to hold still then.
+   */
+  readonly refreshing: boolean;
+  /**
    * `true` when the counts came from a SAMPLE because the candidate set
    * exceeded the backend's cap. The panel must say so — the spec makes this
    * a first-day requirement, not a banner added after somebody notices the
@@ -228,7 +239,23 @@ export function useFacetPanel(props: {
     props.enabled !== undefined ? { enabled: props.enabled } : undefined
   );
 
-  const envelope = loadStateFromQuery(query);
+  /*
+   * KEEP THE PREVIOUS ANSWER, AND SAY SO (p43, CLS 0.0586 on a partition press).
+   *
+   * `useSearchQuery` already runs with `placeholderData: keepPreviousData`, so
+   * the data in hand during a key change is the previous answer's — the panel
+   * has been drawing it for three releases. What it could not do is TELL a skin
+   * that this is what it was doing, so the rail resized group by group as the
+   * new axis's facets landed: `facet-group-make` and `facet-group-model` moved
+   * their neighbours as their option counts changed under them.
+   *
+   * `keepPrevious` reads TanStack's own `isPlaceholderData` into
+   * `LoadReady.refreshing`, which every projection below carries across
+   * (`mapLoad`, and `useHostFacetLabels` through it). It is set on EVERY ready
+   * answer once asked for, `false` included, so a skin keying its DOM off it
+   * does not grow and drop a wrapper as the flag comes and goes.
+   */
+  const envelope = loadStateFromQuery(query, { keepPrevious: true });
   const meta = envelope.status === "ready" ? envelope.data.facet_meta : EMPTY_META;
 
   const groups = mapLoad(envelope, (data) =>
@@ -271,6 +298,9 @@ export function useFacetPanel(props: {
 
   return {
     state: labelled,
+    // Read off the ANSWER's own state rather than off the projection, so a
+    // label pass that returns the groups untouched cannot lose it.
+    refreshing: envelope.status === "ready" && envelope.refreshing === true,
     approximate: meta.approximate,
     skipped: meta.skipped,
     counted: meta.counted,

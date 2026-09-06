@@ -735,7 +735,20 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               </GatedButton>
             );
           return (
-          <Flex vertical gap={spacing[3]} data-testid="search-facets">
+          <Flex
+            vertical
+            gap={spacing[3]}
+            data-testid="search-facets"
+            /* THE RAIL SAYS WHEN ITS ANSWER IS IN FLIGHT (p43).
+               A partition press measured 0.0586 CLS here: the rail survives —
+               the groups are the previous answer's and stay mounted — and the
+               groups RESIZE as the new axis's facets land. Each group holds
+               its own floor while this is on (see `FacetGroupControl
+               refreshing`), and the attribute is the host's half: a storefront
+               that dims or freezes the column has one thing to hang it on
+               instead of racing the pair's own queries to find out. */
+            data-facets-refreshing={bag.refreshing ? "true" : "false"}
+          >
             {/* In a 280px rail this row laid the word "Filters" out in a
                 43x78 box, three lines, one syllable each — see FACET_HEADING.
                 `wrap` is the row's half of the fix: the long sentence drops to
@@ -1042,6 +1055,10 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                           group={item.group}
                           onToggle={bag.toggle}
                           onSetValues={bag.setValues}
+                          // Its own last height, held until the answer lands,
+                          // so a group that changes option count does not move
+                          // the groups under it.
+                          refreshing={bag.refreshing}
                           collapsible
                           defaultOpen={
                             needle !== "" ||

@@ -62,7 +62,7 @@
  * them visible as before: folding everything would leave a heading over
  * nothing. Chosen options are always visible, wherever their count went.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Checkbox, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
@@ -982,6 +982,19 @@ export interface FacetGroupControlProps {
    * only `dictionaryMode: "sheet"` reads it.
    */
   readonly onSetValues?: (slug: string, values: readonly string[]) => void;
+  /**
+   * A newer facet answer is in flight and what is drawn is the previous one —
+   * `FacetPanelBag.refreshing`.
+   *
+   * The group then RESERVES the height it was last measured at
+   * (`min-block-size`), so that whatever changes under it while the answer
+   * settles — an option count, a label the host's vocabulary resolved, an axis
+   * arriving with the category schema — cannot move the groups below it. It is
+   * a floor and never a cap: a group that needs more room still takes it.
+   *
+   * Off (the default), nothing is reserved and nothing is measured.
+   */
+  readonly refreshing?: boolean;
 }
 
 /**
@@ -1014,6 +1027,36 @@ export function FacetGroupControl(
   const shape = facetGroupShape(group);
   const nodes = facetOptionNodes(group);
 
+  /*
+   * THE GROUP'S OWN FLOOR WHILE AN ANSWER IS IN FLIGHT (p43).
+   *
+   * The rail keeps the previous answer's groups on screen while the next one
+   * loads — `FacetPanelBag.refreshing` — and the shift it was measured at is
+   * what happens INSIDE that window: a group whose option count changes resizes
+   * and takes every group under it with it.
+   *
+   * So each group remembers the height it was last SETTLED at and stands on it
+   * until the answer lands. Its own last height and never a guess: the whole
+   * point is that this box was that tall a moment ago, on this deployment, at
+   * this width, with this category's options in it.
+   *
+   * Measured in an effect and held in a ref: nothing is written during a
+   * render, and the measurement is deliberately not taken while refreshing —
+   * a reserved box would otherwise remember its own reservation and the floor
+   * could only ever ratchet upwards.
+   */
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const settledHeight = useRef<number | undefined>(undefined);
+  const refreshing = props.refreshing === true;
+  useEffect(() => {
+    if (refreshing) return;
+    const node = boxRef.current;
+    // `offsetHeight` is 0 in a layout-free environment (jsdom, a server
+    // render): a floor of zero is not a reservation, so nothing is remembered.
+    if (node !== null && node.offsetHeight > 0) settledHeight.current = node.offsetHeight;
+  });
+  const reserved = refreshing ? settledHeight.current : undefined;
+
   const disclosure = props.collapsible === true && props.heading !== false;
   const open = !disclosure || openState;
 
@@ -1045,11 +1088,19 @@ export function FacetGroupControl(
 
   return (
     <Flex
+      ref={boxRef}
       vertical
       gap={shape === "segmented" ? spacing[2] : spacing[1]}
+      // A FLOOR, not a height: `min-block-size` lets a group that needs more
+      // room take it, and holds the box it had for one that would shrink.
+      {...(reserved !== undefined ? { style: { minBlockSize: reserved } } : {})}
       data-testid={`facet-group-${group.slug}`}
       data-counted={group.counted ? "true" : "false"}
       data-shape={shape}
+      // The reservation, readable from a stand: `data-reserved` is the height
+      // this group is standing on while the next answer is in flight.
+      {...(refreshing ? { "data-refreshing": "true" } : {})}
+      {...(reserved !== undefined ? { "data-reserved": String(reserved) } : {})}
       // Who named this heading — `none` means the raw slug is on screen
       // because the answer sent no label and the schema defines none. It is
       // drawn (a heading a person cannot read still beats none) and it is

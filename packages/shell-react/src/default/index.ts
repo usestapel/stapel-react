@@ -25,14 +25,18 @@ export type { PublicShellProps } from "./PublicShell.js";
 // `HEADER_HEIGHT_VAR` is the same two numbers as a custom property on the
 // shell's root, for the half of a deployment that is a stylesheet.
 export {
+  DEFAULT_HEADER_SCROLL_THRESHOLDS,
   HEADER_HEIGHT_DESKTOP,
   HEADER_HEIGHT_PHONE,
   HEADER_HEIGHT_VAR,
+  PUBLIC_HEADER_CLASS,
   PUBLIC_SHELL_CLASS,
   PUBLIC_SHELL_STYLE_HREF,
   SCROLL_SENTINEL_HEIGHT,
+  headerScrollThresholds,
   publicShellCss,
 } from "./PublicShell.js";
+export type { HeaderScrollThresholds } from "./PublicShell.js";
 // The two host-resolved brand slots `<PublicShell/>` falls back to when the
 // host passes neither `brand` nor `footer` and a `<SiteProvider>` is mounted
 // (multibrand spec, frontend decision). Exported on their own so a host that arranges its own

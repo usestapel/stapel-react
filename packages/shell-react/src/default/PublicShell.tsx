@@ -141,6 +141,16 @@ export const HEADER_HEIGHT_PHONE: number = spacing[7] + spacing[2];
 /** The class the shell's own root sheet is hung on. */
 export const PUBLIC_SHELL_CLASS = "stapel-public-shell";
 
+/**
+ * The class the shell's HEADER carries, and what the sheet's seam rules are
+ * hung on.
+ *
+ * A class rather than the `data-testid` a host used to reach for: a test id is
+ * a hook for a test, and a rule that has to exist in every build should not be
+ * written against one. The id stays where it is — nothing that reads it breaks.
+ */
+export const PUBLIC_HEADER_CLASS = "stapel-public-shell-header";
+
 /** The `href` the hoisted shell sheet is deduplicated by (React 19). */
 export const PUBLIC_SHELL_STYLE_HREF = "stapel-public-shell";
 
@@ -186,36 +196,188 @@ export const HEADER_HEIGHT_VAR = "--stapel-header-height";
  * and no restated selector. The order is therefore load-bearing, which is why
  * `headerGeometry.test.tsx` asserts it structurally rather than by reading a
  * computed value jsdom cannot resolve.
+ *
+ * ── The pinned header's own SEAM (D458) ───────────────────────────────────
+ *
+ * At a FRACTIONAL scroll offset a one-pixel row of the page showed above the
+ * pinned header — reproduced by the owner, and the stand's frame-synced scan
+ * says the header itself does not move (`top` 0 and a constant height at every
+ * integer step from 0 to 300, at 1570 and at 390). It is not a layout fault:
+ * the sticky box and the content under it snap to device pixels
+ * INDEPENDENTLY, so at 0.5px there is a device row belonging to neither.
+ *
+ * Two paints answer it, and both belong to whoever writes `position: sticky`:
+ *
+ *  1. THE HEADER PAINTS ONE PIXEL ABOVE ITS OWN BOX. A `::before` at
+ *     `inset-block-start: -1px`, `background: inherit` — the header's own
+ *     resolved background, so there is no second colour to go wrong on the day
+ *     a skin changes, on either theme or brand. Absolutely positioned, out of
+ *     flow, so it is not a flex item of the header's row and costs
+ *     {@link HEADER_HEIGHT_VAR} nothing — which matters, because a filter
+ *     rail, a results toolbar, a chip row and a condensed top bar all pin
+ *     against that number.
+ *  2. OPTIONALLY, THE HEADER GETS ITS OWN COMPOSITING LAYER —
+ *     `will-change: transform`, which asks the engine to pin it at integer
+ *     device pixels instead of re-rasterising it against a fractional offset
+ *     every frame. `will-change` and not an actual `transform`: a transform
+ *     would also make the header a containing block for every
+ *     `position: fixed` descendant, and the promotion is the whole of what
+ *     would be wanted.
+ *
+ *     IT IS OFF BY DEFAULT, and that is a measurement rather than a taste.
+ *     On the owner's own Chrome — headed, dark theme, a listing page — a
+ *     screenshot at ~30px of scroll shows the header VISUALLY ABSENT while the
+ *     DOM says `top: 0`, height 56, opaque, `z-index: 1000`. Reproduced three
+ *     times; no headless probe ever saw it. The suspect is exactly this
+ *     promotion: a sticky element handed its own layer, composited wrong by
+ *     some builds. Trading a one-pixel seam for a header that is not there is
+ *     not a trade, and the seam is closed by the strip alone — the strip is
+ *     what paints the missing row, and the layer only ever made the rounding
+ *     less likely to happen in the first place. See
+ *     {@link PublicShellProps.headerLayer} for the way back in.
+ *
+ * The strip is hung on `[data-sticky="true"]`, because an unpinned header has
+ * no seam to paint; the promotion needs `[data-layer="true"]` as well, which
+ * is the prop.
+ *
+ * The `box-shadow` TRANSITION is the third rule and belongs to the same
+ * paragraph. {@link PublicShellProps.headerScrollFlag} is what a brand hangs a
+ * hairline on, and a flag that flips is a shadow that appears; 120ms makes a
+ * crossing read as a crossing rather than as a strobe. The shadow itself is
+ * still the host's — this transitions whatever the host declared, and declares
+ * none. Under `prefers-reduced-motion: reduce` there is no transition at all.
+ *
+ * Nothing here uses `!important` and nothing restates a value the header
+ * writes inline: `top: 0` is an inline declaration, which no sheet rule of
+ * ours could beat anyway, and paint needs no override.
  */
 export function publicShellCss(): string {
   const shell = `.${PUBLIC_SHELL_CLASS}`;
+  const header = `.${PUBLIC_HEADER_CLASS}[data-sticky="true"]`;
   return [
     `${shell}:where([data-phone-chrome="dock"]){${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_PHONE)}px}`,
     `@media (min-width:${String(breakpoints.desktop)}px){` +
       `${shell}{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px}}`,
+    `${header}{transition:box-shadow 120ms ease-out}`,
+    `${header}::before{content:"";position:absolute;inset-inline:0;` +
+      `inset-block-start:-1px;block-size:1px;background:inherit;` +
+      `pointer-events:none}`,
+    // OPT-IN, and only ever under the pin — see this function's header and
+    // `headerLayer`. A header that vanished on the owner's own Chrome is what
+    // took this off the default path.
+    `${header}[data-layer="true"]{will-change:transform}`,
+    `@media (prefers-reduced-motion:reduce){${header}{transition:none}}`,
   ].join("\n");
 }
 
 /**
- * The scroll sentinel: the document's first pixel, given straight back.
+ * The scroll sentinel: the head of the document, given straight back.
  *
  * A pinned header wants an edge only when there is something behind it, and
  * CSS cannot yet ask "is this box currently stuck". The alternative every host
  * writes is a `scroll` listener, which runs on every frame of a feed of
- * photographs; one `IntersectionObserver` on a 1px box answers the same
- * question and costs nothing while nobody scrolls.
+ * photographs; `IntersectionObserver` on one box answers the same question and
+ * costs nothing while nobody scrolls.
  *
- * ONE pixel, taken and given straight back: the box has to have a height for
- * the observer to have something to observe, and it may not have one for the
- * page, or the sentinel is itself the shift the mechanism exists to avoid.
+ * The height is TAKEN AND GIVEN STRAIGHT BACK (`margin-block-end` is its
+ * negation): the box has to have a height for the observer to have something
+ * to observe, and it may not have one for the page, or the sentinel is itself
+ * the shift the mechanism exists to avoid.
+ *
+ * This is the smallest it is ever drawn — the floor under
+ * {@link HeaderScrollThresholds.on}, and the whole of it when a host asks for
+ * the old single-edge behaviour with `{ on: 0, off: 0 }`.
  */
 export const SCROLL_SENTINEL_HEIGHT = 1;
 
-const SCROLL_SENTINEL: CSSProperties = {
-  blockSize: SCROLL_SENTINEL_HEIGHT,
-  marginBlockEnd: -SCROLL_SENTINEL_HEIGHT,
-  pointerEvents: "none",
+/**
+ * The two edges of {@link PublicShellProps.headerScrollFlag}: how far the page
+ * must move for the flag to come ON, and how far back it must come for the
+ * flag to go OFF again.
+ *
+ * They are DIFFERENT numbers on purpose — see
+ * {@link DEFAULT_HEADER_SCROLL_THRESHOLDS}.
+ */
+export interface HeaderScrollThresholds {
+  /** Scrolled at least this many px: `data-scrolled="true"`. */
+  readonly on: number;
+  /** Back to this many px or fewer: `data-scrolled="false"`. */
+  readonly off: number;
+}
+
+/**
+ * What `headerScrollFlag` means, and why one number was not enough (D459).
+ *
+ * The flag used to flip at a single 1px edge, which is a THRESHOLD and not a
+ * hysteresis: a trackpad's rubber-band around the top of a page crosses 0–3px
+ * over and over in one gesture, and the header's hairline strobed with it —
+ * the fleet's storefront was fading its shadow over 120ms so that a crossing
+ * would at least read as a crossing.
+ *
+ * Two edges instead. The flag comes on once the page has genuinely moved
+ * (8px — past the rubber band, under a line of text) and goes off only at the
+ * very top, where the header has nothing behind it and demonstrably needs no
+ * edge. Nothing in between changes anything, which is what a rubber band is.
+ *
+ * `{ on: 0, off: 0 }` is the pre-0.16 behaviour exactly: one edge at the
+ * document's first pixel.
+ */
+export const DEFAULT_HEADER_SCROLL_THRESHOLDS: HeaderScrollThresholds = {
+  on: 8,
+  off: 0,
 };
+
+/**
+ * The thresholds a `headerScrollFlag` value asks for, normalised.
+ *
+ * `off` cannot be negative (there is no scroll position below the top of a
+ * document to come back to) and `on` cannot be under `off`, or the two edges
+ * cross and the pair stops being a hysteresis at all. Both are floored to
+ * whole pixels: the sentinel's height is one of them, and a fractional box is
+ * the very rounding this mechanism is being made robust against.
+ */
+export function headerScrollThresholds(
+  flag: boolean | HeaderScrollThresholds | undefined
+): HeaderScrollThresholds | null {
+  if (flag === undefined || flag === false) return null;
+  if (flag === true) return DEFAULT_HEADER_SCROLL_THRESHOLDS;
+  const off = Math.max(0, Math.floor(flag.off));
+  return { off, on: Math.max(off, Math.floor(flag.on)) };
+}
+
+/**
+ * The sentinel's box for a given pair of edges.
+ *
+ * Its height is the ON edge (never under {@link SCROLL_SENTINEL_HEIGHT}: a
+ * zero-area box is not reliably reported as intersecting anything), and its
+ * negative bottom margin gives every pixel of that back to the page.
+ */
+function scrollSentinelStyle(on: number): CSSProperties {
+  const height = Math.max(on, SCROLL_SENTINEL_HEIGHT);
+  return {
+    blockSize: height,
+    marginBlockEnd: -height,
+    pointerEvents: "none",
+  };
+}
+
+/**
+ * The OFF observer's `rootMargin`, so that ONE sentinel answers both edges.
+ *
+ * The sentinel spans `0…H` in the document, so in viewport coordinates its
+ * bottom sits at `H - scrollY`. An observer whose root's top edge has been
+ * moved to `H - off - 1` therefore reports it as intersecting exactly while
+ * `H - scrollY > H - off - 1`, i.e. while `scrollY <= off`. The ON edge is the
+ * same box with no margin at all: it stops intersecting at `scrollY >= H`.
+ *
+ * Two observers on one element rather than two elements: the sentinel is a
+ * position in the page, and a page should not grow a second one because the
+ * flag grew a second edge.
+ */
+function offRootMargin(on: number, off: number): string {
+  const height = Math.max(on, SCROLL_SENTINEL_HEIGHT);
+  return `${String(-(height - off - 1))}px 0px 0px 0px`;
+}
 
 const DRAWER_WIDTH = "min(20rem, 86vw)";
 
@@ -346,6 +508,33 @@ export interface PublicShellProps {
    */
   readonly headerSticky?: boolean | "desktop" | "phone";
   /**
+   * Give the PINNED header its own compositing layer
+   * (`will-change: transform`). Default `false`, and the default is a
+   * measurement.
+   *
+   * The promotion asks the engine to pin the header at integer device pixels
+   * instead of re-rasterising it against a fractional scroll offset, which is
+   * the second half of the answer to the one-pixel seam (D458) — the first
+   * half, the `::before` strip, is unconditional and is what actually paints
+   * the missing row.
+   *
+   * ── Why it is off ─────────────────────────────────────────────────────────
+   *
+   * On the owner's own Chrome — headed, dark theme, a listing page — a
+   * screenshot at ~30px of scroll shows the header VISUALLY ABSENT while the
+   * DOM says `top: 0`, height 56, opaque, `z-index: 1000`. Reproduced three
+   * times, and no headless probe ever saw it: the suspect is a sticky element
+   * handed its own layer and composited wrong by that build. A header that is
+   * not there is a worse defect than a hairline, so the promotion is a thing a
+   * deployment turns on after looking at it on the browsers it actually
+   * serves — never something a version bump does to somebody's storefront.
+   *
+   * `true` writes `data-layer="true"` on the header, which is what the sheet's
+   * rule is gated on. It has no effect on an unpinned header: there is no seam
+   * to smooth and no reason to hold a layer.
+   */
+  readonly headerLayer?: boolean;
+  /**
    * Mark the header once the page has moved: `data-scrolled="true" | "false"`.
    *
    * Opt-in and purely a HOOK — the shell draws nothing differently for it. A
@@ -359,17 +548,27 @@ export interface PublicShellProps {
    * }
    * ```
    *
-   * The fact comes from ONE `IntersectionObserver` on a 1px sentinel the shell
+   * The fact comes from `IntersectionObserver` on ONE sentinel the shell
    * renders above its own header — never a `scroll` listener, which runs on
-   * every frame of a feed of photographs. The sentinel takes a pixel and gives
-   * it straight back (`margin-block-end: -1px`), so it is a position in the
-   * page and never a change to it.
+   * every frame of a feed of photographs. The sentinel takes its height and
+   * gives it straight back (`margin-block-end` is its negation), so it is a
+   * position in the page and never a change to it.
+   *
+   * ── TWO edges, not one (D459) ─────────────────────────────────────────────
+   *
+   * `true` is a PAIR of thresholds — {@link DEFAULT_HEADER_SCROLL_THRESHOLDS},
+   * `{ on: 8, off: 0 }` — and not the single 1px edge it used to be. One edge
+   * is a threshold, and a trackpad's rubber-band around the top of a page
+   * crosses one of those repeatedly inside a single gesture: the flag strobed,
+   * and with it whatever a brand hung on it. Pass your own
+   * {@link HeaderScrollThresholds} to move the edges; `{ on: 0, off: 0 }` is
+   * the old behaviour exactly.
    *
    * Off, the attribute is absent entirely rather than `"false"`: a host that
    * did not ask for the observer should not be able to write a rule that
    * silently never fires.
    */
-  readonly headerScrollFlag?: boolean;
+  readonly headerScrollFlag?: boolean | HeaderScrollThresholds;
   /**
    * Draw the header's HOME affordance in `phoneChrome="dock"`. Default `true`.
    *
@@ -485,10 +684,17 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           ? !isDesktop
           : props.headerSticky;
 
-  // The scroll flag: one observer on one 1px box, and only when asked for.
+  // The scroll flag: two observers on ONE box, and only when asked for. The
+  // thresholds are read out of the prop here so the effect below depends on
+  // two numbers rather than on an object literal a host re-creates every
+  // render — which would tear the observers down and build them up again on
+  // every parent render, and re-fire the flag with them.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const scrollFlag = props.headerScrollFlag === true;
+  const thresholds = headerScrollThresholds(props.headerScrollFlag);
+  const scrollFlag = thresholds !== null;
+  const flagOn = thresholds?.on ?? 0;
+  const flagOff = thresholds?.off ?? 0;
   useEffect(() => {
     const node = sentinelRef.current;
     // `IntersectionObserver` is absent on a server render and in a couple of
@@ -496,15 +702,38 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     if (!scrollFlag || node === null || typeof IntersectionObserver === "undefined") {
       return undefined;
     }
-    const observer = new IntersectionObserver((entries) => {
+    /*
+     * THE HYSTERESIS, and why each observer only ever writes one way.
+     *
+     * The ON observer sees the sentinel leave the viewport at `scrollY >= on`
+     * and says so; the OFF observer sees it fully back at `scrollY <= off`
+     * (its root is shifted — see `offRootMargin`) and says so. NEITHER writes
+     * the other's answer, so between the two edges nothing at all happens,
+     * and a rubber-band that crosses one of them repeatedly cannot flip the
+     * flag: it is the state MEMORY, held in `scrolled`, that answers there.
+     *
+     * `setScrolled` with the value it already holds is a no-op to React, so
+     * the observers' own first callbacks (IO fires once on `observe`) cost
+     * nothing, and a page restored mid-scroll comes up flagged.
+     */
+    const past = new IntersectionObserver((entries) => {
       const entry = entries[entries.length - 1];
-      if (entry !== undefined) setScrolled(!entry.isIntersecting);
+      if (entry !== undefined && !entry.isIntersecting) setScrolled(true);
     });
-    observer.observe(node);
+    const back = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[entries.length - 1];
+        if (entry !== undefined && entry.isIntersecting) setScrolled(false);
+      },
+      { rootMargin: offRootMargin(flagOn, flagOff) }
+    );
+    past.observe(node);
+    back.observe(node);
     return () => {
-      observer.disconnect();
+      past.disconnect();
+      back.disconnect();
     };
-  }, [scrollFlag]);
+  }, [scrollFlag, flagOn, flagOff]);
 
   // The browse bar exists only when there is something to browse. An empty
   // strip — and, on phone, a hamburger that opens an empty sheet — is a
@@ -738,14 +967,26 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       {scrollFlag && (
         <div
           ref={sentinelRef}
-          style={SCROLL_SENTINEL}
+          style={scrollSentinelStyle(flagOn)}
           aria-hidden="true"
           data-testid="public-shell-scroll-sentinel"
+          /* The edges the box is drawn for, so a stand can read the
+             hysteresis off the page rather than off this source. */
+          data-scroll-on={String(flagOn)}
+          data-scroll-off={String(flagOff)}
         />
       )}
       <Layout.Header
+        className={PUBLIC_HEADER_CLASS}
         data-testid="public-shell-header"
         data-phone-chrome={isDesktop ? undefined : dockChrome ? "dock" : "drawer"}
+        /* What the sheet's seam rules are gated on — see `publicShellCss`.
+           Resolved for the width being drawn, like `data-phone-chrome` above:
+           an unpinned header has no seam to paint. */
+        data-sticky={stickyHeader ? "true" : "false"}
+        /* The compositing layer is OPT-IN — see `headerLayer`. Absent rather
+           than `"false"`: nothing may match on it by accident. */
+        data-layer={props.headerLayer === true ? "true" : undefined}
         data-scrolled={scrollFlag ? (scrolled ? "true" : "false") : undefined}
         style={{
           display: "flex",
