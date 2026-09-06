@@ -61,12 +61,12 @@ const IDENTICAL_BY_LANGUAGE = new Set(["forms.fill.bool_no"]);
 
 describe("the stapel_attributes error family", () => {
   it("has English from the registry and pair-authored ru/es", () => {
-    // Attributes ships English only — no translations/ directory — so its 12
+    // Attributes ships English only — no translations/ directory — so its 13
     // keys can appear in no locale catalog and gen:errors runs for this module
     // with ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes. English is
     // authoritative from the artifact; ru/es stay pair-authored until upstream
     // localizes them (stapel-forms MODULE.md §12.6).
-    expect(FEATURE_ERROR_KEYS.length).toBe(10);
+    expect(FEATURE_ERROR_KEYS.length).toBe(11);
     for (const key of FEATURE_ERROR_KEYS) {
       expect(formsI18nBundleEn[key], `en ${key}`).toBeTruthy();
       expect(formsI18nBundleRu[key], `ru ${key}`).toBeTruthy();
@@ -78,12 +78,12 @@ describe("the stapel_attributes error family", () => {
     // The inverse of the test this replaces. stapel-forms 0.1.0 omitted the
     // stapel_attributes family from docs/errors.json while returning those
     // codes, so the pair hand-carried the English; 0.2.0 put them in the
-    // contract (75 keys, 12 attributes-owned) and the workaround was deleted.
+    // contract (76 keys, 13 attributes-owned) and the workaround was deleted.
     // This asserts the family is generated, so nobody re-adds a hand copy.
     const generated = FORMS_ERROR_CODES.filter((code) =>
       code.startsWith("error.400.feature_")
     );
-    expect(generated.length).toBe(10);
+    expect(generated.length).toBe(11);
     for (const code of generated) {
       expect(formsErrorBundleEn[code], code).toBeTruthy();
     }

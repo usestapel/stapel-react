@@ -174,14 +174,14 @@ export type FormsI18nKey =
  * The `error.400.feature_*` codes, read off the generated registry.
  *
  * stapel-forms 0.2.0 put the stapel_attributes family INTO its published
- * contract (75 keys, 12 of them owned by `stapel_attributes`), so the English
+ * contract (76 keys, 13 of them owned by `stapel_attributes`), so the English
  * the pair used to hand-carry now arrives through `gen:errors` like every other
  * backend code and has been deleted. This list stays only so the locale bundles
  * can be checked against it — derived, never typed out, so it cannot fall
  * behind the registry.
  *
  * The ru/es strings ARE still authored by the pair: attributes ships English
- * only (it has no `translations/` directory), so those 12 keys can appear in no
+ * only (it has no `translations/` directory), so those 13 keys can appear in no
  * locale catalog until upstream localizes them — logged as stapel-forms
  * MODULE.md §12.6. `gen:errors` runs for this module with
  * `ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes`, which is why the generated

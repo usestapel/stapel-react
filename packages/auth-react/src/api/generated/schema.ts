@@ -1794,6 +1794,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/api/v1/site/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ``GET /<auth-prefix>/api/v1/site/`` — host → brand, for the storefront.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["auth_api_v1_site_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/api/v1/sso/{slug}/login/": {
         parameters: {
             query?: never;
@@ -2636,6 +2657,13 @@ export interface components {
          * @enum {string}
          */
         AuthTypeEnum: "email" | "phone" | "oauth" | "sso" | "anonymous" | "login";
+        /**
+         * @description * `gclid` - gclid
+         *     * `gbraid` - gbraid
+         *     * `wbraid` - wbraid
+         * @enum {string}
+         */
+        ClickIdTypeEnum: "gclid" | "gbraid" | "wbraid";
         /** @description Status of an account closure request. */
         ClosureStatusDTO: {
             /**
@@ -2852,6 +2880,8 @@ export interface components {
             /** Format: email */
             email: string;
             code: string;
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id, click_id_type: gclid|gbraid|wbraid, captured_at, utm?}. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /** @description One data owner's receipt for an erasure. */
         ErasurePartDTO: {
@@ -3341,6 +3371,8 @@ export interface components {
         OAuth: {
             provider: string;
             access_token: string;
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id, click_id_type: gclid|gbraid|wbraid, captured_at, utm?}. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /**
          * @description Body for POST /oauth/links/ — same shape as OAuthSerializer (the login
@@ -3637,6 +3669,8 @@ export interface components {
         PhoneAuthVerify: {
             phone: string;
             code: string;
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id, click_id_type: gclid|gbraid|wbraid, captured_at, utm?}. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /**
          * @description * `saml` - SAML 2.0
@@ -3925,6 +3959,45 @@ export interface components {
             is_current: boolean;
             /** @description Whether login was flagged as suspicious */
             is_suspicious: boolean;
+        };
+        /**
+         * @description The optional ``attribution`` object a registration request may carry.
+         *
+         *     Unknown keys are ignored — DRF's default, and the right one here: the
+         *     client-side capture library is versioned independently of this service,
+         *     and a tag it learns to collect next month must not start refusing
+         *     sign-ups. Anything *malformed* is a different matter and is refused with
+         *     a single fleet error key rather than a per-field report: the object is
+         *     written by our own capture code, so a shape error is a bug to fix, not a
+         *     form for the user to correct, and the per-field detail would be the only
+         *     part of a registration 400 that names an internal field name.
+         */
+        SignupAttribution: {
+            /** @description The advertising click identifier captured from the landing URL (gclid/gbraid/wbraid). */
+            click_id: string;
+            /**
+             * @description Which of the three identifiers click_id is. The offline conversion upload names the field explicitly and does not guess: gbraid/wbraid arrive instead of a gclid when the visitor declined app tracking.
+             *
+             *     * `gclid` - gclid
+             *     * `gbraid` - gbraid
+             *     * `wbraid` - wbraid
+             */
+            click_id_type: components["schemas"]["ClickIdTypeEnum"];
+            /**
+             * Format: date-time
+             * @description When the client captured the identifier (ISO 8601). Required: an offline conversion upload has to state the click time, and it is also how a stale replay is told from a fresher click.
+             */
+            captured_at: string;
+            /** @description Standard campaign tags read off the same landing URL. */
+            utm?: components["schemas"]["SignupUtm"] | null;
+        };
+        /** @description The five standard campaign tags. Every one optional, all blankable. */
+        SignupUtm: {
+            source?: string;
+            medium?: string;
+            campaign?: string;
+            term?: string;
+            content?: string;
         };
         /** @description Generic operation status acknowledgment. */
         SimpleStatusResponse: {
@@ -6986,6 +7059,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StapelError"];
                 };
+            };
+        };
+    };
+    auth_api_v1_site_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

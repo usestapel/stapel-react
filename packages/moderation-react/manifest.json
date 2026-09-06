@@ -4,7 +4,7 @@
   "version": "0.1.2",
   "backend": {
     "module": "stapel-moderation",
-    "contract": ">=0.3 <0.4"
+    "contract": ">=0.6 <0.7"
   },
   "layers": [
     "api",

@@ -4,7 +4,7 @@
   "version": "0.19.4",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.30 <0.31"
+    "contract": ">=0.34 <0.35"
   },
   "layers": [
     "api",
@@ -801,6 +801,13 @@
       "request": null,
       "response": null
     },
+    "auth_api_v1_site_retrieve": {
+      "method": "GET",
+      "path": "/auth/api/v1/site/",
+      "tag": "auth",
+      "request": null,
+      "response": null
+    },
     "auth_api_v1_sso_login_retrieve": {
       "method": "GET",
       "path": "/auth/api/v1/sso/{slug}/login/",
@@ -1532,6 +1539,11 @@
     }
   },
   "errors": {
+    "error.400.attribution_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.400.bad_request": {
       "status": 400,
       "params": [],
@@ -2946,6 +2958,7 @@
     "auth.ui.switch_to_register",
     "auth.verification.choose_factor",
     "auth.verification.success",
+    "error.400.attribution_invalid",
     "error.400.bad_request",
     "error.400.captcha_invalid",
     "error.400.captcha_required",

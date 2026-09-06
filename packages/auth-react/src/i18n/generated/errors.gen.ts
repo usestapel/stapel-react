@@ -35,6 +35,7 @@ export interface AuthErrorSpec {
  * remediation lookup, and the manifest `errors` block.
  */
 export const AUTH_ERRORS = {
+  "error.400.attribution_invalid": { status: 400, params: [], remediation: "fix_input", en: "The attribution object is malformed. Expected {click_id, click_id_type: gclid|gbraid|wbraid, captured_at} with an optional utm object." },
   "error.400.bad_request": { status: 400, params: [], remediation: "fix_input", en: "Bad request" },
   "error.400.captcha_invalid": { status: 400, params: [], remediation: "retry", en: "Captcha verification failed. Please try again." },
   "error.400.captcha_required": { status: 400, params: [], remediation: "retry", en: "Captcha token is required." },
@@ -180,6 +181,7 @@ export type AuthErrorCode = keyof typeof AUTH_ERRORS;
 
 /** Every backend error code this module can surface, sorted. */
 export const AUTH_ERROR_CODES: readonly AuthErrorCode[] = [
+  "error.400.attribution_invalid",
   "error.400.bad_request",
   "error.400.captcha_invalid",
   "error.400.captcha_required",
@@ -327,6 +329,7 @@ export const AUTH_ERROR_CODES: readonly AuthErrorCode[] = [
  * {@link authI18nBundleEn} (polish wins; this guarantees coverage).
  */
 export const authErrorBundleEn: Record<AuthErrorCode, string> = {
+  "error.400.attribution_invalid": "The attribution object is malformed. Expected {click_id, click_id_type: gclid|gbraid|wbraid, captured_at} with an optional utm object.",
   "error.400.bad_request": "Bad request",
   "error.400.captcha_invalid": "Captcha verification failed. Please try again.",
   "error.400.captcha_required": "Captcha token is required.",

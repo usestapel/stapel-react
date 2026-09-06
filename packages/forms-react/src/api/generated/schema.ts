@@ -824,7 +824,15 @@ export interface operations {
             query: {
                 /** @description Keyset cursor: return responses submitted strictly before this timestamp. */
                 before?: string;
+                /** @description Scope `q` to one question slug. An unknown slug is error.400.forms_unknown_field, never an empty page. */
+                field?: string;
                 limit?: number;
+                /** @description Case-insensitive substring match over answer values. */
+                q?: string;
+                /** @description Date filter: responses submitted at or after this timestamp. */
+                since?: string;
+                /** @description Date filter: responses submitted at or before this timestamp. */
+                until?: string;
                 /** @description Restrict to responses answering this schema version. */
                 version?: number;
                 workspace_id: string;

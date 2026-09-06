@@ -22,6 +22,7 @@ const ATTRIBUTES_ERRORS_ES: Readonly<Record<string, string>> = {
     "El valor no está entre las opciones permitidas de «{feature}»",
   "error.400.feature_invalid_type": "Tipo de valor no válido para «{feature}»",
   "error.400.feature_invalid_format": "Formato no válido para «{feature}»",
+  "error.400.feature_invalid_rules": "Reglas no válidas para «{feature}»",
   "error.400.feature_mandatory_missing": "El campo «{feature}» es obligatorio",
   "error.400.feature_unknown_type": "Tipo de campo desconocido para «{feature}»",
   "error.400.feature_not_allowed": "El campo «{feature}» no se permite aquí",

@@ -1,6 +1,6 @@
 # @stapel/auth-react 0.19.4
 
-Headless React flow pair for stapel-auth (contract >=0.30 <0.31) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.34 <0.35) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -127,6 +127,7 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_sessions_destroy: DELETE /sessions/
 - auth_api_v1_sessions_destroy_2: DELETE /sessions/{session_id}/
 - auth_api_v1_sessions_list: GET /sessions/
+- auth_api_v1_site_retrieve: GET /site/
 - auth_api_v1_sso_login_retrieve: GET /sso/{slug}/login/
 - auth_api_v1_sso_lookup_retrieve: GET /sso/lookup/
 - auth_api_v1_sso_oidc_callback_retrieve: GET /sso/{slug}/oidc/callback/
@@ -212,7 +213,7 @@ Paths are relative to `/auth/api/v1/`.
 - useVerificationPreferences (query) → verificationPreferences
 
 ## Errors (render t(code, params); UX from remediation)
-139 keys (full catalog: manifest.json §errors). By remediation: fix_input 61 · retry 38 · reauthenticate 14 · verify 9 · wait_and_retry 9 · contact_support 8.
+140 keys (full catalog: manifest.json §errors). By remediation: fix_input 62 · retry 38 · reauthenticate 14 · verify 9 · wait_and_retry 9 · contact_support 8.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

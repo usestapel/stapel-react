@@ -1,6 +1,6 @@
 # @stapel/forms-react 0.3.1
 
-Headless React flow pair for stapel-forms (contract >=0.4 <0.5) — business + state, zero visual opinion.
+Headless React flow pair for stapel-forms (contract >=0.6 <0.7) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -60,7 +60,7 @@ Paths are relative to `/forms/api/v1/`.
 - useUpdateForm (mutation) → patchForm
 
 ## Errors (render t(code, params); UX from remediation)
-75 keys (full catalog: manifest.json §errors). By remediation: fix_input 41 · retry 14 · verify 7 · contact_support 6 · wait_and_retry 6 · reauthenticate 1.
+76 keys (full catalog: manifest.json §errors). By remediation: fix_input 42 · retry 14 · verify 7 · contact_support 6 · wait_and_retry 6 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.description_too_long [400] → fix_input {max_length}
 - error.400.description_too_short [400] → fix_input {min_length}
@@ -68,6 +68,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.feature_below_minimum [400] → fix_input {feature}
 - error.400.feature_invalid_config [400] → fix_input {feature}
 - error.400.feature_invalid_format [400] → fix_input {feature}
+- error.400.feature_invalid_rules [400] → fix_input {feature}
 - error.400.feature_invalid_type [400] → fix_input {feature}
 - error.400.feature_mandatory_missing [400] → fix_input {feature}
 - error.400.feature_not_allowed [400] → fix_input {feature}

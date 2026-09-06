@@ -13,7 +13,7 @@ export { formsErrorBundleRu } from "./generated/errors.ru.gen.js";
  * Composition mirrors `formsI18nBundleEn`: the GENERATED backend error texts
  * (from stapel-forms's `translations/errors.ru.json`, merged under
  * stapel-core's cross-cutting catalogue — `pnpm gen:errors`) are spread first
- * for coverage by construction; the 12 `stapel_attributes`-owned keys the generated
+ * for coverage by construction; the 13 `stapel_attributes`-owned keys the generated
  * bundle cannot carry follow (attributes ships English only — no
  * `translations/` directory — so `gen:errors` runs with
  * `ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes` and emits a `Partial`
@@ -31,6 +31,7 @@ const ATTRIBUTES_ERRORS_RU: Readonly<Record<string, string>> = {
     "Значение отсутствует среди допустимых вариантов для «{feature}»",
   "error.400.feature_invalid_type": "Неверный тип значения для «{feature}»",
   "error.400.feature_invalid_format": "Неверный формат значения для «{feature}»",
+  "error.400.feature_invalid_rules": "Неверные правила для «{feature}»",
   "error.400.feature_mandatory_missing": "Поле «{feature}» обязательно для заполнения",
   "error.400.feature_unknown_type": "Неизвестный тип поля «{feature}»",
   "error.400.feature_not_allowed": "Поле «{feature}» здесь недопустимо",
