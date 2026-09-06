@@ -383,6 +383,19 @@ function MyListingRow(props: {
 }
 
 export interface MyListingsPaneProps extends ThemeModeProp, SignInCtaProp {
+  /**
+   * WHO OWNS THE PAGE EDGE — the same prop, and the same defect, as
+   * `<ListingDetailPane gutter>`.
+   *
+   * `"own"` (default, byte-compatible) keeps this pane's `spacing[4]`, which
+   * is right for a host mounting it on a bare route. `"shell"` says a page
+   * frame already placed that edge: `@stapel/shell-react` pads its content
+   * box with `--stapel-page-gutter` (a RESPONSIVE role — 4px on a phone, 24px
+   * on a desktop) and this pane stacked a flat 16px inside it, so the seller's
+   * own listings sat two gutters in from a page that had already decided
+   * where its edge was. Only the host knows whether it has a frame.
+   */
+  readonly gutter?: "own" | "shell";
   /** How the host gets the caller's own rows. Absent: the contract's own
    * `GET my/listings/`, which is what a storefront wants. */
   readonly source?: MyListingsSource;
@@ -461,7 +474,12 @@ export function MyListingsPane(props: MyListingsPaneProps): ReactElement {
   return (
     <SkinTheme
       surface="base"
-      style={{ padding: spacing[4], maxWidth: MINE_MEASURE }}
+      style={{
+        // See `gutter`: a frame that already placed the page edge does not get
+        // a second one stacked inside it.
+        padding: props.gutter === "shell" ? 0 : spacing[4],
+        maxWidth: MINE_MEASURE,
+      }}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <Flex vertical gap={spacing[4]} data-testid="listings-mine">

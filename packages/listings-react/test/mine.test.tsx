@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
+import type { ReactElement } from "react";
+import { spacing } from "@stapel/tokens";
 import { MyListingsPane, FavoritesPane } from "../src/default/index.js";
 import {
   MY_LISTINGS_UNTABBED_STATUSES,
@@ -988,5 +990,43 @@ describe("a tab's badge never reads lower than its rows (D407)", () => {
     expect(
       screen.getByTestId("listings-mine-count-active").textContent?.trim()
     ).toBe("0");
+  });
+});
+
+describe("who owns the page edge on the seller's own pane", () => {
+  /**
+   * The same defect `<ListingDetailPane gutter>` closes, on the pane beside
+   * it: a flat `spacing[4]` painted INSIDE a shell that had already placed the
+   * page edge with `--stapel-page-gutter` (4px on a phone, 24px on a desktop),
+   * so the seller's listings sat two gutters in from a page that had already
+   * decided where its edge was.
+   */
+  async function skinRoot(node: ReactElement): Promise<HTMLElement> {
+    const { container } = render(
+      <TestProviders server={mockServer(dashboard())}>{node}</TestProviders>
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid="listings-mine"]')).not.toBeNull();
+    });
+    const root = container.querySelector<HTMLElement>("[data-stapel-skin-root]");
+    expect(root).toBeTruthy();
+    return root as HTMLElement;
+  }
+
+  it("keeps its own gutter by default — the pane on a bare route", async () => {
+    const root = await skinRoot(<MyListingsPane />);
+    expect(root.style.padding).toBe(`${String(spacing[4])}px`);
+  });
+
+  it("adds NO second gutter inside a shell that already placed one", async () => {
+    const root = await skinRoot(<MyListingsPane gutter="shell" />);
+    expect(root.style.padding).toBe("0px");
+  });
+
+  it("leaves the reading measure alone either way — the edge is not the width", async () => {
+    const own = await skinRoot(<MyListingsPane />);
+    const shell = await skinRoot(<MyListingsPane gutter="shell" />);
+    expect(shell.style.maxWidth).toBe(own.style.maxWidth);
+    expect(shell.style.maxWidth.length).toBeGreaterThan(0);
   });
 });
