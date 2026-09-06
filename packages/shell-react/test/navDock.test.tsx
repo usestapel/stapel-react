@@ -18,7 +18,14 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import type { ReactElement } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
 import { PublicShell } from "../src/default/PublicShell.js";
-import { DOCK_CLASS, DOCK_MAX_DESTINATIONS, NavDock, dockEntries, dockGlassCss } from "../src/default/NavDock.js";
+import {
+  DOCK_CLASS,
+  DOCK_MAX_DESTINATIONS,
+  NavDock,
+  dockEntries,
+  dockGlassCss,
+  dockRenders,
+} from "../src/default/NavDock.js";
 import type { ResolvedNavEntry } from "../src/headless/resolveNav.js";
 import { registerShellI18n } from "../src/i18n/keys.js";
 
@@ -249,6 +256,26 @@ describe("five destinations, chosen by the order the project already declares", 
     );
     await waitFor(() => expect(screen.getByText("Search Page")).toBeDefined());
     expect(screen.queryByTestId("nav-dock")).toBeNull();
+  });
+
+  it("`dockRenders` agrees with what `<NavDock>` actually draws — one entry", async () => {
+    const oneEntryNav = NAV.slice(0, 1);
+    expect(dockRenders(oneEntryNav)).toBe(false);
+    setViewportWidth(PHONE_WIDTH);
+    render(frame("/s", <NavDock nav={oneEntryNav} />));
+    // No island: a lone destination is a button, not navigation.
+    expect(screen.queryByTestId("nav-dock")).toBeNull();
+  });
+
+  it("`dockRenders` agrees with what `<NavDock>` actually draws — five entries", async () => {
+    const fiveEntryNav = NAV.slice(0, 5);
+    expect(dockRenders(fiveEntryNav)).toBe(true);
+    setViewportWidth(PHONE_WIDTH);
+    render(frame("/s", <NavDock nav={fiveEntryNav} />));
+    await waitFor(() => expect(screen.getByTestId("nav-dock")).toBeDefined());
+    expect(
+      within(screen.getByTestId("nav-dock")).getAllByRole("link")
+    ).toHaveLength(dockEntries(fiveEntryNav).length);
   });
 });
 

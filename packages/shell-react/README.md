@@ -177,6 +177,38 @@ on the one row a storefront's search field lives on; a single 36px icon button
 (the 0.14.0 default) is a different question, and one a host answers with
 `themeControl`.
 
+### Dock geometry — aligning a host's own sticky chrome
+
+```tsx
+import { DOCK_CLEARANCE, dockRenders } from "@stapel/shell-react/default";
+
+const floats = dockRenders(nav); // same predicate <NavDock> renders against
+<div style={floats ? { paddingBottom: DOCK_CLEARANCE } : undefined}>
+  {/* a host's own sticky bar, aligned to the island's own inset */}
+</div>;
+```
+
+`<PublicShell/>`/`<AppShell/>` already reserve `DOCK_CLEARANCE` at the foot of
+the page for you (`phoneChrome="dock"`) — these exports are for a host that
+draws a SECOND sticky surface (a checkout bar, a "call" CTA) that has to sit
+above the floating island rather than under it, and needs to ask the same
+question the shell already answers internally:
+
+| Export | Signature | Answers |
+|---|---|---|
+| `DOCK_HEIGHT` | `number` | the island's own height in px, before insets |
+| `DOCK_CLEARANCE` | `string` (a `calc()`) | the island's height + insets + `env(safe-area-inset-bottom)` — what to reserve under the last row |
+| `dockEntries(nav, max?)` | `(nav: ResolvedNavEntry[], max?: number) => ResolvedNavEntry[]` | which entries the dock would draw |
+| `dockRenders(nav, max?)` | `(nav: ResolvedNavEntry[], max?: number) => boolean` | will `<NavDock>` draw an island at all for this nav — `false` below two destinations |
+
+`dockRenders` is the exact predicate `<NavDock>` renders against (an island
+holding one link is a button that has been given a bar to sit in, not
+navigation) — it used to be internal, which meant a host aligning a sticky bar
+with the island had to assume the island exists. A one-entry manifest proved
+otherwise: nothing floats, so nothing should be reserved for it either. Call
+`dockRenders` with the same `nav`/`max` a `<NavDock>` or `<PublicShell dock>`
+nearby is given, and the two will always agree.
+
 ### `navBadges` — counts on nav destinations (both shells)
 
 ```tsx

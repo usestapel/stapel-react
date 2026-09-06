@@ -37,6 +37,7 @@ export type { SiteLegalFooterProps } from "./SiteLegalFooter.js";
 export {
   NavDock,
   dockEntries,
+  dockRenders,
   DOCK_MAX_DESTINATIONS,
   DOCK_HEIGHT,
   DOCK_CLEARANCE,
