@@ -499,6 +499,47 @@ A root landing (the home page) keeps `size="regular"` and `overflow="none"` —
 both default unchanged, so no existing host changes shape. A storefront wires
 `size="compact" maxVisible={10} overflow="modal"` on every tile page below it.
 
+## How many lines a tile label may take: `labelLines`
+
+A tile's label is clamped, and each anatomy has its own measured count: three
+lines on the regular tile, two on both compact ones — a ~80px square and a
+half-height horizontal row have no third line to spend without pushing the art
+out of the tile. Those numbers were measured against the catalogue they were
+drawn for, and the clamp is the one part of the label that depends on the
+catalogue's WORDS rather than on the tile: a deployment whose longest root name
+is longer needs the extra line, and nothing else about the label changes with
+it.
+
+```tsx
+<CategoryTileGrid density="compact" labelLines={3} />
+```
+
+Default: the anatomy's own count, so no existing host changes shape.
+`labelLines` moves the clamp and only the clamp — the type size, the alignment
+and the `hyphens: manual` / `overflow-wrap: anywhere` pair that keep a long
+caption readable stay the skin's.
+
+`<CategoryPage>`'s `"tiles"` arm reaches the same number as
+`subcategoryLabelLines`, alongside `subcategoryTileSize`:
+
+```tsx
+<CategoryPage
+  categoryId={id}
+  subcategories="tiles"
+  subcategoryTileSize="compact"
+  subcategoryLabelLines={3}
+/>
+```
+
+Reaching this from outside is worse than it looks, which is why the prop
+exists. The clamp is an INLINE style, so a host stylesheet needs `!important`
+to touch it at all; the rule then aims at a `<span>` by position, and the
+compact density draws its ART first, so a rule written against
+`span:first-child` on the regular tile becomes a silent no-op the day a host
+passes `density="compact"` — a stylesheet that reads as coverage and clamps
+nothing. A prop is a number the host can read back, and it lands on the label
+in every anatomy, including the "All" tile and the `overflow="modal"` tile.
+
 ## The first row does not wait for a scrollbar: `eagerCount`
 
 Every tile image used to be `loading="lazy"`, including a whole first row that
@@ -595,6 +636,18 @@ The page's content column defaults to `CATEGORY_MEASURE` (`64rem`) wide; pass
 `measure` (anything CSS `max-width` takes — `"72rem"`, `960`, `"100%"`) for a
 host that wants a different one, instead of overriding it from outside with
 `!important` against a value it could not read back.
+
+`measure="none"` is the answer for a page mounted inside a shell whose own
+content column already holds the measure every page of the site shares. A
+second, lower cap there is not a narrower page — it is a second answer to a
+question already answered, and the lower one wins, so the host's column
+silently stops applying to this one page. Removing the cap is what says the
+measure is not this page's, the same sentence `gutter={false}` makes about the
+indent:
+
+```tsx
+<CategoryPage slug={slug} measure="none" gutter={false} />
+```
 
 ## Category chrome inside a SPA: `linkComponent`
 

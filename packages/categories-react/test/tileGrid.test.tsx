@@ -658,6 +658,145 @@ describe("tile size (the reference's second-level tile, owner's ruling 2026-09-0
   });
 });
 
+/**
+ * The label's clamp, and the ONE number of it a deployment owns.
+ *
+ * The clamp is the only part of a tile's label that depends on the CATALOGUE's
+ * words rather than on the tile: the storefront's longest root name needs a
+ * third line on an anatomy the skin measured at two. Before `labelLines` the
+ * only way to say so was an `!important` rule from outside — and the deployed
+ * one aimed at `span:first-child`, which stopped being the label the moment
+ * `density="compact"` drew its art first, so the override had been a silent
+ * no-op on that surface. That is the shape of defect this prop exists to
+ * retire, so the assertions below read the computed inline clamp of the label
+ * in EVERY anatomy, not of whichever span happens to come first.
+ */
+describe("the label's clamp: labelLines", () => {
+  function tileList(): HTMLElement {
+    return screen.getByTestId("categories-tile-grid-list");
+  }
+
+  /** The clamp as the DOM holds it — the property the browser reads, not the
+   * React prop that wrote it. */
+  function clampOf(element: Element): string {
+    return (element as HTMLElement).style.getPropertyValue(
+      "-webkit-line-clamp"
+    );
+  }
+
+  /** Every tile's label span, in whichever position its anatomy puts it: the
+   * label is the span that carries the clamp, and the art corner never does. */
+  function labels(): readonly HTMLElement[] {
+    return [...tileList().querySelectorAll("a")].map((tile) => {
+      const found = [...tile.querySelectorAll("span")].find(
+        (span) => clampOf(span) !== ""
+      );
+      if (found === undefined) throw new Error("no clamped label in this tile");
+      return found;
+    });
+  }
+
+  it("defaults to three lines on the regular tile", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid entries={CHILD_TILES} allTile={false} />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    for (const label of labels()) expect(clampOf(label)).toBe("3");
+  });
+
+  it("defaults to two lines on the compact density — the phone scroller's square", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={CHILD_TILES}
+          allTile={false}
+          density="compact"
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    for (const label of labels()) expect(clampOf(label)).toBe("2");
+    // And the label is the SECOND span here — the art is drawn first, which is
+    // exactly what a host stylesheet aiming at `span:first-child` gets wrong.
+    const tile = tileList().querySelectorAll("a")[0] as HTMLElement;
+    expect(clampOf(tile.children[0] as HTMLElement)).toBe("");
+  });
+
+  it("defaults to two lines on the compact size — a horizontal row has no third", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={CHILD_TILES}
+          allTile={false}
+          size="compact"
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    for (const label of labels()) expect(clampOf(label)).toBe("2");
+  });
+
+  it("takes a host's own count on the compact density (the storefront's third line)", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={CHILD_TILES}
+          allTile={false}
+          density="compact"
+          labelLines={3}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    for (const label of labels()) expect(clampOf(label)).toBe("3");
+  });
+
+  it("reaches the All tile and the overflow tile too — not only the category rows", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_IMAGE_TILES}
+          maxVisible={3}
+          overflow="modal"
+          labelLines={1}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy());
+    // The All tile's label carries the grid's own testid.
+    expect(clampOf(screen.getByTestId("categories-tile-grid-all"))).toBe("1");
+    const more = screen.getByTestId("categories-tile-grid-more");
+    const moreLabel = [...more.querySelectorAll("span")].find(
+      (span) => clampOf(span) !== ""
+    );
+    expect(clampOf(moreLabel as HTMLElement)).toBe("1");
+  });
+
+  it("moves ONLY the clamp — the anatomy keeps its own size, alignment and break rules", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={CHILD_TILES}
+          allTile={false}
+          size="compact"
+          labelLines={4}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => expect(tileList().querySelectorAll("a")).toHaveLength(2));
+    const label = labels()[0] as HTMLElement;
+    expect(clampOf(label)).toBe("4");
+    // The compact row's own label, unchanged: its type size, its start
+    // alignment, and the two rules that keep a long caption readable.
+    expect(label.style.fontSize).toBe("13px");
+    expect(label.style.textAlign).toBe("start");
+    expect(label.style.hyphens).toBe("manual");
+    expect(label.style.overflowWrap).toBe("anywhere");
+  });
+});
+
 describe("tile overflow — «Все категории» past maxVisible (owner's ruling 2026-09-04)", () => {
   function tileList(): HTMLElement {
     return screen.getByTestId("categories-tile-grid-list");

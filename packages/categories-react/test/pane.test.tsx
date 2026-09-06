@@ -201,4 +201,28 @@ describe("the page's content measure", () => {
       screen.getByTestId("categories-category-page").style.maxWidth
     ).toBe("80rem");
   });
+
+  it("`none` removes the cap for a shell that already holds the measure", async () => {
+    // The other host, and the reason the storefront kept a `max-width: none
+    // !important` over this page: its shell's content column is the measure
+    // every page of the site shares, so a second, LOWER cap here wins over it
+    // and silently narrows one page. Removing the cap is a real answer, not a
+    // very large number — and it has to survive the round trip through the
+    // inline style, because an `!important` rule was the only alternative.
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryPage
+          categoryId={ELECTRONICS.id}
+          subcategories="pane"
+          measure="none"
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-category-page")).toBeTruthy();
+    });
+    expect(
+      screen.getByTestId("categories-category-page").style.maxWidth
+    ).toBe("none");
+  });
 });

@@ -210,6 +210,7 @@ function TileSubcategories(props: {
   readonly tileLayout?: TileLayout;
   readonly tileMinWidth?: number;
   readonly tileSize?: TileSize;
+  readonly tileLabelLines?: number;
   readonly maxVisible?: number;
   readonly overflow?: TileOverflow;
 }): ReactElement {
@@ -263,6 +264,9 @@ function TileSubcategories(props: {
           ? { minTileWidth: props.tileMinWidth }
           : {})}
         {...(props.tileSize !== undefined ? { size: props.tileSize } : {})}
+        {...(props.tileLabelLines !== undefined
+          ? { labelLines: props.tileLabelLines }
+          : {})}
         {...(props.maxVisible !== undefined
           ? { maxVisible: props.maxVisible }
           : {})}
@@ -397,6 +401,18 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    */
   readonly subcategoryTileSize?: TileSize;
   /**
+   * How many lines a tile's LABEL may take in the `"tiles"` arm —
+   * `<CategoryTileGrid labelLines>`, passed through verbatim. Default: the
+   * tile anatomy's own count, so no existing page changes shape.
+   *
+   * It travels with {@link CategoryPageProps.subcategoryTileSize} rather than
+   * being implied by it: `"compact"` clamps at two lines because a
+   * half-height row has no third, and a catalogue whose section names are
+   * longer than the ones that anatomy was measured on needs the third line
+   * without giving up the anatomy.
+   */
+  readonly subcategoryLabelLines?: number;
+  /**
    * The `"tiles"` arm's own row cap — `<CategoryTileGrid maxVisible>`,
    * passed through verbatim. Meaningful only together with
    * {@link CategoryPageProps.subcategoryOverflow} `"modal"`.
@@ -441,6 +457,15 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * this is that knob, taking anything CSS `max-width` takes (`"72rem"`,
    * `960`, `"100%"`). Default {@link CATEGORY_MEASURE}, so no existing host
    * changes shape.
+   *
+   * `"none"` is the answer for the OTHER case, and it is a real one rather
+   * than a very large number: a page mounted inside a shell whose content
+   * column already holds the measure every page of the site shares. A second,
+   * lower cap there is not a narrower page, it is a second answer to a
+   * question already answered — and the 64rem one wins, so the host's own
+   * column silently stops applying. Removing this page's cap is what says
+   * "the measure is not mine", and it is the same sentence `gutter={false}`
+   * makes about the indent.
    */
   readonly measure?: number | string;
   /**
@@ -646,6 +671,7 @@ function Subcategories(props: {
   readonly tileLayout?: TileLayout;
   readonly tileMinWidth?: number;
   readonly tileSize?: TileSize;
+  readonly tileLabelLines?: number;
   readonly maxVisible?: number;
   readonly overflow?: TileOverflow;
 }): ReactElement | null {
@@ -702,6 +728,9 @@ function Subcategories(props: {
           ? { tileMinWidth: props.tileMinWidth }
           : {})}
         {...(props.tileSize !== undefined ? { tileSize: props.tileSize } : {})}
+        {...(props.tileLabelLines !== undefined
+          ? { tileLabelLines: props.tileLabelLines }
+          : {})}
         {...(props.maxVisible !== undefined
           ? { maxVisible: props.maxVisible }
           : {})}
@@ -859,6 +888,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     : {})}
                   {...(props.subcategoryTileSize !== undefined
                     ? { tileSize: props.subcategoryTileSize }
+                    : {})}
+                  {...(props.subcategoryLabelLines !== undefined
+                    ? { tileLabelLines: props.subcategoryLabelLines }
                     : {})}
                   {...(props.subcategoryMaxVisible !== undefined
                     ? { maxVisible: props.subcategoryMaxVisible }

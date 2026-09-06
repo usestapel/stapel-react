@@ -615,6 +615,33 @@ function firstLetter(label: string): string {
 }
 
 /**
+ * The label style of ONE tile — the anatomy's own, with the host's
+ * {@link CategoryTileGridProps.labelLines} standing in for its clamp when one
+ * is given.
+ *
+ * Read off the same three constants the anatomies are written in rather than
+ * restated, so the ONLY thing a host can move is the line count: a catalogue
+ * whose longest root name needs a third line on the compact tile keeps that
+ * tile's size, weight, alignment and break rules, which are the skin's and
+ * not the deployment's.
+ */
+function labelStyleFor(
+  density: TileDensity,
+  size: TileSize,
+  labelLines: number | undefined
+): CSSProperties {
+  const base =
+    size === "compact"
+      ? labelSizeCompact
+      : density === "compact"
+        ? labelCompact
+        : labelStyle;
+  return labelLines === undefined
+    ? base
+    : { ...base, WebkitLineClamp: labelLines };
+}
+
+/**
  * The label + art pairing for ONE tile, in whichever of the three anatomies
  * applies — shared between {@link Tile} and {@link MoreTile}, which differ
  * only in what wraps this (a link vs a button).
@@ -627,16 +654,23 @@ function tileBody(props: {
   readonly art: ReactNode;
   readonly size: TileSize;
   readonly density: TileDensity;
+  readonly labelLines: number | undefined;
   readonly testId?: string;
 }): ReactElement {
   const labelProps =
     props.testId !== undefined ? { "data-testid": props.testId } : {};
+  const label = (
+    <span
+      style={labelStyleFor(props.density, props.size, props.labelLines)}
+      {...labelProps}
+    >
+      {props.label}
+    </span>
+  );
   if (props.size === "compact") {
     return (
       <>
-        <span style={labelSizeCompact} {...labelProps}>
-          {props.label}
-        </span>
+        {label}
         <span style={artSizeCompact}>{props.art}</span>
       </>
     );
@@ -645,17 +679,13 @@ function tileBody(props: {
     return (
       <>
         <span style={artCompact}>{props.art}</span>
-        <span style={labelCompact} {...labelProps}>
-          {props.label}
-        </span>
+        {label}
       </>
     );
   }
   return (
     <>
-      <span style={labelStyle} {...labelProps}>
-        {props.label}
-      </span>
+      {label}
       <span style={artStyle}>{props.art}</span>
     </>
   );
@@ -671,6 +701,7 @@ function Tile(props: {
   readonly testId?: string;
   readonly density: TileDensity;
   readonly size: TileSize;
+  readonly labelLines: number | undefined;
 }): ReactElement {
   return (
     <CategoryLink
@@ -702,6 +733,7 @@ function MoreTile(props: {
   readonly extraCount: number;
   readonly density: TileDensity;
   readonly size: TileSize;
+  readonly labelLines: number | undefined;
   readonly testId: string;
   readonly onClick: () => void;
   /** `stapel/clickable-needs-event` opt-out, checked on THIS element — see
@@ -729,6 +761,7 @@ function MoreTile(props: {
         art: <MoreGlyph count={props.extraCount} />,
         size: props.size,
         density: props.density,
+        labelLines: props.labelLines,
       })}
     </button>
   );
@@ -885,6 +918,28 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * the home page is where `"compact"` belongs.
    */
   readonly size?: TileSize;
+  /**
+   * HOW MANY LINES A TILE'S LABEL MAY TAKE before it is clipped — the one
+   * number of the label a deployment owns.
+   *
+   * Each anatomy has its own default and they are the skin's measured
+   * answers: {@link LABEL_LINES} (3) on the regular tile, 2 on both compact
+   * ones, where a ~80px square and a half-height horizontal row have no third
+   * line to spend. Those defaults are right for the catalogue they were
+   * measured on and wrong for a catalogue whose longest root NAME is longer:
+   * the clamp is the only part of the label that depends on the words rather
+   * than on the tile.
+   *
+   * Without this prop a host could only reach the clamp with an `!important`
+   * rule against the pair's inline style — a rule that cannot be read back,
+   * that silently aims at the wrong `<span>` when the anatomy reorders label
+   * and art (the compact density draws its art FIRST), and that a version
+   * bump moving the default cannot tell it has become a no-op. This prop is
+   * that number, and nothing else about the label moves with it.
+   *
+   * Default: the anatomy's own, so no existing host changes shape.
+   */
+  readonly labelLines?: number;
   /**
    * Cap the grid at this many rows before offering the rest through
    * {@link CategoryTileGridProps.overflow}. Ignored unless `overflow` is
@@ -1048,6 +1103,7 @@ function TileRow(props: {
   readonly resolveIconSrc?: CategoryIconResolver;
   readonly density: TileDensity;
   readonly size: TileSize;
+  readonly labelLines: number | undefined;
   readonly layout: TileLayout;
   readonly minTileWidth: number;
   readonly eagerCount: number;
@@ -1081,6 +1137,7 @@ function TileRow(props: {
               {...linkProps}
               density={props.density}
               size={props.size}
+              labelLines={props.labelLines}
               href={props.basePath}
               label={allLabel}
               art={<TileMonogram label={allLabel} />}
@@ -1096,6 +1153,7 @@ function TileRow(props: {
               {...linkProps}
               density={props.density}
               size={props.size}
+              labelLines={props.labelLines}
               href={entry.href}
               slug={entry.category.slug}
               categoryId={entry.category.id}
@@ -1117,6 +1175,7 @@ function TileRow(props: {
             extraCount={hiddenCount}
             density={props.density}
             size={props.size}
+            labelLines={props.labelLines}
             testId="categories-tile-grid-more"
             data-analytics="none"
             data-analytics-reason="opens the local overflow dialog; nothing leaves the browser"
@@ -1166,6 +1225,7 @@ export function CategoryTileGrid(
     basePath,
     density,
     size,
+    labelLines: props.labelLines,
     layout,
     minTileWidth,
     eagerCount,

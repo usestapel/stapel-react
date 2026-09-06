@@ -242,6 +242,8 @@ async function renderCategoryPage(
     readonly subcategories?: SubcategoryForm;
     readonly subcategoryLayout?: "scroll" | "wrap";
     readonly subcategoryMinTileWidth?: number;
+    readonly subcategoryTileSize?: "regular" | "compact";
+    readonly subcategoryLabelLines?: number;
     readonly breadcrumbs?: boolean;
     readonly slug?: string;
     readonly categoryId?: number;
@@ -336,6 +338,40 @@ describe("<CategoryPage> renders exactly one form of sub-categories", () => {
     const list = screen.getByTestId("categories-tile-grid-list");
     expect(list.dataset["stapelTileLayout"]).toBe("wrap");
     expect(list.style.gridTemplateColumns).toContain("auto-fill");
+  });
+
+  it("subcategoryLabelLines reaches the tiles arm's own label clamp", async () => {
+    // The same seam one layer up: a page that chooses the compact anatomy for
+    // its sections gets that anatomy's two-line clamp, and a catalogue whose
+    // section names are longer needs the third line without giving up the
+    // anatomy. Without the pass-through the only reach was an `!important`
+    // rule from outside — the thing this whole set of props replaced.
+    await renderCategoryPage({
+      subcategories: "tiles",
+      subcategoryTileSize: "compact",
+      subcategoryLabelLines: 3,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+    });
+    const labels = [
+      ...screen.getByTestId("categories-tile-grid-list").querySelectorAll("a"),
+    ].map((tile) =>
+      [...tile.querySelectorAll("span")].find(
+        (span) => span.style.getPropertyValue("-webkit-line-clamp") !== ""
+      )
+    );
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) {
+      expect(label?.style.getPropertyValue("-webkit-line-clamp")).toBe("3");
+    }
+    // And the anatomy is still the compact one, whose own clamp is TWO — so
+    // the 3 above can only have come from the prop, not from a page that
+    // quietly fell back to the regular tile.
+    const tile = screen
+      .getByTestId("categories-tile-grid-list")
+      .querySelector("a") as HTMLElement;
+    expect(tile.style.aspectRatio).toBe("8 / 3");
   });
 
   it("subcategoryMinTileWidth passes through to the wrap arm", async () => {
