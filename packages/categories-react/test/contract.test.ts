@@ -17,7 +17,14 @@
  * defects and both are defects.
  */
 import { describe, expect, it } from "vitest";
-import type { CategoryFeatureConfig, CategoryFeatureType } from "../src/index.js";
+import { AXIS_ROLES, axisRoleOf } from "@stapel/attributes-react";
+import type {
+  AxisRole,
+  CategoryFeature,
+  CategoryFeatureConfig,
+  CategoryFeatureType,
+  Schemas,
+} from "../src/index.js";
 
 /** The thirteen registered value types (stapel-attributes 0.5.0 added the two
  * vocabulary-backed ones and 0.7.0 the `group` container; stapel-categories
@@ -71,5 +78,39 @@ describe("FeatureConfig discriminator", () => {
       options: [{ value: "bosch", label: "demo.brand.bosch" }],
     };
     expect(config.type === "select" ? config.options?.length : 0).toBe(1);
+  });
+});
+
+/**
+ * The axis-role seam, pinned at compile time in both directions.
+ *
+ * stapel-categories serves the value, `@stapel/attributes-react` owns the
+ * vocabulary, and this pair is the only place the two meet. Nothing at runtime
+ * carries the literals, so — like the discriminator above — the assertion is a
+ * type: a sixth role landing on one side and not the other fails
+ * `tsc -p tsconfig.test.json` instead of quietly widening one half of a seam
+ * whose whole value is that both halves agree.
+ */
+type SchemaAxisRole = NonNullable<Schemas["FeatureCompact"]["axis_role"]>;
+/** Every role the catalogue can serve is one `byAxisRole` can key on… */
+const _schemaRolesAreKnown: readonly AxisRole[] = [] as readonly SchemaAxisRole[];
+/** …and the reader claims none the catalogue cannot send. */
+type UnservedRole = Exclude<AxisRole, SchemaAxisRole>;
+const _noUnservedRoles: UnservedRole extends never ? true : never = true;
+
+describe("axis_role — the catalogue's value and the reader's vocabulary", () => {
+  it("names the same five roles on both sides of the seam", () => {
+    expect(AXIS_ROLES).toEqual(["make", "model", "generation", "year", "mileage"]);
+    expect(_schemaRolesAreKnown.length).toBe(0);
+    expect(_noUnservedRoles).toBe(true);
+  });
+
+  it("is nullable on the wire, and absent is the same answer as null", () => {
+    // Every definition written before the field existed says nothing here, and
+    // so does the overwhelming majority of features that are properties rather
+    // than axes. Neither is an error and neither is "not a make".
+    const unclaimed: CategoryFeature = { slug: "colour", config: { type: "select" } };
+    expect(axisRoleOf(unclaimed)).toBeNull();
+    expect(axisRoleOf({ ...unclaimed, axis_role: null })).toBeNull();
   });
 });

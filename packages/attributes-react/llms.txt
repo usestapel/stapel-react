@@ -11,6 +11,7 @@ signatures/JSDoc in the package README and src/index.ts.
 ### runtime
 - ATTRIBUTES_ERROR_BUNDLE_EN
 - ATTRIBUTES_I18N_KEYS
+- AXIS_ROLES
 - ERROR_CODE_TO_KEY
 - FEATURE_VISIBILITIES
 - FORMATTABLE_TYPES
@@ -27,6 +28,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - VOCABULARY_BACKED_TYPES
 - VocabularyClientProvider
 - attributesI18nBundleEn
+- axisRoleOf
+- byAxisRole
 - codePointLength
 - conditionSlugs
 - defaultFeatureValue
@@ -88,6 +91,7 @@ signatures/JSDoc in the package README and src/index.ts.
 
 ### types
 - AttributesI18nKey
+- AxisRole
 - Cond
 - FeatureBounds
 - FeatureChangeSource

@@ -1179,6 +1179,7 @@
       "visibleFeatures"
     ],
     "types": [
+      "AxisRole",
       "BrowseStage",
       "BrowseStageInput",
       "BuildCategoryTreeOptions",

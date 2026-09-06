@@ -253,6 +253,12 @@ export const FEATURE_BRAND: FeatureDef = {
   show_as_badge: true,
   show_at_title: true,
   translate: "all",
+  // The RESOLVED axis role (stapel-categories 0.21.0): this feature IS the
+  // make of everything in the category, and the catalogue says so rather than
+  // leaving a reader to infer it from the slug. Note the slug is `brand` and
+  // the role is `make` — a reader matching slugs would have had to know both
+  // spellings, which is the whole reason the field exists.
+  axis_role: "make",
   config: {
     type: "select",
     options: [

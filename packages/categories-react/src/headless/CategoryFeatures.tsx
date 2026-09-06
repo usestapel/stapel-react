@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
-import { featureType } from "@stapel/attributes-react";
+import { axisRoleOf, byAxisRole, featureType } from "@stapel/attributes-react";
+import type { AxisRole } from "@stapel/attributes-react";
 import type {
   CategoryFeature,
   CategoryFeaturesEffectiveFrom,
@@ -27,6 +28,18 @@ export interface CategoryFeatureEntry {
    * ever true under {@link CategoryFeaturesBag.effectiveFrom} `"children"` —
    * see `visibleFeatures`. */
   readonly divergent: boolean;
+  /**
+   * Which classified AXIS this feature IS — `"make"`, `"model"`,
+   * `"generation"`, `"year"`, `"mileage"` — or `null` for the overwhelming
+   * majority of features, which describe an object rather than organise it
+   * (stapel-categories 0.21.0, resolved server-side: an authored value first,
+   * then `load_catalog`'s derivation).
+   *
+   * Read through `@stapel/attributes-react`'s `axisRoleOf`, which owns the
+   * closed vocabulary, so a value this build does not recognise reads as
+   * `null` rather than reaching a renderer as a role nothing can act on.
+   */
+  readonly axisRole: AxisRole | null;
 }
 
 export interface CategoryFeaturesBag {
@@ -48,6 +61,20 @@ export interface CategoryFeaturesBag {
   readonly badges: readonly CategoryFeature[];
   /** Only the features marked `show_at_title` — the generated title parts. */
   readonly titleParts: readonly CategoryFeature[];
+  /**
+   * `{role: feature}` over {@link features} — which feature of THIS category
+   * is the make, which is the model. The lookup a storefront does instead of
+   * matching slugs against a table of its own (`brand` / `make` / `vendor` /
+   * `manufacturer`), which a catalogue spelling the axis a fifth way drops
+   * out of silently.
+   *
+   * `@stapel/attributes-react`'s `byAxisRole` decides it, including the rule
+   * that a role claimed by TWO features is dropped rather than resolved: a
+   * «more of this make» link built off the wrong one sends a buyer to a facet
+   * they did not click. A missing key therefore means "this schema does not
+   * name that axis", which is what a caller can act on.
+   */
+  readonly axes: Partial<Record<AxisRole, CategoryFeature>>;
   /**
    * `"own"` — `features` is this category's own resolved schema, exactly as
    * every build before stapel-categories 0.20.1 answered. `"children"` — this
@@ -132,11 +159,13 @@ export function CategoryFeatures(props: CategoryFeaturesProps): ReactNode {
         mandatory: feature.mandatory === true,
         optionsAreKeys: featureOptionsAreKeys(feature),
         divergent: feature.divergent === true,
+        axisRole: axisRoleOf(feature),
       }))
     ),
     features,
     badges: features.filter((f) => f.show_as_badge === true),
     titleParts: features.filter((f) => f.show_at_title === true),
+    axes: byAxisRole(features),
     effectiveFrom: query.data?.effectiveFrom ?? "own",
     isFetching: query.isFetching,
     refetch: () => {

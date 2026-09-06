@@ -55,6 +55,7 @@ export type { CategoriesApi, CategoriesApiOptions } from "./api/categoriesApi.js
 export { EFFECTIVE_FROM_HEADER, fetchCategoryFeatures } from "./api/featuresRaw.js";
 export type { CategoriesRawTransport } from "./api/featuresRaw.js";
 export type {
+  AxisRole,
   Category,
   CategoryChildrenAs,
   CategoryFeature,

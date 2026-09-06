@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
 import {
+  AXIS_ROLES,
+  byAxisRole,
   featureConfig,
   featureName,
   featureType,
@@ -15,7 +17,12 @@ import {
 import { BUILTIN_VALUE_EDITOR_TYPES } from "@stapel/attributes-react/default";
 import { CategoryFeatures, visibleFeatures } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
-import { FEATURES, FEATURES_EFFECTIVE, FEATURE_POWER } from "./fixtures.js";
+import {
+  FEATURES,
+  FEATURES_EFFECTIVE,
+  FEATURE_BRAND,
+  FEATURE_POWER,
+} from "./fixtures.js";
 
 function Probe(props: { id: number | null }): ReactElement {
   return (
@@ -50,6 +57,18 @@ function Probe(props: { id: number | null }): ReactElement {
           </span>
           <span data-testid="unsupported">
             {unsupportedTypes(bag.features, BUILTIN_VALUE_EDITOR_TYPES).join(",")}
+          </span>
+          <span data-testid="axis-roles">
+            {bag.state.status === "ready"
+              ? bag.state.data
+                  .map((e) => `${e.feature.slug}:${e.axisRole ?? "-"}`)
+                  .join(",")
+              : ""}
+          </span>
+          <span data-testid="axes">
+            {AXIS_ROLES.map((role) => `${role}=${bag.axes[role]?.slug ?? "-"}`).join(
+              ","
+            )}
           </span>
         </div>
       )}
@@ -250,5 +269,118 @@ describe("visibleFeatures — hides a divergent row until a chip is picked", () 
 
   it("is a no-op over an 'own' schema, which never carries divergent rows", () => {
     expect(visibleFeatures(FEATURES, { chipPicked: false })).toEqual(FEATURES);
+  });
+});
+
+/**
+ * The axis role, end to end on this side of the seam — stapel-categories
+ * 0.21.0 serves it, stapel-attributes 0.9.2 defines it, and the ONLY thing
+ * this pair does with it is hand it on unchanged.
+ *
+ * Worth its own block because the failure it guards is invisible: a payload
+ * key this pair never names is a key it can drop by accident (a mapped entry
+ * built field by field, a fixture pruned, a serializer narrowed) and nothing
+ * would fail — the storefront would simply go back to guessing the make from
+ * a slug, which is the exact defect the field was added to end.
+ */
+describe("axis_role — which feature IS the make (stapel-categories 0.21.0)", () => {
+  it("travels to a host on the RAW feature row, untouched", async () => {
+    const server = mockServer({ "/features/": { body: FEATURES } });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    // `bag.features` is the payload attributes-react draws from; the key is
+    // on the row itself, not only on this pair's decorated entry.
+    expect(FEATURE_BRAND["axis_role"]).toBe("make");
+    expect(screen.getByTestId("axis-roles").textContent).toBe(
+      "brand:make,power_w:-,warranty:-,closed_set:-,holo_signature:-"
+    );
+  });
+
+  it("decides `axisRole` per entry through attributes-react's own reader", async () => {
+    const server = mockServer({
+      "/features/": {
+        // A role nothing in the closed vocabulary covers. It must reach a
+        // renderer as "no axis", never as a role a link could be built off.
+        body: [{ ...FEATURE_BRAND, axis_role: "manufacturer" }],
+      },
+    });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    expect(screen.getByTestId("axis-roles").textContent).toBe("brand:-");
+    expect(screen.getByTestId("axes").textContent).toBe(
+      "make=-,model=-,generation=-,year=-,mileage=-"
+    );
+  });
+
+  it("`axes` is the lookup a storefront links off", async () => {
+    const server = mockServer({ "/features/": { body: FEATURES } });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("axes").textContent).toBe(
+        "make=brand,model=-,generation=-,year=-,mileage=-"
+      );
+    });
+  });
+
+  it("a schema naming no axis answers an empty lookup, not a guess", async () => {
+    // `brand` is gone; `power_w` and friends claim nothing. A reader that fell
+    // back to slug-matching would still find a "brand"-ish field in a real
+    // catalogue — this one must find nothing.
+    const server = mockServer({
+      "/features/": { body: FEATURES.filter((f) => f.slug !== "brand") },
+    });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    expect(screen.getByTestId("axes").textContent).toBe(
+      "make=-,model=-,generation=-,year=-,mileage=-"
+    );
+  });
+
+  it("drops a role two features claim — the same rule, one call away", async () => {
+    // The pair does not re-implement the ambiguity rule; it calls the one that
+    // owns it. This asserts the bag inherits that behaviour rather than that
+    // this file re-derived it.
+    const rows = [
+      FEATURE_BRAND,
+      { ...FEATURE_POWER, slug: "vendor", axis_role: "make" },
+    ];
+    const server = mockServer({ "/features/": { body: rows } });
+    render(
+      <TestProviders server={server}>
+        <Probe id={2} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("status").textContent).toBe("ready");
+    });
+    expect(screen.getByTestId("axes").textContent).toBe(
+      "make=-,model=-,generation=-,year=-,mileage=-"
+    );
+    expect(byAxisRole(rows).make).toBeUndefined();
+    // The rows themselves still arrive — an unusable ROLE is not a dropped
+    // feature, and both are still drawn, validated and faceted.
+    expect(screen.getByTestId("slugs").textContent).toBe("brand,vendor");
   });
 });

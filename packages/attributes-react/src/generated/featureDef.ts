@@ -66,6 +66,27 @@ export interface FeatureDef {
    * @default "public"
    */
   readonly visibility?: "public" | "owner" | "staff";
+  /**
+   * Which classified AXIS this feature IS, when it is one — the
+   * manufacturer (`make`), the model it narrows to, the `generation`, the
+   * `year` of manufacture, the `mileage` — or null (the default) for the
+   * overwhelming majority of features, which are properties of an object
+   * rather than axes it is organised along. Decided by the catalogue and
+   * published with the schema so a consumer building a «more of this make»
+   * link or an AI descent asks 'which feature here is the make?' instead
+   * of keeping its own closed table of slugs (`brand` / `make` /
+   * `make_ref_select` / `vendor`), which a catalogue spelling the axis a
+   * fourth way drops out of silently. The vocabulary is closed: an unknown
+   * value is a typo, not a new axis, and is refused rather than passed
+   * through. At most one feature per role in one schema — two claiming
+   * `make` is a contradiction a reader cannot resolve, so both producer
+   * and consumer drop the role rather than pick a winner. Orthogonal to
+   * every other key: an axis feature is an ordinary feature of its own
+   * type, validated, stored, faceted and rendered exactly as it was before
+   * this field existed.
+   * @default null
+   */
+  readonly axis_role?: "make" | "model" | "generation" | "year" | "mileage" | null;
   /** The wire carries more than the canon describes. */
   readonly [key: string]: unknown;
 }

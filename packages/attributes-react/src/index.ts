@@ -178,6 +178,12 @@ export type {
 
 export { fromFeaturesDto, toFeaturesDto } from "./dto.js";
 
+// Which classified AXIS a feature IS, when it is one — the catalogue's own
+// answer to "which feature here is the make?", so a storefront stops keeping
+// a table of slugs one catalogue behind.
+export { AXIS_ROLES, axisRoleOf, byAxisRole } from "./axis.js";
+export type { AxisRole } from "./axis.js";
+
 export {
   FEATURE_VISIBILITIES,
   VERIFICATION_VERIFIED,

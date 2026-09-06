@@ -134,6 +134,19 @@ export function pathEcho(labels: readonly string[]): string {
   return [first, "…", last].join(PATH_SEPARATOR);
 }
 
+/** One level's current answer: the rows, the query they answer, where the
+ * popular band ends in them, and whether any page is left. */
+interface TermAnswer {
+  readonly query: string;
+  readonly terms: readonly VocabularyTerm[];
+  /** Where the popular band ends in {@link terms} — see the paging note in
+   * `more` for how a second page adds to it. */
+  readonly popularCount: number;
+  /** No further pages: the last one came back short, or added nothing new
+   * (an un-paged client returning page one again reads as exhausted). */
+  readonly exhausted: boolean;
+}
+
 /**
  * A debounced, superseding search against the {@link VocabularyClient}, whose
  * ONE invariant is that the list on screen answers the query in the box.
@@ -179,16 +192,15 @@ function useTermSearch(
   // The answer AND the question it answers, as one value — two states could
   // be written in either order and the pair would be briefly inconsistent,
   // which is the whole defect in miniature.
-  const [answer, setAnswer] = useState<{
-    readonly query: string;
-    readonly terms: readonly VocabularyTerm[];
-    /** Where the popular band ends in {@link terms} — see the paging note in
-     * `more` for how a second page adds to it. */
-    readonly popularCount: number;
-    /** No further pages: the last one came back short, or added nothing new
-     * (an un-paged client returning page one again reads as exhausted). */
-    readonly exhausted: boolean;
-  } | null>(null);
+  const [answer, setAnswer] = useState<TermAnswer | null>(null);
+  // The SAME value, readable from a callback that must not be rebuilt when it
+  // lands. See {@link more} for the paging defect this closes; every write
+  // goes through {@link commit} so the ref and the state can never disagree.
+  const held = useRef<TermAnswer | null>(null);
+  const commit = useCallback((next: TermAnswer | null): void => {
+    held.current = next;
+    setAnswer(next);
+  }, []);
   // What the box holds right now. `null` is "nothing has been asked for yet",
   // which is neither loading nor answered.
   const [wanted, setWanted] = useState<string | null>(null);
@@ -214,7 +226,7 @@ function useTermSearch(
           if (controller.signal.aborted || current.current !== query) return;
           const { terms: found, popularCount } = termPageOf(answered);
           const page = found.slice(0, VOCABULARY_PAGE);
-          setAnswer({
+          commit({
             query,
             terms: page,
             // Clamped to what is kept: the band cannot outrun the rows.
@@ -224,10 +236,10 @@ function useTermSearch(
         })
         .catch(() => {
           if (controller.signal.aborted || current.current !== query) return;
-          setAnswer({ query, terms: [], popularCount: 0, exhausted: true });
+          commit({ query, terms: [], popularCount: 0, exhausted: true });
         });
     },
-    [client, vocabulary, level, parent]
+    [client, vocabulary, level, parent, commit]
   );
 
   // The parent moved (or the pointer did): whatever is listed belongs to the
@@ -244,9 +256,9 @@ function useTermSearch(
     asked.current = false;
     current.current = null;
     inFlight.current?.abort();
-    setAnswer(null);
+    commit(null);
     setWanted(null);
-  }, [vocabulary, level, parent]);
+  }, [vocabulary, level, parent, commit]);
 
   useEffect(
     () => () => {
@@ -294,10 +306,24 @@ function useTermSearch(
   // One next-page fetch at a time, and never against a superseded answer.
   // Not an AbortController: a page landing late for a query that still
   // stands is worth keeping, and the `current` check drops the rest.
+  //
+  // THE ANSWER IS READ FROM A REF, AND THAT IS THE WHOLE OF IT. This callback
+  // used to close over `answer`, so its identity changed with every page — and
+  // the sheet installs its end-of-list scroll listener in an effect keyed on
+  // that identity (`SkinPickerSheet`: `[onEndReached, sheetOpen]`). Between the
+  // commit that PAINTS page two and the passive effect that installs the
+  // matching listener there is a real gap, and a scroll landing inside it ran
+  // the previous closure: it asked for offset 50 a second time and appended the
+  // fifty rows already on screen, so a 120-term level went 50 → 100 → 150 with
+  // every row of page two twice and the last twenty never reached. Nothing was
+  // slow enough to see it at a desk and it was reproducible under load, which
+  // is what a flaky paging test had been reporting all along. Held in a ref
+  // written at the same moment as the state, `more` is stable for the life of
+  // the level and always asks from the end of what is actually on screen.
   const pendingMore = useRef(false);
   const more = useCallback((): void => {
     if (client === null || vocabulary.length === 0 || level.length === 0) return;
-    const settled = answer;
+    const settled = held.current;
     if (
       settled === null ||
       settled.exhausted ||
@@ -311,7 +337,10 @@ function useTermSearch(
       .search(vocabulary, level, settled.query, parent, undefined, settled.terms.length)
       .then((answered) => {
         pendingMore.current = false;
-        if (current.current !== settled.query) return;
+        // Identity, not equality: the page belongs to the list it was asked
+        // from. A reset or a landed first page replaces that list, and rows
+        // measured from the end of one list may not be appended to another.
+        if (current.current !== settled.query || held.current !== settled) return;
         const { terms: found, popularCount } = termPageOf(answered);
         const known = new Set(settled.terms.map((term) => term.code));
         const fresh = found.filter((term) => !known.has(term.code));
@@ -324,23 +353,20 @@ function useTermSearch(
         const freshPopular = found
           .slice(0, popularCount)
           .filter((term) => !known.has(term.code)).length;
-        setAnswer((latest) => {
-          if (latest === null || latest.query !== settled.query) return latest;
-          return {
-            query: latest.query,
-            terms: [...latest.terms, ...fresh],
-            popularCount:
-              latest.popularCount === latest.terms.length
-                ? latest.popularCount + freshPopular
-                : latest.popularCount,
-            exhausted: fresh.length === 0 || found.length < VOCABULARY_PAGE,
-          };
+        commit({
+          query: settled.query,
+          terms: [...settled.terms, ...fresh],
+          popularCount:
+            settled.popularCount === settled.terms.length
+              ? settled.popularCount + freshPopular
+              : settled.popularCount,
+          exhausted: fresh.length === 0 || found.length < VOCABULARY_PAGE,
         });
       })
       .catch(() => {
         pendingMore.current = false;
       });
-  }, [client, vocabulary, level, parent, answer]);
+  }, [client, vocabulary, level, parent, commit]);
 
   const matched = wanted !== null && answer !== null && answer.query === wanted;
   return {

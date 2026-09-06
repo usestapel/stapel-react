@@ -20,7 +20,7 @@
  * of crashing. The generated union is what a WELL-FORMED row narrows to, and
  * the two are checked against each other rather than trusted.
  */
-import type { FeatureConfig, FeatureDef } from "@stapel/attributes-react";
+import type { AxisRole, FeatureConfig, FeatureDef } from "@stapel/attributes-react";
 import type { components } from "./generated/schema.js";
 
 export type Schemas = components["schemas"];
@@ -171,7 +171,14 @@ export type MaxRevision = Schemas["MaxRevision"];
  */
 export type CategoryFeature = FeatureDef & { readonly divergent?: true };
 
-export type { FeatureConfig };
+/**
+ * Re-exported so a host reading `axis_role` off a {@link CategoryFeature} — or
+ * off `CategoryFeaturesBag.axes` — names the type without also depending on
+ * `@stapel/attributes-react` directly. Same seam, same reason, as
+ * {@link FeatureConfig}: attributes-react owns the vocabulary, this pair
+ * serves the rows that carry it.
+ */
+export type { AxisRole, FeatureConfig };
 
 /**
  * `own` — this row's resolved schema (own + inherited), byte-for-byte what

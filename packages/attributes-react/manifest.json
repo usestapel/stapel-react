@@ -142,6 +142,7 @@
     "runtime": [
       "ATTRIBUTES_ERROR_BUNDLE_EN",
       "ATTRIBUTES_I18N_KEYS",
+      "AXIS_ROLES",
       "ERROR_CODE_TO_KEY",
       "FEATURE_VISIBILITIES",
       "FORMATTABLE_TYPES",
@@ -158,6 +159,8 @@
       "VOCABULARY_BACKED_TYPES",
       "VocabularyClientProvider",
       "attributesI18nBundleEn",
+      "axisRoleOf",
+      "byAxisRole",
       "codePointLength",
       "conditionSlugs",
       "defaultFeatureValue",
@@ -219,6 +222,7 @@
     ],
     "types": [
       "AttributesI18nKey",
+      "AxisRole",
       "Cond",
       "FeatureBounds",
       "FeatureChangeSource",
