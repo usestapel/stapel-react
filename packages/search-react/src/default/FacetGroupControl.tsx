@@ -997,6 +997,81 @@ export interface FacetGroupControlProps {
   readonly refreshing?: boolean;
 }
 
+/* ── THE DECLARED BOX (p41) ───────────────────────────────────────────────
+ *
+ * What a group's box is worth BEFORE anything has been measured. Four stated
+ * numbers, deliberately a shade UNDER what the skin draws: the reservation is
+ * a `min-block-size` floor, so a number below the real one is a no-op the
+ * moment content exists, while a number above it is a hole nothing fills.
+ *
+ * They exist because the p43 reserve — the height a group was last measured at
+ * — is only available from the SECOND answer onwards (`FacetPanelBag.
+ * refreshing` is never true on a first load), and the first mount is precisely
+ * the pass with nothing to stand on: the group renders at content height, and
+ * every fact that lands after it (a label the host's vocabulary resolved, a
+ * count, a dependent axis's options arriving with the next answer) re-lays the
+ * column under the reader's eye.
+ */
+
+/** One option row: antd's checkbox line, without the gap between rows. */
+export const FACET_OPTION_ROW_HEIGHT = 24;
+
+/** One row of `size="small"` pills in a segmented group. */
+export const FACET_PILL_ROW_HEIGHT = 24;
+
+/** How many pills a 280px rail fits across before the row wraps. A stated
+ * estimate — the row is `wrap`, so the true count is a function of the labels
+ * — and it is used only to floor the box, never to cap it. */
+export const FACET_PILLS_PER_ROW = 3;
+
+/** The group's own heading line, and the same for the fold's link button. */
+export const FACET_HEADING_HEIGHT = 22;
+
+/**
+ * The box a group declares for itself — heading, rows, fold — in CSS pixels.
+ *
+ * Stated per SHAPE, because the shapes are not variations of one control: a
+ * dictionary's closed face is one field however many values the vocabulary
+ * holds, a segmented group is a wrapping row of pills, and a checkbox group is
+ * one line per shown option.
+ *
+ * Exported so a host (and this package's own tests) can assert the number the
+ * rail reserves rather than discovering it from a screenshot.
+ */
+export function facetGroupReservedHeight(input: {
+  readonly shape: FacetGroupShape;
+  /** How many option rows are actually drawn — after the fold, not before. */
+  readonly rows: number;
+  /** Is the group's heading drawn at all? */
+  readonly heading: boolean;
+  /** Is the group open? A closed disclosure is its header and nothing else. */
+  readonly open: boolean;
+  /** Is the "Show all (N)" button drawn under the rows? */
+  readonly folded: boolean;
+}): number {
+  const gap = input.shape === "segmented" ? spacing[2] : spacing[1];
+  const parts: number[] = [];
+  if (input.heading) parts.push(FACET_HEADING_HEIGHT);
+  if (input.open) {
+    if (input.shape === "dictionary") {
+      parts.push(controls.height);
+    } else if (input.shape === "segmented") {
+      parts.push(
+        Math.ceil(Math.max(input.rows, 1) / FACET_PILLS_PER_ROW) *
+          FACET_PILL_ROW_HEIGHT
+      );
+    } else {
+      for (let row = 0; row < input.rows; row += 1) {
+        parts.push(FACET_OPTION_ROW_HEIGHT);
+      }
+    }
+    if (input.folded) parts.push(FACET_HEADING_HEIGHT);
+  }
+  if (parts.length === 0) return 0;
+  const gaps = (parts.length - 1) * gap;
+  return parts.reduce((total, part) => total + part, 0) + gaps;
+}
+
 /**
  * Is this group a HEADING WITH NOTHING UNDER IT?
  *
@@ -1044,6 +1119,17 @@ export function FacetGroupControl(
    * render, and the measurement is deliberately not taken while refreshing —
    * a reserved box would otherwise remember its own reservation and the floor
    * could only ever ratchet upwards.
+   *
+   * ── AND THE FIRST MOUNT, WHICH HAD NOTHING (p41) ─────────────────────────
+   *
+   * A measurement is only available from the second answer onwards, so the
+   * paragraph above covers every pass but the one a cold load is made of. Until
+   * a box has been measured the group stands on the box it DECLARES — see
+   * {@link facetGroupReservedHeight} — which is a stated number per shape and
+   * row count rather than whatever the content happened to lay out to. A floor
+   * under the real height is invisible; what it buys is that the box exists at
+   * all in the frames where a label, a count or a dependent axis's options have
+   * not landed yet.
    */
   const boxRef = useRef<HTMLDivElement | null>(null);
   const settledHeight = useRef<number | undefined>(undefined);
@@ -1055,7 +1141,6 @@ export function FacetGroupControl(
     // render): a floor of zero is not a reservation, so nothing is remembered.
     if (node !== null && node.offsetHeight > 0) settledHeight.current = node.offsetHeight;
   });
-  const reserved = refreshing ? settledHeight.current : undefined;
 
   const disclosure = props.collapsible === true && props.heading !== false;
   const open = !disclosure || openState;
@@ -1086,6 +1171,34 @@ export function FacetGroupControl(
       ? nodes.slice(0, Math.min(limit ?? nodes.length, nodes.length - demoted))
       : nodes;
 
+  /* The floor, and where it comes from. The DECLARED box is the rows this
+     group is drawing, so it stands on every render and can never be a hole;
+     the MEASURED one — this box, on this deployment, at this width — is added
+     on top of it while an answer is in flight, and released with the answer.
+     Zero is not a reservation and is never written. */
+  const declared = facetGroupReservedHeight({
+    shape,
+    rows: shown.length,
+    heading: props.heading !== false,
+    open,
+    folded,
+  });
+  const measured = settledHeight.current;
+  /* The declared box stands ALWAYS — it is the rows this group is drawing, so
+     it can never be a hole — and the measured one is added only while an
+     answer is in flight. That is the difference between the two: the
+     declaration is what this group needs, and the measurement is what it
+     happened to occupy a moment ago, which is a floor worth holding exactly as
+     long as the thing that filled it is being replaced. */
+  const reserved =
+    (refreshing ? Math.max(measured ?? 0, declared) : declared) || undefined;
+  const reservedSource =
+    reserved === undefined
+      ? undefined
+      : refreshing && measured !== undefined && measured > declared
+        ? "measured"
+        : "declared";
+
   return (
     <Flex
       ref={boxRef}
@@ -1098,9 +1211,14 @@ export function FacetGroupControl(
       data-counted={group.counted ? "true" : "false"}
       data-shape={shape}
       // The reservation, readable from a stand: `data-reserved` is the height
-      // this group is standing on while the next answer is in flight.
+      // this group is standing on, and `data-reserved-source` says whether the
+      // number was MEASURED on this deployment or DECLARED by the pair — which
+      // is the difference between a refresh and a first mount.
       {...(refreshing ? { "data-refreshing": "true" } : {})}
       {...(reserved !== undefined ? { "data-reserved": String(reserved) } : {})}
+      {...(reservedSource !== undefined
+        ? { "data-reserved-source": reservedSource }
+        : {})}
       // Who named this heading — `none` means the raw slug is on screen
       // because the answer sent no label and the schema defines none. It is
       // drawn (a heading a person cannot read still beats none) and it is

@@ -29,7 +29,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { FacetPanelPane } from "../src/default/index.js";
+import {
+  FACET_HEADING_HEIGHT,
+  FACET_OPTION_ROW_HEIGHT,
+  FacetPanelPane,
+} from "../src/default/index.js";
 import { useSearchState } from "../src/index.js";
 import type { MockServer, RecordedCall } from "./harness.js";
 import { TestHarness } from "./harness.js";
@@ -212,47 +216,58 @@ describe("the rail says when its answer is in flight", () => {
   });
 });
 
-describe("a group stands on its own last height while refreshing", () => {
-  it("reserves the height it MEASURED, and only while the answer is in flight", async () => {
+/** The box a two-option checkbox group DECLARES: its heading, two rows and the
+ * gaps between them — see `facetGroupReservedHeight`. Stated here rather than
+ * imported as an expression, so a change to the numbers has to be typed twice. */
+const DECLARED_TWO_ROWS = FACET_HEADING_HEIGHT + 2 * FACET_OPTION_ROW_HEIGHT + 2 * 4;
+
+describe("a group stands on a box from the first frame", () => {
+  it("prefers the height it MEASURED once the answer is in flight", async () => {
     const server = mount();
     await server.settle();
     const brand = screen.getByTestId("facet-group-brand");
     const condition = screen.getByTestId("facet-group-condition");
-    // Settled: nothing reserved. A permanent floor would be a group that can
-    // never shrink again.
-    expect(brand.style.minBlockSize).toBe("");
-    expect(brand.hasAttribute("data-reserved")).toBe(false);
+    // Settled, and the box is the group's own DECLARED one: the measurement
+    // lands in a ref and does not re-render, and a floor below the content is
+    // invisible. What it buys is that the box is never nothing (p41).
+    expect(brand.style.minBlockSize).toBe(`${String(DECLARED_TWO_ROWS)}px`);
+    expect(brand.dataset["reservedSource"]).toBe("declared");
 
     fireEvent.click(screen.getByTestId("press-partition"));
     // Each group's OWN number, which is the whole point: this box was that
-    // tall a moment ago, on this deployment, at this width.
+    // tall a moment ago, on this deployment, at this width. MEASURED beats
+    // declared wherever there is a measurement to prefer.
     expect(brand.style.minBlockSize).toBe(`${String(HEIGHTS["facet-group-brand"])}px`);
     expect(brand.dataset["reserved"]).toBe(String(HEIGHTS["facet-group-brand"]));
+    expect(brand.dataset["reservedSource"]).toBe("measured");
     expect(condition.style.minBlockSize).toBe(
       `${String(HEIGHTS["facet-group-condition"])}px`
     );
     expect(brand.dataset["refreshing"]).toBe("true");
 
     await server.settle();
-    // Released with the answer: a floor held past the swap would keep every
-    // group at the tallest it has ever been on this page.
-    expect(brand.style.minBlockSize).toBe("");
-    expect(condition.style.minBlockSize).toBe("");
+    // The measured floor is released with the answer — a group that can never
+    // shrink again is the ratchet this reserve is careful not to be — and the
+    // declared one, which is under the content by construction, stays.
+    expect(brand.dataset["reservedSource"]).toBe("declared");
+    expect(condition.dataset["reservedSource"]).toBe("declared");
     expect(brand.hasAttribute("data-refreshing")).toBe(false);
   });
 
-  it("reserves nothing where nothing was measured", async () => {
+  it("falls back to the DECLARED box where nothing was measured", async () => {
     // A layout-free environment reports 0, and a floor of zero is not a
-    // reservation — it is a `min-block-size: 0px` written on every group of
-    // every rail for no reason. `condition` is stubbed; this one is not.
+    // reservation. Before p41 that left the group with no box at all — which
+    // is also every first mount in a real browser, where there is no previous
+    // answer to have measured. The declaration stands in for it.
     Reflect.deleteProperty(HTMLElement.prototype, "offsetHeight");
     const server = mount();
     await server.settle();
     const brand = screen.getByTestId("facet-group-brand");
     fireEvent.click(screen.getByTestId("press-partition"));
-    expect(brand.style.minBlockSize).toBe("");
-    expect(brand.hasAttribute("data-reserved")).toBe(false);
-    // …but the rail still says what is happening: the attribute is the fact,
+    expect(brand.style.minBlockSize).toBe(`${String(DECLARED_TWO_ROWS)}px`);
+    expect(brand.dataset["reserved"]).toBe(String(DECLARED_TWO_ROWS));
+    expect(brand.dataset["reservedSource"]).toBe("declared");
+    // …and the rail still says what is happening: the attribute is the fact,
     // and the reservation is one skin's use of it.
     expect(rail().dataset["facetsRefreshing"]).toBe("true");
   });

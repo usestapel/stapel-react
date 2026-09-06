@@ -312,6 +312,14 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   readonly adapter: SearchParamsAdapter;
   readonly renderCard?: SearchCardRenderer;
   readonly categoryFeatures?: readonly FeatureDef[];
+  /**
+   * The schema is ON ITS WAY — the third state `categoryFeatures` does not
+   * have. Handed straight to the filter panel, which holds the box it already
+   * reserves rather than drawing a rail it is about to re-shape and re-order.
+   * See {@link FacetPanelPaneProps.categoryFeaturesPending} for what was
+   * measured without it (p41).
+   */
+  readonly categoryFeaturesPending?: boolean;
   readonly locale?: string;
   /**
    * Name the facet values neither the answer nor the category schema names —
@@ -431,6 +439,22 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * sense that matters and not a decoration bolted on top.
    */
   readonly filtersHeader?: ReactNode;
+  /**
+   * The block-size that slot will END UP at, declared before it has anything
+   * in it — a number in CSS pixels or any length (`"96px"`, `"6rem"`).
+   *
+   * For the host whose header is a SEPARATE read from the search: a category
+   * page's partition row is two chained catalogue requests behind the answer,
+   * so the rail draws its groups first and the row drops in over them a beat
+   * later, pushing every filter under it down (p41). The band is in flow from
+   * the first frame with this set — an empty box of the right height, then the
+   * control inside it — and the pair never guesses the number, because the
+   * height of a control it does not own is not the pair's to know.
+   *
+   * A FLOOR, like every other reservation here: a header taller than the
+   * declared number still takes the room it needs.
+   */
+  readonly filtersHeaderReserve?: number | string;
   /**
    * The row ABOVE the chips and the results — where `<LocationSummaryLine>`
    * goes on the phone SERP.
@@ -679,6 +703,8 @@ interface SearchPageBodyProps {
   readonly dictionaryMode?: "field" | "inline" | "sheet";
   readonly visibleGroups?: number | null;
   readonly categoryFeatures?: readonly FeatureDef[];
+  readonly categoryFeaturesPending?: boolean;
+  readonly filtersHeaderReserve?: number | string;
   readonly renderEmptyExits?: () => ReactNode;
   readonly locale?: string;
   readonly pinnedFacets?: readonly string[];
@@ -787,7 +813,13 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     // have called that column empty.
     ...(facets.ranges !== undefined ? { ranges: facets.ranges } : {}),
   });
+  /* A schema still in flight makes every reading below provisional — see
+     `FacetPanelPaneProps.categoryFeaturesPending`. "Nothing to filter by" in
+     particular: the groups in hand are the ones the panel is about to redraw,
+     and a column closed on them would open again a beat later. */
+  const schemaPending = props.categoryFeaturesPending === true;
   const filtersEmpty =
+    !schemaPending &&
     facets.state.status === "ready" &&
     facets.state.data.length === 0 &&
     // `withheld` (groups the server counted and held back for covering too
@@ -806,11 +838,28 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         props.renderCategoryFilter === undefined)) &&
     state.lang === undefined &&
     (props.languages ?? []).length === 0;
-  const showFilters = filtersHeader !== undefined || !filtersEmpty;
+  const showFilters =
+    filtersHeader !== undefined ||
+    props.filtersHeaderReserve !== undefined ||
+    !filtersEmpty;
 
   const panel = (
     <Flex vertical gap={spacing[4]}>
-      {filtersHeader}
+      {/* THE HOST'S BAND, IN FLOW FROM THE FIRST FRAME (p41). The wrapper is
+          drawn whenever there is something to draw OR a height to hold, so a
+          header that arrives with a second read lands INTO its box rather than
+          inserting one above the groups. See `filtersHeaderReserve`. */}
+      {(filtersHeader !== undefined ||
+        props.filtersHeaderReserve !== undefined) && (
+        <div
+          data-testid="search-filters-header"
+          {...(props.filtersHeaderReserve !== undefined
+            ? { style: { minBlockSize: props.filtersHeaderReserve } }
+            : {})}
+        >
+          {filtersHeader}
+        </div>
+      )}
       {/* The facet panel is skipped entirely when the only thing it would draw
           is its own empty state and the column is open for the host's control
           alone — one empty-state illustration under a working filter is still
@@ -841,6 +890,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
                 : 16
           }
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
+          {...(props.categoryFeaturesPending !== undefined
+            ? { categoryFeaturesPending: props.categoryFeaturesPending }
+            : {})}
           {...(props.renderEmptyExits !== undefined
             ? { renderEmptyExits: props.renderEmptyExits }
             : {})}
@@ -1094,6 +1146,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     adapter,
     renderCard,
     categoryFeatures,
+    categoryFeaturesPending,
     locale,
     resolveFacetLabels,
     searchBox,
@@ -1106,6 +1159,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     geoOffer,
     footer,
     filtersHeader,
+    filtersHeaderReserve,
     resultsHeader,
     resultsLead,
     categoryFilter,
@@ -1149,6 +1203,9 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}
           {...(pinnedFacets !== undefined ? { pinnedFacets } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
+          {...(categoryFeaturesPending !== undefined
+            ? { categoryFeaturesPending }
+            : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
           {...(searchBox !== undefined ? { searchBox } : {})}
@@ -1160,6 +1217,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(skippedNotice !== undefined ? { skippedNotice } : {})}
           {...(footer !== undefined ? { footer } : {})}
           {...(filtersHeader !== undefined ? { filtersHeader } : {})}
+          {...(filtersHeaderReserve !== undefined ? { filtersHeaderReserve } : {})}
           {...(resultsHeader !== undefined ? { resultsHeader } : {})}
           {...(resultsLead !== undefined ? { resultsLead } : {})}
           {...(categoryFilter !== undefined ? { categoryFilter } : {})}

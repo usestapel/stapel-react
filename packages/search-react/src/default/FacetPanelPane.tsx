@@ -84,6 +84,7 @@ import {
   SlotPlaceholder,
   actionAvailable,
   actionBlocked,
+  loadLoading,
   useT,
   useTPlural,
 } from "@stapel/core";
@@ -230,6 +231,31 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    * slugs get a numeric range row, and of which slugs are a filter at all
    * (`isFacetableFeature`: an `imei` is counted and is not one). */
   readonly categoryFeatures?: readonly FeatureDef[];
+  /**
+   * The schema is ON ITS WAY — the third state {@link categoryFeatures} does
+   * not have, and the whole of p41.
+   *
+   * `categoryFeatures: undefined` says two different things today: "this
+   * category hangs no schema" and "the read has not answered yet". The panel
+   * cannot tell them apart, so on a page whose schema is a SEPARATE read from
+   * the search (a category leaf: two requests, two arrival times) it draws the
+   * rail the moment the answer lands and then draws it AGAIN, differently, when
+   * the schema arrives — because both the SHAPE of every group
+   * (`facetGroupShape` reads `maxSelected` and `ref_select` off the feature)
+   * and the ORDER of the rail (`orderFacetGroupsBySchema` puts the schema's
+   * required axes first) are functions of it. Measured on a live cars leaf: the
+   * make and the model went from three-row checkbox lists to one-row dictionary
+   * fields, condition and colour from checkboxes to pills, and the order
+   * changed under all of them — 0.0586 CLS on a plain cold load, with
+   * `facet-group-make` moving 152px and `facet-group-model` 76px (p41).
+   *
+   * With `categoryFeaturesPending` the panel keeps the box it already reserves
+   * for a load in flight until the schema has spoken, and draws the rail ONCE,
+   * in the shape and the order it will keep. A host passes its schema query's
+   * own pending flag; the default is `false`, so a surface that never had a
+   * schema to wait for is unchanged.
+   */
+  readonly categoryFeaturesPending?: boolean;
   readonly locale?: string;
   readonly enabled?: boolean;
   /**
@@ -620,6 +646,16 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
           : {})}
       >
         {(bag) => {
+          /* THE ANSWER THIS PANEL DRAWS FROM, AND WHEN IT IS ALLOWED TO (p41).
+             A schema still in flight makes the groups in hand provisional: they
+             would be drawn in one shape and one order now and in another the
+             moment it lands. `loadLoading()` is the honest state for that — the
+             panel already reserves a box for it — and it is the SAME state the
+             pane hands every consumer below, so the ranges arm, the empty arm
+             and the group list cannot disagree about whether there is an answer
+             on screen. See `FacetPanelPaneProps.categoryFeaturesPending`. */
+          const schemaPending = props.categoryFeaturesPending === true;
+          const answer = schemaPending ? loadLoading() : bag.state;
           // Built INSIDE the bag, because which axes exist is a property of
           // the ANSWER now: `facet_meta.core_ranges` names the core columns
           // this server can actually filter on (`r.price`), and the corpus
@@ -748,6 +784,12 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                that dims or freezes the column has one thing to hang it on
                instead of racing the pair's own queries to find out. */
             data-facets-refreshing={bag.refreshing ? "true" : "false"}
+            /* AND WHEN ITS SHAPE IS NOT DECIDED YET (p41). The groups in hand
+               are provisional while the category's schema is in flight, because
+               the schema decides both the shape of every group and the order of
+               the rail. A walker reads this to know why the column is a
+               skeleton with a settled answer behind it. */
+            data-facets-schema={schemaPending ? "pending" : "settled"}
           >
             {/* In a 280px rail this row laid the word "Filters" out in a
                 43x78 box, three lines, one syllable each — see FACET_HEADING.
@@ -836,8 +878,8 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 the checkboxes on a leaf whose only filter is a price — the one
                 shape where the rail is nothing else. Drawn here, in the place
                 the merged list would have put them. */}
-            {bag.state.status === "ready" &&
-              bag.state.data.length === 0 &&
+            {answer.status === "ready" &&
+              answer.data.length === 0 &&
               ranges.length > 0 && (
               <Flex vertical gap={spacing[3]} data-testid="search-ranges">
                 {ranges.map(rangeRow)}
@@ -864,7 +906,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                    many skeleton rows, each `RANGE_ROW_MIN_HEIGHT` tall like
                    the row it will become. */}
             <LoadList
-              state={bag.state}
+              state={answer}
               testId="facets"
               skeletonRows={4}
               loading={

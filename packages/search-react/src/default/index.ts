@@ -122,10 +122,15 @@ export type { LocationSummaryLineProps } from "./LocationSummaryLine.js";
 export {
   FacetGroupControl,
   facetGroupIsEmptyHeading,
+  facetGroupReservedHeight,
   facetGroupShape,
   facetOptionNodes,
   isDictionaryFacet,
   FACET_DICTIONARY_THRESHOLD,
+  FACET_HEADING_HEIGHT,
+  FACET_OPTION_ROW_HEIGHT,
+  FACET_PILLS_PER_ROW,
+  FACET_PILL_ROW_HEIGHT,
   FACET_SHEET_PAGE,
   FACET_VISIBLE_OPTIONS,
 } from "./FacetGroupControl.js";
