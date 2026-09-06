@@ -10,9 +10,16 @@
  * tests that would go red before it shipped.
  */
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { DlqQueue, ModerationQueue } from "../src/default/admin/index.js";
-import { groupByErrorClass } from "../src/index.js";
+import { groupByErrorClass, useCase } from "../src/index.js";
 import { TestProviders, envelope, mockServer } from "./harness.js";
 import type { MockServer } from "./harness.js";
 import {
@@ -48,6 +55,13 @@ function console_(): MockServer {
 function caseReads(server: MockServer): string[] {
   return server.calls
     .filter((call) => call.method === "GET" && call.url.includes("/cases?"))
+    .map((call) => call.url);
+}
+
+/** Every audit-trail read — the one a dlq card used to make for its stamps. */
+function eventReads(server: MockServer): string[] {
+  return server.calls
+    .filter((call) => call.method === "GET" && call.url.includes("/events"))
     .map((call) => call.url);
 }
 
@@ -229,8 +243,14 @@ describe("the headline is two numbers and never their sum", () => {
 });
 
 describe("the case card says a dead letter is not a decision", () => {
-  it("badges the state and shows the failure the audit row carries", async () => {
-    const server = mockServer({
+  /**
+   * The events route ANSWERS here, and that is the point: a card that still
+   * read the audit trail for the stamps would pass a weaker version of this
+   * test. The failure has to come off the detail body (backend 0.7.2), and
+   * `eventReads` has to stay empty.
+   */
+  function card(): MockServer {
+    return mockServer({
       "/policy": { body: POLICY },
       "/stats": { body: STATS },
       "GET state=dlq": { body: [CASE_DLQ_CONTENT] },
@@ -240,6 +260,10 @@ describe("the case card says a dead letter is not a decision", () => {
           : { body: CASE_DETAIL_DLQ },
       "/cases": { body: [] },
     });
+  }
+
+  it("badges the state and shows the failure the case's own body carries", async () => {
+    const server = card();
     render(
       <TestProviders server={server}>
         <DlqQueue />
@@ -254,5 +278,31 @@ describe("the case card says a dead letter is not a decision", () => {
     expect(badge.textContent).toContain("never screened");
     const detail = await screen.findByTestId("moderation-dlq-case-dlq-error");
     expect(detail.textContent).toContain("moderation_content");
+    // Nobody asked for the history, so nobody read it.
+    expect(eventReads(server)).toEqual([]);
+  });
+
+  it("reads the audit trail only when the history is asked for", async () => {
+    const server = card();
+    const { result } = renderHook(
+      () => useCase({ caseId: CASE_DLQ_CONTENT.id }),
+      {
+        wrapper: ({ children }) => (
+          <TestProviders server={server}>{children}</TestProviders>
+        ),
+      }
+    );
+    await waitFor(() => {
+      expect(result.current.dlq?.errorClass).toBe("ContentUnavailable");
+    });
+    expect(result.current.dlq?.at).toBe(CASE_DETAIL_DLQ.dlq_at);
+    expect(eventReads(server)).toEqual([]);
+
+    act(() => {
+      result.current.setShowEvents(true);
+    });
+    await waitFor(() => {
+      expect(eventReads(server).length).toBe(1);
+    });
   });
 });

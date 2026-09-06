@@ -105,13 +105,30 @@ export type CaseEvent = Omit<
  */
 export type Content = Schemas["ContentDTO"];
 
-/** The whole case card. */
+/**
+ * The whole case card.
+ *
+ * Since backend 0.7.2 the card carries the same dead-letter stamps as the queue
+ * row — `dlq_at`, `last_error_class`, `last_error`, `escalated_at` — so a case
+ * reached by a deep link, with no row behind it, can say what broke without
+ * reading its own audit trail for it.
+ */
 export type CaseDetail = Omit<
   Schemas["CaseDetailPresenterDTO"],
-  "state" | "origin" | "reports" | "verdicts" | "sanctions" | "appeals" | "content"
+  | "state"
+  | "origin"
+  | "last_error_class"
+  | "reports"
+  | "verdicts"
+  | "sanctions"
+  | "appeals"
+  | "content"
 > & {
   readonly state: CaseState;
   readonly origin: CaseOrigin;
+  /** Same closed vocabulary, same clamp (`services.error_class_of`) and same
+   * `""` default as {@link Case.last_error_class} — one field, two presenters. */
+  readonly last_error_class?: ErrorClass | "";
   readonly reports: readonly Report[];
   readonly verdicts: readonly Verdict[];
   readonly sanctions: readonly Sanction[];

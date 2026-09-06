@@ -26,15 +26,15 @@
  *
  * ── Where a dead letter's error comes from ────────────────────────────────
  *
- * `CasePresenterDTO` carries `last_error_class` / `last_error`; the DETAIL
- * presenter does not (backend 0.7.0 — filed upstream as an ask). So a card
- * opened on a `dlq` case cannot read the failure off its own body, and the
- * queue row is not available either when the card was reached by a deep link.
- * It reads the `dead_lettered` AUDIT row instead, whose payload carries both —
- * which is true whichever door the reader came through. That is the only
- * reason the events query is enabled without anybody pressing "show the
- * history": one extra read, on a broken case, to avoid a badge that says
- * something failed and cannot say what.
+ * The case's own body. Backend 0.7.2 presents `dlq_at` / `last_error_class` /
+ * `last_error` / `escalated_at` on `CaseDetailPresenterDTO` — the same four
+ * values the queue row carries — which answers the ask this pair filed with
+ * the 0.7.0 pin. Until then the card read the `dead_lettered` AUDIT row for
+ * them, and that is why the events query used to be enabled without anybody
+ * pressing "show the history": a second read, on a broken case, to avoid a
+ * badge that said something failed and could not say what. Both are gone. The
+ * events query is now exactly what it says it is — the history, when it is
+ * asked for — and a `dlq` card costs one read like every other card.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -107,14 +107,12 @@ export interface UseCaseOptions {
 }
 
 /**
- * What parked this case, read off the `dead_lettered` audit row.
- *
- * `at` is that row's own instant, which is `Case.dlq_at` by construction
- * (`services.dead_letter_case` writes both in one transaction).
+ * What parked this case, read off the case's own body (`dlq_at`,
+ * `last_error_class`, `last_error` — backend 0.7.2).
  */
 export interface DlqStamp {
   readonly at: string;
-  /** `services.ERROR_CLASSES` member, or `""` when the row recorded none. */
+  /** `services.ERROR_CLASSES` member, or `""` when none was recorded. */
   readonly errorClass: string;
   readonly error: string;
 }
@@ -152,8 +150,7 @@ export function useCase(options: UseCaseOptions): CaseBag {
   const detailQuery = useCaseDetailQuery(caseId);
   const detail = loadOf(detailQuery);
   const [showEvents, setShowEvents] = useState(false);
-  const deadLettered = detail.status === "ready" && detail.data.state === "dlq";
-  const eventsQuery = useCaseEventsQuery(caseId, showEvents || deadLettered);
+  const eventsQuery = useCaseEventsQuery(caseId, showEvents);
 
   const claimCase = useClaimCase();
   const releaseCase = useReleaseCase();
@@ -197,21 +194,18 @@ export function useCase(options: UseCaseOptions): CaseBag {
 
   const events = loadOf(eventsQuery);
   const dlq: DlqStamp | null = useMemo(() => {
-    if (!deadLettered || events.status !== "ready") return null;
-    // The LAST one: a case can be parked, revived and parked again, and the
-    // stamp on the card must be the failure it is sitting in now.
-    const row = [...events.data]
-      .reverse()
-      .find((event) => event.kind === "dead_lettered");
-    if (row === undefined) return null;
-    const payload = row.payload as Record<string, unknown>;
+    if (detail.status !== "ready") return null;
+    const row = detail.data;
+    // The state, not the stamps, is what says the case IS parked: a revived
+    // case keeps `last_error_class` / `last_error` (they are the LAST failure,
+    // not a current one) and must not wear the badge.
+    if (row.state !== "dlq") return null;
     return {
-      at: row.created_at,
-      errorClass:
-        typeof payload["error_class"] === "string" ? payload["error_class"] : "",
-      error: typeof payload["error"] === "string" ? payload["error"] : "",
+      at: row.dlq_at ?? "",
+      errorClass: row.last_error_class ?? "",
+      error: row.last_error ?? "",
     };
-  }, [deadLettered, events]);
+  }, [detail]);
 
   const lease: LeaseStatus =
     detail.status === "ready"

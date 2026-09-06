@@ -42,6 +42,17 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
 - Flow deps are injected through `create<X>Flow(deps)` factories.
 - The headless layer is fully replaceable (copy-and-own).
 
+## Backend asks
+
+- **CLOSED (stapel-moderation 0.7.2).** Filed with the 0.7.0 pin: *present the
+  four dead-letter stamps on the detail DTO too.* `CaseDetailPresenterDTO` now
+  carries `dlq_at` / `last_error_class` / `last_error` / `escalated_at` — the
+  same values as the queue row — so `useCase` builds `CaseBag.dlq` from the
+  case's own body. The workaround it replaces (read the `dead_lettered` audit
+  row, which forced an events fetch on every dlq card) is gone; the
+  `dead_lettered` event kind stays in `api/enums.ts`, since the row still
+  exists and the history still renders it.
+
 ## TODO after scaffold
 
 1. `pnpm install && pnpm gen` — materialize the generated surfaces.

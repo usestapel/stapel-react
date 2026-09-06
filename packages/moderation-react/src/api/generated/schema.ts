@@ -420,6 +420,14 @@ export interface components {
             claimed_by?: string | null;
             claimed_until?: string | null;
             resolved_at?: string | null;
+            /** @description When screening gave up on this case. Null unless state is dlq. */
+            dlq_at?: string | null;
+            /** @description Class of the last screening failure - ContentUnavailable, ScreeningUnavailable, TargetNotFound, other. Closed vocabulary; the same value the queue row carries. */
+            last_error_class?: string;
+            /** @description The last failure's message, truncated. For a human to read. */
+            last_error?: string;
+            /** @description Set when the automatic re-screen sweep spent its cap and stopped. */
+            escalated_at?: string | null;
         };
         /** @description Presents one audit row. Read-only everywhere, by declaration. */
         CaseEventPresenterDTO: {

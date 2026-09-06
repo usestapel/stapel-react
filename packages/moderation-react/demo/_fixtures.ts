@@ -261,10 +261,9 @@ export const CASE_DLQ_SCREENER: Case = {
  * The card of a dead-lettered case: state `dlq`, and NO verdict — the whole
  * point of the state is that nothing looked.
  *
- * It carries NONE of the dlq stamps on purpose. `CaseDetailPresenter` does not
- * present them (backend 0.7.0), and a fixture that added them would document a
- * card the backend cannot send and let the console pass a test for a field it
- * will never receive.
+ * It carries the dlq stamps, because backend 0.7.2 presents them on
+ * `CaseDetailPresenterDTO` — the same four values as the row above, which is
+ * what makes a deep-linked card able to say what broke on its own.
  */
 export const CASE_DETAIL_DLQ: CaseDetail = {
   ...CASE_DETAIL,
@@ -279,10 +278,15 @@ export const CASE_DETAIL_DLQ: CaseDetail = {
   sanctions: [],
   appeals: [],
   content: { available: false, error: "target_not_found" },
+  dlq_at: CASE_DLQ_CONTENT.dlq_at ?? null,
+  last_error_class: CASE_DLQ_CONTENT.last_error_class ?? "",
+  last_error: CASE_DLQ_CONTENT.last_error ?? "",
+  escalated_at: null,
 };
 
-/** The audit trail the card reads the failure off — `CaseDetailPresenterDTO`
- * does not carry the dlq stamps, the `dead_lettered` row's payload does. */
+/** The audit trail, which the card no longer needs to read the failure off:
+ * since 0.7.2 the stamps are on the detail body and this is the history, shown
+ * when a reader asks for it. */
 export const CASE_EVENTS_DLQ: readonly CaseEvent[] = [
   {
     id: "aa1f6c78-2b90-4e35-83d1-7c0a4e6b2915",
