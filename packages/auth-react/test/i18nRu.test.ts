@@ -64,9 +64,10 @@ describe("generated ru error bundle", () => {
  * sits OUTSIDE `authErrorBundleRu`, so the "every ru text preserves the
  * canon's {param} slots" test above — which only walks the generated bundle —
  * never sees a re-worded entry silently dropping a canon `{param}` slot. That
- * is exactly what happened to `error.429.rate_limit`: its ru override read
- * "Подождите, прежде чем запрашивать код ещё раз." with `retry_after_minutes`
- * gone, while stapel-auth's `error_429_rate_limit()`/`retry_params()` always
+ * is exactly what happened to `error.429.rate_limit`: its ru override read as
+ * a bare "wait before requesting another code" sentence with
+ * `retry_after_minutes` gone, while stapel-auth's
+ * `error_429_rate_limit()`/`retry_params()` always
  * attach it (minimum 1 minute) and the neighbouring 422/423 overrides kept
  * theirs. This block checks the MERGED bundle a host actually renders, not
  * just the generated floor underneath it.
