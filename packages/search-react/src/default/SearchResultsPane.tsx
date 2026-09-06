@@ -263,6 +263,24 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * printed a second time above it. Still exactly one heading either way.
    */
   readonly heading?: ReactNode;
+  /**
+   * IS THE CAPTION SEEN, on the compact (phone) header?
+   *
+   * The compact arm hid the heading unconditionally, and for the pair's OWN
+   * word that is right: "Results" over a list of results, on a 390px screen
+   * whose fold holds four things, is a line that says nothing the person did
+   * not just do — it stays in the document for the screen reader and off the
+   * glass. A caption the HOST supplied is the opposite: it is the page's own
+   * name ("Buy a car in Sochi"), passed with `headingLevel={1}` because on a
+   * results screen it IS the page's heading, and the phone clipped it to a
+   * 4×4 pixel box. Same markup on both surfaces, one of them a lie.
+   *
+   * So the default is now the honest one: a host-supplied {@link heading} is
+   * DRAWN in the compact arm, the pair's own is not. This prop overrides
+   * either way, for a host that wants its caption off a phone (it is already
+   * the app bar's title, say) or the pair's word on.
+   */
+  readonly headingVisible?: boolean;
   /** Rendered under the pager — where the container puts the ranking link. */
   readonly footer?: ReactNode;
   /**
@@ -444,6 +462,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   const maxWidth = props.maxWidth === undefined ? RESULTS_MAX_WIDTH : props.maxWidth;
   // A column count is the host's opinion about the GRID; the list arrangement
   // is one column by definition and has nothing to say to it.
+  // The compact arm's caption: the host's word is drawn, the pair's own is
+  // not, and `headingVisible` overrides either way — see that prop.
+  const compactHeadingSeen = props.headingVisible ?? props.heading !== undefined;
   const columnRules =
     props.columns === undefined || props.layout === "list"
       ? null
@@ -468,8 +489,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               <Flex vertical gap={spacing[2]} data-testid="search-results-header-compact">
                 <Typography.Title
                   level={props.headingLevel ?? 4}
-                  style={visuallyHidden}
+                  style={compactHeadingSeen ? { margin: 0 } : visuallyHidden}
                   data-testid="search-results-heading"
+                  data-heading={compactHeadingSeen ? "seen" : "hidden"}
                 >
                   {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
                 </Typography.Title>

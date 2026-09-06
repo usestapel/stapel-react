@@ -501,11 +501,18 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * grid it could not read back.
    */
   readonly resultsColumns?: ResultsColumns;
+  /**
+   * Is the results caption SEEN below the sheet breakpoint —
+   * `<SearchResultsPane headingVisible>`, forwarded. Default: the host's own
+   * `resultsHeading` is drawn there and the pair's "Results" is not.
+   */
+  readonly resultsHeadingVisible?: boolean;
 }
 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
   readonly resultsColumns?: ResultsColumns;
+  readonly resultsHeadingVisible?: boolean;
   readonly categoryFilter?: boolean;
   readonly resultsLead?: ReactNode;
   readonly dictionaryMode?: "field" | "inline" | "sheet";
@@ -732,6 +739,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(props.resultsColumns !== undefined
         ? { columns: props.resultsColumns }
         : {})}
+      {...(props.resultsHeadingVisible !== undefined
+        ? { headingVisible: props.resultsHeadingVisible }
+        : {})}
       {...(props.footer !== undefined ? { footer: props.footer } : {})}
       {...(props.otherCategories !== undefined
         ? { otherCategories: props.otherCategories }
@@ -942,6 +952,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     resultsAction,
     resultsHeadingLevel,
     resultsColumns,
+    resultsHeadingVisible,
     dictionaryMode,
     visibleGroups,
     pinnedFacets,
@@ -955,6 +966,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(resultsColumns !== undefined ? { resultsColumns } : {})}
+          {...(resultsHeadingVisible !== undefined ? { resultsHeadingVisible } : {})}
           {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}
           {...(pinnedFacets !== undefined ? { pinnedFacets } : {})}

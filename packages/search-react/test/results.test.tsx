@@ -399,3 +399,84 @@ describe("<SearchResultsPane columns> — the host's own column count", () => {
     expect(grid.style.gridTemplateColumns).toBe("1fr");
   });
 });
+
+describe("the compact header's caption (phone)", () => {
+  /**
+   * The compact arm hid the heading unconditionally. For the pair's own word
+   * that is right — "Results" over a list of results, on a screen whose fold
+   * holds four things, says nothing the person did not just do, and it stays
+   * in the document for a screen reader. A caption the HOST supplied is the
+   * page's own name, passed with `headingLevel={1}` because on a results
+   * screen it IS the page's heading — and the phone clipped it into a 4×4
+   * pixel box.
+   */
+  it("keeps the pair's own word off the glass and in the document", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane header="compact" />
+      </TestHarness>
+    );
+    const heading = await screen.findByTestId("search-results-heading");
+    expect(heading.getAttribute("data-heading")).toBe("hidden");
+    // Clipped, not removed: `visuallyHidden` is a 1px box, and the heading is
+    // still a heading in the accessibility tree.
+    expect(heading.style.position).toBe("absolute");
+    expect(screen.getByRole("heading", { level: 4 })).toBeTruthy();
+  });
+
+  it("DRAWS a caption the host supplied", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane
+          header="compact"
+          headingLevel={1}
+          heading="Buy a car in Sochi"
+        />
+      </TestHarness>
+    );
+    const heading = await screen.findByTestId("search-results-heading");
+    expect(heading.getAttribute("data-heading")).toBe("seen");
+    expect(heading.textContent).toBe("Buy a car in Sochi");
+    expect(heading.style.position).not.toBe("absolute");
+    expect(heading.style.margin).toBe("0px");
+    expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
+  });
+
+  it("takes the host's explicit answer either way", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    const { rerender } = render(
+      <TestHarness server={server}>
+        <SearchResultsPane header="compact" heading="Sochi" headingVisible={false} />
+      </TestHarness>
+    );
+    expect(
+      (await screen.findByTestId("search-results-heading")).getAttribute(
+        "data-heading"
+      )
+    ).toBe("hidden");
+    rerender(
+      <TestHarness server={server}>
+        <SearchResultsPane header="compact" headingVisible />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("search-results-heading").getAttribute("data-heading")
+      ).toBe("seen")
+    );
+  });
+
+  it("changes nothing in the banner arm, where the caption was never hidden", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane heading="Buy a car in Sochi" />
+      </TestHarness>
+    );
+    const heading = await screen.findByTestId("search-results-heading");
+    expect(heading.style.position).not.toBe("absolute");
+    expect(heading.hasAttribute("data-heading")).toBe(false);
+  });
+});
