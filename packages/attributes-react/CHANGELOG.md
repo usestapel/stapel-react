@@ -1,5 +1,93 @@
 # @stapel/attributes-react
 
+## 0.16.6
+
+### Patch Changes
+
+- b7dd445: attributes: a vocabulary page is asked for from the end of the list on SCREEN
+
+  `useTermSearch`'s `more` closed over the current answer, so its identity
+  changed with every page that landed. The picker sheet installs its
+  end-of-list scroll listener in an effect keyed on exactly that identity
+  (`SkinPickerSheet`: `[onEndReached, sheetOpen]`), which means there is a real
+  window between the commit that PAINTS a page and the passive effect that
+  installs the matching listener — and a scroll landing inside it ran the
+  PREVIOUS closure. It asked for offset 50 a second time and appended the fifty
+  rows already on screen: a 120-term level went 50 → 100 → 150 with page two
+  duplicated and the last twenty terms unreachable by scrolling at all.
+
+  **The answer now lives in a ref written at the same moment as the state**, so
+  `more` is stable for the life of a level: the listener is installed once per
+  opening, there is no window to land in, and every request is measured from the
+  end of what is actually on screen. A page is applied only to the list it was
+  asked from — identity, not equality — so a reset or a landed first page drops
+  it rather than splicing rows measured against a different list.
+
+  Nothing about the paging contract changes: one page in flight at a time, a
+  response dropped unless its query still stands, the popular band still
+  extended only while everything held so far is inside it.
+
+  **How this was showing up.** `test/paging.test.tsx`'s first case failed
+  intermittently under CI load and blocked a Release publish once. It was a true
+  report of this defect, not a slow test: it asserted a row COUNT and then
+  scrolled again, and 50 → 100 is the same number whether page two is terms
+  50–99 or terms 50–99 twice. The suite no longer waits longer for it — it waits
+  for the SETTLED state (fresh list, nothing in flight, no row twice) after every
+  page, and drives `useTermSearch` directly with a deliberately stale `more`,
+  which is the exact call the gap used to let through and involves no timing at
+  all. The exhaustion probe's `setTimeout(30)` is gone with it.
+
+  Size: `dist/default/index.js` 19.25 KB holds — 19230 B, 8 B over the 19222 B
+  the same source measures without the fix.
+
+- b7dd445: attributes: a feature can say which classified AXIS it is
+
+  Almost every feature DESCRIBES the object: a colour, a floor, a warranty. A
+  handful are the AXIS the classified is organised along, and a product has to
+  know which one that is before it can do anything — «more of this make» needs
+  the make feature of the leaf a listing sits in, an AI descent has to answer
+  make before model because each narrows the next, and a card printing "Toyota
+  Camry, 2019" is reading three axes rather than three arbitrary attributes.
+
+  Nothing in a `FeatureDef` said which feature that was, so every consumer kept
+  its own closed table of slugs — `{"brand", "make", "make_ref_select",
+"vendor"}` in one storefront — and a catalogue that spelled the axis a fourth
+  way (`manufacturer`) dropped out of the feature silently: no link, no descent,
+  no error. A table of slugs maintained downstream of the catalogue is a table
+  that is always one catalogue behind.
+
+  **The catalogue answers instead.** stapel-attributes 0.9.2 gives `FeatureDef`
+  a closed, nullable `axis_role` (`make` | `model` | `generation` | `year` |
+  `mileage`), regenerated here by `gen:feature-def`, and `src/axis.ts` is the
+  browser half of `stapel_attributes/axis.py` beside it: `AXIS_ROLES`,
+  `axisRoleOf(definition)` and `byAxisRole(definitions)`. A consumer asks "which
+  feature here is the make?" and gets an answer or an honest `null`.
+
+  **A role two features claim is DROPPED, not resolved.** The reader has no
+  basis to pick between them and a link built off the wrong one sends a buyer to
+  a facet that is not the one they clicked, so `byAxisRole` omits the role
+  entirely — the same rule the producer applies one step earlier, where an
+  ambiguous leaf derives no role at all.
+
+  **An unknown role claims nothing, and does not throw.** Python's
+  `normalize_axis_role` raises, because there the value is being authored; this
+  side is reading a payload it did not write and has nobody to raise at — the
+  same asymmetry `featureVisibility` documents against `UnknownVisibility`. It
+  resolves to `null`, because a «more of this X» link built off a word nothing
+  here understands is worse than no link.
+
+  `AxisRole` is DERIVED from the generated `FeatureDef` rather than restated, and
+  `test/axis.test.ts` pins `AXIS_ROLES` to it through an exhaustive
+  `Record<AxisRole, true>`: a sixth role in the §68 canon fails the build here
+  instead of shipping an array one role short.
+
+  Contract pin: stapel-attributes v0.9.1 → v0.9.2. The announced range does not
+  move (`>=0.9 <0.10`).
+
+  Size: `dist/index.js` 9 → 9.25 KB, measured 8957 → 9072 B with dependencies
+  held constant. It is on the headless entry because its consumers are a link
+  builder and a descent, neither of which draws anything.
+
 ## 0.16.5
 
 ### Patch Changes
