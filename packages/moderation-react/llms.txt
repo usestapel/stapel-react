@@ -1,4 +1,4 @@
-# @stapel/moderation-react 0.1.2
+# @stapel/moderation-react 0.1.3
 
 Headless React flow pair for stapel-moderation (contract >=0.6 <0.7) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
