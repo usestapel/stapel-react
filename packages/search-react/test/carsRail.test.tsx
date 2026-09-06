@@ -304,32 +304,96 @@ describe("the rail is in SCHEMA order, required first", () => {
 });
 
 describe("a partition is a radiogroup in both variants", () => {
-  it("keeps the roles, the roving tabindex and the arrow keys when segmented", () => {
-    const chosen: (string | null)[] = [];
+  const AXIS = [
+    { id: 166, path: "141/151/166", name: "\u0421 \u043f\u0440\u043e\u0431\u0435\u0433\u043e\u043c" },
+    { id: 167, path: "141/151/167", name: "\u041d\u043e\u0432\u044b\u0435" },
+  ];
+
+  function renderSegmented(
+    value: string | null,
+    onChange: (path: string | null) => void
+  ): void {
     render(
       <TestHarness server={carsServer()} initialSearch="type=listing">
         <PartitionChips
           variant="segmented"
-          items={[
-            { id: 166, path: "141/151/166", name: "С пробегом" },
-            { id: 167, path: "141/151/167", name: "Новые" },
-          ]}
-          value="141/151/166"
-          onChange={(path) => chosen.push(path)}
+          items={AXIS}
+          value={value}
+          onChange={onChange}
         />
       </TestHarness>
     );
+  }
+
+  function radios(): readonly HTMLInputElement[] {
+    return [
+      ...screen
+        .getByTestId("partition-chips")
+        .querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+    ];
+  }
+
+  /**
+   * D304: the row declared `data-variant="segmented"` with
+   * `role="radiogroup"` and rendered neither — `.ant-segmented` zero,
+   * `input[type=radio]` zero, plain `ant-btn` inside, on both axes of two
+   * categories. The declaration is the same; what is under it is now the
+   * design system's control.
+   */
+  it("renders the design system's segmented control, not a row claiming to be one", () => {
+    renderSegmented("141/151/166", () => undefined);
+    const row = screen.getByTestId("partition-chips");
+    expect(row.getAttribute("data-variant")).toBe("segmented");
+    expect(row.classList.contains("ant-segmented")).toBe(true);
+    expect(row.querySelectorAll(".ant-btn").length).toBe(0);
+    expect(radios().length).toBe(3);
+  });
+
+  it("is one radiogroup, named, with one radio per cell under one name", () => {
+    renderSegmented("141/151/166", () => undefined);
     const row = screen.getByTestId("partition-chips");
     expect(row.getAttribute("role")).toBe("radiogroup");
-    expect(row.getAttribute("data-variant")).toBe("segmented");
-    const used = screen.getByTestId("partition-chip-141/151/166");
-    // The roving stop is on the CHOSEN cell, not on the first of three.
-    expect(used.getAttribute("tabindex")).toBe("0");
-    expect(screen.getByTestId("partition-chip-all").getAttribute("tabindex")).toBe(
-      "-1"
+    expect(row.getAttribute("aria-label")).toBe("Section");
+    // One `name` across the cells is what makes the browser treat them as one
+    // choice: one Tab stop, the arrow keys, and exactly one checked.
+    const names = new Set(radios().map((radio) => radio.name));
+    expect(names.size).toBe(1);
+    expect([...names][0]).toBeTruthy();
+  });
+
+  it("checks the chosen cell and nothing else", () => {
+    renderSegmented("141/151/166", () => undefined);
+    expect(radios().map((radio) => radio.checked)).toEqual([false, true, false]);
+    // The same fact where a probe reads a snapshot rather than the a11y tree.
+    expect(
+      screen.getByTestId("partition-chip-141/151/166").getAttribute("data-checked")
+    ).toBe("true");
+    expect(screen.getByTestId("partition-chip-all").getAttribute("data-checked")).toBe(
+      "false"
     );
-    fireEvent.keyDown(used, { key: "ArrowRight" });
+  });
+
+  it("moves the choice with the arrow keys", () => {
+    const chosen: (string | null)[] = [];
+    renderSegmented("141/151/166", (path) => chosen.push(path));
+    const used = radios()[1];
+    expect(used).toBeTruthy();
+    fireEvent.keyDown(used as HTMLInputElement, { key: "ArrowRight" });
     expect(chosen).toEqual(["141/151/167"]);
+  });
+
+  it("reports the parent as null, never as the sentinel it is drawn with", () => {
+    const chosen: (string | null)[] = [];
+    renderSegmented("141/151/166", (path) => chosen.push(path));
+    const parent = radios()[0];
+    expect(parent).toBeTruthy();
+    fireEvent.click(parent as HTMLInputElement);
+    expect(chosen).toEqual([null]);
+  });
+
+  it("is controlled: the chosen cell is the one it was given", () => {
+    renderSegmented(null, () => undefined);
+    expect(radios().map((radio) => radio.checked)).toEqual([true, false, false]);
   });
 });
 

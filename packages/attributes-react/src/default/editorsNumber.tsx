@@ -30,7 +30,7 @@
  * that lives in Python.
  */
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, RefObject } from "react";
 import { Flex, Select, Spin, Typography } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
@@ -228,6 +228,45 @@ function intDomBounds(
     pattern: min !== undefined && min >= 0 ? "[0-9]*" : "-?[0-9]*",
     ...(listId !== undefined ? { list: listId } : {}),
   };
+}
+
+/**
+ * The bound the BROWSER applies — on an input that is deliberately not
+ * `type="number"`.
+ *
+ * Walker D439, measured on the deployed year field: `type="text" min="2017"
+ * max="2021" inputmode="numeric" pattern="[0-9]*"`. The ends were the right
+ * ones (the chosen generation's), and a text input applies neither — so
+ * `min`/`max` were a sentence the element could read out and nothing could
+ * act on. Typing 1990 left a field the browser called valid.
+ *
+ * `type="number"` is not the way back: it hands a phone a spinner nobody can
+ * hit and reports `value === ""` for anything it dislikes, which would delete
+ * the half-typed number `SkinNumberField` exists to preserve — the reason
+ * that component refuses it. Native CONSTRAINT VALIDATION is the half that
+ * does apply to a text input: a custom validity is a state, not an attribute,
+ * so React stays the only owner of what is rendered, `checkValidity()` says
+ * false, `:invalid` paints, `validationMessage` carries the same sentence the
+ * person reads under the field, and a native submit stops.
+ *
+ * It never rewrites the value. A bound is still not a clamp; it is now a
+ * refusal something other than the server can see.
+ */
+function useBoundConstraint(refusal: string | undefined): RefObject<HTMLDivElement | null> {
+  const host = useRef<HTMLDivElement>(null);
+  // No dependency array on purpose: the input this reaches for is antd's, and
+  // antd swaps the rendered node when the box gains or loses a suffix. Two
+  // DOM reads per render is the price of the state never being stale on the
+  // element the person is actually typing into.
+  useEffect(() => {
+    const input = host.current?.querySelector("input");
+    if (!(input instanceof HTMLInputElement)) return;
+    input.setCustomValidity(refusal ?? "");
+    return () => {
+      input.setCustomValidity("");
+    };
+  });
+  return host;
 }
 
 /**
@@ -455,11 +494,16 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   // static bound, because they are the constraint the server will apply.
   const listed = loaded && (allowed?.length ?? 0) > 0;
   const dom = intDomBounds(boundLow, boundHigh, listed ? listId : undefined);
+  // The same sentence, handed to the browser: what this field refuses in
+  // words it now refuses in `validity` too — see {@link useBoundConstraint}.
+  const host = useBoundConstraint(refusalText);
 
   return (
     <div
       {...touchFloorMarker(touchFloor)}
+      ref={host}
       data-testid="attributes-int-ref"
+      data-int-bound={refusalText !== undefined ? "refused" : "ok"}
       {...(pending ? { "aria-busy": true as const } : {})}
       data-state={
         awaitingParent
@@ -731,6 +775,11 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
     max,
     values !== null && !baked ? listId : undefined
   );
+  // The same refusal the person reads, handed to the browser's own constraint
+  // validation — so `min`/`max` on this element are applied and not merely
+  // stated (walker D439). See {@link useBoundConstraint}.
+  const refused = shout && refusal !== undefined ? refusal : undefined;
+  const host = useBoundConstraint(refused);
 
   const field = (
     <SkinNumberField
@@ -741,7 +790,7 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
       ariaLabel={featureName(props.feature)}
       {...(props.required === true ? { ariaRequired: true } : {})}
       testId="attributes-number-field"
-      {...errorStatus(props.error)}
+      {...(refused !== undefined ? { status: "error" as const } : errorStatus(props.error))}
       {...dom}
       {...(suffix.length > 0 ? { unit: suffix } : {})}
       {...(placeholder.length > 0
@@ -750,12 +799,31 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
           ? { hintPlaceholder: box }
           : {})}
       {...(!shout && settled !== undefined ? { helpText: <HintLine>{settled}</HintLine> } : {})}
+      {...(refused !== undefined
+        ? {
+            // The field's OWN error slot, not a line of our own underneath:
+            // that is what ties the sentence to the input with
+            // `aria-describedby`, so the person who cannot see it beside the
+            // field is told what the person who can is told. (The
+            // vocabulary-backed int moved here first; the bounded one had
+            // kept its detached line.)
+            errorText: <span data-testid="attributes-int-out-of-range">{refused}</span>,
+          }
+        : {})}
       onValueChange={commit}
     />
   );
 
   return (
-    <div {...touchFloorMarker(touchFloor)} data-testid="attributes-int-bounded">
+    <div
+      {...touchFloorMarker(touchFloor)}
+      ref={host}
+      data-testid="attributes-int-bounded"
+      // What the element refuses right now, for a probe that reads the page
+      // rather than typing into it. `validity.valid` is the authority; this
+      // is the same fact where a snapshot is all there is.
+      data-int-bound={refused !== undefined ? "refused" : "ok"}
+    >
       <Flex align="center" gap={spacing[1]}>
         {prefix.length > 0 && (
           <Typography.Text type="secondary" data-attributes-prefix="">
@@ -796,11 +864,6 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
           values={panel}
           onPick={commit}
         />
-      )}
-      {shout && refusal !== undefined && (
-        <HintLine>
-          <span data-testid="attributes-int-out-of-range">{refusal}</span>
-        </HintLine>
       )}
     </div>
   );

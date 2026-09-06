@@ -532,8 +532,13 @@ a tile grid: an "all" cell plus one per child, from `{id, path, name}`,
 controlled (the choice is a `category` in the URL), a real `radiogroup` with
 roving tabindex and arrow keys — because exactly one of them is true at a time,
 and `aria-pressed` toggles say the opposite. `variant="segmented"` is the
-desktop rail's shape (one joined control under its own label); the semantics do
-not vary with it.
+desktop rail's shape: **antd's `Segmented`**, one joined control under its own
+label, so its radiogroup is the browser's — real `input[type=radio]` under one
+`name`, the chosen cell's own `checked` (not `aria-checked`, which is how a
+button fakes what a radio has), and the arrow keys and single Tab stop that
+come with them. The contract does not vary with the variant, and the per-cell
+test ids (`partition-chip-<path>`, `partition-chip-all`, each with
+`data-checked`) are the same in both.
 
 ```tsx
 <PartitionChips items={children} value={state.category ?? null}

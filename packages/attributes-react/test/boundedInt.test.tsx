@@ -272,6 +272,82 @@ describe("the bound as a mechanism, not as prose", () => {
     expect(screen.queryByText("From 2018 to 2024.")).toBeNull();
     expect(screen.getByTestId("attributes-int-out-of-range")).toBeTruthy();
   });
+
+  /**
+   * D439, measured on the deployed year field: `type="text" min="2017"
+   * max="2021" inputmode="numeric" pattern="[0-9]*"`. The ends were right and
+   * the element applied neither of them — a bound nothing but the server
+   * could act on. The control is still a text box with a keypad (nothing is
+   * clamped, a half-typed number survives), so what applies the bound is the
+   * browser's own constraint validation.
+   */
+  it("refuses an out-of-bounds number ON THE ELEMENT, and keeps what was typed", () => {
+    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const year = box("year");
+    expect(year.checkValidity()).toBe(true);
+
+    fireEvent.change(year, { target: { value: "1990" } });
+    expect(year.checkValidity()).toBe(false);
+    expect(year.validity.customError).toBe(true);
+    expect(year.validationMessage).toBe("For G20 the value is from 2018 to 2024.");
+    expect(screen.getByTestId("attributes-int-bounded").getAttribute("data-int-bound")).toBe(
+      "refused"
+    );
+    // Refused, never rewritten: the number the person typed is still theirs.
+    expect(year.value).toBe("1990");
+    // And the bound is still readable on the element, as it was.
+    expect([year.getAttribute("min"), year.getAttribute("max")]).toEqual(["2018", "2024"]);
+  });
+
+  it("lets a value inside the bound through, on the element too", () => {
+    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const year = box("year");
+    fireEvent.change(year, { target: { value: "1990" } });
+    expect(year.checkValidity()).toBe(false);
+    fireEvent.change(year, { target: { value: "2020" } });
+    expect(year.checkValidity()).toBe(true);
+    expect(year.validationMessage).toBe("");
+    expect(screen.getByTestId("attributes-int-bounded").getAttribute("data-int-bound")).toBe(
+      "ok"
+    );
+    expect(screen.queryByTestId("attributes-int-out-of-range")).toBeNull();
+  });
+
+  /** The refusal is the FIELD's, not a line standing next to it: it is in the
+   * field's own error slot, and `aria-describedby` ties it to the input — so
+   * a person who never sees the line is told the same thing. */
+  it("puts the refusal in the field's own error slot, addressed by the input", () => {
+    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const year = box("year");
+    fireEvent.change(year, { target: { value: "1990" } });
+    const said = screen.getByTestId("attributes-int-out-of-range");
+    const describedBy = year.getAttribute("aria-describedby") ?? "";
+    expect(describedBy.length).toBeGreaterThan(0);
+    expect(document.getElementById(describedBy)?.contains(said)).toBe(true);
+  });
+
+  /** Blur is where a form usually asks; the refusal has to survive it rather
+   * than being a keystroke-only decoration. */
+  it("still refuses after the field is left", () => {
+    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const year = box("year");
+    fireEvent.change(year, { target: { value: "1990" } });
+    fireEvent.blur(year);
+    expect(year.checkValidity()).toBe(false);
+    expect(screen.getByTestId("attributes-int-out-of-range")).toBeTruthy();
+  });
+
+  it("says nothing on the element when there is nothing to refuse", () => {
+    renderFields([MILEAGE], {});
+    const mileage = box("mileage");
+    fireEvent.change(mileage, { target: { value: "120000" } });
+    expect(mileage.checkValidity()).toBe(true);
+    fireEvent.change(mileage, { target: { value: "2000000" } });
+    expect(mileage.checkValidity()).toBe(false);
+    expect(mileage.validationMessage).toBe(
+      "Outside the allowed range — from 0 to 1000000."
+    );
+  });
 });
 
 describe("a dependent field waits for its parent", () => {

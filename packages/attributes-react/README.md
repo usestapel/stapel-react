@@ -157,9 +157,10 @@ the same control the vocabulary-backed int draws:
 
 | | |
 |---|---|
-| keypad | `inputmode="numeric"`, and **nothing typed is ever clamped** — a bound is said, not enforced |
+| keypad | `inputmode="numeric"`, and **nothing typed is ever clamped** — a bound refuses, it never rewrites |
+| the element | `min`, `max`, `pattern` and a `<datalist>` of the allowed values, and — because a text input applies none of those — the browser's own constraint validation carries the refusal: `checkValidity()` false, `validationMessage` the same sentence the person reads, `:invalid`, a native submit stopped. A custom validity is a state, not an attribute, so nothing rewrites the box |
 | dropdown | the allowed values, while the range is listable (≤ `BOUNDED_INT_MAX_OPTIONS`, 300 — a year qualifies, a mileage cap does not). A typed prefix filters it; a value inside the bound hides it; a value OUTSIDE opens the whole set |
-| hint | "For G20 the value is from 2018 to 2024" when a `limit` rule set the bound, plain "From 1900 to 2030." when the catalogue did |
+| hint | "For G20 the value is from 2018 to 2024" when a `limit` rule set the bound, plain "From 1900 to 2030." when the catalogue did — in the FIELD's own error slot, so `aria-describedby` ties it to the input |
 | steppers | walk by one, grey at the ends |
 | bake | one allowed value (`min === max`) is committed, greyed and captioned — `<FeatureFields>`' write-back, the same one every other single-option collapse takes |
 | moved bound | the parent changed and the answer no longer fits → the answer is **cleared** with the hint shown, never coerced to the nearest end |

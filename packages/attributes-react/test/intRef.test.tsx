@@ -430,6 +430,37 @@ describe("the three states where the set is NOT loaded still refuse a number", (
     expect(described?.textContent).toContain("2008");
   });
 
+  /**
+   * The other half of D439, on the field the walker actually measured: the
+   * ends were on the element and the element applied neither, because
+   * `SkinNumberField` is a text box with a keypad by design. The browser's
+   * own constraint validation is the half that DOES apply to one — a state,
+   * not an attribute, so nothing rewrites what was typed.
+   */
+  it("refuses an out-of-set year on the element itself", async () => {
+    renderYear({ generation: ["g15"] });
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("attributes-int-ref").getAttribute("data-state")
+      ).toBe("bounded")
+    );
+    const year = yearInput();
+    expect(year.checkValidity()).toBe(true);
+    fireEvent.change(year, { target: { value: "2013" } });
+    await waitFor(() => expect(year.checkValidity()).toBe(false));
+    expect(year.validity.customError).toBe(true);
+    expect(year.validationMessage).toContain("2008");
+    expect(
+      screen.getByTestId("attributes-int-ref").getAttribute("data-int-bound")
+    ).toBe("refused");
+    expect(year.value).toBe("2013");
+    fireEvent.change(year, { target: { value: "2010" } });
+    await waitFor(() => expect(year.checkValidity()).toBe(true));
+    expect(
+      screen.getByTestId("attributes-int-ref").getAttribute("data-int-bound")
+    ).toBe("ok");
+  });
+
   it("still prefers the LIVE set's ends once they land", async () => {
     renderYear({ generation: ["g15"] });
     await waitFor(() => expect(yearInput()).toBeTruthy());
