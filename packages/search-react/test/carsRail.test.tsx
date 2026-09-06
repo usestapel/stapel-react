@@ -21,6 +21,8 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
+import type { ReactElement } from "react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import {
   FacetPanelPane,
@@ -394,6 +396,108 @@ describe("a partition is a radiogroup in both variants", () => {
   it("is controlled: the chosen cell is the one it was given", () => {
     renderSegmented(null, () => undefined);
     expect(radios().map((radio) => radio.checked)).toEqual([true, false, false]);
+  });
+
+  /**
+   * D454 — THE ARROW KEYS WORK MORE THAN ONCE.
+   *
+   * Measured on the stand: the first `ArrowRight` moved "all" -> "new" and
+   * navigated to `/c/novye` — correct, that is what the control is for — and
+   * after the navigation `document.activeElement` was `BODY`. Every further
+   * arrow press then did nothing at all, so a keyboard user got exactly one
+   * move per Tab into the row.
+   *
+   * The choice is a `category` in the URL, so choosing it re-renders the page
+   * and — while the new category's children are resolved — takes the rail down
+   * and puts a new one up. New `input`s, a new `useId()` name, and the focus
+   * left on `<body>`. The `remounting` arm below is that page, reduced to the
+   * one thing that matters: the row that comes back is not the row that was
+   * typed into.
+   */
+  describe("D454 — the row keeps the focus across the value it just changed", () => {
+    /**
+     * The live shape: a controlled row whose value change re-renders the
+     * surface. `remount` re-keys it, which is what a route change does to it.
+     */
+    function Rail(props: { readonly remount: boolean }): ReactElement {
+      const [value, setValue] = useState<string | null>(null);
+      return (
+        <PartitionChips
+          key={props.remount ? String(value) : "kept"}
+          variant="segmented"
+          items={AXIS}
+          value={value}
+          onChange={setValue}
+        />
+      );
+    }
+
+    function mountRail(remount: boolean): void {
+      render(
+        <TestHarness server={carsServer()} initialSearch="type=listing">
+          <Rail remount={remount} />
+        </TestHarness>
+      );
+    }
+
+    /** Where the keyboard is, as an index into the row — `-1` for "not in it". */
+    function focusedCell(): number {
+      return radios().findIndex((radio) => radio === document.activeElement);
+    }
+
+    function arrowRight(): void {
+      const target = document.activeElement;
+      expect(target, "the focus left the row").not.toBe(document.body);
+      fireEvent.keyDown(target as HTMLElement, { key: "ArrowRight" });
+    }
+
+    it("moves twice on two presses, and the focus follows the choice", () => {
+      mountRail(false);
+      const first = radios()[0];
+      expect(first).toBeTruthy();
+      (first as HTMLInputElement).focus();
+
+      arrowRight();
+      expect(radios().map((radio) => radio.checked)).toEqual([false, true, false]);
+      // The press moved the VALUE; the focus has to have come with it, or the
+      // ring the control paints on the checked cell is not where the keyboard
+      // is and the next press starts from the wrong index.
+      expect(focusedCell()).toBe(1);
+
+      arrowRight();
+      expect(radios().map((radio) => radio.checked)).toEqual([false, false, true]);
+      expect(focusedCell()).toBe(2);
+    });
+
+    it("does the same when choosing REPLACES the row, as a navigation does", () => {
+      mountRail(true);
+      const first = radios()[0];
+      expect(first).toBeTruthy();
+      (first as HTMLInputElement).focus();
+
+      arrowRight();
+      // Different elements entirely — this is the stand's case, where the row
+      // that comes back was built by a fresh mount.
+      expect(radios()[1]).not.toBe(first);
+      expect(document.activeElement).not.toBe(document.body);
+      expect(focusedCell()).toBe(1);
+
+      // …and because it did, the SECOND press lands. This was the whole
+      // defect: one move per Tab.
+      arrowRight();
+      expect(radios().map((radio) => radio.checked)).toEqual([false, false, true]);
+      expect(focusedCell()).toBe(2);
+    });
+
+    it("takes no focus from a page nobody drove with the keyboard", () => {
+      // A row that grabs the focus on every mount would steal it from a search
+      // field on every load of a category page.
+      mountRail(true);
+      expect(document.activeElement).toBe(document.body);
+      fireEvent.click(radios()[1] as HTMLInputElement);
+      expect(radios().map((radio) => radio.checked)).toEqual([false, true, false]);
+      expect(document.activeElement).toBe(document.body);
+    });
   });
 });
 

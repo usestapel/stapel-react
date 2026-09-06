@@ -120,11 +120,11 @@ export const RESULTS_MAX_WIDTH = 1400;
  * pane's own breakpoint restated in a media query — three rules aimed at a
  * shape the pane could change under them at any release.
  *
- * It is the same class in BOTH header shapes, and in both it names the row that
- * would pin: the WIDE header block (heading, count and toolbar on one line —
- * the block IS the row) and, in `header="compact"`, the toolbar alone, because
- * pinning the compact stack would put ~112px of chrome under a 56px header on a
- * 390px screen.
+ * It is the same class in BOTH header shapes, and in both it names THE SAME
+ * THING: the controls' own line, and never the heading beside it (D452). The
+ * compact shape always drew it that way; the wide shape did not, and pinning a
+ * block that carried the `<h1>` pinned 100px of chrome at 1440 and 150px at
+ * 1280 — see `WIDE_HEADING_ROW`.
  */
 export const RESULTS_TOOLBAR_CLASS = "stapel-search-results-toolbar";
 
@@ -172,6 +172,49 @@ const TOOLBAR_ROW: CSSProperties = {
  * becomes the column's rather than the stack's.
  */
 const COMPACT_STACK: CSSProperties = { display: "contents" };
+
+/**
+ * The WIDE shape's heading row — a row of its own, at the results column's
+ * full measure (D452).
+ *
+ * The heading used to be the leading flex item of the block that pins, with
+ * the controls as the trailing one. Two things followed, and both were
+ * measured on the stand:
+ *
+ *  - the controls row is `nowrap` and holds a count, a sort select, a page
+ *    size and a view switch, so it took whatever width it needed and left the
+ *    heading **415px** of a 1200px column. An `<h1>` at 42px (50 at 1280) then
+ *    wrapped to TWO LINES;
+ *  - those two lines were inside the pinned box, so what stood under the
+ *    header while the feed scrolled was **100px** of chrome at 1440 and
+ *    **150px** at 1280 — a third of the fold on a laptop.
+ *
+ * Nothing about the heading belongs in a pinned bar: it names the page once,
+ * it is read once, and it is the one element on the page whose length the pair
+ * does not control (`resultsHeading` is the host's sentence — "Buy a
+ * Samsung Galaxy S23 in Kazan"). So it takes its own line at the full width,
+ * where it has room not to wrap, and the pin acts on the controls alone —
+ * which is what `header="compact"` already did.
+ *
+ * `100%` is DECLARED rather than left to the column's `align-items: stretch`:
+ * the row is what a host reads to know the heading is not in the pinned box,
+ * and a width that only happens to be full is not a contract.
+ */
+const WIDE_HEADING_ROW: CSSProperties = { inlineSize: "100%", minInlineSize: 0 };
+
+/** The wide heading itself: no margin of its own — the column's gap is the
+ * rhythm — and free to shrink inside its row rather than forcing it wider. */
+const WIDE_HEADING: CSSProperties = { margin: 0, minInlineSize: 0 };
+
+/**
+ * The wide row's trailing group — the surface's controls.
+ *
+ * `flex: 0 0 auto`: the count on the leading end is the elastic half (it is
+ * one short string and it arrives late), and the controls keep every pixel
+ * they need. Both ends shrinking is how a sort select ends up narrower than
+ * its own longest option.
+ */
+const TOOLBAR_END: CSSProperties = { flex: "0 0 auto" };
 
 /** The compact shape's toolbar box — the row the pin acts on. */
 const COMPACT_TOOLBAR: CSSProperties = {
@@ -692,29 +735,35 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                 <Count bag={bag} />
               </Flex>
             ) : (
-              /* The wide shape's header block IS the toolbar row: one line,
-                 heading at one end, count and controls at the other, and a
-                 direct child of the results column — so it pins as it stands. */
-              <Flex
-                justify="space-between"
-                align="center"
-                gap={spacing[2]}
-                className={RESULTS_TOOLBAR_CLASS}
-                data-testid="search-results-toolbar"
-                {...(toolbarPin !== undefined ? { style: toolbarPin } : {})}
-              >
-                <Typography.Title
-                  level={props.headingLevel ?? 4}
-                  style={{ margin: 0, minInlineSize: 0 }}
-                  data-testid="search-results-heading"
+              /* D452 — the heading is its OWN row, at the column's full width,
+                 and the row that pins is the controls. See `WIDE_HEADING_ROW`.
+                 Both are direct children of the results column: the toolbar
+                 has a parent as tall as the feed to travel in, and the heading
+                 has the whole measure to set its line in. */
+              <>
+                <div style={WIDE_HEADING_ROW} data-testid="search-results-heading-row">
+                  <Typography.Title
+                    level={props.headingLevel ?? 4}
+                    style={WIDE_HEADING}
+                    data-testid="search-results-heading"
+                  >
+                    {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
+                  </Typography.Title>
+                </div>
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  gap={spacing[3]}
+                  className={RESULTS_TOOLBAR_CLASS}
+                  data-testid="search-results-toolbar"
+                  style={{ ...TOOLBAR_ROW, ...toolbarPin }}
                 >
-                  {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
-                </Typography.Title>
-                <Flex align="center" gap={spacing[3]} style={TOOLBAR_ROW}>
                   <Count bag={bag} />
-                  {props.toolbar}
+                  <Flex align="center" gap={spacing[3]} style={TOOLBAR_END}>
+                    {props.toolbar}
+                  </Flex>
                 </Flex>
-              </Flex>
+              </>
             )}
 
             <DegradationNotice

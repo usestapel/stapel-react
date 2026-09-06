@@ -497,14 +497,24 @@ header shapes it drew and a sheet has to guess:
 
 | Header shape | What the class `stapel-search-results-toolbar` / `data-testid="search-results-toolbar"` is on | What pins |
 |---|---|---|
-| `"banner"` (wide) | the header block — heading at one end, count and controls at the other, one line | the block; it is already a direct child of the results column |
+| `"banner"` (wide) | the controls' line — count at one end, the `toolbar` slot at the other | the row; the heading is a sibling ahead of it, in its own full-width row |
 | `"compact"` (phone) | the toolbar row alone | the row — one line, the height of one phone control |
+
+In BOTH shapes the pin acts on the controls' line and never on the heading
+(D452). It used to be the wide header BLOCK, heading included, and an `<h1>`
+squeezed into a 415px flex item beside a `nowrap` controls row wrapped to two
+lines: the pinned block measured 100px at 1440 and 150px at 1280 on a live
+storefront. The wide heading now takes a row of its own
+(`data-testid="search-results-heading-row"`, `inline-size: 100%`) so it has the
+column's full measure to set its line in, and what stands under the header
+while the feed scrolls is one row of controls.
 
 The compact stack draws no box of its own (`display: contents`), so its three
 rows are items of the results COLUMN: `position: sticky` travels inside its
 parent, and a toolbar nested in a ~112px stack can move 112px and no further.
 The one visible consequence is that the gap between heading, toolbar and count
-is the column's rather than the stack's.
+is the column's rather than the stack's — and the wide shape now takes the same
+gap between its heading row and its toolbar.
 
 Two things the pin does NOT do, both deliberate:
 
@@ -597,6 +607,13 @@ button fakes what a radio has), and the arrow keys and single Tab stop that
 come with them. The contract does not vary with the variant, and the per-cell
 test ids (`partition-chip-<path>`, `partition-chip-all`, each with
 `data-checked`) are the same in both.
+
+An arrow press leaves the focus on the CHOSEN cell — including when choosing
+tore the row down and built it again, which is what a `category` change does to
+it on a real storefront. Without that, the live rail moved once and dropped the
+focus to `<body>`, so a keyboard user got one move per Tab (D454). The row takes
+the focus back only after an arrow press of its own, so a page that was loaded,
+clicked or scrolled is never grabbed.
 
 ```tsx
 <PartitionChips items={children} value={state.category ?? null}

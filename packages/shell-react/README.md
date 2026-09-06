@@ -228,6 +228,13 @@ because in `"drawer"` the phone header wraps to a second line for the search
 field and has no fixed height at all. Keep a fallback in the `var()` for that
 case; being told nothing is better than being told 56px.
 
+The dock rung is written `.stapel-public-shell:where([data-phone-chrome="dock"])`
+and the desktop rung is declared LAST, so above the breakpoint the desktop
+answer wins whatever chrome the phone wears. Without the `:where()` the dock
+selector is (0,2,0) against the desktop rule's (0,1,0), a media query adds no
+specificity, and a `"dock"` storefront read 56px under a 64px header at every
+width — everything pinned to the variable then sat 8px behind the header (D449).
+
 **`headerScrollFlag`** puts `data-scrolled="true" | "false"` on the header once
 the page has moved, and nothing else — a hairline, a shadow or a blur is a
 brand decision, so the pair owns the fact and not the paint:

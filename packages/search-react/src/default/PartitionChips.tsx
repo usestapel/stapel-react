@@ -48,7 +48,7 @@
  * they were, plus `data-checked`, so a probe that reads a snapshot still has
  * the chosen cell without asking the accessibility tree.
  */
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
@@ -111,6 +111,47 @@ const ROW: CSSProperties = {
   gap: spacing[2],
 };
 
+/** The keys that move the choice, in both variants. */
+const ARROW_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
+
+/**
+ * D454 — WHEN AN ARROW KEY LAST MOVED A PARTITION, AS A TIMESTAMP.
+ *
+ * Module-scoped, and that is the load-bearing part rather than an oversight.
+ *
+ * Measured on the stand: the first `ArrowRight` moved "all" -> "new" AND
+ * navigated to `/c/novye` — which is what the control is FOR, the choice is a
+ * `category` in the URL — and after that navigation `document.activeElement`
+ * was `BODY`, so every further arrow press did nothing. The row is not the
+ * same row afterwards: the storefront resolves the new category's children,
+ * the rail unmounts while that is in flight and mounts again with fresh
+ * `items`, and antd's `Segmented` takes a new `useId()` name and renders new
+ * `input`s. A ref, a piece of state, a `useEffect` cleanup — everything that
+ * lives INSIDE the component instance dies with it, so the one fact that has
+ * to cross the remount cannot be kept there.
+ *
+ * The window is short and the flag is spent on use ({@link takeArrowMove}), so
+ * this can restore focus exactly once per keypress and never steals it from a
+ * page nobody was driving from the keyboard.
+ */
+let lastArrowMove = 0;
+
+/** How long after an arrow press the row will still take its focus back. Long
+ * enough for a navigation and a refetch, short enough that a page left alone
+ * and returned to later is never grabbed. */
+const FOCUS_RESTORE_WINDOW_MS = 2000;
+
+function noteArrowMove(key: string): void {
+  if (ARROW_KEYS.has(key)) lastArrowMove = Date.now();
+}
+
+/** True once, for the row that acts on it. */
+function takeArrowMove(): boolean {
+  const fresh = lastArrowMove !== 0 && Date.now() - lastArrowMove < FOCUS_RESTORE_WINDOW_MS;
+  if (fresh) lastArrowMove = 0;
+  return fresh;
+}
+
 /** The row's cells, as `[value, label]` — the parent first, then the
  * children in catalogue order. */
 function cells(
@@ -154,6 +195,7 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
     const next = (index + step + options.length) % options.length;
     const cell = options[next];
     if (cell === undefined) return;
+    noteArrowMove(event.key);
     props.onChange(cell[0]);
     const buttons = row.current?.querySelectorAll<HTMLElement>('[role="radio"]');
     buttons?.[next]?.focus();
@@ -164,6 +206,40 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
   // parent chip rather than vanishing.
   const active = options.findIndex(([value]) => value === props.value);
   const stop = active >= 0 ? active : 0;
+
+  /**
+   * D454 — after an arrow press, the CHOSEN cell holds the focus.
+   *
+   * Two different things are repaired by one effect, and the second is the one
+   * the stand measured:
+   *
+   *  - within one mount, `Segmented`'s own handler moves the VALUE and leaves
+   *    the focus on the cell it started from, so the focused radio and the
+   *    checked radio disagree — and the control paints its focus ring on the
+   *    checked one, which is not where the keyboard is;
+   *  - across a REMOUNT — the choice is a `category`, so choosing navigates,
+   *    and the rail comes back as new elements — the focus is on `<body>` and
+   *    the row is unreachable by every further arrow press without a Tab.
+   *
+   * Keyed on `props.value` and on mount, gated by {@link takeArrowMove}, so a
+   * page loaded, clicked, or scrolled is never grabbed: only the row whose
+   * arrow key started this takes the focus, and it takes it once.
+   */
+  useEffect(() => {
+    const root = row.current;
+    if (root === null) return;
+    if (!takeArrowMove()) return;
+    const focused = document.activeElement;
+    // Somewhere else on purpose — a dialog, a field the person tabbed into
+    // while the answer was in flight — is not ours to overrule. `<body>` is
+    // what a remount leaves behind, and inside the row is the intra-mount case
+    // where focus and selection have to be brought back together.
+    if (focused !== null && focused !== document.body && !root.contains(focused)) return;
+    const cells_ = root.querySelectorAll<HTMLElement>(
+      'input[type="radio"], [role="radio"]'
+    );
+    cells_[stop]?.focus();
+  }, [props.value, stop]);
 
   const name = props.label ?? t(SEARCH_I18N_KEYS.partitionLabel);
 
@@ -178,10 +254,19 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
       <Segmented
         block
         size="small"
+        ref={row}
         role="radiogroup"
         aria-label={name}
         data-variant="segmented"
         data-testid="partition-chips"
+        /* The keypress is noted where it HAPPENS, before antd's own handler
+           turns it into a value change and the host turns that into a
+           navigation. Capture, because the cell's `input` is where the event
+           lands and the row is only its ancestor — and note only, so the
+           control's own arrow handling is untouched. */
+        onKeyDownCapture={(event) => {
+          noteArrowMove(event.key);
+        }}
         value={props.value ?? ALL}
         options={options.map(([value, label]) => ({
           value: value ?? ALL,

@@ -122,7 +122,7 @@ describe("the header height is the shell's to publish", () => {
        answer where no answer is the honest one — a host's own
        `var(--stapel-header-height, …)` fallback then stands. */
     expect(publicShellCss()).toContain(
-      `.${PUBLIC_SHELL_CLASS}[data-phone-chrome="dock"]`
+      `.${PUBLIC_SHELL_CLASS}:where([data-phone-chrome="dock"])`
     );
     setViewportWidth(PHONE);
     render(wrap({ phoneChrome: "dock" }));
@@ -130,6 +130,107 @@ describe("the header height is the shell's to publish", () => {
     cleanup();
     render(wrap());
     expect(screen.getByTestId("public-shell").dataset["phoneChrome"]).toBe("drawer");
+  });
+});
+
+/**
+ * D449 — THE DESKTOP RUNG HAS TO WIN ABOVE THE BREAKPOINT, WHATEVER CHROME THE
+ * PHONE WEARS.
+ *
+ * Measured on the stand at 1440 and at 1280: `--stapel-header-height` resolved
+ * to **56px** while the header box was **64px**, and both pinned things on the
+ * page read that variable — the filter rail and the results toolbar sat 8px
+ * UNDER the header (`hiddenPx: 8` on `/s` and on `/c`, both widths).
+ *
+ * The cause is cascade, not arithmetic: a media query adds no specificity, so
+ * `.stapel-public-shell[data-phone-chrome="dock"]` (0,2,0) outranked
+ * `.stapel-public-shell` (0,1,0) inside `@media (min-width:1200px)` at every
+ * width. The fix is `:where()` on the dock arm — zero specificity — which
+ * leaves ORDER to decide, so the two facts below are the contract:
+ *
+ *  1. the dock arm's attribute is inside `:where()`, i.e. both rungs weigh the
+ *     same;
+ *  2. the desktop arm is declared LAST.
+ *
+ * jsdom resolves no media queries and no custom properties, so a computed
+ * `getPropertyValue` here would read `""` at both widths and pass on the very
+ * sheet that shipped the defect. What is asserted is the sheet's own
+ * specificity and order, which is exactly what the browser decided on.
+ */
+describe("D449 — which rung wins is decided by order, not by an attribute", () => {
+  /** The two rules, in the order the sheet declares them. */
+  function rules(): readonly { readonly selector: string; readonly inMedia: boolean }[] {
+    const css = publicShellCss();
+    const out: { selector: string; inMedia: boolean }[] = [];
+    for (const line of css.split("\n")) {
+      const media = line.startsWith("@media");
+      const body = media ? line.slice(line.indexOf("{") + 1) : line;
+      const selector = body.slice(0, body.indexOf("{"));
+      out.push({ selector, inMedia: media });
+    }
+    return out;
+  }
+
+  /**
+   * Selector weight as the cascade counts it: `:where(…)` contributes nothing,
+   * so its contents are removed before the classes and attributes are counted.
+   * Ids would count too and none are used here — a shell sheet hung on an id
+   * would be a different defect.
+   */
+  function weight(selector: string): number {
+    const bare = selector.replace(/:where\([^)]*\)/g, "");
+    return (bare.match(/[.[]/g) ?? []).length + (bare.match(/#/g) ?? []).length * 100;
+  }
+
+  it("gives the two rungs the same weight, so neither can outrank the other", () => {
+    const [dock, desktop] = rules();
+    expect(dock?.selector).toBe(
+      `.${PUBLIC_SHELL_CLASS}:where([data-phone-chrome="dock"])`
+    );
+    expect(desktop?.selector).toBe(`.${PUBLIC_SHELL_CLASS}`);
+    // (0,1,0) both: one class each, and the dock arm's attribute is inside
+    // `:where()`. This is the assertion the shipped sheet failed — it read 2
+    // against 1.
+    expect(weight(dock?.selector ?? "")).toBe(1);
+    expect(weight(desktop?.selector ?? "")).toBe(weight(dock?.selector ?? ""));
+  });
+
+  it("declares the desktop rung last, which is what then decides it", () => {
+    const list = rules();
+    expect(list).toHaveLength(2);
+    // Equal weight makes ORDER load-bearing: the desktop arm is the later
+    // rule, so above 1200px it is the one that applies — on `dock` and on
+    // `drawer` alike.
+    expect(list[1]?.inMedia).toBe(true);
+    expect(list[0]?.inMedia).toBe(false);
+    const css = publicShellCss();
+    expect(css.indexOf(String(HEADER_HEIGHT_PHONE))).toBeLessThan(
+      css.indexOf(String(HEADER_HEIGHT_DESKTOP))
+    );
+  });
+
+  it("renders that sheet through the same selector pair at both widths", () => {
+    /* The rules are only a contract if the element they are hung on carries
+       both hooks — the class and the attribute — at every width, which is what
+       made the desktop page match the phone rung in the first place. */
+    for (const [width, chrome] of [
+      [DESKTOP, "dock"],
+      [PHONE, "dock"],
+      [DESKTOP, "drawer"],
+    ] as const) {
+      setViewportWidth(width);
+      render(wrap({ phoneChrome: chrome }));
+      const root = screen.getByTestId("public-shell");
+      expect(root.classList.contains(PUBLIC_SHELL_CLASS)).toBe(true);
+      expect(root.dataset["phoneChrome"]).toBe(chrome);
+      // …and the sheet in the document is the one asserted above, not a copy
+      // some other render produced.
+      const sheet = [...document.querySelectorAll("style")].find((node) =>
+        (node.textContent ?? "").includes(HEADER_HEIGHT_VAR)
+      );
+      expect(sheet?.textContent).toBe(publicShellCss());
+      cleanup();
+    }
   });
 });
 

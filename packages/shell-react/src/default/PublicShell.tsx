@@ -169,11 +169,28 @@ export const HEADER_HEIGHT_VAR = "--stapel-header-height";
  * search field and has no fixed height at all, so the property stays
  * UNDECLARED there and a host's `var(--stapel-header-height, 56px)` falls back
  * to its own answer instead of being told a wrong one.
+ *
+ * ── Why the dock rung is wrapped in `:where()` (D449) ─────────────────────
+ *
+ * A media query adds NO specificity. `.stapel-public-shell[data-phone-chrome=
+ * "dock"]` is (0,2,0) and `.stapel-public-shell` inside
+ * `@media (min-width:1200px)` is (0,1,0), so on a 1440px desktop running the
+ * dock chrome the phone rung won the cascade and the property resolved to
+ * 56px under a 64px header. Both sticky things on the page read it, so the
+ * filter rail and the results toolbar pinned 8px UNDER the header — measured
+ * as `hiddenPx: 8` on `/s` and `/c` at 1440 and 1280.
+ *
+ * `:where()` contributes zero specificity, so the dock arm is (0,1,0) too and
+ * the two rungs are decided by ORDER — the desktop arm is declared last and
+ * wins above the breakpoint, on every phone-chrome value, with no `!important`
+ * and no restated selector. The order is therefore load-bearing, which is why
+ * `headerGeometry.test.tsx` asserts it structurally rather than by reading a
+ * computed value jsdom cannot resolve.
  */
 export function publicShellCss(): string {
   const shell = `.${PUBLIC_SHELL_CLASS}`;
   return [
-    `${shell}[data-phone-chrome="dock"]{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_PHONE)}px}`,
+    `${shell}:where([data-phone-chrome="dock"]){${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_PHONE)}px}`,
     `@media (min-width:${String(breakpoints.desktop)}px){` +
       `${shell}{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px}}`,
   ].join("\n");

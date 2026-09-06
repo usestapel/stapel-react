@@ -156,10 +156,9 @@ describe("the results toolbar has an element of its own", () => {
     const column = toolbar.parentElement;
     expect(column).not.toBeNull();
     expect(column?.contains(screen.getByTestId("search-results"))).toBe(true);
-    // In this shape the row IS the header block — heading at one end, count
-    // and controls at the other — so the heading is inside it.
+    // …and the heading is NOT in it (D452): what pins is the controls' line.
     expect(toolbar.contains(screen.getByTestId("search-results-heading"))).toBe(
-      true
+      false
     );
   });
 
@@ -229,6 +228,82 @@ describe("<SearchPage stickyToolbar> — the row pins where it stands", () => {
   });
 });
 
+/**
+ * D452 — WHAT PINS IS ONE ROW OF CONTROLS, AND THE HEADING HAS THE COLUMN.
+ *
+ * Measured on the stand at 1440 and 1280: the pinned block on `/s` was
+ * **100px** and **150px**. Both numbers are one `<h1>` wrapped to two lines —
+ * the heading was the leading flex item of the block that pins, the `nowrap`
+ * controls row beside it took what it needed, and the heading was left a
+ * **415px** sub-column of a 1200px measure. The host's own sentence goes in
+ * that heading ("Buy a Samsung Galaxy S23 in Kazan"), so its length is not
+ * something this pair gets to bound.
+ *
+ * jsdom lays nothing out, so none of that can be re-measured here. What CAN be
+ * asserted is the shape that made it possible, and all three facts below are
+ * the ones the shipped tree failed:
+ *
+ *  1. exactly one element in the results column is pinned, and it is the
+ *     toolbar;
+ *  2. the heading is not inside it — in EITHER header shape;
+ *  3. the heading's row declares the column's full width, rather than being a
+ *     flex item competing with the controls for it.
+ */
+describe("D452 — the pinned block is the toolbar, never the heading", () => {
+  /** The results column: the box that holds both the toolbar and the feed. */
+  function column(): HTMLElement {
+    const toolbar = screen.getByTestId("search-results-toolbar");
+    const parent = toolbar.parentElement;
+    expect(parent).not.toBeNull();
+    expect(parent?.contains(screen.getByTestId("search-results"))).toBe(true);
+    return parent as HTMLElement;
+  }
+
+  it("pins ONE element of the results column, and it is the toolbar", async () => {
+    await mount(RAIL_WIDTH, { stickyToolbar: { top: "var(--stapel-header-height)" } });
+    const pinned = [...column().querySelectorAll<HTMLElement>("*")].filter(
+      (node) => node.style.position === "sticky"
+    );
+    expect(pinned).toEqual([screen.getByTestId("search-results-toolbar")]);
+  });
+
+  it("keeps the heading out of the pinned element in BOTH shapes", async () => {
+    for (const width of [RAIL_WIDTH, PHONE_WIDTH]) {
+      await mount(width, { stickyToolbar: { top: 64 } });
+      const toolbar = screen.getByTestId("search-results-toolbar");
+      const heading = screen.getByTestId("search-results-heading");
+      expect(toolbar.contains(heading)).toBe(false);
+      // Not merely outside it — a SIBLING of it, ahead of it, in the column
+      // that is as tall as the feed.
+      expect(
+        toolbar.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING
+      ).toBeTruthy();
+      cleanup();
+    }
+  });
+
+  it("gives the wide heading a row of its own, at the column's full width", async () => {
+    await mount(RAIL_WIDTH);
+    const row = screen.getByTestId("search-results-heading-row");
+    const heading = screen.getByTestId("search-results-heading");
+    expect(row.contains(heading)).toBe(true);
+    // Declared, not inherited from `align-items: stretch`: this is the fact a
+    // host reads, and a width that only happens to be full is not a contract.
+    expect([row.style.inlineSize, row.style.width]).toContain("100%");
+    // …and the heading may shrink inside it rather than forcing the row wider,
+    // which is what a long host sentence would otherwise do to the column.
+    expect([heading.style.minInlineSize, heading.style.minWidth]).toContain("0");
+    expect(row.parentElement).toBe(column());
+  });
+
+  it("draws no heading row of its own in the compact shape", async () => {
+    // There the heading is already a row of the column — `display: contents`
+    // on the stack — so a second box would be a second answer.
+    await mount(PHONE_WIDTH);
+    expect(screen.queryByTestId("search-results-heading-row")).toBeNull();
+  });
+});
+
 describe("the pinned row cannot change height when the count lands", () => {
   /**
    * The count arrives WITH the answer, one render after the toolbar is already
@@ -238,14 +313,12 @@ describe("the pinned row cannot change height when the count lands", () => {
    * becomes the scroll strip every phone sort row already is.
    */
   function controlsRow(): HTMLElement {
+    // One answer in BOTH shapes since D452: the row that pins is the controls'
+    // line, so the row under test and the row that pins are the same element.
     const toolbar = screen.getByTestId("search-results-toolbar");
     const heading = screen.queryByTestId("search-results-heading");
-    // WIDE: the controls are the box after the heading, inside the row.
-    // COMPACT: the row IS the controls.
-    const wide = heading !== null && toolbar.contains(heading);
-    const node = wide ? heading.nextElementSibling : toolbar;
-    expect(node).not.toBeNull();
-    return node as HTMLElement;
+    expect(heading === null || toolbar.contains(heading)).toBe(false);
+    return toolbar;
   }
 
   it("declares one line in the WIDE shape, with and without a count", async () => {
