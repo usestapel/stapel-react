@@ -240,3 +240,105 @@ describe("the DAO projection carries what a card needs", () => {
     expect(toFeaturesDto(defs, values)).toEqual(dto);
   });
 });
+
+/**
+ * `save-draft` REPLACES what the body names — it does not merge — so what a
+ * body OMITS is as load-bearing as what it spells. Both halves of that are
+ * asserted here: the schema this pair has not been given yet, and the save
+ * that names the fields it is writing.
+ */
+describe("a save-draft body claims only what it can claim (D: features_draft)", () => {
+  it("spells NO features_draft when there is no schema to tag with", () => {
+    const values = {
+      ...emptyDraftValues(),
+      features: { power: 1200 },
+    };
+    // The measured harm: a save fired before the category's schema arrived
+    // spelled `features_draft: {}` and DELETED the row's stored answers while
+    // the form on screen still showed them.
+    expect("features_draft" in draftPatchFromValues(values, [])).toBe(false);
+    expect("features_draft" in draftPatchFromValues(values, undefined)).toBe(
+      false
+    );
+    // Everything else in the body is unaffected: a title save is still a
+    // title save while the schema is in flight.
+    expect(draftPatchFromValues(values, []).title_draft).toBe(values.title);
+  });
+
+  it("is unchanged in shape once the schema is there", () => {
+    const values = {
+      ...emptyDraftValues(),
+      categoryId: "tools/power",
+      features: { brand: ["bosch"], power: 1200 },
+    };
+    const body = draftPatchFromValues(values, FEATURES);
+    expect(body.features_draft).toEqual({
+      brand: { type: "select", value: ["bosch"] },
+      power: { type: "int", value: 1200 },
+    });
+    // Fourteen fields, exactly as before: no key gained, none lost.
+    expect(Object.keys(body).sort()).toEqual(
+      [
+        "auto_republish",
+        "category_id",
+        "countable",
+        "currency",
+        "description_draft",
+        "features_draft",
+        "images_draft",
+        "lat_draft",
+        "location_id_draft",
+        "location_label_draft",
+        "lon_draft",
+        "price_draft",
+        "stock_quantity",
+        "title_draft",
+      ].sort()
+    );
+  });
+
+  it("writes ONLY the fields a partial save names", () => {
+    const values = {
+      ...emptyDraftValues(),
+      categoryId: "tools/power",
+      title: "Bosch GSB 1200",
+      images: ["image/a"],
+      features: { power: 1200 },
+    };
+    // The photo settled; nothing else on the form is being claimed.
+    const body = draftPatchFromValues(values, FEATURES, {
+      fields: ["images_draft"],
+    });
+    expect(body).toEqual({ images_draft: ["image/a"] });
+    // Which is the point: a save that does not name `features_draft` cannot
+    // replace the stored map, whatever schema it happens to be holding.
+    expect("features_draft" in body).toBe(false);
+    expect("title_draft" in body).toBe(false);
+  });
+
+  it("keeps the value rules inside the selection", () => {
+    const values = { ...emptyDraftValues(), price: "" };
+    // A named field is still whatever the rules produced — an empty price is
+    // `null` here exactly as it is in a whole body.
+    expect(
+      draftPatchFromValues(values, FEATURES, { fields: ["price_draft"] })
+    ).toEqual({ price_draft: null });
+    // And a named field the rules OMIT stays omitted: naming
+    // `features_draft` without a schema still writes nothing rather than
+    // resurrecting `{}`.
+    expect(
+      draftPatchFromValues(values, [], { fields: ["features_draft"] })
+    ).toEqual({});
+    // `category_id` while unchosen is the same story.
+    expect(
+      draftPatchFromValues(values, FEATURES, { fields: ["category_id"] })
+    ).toEqual({});
+  });
+
+  it("sends the whole body when no fields are named", () => {
+    const values = { ...emptyDraftValues(), categoryId: "tools/power" };
+    expect(draftPatchFromValues(values, FEATURES, {})).toEqual(
+      draftPatchFromValues(values, FEATURES)
+    );
+  });
+});

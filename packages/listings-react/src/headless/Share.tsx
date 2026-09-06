@@ -17,6 +17,15 @@
  * menu with "copy the link" and the three networks a Russian-speaking
  * marketplace actually gets traffic from.
  *
+ * ── …AND "HAS A SHEET" IS NOT "SHOULD USE THE SHEET" (§25) ───────────────
+ *
+ * `navigator.share` is true on desktop Chrome on macOS. Measured on the stand:
+ * every share on the storefront opened the OS sheet and the copy-link menu —
+ * three networks and a clipboard row, built for exactly that platform — was
+ * unreachable there. So the decision takes a second reading, the primary
+ * POINTER, and {@link UseShareOptions.prefer} lets a surface state the answer
+ * outright. See {@link SharePreference}.
+ *
  * `native` is resolved in an EFFECT rather than during render, for the reason
  * `cardGallery.ts`'s `useFinePointer` gives at length: a server render has no
  * `navigator`, and a first client render that disagreed with it is a
@@ -134,6 +143,70 @@ export function hasNativeShare(): boolean {
   return typeof navigator.share === "function";
 }
 
+/**
+ * The media query that asks "is this a thumb" — the second half of the arm
+ * decision (§25).
+ *
+ * `(pointer: coarse)` describes the PRIMARY input device, which is exactly the
+ * question: a phone and a tablet match, a mouse and a trackpad do not, and a
+ * touchscreen laptop being driven with its trackpad reports the trackpad.
+ */
+export const SHARE_COARSE_MEDIA = "(pointer: coarse)";
+
+/** Does the primary pointer look like a finger? `false` wherever the question
+ * cannot be asked — a server, an engine without `matchMedia` — because the
+ * fallback arm is the one that draws something. */
+export function hasCoarsePointer(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  try {
+    return window.matchMedia(SHARE_COARSE_MEDIA).matches;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * WHICH ARM A SURFACE WANTS, and why `navigator.share` alone was the wrong
+ * question.
+ *
+ * The capability probe is true on desktop Chrome on macOS — measured on the
+ * stand (§25), where every share on the storefront opened the OS sheet and the
+ * copy-link menu was therefore unreachable on the platform it was BUILT for.
+ * "Has a share sheet" and "is a device whose share sheet is the better answer"
+ * turned out to be two questions, and the pair was only asking the first.
+ *
+ *   `"auto"`   (default) the platform sheet only where the primary pointer is
+ *              COARSE and the API exists; a mouse gets the menu, with its
+ *              copy-link row and its three networks.
+ *   `"menu"`   always this pair's menu, whatever the device offers. For a
+ *              host whose desktop and mobile web are one build and which
+ *              wants one answer.
+ *   `"native"` the platform sheet wherever the API exists, pointer ignored —
+ *              the behaviour every version before this one had, kept
+ *              reachable by name rather than deleted.
+ *
+ * In all three, a missing `navigator.share` is the menu: an arm that cannot
+ * open is not an arm.
+ */
+export type SharePreference = "auto" | "menu" | "native";
+
+/**
+ * Resolve the arm from the preference and what the device actually answered.
+ *
+ * Pure, and separate from the hook, so the decision is a thing a test reads
+ * rather than a thing a rendered `data-share-mode` implies.
+ */
+export function preferNativeShare(
+  prefer: SharePreference,
+  capability: { readonly native: boolean; readonly coarse: boolean }
+): boolean {
+  if (prefer === "menu") return false;
+  if (!capability.native) return false;
+  return prefer === "native" || capability.coarse;
+}
+
 export interface UseShareOptions {
   /** The canonical address, absolute or a path. Absent: the address bar,
    * which is the honest answer only for a host with no route seam. */
@@ -146,13 +219,24 @@ export interface UseShareOptions {
    * through; `"native"` never says which app, because the sheet does not
    * tell the page. */
   readonly onShared?: ((channel: ShareChannel) => void) | undefined;
+  /**
+   * Which arm this surface wants — see {@link SharePreference}. Default
+   * `"auto"`: the platform sheet on a coarse pointer, this pair's menu on a
+   * mouse, the menu wherever `navigator.share` is missing.
+   */
+  readonly prefer?: SharePreference | undefined;
 }
 
 export interface ShareBag {
   /** The absolute address every arm shares. `undefined` only on a server. */
   readonly url: string | undefined;
-  /** Does this device have the platform's own sheet? Settles in an effect —
-   * see the file header. */
+  /**
+   * IS THE PLATFORM SHEET THE ARM ON SCREEN — the resolved answer, not the
+   * raw capability. `prefer` and the primary pointer are both in it (see
+   * {@link SharePreference}); `hasNativeShare()` is the capability alone, for
+   * a caller that wants to ask that question itself. Settles in an effect —
+   * see the file header.
+   */
   readonly native: boolean;
   /** The three networks' links, already encoded. */
   readonly links: readonly ShareLink[];
@@ -182,15 +266,24 @@ export const SHARE_COPIED_MS = 2400;
 
 export function useShare(options: UseShareOptions = {}): ShareBag {
   const { url: given, title, text, onShared } = options;
+  const prefer = options.prefer ?? "auto";
   const [native, setNative] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
   // See the header: resolved in an effect so a server render and the
-  // hydration pass that must agree with it draw the same arm.
+  // hydration pass that must agree with it draw the same arm. Both halves of
+  // the question are asked in the SAME effect — the capability and the
+  // pointer — so there is never a frame in which one has landed and the
+  // other has not and the button changes arm twice.
   useEffect(() => {
-    setNative(hasNativeShare());
-  }, []);
+    setNative(
+      preferNativeShare(prefer, {
+        native: hasNativeShare(),
+        coarse: hasCoarsePointer(),
+      })
+    );
+  }, [prefer]);
 
   const url = useMemo(() => resolveShareUrl(given), [given]);
   const links = useMemo(

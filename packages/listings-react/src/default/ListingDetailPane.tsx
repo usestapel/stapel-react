@@ -102,7 +102,7 @@ import { useListingActions } from "../headless/ListingActions.js";
 import { asFeatureDaoList, featureValuesForDisplay } from "../model/features.js";
 import { formatSpecValue } from "../model/featureText.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
-import type { ShareChannel } from "../headless/Share.js";
+import type { ShareChannel, SharePreference } from "../headless/Share.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
 import { ListingActions } from "./ListingActions.js";
 import type { ListingActionsConfig } from "./ListingActions.js";
@@ -271,6 +271,14 @@ export interface ListingDetailPaneProps
    * somebody sends to a friend. See `useShare`.
    */
   readonly shareUrl?: string;
+  /**
+   * Which arm the share control uses — handed to `<ShareAction prefer>`
+   * through the cluster. Default `"auto"`: the platform sheet where the
+   * primary pointer is coarse, this pair's menu on a mouse. See
+   * `SharePreference` for the measurement that made the pointer part of the
+   * question (§25).
+   */
+  readonly sharePrefer?: SharePreference;
   /** Analytics: which channel a completed share went through. */
   readonly onShared?: (channel: ShareChannel) => void;
   /**
@@ -412,6 +420,49 @@ export interface ListingDetailPaneProps
    * Default `3`, byte-compatible for every existing mount.
    */
   readonly headingLevel?: 1 | 2 | 3;
+  /**
+   * WHERE THE BUY COLUMN'S STICKY TOP EDGE IS — the offset of whatever chrome
+   * is pinned above this page (`layout="split"` only; the one-column arm has
+   * no sticky column).
+   *
+   * ```tsx
+   * // the height <PublicShell> publishes, read rather than restated
+   * <ListingDetailPane layout="split" buyTop="var(--stapel-header-height)" />
+   * ```
+   *
+   * The column is `position: sticky; top: 16px` written INLINE, and an inline
+   * declaration is beaten by nothing short of `!important` — so a host with a
+   * pinned header had no way to say "start below it". Measured on the stand
+   * (D456): the storefront's header is sticky and 64px tall, and at any scroll
+   * depth the top of the buy column — the price's own first twenty pixels —
+   * sat UNDER it. Same seam and same argument as `<SearchPage railTop>`, which
+   * this prop is deliberately spelled after.
+   *
+   * A number is pixels; a string is taken as written (a `var()`, a `calc()`,
+   * `"4rem"`). Default `spacing[4]` — 16px, exactly where the column has
+   * always started — so an existing mount is byte-compatible.
+   */
+  readonly buyTop?: number | string;
+  /**
+   * HOW WIDE THE PANE MAY GET — the `max-width` it writes on its own root.
+   *
+   * Default is the constant for the arm on screen: {@link DETAIL_MEASURE}
+   * (60rem) in `"column"`, {@link DETAIL_SPLIT_MEASURE} (75rem) in `"split"`,
+   * so no existing mount changes shape. Anything CSS `max-width` takes is
+   * accepted (`"80rem"`, `1280`, `"100%"`).
+   *
+   * `"none"` removes the cap, and it is the answer for a pane mounted inside
+   * a page frame that already decided the measure. That case is not
+   * hypothetical: measured on the stand at 1440 (D457), the listing page's
+   * content ended at x=1224 with 216px of empty gutter beside it while every
+   * other page of the same site ran to the frame's edge — a second, lower cap
+   * inside a container that already had one. The cap is written INLINE, so
+   * the container could not outrank it without `!important` and reached for
+   * `min-inline-size: 100%` instead (a minimum beats a maximum by the sizing
+   * rules); this prop is that workaround's replacement, and the same seam
+   * `<CategoryPage measure>` already offers.
+   */
+  readonly measure?: number | string;
   readonly footer?: ReactNode;
 }
 
@@ -592,7 +643,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
     <SkinTheme
       surface="base"
       style={{
-        maxWidth: split ? DETAIL_SPLIT_MEASURE : DETAIL_MEASURE,
+        maxWidth: props.measure ?? (split ? DETAIL_SPLIT_MEASURE : DETAIL_MEASURE),
         // See `gutter`: a frame that already placed the page edge does not get
         // a second one stacked inside it.
         padding: props.gutter === "shell" ? 0 : spacing[4],
@@ -769,6 +820,9 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 {...(props.shareUrl !== undefined ? { shareUrl: props.shareUrl } : {})}
                 {...(listing.title !== undefined && listing.title !== null
                   ? { shareTitle: listing.title }
+                  : {})}
+                {...(props.sharePrefer !== undefined
+                  ? { sharePrefer: props.sharePrefer }
                   : {})}
                 {...(props.onShared !== undefined ? { onShared: props.onShared } : {})}
               />
@@ -1171,7 +1225,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     data-testid="listings-detail-buy-column"
                     style={{
                       position: "sticky",
-                      top: spacing[4],
+                      top: props.buyTop ?? spacing[4],
                       alignSelf: "start",
                     }}
                   >

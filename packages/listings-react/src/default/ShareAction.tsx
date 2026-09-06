@@ -10,16 +10,22 @@
  *
  * ── One control, two renderings, and the DEVICE picks ─────────────────────
  *
- * Where `navigator.share` exists — which is every phone and almost no desktop
- * — the press opens the PLATFORM's own sheet: the person's own apps, in their
- * own order, including the ones we have never heard of. A library that drew
- * its own list of four networks on a phone would be offering a worse version
- * of something the operating system already does better.
+ * On a device driven with a THUMB the press opens the PLATFORM's own sheet:
+ * the person's own apps, in their own order, including the ones we have never
+ * heard of. A library that drew its own list of four networks on a phone would
+ * be offering a worse version of something the operating system already does
+ * better.
  *
- * Where it does not, the press opens a small menu: copy the link, and the
- * three networks a Russian-speaking marketplace actually receives traffic
- * from. This is the DESKTOP rendering, not a fallback for old browsers, which
- * is why it is built rather than apologised for.
+ * Everywhere else the press opens a small menu: copy the link, and the three
+ * networks a Russian-speaking marketplace actually receives traffic from. This
+ * is the DESKTOP rendering, not a fallback for old browsers, which is why it
+ * is built rather than apologised for.
+ *
+ * The reading that decides is the primary POINTER and not `navigator.share`
+ * alone: desktop Chrome on macOS has the API, so the capability question sent
+ * every desktop share to the OS sheet and left this menu unreachable on the
+ * platform it was written for (§25). {@link ShareActionProps.prefer} is where
+ * a host overrules the reading in either direction.
  *
  * ── The menu is a Popover, and that is an exception with an argument ──────
  *
@@ -60,7 +66,11 @@ import { SkinButton as Button, ErrorAlert } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import { useShare } from "../headless/Share.js";
-import type { ShareChannel, ShareNetwork } from "../headless/Share.js";
+import type {
+  ShareChannel,
+  ShareNetwork,
+  SharePreference,
+} from "../headless/Share.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import {
   LISTING_ACTIONS_STYLE_HREF,
@@ -104,6 +114,21 @@ export interface ShareActionProps {
    * for it.
    */
   readonly shape?: "default" | "circle";
+  /**
+   * WHICH ARM THIS SURFACE WANTS — see {@link SharePreference}.
+   *
+   * Default `"auto"`: the platform sheet where the primary pointer is coarse
+   * AND `navigator.share` exists, this pair's menu everywhere else. The
+   * default changed in this release, and it changed because of a measurement
+   * (§25): desktop Chrome on macOS reports `navigator.share`, so a pair that
+   * asked only the capability opened the OS sheet on the desktop and the
+   * copy-link menu — three networks and a clipboard row, built for exactly
+   * that platform — could not be reached there at all.
+   *
+   * `"native"` restores the capability-only behaviour by name; `"menu"` pins
+   * this pair's menu on every device.
+   */
+  readonly prefer?: SharePreference;
   readonly style?: CSSProperties;
 }
 
@@ -115,6 +140,7 @@ export function ShareAction(props: ShareActionProps): ReactElement {
     url: props.url,
     title: props.title,
     text: props.text,
+    ...(props.prefer !== undefined ? { prefer: props.prefer } : {}),
     ...(props.onShared !== undefined ? { onShared: props.onShared } : {}),
   });
   const label = t(LISTINGS_I18N_KEYS.shareAction);

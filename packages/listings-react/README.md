@@ -52,6 +52,29 @@ export function ListingRoute({ id }: { id: number }) {
 }
 ```
 
+### The page's geometry belongs to the page it is mounted in
+
+Three seams, for a container that already has chrome of its own. All three are
+default-unchanged, so an existing mount keeps its bytes.
+
+```tsx
+<ListingDetailPane
+  id={id}
+  layout="split"
+  measure="none"                          // the frame already holds the site's measure
+  buyTop="var(--stapel-header-height)"    // pin the buy column UNDER the sticky header
+/>
+```
+
+- **`measure`** — the pane's own `max-width` (a length, or `"none"`). A page
+  mounted inside a frame that already decided the measure was answering the
+  question twice, and the lower answer won: measured at 1440, the content ended
+  216px short of the frame's edge.
+- **`buyTop`** — where the sticky buy column's top edge sits in `layout="split"`.
+  It was an inline `top: 16px` — beatable by nothing short of `!important` — so
+  under a 64px sticky header the top of the price lived behind the header at
+  every scroll depth. Same seam and spelling as `<SearchPage railTop>`.
+
 ## The card is a slot, not an import
 
 A marketplace's result grid goes through `@stapel/search-react`, because
@@ -140,13 +163,25 @@ icon-only, each with a 44px hit target, at the trailing edge of the title row
 uses the smaller 36px tier with a cursor and the same 44px with a thumb — both
 stated once, as a class contract, in `actionRow.ts`.
 
-**Sharing has two arms and the device picks.** Where `navigator.share` exists —
-every phone, almost no desktop — a press opens the PLATFORM sheet with
-`{title, text, url}`: the person's own apps, in their own order. Where it does
-not, it opens a menu: copy the link, Telegram, WhatsApp, VK. Every outbound
-link is `target="_blank"` with `rel="noopener noreferrer"`, and every field is
-`encodeURIComponent`-encoded, because a seller's title contains `&` and `#` in
-the wild and a raw one truncates the link the recipient receives.
+**Sharing has two arms and the POINTER picks.** On a device driven with a thumb
+a press opens the PLATFORM sheet with `{title, text, url}`: the person's own
+apps, in their own order. Everywhere else it opens a menu: copy the link,
+Telegram, WhatsApp, VK. Every outbound link is `target="_blank"` with
+`rel="noopener noreferrer"`, and every field is `encodeURIComponent`-encoded,
+because a seller's title contains `&` and `#` in the wild and a raw one
+truncates the link the recipient receives.
+
+The reading is `(pointer: coarse)` and not `navigator.share` alone: desktop
+Chrome on macOS has the API, so a capability-only decision sent every desktop
+share to the OS sheet and left the menu — built for exactly that platform —
+unreachable. A host overrules it in either direction:
+
+```tsx
+<ListingDetailPane sharePrefer="menu" />   // this pair's menu on every device
+<ShareAction prefer="native" />            // the sheet wherever the API exists
+```
+
+`"auto"` is the default; a missing `navigator.share` is the menu in all three.
 
 **The URL is yours.** `shareUrl` is used verbatim (a path is resolved against
 the document base); `window.location.href` is consulted only when a host
@@ -276,6 +311,20 @@ pick, and it is mandatory only to PUBLISH, which is where the gate and the
 server's own `publish_validation_failed` both keep it. `bag.stage ===
 "choosing_category"` therefore says nothing about whether the row exists; read
 `bag.listingId` for that.
+
+**A body claims what it names, and `save-draft` REPLACES the rest.** That makes
+`features_draft` the one field a caller can destroy by accident: the map is
+built from the CATEGORY SCHEMA, so a save that leaves before the schema has
+arrived would spell `{}` and delete the row's stored answers while the form on
+screen still shows them. It does not: `draftPatchFromValues` OMITS the key when
+there is no schema, because `{}` is a claim ("this listing has no
+characteristics") and a caller with no schema cannot make it. A container
+writing its own bodies has the general form of the same rule:
+
+```tsx
+// the photo settled; nothing else on the form is being claimed
+api.saveDraft(id, draftPatchFromValues(values, features, { fields: ["images_draft"] }));
+```
 
 **Reopening a listing reads the draft twin.** `listingId` seeds the form from
 `GET /{pk}/draft/` (stapel-listings 0.21.1) — what was actually last typed,

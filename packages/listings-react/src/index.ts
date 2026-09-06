@@ -163,7 +163,9 @@ export {
   retainKnownFeatureValues,
 } from "./model/draft.js";
 export type {
+  DraftPatchOptions,
   EmptyDraftOptions,
+  ListingDraftField,
   ListingDraftValues,
   ListingLocation,
 } from "./model/draft.js";
@@ -184,6 +186,7 @@ export { featureUnit, formatSpecValue } from "./model/featureText.js";
 export {
   badgePresentation,
   badgeValueText,
+  captionName,
   cardBadgeText,
   cardBadgeTexts,
   hasCardBadgeContract,
@@ -316,10 +319,13 @@ export type {
   UseFavoritesOptions,
 } from "./headless/Favorites.js";
 export {
+  SHARE_COARSE_MEDIA,
   SHARE_COPIED_MS,
   SHARE_NETWORKS,
   Share,
+  hasCoarsePointer,
   hasNativeShare,
+  preferNativeShare,
   resolveShareUrl,
   shareLinks,
   useShare,
@@ -329,6 +335,7 @@ export type {
   ShareChannel,
   ShareLink,
   ShareNetwork,
+  SharePreference,
   ShareTarget,
   UseShareOptions,
 } from "./headless/Share.js";

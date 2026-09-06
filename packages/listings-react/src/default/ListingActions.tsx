@@ -46,7 +46,7 @@ import { Flex, Typography } from "antd";
 import type { SignInCta } from "@stapel/core";
 import { useT } from "@stapel/core";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
-import type { ShareChannel } from "../headless/Share.js";
+import type { ShareChannel, SharePreference } from "../headless/Share.js";
 import { FavoriteHeart } from "./favorite.js";
 import { ShareAction } from "./ShareAction.js";
 import {
@@ -92,6 +92,13 @@ export interface ListingActionsProps {
   readonly shareTitle?: string;
   /** A line under it in the sheet — the price, typically. */
   readonly shareText?: string;
+  /**
+   * Which arm the share control uses — handed straight to
+   * `<ShareAction prefer>`, which is where the reading and its measurement
+   * are written down. Default `"auto"`: the platform sheet on a thumb, this
+   * pair's menu on a mouse.
+   */
+  readonly sharePrefer?: SharePreference;
   readonly onShared?: (channel: ShareChannel) => void;
   /** The container's sign-in door for the heart. */
   readonly signIn?: SignInCta;
@@ -187,6 +194,7 @@ export function ListingActions(props: ListingActionsProps): ReactElement | null 
             {...(props.shareUrl !== undefined ? { url: props.shareUrl } : {})}
             {...(props.shareTitle !== undefined ? { title: props.shareTitle } : {})}
             {...(props.shareText !== undefined ? { text: props.shareText } : {})}
+            {...(props.sharePrefer !== undefined ? { prefer: props.sharePrefer } : {})}
             {...(props.onShared !== undefined ? { onShared: props.onShared } : {})}
           />
         ) : null}

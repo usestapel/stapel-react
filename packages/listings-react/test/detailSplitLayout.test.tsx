@@ -114,9 +114,81 @@ describe("the split layout is the reference design's two columns", () => {
     const buy = screen.getByTestId("listings-detail-buy-column");
     expect(buy.style.position).toBe("sticky");
     expect(buy.style.alignSelf).toBe("start");
+    // Unchanged default: 16px from the top of the viewport, which is where
+    // the column has always started. See `buyTop` for the host with a header.
+    expect(buy.style.top).toBe("16px");
     // A split needs more line than a one-column read: the measure widens.
     const root = container.querySelector<HTMLElement>("[data-stapel-skin-root]");
     expect(root?.style.maxWidth).toBe(DETAIL_SPLIT_MEASURE);
+  });
+
+  // ── D456: the sticky column pins under the host's chrome, not to zero ─────
+
+  it("takes the sticky top edge from buyTop — a length or a var()", async () => {
+    render(
+      pane(
+        <ListingDetailPane
+          id={7}
+          layout="split"
+          buyTop="var(--stapel-header-height)"
+        />
+      )
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-buy-column")).toBeTruthy();
+    });
+    // Written as given: the host publishes its header height and the pane
+    // reads it rather than restating a number that would drift.
+    expect(screen.getByTestId("listings-detail-buy-column").style.top).toBe(
+      "var(--stapel-header-height)"
+    );
+  });
+
+  it("takes a NUMBER as pixels", async () => {
+    render(pane(<ListingDetailPane id={7} layout="split" buyTop={64} />));
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-buy-column")).toBeTruthy();
+    });
+    expect(screen.getByTestId("listings-detail-buy-column").style.top).toBe(
+      "64px"
+    );
+  });
+
+  // ── D457: the measure is the host's when the host has a frame ─────────────
+
+  it("removes its own max-width on measure=\"none\"", async () => {
+    const { container } = render(
+      pane(<ListingDetailPane id={7} layout="split" measure="none" />)
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-split")).toBeTruthy();
+    });
+    const root = container.querySelector<HTMLElement>("[data-stapel-skin-root]");
+    // `none` and not a very large number: a page mounted inside a frame that
+    // already holds the site's measure must not answer the question twice.
+    expect(root?.style.maxWidth).toBe("none");
+  });
+
+  it("takes any other measure as written, in either layout", async () => {
+    const wide = render(
+      pane(<ListingDetailPane id={7} layout="split" measure="90rem" />)
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-split")).toBeTruthy();
+    });
+    expect(
+      wide.container.querySelector<HTMLElement>("[data-stapel-skin-root]")?.style
+        .maxWidth
+    ).toBe("90rem");
+
+    const column = render(pane(<ListingDetailPane id={7} measure={960} />));
+    await waitFor(() => {
+      expect(column.getByTestId("listings-detail-title")).toBeTruthy();
+    });
+    expect(
+      column.container.querySelector<HTMLElement>("[data-stapel-skin-root]")
+        ?.style.maxWidth
+    ).toBe("960px");
   });
 
   it("puts the price LARGE at the top of the buy column, above the actions and the aside", async () => {

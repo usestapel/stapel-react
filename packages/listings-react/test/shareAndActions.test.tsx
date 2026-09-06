@@ -25,11 +25,12 @@
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { ReactNode } from "react";
-import { App } from "antd";
+import { App, Button } from "antd";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   LISTING_ACTION_CLASS,
   LISTING_ACTION_HIT,
+  LISTING_ACTION_SPECIFICITY,
   LISTING_CARD_ACTION_CLASS,
   LISTING_CARD_ACTION_HIT,
   ListingCard,
@@ -37,7 +38,12 @@ import {
   ShareAction,
   actionRowCss,
 } from "../src/default/index.js";
-import { shareLinks } from "../src/index.js";
+import {
+  SHARE_COARSE_MEDIA,
+  hasCoarsePointer,
+  preferNativeShare,
+  shareLinks,
+} from "../src/index.js";
 import type { ShareChannel } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import type { MockServer } from "./harness.js";
@@ -68,6 +74,33 @@ function withShare(impl: () => Promise<void>): ReturnType<typeof vi.fn> {
   return share;
 }
 
+/**
+ * A device whose PRIMARY POINTER is a finger.
+ *
+ * jsdom answers every media query `false`, which is the honest reading of a
+ * headless DOM and also the fine-pointer arm — so a test about the platform
+ * sheet has to say which device it is standing on. `pointer: coarse` is the
+ * only query stubbed true; everything else keeps jsdom's answer, so a
+ * component reading a different query is not silently handed a phone.
+ */
+function withCoarsePointer(coarse = true): void {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: (query: string) =>
+      ({
+        media: query,
+        matches: coarse && query.includes("pointer: coarse"),
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList,
+  });
+}
+
 function withClipboard(impl: () => Promise<void>): ReturnType<typeof vi.fn> {
   const writeText = vi.fn(impl);
   Object.defineProperty(navigator, "clipboard", {
@@ -77,6 +110,8 @@ function withClipboard(impl: () => Promise<void>): ReturnType<typeof vi.fn> {
   return writeText;
 }
 
+const REAL_MATCH_MEDIA = window.matchMedia;
+
 beforeEach(() => {
   Reflect.deleteProperty(navigator, "share");
   Reflect.deleteProperty(navigator, "clipboard");
@@ -85,13 +120,19 @@ beforeEach(() => {
 afterEach(() => {
   Reflect.deleteProperty(navigator, "share");
   Reflect.deleteProperty(navigator, "clipboard");
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: REAL_MATCH_MEDIA,
+  });
   vi.restoreAllMocks();
 });
 
 // ── 1. the platform's own sheet ──────────────────────────────────────────────
 
-describe("a device with a share sheet uses the platform's, not ours", () => {
+describe("a device with a share sheet AND a thumb uses the platform's", () => {
   it("hands navigator.share the title, the text and the canonical url", async () => {
+    withCoarsePointer();
     const share = withShare(async () => undefined);
     const onShared = vi.fn();
     render(
@@ -131,6 +172,7 @@ describe("a device with a share sheet uses the platform's, not ours", () => {
   });
 
   it("says nothing when the person closes the sheet — an abort is not a failure", async () => {
+    withCoarsePointer();
     const onShared = vi.fn();
     withShare(async () => {
       throw new DOMException("share canceled", "AbortError");
@@ -154,7 +196,7 @@ describe("a device with a share sheet uses the platform's, not ours", () => {
 
 // ── 2 & 3. the menu, its three links, and the clipboard ──────────────────────
 
-describe("a device without one gets the menu", () => {
+describe("a device without one — or with a mouse — gets the menu", () => {
   async function openMenu(props: {
     url?: string;
     title?: string;
@@ -299,22 +341,71 @@ describe("the link builders encode every field", () => {
 // ── 4. the hit targets, through the class contract ──────────────────────────
 
 describe("both controls are targets a thumb can actually hit", () => {
+  /** The class repeated as the sheet writes it. */
+  function sel(className: string): string {
+    return `.${className}`.repeat(LISTING_ACTION_SPECIFICITY);
+  }
+  /** Both spellings of one floor, as the sheet writes them. */
+  function floor(px: number): string {
+    const size = `${String(px)}px`;
+    return (
+      `min-inline-size:${size};min-block-size:${size};` +
+      `min-width:${size};min-height:${size}`
+    );
+  }
+
   it("states 44px for the page cluster and 36/44 for a card, from the token", () => {
     const css = actionRowCss();
     expect(LISTING_ACTION_HIT).toBe(44);
     expect(LISTING_CARD_ACTION_HIT).toBe(36);
-    expect(css).toContain(
-      `.${LISTING_ACTION_CLASS}{min-inline-size:44px;min-block-size:44px;`
-    );
-    expect(css).toContain(
-      `.${LISTING_CARD_ACTION_CLASS}{min-inline-size:36px;min-block-size:36px;`
-    );
+    expect(css).toContain(`${sel(LISTING_ACTION_CLASS)}{${floor(44)};`);
+    expect(css).toContain(`${sel(LISTING_CARD_ACTION_CLASS)}{${floor(36)};`);
     // …and there is no such thing as a small touch target: on a phone the
     // card's control goes back to the same 44.
     expect(css).toContain(
-      `@media (max-width:767px){.${LISTING_CARD_ACTION_CLASS}` +
-        `{min-inline-size:44px;min-block-size:44px}}`
+      `@media (max-width:767px){${sel(LISTING_CARD_ACTION_CLASS)}{${floor(44)}}}`
     );
+  });
+
+  // ── D450: the sheet has to WIN, and against a named opponent ──────────────
+
+  it("outranks antd's circle rule without an !important", () => {
+    const css = actionRowCss();
+    // antd ships `:where(…).ant-btn.ant-btn-circle.ant-btn{min-width:…}` —
+    // three classes, and `:where()` contributes nothing. Four repeats clear
+    // it; three would tie and lose on source order, which is antd's.
+    expect(LISTING_ACTION_SPECIFICITY).toBeGreaterThan(3);
+    expect(css).not.toContain("!important");
+  });
+
+  it("computes 44px on an antd circle button that antd is also styling", () => {
+    // The cascade, run rather than reasoned about: antd's real rule text and
+    // this pair's, in one document, over one antd-rendered circle button.
+    const style = document.createElement("style");
+    style.textContent =
+      ":where(.css-x).ant-btn.ant-btn-circle.ant-btn{min-width:32px;min-height:32px}" +
+      actionRowCss();
+    document.head.appendChild(style);
+    try {
+      render(
+        <TestProviders server={mockServer({})}>
+          <Button
+            className={`css-x ${LISTING_ACTION_CLASS}`}
+            shape="circle"
+            data-testid="hit-probe"
+          />
+        </TestProviders>
+      );
+      const probe = screen.getByTestId("hit-probe");
+      const computed = window.getComputedStyle(probe);
+      // Both axes and both spellings: the pair's floor wins each of them.
+      expect(computed.getPropertyValue("min-inline-size")).toBe("44px");
+      expect(computed.getPropertyValue("min-block-size")).toBe("44px");
+      expect(computed.getPropertyValue("min-width")).toBe("44px");
+      expect(computed.getPropertyValue("min-height")).toBe("44px");
+    } finally {
+      style.remove();
+    }
   });
 
   it("puts the class on the controls a person presses", async () => {
@@ -519,5 +610,106 @@ describe("a host decides which of the two the page offers", () => {
     expect(
       screen.getByTestId("listings-detail-reader-actions-share")
     ).toBeTruthy();
+  });
+});
+
+// ── 8. WHICH ARM, and the reading that decides it (§25) ─────────────────────
+
+describe("the arm is chosen by the pointer, not by the capability alone", () => {
+  /** `data-share-mode` once the effect has settled. */
+  async function armOf(prefer?: "auto" | "menu" | "native"): Promise<string> {
+    render(
+      <TestProviders server={mockServer({})}>
+        <App>
+          <ShareAction
+            url="/l/7"
+            testId={`share-${prefer ?? "default"}`}
+            {...(prefer !== undefined ? { prefer } : {})}
+          />
+        </App>
+      </TestProviders>
+    );
+    const id = `share-${prefer ?? "default"}`;
+    await waitFor(() => {
+      expect(screen.getByTestId(id)).toBeTruthy();
+    });
+    return screen.getByTestId(id).getAttribute("data-share-mode") ?? "";
+  }
+
+  it("decides with the pure rule, so the three values are readable", () => {
+    // The measured case: a desktop that HAS the API. `auto` refuses it.
+    expect(preferNativeShare("auto", { native: true, coarse: false })).toBe(false);
+    expect(preferNativeShare("auto", { native: true, coarse: true })).toBe(true);
+    // `native` is the old behaviour by name: the capability, and nothing else.
+    expect(preferNativeShare("native", { native: true, coarse: false })).toBe(true);
+    // `menu` is this pair's menu on every device, sheet or no sheet.
+    expect(preferNativeShare("menu", { native: true, coarse: true })).toBe(false);
+    // An arm that cannot open is not an arm, whatever was asked for.
+    expect(preferNativeShare("native", { native: false, coarse: true })).toBe(false);
+    expect(preferNativeShare("auto", { native: false, coarse: true })).toBe(false);
+  });
+
+  it("asks (pointer: coarse), and nothing else", () => {
+    const asked: string[] = [];
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: (query: string) => {
+        asked.push(query);
+        return { matches: false, media: query } as unknown as MediaQueryList;
+      },
+    });
+    expect(hasCoarsePointer()).toBe(false);
+    expect(asked).toEqual([SHARE_COARSE_MEDIA]);
+    expect(SHARE_COARSE_MEDIA).toBe("(pointer: coarse)");
+  });
+
+  it("draws the MENU on a fine pointer that has navigator.share (D: §25)", async () => {
+    withShare(async () => undefined);
+    withCoarsePointer(false);
+    expect(await armOf()).toBe("menu");
+  });
+
+  it("draws the platform sheet on a coarse pointer", async () => {
+    withShare(async () => undefined);
+    withCoarsePointer();
+    expect(await armOf()).toBe("native");
+  });
+
+  it('prefer="menu" keeps the menu on a phone', async () => {
+    withShare(async () => undefined);
+    withCoarsePointer();
+    expect(await armOf("menu")).toBe("menu");
+  });
+
+  it('prefer="native" takes the sheet on a desktop that has one', async () => {
+    withShare(async () => undefined);
+    withCoarsePointer(false);
+    expect(await armOf("native")).toBe("native");
+  });
+
+  it('prefer="native" is still the menu where there is no sheet to open', async () => {
+    withCoarsePointer();
+    expect(await armOf("native")).toBe("menu");
+  });
+
+  it("reaches the control through the cluster and the pane", async () => {
+    withShare(async () => undefined);
+    withCoarsePointer(false);
+    pane(<ListingDetailPane id={7} shareUrl="/l/7" sharePrefer="native" />);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("listings-detail-reader-actions-share")
+      ).toBeTruthy();
+    });
+    // The host's word travels pane → cluster → control: without the
+    // pass-through the prop is unreachable from the page a storefront mounts.
+    await waitFor(() => {
+      expect(
+        screen
+          .getByTestId("listings-detail-reader-actions-share")
+          .getAttribute("data-share-mode")
+      ).toBe("native");
+    });
   });
 });

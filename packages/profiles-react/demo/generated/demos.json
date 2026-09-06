@@ -74,6 +74,41 @@
       }
     },
     {
+      "id": "profiles.profile-name-heading-skin",
+      "title": "Profile name heading (skin)",
+      "description": "A person's display name as a page heading, with the height of that heading reserved while the profile read is in flight. Both states render the same <Typography.Title>, so antd's heading margins and line box apply identically and nothing below the name moves when the answer lands.",
+      "component": "ProfileNameHeading",
+      "covers": [],
+      "tokens": [
+        "surface-sunken",
+        "text"
+      ],
+      "variants": [
+        {
+          "id": "loading",
+          "description": "The read is in flight: the heading is drawn, holding a placeholder bar, announced as 'loading the profile'.",
+          "viewport": "phone",
+          "step": "loading"
+        },
+        {
+          "id": "ready",
+          "description": "The answer landed. Same element, same level, same box — the name replaces the bar and nothing moves.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "unnamed",
+          "description": "A registered person who has typed nothing (stapel-profiles 0.15.0): the pair's word for a nameless profile, never blank space where a heading should be.",
+          "viewport": "desktop",
+          "step": "unnamed"
+        }
+      ],
+      "source": {
+        "file": "demo/ProfileNameHeadingSkin.demo.tsx",
+        "line": 39
+      }
+    },
+    {
       "id": "profiles.public-profile-skin",
       "title": "Public profile (skin)",
       "description": "The /u/:userId screen: identity block, follower and following counts through ICU plurals, location and rating when the deployment fills them, and the follow / block controls underneath. Since stapel-profiles 0.15.0 a registered person who has typed nothing answers 200 with an empty-but-renderable profile — drawn here as a person, not as an error card.",

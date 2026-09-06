@@ -51,6 +51,34 @@ per-module override — `clients={{ profiles: runtime.client }}` — and nest
 providers (`StapelConfigProvider` + `QueryClientProvider` + `I18nProvider`)
 remain exported for bespoke composition.
 
+## A name is a slot before it is a name
+
+A person's name arriving is the largest thing that changes size on a page built
+around it: a line of loading text and a rendered heading are not the same box,
+and swapping one for the other moves everything below. Measured on a live seller
+page, a 24px loading line became an 86px `h4` and pushed the whole results grid
+down — CLS 0.0281 at 1440.
+
+`<ProfileNameHeading>` is the slot rather than the swap. Both states are the
+same `<Typography.Title>` at the same level, so antd's margins and line box are
+identical, and the class contract states the floor from that level's own tokens:
+
+```tsx
+import { ProfileNameHeading } from "@stapel/profiles-react/default";
+
+const profile = useProfile(userId);
+
+<ProfileNameHeading
+  loading={profile.isPending}
+  name={profile.data?.display_name}
+/>;
+```
+
+While it waits the heading carries `aria-busy` and the pair's "loading the
+profile" sentence as its accessible name; when it lands, the name — or, for the
+empty-but-renderable profile stapel-profiles 0.15.0 provisions at registration,
+the pair's word for a nameless one. `data-state` publishes which is on screen.
+
 ## Layers
 
 ```

@@ -86,13 +86,62 @@ export const LISTING_ACTION_HIT: number = controls["height-phone"];
  */
 export const LISTING_CARD_ACTION_HIT = 36;
 
+/**
+ * HOW MANY TIMES THE HIT-TARGET CLASS IS REPEATED IN ITS OWN SELECTOR — and
+ * why a repeat rather than a number typed once (D450).
+ *
+ * Measured on the live listing page: the heart and the share glyph were
+ * **32 × 44**, not 44 × 44. The block axis survived and the inline one did
+ * not, because antd's circle shape ships
+ *
+ *   `:where(…).ant-btn.ant-btn-circle.ant-btn{min-width:var(--ant-control-height)}`
+ *
+ * — three classes, specificity (0,3,0), against this sheet's single class
+ * (0,1,0). `:where()` adds nothing, and a media query adds nothing either, so
+ * the only thing that decides is the class count: antd's 32 won and there was
+ * no viewport at which it did not.
+ *
+ * A repeated class is the one way to outrank it without `!important`. Four
+ * repeats — (0,4,0) — clear antd's three with one to spare, and the selector
+ * still matches exactly the same element, so nothing about WHAT the rule
+ * applies to changes. `!important` was refused deliberately: a host that
+ * genuinely wants a different target must be able to say so with a selector,
+ * and this sheet's whole argument (see `movableCluster.tsx`) is that a pair's
+ * geometry should never force one on somebody else.
+ */
+export const LISTING_ACTION_SPECIFICITY = 4;
+
+/** A class name repeated {@link LISTING_ACTION_SPECIFICITY} times — the
+ * selector that beats antd's circle. */
+function outranking(className: string): string {
+  return `.${className}`.repeat(LISTING_ACTION_SPECIFICITY);
+}
+
+/**
+ * The floor, in BOTH spellings of the same axis.
+ *
+ * A browser cascades `min-inline-size` and `min-width` together and keeps the
+ * winner, so in a browser the logical pair alone would be enough once the
+ * selector outranks antd's. The physical pair is written beside it because
+ * the declaration being beaten is spelled physically, and an engine that does
+ * NOT merge the two names (jsdom, where this rule is asserted) would leave
+ * antd's `min-width:32px` standing beside our `min-inline-size:44px` and call
+ * that a pass. Two spellings of one number, and the number has one source.
+ */
+function floor(size: number): string {
+  const px = `${String(size)}px`;
+  return (
+    `min-inline-size:${px};min-block-size:${px};` +
+    `min-width:${px};min-height:${px}`
+  );
+}
+
 export function actionRowCss(): string {
-  const action = `.${LISTING_ACTION_CLASS}`;
-  const cardAction = `.${LISTING_CARD_ACTION_CLASS}`;
+  const action = outranking(LISTING_ACTION_CLASS);
+  const cardAction = outranking(LISTING_CARD_ACTION_CLASS);
   const row = `.${LISTING_ACTIONS_CLASS}`;
   const over = `.${LISTING_ACTIONS_OVERLAY_CLASS}`;
   const label = `.${LISTING_ACTION_LABEL_CLASS}`;
-  const hit = String(LISTING_ACTION_HIT);
   const phone = `(max-width:${String(breakpoints.tablet - 1)}px)`;
   return [
     // The floor. `min-*` rather than `width`/`height`: a share button with a
@@ -100,14 +149,13 @@ export function actionRowCss(): string {
     // `controlHeight` already reaches the height on a phone — this is the
     // guarantee for every OTHER viewport and for a host-registered button
     // that never read the antd token at all.
-    `${action}{min-inline-size:${hit}px;min-block-size:${hit}px;` +
+    `${action}{${floor(LISTING_ACTION_HIT)};` +
       `display:inline-flex;align-items:center;justify-content:center}`,
     // A card's control: one tier smaller where there is a cursor, the same
     // 44px where there is a thumb. See LISTING_CARD_ACTION_HIT.
-    `${cardAction}{min-inline-size:${String(LISTING_CARD_ACTION_HIT)}px;` +
-      `min-block-size:${String(LISTING_CARD_ACTION_HIT)}px;` +
+    `${cardAction}{${floor(LISTING_CARD_ACTION_HIT)};` +
       `display:inline-flex;align-items:center;justify-content:center}`,
-    `@media ${phone}{${cardAction}{min-inline-size:${hit}px;min-block-size:${hit}px}}`,
+    `@media ${phone}{${cardAction}{${floor(LISTING_ACTION_HIT)}}}`,
     // The cluster. `align-items:flex-end` so a blocked heart's reason — the
     // one thing here that can be two lines — stacks against the same edge
     // instead of pushing the controls inwards (the arrangement

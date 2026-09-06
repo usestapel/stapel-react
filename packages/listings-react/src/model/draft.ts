@@ -224,6 +224,28 @@ function toWireFeatures(
   return toFeaturesDto(features, values) as unknown as WireFeaturesDraft;
 }
 
+/** One field of the `save-draft` body, by the name the wire uses. */
+export type ListingDraftField = keyof ListingDraftPatch;
+
+/** Options for {@link draftPatchFromValues}. */
+export interface DraftPatchOptions {
+  /**
+   * NAME THE FIELDS THIS SAVE IS WRITING, and the body carries no others.
+   *
+   * `save-draft` REPLACES every field in the body — it does not merge — so a
+   * body is not "the values I have", it is "the fields I am claiming". A save
+   * fired by one control (a photo settling, a blurred title) previously
+   * claimed all fourteen, which is only harmless while every one of them is
+   * loaded and true.
+   *
+   * Given, only these keys are spelled; the omission rules below still apply
+   * inside the selection, so naming `features_draft` without a schema still
+   * writes nothing. Absent, the whole body is sent, which is right for the
+   * composer's own save — it holds every value on the form.
+   */
+  readonly fields?: readonly ListingDraftField[];
+}
+
 /**
  * The composer's values → the `save-draft` body.
  *
@@ -234,12 +256,34 @@ function toWireFeatures(
  * (`error.400.listing_feature_not_allowed`), which is why
  * {@link retainKnownFeatureValues} prunes on the way in rather than letting
  * the server explain it.
+ *
+ * ── NO SCHEMA IS NOT AN EMPTY ANSWER SHEET ───────────────────────────────
+ *
+ * An absent or empty `features` used to produce `features_draft: {}`, and
+ * `save-draft` REPLACES that map rather than merging into it — so a save that
+ * left before the category's schema arrived DELETED every characteristic the
+ * row was holding, while the form on screen still showed them. Measured by a
+ * live container over two cold loads of one draft: a reopen's own
+ * settled-photo save fires in the first commit, before the row's category has
+ * even been adopted, and the row alternated between the draft's answers and
+ * none of them (`darom-storefront` README, "Named gaps").
+ *
+ * `{}` is a claim — "this listing has no characteristics" — and a caller with
+ * no schema is in no position to make it. So the key is OMITTED entirely
+ * whenever there is no schema to tag values with, and `save-draft` then
+ * leaves the stored map exactly as it was. A category that genuinely declares
+ * no features writes nothing either, which is the same answer arrived at
+ * honestly: there is nothing to say and the row already says it.
+ *
+ * {@link DraftPatchOptions.fields} is the general form of the same rule — a
+ * save that names what it is writing cannot erase what it is not.
  */
 export function draftPatchFromValues(
   values: ListingDraftValues,
-  features: readonly FeatureDef[]
+  features: readonly FeatureDef[] | undefined,
+  options: DraftPatchOptions = {}
 ): ListingDraftPatch {
-  return {
+  const full: ListingDraftPatch = {
     // Omitted while unchosen rather than sent as `""`: a draft is allowed to
     // have no category (0.21.4), and `""` is not "no category" on the wire —
     // it is an empty id the serializer refuses. The category is written by
@@ -258,7 +302,11 @@ export function draftPatchFromValues(
     // sent here is discarded. Sending one would be a claim the wire ignores.
     lat_draft: values.location.lat,
     lon_draft: values.location.lon,
-    features_draft: toWireFeatures(features, values.features),
+    // Omitted, not emptied, when there is no schema to tag with — see the
+    // doc above. `{}` is a claim about the listing; silence is not.
+    ...(features !== undefined && features.length > 0
+      ? { features_draft: toWireFeatures(features, values.features) }
+      : {}),
     countable: values.countable,
     // The pair mirrors the model's cross-field rule rather than sending a
     // contradiction: a service carries no quantity, and `validate_countable
@@ -266,6 +314,16 @@ export function draftPatchFromValues(
     stock_quantity: values.countable ? values.stockQuantity : null,
     auto_republish: values.autoRepublish,
   };
+  const named = options.fields;
+  if (named === undefined) return full;
+  // A selection, not a second body: the field's VALUE is still whatever the
+  // rules above produced, so a named field the rules omit stays omitted.
+  const wanted = new Set<string>(named);
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(full)) {
+    if (wanted.has(key)) out[key] = value;
+  }
+  return out as ListingDraftPatch;
 }
 
 /**

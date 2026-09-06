@@ -20,6 +20,7 @@ import { ListingCard, ListingSerpCard } from "../src/default/index.js";
 import type { ListingCard as ListingCardData } from "../src/index.js";
 import {
   badgePresentation,
+  captionName,
   cardBadgeText,
   cardBadgeTexts,
   hasCardBadgeContract,
@@ -267,5 +268,70 @@ describe("a spec line is a run of values, not a row of chips (D421)", () => {
     expect(screen.getByTestId("listings-serp-specs-text").textContent).toBe(
       "Этаж: 5 эт. · Этажей: 9 эт. · 54 м²"
     );
+  });
+});
+
+// ── D455: the catalogue's own punctuation ────────────────────────────────────
+
+describe("a name that already ends in a colon does not get a second one", () => {
+  /** Measured on a live feed: one card in twenty-four. The catalogue row for
+   * this leaf spells the feature's name with the colon IN it. */
+  const HONOR: readonly CardBadgeRow[] = [
+    row({ slug: "vendor", type: "select", value: "honor", label: "HONOR", presentation: "value" }),
+    row({ slug: "model", value: 90, name: "Модель:", presentation: "name_value" }),
+    row({ slug: "memory", value: 256, unit: "ГБ", presentation: "value_unit" }),
+  ];
+
+  it("prints one colon on a line, where the surface adds its own", () => {
+    expect(cardBadgeTexts(HONOR, "ru", "line").map((one) => one.text)).toEqual([
+      "HONOR",
+      "Модель: 90",
+      "256 ГБ",
+    ]);
+  });
+
+  it("prints no dangling colon in a chip, where the surface adds none", () => {
+    expect(cardBadgeText(HONOR[1] as CardBadgeRow, "ru")).toBe("Модель 90");
+  });
+
+  it("draws one spelling whichever way the catalogue spelled it", () => {
+    // The SAME slug arrives captioned "Model:" on one listing and "Model" on
+    // the next. Two catalogue rows, one caption on screen.
+    const tidy = row({ slug: "model", value: 90, name: "Модель", presentation: "name_value" });
+    expect(cardBadgeText(HONOR[1] as CardBadgeRow, "ru", "line")).toBe(
+      cardBadgeText(tidy, "ru", "line")
+    );
+  });
+
+  it("takes the space with the colon, and only from the END", () => {
+    expect(captionName("Модель :")).toBe("Модель");
+    expect(captionName("Модель::")).toBe("Модель");
+    // Interior punctuation is the catalogue's business and is left alone.
+    expect(captionName("Модель: год")).toBe("Модель: год");
+    expect(captionName("Модель")).toBe("Модель");
+  });
+
+  it("does not leave a lone colon standing as a boolean's whole badge", () => {
+    // `name` presentation prints the name and nothing else, so a name that is
+    // only punctuation has nothing to say — and says nothing.
+    expect(
+      cardBadgeText(row({ slug: "brick", value: true, name: ":", presentation: "name" }))
+    ).toBeUndefined();
+    expect(
+      cardBadgeText(row({ slug: "brick", value: true, name: "Кирпич:", presentation: "name" }))
+    ).toBe("Кирпич");
+  });
+
+  it("counts two spellings of one word as one word when disambiguating", () => {
+    // Both axes wear the same unit, so the pass would caption them — but the
+    // two names are the same word and a caption that does not tell them apart
+    // is noise. It refuses, as it does for two literally identical names.
+    const twoSpellings: readonly CardBadgeRow[] = [
+      row({ slug: "floor", value: 5, unit: "эт.", name: "Этаж:", presentation: "value_unit" }),
+      row({ slug: "floors", value: 9, unit: "эт.", name: "Этаж", presentation: "value_unit" }),
+    ];
+    expect(
+      cardBadgeTexts(twoSpellings, "ru", "line").map((one) => one.text)
+    ).toEqual(["5 эт.", "9 эт."]);
   });
 });

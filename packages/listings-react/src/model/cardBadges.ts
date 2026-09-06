@@ -227,12 +227,41 @@ function isTrue(raw: unknown): boolean {
  */
 export type CardBadgeStyle = "badge" | "line";
 
+/**
+ * A CAPTION AS THIS PAIR WILL PUNCTUATE IT — the catalogue's own trailing
+ * colon stripped (D455).
+ *
+ * Measured on a live feed, translated: one card in twenty-four read
+ * "HONOR · **Model:: 90** · 256 GB". The catalogue row for that leaf spells
+ * the feature's name "Model:" — with the colon IN the name — and presents it
+ * `name_value`, while the neighbouring listing's row for the same slug spells
+ * it "Model" and presents it `value`. So the content is inconsistent and only
+ * one half of that is ours; what is ours is that {@link caption} then adds a
+ * second colon to a name that already ended in one.
+ *
+ * Punctuation between a caption and its answer is the SURFACE's decision (see
+ * the module header) — which means it is not the catalogue's, and a name that
+ * arrives carrying its own is a name with a separator baked into it. It is
+ * taken off here, once, so both styles are unaffected by which of the two
+ * spellings a row happens to use: the chip draws "Model 90" and the line
+ * "Model: 90" either way.
+ *
+ * Only a TRAILING colon, and only the colon: a name is otherwise printed
+ * exactly as the catalogue wrote it. "Model: year:" is not a shape anybody
+ * sends, and a rule that chewed punctuation off the end of every caption
+ * would eventually eat a name that meant it.
+ */
+export function captionName(name: string): string {
+  return name.replace(/\s*:+$/u, "");
+}
+
 /** A caption and its answer, joined the way this surface separates them. */
 function caption(name: string, body: string, style: CardBadgeStyle): string {
   // A SPACE in a chip and a COLON in a line. "Floor 3" is a caption inside a
   // border; "Floor: 3" is what the same pair has to become when the border is
   // gone and the neighbours are a dot away.
-  return style === "line" ? `${name}: ${body}` : `${name} ${body}`;
+  const head = captionName(name);
+  return style === "line" ? `${head}: ${body}` : `${head} ${body}`;
 }
 
 /**
@@ -250,11 +279,16 @@ export function cardBadgeText(
   style: CardBadgeStyle = "badge"
 ): string | undefined {
   const presentation = badgePresentation(row);
-  const name = text(row.name);
+  // Normalised ONCE, here (D455): every arm below asks "is there a name to
+  // print", and the answer has to be about the name this pair will actually
+  // draw — a row whose whole name is ":" has none.
+  const name = captionName(text(row.name));
   const unit = text(row.unit);
 
   if (presentation === "name") {
-    // The name IS the badge, and only while the answer is yes.
+    // The name IS the badge, and only while the answer is yes. Normalised by
+    // the same rule as a caption: a lone "Brick:" is a colon with nothing
+    // after it, which is the defect in its plainest form.
     return isTrue(row.value) && name.length > 0 ? name : undefined;
   }
 
@@ -288,7 +322,7 @@ export function cardBadgeText(
 function alreadyCaptioned(row: CardBadgeRow): boolean {
   const presentation = badgePresentation(row);
   if (presentation === "name") return true;
-  return presentation === "name_value" && text(row.name).length > 0;
+  return presentation === "name_value" && captionName(text(row.name)).length > 0;
 }
 
 /**
@@ -331,7 +365,10 @@ export function cardBadgeTexts(
 
   for (const positions of groups.values()) {
     if (positions.length < 2) continue;
-    const names = positions.map((at) => text(printedRows[at]?.name));
+    // The names as they will be DRAWN (D455) — so a catalogue row spelling
+    // one axis "Floor:" and the other "Floor" is two spellings of one word
+    // here rather than two distinct captions that tell a reader nothing apart.
+    const names = positions.map((at) => captionName(text(printedRows[at]?.name)));
     // Nothing to caption with, or one word for both axes: leave the line as
     // the server wrote it rather than adding a caption that tells a reader
     // nothing they did not already have.

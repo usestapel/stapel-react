@@ -40,6 +40,19 @@ export {
   PERSON_COMPACT_AVATAR,
 } from "./PersonRow.js";
 export type { PersonRowProps } from "./PersonRow.js";
+export {
+  PROFILE_NAME_CLASS,
+  PROFILE_NAME_LINE_VAR,
+  PROFILE_NAME_PLACEHOLDER_CLASS,
+  PROFILE_NAME_STYLE_HREF,
+  ProfileNameHeading,
+  headingLineHeight,
+  profileNameCss,
+} from "./ProfileNameHeading.js";
+export type {
+  ProfileNameHeadingProps,
+  ProfileNameLevel,
+} from "./ProfileNameHeading.js";
 export { Relationship } from "./Relationship.js";
 export type { RelationshipProps } from "./Relationship.js";
 export { ConnectionList, CONNECTION_ROW_MIN_WIDTH } from "./ConnectionList.js";
