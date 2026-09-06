@@ -642,6 +642,29 @@ function labelStyleFor(
 }
 
 /**
+ * THE TILE CAPTION'S NAME — the one element a reading of the label may aim
+ * at, in every anatomy.
+ *
+ * A tile's caption used to be an unnamed `<span>` inside the tile link, and
+ * WHICH span it is depends on the anatomy: the label comes FIRST on the
+ * regular and `size="compact"` tiles and SECOND on `density="compact"`, whose
+ * art leads. So anything reaching for it by position — a stylesheet's
+ * `span:first-child`, a probe's `querySelector` — aims at the label on one
+ * surface and at the art on the next, and reports a number either way. That
+ * is not hypothetical twice over: it is the `!important` clamp override
+ * {@link CategoryTileGridProps.labelLines} replaced, and then a stand probe
+ * that read `-webkit-line-clamp` off the tile LINK (where it is `none`, on a
+ * page where the clamp is working perfectly) and counted the art box and the
+ * monogram as two of the caption's "lines".
+ *
+ * Every ordinary tile's caption carries this. The two special tiles keep
+ * their own, older names on the same span — `categories-tile-grid-all` on the
+ * "All" tile — because a test that reads the clamp off THAT tile already
+ * points at the right element and must keep pointing at it.
+ */
+export const CATEGORY_TILE_LABEL_TESTID = "categories-tile-label";
+
+/**
  * The label + art pairing for ONE tile, in whichever of the three anatomies
  * applies — shared between {@link Tile} and {@link MoreTile}, which differ
  * only in what wraps this (a link vs a button).
@@ -657,12 +680,10 @@ function tileBody(props: {
   readonly labelLines: number | undefined;
   readonly testId?: string;
 }): ReactElement {
-  const labelProps =
-    props.testId !== undefined ? { "data-testid": props.testId } : {};
   const label = (
     <span
       style={labelStyleFor(props.density, props.size, props.labelLines)}
-      {...labelProps}
+      data-testid={props.testId ?? CATEGORY_TILE_LABEL_TESTID}
     >
       {props.label}
     </span>

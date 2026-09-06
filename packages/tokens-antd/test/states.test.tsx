@@ -179,6 +179,49 @@ describe("LoadBoundary", () => {
     expect(screen.getByText("Ada")).toBeTruthy();
   });
 
+  it("stamps a REFRESHING ready arm, in a wrapper that costs no layout", () => {
+    // core's `keepPrevious` seam: the answer on the glass is the previous
+    // one, and a newer read is in flight.
+    const { container } = render(
+      <Host>
+        <LoadBoundary state={loadReady({ name: "Ada" }, true)}>
+          {(user) => <p>{user.name}</p>}
+        </LoadBoundary>
+      </Host>
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.getAttribute("data-stapel-load-refreshing")).toBe("true");
+    // `display: contents` — the wrapper is addressable and occupies nothing.
+    expect(wrapper.style.display).toBe("contents");
+    expect(screen.getByText("Ada")).toBeTruthy();
+  });
+
+  it("keeps that wrapper when the flag drops, so the subtree is never remounted", () => {
+    // The whole point of the seam is that React does not tear the ready arm
+    // down on a parameter change. A wrapper that appeared WITH the flag would
+    // be a different element at the same position — the remount itself.
+    const { container, rerender } = render(
+      <Host>
+        <LoadBoundary state={loadReady({ name: "Ada" }, true)}>
+          {(user) => <p>{user.name}</p>}
+        </LoadBoundary>
+      </Host>
+    );
+    const wrapper = container.firstElementChild;
+    rerender(
+      <Host>
+        <LoadBoundary state={loadReady({ name: "Grace" }, false)}>
+          {(user) => <p>{user.name}</p>}
+        </LoadBoundary>
+      </Host>
+    );
+    expect(container.firstElementChild).toBe(wrapper);
+    expect(
+      (wrapper as HTMLElement).getAttribute("data-stapel-load-refreshing")
+    ).toBeNull();
+    expect(screen.getByText("Grace")).toBeTruthy();
+  });
+
   it("custom arms replace the defaults", () => {
     render(
       <Host>

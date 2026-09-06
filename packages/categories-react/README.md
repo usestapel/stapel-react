@@ -540,6 +540,70 @@ passes `density="compact"` — a stylesheet that reads as coverage and clamps
 nothing. A prop is a number the host can read back, and it lands on the label
 in every anatomy, including the "All" tile and the `overflow="modal"` tile.
 
+## The caption has a name: `CATEGORY_TILE_LABEL_TESTID`
+
+Every ordinary tile's caption carries `data-testid="categories-tile-label"`,
+and the constant is exported so a host does not retype the string:
+
+```tsx
+import { CATEGORY_TILE_LABEL_TESTID } from "@stapel/categories-react/default";
+
+const clamp = (el: HTMLElement) =>
+  getComputedStyle(el).getPropertyValue("-webkit-line-clamp");
+document.querySelectorAll(`[data-testid="${CATEGORY_TILE_LABEL_TESTID}"]`);
+```
+
+It is on the same `<span>` the clamp is on, in all three anatomies. That is
+the whole point: the caption is FIRST inside the tile link on the regular and
+`size="compact"` tiles and SECOND on `density="compact"`, whose art leads, so
+anything reaching for it by position aims at the label on one surface and at
+the art on the next — and reports a number either way. A deployment's
+`span:first-child` `!important` clamp had been a silent no-op on the phone
+landing for exactly that reason, and a stand probe that read
+`-webkit-line-clamp` off the tile LINK found `none` on a page where the clamp
+was working perfectly, then counted the art box and the monogram among the
+caption's "lines".
+
+The two special tiles keep the names they already had on that same span —
+`categories-tile-grid-all` on the "All" tile, `categories-tile-grid-more` on
+the `overflow="modal"` one — because a test reading the clamp off those
+already points at the right element.
+
+## A parameter change must not swap the page for a skeleton: `keepPrevious`
+
+`<CategoryPage>` holds the page that is on the glass while the NEXT
+category's two reads are in flight, and only then swaps. Default `true`.
+
+```tsx
+<CategoryPage categoryId={id} renderListings={(c) => <SearchPage … />} />
+// …and to go back to the old behaviour:
+<CategoryPage categoryId={id} keepPrevious={false} renderListings={…} />
+```
+
+The defect it closes (D454) is a mount, not a flicker. A partition press
+navigates to a SIBLING — same page, same rail, same segmented control,
+different rows — and it changed `categoryId`, sent `GET {id}/` and
+`GET {id}/children/` pending, and the page's `LoadBoundary` swapped its
+subtree for a four-row skeleton. A different element at the same position is
+an unmount: everything a host had rendered into `renderListings` — the filter
+rail, the facet panel, the control the person had just pressed, its focus and
+its scroll position — was rebuilt, twice, out and back. A storefront worked
+around it by mounting these very hooks in its own container and withholding
+the id from this page until both had landed, which is 47 lines to tell the
+page something the page already knew.
+
+What is held is the WHOLE frame — the row, the level under it and its depth
+travel together inside the load state — so the heading, the sub-category
+chrome and the listings slot can never disagree about which category is on
+screen. While the next frame is in flight the ready arm carries
+`data-stapel-load-refreshing="true"` (`<LoadBoundary>`, `@stapel/tokens-antd`),
+so a host can dim or announce the wait without owning the state.
+
+A REFUSAL is never held: the error arm and its retry replace the page, because
+a dead category wearing the last live one is a dead link that looks alive. And
+a category this page has never shown still loads with the skeleton — there is
+genuinely nothing behind it.
+
 ## The first row does not wait for a scrollbar: `eagerCount`
 
 Every tile image used to be `loading="lazy"`, including a whole first row that

@@ -100,6 +100,7 @@ import {
   loadStateFromQuery,
   loadedRowsOrEmpty,
   mapLoad,
+  useKeptLoad,
   useT,
 } from "@stapel/core";
 import type { LinkComponent, LoadState } from "@stapel/core";
@@ -491,6 +492,31 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * existing host exactly where it is.
    */
   readonly gutter?: boolean;
+  /**
+   * Hold the page that is on the glass while the NEXT category's reads are in
+   * flight, instead of swapping it for the skeleton. Default `true`.
+   *
+   * A partition press moves to a sibling: the heading changes, the rows
+   * change, and everything between them — the trail, the sub-category chrome,
+   * and whatever the host rendered into
+   * {@link CategoryPageProps.renderListings} — is the same page. Redrawing
+   * the boundary's loading arm there unmounts all of it; see
+   * `useCategoryPageSource` for the defect (D454) and what a storefront had
+   * to write to work around it.
+   *
+   * While a new frame is in flight the ready arm carries
+   * `data-stapel-load-refreshing="true"` (`<LoadBoundary>`), so a host that
+   * wants to dim or announce the wait can, without owning the state.
+   *
+   * `false` restores the old behaviour exactly: every change of address goes
+   * through `loading` first. For a host that draws its OWN held frame and
+   * would otherwise hold one on top of another.
+   *
+   * A FAILED read is never held either way — the error arm and its retry
+   * replace the page, because a dead category wearing the previous live one
+   * is a dead link that looks alive.
+   */
+  readonly keepPrevious?: boolean;
 }
 
 /**
@@ -510,17 +536,31 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
  */
 export type SubcategoryForm = "pane" | "tiles" | "cascade" | "none";
 
-/** What the two addresses resolve to, in one shape. */
-interface CategoryPageSource {
-  /** `loading` until the landing category itself is known. */
-  readonly state: LoadState<null>;
+/**
+ * ONE landing, whole: the row, the level under it, and the depth they were
+ * read at.
+ *
+ * The three travel INSIDE the {@link LoadState} rather than beside it, and
+ * that is what makes `keepPrevious` mean anything: a page holding the
+ * previous answer must hold all of it, or the heading, the tiles and the
+ * listings slot can disagree about which category is on screen.
+ */
+interface CategoryPageFrame {
+  /** The landing itself. `null` = the read succeeded and named nothing,
+   * which only the SLUG path can produce (an unknown id is a 404, and that
+   * arrives as `failed`). */
   readonly current: Category | null;
   readonly children: readonly Category[];
   /** The landing's own 0-indexed depth — from `tn_ancestors_pks` on the id
-   * path, from the built node on the slug path. `null` while unknown. */
+   * path, from the built node on the slug path. `null` with no landing. */
   readonly depth: number | null;
-  /** The address named nothing. Only ever `true` once a read succeeded. */
-  readonly unknown: boolean;
+}
+
+/** What the two addresses resolve to, in one shape. */
+interface CategoryPageSource {
+  /** `loading` until the landing is known — or, under `keepPrevious`, `ready`
+   * with the PREVIOUS landing and {@link LoadState} `refreshing` set. */
+  readonly state: LoadState<CategoryPageFrame>;
   refetch(): void;
 }
 
@@ -531,10 +571,28 @@ interface CategoryPageSource {
  * disabled TanStack query issues no request, stores nothing and reads
  * nothing, which is what makes "the id path never transfers the catalogue" a
  * property of the code rather than of the render order.
+ *
+ * ── Why the previous frame is kept (D454) ──────────────────────────────────
+ *
+ * A partition press navigates to a SIBLING: same page, same rail, same
+ * segmented control, different rows. It changed `categoryId`, sent both reads
+ * pending, and the boundary below swapped its subtree for a four-row
+ * skeleton — which UNMOUNTED everything the host had rendered into
+ * `renderListings`, including the control the person had just pressed, its
+ * focus and its scroll position, twice (out and back). A storefront worked
+ * around it by re-mounting these very hooks in the container and withholding
+ * the id from this page until both had landed. That knowledge belongs here:
+ * the page already knows when its own frame is whole.
+ *
+ * So the composed state goes through {@link useKeptLoad}, and the page draws
+ * the last WHOLE frame until the next one is whole. `failed` still passes
+ * straight through — a dead category wearing the previous live page is a dead
+ * link that looks alive.
  */
 function useCategoryPageSource(props: {
   readonly categoryId?: number | null;
   readonly slug?: string;
+  readonly keepPrevious?: boolean;
 }): CategoryPageSource {
   const byId = props.categoryId !== null && props.categoryId !== undefined;
   const id = byId ? (props.categoryId as number) : null;
@@ -543,51 +601,55 @@ function useCategoryPageSource(props: {
   const childrenQuery = useCategoryChildren(id);
   const catalogQuery = useCategoryCatalog({ enabled: !byId });
 
+  const catalog = loadStateFromQuery(catalogQuery);
+  let fresh: LoadState<CategoryPageFrame>;
+  let refetch: () => void;
+
   if (byId) {
     const row = rowQuery.data ?? null;
     const childrenState = loadStateFromQuery(childrenQuery);
     // BOTH reads gate the page, and the children one is not optional: a page
     // that went `ready` on the row alone would draw "no sub-categories" for a
     // third of a second on every category that has some.
-    const state: LoadState<null> =
+    fresh =
       rowQuery.error != null
         ? { status: "failed", error: rowQuery.error }
         : childrenState.status === "failed"
           ? childrenState
           : row === null || childrenState.status !== "ready"
             ? { status: "loading" }
-            : { status: "ready", data: null };
-    return {
-      state,
-      current: row,
-      children: loadedRowsOrEmpty(childrenState),
-      depth: row === null ? null : categoryAncestorChain(row).length,
-      // An id that is not a category is a 404 from the server, which arrives
-      // as `failed`. There is no "read succeeded and named nothing" here.
-      unknown: false,
-      refetch: () => {
-        void rowQuery.refetch();
-        void childrenQuery.refetch();
-      },
+            : {
+                status: "ready",
+                data: {
+                  current: row,
+                  children: loadedRowsOrEmpty(childrenState),
+                  depth: categoryAncestorChain(row).length,
+                },
+              };
+    refetch = () => {
+      void rowQuery.refetch();
+      void childrenQuery.refetch();
+    };
+  } else {
+    const index = catalog.status === "ready" ? catalog.data.index : null;
+    const node =
+      index !== null && props.slug !== undefined
+        ? (resolveCategorySlug(index, props.slug) ?? null)
+        : null;
+    fresh = mapLoad(catalog, () => ({
+      current: node?.category ?? null,
+      children: node?.children.map((child) => child.category) ?? [],
+      depth: node?.depth ?? null,
+    }));
+    refetch = () => {
+      void catalogQuery.refetch();
     };
   }
 
-  const catalog = loadStateFromQuery(catalogQuery);
-  const index = catalog.status === "ready" ? catalog.data.index : null;
-  const node =
-    index !== null && props.slug !== undefined
-      ? (resolveCategorySlug(index, props.slug) ?? null)
-      : null;
-  return {
-    state: mapLoad(catalog, () => null),
-    current: node?.category ?? null,
-    children: node?.children.map((child) => child.category) ?? [],
-    depth: node?.depth ?? null,
-    unknown: catalog.status === "ready" && node === null,
-    refetch: () => {
-      void catalogQuery.refetch();
-    },
-  };
+  const state = useKeptLoad(fresh, {
+    keepPrevious: props.keepPrevious !== false,
+  });
+  return { state, refetch };
 }
 
 /**
@@ -779,6 +841,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
   const source = useCategoryPageSource({
     ...(props.categoryId !== undefined ? { categoryId: props.categoryId } : {}),
     ...(props.slug !== undefined ? { slug: props.slug } : {}),
+    ...(props.keepPrevious !== undefined
+      ? { keepPrevious: props.keepPrevious }
+      : {}),
   });
 
   return (
@@ -836,8 +901,8 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
             />
           )}
         >
-          {() =>
-            source.current === null ? (
+          {(frame) =>
+            frame.current === null ? (
               <EmptyState
                 testId="categories-category-unknown"
                 title={t(CATEGORIES_I18N_KEYS.categoryUnknownSlug)}
@@ -863,11 +928,11 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                   data-testid="categories-category-title"
                 >
                   {props.heading === undefined
-                    ? renderCategoryLabel(categoryLabel(source.current), t)
+                    ? renderCategoryLabel(categoryLabel(frame.current), t)
                     : typeof props.heading === "function"
                       ? props.heading({
-                          category: source.current,
-                          count: source.children.length,
+                          category: frame.current,
+                          count: frame.children.length,
                         })
                       : props.heading}
                 </Typography.Title>
@@ -898,9 +963,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                   {...(props.subcategoryOverflow !== undefined
                     ? { overflow: props.subcategoryOverflow }
                     : {})}
-                  current={source.current}
-                  depth={source.depth ?? 0}
-                  childRows={source.children}
+                  current={frame.current}
+                  depth={frame.depth ?? 0}
+                  childRows={frame.children}
                   {...(props.slug !== undefined ? { slug: props.slug } : {})}
                   basePath={base}
                   {...link}
@@ -919,11 +984,11 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                 />
 
                 {props.showFeatures === true ? (
-                  <CategoryFeatureList categoryId={source.current.id} />
+                  <CategoryFeatureList categoryId={frame.current.id} />
                 ) : null}
 
                 {props.renderListings !== undefined ? (
-                  props.renderListings(source.current)
+                  props.renderListings(frame.current)
                 ) : (
                   <SlotPlaceholder
                     name="renderListings"

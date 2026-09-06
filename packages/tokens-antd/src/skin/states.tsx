@@ -309,6 +309,22 @@ export interface LoadBoundaryProps<T> extends LoadArmsProps {
  *
  * The arms are stamped `data-stapel-load-state="loading|failed"`; the ready
  * arm renders the children without a wrapper, so it costs the layout nothing.
+ *
+ * ── The exception: a state that KEEPS its previous answer ──────────────────
+ *
+ * A ready state carrying `refreshing` came through core's `keepPrevious`
+ * seam (`loadState.ts`), which exists so a parameter change re-renders a page
+ * instead of swapping it for a skeleton. Such a state gets ONE `display:
+ * contents` wrapper — no box, no layout — carrying
+ * `data-stapel-load-refreshing="true"` while the newer read is in flight, so
+ * a host can dim the page or announce it without owning the state itself.
+ *
+ * The wrapper is present for EVERY ready answer of such a state, refreshing
+ * or not, and absent for every state that never asked to keep anything. Both
+ * halves matter: a wrapper that appeared with the flag would be a different
+ * element at the same position — the remount `keepPrevious` exists to
+ * prevent — and a wrapper that appeared for everyone would change the DOM
+ * under every existing host for a feature none of them use.
  */
 export function LoadBoundary<T>(props: LoadBoundaryProps<T>): ReactElement {
   return (
@@ -316,7 +332,19 @@ export function LoadBoundary<T>(props: LoadBoundaryProps<T>): ReactElement {
       {matchLoad<T, ReactNode>(props.state, {
         loading: () => <LoadingArm {...props} />,
         failed: (error) => <FailedArm {...props} error={error} />,
-        ready: props.children,
+        ready: (data) =>
+          props.state.status === "ready" && props.state.refreshing !== undefined ? (
+            <div
+              style={{ display: "contents" }}
+              {...(props.state.refreshing
+                ? { "data-stapel-load-refreshing": "true" }
+                : {})}
+            >
+              {props.children(data)}
+            </div>
+          ) : (
+            props.children(data)
+          ),
       })}
     </>
   );

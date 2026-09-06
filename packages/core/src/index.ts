@@ -41,6 +41,7 @@ export {
   matchLoad,
   matchList,
   loadedRowsOrEmpty,
+  keepPreviousLoad,
 } from "./loadState.js";
 export type {
   LoadState,
@@ -49,7 +50,12 @@ export type {
   LoadFailed,
   NonEmptyArray,
   QueryLike,
+  KeepPreviousOption,
 } from "./loadState.js";
+// keepPrevious: a parameter change must not swap a whole page for a skeleton
+// (useKeptLoad.ts, D454). The memory a screen keeps of the answer that is on
+// the glass, so a boundary re-renders instead of remounting.
+export { useKeptLoad } from "./useKeptLoad.js";
 
 // action gate: a disabled control states its reason (actionGate.ts). There is
 // no way to spell "blocked, reason unknown" — the union has no such member.

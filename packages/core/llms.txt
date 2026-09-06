@@ -77,6 +77,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - isLoadReady
 - isMandateResolved
 - isStapelApiError
+- keepPreviousLoad
 - loadFailed
 - loadLoading
 - loadReady
@@ -118,6 +119,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - useFormat
 - useFormatFlowError
 - useI18n
+- useKeptLoad
 - useMandate
 - useMandatePrincipal
 - useObjectUrlPreview
@@ -166,6 +168,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - I18nDictionary
 - I18nEngine
 - Instant
+- KeepPreviousOption
 - LinkComponent
 - LinkComponentProps
 - LoadFailed

@@ -40,7 +40,7 @@ export { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
 export { CategoryMegaMenu } from "./CategoryMegaMenu.js";
 export type { CategoryMegaMenuProps } from "./CategoryMegaMenu.js";
-export { CategoryTileGrid } from "./CategoryTileGrid.js";
+export { CategoryTileGrid, CATEGORY_TILE_LABEL_TESTID } from "./CategoryTileGrid.js";
 export type {
   CategoryIconResolver,
   CategoryTileGridProps,

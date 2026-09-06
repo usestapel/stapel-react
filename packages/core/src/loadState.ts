@@ -58,6 +58,19 @@ export interface LoadLoading {
 export interface LoadReady<T> {
   readonly status: "ready";
   readonly data: T;
+  /**
+   * This answer is the PREVIOUS one, and a newer read is in flight.
+   *
+   * Only ever set by the `keepPrevious` seam ({@link keepPreviousLoad},
+   * {@link useKeptLoad}, {@link loadStateFromQuery}'s option) — and then it is
+   * set on EVERY ready answer, `false` included, so a renderer's DOM does not
+   * change shape between "settled" and "refreshing". Absent means the caller
+   * never asked to keep anything, which is every existing call site.
+   *
+   * It is not a fourth state: the data is real, the screen is correct, and a
+   * skin that ignores this field renders exactly what it rendered before.
+   */
+  readonly refreshing?: boolean;
 }
 
 /** A load that failed. Carries the thrown value for the error dialect
@@ -92,9 +105,17 @@ export function loadLoading(): LoadLoading {
   return LOADING;
 }
 
-/** A successful load. */
-export function loadReady<T>(data: T): LoadReady<T> {
-  return { status: "ready", data };
+/**
+ * A successful load.
+ *
+ * `refreshing` is omitted from the object entirely when it is not passed —
+ * the shape a caller that never asked for {@link LoadReady.refreshing} has
+ * always received, down to `toStrictEqual`.
+ */
+export function loadReady<T>(data: T, refreshing?: boolean): LoadReady<T> {
+  return refreshing === undefined
+    ? { status: "ready", data }
+    : { status: "ready", data, refreshing };
 }
 
 /** A failed load, carrying the thrown value verbatim. */
@@ -125,6 +146,74 @@ export interface QueryLike<T> {
   readonly status: "pending" | "error" | "success";
   readonly data: T | undefined;
   readonly error: unknown;
+  /**
+   * TanStack's own "the data in hand belongs to a DIFFERENT key" flag, set by
+   * `placeholderData: keepPreviousData`. Read only under
+   * {@link KeepPreviousOption.keepPrevious}; absent everywhere else, which is
+   * why it is optional and why `UseQueryResult` still satisfies this shape.
+   */
+  readonly isPlaceholderData?: boolean;
+}
+
+/**
+ * "Answer with the PREVIOUS data while the next one is in flight, rather than
+ * with a skeleton."
+ *
+ * ── The defect (D454, storefront `/c/:slug`) ───────────────────────────────
+ *
+ * A boundary's three arms are three DIFFERENT elements at one position, so
+ * every trip through `loading` UNMOUNTS the subtree. On a category page that
+ * meant a partition press — a navigation to a SIBLING, where the page's whole
+ * frame is unchanged and only its rows differ — rebuilt the filter rail, the
+ * facet panel and the segmented control the person had just pressed, losing
+ * its focus and its scroll position, and drew a four-row skeleton where the
+ * page was, twice (out and back). The host worked around it by holding the
+ * category id until both of the pair's reads had landed for it — 47 lines of
+ * container code re-mounting the pair's own queries to learn what the pair
+ * already knew.
+ *
+ * `loading` is still the honest answer when there is NOTHING to show. It is
+ * the wrong answer when there is a whole correct page on the glass and the
+ * only news is that a newer one is coming.
+ */
+export interface KeepPreviousOption {
+  /**
+   * `true` — a load with no answer YET answers with the last one this seam
+   * saw, stamped {@link LoadReady.refreshing}. `loading` survives only for a
+   * first load, where there is genuinely nothing behind the skeleton.
+   *
+   * A REFUSAL is never kept: `failed` passes straight through, on top of
+   * however much good data there was. A dead category shown as the previous
+   * live one is a dead link wearing a working page — the error arm owns its
+   * own retry, and holding the old answer over a refusal is the same lie
+   * this module exists to end, one state along.
+   */
+  readonly keepPrevious?: boolean;
+}
+
+/**
+ * The merge {@link KeepPreviousOption} is made of, as a pure function: `next`,
+ * or `previous` marked refreshing while `next` has nothing to show.
+ *
+ * `previous` is the last data this caller saw — {@link useKeptLoad} is the
+ * seam that remembers it; this is the rule it applies, kept React-free so it
+ * can be tested (and reused) without one.
+ *
+ * Ready answers come back with `refreshing` ALWAYS set once this is in play,
+ * `false` included. That is deliberate: a renderer keying its DOM off the
+ * field (`<LoadBoundary>` stamps `data-stapel-load-refreshing`) must not grow
+ * and drop a wrapper as the flag comes and goes, because a wrapper that
+ * appears is a different element at the same position — which is the remount
+ * this whole seam exists to prevent.
+ */
+export function keepPreviousLoad<T>(
+  next: LoadState<T>,
+  previous: T | undefined
+): LoadState<T> {
+  if (next.status === "ready") return loadReady(next.data, false);
+  // A refusal is the caller's to render, always. See `keepPrevious`.
+  if (next.status === "failed" || previous === undefined) return next;
+  return loadReady(previous, true);
 }
 
 /**
@@ -141,21 +230,42 @@ export interface QueryLike<T> {
  *   background refetch that fails on top of good data leaves `status:
  *   "success"`, so this returns `ready` and the screen keeps showing the rows
  *   it has — correct, and the reason this does not read `isError` either.
+ *
+ * {@link KeepPreviousOption.keepPrevious} extends that same rule one step: a
+ * query holding data that belongs to the PREVIOUS key (TanStack's
+ * `placeholderData: keepPreviousData`, which reports `isPlaceholderData` and
+ * may still sit at `status: "pending"`) reads as `ready` + `refreshing`
+ * instead of `loading`. Without that option the behaviour is byte-for-byte
+ * what it always was, placeholder data included.
+ *
+ * The option is for a SINGLE query that TanStack itself keeps the previous
+ * answer for. A screen composed of several reads — or one whose hooks are
+ * shared with surfaces that must NOT see a stale rung — keeps its own memory
+ * with {@link useKeptLoad} instead.
  */
-export function loadStateFromQuery<T>(query: QueryLike<T>): LoadState<T> {
+export function loadStateFromQuery<T>(
+  query: QueryLike<T>,
+  options?: KeepPreviousOption
+): LoadState<T> {
   if (query.status === "error") return loadFailed(query.error);
+  const keep = options?.keepPrevious === true;
   if (query.status === "success" && query.data !== undefined) {
-    return loadReady(query.data);
+    return keep ? loadReady(query.data, query.isPlaceholderData === true) : loadReady(query.data);
   }
+  if (keep && query.data !== undefined) return loadReady(query.data, true);
   return loadLoading();
 }
 
-/** Transform the loaded value, leaving loading/failed untouched. */
+/** Transform the loaded value, leaving loading/failed untouched — and
+ * carrying {@link LoadReady.refreshing} across, so a projection of a kept
+ * answer is still a kept answer. */
 export function mapLoad<T, U>(
   state: LoadState<T>,
   fn: (data: T) => U
 ): LoadState<U> {
-  return state.status === "ready" ? loadReady(fn(state.data)) : state;
+  return state.status === "ready"
+    ? loadReady(fn(state.data), state.refreshing)
+    : state;
 }
 
 /**
@@ -171,7 +281,12 @@ export function bothLoaded<A, B>(
   if (a.status === "failed") return a;
   if (b.status === "failed") return b;
   if (a.status === "ready" && b.status === "ready") {
-    return loadReady([a.data, b.data] as const);
+    // Refreshing if EITHER half is: the pair is only settled once both are.
+    const refreshing =
+      a.refreshing === undefined && b.refreshing === undefined
+        ? undefined
+        : a.refreshing === true || b.refreshing === true;
+    return loadReady([a.data, b.data] as const, refreshing);
   }
   return loadLoading();
 }

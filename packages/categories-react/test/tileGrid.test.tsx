@@ -13,6 +13,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { loadFailed, loadLoading, loadReady } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
 import {
+  CATEGORY_TILE_LABEL_TESTID,
   CategoryQuickSearchPanel,
   CategoryTileGrid,
 } from "../src/default/index.js";
@@ -1116,5 +1117,85 @@ describe("the box a row waits in is the shape of the row that arrives", () => {
     await waitFor(() =>
       expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy()
     );
+  });
+});
+
+/**
+ * THE CAPTION HAS A NAME NOW.
+ *
+ * The gap a storefront integrator named by hand: an ordinary tile's caption
+ * was an unnamed `<span>` inside the tile link, and WHICH span it is depends
+ * on the anatomy — first on the regular and `size="compact"` tiles, second on
+ * `density="compact"`, whose art leads. Everything reaching for it by
+ * position therefore aims at the label on one surface and at the art on the
+ * next, and reports a number either way: that is the `span:first-child`
+ * `!important` clamp `labelLines` retired, and then a stand probe that read
+ * `-webkit-line-clamp` off the tile LINK (`none`, on a page where the clamp
+ * works) and counted the art box and the monogram among the caption's lines.
+ *
+ * So the assertions below do what a probe should be able to do: find the
+ * caption by NAME in all three anatomies, and read the clamp off it.
+ */
+describe("the caption's test id", () => {
+  function captions(): readonly HTMLElement[] {
+    return screen.getAllByTestId(CATEGORY_TILE_LABEL_TESTID);
+  }
+
+  it("names the caption in all three anatomies, and it is the clamped span every time", async () => {
+    for (const anatomy of [
+      {},
+      { density: "compact" as const },
+      { size: "compact" as const },
+    ]) {
+      const view = render(
+        <TestProviders server={mockServer(OK)}>
+          <CategoryTileGrid entries={CHILD_TILES} allTile={false} {...anatomy} />
+        </TestProviders>
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("categories-tile-grid-list").querySelectorAll("a")
+        ).toHaveLength(2)
+      );
+      const found = captions();
+      expect(found).toHaveLength(2);
+      expect(found.map((span) => span.textContent)).toEqual([
+        "category.phones",
+        "category.laptops",
+      ]);
+      // The named span IS the one carrying the clamp — a name pointing at the
+      // art corner would read as coverage and measure nothing.
+      for (const span of found) {
+        expect(span.style.getPropertyValue("-webkit-line-clamp")).not.toBe("");
+      }
+      view.unmount();
+    }
+  });
+
+  it("is the exported constant, so a host does not retype the string", () => {
+    expect(CATEGORY_TILE_LABEL_TESTID).toBe("categories-tile-label");
+  });
+
+  it("leaves the two special tiles' own, older names exactly where they were", async () => {
+    // `categories-tile-grid-all` is already ON the caption span, and a test
+    // reading the clamp off it points at the right element. Renaming it to
+    // share the new id would move nothing and break that.
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          entries={MANY_IMAGE_TILES}
+          maxVisible={3}
+          overflow="modal"
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-more")).toBeTruthy()
+    );
+    const all = screen.getByTestId("categories-tile-grid-all");
+    expect(all.tagName).toBe("SPAN");
+    expect(all.style.getPropertyValue("-webkit-line-clamp")).not.toBe("");
+    // …and every ORDINARY tile in the same grid answers to the shared name.
+    expect(captions().length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -353,6 +353,47 @@ From the governing doc (frontend-core-architecture-v2 §43.5):
 > it protects against a shared computer, residual data, and casual access —
 > and must not be sold as more than that.
 
+## `keepPrevious`: a parameter change is not a first load
+
+`LoadState`'s three arms are three DIFFERENT elements at one position, so
+every trip through `loading` unmounts whatever a boundary was rendering. That
+is right for a first load and wrong for a parameter change, where a whole
+correct page is on the glass and the only news is that a newer one is coming.
+The measured cost of getting it wrong (D454, a storefront's `/c/:slug`): a
+sibling press rebuilt the filter rail, the facet panel and the segmented
+control the person had just pressed, losing its focus and its scroll
+position, and drew a skeleton where the page was — twice, out and back.
+
+```tsx
+// The memory a screen keeps of the answer it is showing.
+const state = useKeptLoad(composed, { keepPrevious: true });
+
+<LoadBoundary state={state}>{(page) => <Page {...page} />}</LoadBoundary>
+```
+
+`useKeptLoad` is for a state composed of SEVERAL reads, or built from hooks
+shared with surfaces that must not see a stale rung. For ONE query that
+TanStack itself keeps the previous answer for (`placeholderData:
+keepPreviousData`), the same option is on the adapter:
+
+```tsx
+loadStateFromQuery(query, { keepPrevious: true });
+```
+
+Both answer `ready` with the data already on screen and set
+`LoadReady.refreshing` — on EVERY ready answer once the seam is in play,
+`false` included, so a renderer keying its DOM off the field does not grow and
+drop a wrapper as the flag comes and goes. `<LoadBoundary>`
+(`@stapel/tokens-antd`) stamps `data-stapel-load-refreshing="true"` on the
+ready arm while it is true, and a host can dim or announce from there.
+
+Two things are deliberately NOT kept. A first load still reports `loading`,
+because there is nothing behind the skeleton. And a REFUSAL passes straight
+through on top of however much good data there was: holding the last live
+answer over an error is a dead link wearing a working page, which is the same
+lie `LoadState` exists to end, one state along. Without the option every one
+of these functions behaves exactly as it always did, down to `toStrictEqual`.
+
 ## Notes
 
 - Peer deps: `react >= 19`, `@tanstack/react-query ^5`. Only runtime dep:
