@@ -3,7 +3,7 @@
   "packages": [
     {
       "package": "@stapel/auth-react",
-      "version": "0.20.0",
+      "version": "0.21.0",
       "entries": [
         {
           "id": "auth.login",
@@ -236,7 +236,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.24.0",
+      "version": "0.24.1",
       "entries": [
         {
           "id": "categories.catalog",
@@ -596,7 +596,7 @@
     },
     {
       "package": "@stapel/moderation-react",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "entries": [
         {
           "id": "moderation.policy",
@@ -887,7 +887,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.33.1",
+      "version": "0.34.0",
       "entries": [
         {
           "id": "search.results",
