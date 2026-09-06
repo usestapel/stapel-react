@@ -1,5 +1,21 @@
 # @stapel/attributes-react
 
+## 0.16.4
+
+### Patch Changes
+
+- `<FeatureFields onChange>` says WHO wrote the answer.
+
+  The callback reported a slug and a value, and this component performs two write-backs of its own — the cascade reset when a dependent field's parent moves, and the bake of a sole possible value — which arrived through the same call a person's typing does. Measured on a host recording provenance: the reset was stamped as the seller's answer and the field locked as "answered by hand" holding nothing.
+
+  `onChange(slug, value, source)` now carries a third argument, `FeatureChangeSource`:
+
+  - `"user"` — the person operated a control;
+  - `"cascade"` — a dependent field was cleared because its parent moved (`<FeatureFields>`'s own reset, `RefSelectEditor`'s parent reset, and the bounded int dropping a value its moved bound no longer admits);
+  - `"bake"` — the narrowed config left exactly one answer and the form committed it, or released it again when the collapse stopped holding (`<FeatureFields>`'s bake, `RefSelectEditor`'s single-child rung, and the vocabulary-backed int's single allowed value).
+
+  It is additive: the argument is optional on the editor seam (`ValueEditorProps.onChange(value, source?)`, defaulting to `"user"`) and every existing two-argument host keeps compiling and behaving exactly as it did — there is a test for that, because "backwards compatible" is a claim and not a comment.
+
 ## 0.16.3
 
 ### Patch Changes
