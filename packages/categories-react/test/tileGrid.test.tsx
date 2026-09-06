@@ -917,3 +917,65 @@ describe("reserve — the box a HOST-owned fetch will land in", () => {
     expect(screen.queryByTestId("categories-tile-grid-reserved")).toBeNull();
   });
 });
+
+describe("the box a row waits in is the shape of the row that arrives", () => {
+  /**
+   * The loading arm drew every skeleton at 4/3 — the COZY tile's ratio — while
+   * a `density="compact"` tile is a square and a `size="compact"` tile is 8/3.
+   * So the row was one height while it waited and another when it landed:
+   * 0.024 of layout shift on the storefront's home, paid on every cold load,
+   * by the very arm that exists to prevent it.
+   */
+  function reservedRatios(): string[] {
+    const reserved = screen.getByTestId("categories-tile-grid-reserved");
+    return [...reserved.querySelectorAll<HTMLElement>("[style]")]
+      .map((node) => node.style.aspectRatio)
+      .filter((ratio) => ratio.length > 0);
+  }
+
+  it("reserves SQUARES for the compact density, which draws squares", () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid reserve density="compact" allTile={false} />
+      </TestProviders>
+    );
+    expect(reservedRatios()).toEqual(["1 / 1", "1 / 1", "1 / 1", "1 / 1"]);
+  });
+
+  it("reserves the compact SIZE's own row shape", () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid reserve size="compact" allTile={false} />
+      </TestProviders>
+    );
+    expect(reservedRatios()).toEqual(["8 / 3", "8 / 3", "8 / 3", "8 / 3"]);
+  });
+
+  it("keeps 4/3 for the cozy tile it always drew", () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid reserve allTile={false} />
+      </TestProviders>
+    );
+    expect(reservedRatios()).toEqual(["4 / 3", "4 / 3", "4 / 3", "4 / 3"]);
+  });
+
+  it("is the same shape the carousel arm waits in", async () => {
+    // One measurement, both arms: the pair's own loading arm and the host's
+    // reservation must not disagree about the row they are holding.
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid density="compact" />
+      </TestProviders>
+    );
+    const loading = screen.getByTestId("categories-tile-grid-loading");
+    expect(
+      [...loading.querySelectorAll<HTMLElement>("[style]")]
+        .map((node) => node.style.aspectRatio)
+        .filter((ratio) => ratio.length > 0)
+    ).toEqual(["1 / 1", "1 / 1", "1 / 1", "1 / 1"]);
+    await waitFor(() =>
+      expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy()
+    );
+  });
+});
