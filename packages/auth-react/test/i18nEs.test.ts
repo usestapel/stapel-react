@@ -86,6 +86,50 @@ describe("generated es error bundle", () => {
   });
 });
 
+/**
+ * es.ts re-words a handful of backend error codes on top of the generated
+ * `authErrorBundleEs` floor (the "Backend error codes — the es MIRROR" block).
+ * That override sits OUTSIDE `authErrorBundleEs`, so "every es text preserves
+ * the canon's {param} slots" above — which only walks the generated bundle —
+ * never sees a re-worded entry silently dropping a canon `{param}` slot. That
+ * is exactly what happened to `error.429.rate_limit`'s ru sibling (storefront
+ * defect); this checks the es mirror stays honest too, and locks in the fix
+ * on the MERGED bundle a host actually renders.
+ */
+describe("hand-written backend-error mirror stays in sync with the canon", () => {
+  const MIRRORED_CODES: readonly AuthErrorCode[] = [
+    "error.422.blocked",
+    "error.429.rate_limit",
+    "error.423.account_locked",
+  ];
+
+  it("every mirrored code's es override preserves the canon's {param} slots", () => {
+    for (const code of MIRRORED_CODES) {
+      expect(paramsOf(authI18nBundleEs[code] ?? "").sort(), code).toEqual(
+        [...AUTH_ERRORS[code].params].sort()
+      );
+    }
+  });
+
+  it("error.429.rate_limit renders the minutes when the envelope carries retry_after_minutes", async () => {
+    const i18n = createI18n({ locale: "en" });
+    registerAuthI18nEs(i18n);
+    await i18n.setLocale("es");
+    const text = i18n.t("error.429.rate_limit", { retry_after_minutes: 3 });
+    expect(text).toContain("3 min");
+    expect(text).not.toContain("{retry_after_minutes}");
+  });
+
+  it("error.429.rate_limit degrades to the parameter-less template — never 'undefined' — when the envelope lacks retry_after_minutes", async () => {
+    const i18n = createI18n({ locale: "en" });
+    registerAuthI18nEs(i18n);
+    await i18n.setLocale("es");
+    const text = i18n.t("error.429.rate_limit", {});
+    expect(text).toBe(authI18nBundleEs["error.429.rate_limit"]);
+    expect(text).not.toContain("undefined");
+  });
+});
+
 describe("declared coverage: Spanish errors AND Spanish UI (no raw keys)", () => {
   it("every registry code resolves to its SPANISH text under locale es", async () => {
     const i18n = createI18n({ locale: "en" });

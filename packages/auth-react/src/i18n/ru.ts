@@ -321,7 +321,8 @@ export const authI18nBundleRu: I18nDictionary = {
     "Неверный код. Осталось попыток: {attempts_remaining}.",
   "error.422.blocked":
     "Слишком много попыток. Повторите через {retry_after_minutes} мин.",
-  "error.429.rate_limit": "Подождите, прежде чем запрашивать код ещё раз.",
+  "error.429.rate_limit":
+    "Подождите {retry_after_minutes} мин, прежде чем запрашивать код ещё раз.",
   "error.400.no_verified_contact": "Для этого способа нет подтверждённого контакта.",
   "error.400.wrong_password": "Текущий пароль указан неверно.",
   "error.400.no_password": "У этого аккаунта не задан пароль.",

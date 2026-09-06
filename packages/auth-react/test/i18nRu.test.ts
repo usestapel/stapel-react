@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { createI18n } from "@stapel/core";
 import { AUTH_ERRORS, AUTH_ERROR_CODES } from "../src/i18n/errorsMap.js";
+import type { AuthErrorCode } from "../src/i18n/errorsMap.js";
 import { AUTH_I18N_KEYS, authI18nBundleEn, registerAuthI18n } from "../src/i18n/keys.js";
 import {
   authErrorBundleRu,
@@ -53,6 +54,57 @@ describe("generated ru error bundle", () => {
     const text = i18n.t("error.422.blocked", { retry_after_minutes: 5 });
     expect(text).toContain("5");
     expect(text).not.toContain("{retry_after_minutes}");
+  });
+});
+
+/**
+ * ru.ts re-words a handful of backend error codes on top of the generated
+ * `authErrorBundleRu` floor (the "Backend error codes — the ru MIRROR" block:
+ * a key the en bundle re-words has to be re-worded here too). That override
+ * sits OUTSIDE `authErrorBundleRu`, so the "every ru text preserves the
+ * canon's {param} slots" test above — which only walks the generated bundle —
+ * never sees a re-worded entry silently dropping a canon `{param}` slot. That
+ * is exactly what happened to `error.429.rate_limit`: its ru override read
+ * "Подождите, прежде чем запрашивать код ещё раз." with `retry_after_minutes`
+ * gone, while stapel-auth's `error_429_rate_limit()`/`retry_params()` always
+ * attach it (minimum 1 minute) and the neighbouring 422/423 overrides kept
+ * theirs. This block checks the MERGED bundle a host actually renders, not
+ * just the generated floor underneath it.
+ */
+describe("hand-written backend-error mirror stays in sync with the canon", () => {
+  const MIRRORED_CODES: readonly AuthErrorCode[] = [
+    "error.422.blocked",
+    "error.429.rate_limit",
+    "error.423.account_locked",
+  ];
+
+  it("every mirrored code's ru override preserves the canon's {param} slots", () => {
+    for (const code of MIRRORED_CODES) {
+      expect(paramsOf(authI18nBundleRu[code] ?? "").sort(), code).toEqual(
+        [...AUTH_ERRORS[code].params].sort()
+      );
+    }
+  });
+
+  it("error.429.rate_limit renders the minutes when the envelope carries retry_after_minutes", () => {
+    const i18n = createI18n({ locale: "ru" });
+    registerAuthI18nRu(i18n);
+    const text = i18n.t("error.429.rate_limit", { retry_after_minutes: 3 });
+    expect(text).toContain("3 мин");
+    expect(text).not.toContain("{retry_after_minutes}");
+  });
+
+  it("error.429.rate_limit degrades to the parameter-less template — never 'undefined' — when the envelope lacks retry_after_minutes", () => {
+    const i18n = createI18n({ locale: "ru" });
+    registerAuthI18nRu(i18n);
+    // A bare envelope for this code (no params at all) is not something
+    // stapel-auth's own handlers send today, but core's own
+    // `StapelServiceError(429, ERR_429_RATE_LIMIT, params={...})` seam allows
+    // a caller to omit `retry_after_minutes` — this must not render the word
+    // "undefined" or throw.
+    const text = i18n.t("error.429.rate_limit", {});
+    expect(text).toBe(authI18nBundleRu["error.429.rate_limit"]);
+    expect(text).not.toContain("undefined");
   });
 });
 

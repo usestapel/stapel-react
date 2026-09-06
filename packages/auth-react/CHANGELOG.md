@@ -1,5 +1,13 @@
 # @stapel/auth-react
 
+## 0.19.4
+
+### Patch Changes
+
+- **The ru/es 429 rate-limit sentence dropped the backend's `retry_after_minutes`, told storefront readers to "wait" without saying how long.** `error.429.rate_limit`'s hand-written ru mirror (`i18n/ru.ts`, next to the polished en copy in `keys.ts`) read "Подождите, прежде чем запрашивать код ещё раз." — no `{retry_after_minutes}` — while its neighbours `error.422.blocked` and `error.423.account_locked` kept the placeholder, the generated `errors.ru.gen.ts` floor underneath it already carries it, and stapel-auth's `error_429_rate_limit()`/`retry_params()` helpers always attach it (minimum 1 minute). The es mirror had the same gap. Both now read `{retry_after_minutes}` back into the sentence ("Подождите {retry_after_minutes} мин, прежде чем…" / "Espera {retry_after_minutes} min antes de…"), matching the corpus convention; a bare envelope with no `retry_after_minutes` still degrades to the raw template rather than throwing or rendering "undefined".
+
+  Added a params-parity test over the hand-written backend-error mirror in both locales (previously only the generated bundle underneath it was checked against the canon's `{param}` slots — the gap that let this drift in unnoticed).
+
 ## 0.19.3
 
 ### Patch Changes

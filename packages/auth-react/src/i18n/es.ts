@@ -330,7 +330,8 @@ export const authI18nBundleEs: I18nDictionary = {
     "Ese código no es correcto. Te quedan {attempts_remaining} intentos.",
   "error.422.blocked":
     "Demasiados intentos. Inténtalo de nuevo en {retry_after_minutes} min.",
-  "error.429.rate_limit": "Espera un momento antes de pedir otro código.",
+  "error.429.rate_limit":
+    "Espera {retry_after_minutes} min antes de pedir otro código.",
   "error.400.no_verified_contact":
     "No hay ningún contacto verificado para este método.",
   "error.400.wrong_password": "Tu contraseña actual no es correcta.",
