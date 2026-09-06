@@ -12,7 +12,7 @@ import type { AuthErrorCode } from "./errors.gen.js";
  * entry, so the locale stays out of hosts that don't ship it.
  */
 export const authErrorBundleEs: Record<AuthErrorCode, string> = {
-  "error.400.attribution_invalid": "El objeto attribution tiene un formato incorrecto. Se espera {click_id, click_id_type: gclid|gbraid|wbraid, captured_at} y un objeto utm opcional.",
+  "error.400.attribution_invalid": "El objeto attribution tiene un formato incorrecto. Se espera {captured_at} y, además, un click_id junto con su click_id_type (gclid|gbraid|wbraid|yclid|fbclid|ttclid) o bien un objeto utm que indique un source.",
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",

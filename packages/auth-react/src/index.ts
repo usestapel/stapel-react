@@ -9,6 +9,7 @@
 export { createAuthApi } from "./api/authApi.js";
 export type { AuthApi } from "./api/authApi.js";
 export {
+  attributionQuery,
   authUrls,
   validRedirectUrl,
   safeNextPath,
@@ -37,6 +38,7 @@ export type {
   OtpChannel,
   OtpVerifyOptions,
   SignupAttribution,
+  ClickIdType,
   OAuthProviderInfo,
   RegistrationCapabilities,
   LoginCapabilities,

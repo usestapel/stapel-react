@@ -163,42 +163,38 @@ export type OtpChannel = "email" | "phone";
 
 /**
  * WHERE A SIGN-UP CAME FROM — the optional `attribution` object a
- * registration request may carry (stapel-auth ≥0.34).
+ * registration request may carry (stapel-auth ≥0.34): an advertising click
+ * identifier read off the landing URL, which platform issued it, when the
+ * client captured it, and the campaign tags off the same URL.
  *
- * HAND-AUTHORED, and the reason is the pin rather than the generator: this
- * pair is built against the contract `contract-pins.json` names, and that
- * contract's verify serializers predate the field. The wire shape is
- * stapel-auth's `SignupAttribution`, transcribed from the released schema —
- * an advertising click identifier, which of the three kinds it is, when the
- * client captured it, and the campaign tags off the same landing URL. The
- * server ignores unknown keys inside it, so a capture library that learns a
- * new tag does not start refusing sign-ups; a MALFORMED object is refused
- * with `error.400.attribution_invalid`.
+ * A DIRECT ALIAS, and it used to be hand-authored. The transcription was
+ * written when the pinned contract's verify serializers predated the field;
+ * they do not any more, and the copy went stale exactly the way a parallel
+ * definition does — 0.34.3 widened `ClickIdTypeEnum` past the three Google
+ * Ads flavours and made both halves of the identifier optional, and a
+ * transcription would have kept every host of this pair unable to send a
+ * `yclid` or a UTM-only record while the server had been accepting both since
+ * the pin moved. Deriving costs nothing and cannot drift.
+ *
+ * Two things the generated types cannot say, and the server enforces:
+ * `click_id` and `click_id_type` travel TOGETHER (an identifier with no type
+ * has no upload field to post to, a type with no identifier is a label over
+ * nothing), and a record with no identifier must name its channel in
+ * `utm.source` — an email campaign or a price aggregator attributes that way
+ * rather than being reported as direct traffic. A record failing either is
+ * refused with `error.400.attribution_invalid`; unknown keys inside the
+ * object are ignored, so a capture library that learns a new tag does not
+ * start refusing sign-ups.
  *
  * Nothing here is a value this pair can invent: the whole object is captured
  * on the host's landing page, minutes before any auth screen is mounted, and
  * is handed to the call that registers the account. It is stored only when
  * the call REGISTERS, and ignored on a login.
  */
-export interface SignupAttribution {
-  /** The click identifier read off the landing URL. */
-  readonly click_id: string;
-  /** Which of the three it is — the offline conversion upload names the field
-   * rather than guessing: `gbraid`/`wbraid` arrive instead of a `gclid` when
-   * the visitor declined app tracking. */
-  readonly click_id_type: "gclid" | "gbraid" | "wbraid";
-  /** When the CLIENT captured it (ISO 8601). Required by the server: a
-   * conversion upload has to state the click time. */
-  readonly captured_at: string;
-  /** The standard campaign tags off the same URL — every one optional. */
-  readonly utm?: {
-    readonly source?: string;
-    readonly medium?: string;
-    readonly campaign?: string;
-    readonly term?: string;
-    readonly content?: string;
-  };
-}
+export type SignupAttribution = Schemas["SignupAttribution"];
+
+/** Which platform issued the click identifier — see {@link SignupAttribution}. */
+export type ClickIdType = Schemas["ClickIdTypeEnum"];
 
 /** What a verify call may carry BESIDES the code — see
  * {@link SignupAttribution}. */

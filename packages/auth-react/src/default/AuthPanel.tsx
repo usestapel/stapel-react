@@ -225,15 +225,22 @@ export interface AuthPanelProps {
    */
   readonly headingLevel?: 1 | 2 | 3;
   /**
-   * WHERE THIS SIGN-UP CAME FROM — forwarded to the email/phone code panels,
-   * which carry it on the verify call that registers the account. See
-   * `SignupAttribution`; a function is read at the moment of the call, for a
-   * capture that is itself still landing when the screen mounts.
+   * WHERE THIS SIGN-UP CAME FROM — forwarded to EVERY door of this panel that
+   * can register an account: the email/phone code panels, which carry it on
+   * the verify call, and the OAuth provider group, which writes it onto the
+   * authorize address the browser is sent to (stapel-auth parks it in the flow
+   * state and reads it back at the callback, so it never travels through the
+   * provider). See `SignupAttribution`.
+   *
+   * A function is read at the moment the door is built — at submit for the
+   * verify call, at render for the OAuth `<a href>`, which has to be complete
+   * before it can be clicked. Either way it exists for a capture that is
+   * itself still landing when the screen mounts.
    *
    * The panel neither captures nor interprets it: an advertising click
    * identifier is read off the landing URL minutes before any auth screen
    * exists, so only the host can hold it, and only the server decides whether
-   * a given verify REGISTERS (where it is stored) or logs in (where it is
+   * a given call REGISTERS (where it is stored) or logs in (where it is
    * ignored).
    */
   readonly attribution?:
@@ -355,14 +362,18 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
    * the flag. The overflow/bottom dialog has no tab label in view, so it
    * always gets the full (labelled) panel.
    */
-  const otpAttribution =
+  // Spread into every panel that owns a door which can REGISTER — the two
+  // code channels, whose verify call creates the account, and the OAuth group,
+  // whose authorize redirect does. Absent, each of them builds exactly the
+  // request or address it always did.
+  const attribution =
     props.attribution !== undefined ? { attribution: props.attribution } : {};
   function channelPanel(id: ChannelId, opts?: { asMainTab?: boolean }): ReactElement | null {
     switch (id) {
       case "email":
-        return <OtpPanel channel="email" {...otpAttribution} {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
+        return <OtpPanel channel="email" {...attribution} {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "phone":
-        return <OtpPanel channel="phone" {...otpAttribution} {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
+        return <OtpPanel channel="phone" {...attribution} {...(opts?.asMainTab !== undefined ? { hideChannelLabel: opts.asMainTab } : {})} />;
       case "password":
         // By default password is a credential, never a registration anchor,
         // so `enabledRegistrationChannels` does not route it here on the
@@ -384,6 +395,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
         return oauthProviders.length > 0 ? (
           <OAuthPanel
             providers={oauthProviders}
+            {...attribution}
             {...(props.oauthRedirectUri !== undefined
               ? { redirectUri: props.oauthRedirectUri }
               : {})}
@@ -536,6 +548,9 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
                     : {})}
                   {...(props.oauthIconOverrides !== undefined
                     ? { oauthIconOverrides: props.oauthIconOverrides }
+                    : {})}
+                  {...(props.attribution !== undefined
+                    ? { oauthAttribution: props.attribution }
                     : {})}
                 />
               )}
@@ -817,6 +832,10 @@ function BottomRow(props: {
   iconOverrides?: Readonly<Partial<Record<ChannelId, ReactNode>>>;
   oauthRedirectUri?: string;
   oauthIconOverrides?: Readonly<Record<string, ReactNode>>;
+  /** Passed straight to the provider group — this row is where OAuth actually
+   * lives by default, so the authorize door is reached through HERE, not
+   * through `channelPanel`. See `AuthPanelProps.attribution`. */
+  oauthAttribution?: SignupAttribution | (() => SignupAttribution | undefined);
 }): ReactElement {
   return (
     <Flex vertical gap="small" style={{ width: "100%" }} data-testid="auth-bottom-row">
@@ -825,6 +844,9 @@ function BottomRow(props: {
           <OAuthPanel
             key="oauth"
             providers={props.oauthProviders}
+            {...(props.oauthAttribution !== undefined
+              ? { attribution: props.oauthAttribution }
+              : {})}
             {...(props.oauthRedirectUri !== undefined
               ? { redirectUri: props.oauthRedirectUri }
               : {})}

@@ -81,7 +81,7 @@ annotates them.
 | Password reset §5 | `createPasswordResetFlow` | `<PasswordReset>` | **full** |
 | Step-up verification §11 **[flows.json: `auth.step_up_verification`]** | `createVerificationController` | `<VerificationChallenge>` | **full** |
 | TOTP setup §11 | `createTotpSetupFlow` | `<TotpSetup>` | **full** |
-| OAuth token exchange §7 | `createOAuthFlow` | — (+ `authUrls().oauthAuthorize`) | **full** |
+| OAuth token exchange §7 | `createOAuthFlow` | — (+ `authUrls().oauthAuthorize`, which carries `attributionQuery()` tags) | **full** |
 | Sessions §12 | model hooks/mutations | — | **full** |
 | Token refresh §13 | `AuthSession.onAuthRefresh` | — | **full** |
 | QR login/session-share §8 | `createQrLoginFlow` | `<QrLogin>` | **full** (polling) |
@@ -221,7 +221,12 @@ cache persistence is per-user via core's `setPersistUser` — call
    `/app/oauth/callback` frontend route and a `/totp-challenge` alias; those are
    **host routing** concerns (the backend sets cookies), so auth-react provides
    only `authUrls().oauthAuthorize` and the token-exchange flow (option B), not
-   the callback route.
+   the callback route. The authorize door is nonetheless a REGISTRATION door,
+   so it carries the landing page's advertising capture: `<AuthPanel
+   attribution>` reaches `<OAuthPanel>` and is written onto the address as the
+   flat query `attribution_from_query()` reads (`attributionQuery` does the
+   flattening; the redirect has no body to put the object in, and the
+   identifier never travels through the provider).
 4. **Magic-link / SSO landings** (`/login?...` params, §15/§18.2) are backend
    redirects to host routes; auth-react provides the `safeNextPath` /
    `safeScanRedirect` guards (§19.2) but the route components are app-layer.

@@ -12,7 +12,7 @@ import type { AuthErrorCode } from "./errors.gen.js";
  * entry, so the locale stays out of hosts that don't ship it.
  */
 export const authErrorBundleRu: Record<AuthErrorCode, string> = {
-  "error.400.attribution_invalid": "Объект attribution имеет неверный формат. Ожидается {click_id, click_id_type: gclid|gbraid|wbraid, captured_at} и необязательный объект utm.",
+  "error.400.attribution_invalid": "Объект attribution имеет неверный формат. Ожидается {captured_at}, а также либо click_id вместе с click_id_type (gclid|gbraid|wbraid|yclid|fbclid|ttclid), либо объект utm с заполненным source.",
   "error.400.bad_request": "Некорректный запрос",
   "error.400.captcha_invalid": "Проверка капчи не пройдена. Пожалуйста, попробуйте ещё раз.",
   "error.400.captcha_required": "Требуется токен капчи.",

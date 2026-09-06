@@ -8,8 +8,61 @@
  * pass through one of these rather than trust raw input.
  */
 
+import type { SignupAttribution } from "./types.js";
+
 function trimBase(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+}
+
+/**
+ * The five campaign tags stapel-auth's `attribution_from_query()` reads, in
+ * the order the module lists them. A closed list on purpose: these five are
+ * columns on the server's row, and a tag outside them has nowhere to land, so
+ * inventing a sixth key here would put a parameter on the door that is read by
+ * nothing.
+ */
+const UTM_KEYS = ["source", "medium", "campaign", "term", "content"] as const;
+
+/**
+ * A {@link SignupAttribution} as the FLAT query the authorize door reads.
+ *
+ * The OAuth round trip has no request body — the browser is sent to the
+ * provider and comes back on a URL only the provider controls — so stapel-auth
+ * takes the object apart on the way out instead: `click_id`, `click_id_type`,
+ * `captured_at` and `utm_<tag>` as top-level query parameters, which
+ * `attribution_from_query()` reassembles and parks in the same server-side
+ * state entry that already pins the flow. The identifier never travels through
+ * the provider and the client never re-presents it at the callback.
+ *
+ * Empty and absent are the same statement here and are written as absence: the
+ * server strips a blank `click_id` to nothing before it validates (its
+ * `_without_blank_identifier`), so a key carrying `""` and a missing key mean
+ * the same thing, and the shorter address is the one that survives being read
+ * in a browser bar.
+ *
+ * What this does NOT do is judge the record. A record the server will refuse —
+ * an identifier with no type, a type with no identifier, neither of those and
+ * no `utm.source` — is still written to the query verbatim, because the door
+ * answers a malformed tag by DROPPING it with a log line and signing the
+ * person in anyway (a marketing tag must never take a sign-in down). Silently
+ * repairing it here would only hide, from the one place that logs it, that the
+ * host's capture is broken.
+ */
+export function attributionQuery(
+  attribution: SignupAttribution
+): Record<string, string> {
+  const query: Record<string, string> = {};
+  const write = (key: string, value: string | undefined | null): void => {
+    if (value !== undefined && value !== null && value !== "") query[key] = value;
+  };
+  write("click_id", attribution.click_id);
+  write("click_id_type", attribution.click_id_type);
+  write("captured_at", attribution.captured_at);
+  const utm = attribution.utm;
+  if (utm !== undefined && utm !== null) {
+    for (const tag of UTM_KEYS) write(`utm_${tag}`, utm[tag]);
+  }
+  return query;
 }
 
 /**

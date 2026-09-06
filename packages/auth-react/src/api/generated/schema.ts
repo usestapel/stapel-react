@@ -2661,9 +2661,12 @@ export interface components {
          * @description * `gclid` - gclid
          *     * `gbraid` - gbraid
          *     * `wbraid` - wbraid
+         *     * `yclid` - yclid
+         *     * `fbclid` - fbclid
+         *     * `ttclid` - ttclid
          * @enum {string}
          */
-        ClickIdTypeEnum: "gclid" | "gbraid" | "wbraid";
+        ClickIdTypeEnum: "gclid" | "gbraid" | "wbraid" | "yclid" | "fbclid" | "ttclid";
         /** @description Status of an account closure request. */
         ClosureStatusDTO: {
             /**
@@ -2880,7 +2883,7 @@ export interface components {
             /** Format: email */
             email: string;
             code: string;
-            /** @description Optional advertising attribution captured by the client on the landing page: {click_id, click_id_type: gclid|gbraid|wbraid, captured_at, utm?}. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /** @description One data owner's receipt for an erasure. */
@@ -3371,7 +3374,7 @@ export interface components {
         OAuth: {
             provider: string;
             access_token: string;
-            /** @description Optional advertising attribution captured by the client on the landing page: {click_id, click_id_type: gclid|gbraid|wbraid, captured_at, utm?}. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /**
@@ -3669,7 +3672,7 @@ export interface components {
         PhoneAuthVerify: {
             phone: string;
             code: string;
-            /** @description Optional advertising attribution captured by the client on the landing page: {click_id, click_id_type: gclid|gbraid|wbraid, captured_at, utm?}. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /**
@@ -3971,18 +3974,27 @@ export interface components {
          *     written by our own capture code, so a shape error is a bug to fix, not a
          *     form for the user to correct, and the per-field detail would be the only
          *     part of a registration 400 that names an internal field name.
+         *
+         *     Both halves of the record are individually optional and the object is
+         *     still not a free-for-all — :meth:`to_internal_value` refuses the three
+         *     shapes that could not be reported anywhere: a ``click_id`` with no type
+         *     (no upload field to post it to), a type naming no identifier, and a
+         *     record that carries neither an identifier nor a ``utm.source``.
          */
         SignupAttribution: {
-            /** @description The advertising click identifier captured from the landing URL (gclid/gbraid/wbraid). */
-            click_id: string;
+            /** @description The advertising click identifier captured from the landing URL. Optional: a channel that puts no click id on the URL (email, an aggregator, an untagged referral) still attributes through utm.source. Sent with it, click_id_type is required. */
+            click_id?: string;
             /**
-             * @description Which of the three identifiers click_id is. The offline conversion upload names the field explicitly and does not guess: gbraid/wbraid arrive instead of a gclid when the visitor declined app tracking.
+             * @description Which platform's identifier click_id is. The offline conversion upload names the field explicitly and does not guess, so this cannot be inferred from the value: gclid/gbraid/wbraid are Google Ads (the last two arrive instead of a gclid when the visitor declined app tracking), yclid is Yandex Direct, fbclid Meta, ttclid TikTok Ads. Required whenever click_id is sent, and meaningless without it.
              *
              *     * `gclid` - gclid
              *     * `gbraid` - gbraid
              *     * `wbraid` - wbraid
+             *     * `yclid` - yclid
+             *     * `fbclid` - fbclid
+             *     * `ttclid` - ttclid
              */
-            click_id_type: components["schemas"]["ClickIdTypeEnum"];
+            click_id_type?: components["schemas"]["ClickIdTypeEnum"];
             /**
              * Format: date-time
              * @description When the client captured the identifier (ISO 8601). Required: an offline conversion upload has to state the click time, and it is also how a stale replay is told from a fresher click.

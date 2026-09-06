@@ -281,6 +281,59 @@ function SignIn() {
 }
 ```
 
+## Where a sign-up came from
+
+An advertising click identifier is read off the LANDING URL — minutes and
+several navigations before any auth screen exists — so only the host can hold
+it. Hand it to `<AuthPanel attribution>` and it reaches every door of the panel
+that can register an account:
+
+```tsx
+<AuthPanel attribution={capturedOnLanding} />
+```
+
+```ts
+// what the host captured, straight off the landing URL
+const capturedOnLanding = {
+  click_id: params.get("yclid") ?? "",
+  click_id_type: "yclid",          // gclid|gbraid|wbraid|yclid|fbclid|ttclid
+  captured_at: new Date().toISOString(),
+  utm: { source: "yandex", medium: "cpc" },
+};
+```
+
+Two doors, two channels, because the wire gives them no choice:
+
+- **email / phone** — the object rides the BODY of the verify call, which is
+  the request that registers on that channel.
+- **OAuth** — the redirect has no body, so the same object is written onto the
+  authorize address as the flat query stapel-auth's `attribution_from_query()`
+  reads (`click_id`, `click_id_type`, `captured_at`, `utm_source` …). The
+  server parks it in the flow state the callback already opens, so the
+  identifier never travels through the provider and the browser never
+  re-presents it.
+
+Pass a **function** instead of an object for a capture that is itself still
+landing when the screen mounts. It is read when the door is built: at submit
+for the verify call, at render for the OAuth `<a href>`, which has to be
+complete before it can be clicked.
+
+The click identifier is **optional**, as long as `utm.source` names the
+channel — an email campaign or a price aggregator puts no click id on the URL
+at all, and a click-id-only record reports every one of those accounts as
+direct traffic. What the server refuses (`error.400.attribution_invalid`) is an
+identifier with no type, a type naming no identifier, and a record carrying
+neither.
+
+Building the address yourself instead? `attributionQuery(attribution)` is the
+same flattening, and `authUrls(base).oauthAuthorize(provider, { redirect_uri,
+params })` writes it — `redirect_uri` stays first and cannot be displaced from
+`params`.
+
+Nothing here is invented by this pair, and none of it is a login concern: the
+server stores the record only when the call REGISTERS, and ignores it on a
+sign-in.
+
 ## Rendering a flow error
 
 Every flow error state carries a `FlowError` (`{ code, params, status,

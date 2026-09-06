@@ -1541,7 +1541,9 @@
   "errors": {
     "error.400.attribution_invalid": {
       "status": 400,
-      "params": [],
+      "params": [
+        "captured_at"
+      ],
       "remediation": "fix_input"
     },
     "error.400.bad_request": {
@@ -3154,6 +3156,7 @@
       "WEBAUTHN_NO_CREDENTIAL",
       "WEBAUTHN_UNSUPPORTED",
       "arrayBufferToBase64Url",
+      "attributionQuery",
       "authErrorBundleEn",
       "authI18nBundleEn",
       "authQueryKeys",
@@ -3268,6 +3271,7 @@
       "ChangeOldVerifiedResponse",
       "ChannelInteraction",
       "ChannelPlacement",
+      "ClickIdType",
       "CreateAuthRuntimeOptions",
       "DelayedChangeInitiatedResponse",
       "DelayedChangeStatus",

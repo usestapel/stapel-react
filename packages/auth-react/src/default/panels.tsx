@@ -35,7 +35,7 @@ import type {
   OtpChannel,
   SignupAttribution,
 } from "../api/types.js";
-import { authUrls } from "../api/urls.js";
+import { attributionQuery, authUrls } from "../api/urls.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
 import type { SsoState } from "../flows/ssoFlow.js";
 import { useCapabilities } from "../model/queries.js";
@@ -683,6 +683,24 @@ export function OAuthPanel(props: {
   providers: readonly OAuthProviderInfo[];
   /** `location.href` by default — where the provider redirects back to. */
   redirectUri?: string;
+  /**
+   * Advertising capture from the host's landing page, written onto the
+   * authorize address as the flat query stapel-auth parks for the callback
+   * (see `attributionQuery`). This door REGISTERS as readily as the code
+   * channels do — an account created by "continue with Google" is exactly the
+   * conversion a campaign paid for — and until this prop existed it was the
+   * one door of the panel that could not say so, which is the whole reason a
+   * storefront ended up hand-building the URL.
+   *
+   * A function is read at RENDER, not at the press: this is an `<a href>`, so
+   * the address has to be complete before anyone can click it, and a browser
+   * that follows a link the panel has not re-rendered would otherwise send a
+   * stale one. A capture that is still landing when the screen mounts
+   * therefore reaches the door on the next render — for the verify call, where
+   * the object rides a request body the flow builds at submit time, the same
+   * prop is read later (`OtpFlowDeps.attribution`).
+   */
+  attribution?: SignupAttribution | (() => SignupAttribution | undefined);
   /** Per-provider icon override (keyed by provider id), e.g. `{ google: <MyGoogleMark/> }`. */
   iconOverrides?: Readonly<Record<string, ReactNode>>;
 }): ReactElement {
@@ -690,12 +708,22 @@ export function OAuthPanel(props: {
   const redirectUri =
     props.redirectUri ??
     (typeof window !== "undefined" ? window.location.href : "/");
+  const attribution =
+    typeof props.attribution === "function"
+      ? props.attribution()
+      : props.attribution;
+  // No attribution and no extra parameters are the SAME address the panel has
+  // always built — a host that passes nothing gets a byte-identical door.
+  const params =
+    attribution === undefined ? undefined : attributionQuery(attribution);
   return (
     <Flex vertical gap="small" style={{ width: "100%" }} data-testid="oauth-panel">
       {props.providers.map((provider) => {
         const href = authUrls(api.client.baseUrl).oauthAuthorize(
           provider.id,
-          redirectUri
+          params === undefined
+            ? redirectUri
+            : { redirect_uri: redirectUri, params }
         );
         const icon = props.iconOverrides?.[provider.id] ?? (
           <Avatar size="small">{provider.name.slice(0, 1).toUpperCase()}</Avatar>

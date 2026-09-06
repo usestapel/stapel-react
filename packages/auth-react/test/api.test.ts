@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import {
+  attributionQuery,
   authUrls,
   safeNextPath,
   safeScanRedirect,
@@ -135,6 +136,124 @@ describe("browser-redirect URL builders", () => {
     ).toBe(
       authUrls("/auth/api/v1").oauthAuthorize("google", "https://app/after")
     );
+  });
+});
+
+/**
+ * The authorize door has no request body, so stapel-auth reads the attribution
+ * off the query string instead (`attribution_from_query`) and parks it in the
+ * flow state the callback already opens. These are the exact key names that
+ * function reads — asserted here rather than trusted, because a key this side
+ * spells differently is not an error anywhere: the server finds nothing, drops
+ * the record, and the sign-in succeeds with the campaign unattributed.
+ */
+describe("attributionQuery — the object as the flat query the door reads", () => {
+  it("names every field the way attribution_from_query() reads it", () => {
+    expect(
+      attributionQuery({
+        click_id: "EAIaIQ",
+        click_id_type: "gclid",
+        captured_at: "2026-09-06T10:00:00Z",
+        utm: {
+          source: "google",
+          medium: "cpc",
+          campaign: "spring",
+          term: "boots",
+          content: "hero",
+        },
+      })
+    ).toEqual({
+      click_id: "EAIaIQ",
+      click_id_type: "gclid",
+      captured_at: "2026-09-06T10:00:00Z",
+      utm_source: "google",
+      utm_medium: "cpc",
+      utm_campaign: "spring",
+      utm_term: "boots",
+      utm_content: "hero",
+    });
+  });
+
+  /**
+   * 0.34.3 widened the enum past the three Google Ads flavours. A pair that
+   * transcribes the wire shape by hand goes on refusing the other three at the
+   * type level long after the server accepts them, which is why the type is
+   * now derived — this asserts the widening actually reaches the door.
+   */
+  it("carries a yclid, an fbclid and a ttclid", () => {
+    for (const type of ["yclid", "fbclid", "ttclid"] as const) {
+      expect(
+        attributionQuery({
+          click_id: "abc",
+          click_id_type: type,
+          captured_at: "2026-09-06T10:00:00Z",
+        })
+      ).toEqual({
+        click_id: "abc",
+        click_id_type: type,
+        captured_at: "2026-09-06T10:00:00Z",
+      });
+    }
+  });
+
+  /**
+   * A landing with no click id at all — an email campaign, a price aggregator
+   * — still names its channel. Before 0.34.3 the server refused this record
+   * and every one of those accounts was reported as direct traffic.
+   */
+  it("writes a UTM-only record, with no identifier keys at all", () => {
+    const query = attributionQuery({
+      captured_at: "2026-09-06T10:00:00Z",
+      utm: { source: "newsletter", medium: "email" },
+    });
+    expect(query).toEqual({
+      captured_at: "2026-09-06T10:00:00Z",
+      utm_source: "newsletter",
+      utm_medium: "email",
+    });
+    expect("click_id" in query).toBe(false);
+    expect("click_id_type" in query).toBe(false);
+  });
+
+  /**
+   * The server strips a blank identifier to absence before it validates, so a
+   * capture library that writes `""` for "the URL had none" means the same
+   * thing as one that omits the key. Writing the blank anyway would only make
+   * the address longer for a value the server throws away.
+   */
+  it("treats blank and null the same as absent", () => {
+    expect(
+      attributionQuery({
+        click_id: "",
+        captured_at: "2026-09-06T10:00:00Z",
+        utm: { source: "aggregator", medium: "" },
+      })
+    ).toEqual({
+      captured_at: "2026-09-06T10:00:00Z",
+      utm_source: "aggregator",
+    });
+    expect(
+      attributionQuery({ captured_at: "2026-09-06T10:00:00Z", utm: null })
+    ).toEqual({ captured_at: "2026-09-06T10:00:00Z" });
+  });
+
+  it("survives the authorize builder's encoder intact", () => {
+    const url = new URL(
+      authUrls("/auth/api/v1").oauthAuthorize("google", {
+        redirect_uri: "https://app/after",
+        params: attributionQuery({
+          click_id: "EAIaIQ+bo/gus",
+          click_id_type: "yclid",
+          captured_at: "2026-09-06T10:00:00Z",
+          utm: { source: "yandex direct" },
+        }),
+      }),
+      "https://app"
+    );
+    expect(url.searchParams.get("redirect_uri")).toBe("https://app/after");
+    expect(url.searchParams.get("click_id")).toBe("EAIaIQ+bo/gus");
+    expect(url.searchParams.get("click_id_type")).toBe("yclid");
+    expect(url.searchParams.get("utm_source")).toBe("yandex direct");
   });
 });
 

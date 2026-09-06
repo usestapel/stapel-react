@@ -215,6 +215,7 @@ Paths are relative to `/auth/api/v1/`.
 ## Errors (render t(code, params); UX from remediation)
 140 keys (full catalog: manifest.json §errors). By remediation: fix_input 62 · retry 38 · reauthenticate 14 · verify 9 · wait_and_retry 9 · contact_support 8.
 Param-bearing keys (interpolation slots matter):
+- error.400.attribution_invalid [400] → fix_input {captured_at}
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
 - error.400.field.invalid [400] → fix_input {field}

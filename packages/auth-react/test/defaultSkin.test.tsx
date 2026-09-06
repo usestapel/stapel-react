@@ -880,6 +880,114 @@ describe("<AuthPanel headingLevel> — whose outline is this", () => {
   });
 });
 
+/**
+ * The OAuth door is a REGISTRATION door — an account created by "continue with
+ * Google" is exactly the conversion a campaign paid for — and it was the one
+ * door of this panel that could not say where the sign-up came from. It has no
+ * request body to carry the object, so the tags ride the authorize URL as flat
+ * query parameters (`attribution_from_query`), parked in the flow state the
+ * callback already opens and never travelling through the provider.
+ *
+ * Asserted on the rendered `href`, because the href IS the request: the person
+ * presses a link and the browser leaves. Nothing later can add to it.
+ */
+async function renderOauthPanel(
+  attribution?: Parameters<typeof AuthPanel>[0]["attribution"]
+): Promise<HTMLElement> {
+  server.use(
+    http.get(`${BASE}/capabilities/`, () =>
+      HttpResponse.json({
+        registration: {
+          phone: false,
+          email: true,
+          password: false,
+          oauth: [{ id: "google", name: "Google" }],
+          sso: false,
+          anonymous: false,
+        },
+        login: {
+          phone: false,
+          email: true,
+          password: false,
+          oauth: [{ id: "google", name: "Google" }],
+          sso: false,
+          qr: false,
+          passkey: false,
+          magic_link: false,
+        },
+        methods: [method("email", "main", 0), method("oauth", "bottom", 0)],
+      })
+    )
+  );
+  render(
+    wrap(
+      createAuthRuntime({ baseUrl: BASE }),
+      <AuthPanel
+        mode="light"
+        {...(attribution !== undefined ? { attribution } : {})}
+      />
+    )
+  );
+  return await screen.findByRole("link", { name: /Google/ });
+}
+
+describe("<AuthPanel attribution> reaches the OAuth authorize door", () => {
+  it("writes the tags onto the provider link the browser follows", async () => {
+    const link = await renderOauthPanel({
+      click_id: "EAIaIQ+bo/gus",
+      click_id_type: "yclid",
+      captured_at: "2026-09-06T10:00:00Z",
+      utm: { source: "yandex", medium: "cpc" },
+    });
+    const href = link.getAttribute("href") ?? "";
+    expect(href.startsWith(`${BASE}/oauth/google/authorize/?`)).toBe(true);
+    const url = new URL(href, "https://app");
+    // The address the panel owns is still first and still intact.
+    expect(url.searchParams.getAll("redirect_uri")).toHaveLength(1);
+    expect(url.searchParams.get("click_id")).toBe("EAIaIQ+bo/gus");
+    expect(url.searchParams.get("click_id_type")).toBe("yclid");
+    expect(url.searchParams.get("captured_at")).toBe("2026-09-06T10:00:00Z");
+    expect(url.searchParams.get("utm_source")).toBe("yandex");
+    expect(url.searchParams.get("utm_medium")).toBe("cpc");
+  });
+
+  /** A landing that carried only campaign tags still names its channel. */
+  it("carries a UTM-only capture, with no identifier on the address", async () => {
+    const link = await renderOauthPanel({
+      captured_at: "2026-09-06T10:00:00Z",
+      utm: { source: "newsletter" },
+    });
+    const url = new URL(link.getAttribute("href") ?? "", "https://app");
+    expect(url.searchParams.get("utm_source")).toBe("newsletter");
+    expect(url.searchParams.has("click_id")).toBe(false);
+    expect(url.searchParams.has("click_id_type")).toBe(false);
+  });
+
+  /** A function form is read when the href is BUILT — at render, since the
+   * address has to be complete before anyone can click it. */
+  it("reads a function capture", async () => {
+    const link = await renderOauthPanel(() => ({
+      click_id: "late",
+      click_id_type: "fbclid",
+      captured_at: "2026-09-06T10:00:00Z",
+    }));
+    const url = new URL(link.getAttribute("href") ?? "", "https://app");
+    expect(url.searchParams.get("click_id")).toBe("late");
+    expect(url.searchParams.get("click_id_type")).toBe("fbclid");
+  });
+
+  /**
+   * The other half, and the one that keeps this additive: a host that passes
+   * nothing gets the address this panel has always built — `redirect_uri` and
+   * not one parameter more.
+   */
+  it("adds nothing at all when the host passes no attribution", async () => {
+    const link = await renderOauthPanel();
+    const url = new URL(link.getAttribute("href") ?? "", "https://app");
+    expect([...url.searchParams.keys()]).toEqual(["redirect_uri"]);
+  });
+});
+
 describe("<AuthPanel attribution> reaches the verify call", () => {
   /**
    * The verify call is the request that REGISTERS on the email/phone channel,
