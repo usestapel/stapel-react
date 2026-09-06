@@ -153,10 +153,34 @@ describe("the skinned button", () => {
 
   it("switches off WITH the sentence, never as a bare grey rectangle", () => {
     draw({ busy: true });
-    expect(
-      screen.getByTestId("chat-call-button").hasAttribute("disabled")
-    ).toBe(true);
-    expect(screen.getByTestId("chat-call-blocked")).toBeTruthy();
+    const button = screen.getByTestId("chat-call-button");
+    // `aria-disabled` and a LIVE control — never the html attribute. An inert
+    // button takes no focus and receives no pointer events, so on a phone (no
+    // hover to fall back on) a blocked call button answered a press with
+    // nothing at all, and the sentence beside it was bound to nothing.
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(button.hasAttribute("disabled")).toBe(false);
+    const reason = screen.getByTestId("chat-call-blocked");
+    expect(reason.textContent?.length).toBeGreaterThan(0);
+    // The two are tied, which is what makes the sentence reach a screen
+    // reader rather than merely sit on the page.
+    expect(button.getAttribute("aria-describedby")).toBe(reason.getAttribute("id"));
+  });
+
+  it("places NO call when a blocked control is pressed anyway", () => {
+    // The refusal is the gate's, not the DOM's: a live control cannot leak,
+    // because `call()` is a no-op while blocked.
+    const onCall = vi.fn();
+    draw({ busy: true, onCall });
+    fireEvent.click(screen.getByTestId("chat-call-button"));
+    expect(onCall).not.toHaveBeenCalled();
+  });
+
+  it("carries neither attribute while it is pressable", () => {
+    draw();
+    const button = screen.getByTestId("chat-call-button");
+    expect(button.hasAttribute("aria-disabled")).toBe(false);
+    expect(button.hasAttribute("aria-describedby")).toBe(false);
   });
 
   it("keeps an accessible name in the compact arm", () => {

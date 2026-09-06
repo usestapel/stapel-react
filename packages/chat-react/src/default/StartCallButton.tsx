@@ -19,6 +19,7 @@
  * has calls passes one; a host that does not passes nothing and the header is
  * exactly what it was.
  */
+import { useId } from "react";
 import type { ReactElement } from "react";
 import { Button, Space, Typography } from "antd";
 import { useActionGate, useErrorDisplay, useT } from "@stapel/core";
@@ -97,10 +98,35 @@ function StartCallBody(props: {
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
   const gate = useActionGate(props.availability);
   const label = t(CHAT_I18N_KEYS.callButton);
+  const reasonId = useId();
 
+  /*
+   * NEVER html-`disabled` — the same rule `<FavoriteHeart>` and the whole
+   * `GatedControl` substrate follow, arrived at here the hard way.
+   *
+   * `disabled` on a DOM button is inert: it takes no focus and receives no
+   * pointer events, so it swallows the very tap that was meant to explain it.
+   * On a phone, where there is no hover to fall back on, a blocked call
+   * button answered a press with nothing at all — and the sentence beside it
+   * was never announced with the control, because nothing bound the two.
+   *
+   * `aria-disabled` plus a LIVE handler is the shape a person can
+   * interrogate. Nothing leaks: the refusal happens inside `<StartCall>` —
+   * `call()` is a no-op while the gate is blocked — so a press on a blocked
+   * control cannot place a call however it arrives. `aria-describedby` ties
+   * the button to the reason, which is the half that makes the sentence
+   * reach a screen reader rather than merely sit on the page.
+   *
+   * Written out rather than wrapped in `GatedControl` for one reason: this
+   * pair publishes `chat-call-blocked` as the reason's own test id (hosts,
+   * suites and the fleet's walkers address it), and the substrate's wrapper
+   * owns that element and stamps it `data-stapel-gated-reason` instead. The
+   * SHAPE is the substrate's; only the markup around the sentence is ours.
+   */
   const button = (
     <Button
-      disabled={gate.disabled}
+      {...(gate.disabled ? { "aria-disabled": true } : {})}
+      {...(gate.disabled && gate.reason ? { "aria-describedby": reasonId } : {})}
       loading={props.isStarting}
       onClick={props.call}
       aria-label={label}
@@ -122,7 +148,11 @@ function StartCallBody(props: {
           */}
       {button}
       {gate.reason ? (
-        <Typography.Text type="secondary" data-testid="chat-call-blocked">
+        <Typography.Text
+          id={reasonId}
+          type="secondary"
+          data-testid="chat-call-blocked"
+        >
           {t(gate.reason)}
         </Typography.Text>
       ) : null}
