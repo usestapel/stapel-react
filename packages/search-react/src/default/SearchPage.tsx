@@ -61,7 +61,7 @@
  * nothing in it, and a layout that reflowed underneath a person mid-load would
  * be worse than the hole.
  */
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex } from "antd";
 import { SkinDialog, SkinTheme, useDialogSurface } from "@stapel/tokens-antd/skin";
@@ -105,6 +105,84 @@ import type { ThemeModeProp } from "./types.js";
 
 /** Where the filters live: beside the results, or behind a button in a sheet. */
 export type SearchFiltersLayout = "column" | "sheet";
+
+/**
+ * WHERE the filter rail earns its 280px, when the token `tablet` edge is the
+ * wrong place to draw it.
+ *
+ * The default is `useDialogSurface()`, i.e. the same `tablet` breakpoint the
+ * bottom sheet is decided by — one rule, one source, and no third opinion
+ * about where a phone ends. That is right for a dialog and often wrong for
+ * THIS layout: at 768px the rail takes 280 of the window and leaves the
+ * results a 470px column, one card wide, which is worse than the sheet the
+ * page just stopped drawing. A storefront whose cards want two columns beside
+ * the rail says `railFrom={1024}` and gets the sheet below it.
+ *
+ * A width in CSS pixels, compared against the VIEWPORT — deliberately, and for
+ * the same reason `useDialogSurface` may: below the threshold the filters are
+ * a bottom sheet anchored to the viewport's edges, and there is no element
+ * whose width could be the right input to that decision. Above it the rail is
+ * an ordinary column and everything inside it measures its own box again.
+ */
+export type SearchRailFrom = number;
+
+/**
+ * Is the viewport at least this wide right now?
+ *
+ * `useSyncExternalStore` over one live `matchMedia` handle, the shape
+ * `useDialogSurface` uses, so the FIRST client render already has the answer:
+ * an effect-based hook would paint the sheet arm on a desktop for one frame
+ * and swap it for the rail. `null` when there is nothing to ask — no
+ * threshold given, or no DOM (SSR) — and the caller falls back to the shared
+ * dialog-surface rule.
+ */
+function useWiderThan(px: number | undefined): boolean | null {
+  const query = px === undefined ? null : `(min-width: ${String(px)}px)`;
+  return useSyncExternalStore(
+    (onChange: () => void) => {
+      if (query === null) return () => undefined;
+      const list = matchMediaFor(query);
+      if (list === null) return () => undefined;
+      list.addEventListener("change", onChange);
+      return () => {
+        list.removeEventListener("change", onChange);
+      };
+    },
+    () => {
+      if (query === null) return null;
+      const list = matchMediaFor(query);
+      return list === null ? null : list.matches;
+    },
+    () => null
+  );
+}
+
+/**
+ * The `MediaQueryList` for one query, made once per query string.
+ *
+ * `useSyncExternalStore` calls its snapshot on every render, so building a
+ * fresh live query object each time would ask the platform to parse the same
+ * media text on every pass — the cost `useDialogSurface`'s own cache exists to
+ * avoid. Keyed on the `matchMedia` function too, so a test that installs its
+ * own is never answered by the previous one's handle.
+ */
+const mediaCache = new Map<string, MediaQueryList>();
+let cachedMatchMedia: typeof window.matchMedia | null = null;
+
+function matchMediaFor(query: string): MediaQueryList | null {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return null;
+  }
+  if (cachedMatchMedia !== window.matchMedia) {
+    cachedMatchMedia = window.matchMedia;
+    mediaCache.clear();
+  }
+  const cached = mediaCache.get(query);
+  if (cached !== undefined) return cached;
+  const made = window.matchMedia(query);
+  mediaCache.set(query, made);
+  return made;
+}
 
 /**
  * The desktop filter rail's width.
@@ -419,9 +497,29 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * `"banner"`). Handed straight to `<SearchResultsPane>`. */
   readonly degradationNotice?: DegradationNoticeVariant;
   /**
-   * Force the filter surface instead of reading the viewport. For tests and
-   * for a host that renders the page inside a phone-width container that is
-   * not the viewport — not an escape hatch for "I prefer a column on phones".
+   * WHERE the filter rail takes over from the sheet, in CSS pixels.
+   *
+   * Default: the token `tablet` edge, because that is what `useDialogSurface`
+   * decides and one rule beats two. At 768px, though, the 280px rail leaves
+   * the results a 470px column — one card wide, and worse than the sheet it
+   * replaced. `railFrom={1024}` moves the changeover to where this page's
+   * cards actually fit beside the rail; below it the filters are the sheet.
+   *
+   * Read against the viewport (see {@link SearchRailFrom}), live: rotating a
+   * tablet across the threshold swaps the surface without a reload.
+   * {@link filtersLayout} still wins over it, being the pinned answer.
+   */
+  readonly railFrom?: SearchRailFrom;
+  /**
+   * PIN the filter surface, instead of deciding it from the viewport at all.
+   *
+   * A real prop, not a test seam: a page rendered inside a phone-width
+   * container that is not the viewport (a preview frame, an embedded panel, a
+   * split view) has a viewport that answers the wrong question, and so does a
+   * surface that is a column by product decision at every width. Prefer
+   * {@link railFrom} when the answer is still "it depends on the width" and
+   * only the threshold is wrong — a pinned `"column"` on a phone puts a 280px
+   * rail beside a 110px result column.
    */
   readonly filtersLayout?: SearchFiltersLayout;
   /**
@@ -539,6 +637,7 @@ interface SearchPageBodyProps {
   readonly categoryNamesPending?: boolean;
   readonly resultsHeading?: ReactNode;
   readonly degradationNotice?: DegradationNoticeVariant;
+  readonly railFrom?: SearchRailFrom;
   readonly filtersLayout?: SearchFiltersLayout;
   readonly defaultFiltersOpen?: boolean;
   readonly pageSize?: boolean;
@@ -567,8 +666,16 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   });
   const applied = useAppliedCount();
   const surface = useDialogSurface();
+  const wideEnoughForRail = useWiderThan(props.railFrom);
   const layout: SearchFiltersLayout =
-    props.filtersLayout ?? (surface === "sheet" ? "sheet" : "column");
+    props.filtersLayout ??
+    (wideEnoughForRail !== null
+      ? wideEnoughForRail
+        ? "column"
+        : "sheet"
+      : surface === "sheet"
+        ? "sheet"
+        : "column");
   const [sheetOpen, setSheetOpen] = useState(props.defaultFiltersOpen === true);
 
   // How the results are ARRANGED. Component state, not URL state: it changes
@@ -941,6 +1048,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     categoryNamesPending,
     resultsHeading,
     degradationNotice,
+    railFrom,
     filtersLayout,
     defaultFiltersOpen,
     pageSize,
@@ -992,6 +1100,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(categoryNamesPending !== undefined ? { categoryNamesPending } : {})}
           {...(resultsHeading !== undefined ? { resultsHeading } : {})}
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
+          {...(railFrom !== undefined ? { railFrom } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(pageSize !== undefined ? { pageSize } : {})}

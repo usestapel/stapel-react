@@ -46,7 +46,11 @@ export {
   RAIL_STYLE_HREF,
   railScrollbarCss,
 } from "./SearchPage.js";
-export type { SearchPageProps, SearchFiltersLayout } from "./SearchPage.js";
+export type {
+  SearchPageProps,
+  SearchFiltersLayout,
+  SearchRailFrom,
+} from "./SearchPage.js";
 
 export {
   OtherCategoriesLine,
@@ -66,6 +70,7 @@ export type {
 export {
   SearchResultsPane,
   RESULTS_MAX_WIDTH,
+  RESULTS_AUTO_FILL_COLUMNS,
   RESULTS_COLUMNS_CLASS,
   RESULTS_COLUMNS_STYLE_HREF,
   resultsColumnsCss,

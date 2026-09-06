@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { breakpoints } from "@stapel/tokens";
 import {
+  RESULTS_AUTO_FILL_COLUMNS,
   RESULTS_COLUMNS_CLASS,
   SearchResultsPane,
   resultsColumnsCss,
@@ -338,9 +339,15 @@ describe("<SearchResultsPane columns> — the host's own column count", () => {
     // `minmax(0, 1fr)` rather than `1fr`: a bare `1fr` is `minmax(auto, 1fr)`,
     // so one long unbroken title widens the whole row.
     expect(resultsColumnsCss(2)).toContain("repeat(2, minmax(0, 1fr))");
-    // The rule is a real sheet, because a fixed count has to beat the inline
-    // `auto-fill` declaration the grid still carries.
-    expect(document.querySelector("style")?.textContent ?? "").toBeDefined();
+    // What the NODE carries is what a browser resolves. The emitted sheet was
+    // green in this suite for a release while the prop did nothing on a stand,
+    // because the grid still carried the auto-fill default inline and an
+    // inline declaration beats a stylesheet at any specificity.
+    expect(grid.style.gridTemplateColumns).toBe("repeat(2, minmax(0, 1fr))");
+    expect(grid.style.gridTemplateColumns).not.toContain("auto-fill");
+    expect(
+      window.getComputedStyle(grid).getPropertyValue("grid-template-columns")
+    ).toContain("repeat(2");
   });
 
   it("climbs the token breakpoints for a map — measured on the BLOCK", async () => {
@@ -371,6 +378,33 @@ describe("<SearchResultsPane columns> — the host's own column count", () => {
     // A rung left out inherits the one below it, rather than emitting a rule
     // that says nothing.
     expect(resultsColumnsCss({ tablet: 3 })).not.toContain("min-width: 1200px");
+    // …and the rung below the lowest one is the auto-fill default, now that
+    // the pane writes nothing inline for a map: it has to be in the sheet, or
+    // a `{ tablet: 2 }` map would leave the grid with no track declaration at
+    // all below 768px.
+    expect(resultsColumnsCss({ tablet: 3 })).toContain(
+      RESULTS_AUTO_FILL_COLUMNS
+    );
+    expect(css).not.toContain("auto-fill");
+  });
+
+  it("writes NO inline track declaration for a map, so its sheet is the one in play", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane columns={{ phone: 1, tablet: 2 }} />
+      </TestHarness>
+    );
+    const grid = await screen.findByTestId("search-results-grid");
+    // The defect, read off the rendered node: the map's rules are hung on this
+    // node's class, and an inline `grid-template-columns` on the same node
+    // wins over all of them. The stand set exactly this map and measured pure
+    // auto-fill — two columns at 759px, one at 448, three at 1199.
+    expect(grid.style.gridTemplateColumns).toBe("");
+    expect(grid.getAttribute("style") ?? "").not.toContain("auto-fill");
+    // Everything else about the grid still comes from the node.
+    expect(grid.style.display).toBe("grid");
+    expect(grid.style.alignItems).toBe("stretch");
   });
 
   it("says nothing at all when the host has no opinion", async () => {

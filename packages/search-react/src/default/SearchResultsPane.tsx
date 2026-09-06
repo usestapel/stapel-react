@@ -122,9 +122,34 @@ export const RESULTS_MAX_WIDTH = 1400;
  * bought went into card whitespace, not into legibility, and cost a whole
  * column of listings on the reference desktop.
  */
+export const RESULTS_AUTO_FILL_COLUMNS = "repeat(auto-fill, minmax(260px, 1fr))";
+
 const RESULTS_GRID: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+  gridTemplateColumns: RESULTS_AUTO_FILL_COLUMNS,
+  gap: spacing[3],
+  alignItems: "stretch",
+};
+
+/**
+ * The same grid with the track declaration REMOVED, for the responsive column
+ * map — because an inline declaration beats a stylesheet, `!important` or not.
+ *
+ * The map's rules had nothing to win against: they were hung on a class on the
+ * very node that also carried `grid-template-columns: repeat(auto-fill, …)` as
+ * an inline style, and the browser resolves that in the inline's favour every
+ * time. A stand measuring `{ phone: 1, tablet: 2 }` read pure auto-fill (two
+ * columns at 759px, one at 448, three at 1199) — the prop was inert in a
+ * browser while every unit test on the emitted CSS string stayed green.
+ *
+ * A fixed count writes itself inline instead (there is one number and no
+ * cascade to run), so this shape is only for the map, whose base rung the
+ * sheet now always states — auto-fill when `phone` is left out, so "a key left
+ * out inherits the rung below it" still holds with nothing inline to inherit
+ * from.
+ */
+const RESULTS_GRID_UNSET_COLUMNS: CSSProperties = {
+  display: "grid",
   gap: spacing[3],
   alignItems: "stretch",
 };
@@ -184,10 +209,18 @@ export function resultsColumnsCss(columns: ResultsColumns): string {
   if (typeof columns === "number") {
     return `${block}{grid-template-columns:${fixedColumns(columns)}}`;
   }
-  const rules = [`${block}{container-type:inline-size}`];
-  if (columns.phone !== undefined) {
-    rules.push(`${block}{grid-template-columns:${fixedColumns(columns.phone)}}`);
-  }
+  // The base rung is always stated, because the pane no longer writes the
+  // auto-fill inline when a map is in play: with nothing inline to fall back
+  // to, "a key left out inherits the rung below it" has to mean the default
+  // grid, said out loud.
+  const rules = [
+    `${block}{container-type:inline-size}`,
+    `${block}{grid-template-columns:${
+      columns.phone === undefined
+        ? RESULTS_AUTO_FILL_COLUMNS
+        : fixedColumns(columns.phone)
+    }}`,
+  ];
   for (const rung of [
     { at: breakpoints.tablet, count: columns.tablet },
     { at: breakpoints.desktop, count: columns.desktop },
@@ -321,6 +354,11 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * 2 }` is the two-cards-per-row tablet SERP this exists for — compared
    * against the width of this BLOCK rather than of the window, because the
    * filter rail takes 280px of that window and the cards never see it.
+   *
+   * Whichever shape is given, the pane stops writing the auto-fill default as
+   * an inline style on the grid: an inline declaration beats the column sheet
+   * in every browser, which is how this prop shipped inert (a stand set
+   * `{ phone: 1, tablet: 2 }` and measured pure auto-fill).
    *
    * Ignored by `layout="list"` (one row per result IS one column) and by
    * `renderResults`, which replaces the arrangement entirely.
@@ -469,6 +507,24 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
     props.columns === undefined || props.layout === "list"
       ? null
       : resultsColumnsCss(props.columns);
+  /**
+   * The tracks the NODE carries, which is the only declaration a browser
+   * actually resolves for it.
+   *
+   * An inline style beats a stylesheet rule at any specificity, so the pane
+   * must not write the auto-fill default onto the same node the column sheet
+   * targets: a fixed count is written inline (one number, no cascade to run)
+   * and a map leaves the property unset inline so its own rungs — base plus
+   * container queries — are the only ones in play.
+   */
+  const gridStyle: CSSProperties =
+    props.layout === "list"
+      ? RESULTS_LIST
+      : columnRules === null
+        ? RESULTS_GRID
+        : typeof props.columns === "number"
+          ? { ...RESULTS_GRID, gridTemplateColumns: fixedColumns(props.columns) }
+          : RESULTS_GRID_UNSET_COLUMNS;
 
   return (
     <SkinTheme
@@ -587,7 +643,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                     renderResults(items)
                   ) : (
                     <div
-                      style={props.layout === "list" ? RESULTS_LIST : RESULTS_GRID}
+                      style={gridStyle}
                       // The class carries the host's column count; without one
                       // it is absent and the `auto-fill` default is the only
                       // rule in play.
