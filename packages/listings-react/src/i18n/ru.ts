@@ -102,6 +102,18 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.card.price_dropped": "Цена снизилась",
   "listings.card.price_raised": "Цена выросла",
 
+  "listings.share.action": "Поделиться",
+  "listings.share.copy": "Скопировать ссылку",
+  "listings.share.copied": "Ссылка скопирована",
+  "listings.share.copy_failed":
+    "Не удалось скопировать ссылку — скопируйте её из адресной строки",
+  "listings.share.telegram": "Telegram",
+  "listings.share.whatsapp": "WhatsApp",
+  "listings.share.vk": "ВКонтакте",
+  "listings.favorite.added": "Добавлено в избранное",
+  "listings.favorite.removed": "Убрано из избранного",
+  "listings.favorite.count": "В избранном у {count}",
+
   "listings.detail.loading": "Загружаем объявление…",
   "listings.detail.load_failed": "Не удалось загрузить объявление",
   "listings.detail.retry": "Повторить",

@@ -50,6 +50,7 @@
  * that knows the viewport it granted, never a media query guessed in a leaf —
  * and the default `"column"` renders exactly what existing hosts already get.
  */
+import { isValidElement } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Descriptions, Divider, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
@@ -75,7 +76,12 @@ import { useListingActions } from "../headless/ListingActions.js";
 import { asFeatureDaoList, featureValuesForDisplay } from "../model/features.js";
 import { formatSpecValue } from "../model/featureText.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
+import type { ShareChannel } from "../headless/Share.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
+import { ListingActions } from "./ListingActions.js";
+import type { ListingActionsConfig } from "./ListingActions.js";
+import { LISTING_ACTION_CLASS } from "./actionRow.js";
+import { useNotice } from "./notice.js";
 import { ListingSpecColumns, ListingSpecList } from "./ListingSpecList.js";
 import { SignInLink } from "./SignInLink.js";
 import { HeartIcon } from "./icons.js";
@@ -206,10 +212,59 @@ export interface ListingDetailPaneProps
   /** Open the composer on this listing — the owner's primary. Absent is a real
    * answer: the button then states that this app has no editing screen. */
   readonly onEdit?: (id: number) => void;
-  /** Extra chrome beside the primary (the seller's profile link, a share
-   * button). Cross-pair navigation is the container's job (spec §6.2 item 5),
-   * so this pair takes nodes rather than routes. */
-  readonly actions?: ReactNode;
+  /**
+   * TWO THINGS UNDER ONE NAME, and the type tells them apart.
+   *
+   *  - a NODE — extra chrome beside the primary (the seller's profile link, a
+   *    control from another pair). What this prop has always been, unchanged,
+   *    and still rendered at the end of the buy box. Cross-pair navigation is
+   *    the container's job (spec §6.2 item 5), so this pair takes nodes
+   *    rather than routes.
+   *  - a CONFIG — `{ share: false }` / `{ favorite: false }`, switching off
+   *    one of the page's own two reader actions.
+   *
+   * A union rather than a second prop, because they are the same question
+   * ("what is in the action row") asked from two sides, and it is
+   * unambiguous at runtime: a plain object that is not a React element was
+   * never a legal `ReactNode` in the first place — React refuses to render
+   * one — so `{ share: false }` cannot be a node that somebody meant.
+   */
+  readonly actions?: ReactNode | ListingActionsConfig;
+  /**
+   * The listing's CANONICAL address, for the share sheet — the route the
+   * container built (`/l/7`, or an absolute URL), not the address bar.
+   *
+   * Absent, sharing falls back to `window.location.href`, which is honest for
+   * a bare mount and wrong for a real app: the address a visitor is standing
+   * on carries the SERP query they arrived from, the page anchor and whatever
+   * tracking parameters came with them, and none of that belongs in a link
+   * somebody sends to a friend. See `useShare`.
+   */
+  readonly shareUrl?: string;
+  /** Analytics: which channel a completed share went through. */
+  readonly onShared?: (channel: ShareChannel) => void;
+  /**
+   * How many people saved this listing, when the host was told by something
+   * else. The listings wire carries `is_favorited` — a per-reader boolean —
+   * and no aggregate at all, so this pair never invents the number and never
+   * draws a zero in place of "nobody counted".
+   */
+  readonly favoriteCount?: number;
+  /**
+   * WHERE THE READER'S TWO ACTIONS SIT.
+   *
+   *  - `"header"` (default) — beside the title, at the trailing edge of the
+   *    heading row, which is where the reference classified puts them and
+   *    where a person looks for them on both a phone and a desktop;
+   *  - `"gallery"` — pinned over the photographs' trailing top corner, for a
+   *    phone-first host that wants them on the picture. The corner is chosen
+   *    rather than free: the dots own the bottom centre of the strip and the
+   *    photo counter owns the bottom trailing corner;
+   *  - `"buy-box"` — inside `listings-detail-actions`, beside "message the
+   *    seller", which is where the favourite alone used to live. The escape
+   *    hatch for a host whose page was laid out around it.
+   */
+  readonly actionsPlacement?: "header" | "gallery" | "buy-box";
   /**
    * The container's sign-in door, rendered beside the favourite's refusal —
    * the same `SignInCta` seam the three card skins already take. The pane was
@@ -243,8 +298,28 @@ export interface ListingDetailPaneProps
   readonly footer?: ReactNode;
 }
 
+/**
+ * Which arm of `actions` this is.
+ *
+ * A plain object that is not a React element and not an array was never a
+ * legal `ReactNode` — React throws on rendering one — so there is no value a
+ * caller could have meant as chrome that lands here. `null` and `undefined`
+ * are nodes (the empty ones) and stay on the node side.
+ */
+function isActionsConfig(
+  value: ReactNode | ListingActionsConfig
+): value is ListingActionsConfig {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !isValidElement(value)
+  );
+}
+
 export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   const t = useT();
+  const notice = useNotice();
   const { locale } = useI18n();
   const { token } = antdTheme.useToken();
   const bag = useListingDetail(props.id, {
@@ -260,6 +335,16 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   // leaves rendering the reason to `<GatedControl>`, which computes its own.
   const favoriteView = useActionGate(bag.favoriteGate);
   const split = props.layout === "split";
+  const placement = props.actionsPlacement ?? "header";
+  // The two arms of `actions` — see `isActionsConfig`.
+  const actionsConfig: ListingActionsConfig | undefined = isActionsConfig(
+    props.actions
+  )
+    ? props.actions
+    : undefined;
+  const actionsNode: ReactNode = isActionsConfig(props.actions)
+    ? null
+    : props.actions;
 
   const favoriteLabel = t(
     bag.isFavorited
@@ -275,6 +360,29 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
       {...(bag.isFavorited ? { color: token.colorPrimary } : {})}
     />
   );
+  /**
+   * The press, and the sentence it earns.
+   *
+   * The heart on this page is icon-only (§23: the reference draws a 44×44
+   * glyph where this pane drew a 152px button with a word in it), so the
+   * only thing a person reads back off the gesture is a fill changing colour
+   * in the corner of a row. That is enough to SEE and not enough to be sure
+   * of, which is what the toast is for — raised from the state the icon is
+   * about to draw, so both arrive together. A write that then fails rolls the
+   * icon back and says so through `listings-detail-favorite-error`.
+   */
+  const pressFavorite = (): void => {
+    const next = !bag.isFavorited;
+    bag.toggleFavorite();
+    if (!bag.favoriteGate.available) return;
+    notice(
+      t(
+        next
+          ? LISTINGS_I18N_KEYS.favoriteAdded
+          : LISTINGS_I18N_KEYS.favoriteRemoved
+      )
+    );
+  };
 
   return (
     <SkinTheme
@@ -360,6 +468,108 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               </>
             );
 
+            /* THE READER'S TWO ACTIONS, as one cluster — see
+               `<ListingActions>` and `actionsPlacement`.
+
+               The heart is handed IN rather than mounted by the cluster:
+               this page's favourite is driven by `useListingDetail`'s own
+               optimistic bag (it holds the whole listing and flips the row it
+               already has), not by `useFavoriteToggle` against a card row.
+               One control, two hooks, one geometry.
+
+               The OWNER gets the share button and no heart: favouriting your
+               own listing is not a thing anyone does, and sending somebody
+               your own listing is the first thing a seller does. */
+            const favoriteControl =
+              owner ? null : props.blockedReason === "popover" &&
+                favoriteView.reason !== undefined ? (
+                  /* The cards' third volume, verbatim: nothing standing, the
+                     reason and the door disclosed on the heart. `aria-disabled`
+                     rather than `disabled`, so the disclosure's hover, focus
+                     and tap all arrive — and the click is a safe no-op, because
+                     `toggleFavorite` refuses while the gate is blocked. */
+                  <GateReasonPopover
+                    reason={favoriteView.reason}
+                    cta={props.signIn}
+                    testId="listings-detail-favorite-reason"
+                  signInTestId="listings-detail-sign-in"
+                >
+                  {(bind) => (
+                    <Button
+                      shape="circle"
+                      aria-disabled
+                      {...bind}
+                      className={LISTING_ACTION_CLASS}
+                      aria-label={favoriteLabel}
+                      aria-pressed={bag.isFavorited}
+                      icon={heartIcon}
+                      data-testid="listings-detail-favorite"
+                      data-favorited={String(bag.isFavorited)}
+                      data-analytics="none"
+                      data-analytics-reason="business action — host app wraps with its own tracked()"
+                      onClick={pressFavorite}
+                    />
+                  )}
+                </GateReasonPopover>
+              ) : (
+                <Flex vertical gap={spacing[1]}>
+                  <GatedControl
+                    gate={bag.favoriteGate}
+                    testId="listings-detail-favorite-gate"
+                  >
+                    {(bind) => (
+                      <Button
+                        shape="circle"
+                        // See `<ListingCard>`: the binding, spread whole.
+                        {...bind}
+                        className={LISTING_ACTION_CLASS}
+                        aria-label={favoriteLabel}
+                        aria-pressed={bag.isFavorited}
+                        icon={heartIcon}
+                        data-testid="listings-detail-favorite"
+                        data-favorited={String(bag.isFavorited)}
+                        data-analytics="none"
+                        data-analytics-reason="business action — host app wraps with its own tracked()"
+                        onClick={pressFavorite}
+                      />
+                    )}
+                  </GatedControl>
+                  {/* The door. `GatedControl` prints the reason; where a
+                      visitor signs in is the container's, and arrives as
+                      `signIn` — the cards' own pattern, verbatim. */}
+                  {bag.favoriteGate.available ? null : (
+                    <Typography.Text
+                      type="secondary"
+                      data-testid="listings-detail-favorite-blocked"
+                    >
+                      <SignInLink cta={props.signIn} testId="listings-detail-sign-in" />
+                    </Typography.Text>
+                  )}
+                </Flex>
+              );
+
+            const readerActions = (
+              <ListingActions
+                listingId={props.id}
+                favorite={favoriteControl}
+                testId="listings-detail-reader-actions"
+                placement={placement === "gallery" ? "overlay" : "inline"}
+                actions={{
+                  ...actionsConfig,
+                  // The owner keeps the share button and loses the heart.
+                  ...(owner ? { favorite: false } : {}),
+                }}
+                {...(props.favoriteCount !== undefined && !owner
+                  ? { favoriteCount: props.favoriteCount }
+                  : {})}
+                {...(props.shareUrl !== undefined ? { shareUrl: props.shareUrl } : {})}
+                {...(listing.title !== undefined && listing.title !== null
+                  ? { shareTitle: listing.title }
+                  : {})}
+                {...(props.onShared !== undefined ? { onShared: props.onShared } : {})}
+              />
+            );
+
             /* Element-width tiles: the grid decides how many fit, the
                photos fill them. */
             const gallery = (
@@ -371,6 +581,10 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   // The page's own edge, per breakpoint — see
                   // `DETAIL_GALLERY_GUTTER` (D418).
                   gap: DETAIL_GALLERY_GUTTER,
+                  // The containing block the overlay arm is pinned to. A
+                  // `relative` with no offsets moves no pixel of what is
+                  // already in it — the same trick `cardGalleryCss` uses.
+                  position: "relative",
                 }}
               >
                 {bag.images.length === 0 ? (
@@ -390,17 +604,30 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     />
                   ))
                 )}
+                {placement === "gallery" ? readerActions : null}
               </div>
             );
 
             const heading = (
               <>
-                <Typography.Title
-                  level={props.headingLevel ?? 3}
-                  data-testid="listings-detail-title"
-                >
-                  {listing.title ?? ""}
-                </Typography.Title>
+                {/* THE TITLE AND THE TWO ACTIONS SHARE A LINE (§23).
+                    The reference classified puts save-and-share at the
+                    trailing edge of the heading, on a phone and on a desktop
+                    alike, and that is the only place on this page where a
+                    person looks for them. `align-items:flex-start` so a
+                    two-line title does not drag the glyphs down its second
+                    line; `minWidth:0` so a long unbroken word wraps instead
+                    of pushing them off the pane. */}
+                <Flex align="flex-start" justify="space-between" gap={spacing[3]}>
+                  <Typography.Title
+                    level={props.headingLevel ?? 3}
+                    data-testid="listings-detail-title"
+                    style={{ minWidth: 0, flex: "1 1 auto" }}
+                  >
+                    {listing.title ?? ""}
+                  </Typography.Title>
+                  {placement === "header" ? readerActions : null}
+                </Flex>
 
                 {/* The `show_at_title` projection, formatted from the stored
                     DAOs — no category read needed (see model/features.ts). */}
@@ -511,76 +738,12 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   </div>
                 )}
 
-                {/* Favouriting your own listing is not a thing anyone does;
-                    for everyone else it is the secondary it always was. */}
-                {owner ? null : props.blockedReason === "popover" &&
-                  favoriteView.reason !== undefined ? (
-                  /* The cards' third volume, verbatim: nothing standing, the
-                     reason and the door disclosed on the heart. `aria-disabled`
-                     rather than `disabled`, so the disclosure's hover, focus
-                     and tap all arrive — and the click is a safe no-op, because
-                     `toggleFavorite` refuses while the gate is blocked. */
-                  <GateReasonPopover
-                    reason={favoriteView.reason}
-                    cta={props.signIn}
-                    testId="listings-detail-favorite-reason"
-                    signInTestId="listings-detail-sign-in"
-                  >
-                    {(bind) => (
-                      <Button
-                        aria-disabled
-                        {...bind}
-                        aria-label={favoriteLabel}
-                        aria-pressed={bag.isFavorited}
-                        icon={heartIcon}
-                        data-testid="listings-detail-favorite"
-                        data-favorited={String(bag.isFavorited)}
-                        data-analytics="none"
-                        data-analytics-reason="business action — host app wraps with its own tracked()"
-                        onClick={bag.toggleFavorite}
-                      >
-                        {favoriteLabel}
-                      </Button>
-                    )}
-                  </GateReasonPopover>
-                ) : (
-                  <Flex vertical gap={spacing[1]}>
-                    <GatedControl
-                      gate={bag.favoriteGate}
-                      testId="listings-detail-favorite-gate"
-                    >
-                      {(bind) => (
-                        <Button
-                          // See `<ListingCard>`: the binding, spread whole.
-                          {...bind}
-                          aria-label={favoriteLabel}
-                          aria-pressed={bag.isFavorited}
-                          icon={heartIcon}
-                          data-testid="listings-detail-favorite"
-                          data-favorited={String(bag.isFavorited)}
-                          data-analytics="none"
-                          data-analytics-reason="business action — host app wraps with its own tracked()"
-                          onClick={bag.toggleFavorite}
-                        >
-                          {favoriteLabel}
-                        </Button>
-                      )}
-                    </GatedControl>
-                    {/* The door. `GatedControl` prints the reason; where a
-                        visitor signs in is the container's, and arrives as
-                        `signIn` — the cards' own pattern, verbatim. */}
-                    {bag.favoriteGate.available ? null : (
-                      <Typography.Text
-                        type="secondary"
-                        data-testid="listings-detail-favorite-blocked"
-                      >
-                        <SignInLink cta={props.signIn} testId="listings-detail-sign-in" />
-                      </Typography.Text>
-                    )}
-                  </Flex>
-                )}
+                {/* The reader's two actions live in the cluster now (see
+                    `actionsPlacement`); the buy box keeps them only when a
+                    host asks for the layout this page used to have. */}
+                {placement === "buy-box" ? readerActions : null}
 
-                {props.actions}
+                {actionsNode}
               </Flex>
             );
 

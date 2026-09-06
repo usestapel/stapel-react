@@ -66,6 +66,7 @@ import { isListingViewed } from "../model/engagement.js";
 import { useEngagedListing } from "../headless/Engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { FavoriteHeart } from "./favorite.js";
+import { LISTING_CARD_ACTION_CLASS } from "./actionRow.js";
 import {
   CARD_TARGET_STYLE_HREF,
   CARD_VIEWED_CLASS,
@@ -246,6 +247,7 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
             listingId={listing.id}
             favorited={listing.is_favorited}
             testId="listings-feed-favorite"
+            className={LISTING_CARD_ACTION_CLASS}
             blockedReason={props.blockedReason ?? "popover"}
             {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
             style={HEART}

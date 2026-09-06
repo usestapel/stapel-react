@@ -35,6 +35,8 @@ import { useFavoriteToggle } from "../headless/Favorites.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { GateReasonPopover } from "./GateReasonPopover.js";
 import { HeartIcon } from "./icons.js";
+import { useNotice } from "./notice.js";
+import { LISTING_ACTIONS_STYLE_HREF, actionRowCss } from "./actionRow.js";
 
 export interface FavoriteHeartProps {
   readonly listingId: number;
@@ -83,6 +85,31 @@ export interface FavoriteHeartProps {
    * its reason, which is all a surface with no sign-in route can offer.
    */
   readonly signIn?: SignInCta;
+  /**
+   * The hit-target class this surface wants — `LISTING_CARD_ACTION_CLASS` on
+   * a card (36px with a cursor, 44px with a thumb),
+   * `LISTING_ACTION_CLASS` on the listing page (44px everywhere).
+   *
+   * A CLASS rather than a size prop: the tiers are a media query, and a
+   * component that took a number would have to be told the viewport — which
+   * is the thing a leaf must never ask. See `actionRow.ts`.
+   */
+  readonly className?: string;
+  /**
+   * SAY THE OUTCOME OUT LOUD — a short toast on each successful press.
+   *
+   * Off by default and ON for the listing page: one heart on a screen the
+   * person came to act on earns a sentence, forty hearts on a grid do not.
+   * The icon fill remains the state in both cases; this is the acknowledgement
+   * that the press was received, which is the half a small glyph pinned to
+   * the corner of a photograph cannot carry on its own.
+   *
+   * It is raised on the GESTURE, from the predicted next state, for the same
+   * reason `useFavoriteToggle` draws that state optimistically: the toast has
+   * to arrive with the press. A write that then fails rolls the icon back and
+   * states the failure through the heart's own `ErrorAlert`.
+   */
+  readonly announce?: boolean;
   readonly style?: CSSProperties;
 }
 
@@ -134,6 +161,7 @@ export interface FavoriteHeartProps {
  */
 export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
   const t = useT();
+  const notice = useNotice();
   const { token } = antdTheme.useToken();
   const favorite = useFavoriteToggle(props.listingId, props.favorited);
   const label = t(
@@ -154,6 +182,22 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
   // place a blocked reason becomes words in this fleet.
   const gate = useActionGate(favorite.gate);
   const reason = gate.reason;
+  // The press, plus the sentence the surface asked for. The next state is the
+  // one the icon is about to draw, so the toast and the fill say the same
+  // thing at the same moment — see `announce`.
+  const announce = props.announce === true;
+  const press = (): void => {
+    const next = !favorite.favorited;
+    favorite.toggle();
+    if (!announce || !favorite.gate.available) return;
+    notice(
+      t(
+        next
+          ? LISTINGS_I18N_KEYS.favoriteAdded
+          : LISTINGS_I18N_KEYS.favoriteRemoved
+      )
+    );
+  };
   // D431. A blocked gate plus a door the surface handed in: the press is not
   // refused, it is ROUTED — through the door, keeping whatever `?next=` the
   // container put in the href. With no door there is nothing better for the
@@ -175,9 +219,10 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
         ...doorPress,
         ...(door?.href !== undefined ? {} : { "aria-pressed": favorite.favorited }),
       }
-    : { "aria-pressed": favorite.favorited, onClick: favorite.toggle };
+    : { "aria-pressed": favorite.favorited, onClick: press };
   // A failed save, stated where the heart is. The rollback already put the
   // icon back; this says why it went back.
+  // (see `press` above for the toast that rides the successful half)
   const failure = (
     <ErrorAlert
       testId={`${props.testId}-error`}
@@ -185,8 +230,20 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
       variant="inline"
     />
   );
+  // The hit-target rules the surfaces address by class. Hoisted here rather
+  // than by each card, because the heart is what carries the class and a
+  // stylesheet that arrived only on the surfaces that remembered it is a
+  // 32px target on the one that forgot.
+  const sheet = (
+    <style href={LISTING_ACTIONS_STYLE_HREF} precedence="default">
+      {actionRowCss()}
+    </style>
+  );
+
   if (props.blockedReason === "popover" && reason !== undefined) {
     return (
+      <>
+      {sheet}
       <GateReasonPopover
         reason={reason}
         cta={props.signIn}
@@ -201,6 +258,9 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
             // control, and the disclosure stays as the hint beside it.
             {...(opensDoor ? {} : { "aria-disabled": true })}
             {...bind}
+            {...(props.className !== undefined
+              ? { className: props.className }
+              : {})}
             aria-label={label}
             data-testid={props.testId}
             data-favorited={String(favorite.favorited)}
@@ -212,9 +272,12 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
           />
         )}
       </GateReasonPopover>
+      </>
     );
   }
   return (
+    <>
+    {sheet}
     <GatedControl
       gate={favorite.gate}
       testId={props.gateTestId ?? `${props.testId}-gate`}
@@ -233,6 +296,9 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
             shape="circle"
             // See `<ListingCard>`: the substrate's binding, spread whole.
             {...bind}
+            {...(props.className !== undefined
+              ? { className: props.className }
+              : {})}
             aria-label={label}
             data-testid={props.testId}
             data-favorited={String(favorite.favorited)}
@@ -245,5 +311,6 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
         </>
       )}
     </GatedControl>
+    </>
   );
 }

@@ -91,6 +91,35 @@ export const LISTINGS_I18N_KEYS = {
   cardPriceDropped: "listings.card.price_dropped",
   cardPriceRaised: "listings.card.price_raised",
 
+  // ── the action cluster: sharing, and what favouriting says back ──────────
+  /** The share control's caption AND its accessible name — one string, so a
+   * phone (icon only) and a desktop (icon + word) announce the same verb. */
+  shareAction: "listings.share.action",
+  /** The menu's first row: put the address on the clipboard. */
+  shareCopy: "listings.share.copy",
+  /** Stated INLINE in the menu and repeated as a toast — a confirmation that
+   * only ever appears in a toast is a confirmation a person who looked away
+   * never receives. */
+  shareCopied: "listings.share.copied",
+  /** The clipboard refused: no permission, an insecure origin, a browser
+   * without the API. Never swallowed — see `useShare`. */
+  shareCopyFailed: "listings.share.copy_failed",
+  /** The three networks. Proper nouns, and identical in every locale — they
+   * are keys all the same, because a pair that writes one literal string in
+   * a skin has written the next twenty somewhere else. */
+  shareTelegram: "listings.share.telegram",
+  shareWhatsapp: "listings.share.whatsapp",
+  shareVk: "listings.share.vk",
+  /** What the heart says back. The icon fill is the state; these two are the
+   * OUTCOME, spoken once, and they are what a person who pressed a small
+   * glyph at the corner of a photograph has to hear. */
+  favoriteAdded: "listings.favorite.added",
+  favoriteRemoved: "listings.favorite.removed",
+  /** How many people saved this one, when the surface was handed a number.
+   * The wire carries no such aggregate today (see `<ListingActions>`), so it
+   * is a host's fact and never a zero this pair invented. */
+  favoriteCount: "listings.favorite.count",
+
   // ── detail ───────────────────────────────────────────────────────────────
   detailLoading: "listings.detail.loading",
   detailLoadFailed: "listings.detail.load_failed",
@@ -342,6 +371,17 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.card.price_was": "Was",
   "listings.card.price_dropped": "The price went down",
   "listings.card.price_raised": "The price went up",
+
+  "listings.share.action": "Share",
+  "listings.share.copy": "Copy link",
+  "listings.share.copied": "Link copied",
+  "listings.share.copy_failed": "We could not copy the link — copy it from the address bar",
+  "listings.share.telegram": "Telegram",
+  "listings.share.whatsapp": "WhatsApp",
+  "listings.share.vk": "VK",
+  "listings.favorite.added": "Added to favourites",
+  "listings.favorite.removed": "Removed from favourites",
+  "listings.favorite.count": "{count} saved this",
 
   "listings.detail.loading": "Loading the listing…",
   "listings.detail.load_failed": "We could not load this listing",

@@ -194,7 +194,10 @@ describe("the rule text — the row arm a browser applies", () => {
     // to the box that holds the pictures; the slides inside it are square,
     // because the well is what has the shape.
     expect(css).toContain(
-      `.${CARD_MEDIA_CLASS}{min-inline-size:0;overflow:hidden;` +
+      // `position:relative` joined the rule when the favourite heart moved
+      // onto the photograph: the well is the containing block the overlay is
+      // pinned inside. It moves no pixel of what is already in the well.
+      `.${CARD_MEDIA_CLASS}{position:relative;min-inline-size:0;overflow:hidden;` +
         `border-start-start-radius:var(--listing-card-radius);` +
         `border-start-end-radius:var(--listing-card-radius)}`
     );

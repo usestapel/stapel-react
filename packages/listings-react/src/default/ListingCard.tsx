@@ -118,6 +118,11 @@ import { isListingViewed } from "../model/engagement.js";
 import { useEngagedListing } from "../headless/Engagement.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
 import { FavoriteHeart } from "./favorite.js";
+import {
+  LISTING_ACTIONS_CLASS,
+  LISTING_ACTIONS_OVERLAY_CLASS,
+  LISTING_CARD_ACTION_CLASS,
+} from "./actionRow.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { CardBadges, CardSpecLine } from "./CardBadges.js";
 import { SignInLink } from "./SignInLink.js";
@@ -330,7 +335,10 @@ export function cardTargetCss(): string {
     // of pictures with a torn right edge. One radius, stated by the card,
     // applied to the box that holds the pictures; the slides inside it are
     // square because the well is what has the shape.
-    `${media}{min-inline-size:0;overflow:hidden;` +
+    // `position:relative` is the containing block the favourite overlay is
+    // pinned inside (see `LISTING_ACTIONS_OVERLAY_CLASS`). A `relative` with
+    // no offsets moves no pixel of what is already in the well.
+    `${media}{position:relative;min-inline-size:0;overflow:hidden;` +
       `border-start-start-radius:var(--listing-card-radius);` +
       `border-start-end-radius:var(--listing-card-radius)}`,
     `${media} .${SKIN_CAROUSEL_SLIDE_CLASS}{border-radius:0}`,
@@ -670,6 +678,62 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                   ? { linkComponent: props.linkComponent }
                   : {})}
               />
+
+              {/* THE HEART IS ON THE PHOTOGRAPH (owner, 2026-09-06).
+                  It used to be a row UNDER the card, on the argument that a
+                  blocked visitor's reason needs a line of text to live on and
+                  there is nowhere to put one on top of a picture. Half of
+                  that survived: the reason and the door still stand in their
+                  own row below (see the block after this one), and only the
+                  CONTROL moved. What it buys is the ergonomics every
+                  reference classified has and this card did not — the heart
+                  in the corner of the picture, where a thumb already is,
+                  reachable without opening the listing and without the eye
+                  travelling past a price, a title, a spec line and a place to
+                  find it.
+
+                  Top-trailing is the one free corner: the strip's dots own
+                  the bottom centre and the "3 of 16" counter owns the bottom
+                  trailing corner (`cardGalleryCss`).
+
+                  `stopPropagation` on the bubble phase, not the capture: the
+                  heart is already a SIBLING of the slide anchors rather than
+                  a child, so nothing should reach the card from here — but a
+                  press that did would open the listing instead of saving it,
+                  and a capture-phase stop would swallow the disclosure's own
+                  activation on the way in. */}
+              {props.showFavorite === false ? null : (
+                <div
+                  className={`${LISTING_ACTIONS_CLASS} ${LISTING_ACTIONS_OVERLAY_CLASS}`}
+                  data-testid="listings-card-favorite-overlay"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
+                  {/* THE SHARED HEART, not a second copy of it.
+                      This card drew its own — a `<Button aria-disabled>` in
+                      the popover arm with `onClick={favorite.toggle}` behind
+                      it — and that copy stopped tracking `<FavoriteHeart>` the
+                      day the door landed (D431). One control, one refusal
+                      shape, one door.
+
+                      The two derived ids are pinned to what this card has
+                      always published, because a rename is a breaking change
+                      dressed as a refactor. */}
+                  <FavoriteHeart
+                    listingId={listing.id}
+                    favorited={listing.is_favorited}
+                    testId="listings-card-favorite"
+                    gateTestId="listings-card-actions"
+                    signInTestId="listings-card-sign-in"
+                    className={LISTING_CARD_ACTION_CLASS}
+                    {...(blockedReason === "popover"
+                      ? { blockedReason: "popover" as const }
+                      : {})}
+                    {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
+                  />
+                </div>
+              )}
             </div>
 
             <div className={CARD_MAIN_CLASS}>
@@ -677,46 +741,21 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                 {content}
               </CardTarget>
 
-              {/* The heart, and only the heart, is a separate CONTROL outside the
-                  anchor: a button inside a link is neither valid HTML nor operable.
-                  Its refusal gets a line of its own here, which is the whole reason
-                  it is a row under the card rather than a glyph floating on the
-                  photograph. */}
-              {props.showFavorite === false ? null : (
+              {/* THE REFUSAL'S OWN LINE, which is all that is left down here.
+                  The control moved onto the photograph; the sentence a
+                  blocked visitor needs cannot follow it there, so it keeps
+                  the row it has always had — and the row is drawn only when
+                  there is something to put in it, rather than as an empty
+                  strip of padding under every card on the page. */}
+              {props.showFavorite === false ||
+              favoriteGate.reason === undefined ||
+              blockedReason !== "text" ? null : (
                 <div
                   style={{
                     paddingInline: token.paddingSM,
                     paddingBlockEnd: token.paddingSM,
                   }}
                 >
-                  {/* THE SHARED HEART, not a second copy of it.
-                      This card drew its own — a `<Button aria-disabled>` in
-                      the popover arm with `onClick={favorite.toggle}` behind
-                      it — and that copy stopped tracking `<FavoriteHeart>` the
-                      day the door landed (D431): on the desktop GRID a
-                      visitor's press reached a no-op toggle, announced itself
-                      as unavailable, and went nowhere, while the same press on
-                      the SERP row and the feed card opened the sign-in door.
-                      One control, one refusal shape, one door.
-
-                      The two derived ids are pinned to what this card has
-                      always published, because a rename is a breaking change
-                      dressed as a refactor. */}
-                  <Flex justify="flex-end" style={{ width: "100%" }}>
-                    <FavoriteHeart
-                      listingId={listing.id}
-                      favorited={listing.is_favorited}
-                      testId="listings-card-favorite"
-                      gateTestId="listings-card-actions"
-                      signInTestId="listings-card-sign-in"
-                      style={{ width: "100%" }}
-                      {...(blockedReason === "popover"
-                        ? { blockedReason: "popover" as const }
-                        : {})}
-                      {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
-                    />
-                  </Flex>
-
                   {/* The DOOR AS A STANDING LINE, which is this card's own
                       decision and not the heart's: `blockedReason="line"`
                       drops it (twenty-four doors to one place is not
@@ -724,15 +763,12 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                       put it inside the disclosure. The press itself routes
                       through the door in every arm — that part is the heart's.
                       */}
-                  {favoriteGate.reason === undefined ||
-                  blockedReason !== "text" ? null : (
-                    <Typography.Text
-                      type="secondary"
-                      data-testid="listings-card-favorite-blocked"
-                    >
-                      <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
-                    </Typography.Text>
-                  )}
+                  <Typography.Text
+                    type="secondary"
+                    data-testid="listings-card-favorite-blocked"
+                  >
+                    <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+                  </Typography.Text>
                 </div>
               )}
             </div>

@@ -51,6 +51,66 @@ export function HeartIcon(props: HeartIconProps): ReactElement {
 }
 
 /**
+ * The share glyph — three nodes and two edges, the platform-neutral shape
+ * both Android and the web draw for "send this somewhere else".
+ *
+ * `aria-hidden`, like the heart: the control it sits in carries the verb as
+ * its accessible name in every arm, including the phone arm where the word
+ * itself is not painted, and a glyph announced beside its own label reads the
+ * action twice.
+ *
+ * Deliberately not the iOS "box with an arrow": that shape means "share" to
+ * an iPhone user and "upload" or "export" to everybody else, and this control
+ * is drawn on a browser, not inside an app the platform styled.
+ */
+export function ShareIcon(): ReactElement {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="M8.6 10.5 15.4 6.6" />
+      <path d="M8.6 13.5 15.4 17.4" />
+    </svg>
+  );
+}
+
+/**
+ * A chain link — the copy row's glyph, and the one thing on the menu that is
+ * not a network's own brand.
+ */
+export function LinkIcon(): ReactElement {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <path d="M10 13a5 5 0 0 0 7.5.6l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+      <path d="M14 11a5 5 0 0 0-7.5-.6l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+    </svg>
+  );
+}
+
+/**
  * Which way the asking price moved — an arrow, and a NAME for it.
  *
  * The arrow is the whole message ("this got cheaper"), so unlike the heart it

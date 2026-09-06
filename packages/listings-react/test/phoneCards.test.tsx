@@ -147,11 +147,23 @@ describe("<ListingSerpCard> — the slots and the rail", () => {
     ).toBe(true);
   });
 
-  it("keeps the heart outside the anchor and inside the rail", () => {
+  it("keeps the heart outside the anchor and ON the photograph", () => {
+    // It used to live at the end of the container's action rail, at the far
+    // trailing edge of the text. The owner's 2026-09-06 finding moved it onto
+    // the picture — the corner a thumb is already near, and where every
+    // reference classified's phone SERP has it — WITHOUT putting it inside
+    // any anchor, which is the property this test has always been about: a
+    // link may not contain a control, and a swipe that ended in one would
+    // navigate instead of showing the next photograph.
     render(providers(<ListingSerpCard listing={CARD} href="/l/7" />));
     const heart = screen.getByTestId("listings-serp-favorite");
     expect(screen.getByTestId("listings-serp-open").contains(heart)).toBe(false);
-    expect(screen.getByTestId("listings-serp-actions").contains(heart)).toBe(true);
+    const well = screen.getByTestId("listings-serp-favorite-overlay");
+    expect(well.contains(heart)).toBe(true);
+    // Inside the media well, beside the strip rather than inside it.
+    expect(
+      screen.getByTestId("listings-serp-photos-gallery").contains(heart)
+    ).toBe(false);
     expect(heart.getAttribute("aria-pressed")).toBe("false");
   });
 

@@ -111,6 +111,66 @@ nobody can read), and `signIn` is the door. `SignInCta` is core's, `{href}`
 **or** `{onSignIn}`, the same prop `@stapel/chat-react` and
 `@stapel/reviews-react` take. Omit it and the reason renders alone.
 
+The heart itself sits **on the photograph**, in its trailing top corner, on
+every card surface — the corner a thumb is already near, and the one corner of
+the strip that is free (the dots own the bottom centre, the "3 of 16" counter
+the bottom trailing). It is outside every anchor, because a link may not
+contain a control, and it stops a press from reaching the card behind it. Only
+the blocked visitor's REASON stayed in a row under the card, where there is a
+line for it to live on.
+
+## Save it, or send it to somebody
+
+The two verbs a reader has. Before 0.26 this pair had one of them, and the
+storefront had **no share control at all** — the only way to send somebody a
+listing was the address bar.
+
+```tsx
+<ListingDetailPane
+  id={id}
+  shareUrl={`/l/${id}`}                      // the canonical route, not location.href
+  onShared={(channel) => track("share", { channel })}
+  actionsPlacement="header"                  // default; "gallery" pins them over the photos
+/>
+```
+
+`<ListingActions>` is the cluster: the heart and `<ShareAction>` side by side,
+icon-only, each with a 44px hit target, at the trailing edge of the title row
+(or pinned over the gallery with `actionsPlacement="gallery"`). A card's heart
+uses the smaller 36px tier with a cursor and the same 44px with a thumb — both
+stated once, as a class contract, in `actionRow.ts`.
+
+**Sharing has two arms and the device picks.** Where `navigator.share` exists —
+every phone, almost no desktop — a press opens the PLATFORM sheet with
+`{title, text, url}`: the person's own apps, in their own order. Where it does
+not, it opens a menu: copy the link, Telegram, WhatsApp, VK. Every outbound
+link is `target="_blank"` with `rel="noopener noreferrer"`, and every field is
+`encodeURIComponent`-encoded, because a seller's title contains `&` and `#` in
+the wild and a raw one truncates the link the recipient receives.
+
+**The URL is yours.** `shareUrl` is used verbatim (a path is resolved against
+the document base); `window.location.href` is consulted only when a host
+supplies nothing, because the address a visitor is standing on carries the SERP
+query they arrived from and whatever tracking parameters came with them.
+
+**Confirmations are said twice.** "Link copied" stands inside the open menu AND
+goes out as a two-second toast; the heart's fill is the state and
+"Added to favourites" is the acknowledgement. The toast seam is antd's own —
+`App.useApp().message` where the host mounted `<App>`, antd's static `message`
+otherwise — so there is no new dependency and no host wiring.
+
+**A host switches either action off**, and the old node slot is untouched:
+
+```tsx
+<ListingDetailPane id={id} actions={{ share: false }} />          {/* no share button */}
+<ListingDetailPane id={id} actions={<ReportButton id={id} />} />  {/* extra chrome, as before */}
+```
+
+Headless hosts get the same answers without antd: `useShare({ url, title, text })`
+returns the resolved absolute url, whether the platform sheet exists, the three
+encoded hrefs, and the clipboard write with its `copied`/`copyFailed` states —
+plus `shareLinks()` as a pure function of `{url, title}`.
+
 ## Submitting a listing
 
 Four contracts meet on the composer, and three of them arrive as seams rather

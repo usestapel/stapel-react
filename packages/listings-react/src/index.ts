@@ -315,6 +315,23 @@ export type {
   FavoritesBag,
   UseFavoritesOptions,
 } from "./headless/Favorites.js";
+export {
+  SHARE_COPIED_MS,
+  SHARE_NETWORKS,
+  Share,
+  hasNativeShare,
+  resolveShareUrl,
+  shareLinks,
+  useShare,
+} from "./headless/Share.js";
+export type {
+  ShareBag,
+  ShareChannel,
+  ShareLink,
+  ShareNetwork,
+  ShareTarget,
+  UseShareOptions,
+} from "./headless/Share.js";
 export { useListingActions } from "./headless/ListingActions.js";
 export type {
   ListingActionsBag,

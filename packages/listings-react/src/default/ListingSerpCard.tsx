@@ -89,6 +89,11 @@ import { useEngagedListing } from "../headless/Engagement.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { PriceTrendIcon } from "./icons.js";
 import { FavoriteHeart } from "./favorite.js";
+import {
+  LISTING_ACTIONS_CLASS,
+  LISTING_ACTIONS_OVERLAY_CLASS,
+  LISTING_CARD_ACTION_CLASS,
+} from "./actionRow.js";
 import { CardBadges, CardSpecLine } from "./CardBadges.js";
 import {
   CARD_FRAME_CLASS,
@@ -220,8 +225,13 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
   // Already seen — `false` for every response that carries no such field.
   const viewed = isListingViewed(listing);
 
+  /* The rail is what the CONTAINER put there — "call", "write". The heart
+     left it in this wave and now sits on the photograph (see `heartOverlay`),
+     which is where every reference classified's phone SERP has it and where a
+     thumb already is; the rail is at the far end of a line of text, three
+     glances away from the picture a person is actually looking at. */
   const rail =
-    props.actionsRail !== undefined || props.showFavorite !== false ? (
+    props.actionsRail !== undefined ? (
       <Flex
         vertical
         align="flex-end"
@@ -230,19 +240,35 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
         data-testid="listings-serp-actions"
       >
         {props.actionsRail}
-        {props.showFavorite === false ? null : (
-          <FavoriteHeart
-            listingId={listing.id}
-            favorited={listing.is_favorited}
-            testId="listings-serp-favorite"
-            {...(props.blockedReason !== undefined
-              ? { blockedReason: props.blockedReason }
-              : {})}
-            {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
-          />
-        )}
       </Flex>
     ) : null;
+
+  /* THE HEART, ON THE PHOTOGRAPH. Top-trailing: the strip's dots own the
+     bottom centre and its "3 of 16" counter owns the bottom trailing corner.
+     Outside every anchor, as it has always been — a link may not contain a
+     control — and `stopPropagation` on the bubble phase so a press that
+     somehow reached the card would still save rather than navigate. */
+  const heartOverlay =
+    props.showFavorite === false ? null : (
+      <div
+        className={`${LISTING_ACTIONS_CLASS} ${LISTING_ACTIONS_OVERLAY_CLASS}`}
+        data-testid="listings-serp-favorite-overlay"
+        onClick={(event) => {
+          event.stopPropagation();
+        }}
+      >
+        <FavoriteHeart
+          listingId={listing.id}
+          favorited={listing.is_favorited}
+          testId="listings-serp-favorite"
+          className={LISTING_CARD_ACTION_CLASS}
+          {...(props.blockedReason !== undefined
+            ? { blockedReason: props.blockedReason }
+            : {})}
+          {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
+        />
+      </div>
+    );
 
   return (
     <SkinTheme
@@ -289,6 +315,7 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                 title={title.length > 0 ? title : String(listing.id)}
                 testId="listings-serp-photos"
               />
+              {heartOverlay}
             </div>
 
             <div className={CARD_MAIN_CLASS}>

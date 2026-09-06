@@ -82,6 +82,18 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.card.price_dropped": "El precio ha bajado",
   "listings.card.price_raised": "El precio ha subido",
 
+  "listings.share.action": "Compartir",
+  "listings.share.copy": "Copiar enlace",
+  "listings.share.copied": "Enlace copiado",
+  "listings.share.copy_failed":
+    "No pudimos copiar el enlace — cópialo de la barra de direcciones",
+  "listings.share.telegram": "Telegram",
+  "listings.share.whatsapp": "WhatsApp",
+  "listings.share.vk": "VK",
+  "listings.favorite.added": "Añadido a favoritos",
+  "listings.favorite.removed": "Quitado de favoritos",
+  "listings.favorite.count": "{count} lo han guardado",
+
   "listings.detail.loading": "Cargando el anuncio…",
   "listings.detail.load_failed": "No pudimos cargar este anuncio",
   "listings.detail.retry": "Reintentar",
