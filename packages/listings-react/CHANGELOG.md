@@ -1,5 +1,213 @@
 # @stapel/listings-react
 
+## 0.26.0
+
+### Minor Changes
+
+- f5a7906: A card's spec line stops printing a caption where a value is expected, and stops
+  captioning two axes identically (D421).
+
+  Measured on a live feed (translated): **"HONOR · Model 90 · 256 GB"** — three
+  facts, and the middle one reads as a value that begins with the word "Model";
+  and **"5 fl. · 9 fl. · 54 m²"** — the floor a flat is on and the number of
+  floors in the building, one number and its unit each, twice, with nothing
+  saying which is which.
+
+  Neither is a defect in the server's `presentation`: it was right about each
+  element ALONE. What it cannot see is where the text is PUT. A badge strip gives
+  every element a chip border; a spec line joins them with `" · "`, so a space
+  inside one item is not punctuation and a shared unit is not a distinction.
+
+  - **`CardBadgeStyle`.** `cardBadgeText(row, locale, style)` and
+    `cardBadgeTexts(rows, locale, style)` take `"badge"` (the default — every
+    existing call keeps its bytes) or `"line"`. The `name_value` pair is joined
+    with a space in a chip, exactly as the 0.22 contract wrote it, and with a
+    **colon** in a line: `"Model: 90"`, which is the punctuation that says what
+    follows is the answer to this.
+  - **The collision pass.** Ambiguity is a property of the SET, so it is resolved
+    once in `cardBadgeTexts`: elements printed without a caption that share a unit
+    — or that print identical text — get their catalogue names back, in the
+    `name_value` shape the contract already defines (`"Floor: 5 fl. · Floors:
+9 fl."`, and in a chip strip `"Floor 5 fl."`). It refuses to act where it
+    would not help: a group whose names are missing, or that would wear one word
+    twice, is left as the server wrote it rather than captioned with noise.
+
+  `<CardBadges variant="line">` — the spec line under every card's title — passes
+  `"line"`; the badge strip is byte-identical.
+
+- f5a7906: The listing gallery's gutter is the page's own, per breakpoint (D418).
+
+  Measured on the live listing page: `getComputedStyle(gallery).gap` answered
+  **`12px` at 1280 and `12px` at 390**, and the gaps between neighbouring photos
+  were 12 on both — while the page around it declares 4px on a phone and 24px on
+  a desktop. Neither declared number was ever on screen: the grid painted a flat
+  `spacing[3]`, so its tiles sat closer together than the page edge on a desktop
+  and three times further apart than it on a phone.
+
+  `--stapel-page-gutter` is a responsive token role (`@stapel/tokens`: 4 / 8 / 24
+  by breakpoint, declared once with its own media arms), and the gap reads it as
+  a VAR rather than as a number picked in JS — a computed value is applied at
+  render, so a window resized between renders keeps the gutter it was drawn with,
+  where a var reflows. Written through `cssVar` so a renamed role fails to
+  compile instead of resolving to nothing, with the old flat step as the fallback
+  for a host that loads no token stylesheet. Exported as `DETAIL_GALLERY_GUTTER`
+  for a container laying out against the same edge.
+
+- f5a7906: A listing a moderator pulled has a tab, and a number (D407).
+
+  The desktop walk opened a cabinet holding one taken-down listing and read
+  three statements about it at once: the row itself, saying "taken down by a
+  moderator"; the counters over it, reading **"Active 0 · Drafts 0 ·
+  Archived 0"**; and the active tab's own empty state, saying nothing of the
+  seller's was live. The row was on the page, in no tab and in no number — and a
+  person reads the numbers. `blocked` is grouped by `my/counters` in none of the
+  three, so the pane fetched it separately and rendered it in a block above the
+  tab strip, which is exactly the half that was wrong: a row outside the tabs is
+  a row the counters do not describe.
+
+  **`removed` is the fourth tab.** `MY_LISTINGS_TABS` is the server's three plus
+  it; `MY_LISTINGS_COUNTED_TABS` and `countedTabOf()` are the three on their own,
+  for anything that has to line up with `MyCountersResponse`. Its rows are the
+  takedown read that already existed (`?status=blocked`, unpaged, running
+  whichever tab is open), so its **count is right while the seller is looking at
+  a different tab** — the state the defect was measured in. It is drawn only
+  where there is something in it, or where `?tab=removed` asks for it, and the
+  line above the tab strip stays as a LINE (`listings-mine-takedowns`, no rows),
+  so a takedown still cannot be missed without being printed twice on one screen.
+
+  Not folded into `archived`, which is the other shape this could take: that tab
+  reads the server's `archived` integer, which does not count takedowns, so the
+  badge would go on reading `0` for everyone not looking at it — and "I put this
+  away" and "a moderator took this down" are not one sentence.
+
+  **The gap this leaves, stated rather than papered over:** `my/counters` carries
+  three integers and no fourth, so the removed tab's number is the length of one
+  unpaged `?status=blocked` page. A seller with more takedowns than that page
+  holds would see the page and not the total, and there is no counter on the wire
+  to check it against.
+
+  `MyListingsTab` gains `"removed"`; `MyListingsSource` is deliberately **not**
+  widened — it stays typed `MyListingsCountedTab`, because the fourth tab never
+  goes through a host source and a source written before this release has no
+  answer for a tab it has not heard of.
+
+- 510531b: A listing can be sent to somebody, and the heart is where a thumb already is.
+
+  The owner's finding on the live storefront (2026-09-06): **no «Поделиться»
+  anywhere in the product.** Not a badly placed share control, not one behind a
+  menu — none. The only way to send somebody an offer was the address bar, which
+  on a phone is the hardest thing on the screen to reach and which carries the
+  SERP query the visitor arrived from, the page anchor and whatever tracking
+  parameters came with them. Beside that, the reference measurement (§23): our
+  listing page drew a 152px "Save to favourites" button with a word in it at
+  every width, where the reference classified draws a 44×44 glyph and puts a
+  share glyph next to it.
+
+  **`<ShareAction>` and `useShare`.** Two arms, and the DEVICE picks. Where
+  `navigator.share` exists — every phone, almost no desktop — a press opens the
+  platform's own sheet with `{title, text, url}`: the person's apps, in their
+  order, including the ones we have never heard of. Where it does not, it opens a
+  menu: copy the link, Telegram, WhatsApp, VK. The menu is a `Popover` and that
+  is a documented exception to `stapel/no-tooltip-in-skin` rather than a hole —
+  click-only trigger (a thumb and a cursor use one gesture), a live enabled
+  anchor, and four CONTROLS in the overlay rather than a sentence somebody has to
+  hover to read. Every outbound link is `target="_blank"` with **both** halves of
+  `rel="noopener noreferrer"`, and every field is percent-encoded: a seller's
+  title contains `&` and `#` in the wild, and a raw one silently truncates the
+  URL the recipient receives at the first `&`.
+
+  **The URL is the host's, never the address bar.** `shareUrl` is used verbatim
+  (a path resolved against the document base); `window.location.href` is the
+  fallback for a host that supplied nothing, which is honest for a bare mount and
+  wrong for an app that has a canonical route.
+
+  **`<ListingActions>` — the reader's two verbs as one cluster.** Icon-only, 44px
+  each, at the trailing edge of the title row (`actionsPlacement="gallery"` pins
+  them over the photographs instead; `"buy-box"` is the escape hatch for a host
+  laid out around the old position). The owner of a listing keeps the share
+  button and loses the heart: you do not favourite your own listing, and sending
+  somebody your own listing is the first thing a seller does. `actions` now takes
+  either the node it always took OR `{ share: false }` / `{ favorite: false }` —
+  a plain object was never a legal `ReactNode`, so the two arms cannot be
+  confused.
+
+  **The card heart moved onto the photograph.** `<ListingCard>` and
+  `<ListingSerpCard>` join `<ListingFeedCard>`, which has drawn it there since it
+  existed: trailing top corner — the one corner of the strip that is free, since
+  the dots own the bottom centre and the "3 of 16" counter the bottom trailing —
+  outside every anchor, and stopping a press from reaching the card behind it.
+  Only the blocked visitor's REASON stayed in its row under the card, because a
+  sentence has nowhere to live on top of a picture, and that row is now drawn
+  only when there is something to put in it rather than as an empty strip of
+  padding under every card on a page. The SERP card's action rail keeps whatever
+  the container put in it and nothing else.
+
+  **Two hit-target tiers, stated once as a class contract.** 44px for the page's
+  controls at every width; 36px for a card's with a cursor and 44px with a thumb
+  — the reference's own desktop measurement, and the glyph does not change size
+  in either tier. `actionRow.ts` holds both, so "how big is this control" has one
+  answer in this package instead of one per surface (the SERP heart was 32px, the
+  feed heart 40).
+
+  **Confirmations are said twice, and briefly.** "Link copied" stands inside the
+  open menu AND goes out as a two-second toast; the heart's fill is the state and
+  "Added to favourites" / "Removed from favourites" is the acknowledgement a
+  glyph in the corner of a photograph cannot carry. The message seam is antd's
+  own — `App.useApp().message` where the host mounted `<App>`, antd's static
+  `message` otherwise — so there is no new dependency, no host wiring, and no
+  confirmation that exists only in a toast a person may not have been looking at.
+
+  Ten i18n keys in en/ru/es. Measured with dependencies held constant: `index`
+  15.27 → 15.99 KB (ceiling 16 → 17; the old one was hit EXACTLY, and a budget
+  passed by rounding is a budget the next sentence fails), `default` 25.34 →
+  27.56 KB (ceiling 26 → 29).
+
+### Patch Changes
+
+- f5a7906: A card's photo strip says how many photographs there are.
+
+  The mobile walk drove a real touch swipe across a feed card and watched the
+  indicator move correctly — `data-active` hopping from the first dot to the
+  second, the strip settling where the finger left it — and then recorded what
+  was missing beside it: **no counter of any kind**, where the reference
+  classified leads with "1 of 16".
+
+  Dots say WHERE in a strip a reader is and stop being countable at about five.
+  Only a number says how deep it goes, and on a phone — where the strip is one
+  photograph wide and the next one is off-screen — that number is the only thing
+  saying a swipe is worth making. `<ListingPhotoStrip>` (the strip every card
+  surface in this pair draws, `<ListingSerpCard>` included) now carries one:
+  `<testId>-counter`, bottom-trailing so it never argues with the dots'
+  bottom-centre, moving with a swipe, a hover scrub and a native scroll alike
+  because it reads the same `active` the dots do.
+
+  `aria-live="polite"`: a finger scrolling the strip changes the picture with
+  nothing else to report it. `pointer-events: none`, which is load-bearing rather
+  than tidy — the box under it owns the scrub and the swipe, and a pill that
+  swallowed a pointer would make one corner of every photograph dead to both. A
+  one-photograph strip gets no counter, exactly as it gets no dots and no peek.
+
+  The pill's scrim is a fixed translucent black with white text, and it is the
+  one place in this package where a theme role would be wrong: it sits on an
+  arbitrary PHOTOGRAPH, which is neither light nor dark.
+
+- f5a7906: The delete dialog stops promising the archive to a listing already in it.
+
+  Measured on the phone walk, deleting from the **Archive** tab: "It disappears
+  from your dashboard and cannot be brought back. **Archiving keeps it.**" —
+  offered as an alternative to somebody standing in the archive, where it is not
+  an alternative at all.
+
+  The sentence now follows the ROW rather than the wording, and the state that
+  decides it is the one the seller would have to act on: whether `archived` is
+  still a move this listing has. An archived row (and a taken-down one) has spent
+  it and gets `listings.mine.delete_confirm_body.final` — the same warning
+  without the promise; a draft, a paused or an expired listing still has it and
+  still hears it. That is the row's own `available_transitions` and not a table
+  about its status: `<MyListingsPane>`'s confirmation hook is now given the
+  card's field, as the row's own controls have been since 0.22.0, so "a sold
+  listing may be archived" and "this one may" stop being the same claim.
+
 ## 0.25.10
 
 ### Patch Changes

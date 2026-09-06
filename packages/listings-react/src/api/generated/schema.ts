@@ -1056,6 +1056,7 @@ export interface components {
             lat_draft?: string | null;
             /** Format: decimal */
             lon_draft?: string | null;
+            /** @description The WRITE shape of features_draft: an object keyed by feature slug, each value a FeatureDto — e.g. {"mileage":{"type":"int","value":42000}}. A listing READ hands back features as a *list* of decorated DAOs instead (`features` / `features_title` / `features_badges` — `{slug, name, label, presentation, …}`); posting that same list back here is also accepted, e.g. [{"slug":"mileage","type":"int","value":42000}] — only `slug`, `type` and `value` are read back out, every other (decoration) key is ignored. A malformed payload of either shape gets a features_draft_shape / features_draft_value_shape / features_draft_unknown_slug 400 naming the shape that would have worked. */
             features_draft?: {
                 [key: string]: components["schemas"]["FeatureDto"];
             } | null;
@@ -1286,6 +1287,7 @@ export interface components {
             lat_draft?: string | null;
             /** Format: decimal */
             lon_draft?: string | null;
+            /** @description The WRITE shape of features_draft: an object keyed by feature slug, each value a FeatureDto — e.g. {"mileage":{"type":"int","value":42000}}. A listing READ hands back features as a *list* of decorated DAOs instead (`features` / `features_title` / `features_badges` — `{slug, name, label, presentation, …}`); posting that same list back here is also accepted, e.g. [{"slug":"mileage","type":"int","value":42000}] — only `slug`, `type` and `value` are read back out, every other (decoration) key is ignored. A malformed payload of either shape gets a features_draft_shape / features_draft_value_shape / features_draft_unknown_slug 400 naming the shape that would have worked. */
             features_draft?: {
                 [key: string]: components["schemas"]["FeatureDto"];
             } | null;
@@ -1357,8 +1359,6 @@ export interface components {
             labels?: string[];
             vocabulary?: string | null;
             level?: string | null;
-            prefix?: string | null;
-            postfix?: string | null;
         };
         /** @description Serializer for the ref_select feature DTO. */
         RefSelectDto: {

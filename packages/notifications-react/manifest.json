@@ -4,7 +4,7 @@
   "version": "0.11.1",
   "backend": {
     "module": "stapel-notifications",
-    "contract": ">=0.18 <0.19"
+    "contract": ">=0.19 <0.20"
   },
   "layers": [
     "api",

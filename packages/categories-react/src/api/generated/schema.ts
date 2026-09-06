@@ -1880,8 +1880,6 @@ export interface components {
             minSelected?: number;
             maxSelected?: number | null;
             uiStyle?: components["schemas"]["RefSelectConfigUiStyleEnum"];
-            prefix?: string | null;
-            postfix?: string | null;
         };
         /**
          * @description * `dropdown` - dropdown

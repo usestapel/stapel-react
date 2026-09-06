@@ -239,6 +239,17 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "error.400.listing_draft_meta_too_large":
     "El borrador es demasiado grande (máximo {max_bytes} bytes). Quita parte de los datos y guarda de nuevo.",
 
+  // stapel-listings 0.22.3: the features_draft WRITE now accepts the shape a
+  // listing READ returns. These three are the refusals for a body that is
+  // neither — read by whoever is wiring the integration, so each names the
+  // shape it wanted instead of advising "try again".
+  "error.400.listing_features_draft_shape":
+    "features_draft debe ser un objeto con los slugs de las características como claves, o la lista de objetos de característica que devuelve la lectura del anuncio (cada uno con su propio «slug»). Llegó: {got_type}. Ejemplo de la forma de objeto aceptada: {example}",
+  "error.400.listing_features_draft_unknown_slug":
+    "Cada elemento de una lista features_draft debe llevar su propio «slug» no vacío — el que la lectura del anuncio guarda en ese elemento — para poder archivarlo bajo la característica correcta. El elemento en el índice {index} no lo tiene. Ejemplo: {example}",
+  "error.400.listing_features_draft_value_shape":
+    "features_draft['{slug}'] debe ser a su vez un objeto de la forma {{\"type\": <tipo de característica>, \"value\": <valor de característica>}}. Llegó: {got_type}. Ejemplo: {example}",
+
   "listings.blocked.sign_in": "Inicia sesión para hacer esto",
   "listings.blocked.guest":
     "Esta cuenta todavía no puede hacerlo — termina de configurarla primero",

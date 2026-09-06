@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.25.10",
+  "version": "0.26.0",
   "backend": {
     "module": "stapel-listings",
     "contract": ">=0.22 <0.23"
@@ -522,6 +522,31 @@
       ],
       "remediation": "fix_input"
     },
+    "error.400.listing_features_draft_shape": {
+      "status": 400,
+      "params": [
+        "got_type",
+        "example"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.listing_features_draft_unknown_slug": {
+      "status": 400,
+      "params": [
+        "index",
+        "example"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.listing_features_draft_value_shape": {
+      "status": 400,
+      "params": [
+        "slug",
+        "got_type",
+        "example"
+      ],
+      "remediation": "fix_input"
+    },
     "error.400.listing_invalid_status_filter": {
       "status": 400,
       "params": [
@@ -715,6 +740,20 @@
   },
   "demos": [
     {
+      "id": "listings.actions",
+      "title": "Save and share cluster",
+      "description": "The reader's two actions in one cluster, so the pair can be given a hit-target tier, a corner and an order ONCE rather than twice. `placement=\"overlay\"` pins it to the trailing-top corner of a card's media — the one corner a gallery leaves free, because the dots own the bottom centre and the photo counter owns the bottom trailing corner. Not to be confused with `useListingActions`, which is the SELLER's lifecycle moves; neither is exported from the other's barrel.",
+      "component": "ListingActions",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "blocked"
+      ],
+      "source": "demo/ListingActions.demo.tsx"
+    },
+    {
       "id": "listings.card",
       "title": "Listing card",
       "description": "The slot @stapel/search-react fills through the container — the two pairs never import each other. Badges come out of the stored DAO projection, which carries each type's display config beside its value, so a grid of forty cards costs one query and no category read. The heart is never hidden from a visitor: it is blocked, the reason is printed beside it as ordinary text (a disabled button never fires the events a tooltip needs), and the container attaches the sign-in door.",
@@ -837,7 +876,7 @@
     {
       "id": "listings.mine",
       "title": "My listings",
-      "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs; every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
+      "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, gets a fourth tab and a count of its own, announced by a line above the tab strip (D407); every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
       "component": "MyListingsPane",
       "covers": [
         "MyListings"
@@ -916,6 +955,24 @@
       "source": "demo/ListingSerpCard.demo.tsx"
     },
     {
+      "id": "listings.share",
+      "title": "Share a listing",
+      "description": "One control, two arms, and the device decides: the platform's own sheet where `navigator.share` exists, and a small menu (copy the link, Telegram, WhatsApp, VK) where it does not. The address shared is the route the CONTAINER built — handed in as `url` and used verbatim — never `window.location`, because the address bar on a SERP carries the query, the page and whatever tracking parameters the visitor arrived with, and none of that belongs in a link somebody sends to a friend.",
+      "component": "ShareAction",
+      "covers": [
+        "Share"
+      ],
+      "tokens": [
+        "surface-sunken",
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "menu"
+      ],
+      "source": "demo/Share.demo.tsx"
+    },
+    {
       "id": "listings.spec-parts",
       "title": "Badges and specs",
       "description": "A badge says which question it answers, and a spec sheet is a definition list rather than a table. Both are drawn by the SERVER's decision about presentation, not by a client-side heuristic: the right badge for a value depends on the category — '3 rooms' wants its name, 'Brick' is a boolean whose name IS the badge, and '20 000 km' wants its unit and no name at all.",
@@ -971,6 +1028,9 @@
     "error.400.invalid_ad_id",
     "error.400.listing_draft_meta_too_large",
     "error.400.listing_feature_not_allowed",
+    "error.400.listing_features_draft_shape",
+    "error.400.listing_features_draft_unknown_slug",
+    "error.400.listing_features_draft_value_shape",
     "error.400.listing_invalid_status_filter",
     "error.400.listing_location_required",
     "error.400.listing_zero_price_not_allowed",

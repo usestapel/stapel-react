@@ -14,7 +14,7 @@ NoEditor.storyName = "no-editor";
 NoEditor.parameters = { stapel: {"viewport":"phone","step":"active_tab_edit_blocked"} };
 export const TakenDown = (): ReactElement => renderDemoVariant(demo, "taken-down");
 TakenDown.storyName = "taken-down";
-TakenDown.parameters = { stapel: {"viewport":"phone","step":"takedown_above_tabs"} };
+TakenDown.parameters = { stapel: {"viewport":"phone","step":"takedown_tab_and_count"} };
 export const Visitor = (): ReactElement => renderDemoVariant(demo, "visitor");
 Visitor.storyName = "visitor";
 Visitor.parameters = { stapel: {"viewport":"phone","step":"no_mandate"} };

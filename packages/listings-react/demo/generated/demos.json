@@ -1,8 +1,36 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/listings-react",
-  "version": "0.25.10",
+  "version": "0.26.0",
   "demos": [
+    {
+      "id": "listings.actions",
+      "title": "Save and share cluster",
+      "description": "The reader's two actions in one cluster, so the pair can be given a hit-target tier, a corner and an order ONCE rather than twice. `placement=\"overlay\"` pins it to the trailing-top corner of a card's media — the one corner a gallery leaves free, because the dots own the bottom centre and the photo counter owns the bottom trailing corner. Not to be confused with `useListingActions`, which is the SELLER's lifecycle moves; neither is exported from the other's barrel.",
+      "component": "ListingActions",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A signed-in reader: both glyphs live, the heart unsaved and pressable, the share control beside it at the same size.",
+          "viewport": "phone",
+          "step": "member"
+        },
+        {
+          "id": "blocked",
+          "description": "A visitor: the heart says WHY it is off and carries the door, and the share control stays live — sending somebody a link needs no account, so switching it off would be the pair inventing a mandate the backend never asked for.",
+          "viewport": "desktop",
+          "step": "no_mandate"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingActions.demo.tsx",
+        "line": 71
+      }
+    },
     {
       "id": "listings.card",
       "title": "Listing card",
@@ -279,7 +307,7 @@
     {
       "id": "listings.mine",
       "title": "My listings",
-      "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, sits ABOVE the tabs; every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
+      "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, gets a fourth tab and a count of its own, announced by a line above the tab strip (D407); every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",
       "component": "MyListingsPane",
       "covers": [
         "MyListings"
@@ -302,9 +330,9 @@
         },
         {
           "id": "taken-down",
-          "description": "One listing removed by moderation, in no tab and impossible to miss.",
+          "description": "One listing removed by moderation: the fourth tab, its own count, and the line above the tabs that says so before anybody clicks (D407).",
           "viewport": "phone",
-          "step": "takedown_above_tabs"
+          "step": "takedown_tab_and_count"
         },
         {
           "id": "visitor",
@@ -463,6 +491,37 @@
       "source": {
         "file": "demo/ListingSerpCard.demo.tsx",
         "line": 116
+      }
+    },
+    {
+      "id": "listings.share",
+      "title": "Share a listing",
+      "description": "One control, two arms, and the device decides: the platform's own sheet where `navigator.share` exists, and a small menu (copy the link, Telegram, WhatsApp, VK) where it does not. The address shared is the route the CONTAINER built — handed in as `url` and used verbatim — never `window.location`, because the address bar on a SERP carries the query, the page and whatever tracking parameters the visitor arrived with, and none of that belongs in a link somebody sends to a friend.",
+      "component": "ShareAction",
+      "covers": [
+        "Share"
+      ],
+      "tokens": [
+        "surface-sunken",
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The glyph pinned to the trailing-top corner of a photograph: `shape=\"circle\"` because there is no room for a word there and the heart beside it is a circle. It publishes `data-share-mode`, so a walker on a live phone can tell a native sheet — which opens outside the page and leaves no DOM behind — from a menu that failed to open.",
+          "viewport": "phone",
+          "step": "trigger_on_photo"
+        },
+        {
+          "id": "menu",
+          "description": "What the desktop arm is made of, taken straight off the headless bag: the resolved absolute address and the three networks' ready-made hrefs. Every field is `encodeURIComponent`-ed — a seller's title contains `&` in the wild, and a title pasted raw into a query string silently truncates the URL the recipient receives.",
+          "viewport": "desktop",
+          "step": "menu_channels"
+        }
+      ],
+      "source": {
+        "file": "demo/Share.demo.tsx",
+        "line": 111
       }
     },
     {

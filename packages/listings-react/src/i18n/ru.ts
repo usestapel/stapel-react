@@ -266,6 +266,17 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "error.400.listing_draft_meta_too_large":
     "Черновик слишком большой (не больше {max_bytes} байт). Уберите часть данных и сохраните ещё раз.",
 
+  // stapel-listings 0.22.3: the features_draft WRITE now accepts the shape a
+  // listing READ returns. These three are the refusals for a body that is
+  // neither — read by whoever is wiring the integration, so each names the
+  // shape it wanted instead of advising "try again".
+  "error.400.listing_features_draft_shape":
+    "features_draft должен быть объектом со слагами признаков в ключах — или тем списком объектов признаков, который возвращает чтение объявления (у каждого свой «slug»). Пришло: {got_type}. Пример принимаемой формы объекта: {example}",
+  "error.400.listing_features_draft_unknown_slug":
+    "У каждого элемента списка features_draft должен быть свой непустой «slug» — тот, который чтение объявления хранит на этом элементе, иначе значение некуда положить. У элемента с индексом {index} его нет. Пример: {example}",
+  "error.400.listing_features_draft_value_shape":
+    "features_draft['{slug}'] сам должен быть объектом вида {{\"type\": <тип признака>, \"value\": <значение признака>}}. Пришло: {got_type}. Пример: {example}",
+
   "listings.blocked.sign_in": "Войдите, чтобы сделать это",
   "listings.blocked.guest":
     "Этот аккаунт пока так не может — сначала завершите настройку",

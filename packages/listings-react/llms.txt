@@ -1,4 +1,4 @@
-# @stapel/listings-react 0.25.10
+# @stapel/listings-react 0.26.0
 
 Headless React flow pair for stapel-listings (contract >=0.22 <0.23) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -61,7 +61,7 @@ Paths are relative to `/listings/api/v1/`.
 - useValidateDraft (query) → validateDraft
 
 ## Errors (render t(code, params); UX from remediation)
-69 keys (full catalog: manifest.json §errors). By remediation: fix_input 40 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+72 keys (full catalog: manifest.json §errors). By remediation: fix_input 43 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.description_too_long [400] → fix_input {max_length}
 - error.400.description_too_short [400] → fix_input {min_length}
@@ -89,6 +89,9 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.unique [400] → fix_input {field}
 - error.400.listing_draft_meta_too_large [400] → fix_input {max_bytes}
 - error.400.listing_feature_not_allowed [400] → fix_input {feature}
+- error.400.listing_features_draft_shape [400] → fix_input {got_type,example}
+- error.400.listing_features_draft_unknown_slug [400] → fix_input {index,example}
+- error.400.listing_features_draft_value_shape [400] → fix_input {slug,got_type,example}
 - error.400.listing_invalid_status_filter [400] → fix_input {status}
 - error.409.invalid_listing_transition [409] → fix_input {from_status}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
@@ -113,6 +116,7 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- listings.actions → <ListingActions> [default|blocked]  demo/ListingActions.demo.tsx
 - listings.card → <ListingCard> [default|saved|visitor|grid cell|list row|no-photo]  demo/ListingCard.demo.tsx
 - listings.composer → <ListingComposerPage> [default|unwired|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
 - listings.detail → <ListingDetailPane> [default|contact-unwired|owner|not-found]  demo/ListingDetail.demo.tsx
@@ -123,6 +127,7 @@ const { tracked } = useTracked();
 - listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
 - listings.photo-strip → <ListingPhotoStrip> [default|single|no photos]  demo/ListingPhotoStrip.demo.tsx
 - listings.serp-card → <ListingSerpCard> [default|trend|visitor|desktop row|bare]  demo/ListingSerpCard.demo.tsx
+- listings.share → <ShareAction> [default|menu]  demo/Share.demo.tsx
 - listings.spec-parts → <CardBadges> [contract|legacy|specs|specs-split]  demo/ListingSpecParts.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

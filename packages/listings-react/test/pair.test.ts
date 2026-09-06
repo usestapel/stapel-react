@@ -162,6 +162,11 @@ describe("the runtime carries the deployment's knowledge", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
+    // 72 as of stapel-listings 0.22.3, whose features_draft WRITE now accepts
+    // the shape a listing READ returns, and says what it wanted when it does
+    // not: error.400.listing_features_draft_shape, _unknown_slug and
+    // _value_shape, with ru/es authored in this pair (the module is
+    // locale-exempt upstream).
     // 69 as of stapel-listings 0.21.2, whose draft_meta sidecar has a size
     // ceiling: error.400.listing_draft_meta_too_large, with ru/es authored in
     // this pair (the module is locale-exempt upstream).
@@ -175,8 +180,11 @@ describe("errors", () => {
     // vanishes from the registry is a contract change somebody should have to
     // notice, and a code that arrives without a ru/es sentence is caught by
     // the i18n suite next door — which is exactly how these two were found.
-    expect(LISTINGS_ERROR_CODES.length).toBe(69);
+    expect(LISTINGS_ERROR_CODES.length).toBe(72);
     expect(LISTINGS_ERROR_CODES).toContain("error.400.feature_invalid_rules");
+    expect(LISTINGS_ERROR_CODES).toContain(
+      "error.400.listing_features_draft_shape"
+    );
     expect(LISTINGS_ERROR_CODES).toContain(
       "error.400.listing_draft_meta_too_large"
     );
