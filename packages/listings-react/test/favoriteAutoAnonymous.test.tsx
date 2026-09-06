@@ -124,9 +124,11 @@ describe("saving a listing with auto-anonymous wired", () => {
         <ListingCard listing={CARD} signIn={{ href: "/login" }} />
       </TestProviders>
     );
+    // Blocked, and — because the host handed in a door — routed rather than
+    // inert (D431): the press is the way in, the sentence is the hint.
     expect(
-      screen.getByTestId("listings-card-favorite").getAttribute("aria-disabled")
-    ).toBe("true");
+      screen.getByTestId("listings-card-favorite").getAttribute("href")
+    ).toBe("/login");
     expect(screen.getByTestId("listings-card-favorite-blocked")).toBeTruthy();
   });
 
@@ -202,7 +204,7 @@ describe("saving a listing with auto-anonymous wired", () => {
       </TestProviders>
     );
     expect(
-      screen.getByTestId("listings-card-favorite").getAttribute("aria-disabled")
-    ).toBe("true");
+      screen.getByTestId("listings-card-favorite").getAttribute("href")
+    ).toBe("/login");
   });
 });

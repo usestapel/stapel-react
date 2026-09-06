@@ -43,6 +43,19 @@ export interface FavoriteHeartProps {
   readonly favorited: boolean | null | undefined;
   /** Test id of the button; the gate wrapper takes `${testId}-gate`. */
   readonly testId: string;
+  /**
+   * Override the two DERIVED ids — the gate wrapper's and the sign-in door's.
+   *
+   * They exist for one reason: a surface that already published different ids
+   * for this control (`<ListingCard>` has published `listings-card-actions`
+   * and `listings-card-sign-in` since before this component existed) can
+   * mount the shared heart WITHOUT renaming what its host's stylesheets, its
+   * tests and the fleet's walkers address. A rename would be a breaking
+   * change dressed as a refactor, and the refactor is the point: one heart,
+   * one refusal shape, one door.
+   */
+  readonly gateTestId?: string;
+  readonly signInTestId?: string;
   /** `"inline"` puts the reason beside the heart, `"stack"` (default) under
    * it — the choice belongs to the surface, which knows its own geometry. */
   readonly layout?: "stack" | "inline";
@@ -178,7 +191,7 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
         reason={reason}
         cta={props.signIn}
         testId={`${props.testId}-reason`}
-        signInTestId={`${props.testId}-sign-in`}
+        signInTestId={props.signInTestId ?? `${props.testId}-sign-in`}
       >
         {(bind) => (
           <Button
@@ -204,7 +217,7 @@ export function FavoriteHeart(props: FavoriteHeartProps): ReactElement {
   return (
     <GatedControl
       gate={favorite.gate}
-      testId={`${props.testId}-gate`}
+      testId={props.gateTestId ?? `${props.testId}-gate`}
       // With a door in hand the gate no longer REFUSES the person, it
       // annotates the control: the reason is still registered with the pane's
       // scope and still wired by `aria-describedby`, and the press — which is

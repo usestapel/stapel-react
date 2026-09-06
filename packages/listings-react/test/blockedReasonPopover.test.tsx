@@ -47,7 +47,10 @@ describe("a card heart with blockedReason=\"popover\"", () => {
       </TestProviders>
     );
     const heart = screen.getByTestId("listings-card-favorite");
-    expect(heart.getAttribute("aria-disabled")).toBe("true");
+    // Live, not announced unavailable: the press opens the door (D431). The
+    // disclosure is the HINT beside a working control now, not the only thing
+    // behind a dead one — and it is still bound by `aria-describedby`.
+    expect(heart.getAttribute("aria-disabled")).not.toBe("true");
     const describedBy = heart.getAttribute("aria-describedby");
     expect(describedBy).toBeTruthy();
     const hidden = document.getElementById(describedBy ?? "");

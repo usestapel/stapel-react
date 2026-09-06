@@ -106,13 +106,7 @@
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Card, Flex, Typography, theme as antdTheme } from "antd";
-import { SkinButton as Button } from "@stapel/tokens-antd/skin";
-import {
-  ErrorAlert,
-  GatedControl,
-  SKIN_CAROUSEL_SLIDE_CLASS,
-  SkinTheme,
-} from "@stapel/tokens-antd/skin";
+import { SKIN_CAROUSEL_SLIDE_CLASS, SkinTheme } from "@stapel/tokens-antd/skin";
 import { useActionGate, useT } from "@stapel/core";
 import type { LinkComponent, SignInCtaProp } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -123,10 +117,9 @@ import { lifecycleCaption } from "../model/status.js";
 import { isListingViewed } from "../model/engagement.js";
 import { useEngagedListing } from "../headless/Engagement.js";
 import { useFavoriteToggle } from "../headless/Favorites.js";
+import { FavoriteHeart } from "./favorite.js";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { CardBadges, CardSpecLine } from "./CardBadges.js";
-import { GateReasonPopover } from "./GateReasonPopover.js";
-import { HeartIcon } from "./icons.js";
 import { SignInLink } from "./SignInLink.js";
 import { PHOTO_LINK_CLASS, ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
@@ -555,22 +548,6 @@ export function ListingCard(props: ListingCardProps): ReactElement {
   // Absent on every response the fleet answers today, and a plain `false`
   // when it is — no dimming, no attribute, nothing said about it.
   const viewed = isListingViewed(listing);
-  // A saved heart is a SOLID accent shape; an unsaved one is the outline it
-  // has always been. `is_favorited: null` reads as unsaved (`favorite`
-  // resolves the third state), never as a look of its own.
-  const heartIcon = (
-    <HeartIcon
-      filled={favorite.favorited}
-      {...(favorite.favorited ? { color: token.colorPrimary } : {})}
-    />
-  );
-
-  const favoriteLabel = t(
-    favorite.favorited
-      ? LISTINGS_I18N_KEYS.cardFavoriteRemove
-      : LISTINGS_I18N_KEYS.cardFavoriteAdd
-  );
-
   const title = listing.title ?? "";
   // The anchor's name is the TITLE and nothing else. A card with no title is
   // still a link, and a link announced as nothing is worse than one announced
@@ -712,94 +689,50 @@ export function ListingCard(props: ListingCardProps): ReactElement {
                     paddingBlockEnd: token.paddingSM,
                   }}
                 >
-                  {blockedReason === "popover" &&
-                  favoriteGate.reason !== undefined ? (
-                    /* The third volume: nothing standing in the layout. The
-                       heart is `aria-disabled`, NOT `disabled` — the gate
-                       already refuses the action (`toggle` is a no-op while
-                       blocked), and an html-disabled button would swallow
-                       the hover, the focus and the tap the disclosure opens
-                       on, which is the exact grave the old Tooltip died in. */
-                    <GateReasonPopover
-                      reason={favoriteGate.reason}
-                      cta={props.signIn}
-                      testId="listings-card-favorite-reason"
+                  {/* THE SHARED HEART, not a second copy of it.
+                      This card drew its own — a `<Button aria-disabled>` in
+                      the popover arm with `onClick={favorite.toggle}` behind
+                      it — and that copy stopped tracking `<FavoriteHeart>` the
+                      day the door landed (D431): on the desktop GRID a
+                      visitor's press reached a no-op toggle, announced itself
+                      as unavailable, and went nowhere, while the same press on
+                      the SERP row and the feed card opened the sign-in door.
+                      One control, one refusal shape, one door.
+
+                      The two derived ids are pinned to what this card has
+                      always published, because a rename is a breaking change
+                      dressed as a refactor. */}
+                  <Flex justify="flex-end" style={{ width: "100%" }}>
+                    <FavoriteHeart
+                      listingId={listing.id}
+                      favorited={listing.is_favorited}
+                      testId="listings-card-favorite"
+                      gateTestId="listings-card-actions"
                       signInTestId="listings-card-sign-in"
+                      style={{ width: "100%" }}
+                      {...(blockedReason === "popover"
+                        ? { blockedReason: "popover" as const }
+                        : {})}
+                      {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
+                    />
+                  </Flex>
+
+                  {/* The DOOR AS A STANDING LINE, which is this card's own
+                      decision and not the heart's: `blockedReason="line"`
+                      drops it (twenty-four doors to one place is not
+                      twenty-four pieces of help) and `"popover"` has already
+                      put it inside the disclosure. The press itself routes
+                      through the door in every arm — that part is the heart's.
+                      */}
+                  {favoriteGate.reason === undefined ||
+                  blockedReason !== "text" ? null : (
+                    <Typography.Text
+                      type="secondary"
+                      data-testid="listings-card-favorite-blocked"
                     >
-                      {(bind) => (
-                        <Flex justify="flex-end" style={{ width: "100%" }}>
-                          <Button
-                            aria-disabled
-                            {...bind}
-                            aria-label={favoriteLabel}
-                            aria-pressed={favorite.favorited}
-                            data-testid="listings-card-favorite"
-                            data-favorited={String(favorite.favorited)}
-                            data-analytics="none"
-                            data-analytics-reason="business action — host app wraps with its own tracked()"
-                            onClick={favorite.toggle}
-                            icon={heartIcon}
-                          />
-                        </Flex>
-                      )}
-                    </GateReasonPopover>
-                  ) : (
-                    <>
-                      <GatedControl
-                        gate={favorite.gate}
-                        testId="listings-card-actions"
-                        style={{ width: "100%" }}
-                      >
-                        {(bind) => (
-                          <Flex justify="flex-end" style={{ width: "100%" }}>
-                            <Button
-                              // The substrate's binding, spread whole: it now
-                              // owns "never inert" for the whole fleet —
-                              // `disabled` stays false, `aria-disabled` and
-                              // `tabIndex` come from it, and the reason is
-                              // wired by `aria-describedby`.
-                              {...bind}
-                              aria-label={favoriteLabel}
-                              aria-pressed={favorite.favorited}
-                              data-testid="listings-card-favorite"
-                              data-favorited={String(favorite.favorited)}
-                              data-analytics="none"
-                              data-analytics-reason="business action — host app wraps with its own tracked()"
-                              onClick={favorite.toggle}
-                              icon={heartIcon}
-                            />
-                          </Flex>
-                        )}
-                      </GatedControl>
-
-                      {/* The door. `GatedControl` above already prints the reason and
-                          wires `aria-describedby` to it; what it cannot know is WHERE a
-                          visitor signs in, which is the container's business and arrives
-                          as `signIn`. On a grid `blockedReason="line"` drops the door and
-                          keeps the sentence — twenty-four doors to one place is not
-                          twenty-four pieces of help. */}
-                      {favoriteGate.reason === undefined || blockedReason === "line" ? null : (
-                        <Typography.Text
-                          type="secondary"
-                          data-testid="listings-card-favorite-blocked"
-                        >
-                          <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
-                        </Typography.Text>
-                      )}
-                    </>
+                      <SignInLink cta={props.signIn} testId="listings-card-sign-in" />
+                    </Typography.Text>
                   )}
-
-                  {/* A save that did not save. The heart has already rolled
-                      back to what it was, which is the honest picture but a
-                      silent one — a person who watched the icon flip and flip
-                      back deserves the sentence too. The pair's one error
-                      surface, in its inline volume, because a boxed alert
-                      inside a grid cell would re-lay the whole row. */}
-                  <ErrorAlert
-                    testId="listings-card-favorite-error"
-                    thrown={favorite.error}
-                    variant="inline"
-                  />
                 </div>
               )}
             </div>

@@ -205,8 +205,11 @@ describe("how loudly a blocked favourite states its reason", () => {
       </TestProviders>
     );
     const heart = screen.getByTestId("listings-card-favorite");
-    expect(heart.getAttribute("aria-disabled")).toBe("true");
-    expect(heart).toHaveProperty("disabled", false);
+    // With a door in hand the control ACTS (D431), so it is not announced as
+    // unavailable — and it is never html-`disabled` in any arm, because an
+    // inert button swallows the very tap that was supposed to explain it.
+    expect(heart.getAttribute("aria-disabled")).not.toBe("true");
+    expect(heart.getAttribute("href")).toBe("/login");
     // `aria-describedby` points AT the visible sentence — the whole reason the
     // tooltip arm was removed rather than kept as a "quieter" option.
     const describedBy = heart.getAttribute("aria-describedby");

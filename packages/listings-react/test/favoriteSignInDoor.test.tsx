@@ -23,15 +23,21 @@ describe("a visitor's favourite control", () => {
       </TestProviders>
     );
 
-    // Never hidden (private-space canon §6.3): the heart is there, switched
-    // off, because a control that disappears teaches nobody it exists.
-    // Switched off is `aria-disabled` and NEVER the html attribute: an inert
-    // button takes no focus and receives no tap, so it can explain itself to
-    // nobody. The refusal happens on activation — `toggle` is a no-op while
-    // the gate is blocked, asserted below by the request count.
+    // Never hidden (private-space canon §6.3): the heart is there, because a
+    // control that disappears teaches nobody it exists. And where the host
+    // hands in a DOOR it is not "switched off" either (D431): the press goes
+    // through the door, `?next=` and all, so announcing it unavailable would
+    // be a lie to exactly the people who depend on the announcement. This
+    // card used to draw its own heart and never got that ruling — a visitor's
+    // press on the desktop grid reached a no-op toggle and went nowhere while
+    // the same press on a SERP row opened the door.
     const heart = screen.getByTestId("listings-card-favorite");
-    expect(heart.getAttribute("aria-disabled")).toBe("true");
-    expect(heart).toHaveProperty("disabled", false);
+    expect(heart.getAttribute("aria-disabled")).not.toBe("true");
+    // The door is a navigation, so the control is an anchor: the `next`, the
+    // middle click and a person without our JavaScript all keep working.
+    expect(heart.tagName.toLowerCase()).toBe("a");
+    expect(heart.getAttribute("href")).toBe("/login?next=/l/7");
+    expect(heart.hasAttribute("aria-pressed")).toBe(false);
 
     // The reason as TEXT, not as a tooltip on a control that swallows pointer
     // events.
@@ -41,6 +47,26 @@ describe("a visitor's favourite control", () => {
     const door = screen.getByTestId("listings-card-sign-in");
     expect(door.getAttribute("href")).toBe("/login?next=/l/7");
     expect(blocked.contains(door)).toBe(true);
+  });
+
+  it("a guest PRESS on the grid card's heart opens the door (D431)", () => {
+    // The measured defect: the desktop grid card drew its own heart instead of
+    // mounting `<FavoriteHeart>`, so it never got the door ruling — a
+    // visitor's press reached a no-op toggle, announced itself unavailable and
+    // went nowhere, while the same press on a SERP row opened sign-in.
+    const onSignIn = vi.fn();
+    const server = mockServer({});
+    render(
+      <TestProviders server={server} mandate="anonymous">
+        <ListingCard listing={CARD} signIn={{ onSignIn }} />
+      </TestProviders>
+    );
+    const before = server.calls.length;
+    fireEvent.click(screen.getByTestId("listings-card-favorite"));
+    expect(onSignIn).toHaveBeenCalledTimes(1);
+    // …and it wrote nothing: the press is the way IN, not a save attempt that
+    // will be refused by the server.
+    expect(server.calls.length).toBe(before);
   });
 
   it("takes a callback instead, for a host that opens a modal", () => {
