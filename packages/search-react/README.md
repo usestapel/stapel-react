@@ -466,6 +466,64 @@ the scroll port's floor, which is right in a sheet whose port IS the sheet. It
 was pinned everywhere, and on the desktop rail an opaque bar over the last two
 groups made them unreachable.
 
+## Under a host's own header: `railTop` and `stickyToolbar`
+
+```tsx
+<SearchPage
+  adapter={adapter}
+  railTop="var(--stapel-header-height)"
+  stickyToolbar={{ top: "var(--stapel-header-height)" }}
+/>
+```
+
+Both columns of this page pin something, and until now neither could be told
+where the page's chrome ends.
+
+**`railTop`** is where the filter rail's sticky top edge sits. The rail is
+`position: sticky; top: 0` written INLINE, and an inline declaration is beaten
+by nothing but `!important` — so a deployment with a fixed header had exactly
+one way to move it, and the fleet's storefront carried that `!important` as the
+only rule in its repo aimed at a pair's own geometry. A number is pixels; a
+string is taken as written, so `--stapel-header-height` (published by
+`@stapel/shell-react`'s `<PublicShell>`) can be read rather than restated. The
+rail's internal height cap moves with the offset — a rail pushed 64px down the
+window whose cap is still `100dvh` ends 64px past the foot of the screen, and
+its last control is then unreachable. `railStyle(top)` is exported for a host
+laying out its own column.
+
+**`stickyToolbar`** pins the results toolbar under the same chrome, and it is a
+prop rather than a host stylesheet because the pane knows which of its two
+header shapes it drew and a sheet has to guess:
+
+| Header shape | What the class `stapel-search-results-toolbar` / `data-testid="search-results-toolbar"` is on | What pins |
+|---|---|---|
+| `"banner"` (wide) | the header block — heading at one end, count and controls at the other, one line | the block; it is already a direct child of the results column |
+| `"compact"` (phone) | the toolbar row alone | the row — one line, the height of one phone control |
+
+The compact stack draws no box of its own (`display: contents`), so its three
+rows are items of the results COLUMN: `position: sticky` travels inside its
+parent, and a toolbar nested in a ~112px stack can move 112px and no further.
+The one visible consequence is that the gap between heading, toolbar and count
+is the column's rather than the stack's.
+
+Two things the pin does NOT do, both deliberate:
+
+- **it adds no padding.** A pinned bar that grows room to breathe over the
+  cards passing under it has to give the same room back as negative margin, and
+  which spacing that is belongs to the host. A row that occupies exactly the box
+  it already occupied cannot shift anything.
+- **it draws no second sort control.** The row that pins is the row the pane
+  already drew. A host that builds a bar of its own over the page ends up with
+  two sort controls over one search, and the one a person presses is whichever
+  the layout put under their thumb.
+
+The row is also one line that cannot become two: `flex-wrap: nowrap`,
+`min-inline-size: 0`, `overflow-x: auto` and a thin scrollbar (an invisible
+scroll port is indistinguishable from a row that ends where it was cut). The count arrives WITH the answer,
+one render after the toolbar is already on screen, and a row that wraps grows a
+second line at exactly that moment — a bar that grows while it is pinned pushes
+the first cards of the feed down under the reader's eye.
+
 ## The other sections are a line, and they come with the results
 
 `<SearchPage otherCategories categoryName={...}>` draws
@@ -599,7 +657,7 @@ the configured engine cannot evaluate.
 | state (pure) | `parseSearchState`, `writeSearchState`, `patchSearchState`, `toggleFilterValue`, `setFilterValues`, `setRangeValue`, `clearFilters`, `activeFilterCount`, `parseDegradations`, `countIsEstimate`, `buildFacetGroups`, `orderFacetGroupsBySchema`, `facetGroupIsDrawable`, `facetGroupHasEvidence`, `facetOptionLabel`, `translitPrefixMatch`, `translitKey`, `consonantKey` |
 | model | `createSearchRuntime`, `searchQueryKeys`, `useSearchQuery`, `useRankingDisclosure` |
 | headless | `SearchProvider`, `SearchStateProvider`/`useSearchState`, `SearchResults`, `FacetPanel`, `RankingDisclosure`, `useOtherCategories` |
-| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `OtherCategoriesLine`, `otherCategoriesCss`, `FilterChips` (`mode="openers" | "applied"`), `buildAppliedChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `RAIL_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
+| `./default` | `SearchPage`, `SearchResultsPane`, `FacetPanelPane`, `RankingDisclosurePane`, `SearchBox`, `SortSelect`, `PageSizeSelect`, `LanguageSelect`, `SearchResultCard`, `RangeFilterRow`, `DegradationNotice`, `UrlIssueNotice`, `PopularValues`, `PartitionChips`, `OtherCategoriesLine`, `otherCategoriesCss`, `FilterChips` (`mode="openers" | "applied"`), `buildAppliedChips`, `facetGroupShape`, `isDictionaryFacet`, `railScrollbarCss`, `railStyle`, `RAIL_CLASS`, `RESULTS_TOOLBAR_CLASS`, `FACET_VISIBLE_GROUPS` (the skin themes itself through `SkinTheme` from `@stapel/tokens-antd/skin`; the pair's own `SearchSkinTheme` is gone as of 0.6.0) |
 | `./router` | `useRouterSearchParams` |
 | i18n | `registerSearchI18n` (+ `./i18n/ru`, `./i18n/es`) |
 | errors | `SEARCH_ERRORS`, `explainSearchError`, `SEARCH_WINDOW_EXCEEDED`, `SEARCH_BACKEND_UNAVAILABLE` |

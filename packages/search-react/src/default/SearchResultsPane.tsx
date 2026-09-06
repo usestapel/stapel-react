@@ -35,7 +35,7 @@ import {
   SkinTheme,
   visuallyHidden,
 } from "@stapel/tokens-antd/skin";
-import { breakpoints, spacing } from "@stapel/tokens";
+import { breakpoints, cssVar, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchItem } from "../api/types.js";
 import { SearchResults } from "../headless/SearchResults.js";
@@ -108,6 +108,101 @@ export type SearchResultsWrapper = (
  * and the 2560px pane the constant was written against is still capped.
  */
 export const RESULTS_MAX_WIDTH = 1400;
+
+/**
+ * The class on the row that carries the results toolbar — the sort control, the
+ * view switch, the page size, the count and the surface's own action.
+ *
+ * The row had no element of its own: no class, no `data-testid`, and in the
+ * compact header it was one child of a 112px vertical stack. A host that wanted
+ * it pinned under a fixed header therefore had to reach it with a `:has()` on
+ * the heading beside it, a `display: contents` to drop the stack's box, and the
+ * pane's own breakpoint restated in a media query — three rules aimed at a
+ * shape the pane could change under them at any release.
+ *
+ * It is the same class in BOTH header shapes, and in both it names the row that
+ * would pin: the WIDE header block (heading, count and toolbar on one line —
+ * the block IS the row) and, in `header="compact"`, the toolbar alone, because
+ * pinning the compact stack would put ~112px of chrome under a 56px header on a
+ * 390px screen.
+ */
+export const RESULTS_TOOLBAR_CLASS = "stapel-search-results-toolbar";
+
+/**
+ * Where {@link SearchResultsPaneProps.stickyToolbar} pins the row.
+ *
+ * `top` is a CSS length — a number is pixels, a string is taken as written, so
+ * `top: "var(--stapel-header-height)"` reads the height `<PublicShell>`
+ * publishes rather than restating it. Default `0`.
+ */
+export interface SearchToolbarPin {
+  readonly top?: number | string;
+}
+
+/**
+ * The controls' own line: it may not become two.
+ *
+ * A wrapping row changes height when the count lands — the count arrives with
+ * the answer, one render after the toolbar was already on screen — and a bar
+ * that grows while it is pinned pushes the first cards of the feed down under
+ * the reader's eye. `nowrap` makes the height a constant; `min-inline-size: 0`
+ * plus `overflow-x: auto` is what a row that cannot wrap does with the overflow
+ * instead, which on a phone is the scroll strip every sort row already is.
+ */
+const TOOLBAR_ROW: CSSProperties = {
+  flexWrap: "nowrap",
+  minInlineSize: 0,
+  overflowX: "auto",
+  // Thin, and only when there is something to scroll to — the same reason the
+  // filter rail states its own: an invisible scroll port is indistinguishable
+  // from a row that ends where it was cut.
+  scrollbarWidth: "thin",
+};
+
+/**
+ * The compact header's stack, WITHOUT its box.
+ *
+ * `position: sticky` travels inside its parent, so a toolbar nested in a 112px
+ * stack can move 112px and no further — the parent has to be the results
+ * column, which is as tall as the feed. `display: contents` drops the stack's
+ * box and hands its three rows straight to that column, which is the same
+ * device the fleet's storefront was writing in its own sheet.
+ *
+ * The one visible consequence: the gap between heading, toolbar and count
+ * becomes the column's rather than the stack's.
+ */
+const COMPACT_STACK: CSSProperties = { display: "contents" };
+
+/** The compact shape's toolbar box — the row the pin acts on. */
+const COMPACT_TOOLBAR: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  ...TOOLBAR_ROW,
+};
+
+/**
+ * The pin itself, and it is NET-ZERO in flow: `position` and a layer and a
+ * background, and not one pixel of padding.
+ *
+ * A pinned bar that grows padding to breathe over the cards passing under it
+ * has to take the same padding back as negative margin or the column pays for
+ * it, and the pair does not know which of those two a host's spacing wants. A
+ * row that occupies exactly the box it already occupied cannot shift anything.
+ */
+function toolbarPinStyle(pin: SearchToolbarPin | undefined): CSSProperties | undefined {
+  if (pin === undefined) return undefined;
+  return {
+    position: "sticky",
+    top: pin.top ?? 0,
+    // Over the cards, under the page's own chrome — and under antd's popups,
+    // so the sort select still opens over its own bar.
+    zIndex: 1,
+    // Opaque, or the cards scroll THROUGH the bar. The theme's own surface
+    // role, resolved at paint time, so it follows the brand and the dark side
+    // without a second colour being written here.
+    background: cssVar("surface"),
+  };
+}
 
 /**
  * The results grid. `auto-fill` + `minmax(260px, 1fr)`: as many columns as fit,
@@ -397,6 +492,33 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    */
   readonly header?: "banner" | "compact";
   /**
+   * PIN the toolbar row under whatever chrome is above this pane.
+   *
+   * ```tsx
+   * // the height <PublicShell> publishes, read rather than restated
+   * <SearchResultsPane stickyToolbar={{ top: "var(--stapel-header-height)" }} />
+   * ```
+   *
+   * A catalogue page is thirty cards long and the control that reorders them is
+   * at the top of it, so by the fourth row the sort is a screenful above the
+   * list it sorts — the same argument that made the filter rail sticky, applied
+   * to the other column.
+   *
+   * It pins the row the pane ACTUALLY DREW, which is why this is a prop and not
+   * a host's stylesheet: the pane knows which of its two header shapes it is in
+   * and a sheet has to guess. In `"banner"` the whole header block pins (it is
+   * one line: heading, count, toolbar). In `"compact"` the toolbar alone pins —
+   * one row, the height of one phone control — because the stack it sits in is
+   * ~112px and that is not a bar anybody can pin under a 56px header.
+   *
+   * Two things it does NOT do, both deliberate: it adds no padding (see
+   * {@link toolbarPinStyle} — a pinned bar that grows to breathe has to give
+   * the room back, and which spacing that is belongs to the host), and it draws
+   * no second sort control. There is exactly one on a results page, and this
+   * pins it where it stands.
+   */
+  readonly stickyToolbar?: SearchToolbarPin;
+  /**
    * The category's feature schema, used ONLY to name an applied filter in the
    * empty state's exits ("Without Brand" rather than "Without vendor").
    * Absent, an exit falls back to the slug, which is still a removable
@@ -503,6 +625,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   // The compact arm's caption: the host's word is drawn, the pair's own is
   // not, and `headingVisible` overrides either way — see that prop.
   const compactHeadingSeen = props.headingVisible ?? props.heading !== undefined;
+  const toolbarPin = toolbarPinStyle(props.stickyToolbar);
   const columnRules =
     props.columns === undefined || props.layout === "list"
       ? null
@@ -542,7 +665,15 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
               <div data-testid="search-results-lead">{props.lead}</div>
             )}
             {props.header === "compact" ? (
-              <Flex vertical gap={spacing[2]} data-testid="search-results-header-compact">
+              /* No box of its own — see `COMPACT_STACK`. The three rows are
+                 items of the results COLUMN, so the toolbar between them has a
+                 parent as tall as the feed to travel in. */
+              <Flex
+                vertical
+                gap={spacing[2]}
+                style={COMPACT_STACK}
+                data-testid="search-results-header-compact"
+              >
                 <Typography.Title
                   level={props.headingLevel ?? 4}
                   style={compactHeadingSeen ? { margin: 0 } : visuallyHidden}
@@ -551,19 +682,35 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                 >
                   {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
                 </Typography.Title>
-                {props.toolbar}
+                <div
+                  className={RESULTS_TOOLBAR_CLASS}
+                  data-testid="search-results-toolbar"
+                  style={{ ...COMPACT_TOOLBAR, ...toolbarPin }}
+                >
+                  {props.toolbar}
+                </div>
                 <Count bag={bag} />
               </Flex>
             ) : (
-              <Flex justify="space-between" align="center" wrap gap={spacing[2]}>
+              /* The wide shape's header block IS the toolbar row: one line,
+                 heading at one end, count and controls at the other, and a
+                 direct child of the results column — so it pins as it stands. */
+              <Flex
+                justify="space-between"
+                align="center"
+                gap={spacing[2]}
+                className={RESULTS_TOOLBAR_CLASS}
+                data-testid="search-results-toolbar"
+                {...(toolbarPin !== undefined ? { style: toolbarPin } : {})}
+              >
                 <Typography.Title
                   level={props.headingLevel ?? 4}
-                  style={{ margin: 0 }}
+                  style={{ margin: 0, minInlineSize: 0 }}
                   data-testid="search-results-heading"
                 >
                   {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
                 </Typography.Title>
-                <Flex align="center" wrap gap={spacing[3]}>
+                <Flex align="center" gap={spacing[3]} style={TOOLBAR_ROW}>
                   <Count bag={bag} />
                   {props.toolbar}
                 </Flex>

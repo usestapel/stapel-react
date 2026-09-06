@@ -29,6 +29,10 @@ function Storefront(props: {
   docked?: boolean;
   phoneChrome?: "drawer" | "dock";
   badges?: boolean;
+  /** The sticky-header pair: where the header pins, and whether it marks that
+   * the page has moved. */
+  headerSticky?: boolean | "desktop" | "phone";
+  scrollFlag?: boolean;
 }): ReactElement {
   return (
     <ShellFrame
@@ -47,6 +51,10 @@ function Storefront(props: {
             : {})}
           {...(props.phoneChrome !== undefined ? { phoneChrome: props.phoneChrome } : {})}
           {...(props.badges === true ? { navBadges: BADGES } : {})}
+          {...(props.headerSticky !== undefined
+            ? { headerSticky: props.headerSticky }
+            : {})}
+          {...(props.scrollFlag === true ? { headerScrollFlag: true } : {})}
           footer={<StorefrontFooter />}
         />
       }
@@ -99,6 +107,20 @@ export default defineDemo({
       viewport: "phone",
       step: "dock-badged",
       render: () => <Storefront docked phoneChrome="dock" badges />,
+    },
+    "sticky-desktop": {
+      description:
+        "headerSticky=\"desktop\" pins the desktop header at the top of the window — the half the shell used to leave to a host's stylesheet, which is a geometry decision taken outside the component that owns the geometry. The height it now occupies is published as --stapel-header-height on the shell's root, so a filter rail or a sort bar underneath states the offset once and reads it from here.",
+      viewport: "desktop",
+      step: "sticky",
+      render: () => <Storefront headerSticky="desktop" withAccount />,
+    },
+    "sticky-scrolled": {
+      description:
+        "The same pinned header with headerScrollFlag: one IntersectionObserver on a 1px sentinel above it writes data-scrolled on the header, and a brand's own rule turns that into a hairline or a shadow. Never a scroll listener, which would run on every frame of a feed of photographs; the sentinel takes a pixel and gives it straight back, so it is a position in the page and not a change to it.",
+      viewport: "desktop",
+      step: "sticky-flagged",
+      render: () => <Storefront headerSticky scrollFlag withAccount />,
     },
     badges: {
       description:

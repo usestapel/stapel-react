@@ -15,6 +15,7 @@
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { SearchResultsPane } from "../src/default/SearchResultsPane.js";
+import { SortSelect } from "../src/default/SortSelect.js";
 import { SearchSkinHarness } from "./_harness.js";
 import type { DemoSeed } from "./_harness.js";
 import {
@@ -35,14 +36,32 @@ const FOUND: DemoSeed = {
 };
 const NOTHING: DemoSeed = { page: DEMO_EMPTY_RESPONSE };
 
-function Pane(props: { phone?: boolean; seed: DemoSeed }): ReactElement {
+/** The offset a storefront's pinned header leaves — `<PublicShell>` publishes
+ * exactly this as `--stapel-header-height`. Stated here because the demo frame
+ * draws no shell of its own. */
+const DEMO_HEADER_HEIGHT = 56;
+
+function Pane(props: {
+  phone?: boolean;
+  seed: DemoSeed;
+  /** The pinned toolbar — see the `sticky-toolbar` variant. */
+  sticky?: boolean;
+}): ReactElement {
   return (
     <SearchSkinHarness
       search={SEARCH}
       seed={props.seed}
       {...(props.phone === true ? { phone: true } : {})}
     >
-      <SearchResultsPane />
+      <SearchResultsPane
+        {...(props.sticky === true
+          ? {
+              header: "compact" as const,
+              toolbar: <SortSelect compact />,
+              stickyToolbar: { top: DEMO_HEADER_HEIGHT },
+            }
+          : {})}
+      />
     </SearchSkinHarness>
   );
 }
@@ -69,6 +88,13 @@ export default defineDemo({
       viewport: "phone",
       step: "results-phone",
       render: () => <Pane phone seed={FOUND} />,
+    },
+    "sticky-toolbar": {
+      description:
+        "The compact (phone) header with `stickyToolbar`: what pins is the TOOLBAR alone — one row, the height of one phone control — and not the heading/toolbar/count stack, which at ~112px under a 56px header would be a third of the screen spent on chrome. The stack draws no box of its own (`display: contents`), so the row's parent is the results column and it has the whole feed to travel in. The pin costs the column nothing in flow: no padding on, no negative margin to take back.",
+      viewport: "phone",
+      step: "sticky-toolbar",
+      render: () => <Pane phone sticky seed={FOUND} />,
     },
     empty: {
       description:

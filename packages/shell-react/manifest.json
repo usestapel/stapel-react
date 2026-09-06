@@ -71,6 +71,8 @@
         "phone",
         "phone-dock",
         "phone-dock-badges",
+        "sticky-desktop",
+        "sticky-scrolled",
         "badges"
       ],
       "source": "demo/PublicShell.demo.tsx"

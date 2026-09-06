@@ -346,6 +346,12 @@
           "step": "catalogue-leaf"
         },
         {
+          "id": "under-a-header",
+          "description": "The same page under a host's pinned header: `railTop` starts the filter rail below it (and moves the rail's own height cap with it, so the rail still ends at the foot of the window rather than that far past it), and `stickyToolbar` pins the results toolbar at the same offset. Both used to be a host's stylesheet problem — the rail's `top: 0` is written INLINE, so moving it took the one `!important` a deployment had aimed at a pair's own geometry, and the toolbar had no element to aim anything at.",
+          "viewport": "desktop",
+          "step": "under-a-header"
+        },
+        {
           "id": "unreadable-link",
           "description": "A shared link whose location and price range could not be read: the page says which parameters it dropped instead of silently widening the search.",
           "viewport": "phone",
@@ -354,7 +360,7 @@
       ],
       "source": {
         "file": "demo/SearchPage.demo.tsx",
-        "line": 92
+        "line": 105
       }
     },
     {
@@ -575,6 +581,12 @@
           "step": "results-phone"
         },
         {
+          "id": "sticky-toolbar",
+          "description": "The compact (phone) header with `stickyToolbar`: what pins is the TOOLBAR alone — one row, the height of one phone control — and not the heading/toolbar/count stack, which at ~112px under a 56px header would be a third of the screen spent on chrome. The stack draws no box of its own (`display: contents`), so the row's parent is the results column and it has the whole feed to travel in. The pin costs the column nothing in flow: no padding on, no negative margin to take back.",
+          "viewport": "phone",
+          "step": "sticky-toolbar"
+        },
+        {
           "id": "empty",
           "description": "A search that RAN and matched nothing: the designed empty state, and no pager under it — two dead buttons below an empty page is the C-DEADPAGER defect.",
           "viewport": "phone",
@@ -583,7 +595,7 @@
       ],
       "source": {
         "file": "demo/SearchResultsPane.demo.tsx",
-        "line": 50
+        "line": 69
       }
     },
     {

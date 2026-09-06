@@ -94,6 +94,7 @@ import { SearchResultsPane } from "./SearchResultsPane.js";
 import type {
   ResultsColumns,
   SearchResultsWrapper,
+  SearchToolbarPin,
 } from "./SearchResultsPane.js";
 import { SortSelect } from "./SortSelect.js";
 import { SEARCH_BUILTIN_VIEWS, ViewSwitch, resolveView } from "./ViewSwitch.js";
@@ -282,6 +283,24 @@ const RAIL: CSSProperties = {
   // Room for the focus ring of the last control against the scroll edge.
   paddingBlockEnd: spacing[2],
 };
+
+/**
+ * The rail with a host's own offset under it.
+ *
+ * `top` and the height cap move TOGETHER, and that is the whole reason this is
+ * a function rather than one property: a rail pushed 64px down the window whose
+ * cap is still `100dvh` ends 64px past the foot of the screen, so its last
+ * control is unreachable — the internal scroll has scrolled past the window.
+ *
+ * A number is pixels; a string is taken as written, so
+ * `railTop="var(--stapel-header-height)"` reads the height `<PublicShell>`
+ * publishes instead of restating it.
+ */
+export function railStyle(top: number | string | undefined): CSSProperties {
+  if (top === undefined) return RAIL;
+  const offset = typeof top === "number" ? `${String(top)}px` : top;
+  return { ...RAIL, top, maxHeight: `calc(100dvh - ${offset})` };
+}
 
 /** The results take what is left. `minWidth: 0` so a long word inside a card
  * cannot push the grid wider than its column. */
@@ -523,6 +542,50 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly filtersLayout?: SearchFiltersLayout;
   /**
+   * WHERE the filter rail's sticky top edge is — the offset of whatever chrome
+   * is pinned above this page.
+   *
+   * ```tsx
+   * // the height <PublicShell> publishes, read rather than restated
+   * <SearchPage railTop="var(--stapel-header-height)" />
+   * ```
+   *
+   * The rail is `position: sticky; top: 0` written INLINE, and an inline
+   * declaration is beaten by nothing but `!important` — so a host with a fixed
+   * header had exactly one way to say "start below it", and the fleet's
+   * storefront carried that `!important` as the only one in the repo aimed at a
+   * pair's own geometry. Every deployment with a pinned header has this
+   * problem; none of them could state it.
+   *
+   * A number is pixels; a string is taken as written (a `var()`, a `calc()`,
+   * `"4rem"`). The internal scroll cap moves with it — see {@link railStyle} —
+   * so the rail still ends at the foot of the window rather than that far past
+   * it. Default `0`, which is where the rail has always started.
+   *
+   * The phone SHEET is unaffected: it is a dialog, not a column, and it has no
+   * header to clear.
+   */
+  readonly railTop?: number | string;
+  /**
+   * PIN the results toolbar under whatever chrome is above this page — the
+   * other column's half of {@link railTop}.
+   *
+   * ```tsx
+   * <SearchPage
+   *   railTop="var(--stapel-header-height)"
+   *   stickyToolbar={{ top: "var(--stapel-header-height)" }}
+   * />
+   * ```
+   *
+   * Handed straight to `<SearchResultsPane stickyToolbar>`, which pins the row
+   * it actually drew — the whole header block in the wide shape, the toolbar
+   * alone in the compact one. There is exactly one sort control on a results
+   * page and this pins it where it stands; a host that draws a bar of its own
+   * over the page ends up with two, and the one a person presses is whichever
+   * the layout put under their thumb.
+   */
+  readonly stickyToolbar?: SearchToolbarPin;
+  /**
    * The host's own exits from an empty result — sibling sections with their
    * counts. A SLOT for the same reason `breadcrumb` is one: walking the tree
    * belongs to `categories-react`. Everything the pair can derive on its own
@@ -639,6 +702,8 @@ interface SearchPageBodyProps {
   readonly degradationNotice?: DegradationNoticeVariant;
   readonly railFrom?: SearchRailFrom;
   readonly filtersLayout?: SearchFiltersLayout;
+  readonly railTop?: number | string;
+  readonly stickyToolbar?: SearchToolbarPin;
   readonly defaultFiltersOpen?: boolean;
   readonly pageSize?: boolean;
   readonly breadcrumb?: ReactNode;
@@ -838,6 +903,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       toolbar={toolbar}
       {...(props.resultsLead !== undefined ? { lead: props.resultsLead } : {})}
       {...(phoneToolbar ? { header: "compact" as const } : {})}
+      {...(props.stickyToolbar !== undefined
+        ? { stickyToolbar: props.stickyToolbar }
+        : {})}
       headingLevel={props.resultsHeadingLevel ?? 1}
       {...(view.render !== undefined ? { renderResults: view.render } : {})}
       {...(props.wrapResults !== undefined ? { wrapResults: props.wrapResults } : {})}
@@ -998,7 +1066,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         </>
       ) : showFilters ? (
         <Flex align="flex-start" gap={spacing[5]} data-testid="search-page-columns">
-          <div className={RAIL_CLASS} style={RAIL}>
+          <div className={RAIL_CLASS} style={railStyle(props.railTop)}>
             {/* The rail's scrollbar, in the gutter and in the token palette —
                 see `railScrollbarCss`. Hoisted, deduped by `href`. */}
             <style href={RAIL_STYLE_HREF} precedence="default">
@@ -1050,6 +1118,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     degradationNotice,
     railFrom,
     filtersLayout,
+    railTop,
+    stickyToolbar,
     defaultFiltersOpen,
     pageSize,
     breadcrumb,
@@ -1102,6 +1172,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(degradationNotice !== undefined ? { degradationNotice } : {})}
           {...(railFrom !== undefined ? { railFrom } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
+          {...(railTop !== undefined ? { railTop } : {})}
+          {...(stickyToolbar !== undefined ? { stickyToolbar } : {})}
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(pageSize !== undefined ? { pageSize } : {})}
           {...(breadcrumb !== undefined ? { breadcrumb } : {})}

@@ -51,11 +51,18 @@ const SEED: DemoSeed = {
 const RESULTS_SEARCH = `type=${DEMO_TYPE}&q=bosch`;
 const UNREADABLE_SEARCH = `type=${DEMO_TYPE}&q=bosch&lat=abc&lon=37.6&r.price=cheap`;
 
+/** The height a storefront's own pinned header takes — `<PublicShell>`
+ * publishes exactly this as `--stapel-header-height`. Stated here because the
+ * demo frame draws no shell of its own. */
+const DEMO_HEADER_HEIGHT = 64;
+
 function Page(props: {
   phone?: boolean;
   search?: string;
   /** The catalogue leaf shape — see the `catalogue-leaf` variant. */
   leaf?: boolean;
+  /** Both columns told where the host's chrome ends — see `under-a-header`. */
+  underHeader?: boolean;
 }): ReactElement {
   const search = props.search ?? RESULTS_SEARCH;
   const adapter = useMemoryParams(search);
@@ -71,6 +78,12 @@ function Page(props: {
             ? {
                 categoryFilter: false,
                 resultsLead: <LeafIntro />,
+              }
+            : {})}
+          {...(props.underHeader === true
+            ? {
+                railTop: DEMO_HEADER_HEIGHT,
+                stickyToolbar: { top: DEMO_HEADER_HEIGHT },
               }
             : {})}
         />
@@ -117,6 +130,13 @@ export default defineDemo({
       viewport: "desktop",
       step: "catalogue-leaf",
       render: () => <Page leaf />,
+    },
+    "under-a-header": {
+      description:
+        "The same page under a host's pinned header: `railTop` starts the filter rail below it (and moves the rail's own height cap with it, so the rail still ends at the foot of the window rather than that far past it), and `stickyToolbar` pins the results toolbar at the same offset. Both used to be a host's stylesheet problem — the rail's `top: 0` is written INLINE, so moving it took the one `!important` a deployment had aimed at a pair's own geometry, and the toolbar had no element to aim anything at.",
+      viewport: "desktop",
+      step: "under-a-header",
+      render: () => <Page underHeader />,
     },
     "unreadable-link": {
       description:

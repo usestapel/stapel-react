@@ -45,6 +45,7 @@ export {
   RAIL_CLASS,
   RAIL_STYLE_HREF,
   railScrollbarCss,
+  railStyle,
 } from "./SearchPage.js";
 export type {
   SearchPageProps,
@@ -73,6 +74,7 @@ export {
   RESULTS_AUTO_FILL_COLUMNS,
   RESULTS_COLUMNS_CLASS,
   RESULTS_COLUMNS_STYLE_HREF,
+  RESULTS_TOOLBAR_CLASS,
   resultsColumnsCss,
 } from "./SearchResultsPane.js";
 export type {
@@ -80,6 +82,7 @@ export type {
   SearchResultsPaneProps,
   SearchResultsRenderer,
   SearchResultsWrapper,
+  SearchToolbarPin,
 } from "./SearchResultsPane.js";
 
 export {

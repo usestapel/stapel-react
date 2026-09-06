@@ -20,6 +20,19 @@ export { AppShell } from "./AppShell.js";
 export type { AppShellProps } from "./AppShell.js";
 export { PublicShell } from "./PublicShell.js";
 export type { PublicShellProps } from "./PublicShell.js";
+// The public chrome's own GEOMETRY, so a host that pins anything under the
+// header states the offset once and reads it from the component that owns it.
+// `HEADER_HEIGHT_VAR` is the same two numbers as a custom property on the
+// shell's root, for the half of a deployment that is a stylesheet.
+export {
+  HEADER_HEIGHT_DESKTOP,
+  HEADER_HEIGHT_PHONE,
+  HEADER_HEIGHT_VAR,
+  PUBLIC_SHELL_CLASS,
+  PUBLIC_SHELL_STYLE_HREF,
+  SCROLL_SENTINEL_HEIGHT,
+  publicShellCss,
+} from "./PublicShell.js";
 // The two host-resolved brand slots `<PublicShell/>` falls back to when the
 // host passes neither `brand` nor `footer` and a `<SiteProvider>` is mounted
 // (multibrand spec, frontend decision). Exported on their own so a host that arranges its own

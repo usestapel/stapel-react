@@ -177,6 +177,75 @@ on the one row a storefront's search field lives on; a single 36px icon button
 (the 0.14.0 default) is a different question, and one a host answers with
 `themeControl`.
 
+### `headerSticky` — a pinned header, and the height everything else reads
+
+```tsx
+<PublicShell nav={nav} headerSticky="desktop" headerScrollFlag />
+```
+
+The shell used to pin its header in `phoneChrome="dock"` and nowhere else, so a
+storefront was pinned on a phone and `static` on a desktop — an inconsistency
+inside one app before it is a gap against anything else — and the only way to
+settle it was a host sheet rule over `[data-testid="public-shell-header"]`, i.e.
+a geometry decision taken outside the component that owns the geometry.
+
+| `headerSticky` | Desktop (≥ `breakpoints.desktop`) | Below it |
+|---|---|---|
+| omitted (default) | as before — not pinned | pinned in `"dock"`, not in `"drawer"` |
+| `"desktop"` | pinned | not pinned |
+| `"phone"` | not pinned | pinned |
+| `true` / `false` | pinned / not | pinned / not |
+
+Pinning brings its own two declarations with it: the header's `background` is
+the theme's container token (so content passing under it is covered on both
+sides of the theme) and its layer is `zIndexPopupBase` — the one `<NavDock/>`
+floats on, and one antd's own popups sit above, so a `<Select>` inside
+`searchSlot` still opens over the header.
+
+**The height is published, in both currencies.** Everything a storefront pins
+under a fixed header — a filter rail, a sort bar, a "back to top" button, a
+category strip — offsets itself by the header's height:
+
+| Export / property | Value | For |
+|---|---|---|
+| `HEADER_HEIGHT_DESKTOP` | `number` (px) | TypeScript: the desktop row |
+| `HEADER_HEIGHT_PHONE` | `number` (px) | TypeScript: the one-row phone header (`"dock"`) |
+| `--stapel-header-height` (`HEADER_HEIGHT_VAR`) | a length | CSS: declared on the shell's root, switched at `breakpoints.desktop` by a media query |
+| `PUBLIC_SHELL_CLASS` | `"stapel-public-shell"` | the class the sheet is hung on |
+| `publicShellCss()` | `string` | the sheet itself, for a host that renders its own `<style>` |
+
+```css
+/* under the header, and never a number typed twice */
+.my-filter-rail { position: sticky; top: var(--stapel-header-height, 56px); }
+```
+
+The property is a **media query**, not a render: an inline value computed from
+`useBreakpoint()` is applied at render, so a window dragged across 1200px moves
+the header before it moves whatever pinned under it. It is declared on the
+shell's own root rather than on `:root`, so two shells on one page cannot fight
+over one name — and below the desktop edge it is declared for `"dock"` ONLY,
+because in `"drawer"` the phone header wraps to a second line for the search
+field and has no fixed height at all. Keep a fallback in the `var()` for that
+case; being told nothing is better than being told 56px.
+
+**`headerScrollFlag`** puts `data-scrolled="true" | "false"` on the header once
+the page has moved, and nothing else — a hairline, a shadow or a blur is a
+brand decision, so the pair owns the fact and not the paint:
+
+```css
+[data-testid="public-shell-header"][data-scrolled="true"] {
+  box-shadow: var(--stapel-elevation-low);
+}
+```
+
+The fact comes from ONE `IntersectionObserver` on a 1px sentinel the shell
+renders above its own header — never a `scroll` listener, which runs on every
+frame of a feed of photographs. The sentinel takes a pixel and gives it straight
+back (`margin-block-end: -1px`), so it is a position in the page and never a
+change to it. Off, the attribute is absent entirely rather than `"false"`: a
+host that did not ask for the observer should not be able to write a rule that
+silently never fires.
+
 ### Dock geometry — aligning a host's own sticky chrome
 
 ```tsx

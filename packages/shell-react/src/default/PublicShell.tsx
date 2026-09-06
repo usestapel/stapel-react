@@ -54,14 +54,14 @@
  * }>…public routes…</Route>
  * ```
  */
-import { useState } from "react";
-import type { ReactElement, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Drawer, Flex, Layout, theme } from "antd";
 import { Link, Outlet } from "react-router";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useBreakpoint, useOptionalSite, useT } from "@stapel/core";
-import { cssVar, spacing } from "@stapel/tokens-antd";
+import { breakpoints, cssVar, spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE, dockRenders } from "./NavDock.js";
@@ -113,8 +113,93 @@ const DEFAULT_CONTENT_MAX_WIDTH = 1280;
  */
 const PAGE_GUTTER_CSS = `${cssVar("page-gutter").slice(0, -1)}, ${String(spacing[4])}px)`;
 
-const HEADER_HEIGHT_DESKTOP = spacing[8];
-const HEADER_HEIGHT_PHONE = spacing[7] + spacing[2];
+/**
+ * How tall `<PublicShell/>`'s header is, in CSS pixels — the DESKTOP row and
+ * the one-row phone row (`phoneChrome="dock"`).
+ *
+ * EXPORTED, because everything a host pins under a fixed header offsets itself
+ * by exactly this number and there was no way to ask for it: the fleet's
+ * storefront restated `56` and `64` in its own sheet and held them against the
+ * installed `dist` with a unit test, which is a gate written because the
+ * geometry was private rather than because it should be checked. A filter
+ * rail, a sort bar, a "back to top" button and a category strip all pin
+ * against it; four restatements of a number this component owns is four
+ * chances to be wrong on the day it changes.
+ *
+ * The pair also publishes them as {@link HEADER_HEIGHT_VAR} on its own root —
+ * see {@link publicShellCss} — so a stylesheet gets the same answer without
+ * a build-time import.
+ */
+export const HEADER_HEIGHT_DESKTOP: number = spacing[8];
+
+/** See {@link HEADER_HEIGHT_DESKTOP}. The one-row phone header's height —
+ * `phoneChrome="dock"`. In `"drawer"` the phone header takes a second line for
+ * the search field and is `height: auto`, which is why the property below is
+ * not declared there at all. */
+export const HEADER_HEIGHT_PHONE: number = spacing[7] + spacing[2];
+
+/** The class the shell's own root sheet is hung on. */
+export const PUBLIC_SHELL_CLASS = "stapel-public-shell";
+
+/** The `href` the hoisted shell sheet is deduplicated by (React 19). */
+export const PUBLIC_SHELL_STYLE_HREF = "stapel-public-shell";
+
+/**
+ * The custom property `<PublicShell/>` publishes its header height on.
+ *
+ * Not a `@stapel/tokens` role and deliberately not run through `cssVar`: it is
+ * a fact about THIS component's chrome, not a design token, and it is declared
+ * on the shell's own root rather than on `:root` so two shells on one page
+ * cannot fight over it.
+ */
+export const HEADER_HEIGHT_VAR = "--stapel-header-height";
+
+/**
+ * The shell's root sheet: the header height as a custom property, switched by
+ * a MEDIA QUERY rather than by a render.
+ *
+ * Why a sheet and not an inline `style`: an inline value is computed at render
+ * from `useBreakpoint()`, and a host's sticky box then reads the height of the
+ * chrome the shell drew for the LAST render it did. The media query is the
+ * same edge (`breakpoints.desktop`) evaluated by the engine on every reflow,
+ * so a window dragged across 1200px moves the rail and the header together.
+ *
+ * The phone rung is declared only for `phoneChrome="dock"`, and that is the
+ * honest half: in `"drawer"` the phone header wraps to a second line for the
+ * search field and has no fixed height at all, so the property stays
+ * UNDECLARED there and a host's `var(--stapel-header-height, 56px)` falls back
+ * to its own answer instead of being told a wrong one.
+ */
+export function publicShellCss(): string {
+  const shell = `.${PUBLIC_SHELL_CLASS}`;
+  return [
+    `${shell}[data-phone-chrome="dock"]{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_PHONE)}px}`,
+    `@media (min-width:${String(breakpoints.desktop)}px){` +
+      `${shell}{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px}}`,
+  ].join("\n");
+}
+
+/**
+ * The scroll sentinel: the document's first pixel, given straight back.
+ *
+ * A pinned header wants an edge only when there is something behind it, and
+ * CSS cannot yet ask "is this box currently stuck". The alternative every host
+ * writes is a `scroll` listener, which runs on every frame of a feed of
+ * photographs; one `IntersectionObserver` on a 1px box answers the same
+ * question and costs nothing while nobody scrolls.
+ *
+ * ONE pixel, taken and given straight back: the box has to have a height for
+ * the observer to have something to observe, and it may not have one for the
+ * page, or the sentinel is itself the shift the mechanism exists to avoid.
+ */
+export const SCROLL_SENTINEL_HEIGHT = 1;
+
+const SCROLL_SENTINEL: CSSProperties = {
+  blockSize: SCROLL_SENTINEL_HEIGHT,
+  marginBlockEnd: -SCROLL_SENTINEL_HEIGHT,
+  pointerEvents: "none",
+};
+
 const DRAWER_WIDTH = "min(20rem, 86vw)";
 
 export interface PublicShellProps {
@@ -217,6 +302,58 @@ export interface PublicShellProps {
    */
   readonly phoneChrome?: "drawer" | "dock";
   /**
+   * Does the header STAY at the top of the window while the page scrolls?
+   *
+   * Omitted, the answer is the one this shell has always given: sticky in
+   * `phoneChrome="dock"` and nowhere else. That is an inconsistency inside one
+   * app before it is a gap against anything else — a storefront pinned on a
+   * phone and `static` on a desktop — and the only way a host could settle it
+   * was a sheet rule over `[data-testid="public-shell-header"]`, i.e. a
+   * geometry decision taken outside the component that owns the geometry.
+   *
+   *  - `"desktop"` — sticky at and above `breakpoints.desktop`, and NOT below.
+   *  - `"phone"` — sticky below it (what `"dock"` already did), and not on a
+   *    desktop.
+   *  - `true` — both. `false` — neither, including the dock chrome's.
+   *
+   * Sticky brings its own two declarations with it: the header's `background`
+   * is the theme's container token (content passing under it is covered on
+   * both sides of the theme) and its layer is `zIndexPopupBase`, the one
+   * `<NavDock/>` floats on and antd's own popups sit above — so a select
+   * inside `searchSlot` still opens over the header.
+   *
+   * A pinned header is a height everything else on the page has to know:
+   * {@link HEADER_HEIGHT_VAR} is published on the shell's root for exactly
+   * that, and `<SearchPage railTop>` / `<SearchResultsPane stickyToolbar>` in
+   * `@stapel/search-react` are the two pairs that read it.
+   */
+  readonly headerSticky?: boolean | "desktop" | "phone";
+  /**
+   * Mark the header once the page has moved: `data-scrolled="true" | "false"`.
+   *
+   * Opt-in and purely a HOOK — the shell draws nothing differently for it. A
+   * pinned header wants a hairline or a shadow only when there is content
+   * behind it, and that is a brand decision (`box-shadow`, a border, a blur),
+   * so what the pair owns is the fact and not the paint:
+   *
+   * ```css
+   * [data-testid="public-shell-header"][data-scrolled="true"] {
+   *   box-shadow: var(--stapel-elevation-low);
+   * }
+   * ```
+   *
+   * The fact comes from ONE `IntersectionObserver` on a 1px sentinel the shell
+   * renders above its own header — never a `scroll` listener, which runs on
+   * every frame of a feed of photographs. The sentinel takes a pixel and gives
+   * it straight back (`margin-block-end: -1px`), so it is a position in the
+   * page and never a change to it.
+   *
+   * Off, the attribute is absent entirely rather than `"false"`: a host that
+   * did not ask for the observer should not be able to write a rule that
+   * silently never fires.
+   */
+  readonly headerScrollFlag?: boolean;
+  /**
    * Draw the header's HOME affordance in `phoneChrome="dock"`. Default `true`.
    *
    * The brand mark at glyph size, linking to `/`, at the head of the phone
@@ -314,6 +451,43 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // prop describes a phone, and a desktop that changed shape because of it
   // would be this component quietly growing a second layout axis.
   const dockChrome = !isDesktop && props.phoneChrome === "dock";
+
+  /*
+   * ── Is the header pinned? ─────────────────────────────────────────────────
+   *
+   * The default arm is the shell's own history, kept byte-identical: sticky in
+   * the dock chrome and nowhere else. Everything below it is the host saying
+   * so, per side of the desktop edge.
+   */
+  const stickyHeader =
+    props.headerSticky === undefined
+      ? dockChrome
+      : props.headerSticky === "desktop"
+        ? isDesktop
+        : props.headerSticky === "phone"
+          ? !isDesktop
+          : props.headerSticky;
+
+  // The scroll flag: one observer on one 1px box, and only when asked for.
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const scrollFlag = props.headerScrollFlag === true;
+  useEffect(() => {
+    const node = sentinelRef.current;
+    // `IntersectionObserver` is absent on a server render and in a couple of
+    // test environments; a chrome must not throw out of an effect for it.
+    if (!scrollFlag || node === null || typeof IntersectionObserver === "undefined") {
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      if (entry !== undefined) setScrolled(!entry.isIntersecting);
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [scrollFlag]);
 
   // The browse bar exists only when there is something to browse. An empty
   // strip — and, on phone, a hamburger that opens an empty sheet — is a
@@ -526,6 +700,12 @@ function PublicChrome(props: PublicShellProps): ReactElement {
        * padding is spent INSIDE the minimum height, so a short page still does
        * not scroll.
        */
+      className={PUBLIC_SHELL_CLASS}
+      /* The chrome as DECLARED, so the sheet's media query can decide where it
+         applies. (The header below carries the same attribute resolved for the
+         width actually being drawn — the two answers agree wherever both are
+         defined.) */
+      data-phone-chrome={props.phoneChrome ?? "drawer"}
       style={{
         minHeight: "100vh",
         boxSizing: "border-box",
@@ -533,9 +713,23 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       }}
       data-testid="public-shell"
     >
+      {/* The header height as a custom property, hoisted and deduped by
+          `href` — see `publicShellCss`. */}
+      <style href={PUBLIC_SHELL_STYLE_HREF} precedence="default">
+        {publicShellCss()}
+      </style>
+      {scrollFlag && (
+        <div
+          ref={sentinelRef}
+          style={SCROLL_SENTINEL}
+          aria-hidden="true"
+          data-testid="public-shell-scroll-sentinel"
+        />
+      )}
       <Layout.Header
         data-testid="public-shell-header"
         data-phone-chrome={isDesktop ? undefined : dockChrome ? "dock" : "drawer"}
+        data-scrolled={scrollFlag ? (scrolled ? "true" : "false") : undefined}
         style={{
           display: "flex",
           alignItems: isDesktop || dockChrome ? "center" : "stretch",
@@ -554,15 +748,16 @@ function PublicChrome(props: PublicShellProps): ReactElement {
               ? HEADER_HEIGHT_PHONE
               : "auto",
           lineHeight: 1,
-          // Sticky in dock mode, and only there. With the sheet gone the
-          // header is the only way back to search from halfway down a feed,
-          // and a header that scrolls away turns "search again" into "scroll
-          // to the top first". The background is the theme's own container
-          // token rather than a colour, so the content passing under it is
-          // covered on both sides of the theme; `zIndexPopupBase` is the layer
-          // the dock already floats on, and antd's own popups sit above it, so
-          // a select inside the search slot still opens over the header.
-          ...(dockChrome
+          // Sticky in dock mode by default, and wherever `headerSticky` says.
+          // With the sheet gone the header is the only way back to search from
+          // halfway down a feed, and a header that scrolls away turns "search
+          // again" into "scroll to the top first". The background is the
+          // theme's own container token rather than a colour, so the content
+          // passing under it is covered on both sides of the theme;
+          // `zIndexPopupBase` is the layer the dock already floats on, and
+          // antd's own popups sit above it, so a select inside the search slot
+          // still opens over the header.
+          ...(stickyHeader
             ? {
                 position: "sticky" as const,
                 top: 0,

@@ -581,6 +581,7 @@
         "desktop",
         "phone",
         "catalogue-leaf",
+        "under-a-header",
         "unreadable-link"
       ],
       "source": "demo/SearchPage.demo.tsx"
@@ -693,6 +694,7 @@
       "variants": [
         "desktop",
         "phone",
+        "sticky-toolbar",
         "empty"
       ],
       "source": "demo/SearchResultsPane.demo.tsx"
