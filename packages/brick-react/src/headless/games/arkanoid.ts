@@ -7,6 +7,10 @@
  * What "minimal" means here, stated so nobody has to read the code to find out:
  * one ball, one life, one brick layer (no multi-hit bricks), no power-ups, no
  * angle beyond the three the paddle offset gives.
+ *
+ * The WALL is dealt, not drawn from a template: every game opens with its own
+ * gaps, and the ball leaves the paddle to whichever side it feels like. Two
+ * runs of a level that opened identically are one run played twice.
  */
 import { setCell } from "../grid.js";
 import type {
@@ -23,12 +27,26 @@ const BRICK_WIDTH = 2;
 const BRICK_ROWS = 4;
 const BRICK_TOP = 2;
 const BRICK_SCORE = 10;
+/** How much of the wall a fresh deal leaves standing. */
+const BRICK_DENSITY = 0.82;
+/** Bricks broken before the level (and with it the ball's speed) steps up. */
+const BRICKS_PER_LEVEL = 20;
 
 function createArkanoid(ctx: GameContext): Game {
   const cols = ctx.cols;
   const rows = ctx.rows;
   const bricksPerRow = Math.floor(cols / BRICK_WIDTH);
-  const bricks: boolean[] = new Array<boolean>(bricksPerRow * BRICK_ROWS).fill(true);
+  const bricks: boolean[] = [];
+  for (let i = 0; i < bricksPerRow * BRICK_ROWS; i += 1) {
+    bricks.push(ctx.random() < BRICK_DENSITY);
+  }
+  let standing = bricks.filter(Boolean).length;
+  if (standing === 0) {
+    // A wall that dealt itself away is not a level; leave one brick so the run
+    // has something to be about.
+    bricks[0] = true;
+    standing = 1;
+  }
 
   const paddleY = rows - 1;
   let paddleX = Math.floor((cols - PADDLE_WIDTH) / 2);
@@ -71,7 +89,7 @@ function createArkanoid(ctx: GameContext): Game {
         score += BRICK_SCORE;
         dy = -dy;
         ny = ballY + dy;
-        if (broken >= bricks.length) {
+        if (broken >= standing) {
           over = true;
           return;
         }
@@ -117,7 +135,13 @@ function createArkanoid(ctx: GameContext): Game {
       setCell(grid, ballX, ballY, 3);
     },
     status(): GameStatus {
-      return { score, level: 1, cleared: broken, over, next: null };
+      return {
+        score,
+        level: ctx.startLevel + Math.floor(broken / BRICKS_PER_LEVEL),
+        cleared: broken,
+        over,
+        next: null,
+      };
     },
   };
 }
@@ -129,6 +153,8 @@ export const ARKANOID: GameDefinition = {
   stepMs: 150,
   labelKey: "brick.game.arkanoid",
   controls: [{ inputs: ["left", "right"], labelKey: "brick.key.move" }],
+  // The one game that lives or dies on a held key answering at once.
+  repeat: ["left", "right"],
   completeness: "minimal",
   create: createArkanoid,
 };

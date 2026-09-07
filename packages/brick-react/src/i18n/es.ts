@@ -41,10 +41,10 @@ export const brickI18nBundleEs: I18nDictionary = {
   "brick.key.harddrop": "Caída instantánea",
   "brick.key.rotate": "Rotar",
   "brick.key.lane": "Cambiar de carril",
-  "brick.key.accelerate": "Acelerar",
+  "brick.key.accelerate": "Acelerar — mantén",
   "brick.key.fire": "Disparar",
-  "brick.key.cursor": "Mover el cursor",
-  "brick.key.flip": "Voltear una ficha",
+  "brick.key.pads": "Repite la secuencia",
+  "brick.key.drive": "Conducir y apuntar",
   "brick.keyname.left": "← A",
   "brick.keyname.right": "→ D",
   "brick.keyname.up": "↑ W",
@@ -59,6 +59,8 @@ export const brickI18nBundleEs: I18nDictionary = {
   "brick.button.again": "Otra vez",
   "brick.button.reset": "Reiniciar",
   "brick.screen.hint": "Pulsa aquí o Intro",
+  "brick.button.levelup": "Nivel inicial más alto",
+  "brick.button.leveldown": "Nivel inicial más bajo",
 };
 
 /** Register the Spanish copy into a core i18n engine. */

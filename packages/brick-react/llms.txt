@@ -11,6 +11,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - BRICK_GAMES
 - BRICK_GAME_IDS
 - BRICK_I18N_KEYS
+- BRICK_MAX_LEVEL
 - HIGHSCORES_NAMESPACE
 - INPUT_QUEUE_LIMIT
 - LEVEL_SPEEDUP
@@ -21,6 +22,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - TANKS
 - TETRIS
 - brickI18nBundleEn
+- clampLevel
 - clearGrid
 - createBrickSession
 - createGrid
@@ -78,7 +80,7 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- brick.console → <BrickConsole> [default|snake|arkanoid|racing|tanks|memory|menu|phone]  demo/BrickConsole.demo.tsx
+- brick.console → <BrickConsole> [default|snake|arkanoid|racing|tanks|memory|menu|level|phone]  demo/BrickConsole.demo.tsx
 - brick.waiting → <WaitingGame> [default|processing|done]  demo/WaitingGame.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

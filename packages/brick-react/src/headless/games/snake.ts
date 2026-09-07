@@ -169,7 +169,7 @@ function createSnake(ctx: GameContext): Game {
     status(): GameStatus {
       return {
         score,
-        level: Math.floor(eaten / FOOD_PER_LEVEL) + 1,
+        level: ctx.startLevel + Math.floor(eaten / FOOD_PER_LEVEL),
         cleared: eaten,
         over,
         next: null,
@@ -186,5 +186,7 @@ export const SNAKE: GameDefinition = {
   labelKey: "brick.game.snake",
   completeness: "full",
   controls: [{ inputs: ["left", "right", "up", "down"], labelKey: "brick.key.turn" }],
+  // Every direction is a hold here (it is the accelerator), never a repeat.
+  repeat: [],
   create: createSnake,
 };

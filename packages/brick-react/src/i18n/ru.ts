@@ -45,10 +45,10 @@ export const brickI18nBundleRu: I18nDictionary = {
   "brick.key.harddrop": "Сбросить вниз",
   "brick.key.rotate": "Повернуть",
   "brick.key.lane": "Сменить полосу",
-  "brick.key.accelerate": "Ускориться",
+  "brick.key.accelerate": "Ускориться — удерживайте",
   "brick.key.fire": "Выстрелить",
-  "brick.key.cursor": "Двигать курсор",
-  "brick.key.flip": "Открыть плитку",
+  "brick.key.pads": "Повторить последовательность",
+  "brick.key.drive": "Ехать и целиться",
   "brick.keyname.left": "← A",
   "brick.keyname.right": "→ D",
   "brick.keyname.up": "↑ W",
@@ -63,6 +63,8 @@ export const brickI18nBundleRu: I18nDictionary = {
   "brick.button.again": "Ещё раз",
   "brick.button.reset": "Сброс",
   "brick.screen.hint": "Нажмите здесь или Enter",
+  "brick.button.levelup": "Уровень выше",
+  "brick.button.leveldown": "Уровень ниже",
 };
 
 /** Register the Russian copy into a core i18n engine. */

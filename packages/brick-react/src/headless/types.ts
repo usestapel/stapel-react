@@ -71,10 +71,20 @@ export interface GameStatus {
 
 /** What a game is handed at construction. */
 export interface GameContext {
-  /** Seeded, deterministic; `[0, 1)`. */
+  /**
+   * The session's random source, `[0, 1)`. Unseeded it is fresh every session —
+   * a second play must not be the first play again — and seeded it replays
+   * exactly, which is what every test in this package stands on.
+   */
   readonly random: () => number;
   readonly cols: number;
   readonly rows: number;
+  /**
+   * The level the person picked before pressing Start. A game's own `level`
+   * counts UP from here, so the tempo, the multiplier and (in Memory) the
+   * opening sequence all start where they were asked to.
+   */
+  readonly startLevel: number;
 }
 
 /**
@@ -123,5 +133,13 @@ export interface GameDefinition {
    * Start and Reset belong to the console and are not listed.
    */
   readonly controls: readonly GameControl[];
+  /**
+   * The buttons a held finger should REPEAT, and the reason the console runs a
+   * repeat of its own: the operating system's key repeat waits half a second
+   * before its first echo, which is the "big delay" a paddle feels. Buttons
+   * whose hold means something else to the game (a soft drop, a snake at speed)
+   * are deliberately absent — repeating those would fight `speed()`.
+   */
+  readonly repeat?: readonly BrickInput[];
   create(ctx: GameContext): Game;
 }

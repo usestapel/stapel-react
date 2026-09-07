@@ -7,6 +7,16 @@
  * gravity runs on the level's step, a person's hands do not. A held button
  * (`hold`) is handed to the game, which may answer with a faster step
  * (`speed`) — a soft drop, a snake running along its own direction.
+ *
+ * ── The deal ───────────────────────────────────────────────────────────────
+ * With no `seed`, every session — and every reset inside it — deals a DIFFERENT
+ * game: different pieces, a different corner for the first tank, a different
+ * sequence to remember. A console whose second play is its first play again is
+ * a console nobody plays twice.
+ *
+ * With a `seed`, the run replays exactly, reset included. That is not a
+ * fallback: it is what lets a test assert a board, and what lets a demo
+ * photograph the same opening frame on every run.
  */
 import { clearGrid, createGrid } from "./grid.js";
 import { createLoop } from "./loop.js";
@@ -23,8 +33,14 @@ import type {
 
 export interface BrickSessionOptions {
   readonly definition: GameDefinition;
-  /** Seed the games' RNG. Same seed, same game — that is the whole contract. */
+  /**
+   * Pin the deal. Omit it and the session draws a fresh one per game — the
+   * player's case. Pass it and every run from this session replays, cell for
+   * cell — the test's and the demo's case.
+   */
   readonly seed?: number;
+  /** The level the person chose before starting. 1..{@link BRICK_MAX_LEVEL}. */
+  readonly startLevel?: number;
   /** Called the first step a game reports `over`. */
   readonly onGameOver?: (status: GameStatus) => void;
   /** Called after every step that changed the panel. */
@@ -46,6 +62,8 @@ export interface BrickSession {
   releaseAll(): void;
   /** The step the loop runs at right now: the level's, divided by the game's speed. */
   readonly stepMs: number;
+  /** The level this session's games begin at. */
+  readonly startLevel: number;
   /** Tick, render. Returns the status after the step. */
   step(): GameStatus;
   /** Feed elapsed wall-clock time; runs the whole steps it buys. */
@@ -55,12 +73,18 @@ export interface BrickSession {
   start(): void;
   stop(): void;
   readonly running: boolean;
-  /** Throw the game away and deal a new one from `seed`. */
+  /**
+   * Throw the game away and deal another. With no pinned seed that is a NEW
+   * game; with one — or with an explicit `seed` here — it is the same game
+   * again.
+   */
   reset(seed?: number): void;
 }
 
 /** Each level runs 15% faster than the one before, down to a 60ms floor. */
 export const LEVEL_SPEEDUP = 0.85;
+/** The highest level the console offers before a game starts. */
+export const BRICK_MAX_LEVEL = 10;
 /** The fastest step a boosted game may ask for — about one frame. */
 const MIN_STEP_MS = 16;
 
@@ -70,14 +94,31 @@ export function stepMsForLevel(definition: GameDefinition, level: number): numbe
   return Math.max(60, Math.round(definition.stepMs * factor));
 }
 
+/** 1..{@link BRICK_MAX_LEVEL}, whatever a host or a stale prop hands over. */
+export function clampLevel(level: number): number {
+  if (!Number.isFinite(level)) return 1;
+  return Math.min(BRICK_MAX_LEVEL, Math.max(1, Math.trunc(level)));
+}
+
+/**
+ * A seed nobody chose. `Math.random` is exactly right here and nowhere else in
+ * the package: this is the ONE place a game may be unpredictable, and every
+ * step after it is the seeded generator's.
+ */
+function freshSeed(): number {
+  return Math.floor(Math.random() * 0xffffffff) + 1;
+}
+
 export function createBrickSession(options: BrickSessionOptions): BrickSession {
   const definition = options.definition;
   const grid: MutableGrid = createGrid(definition.cols, definition.rows);
   const held = new Set<BrickInput>();
-  let seed = options.seed ?? 1;
-  let game: Game = build(seed);
+  const startLevel = clampLevel(options.startLevel ?? 1);
+  /** The host's pin, if there is one. `undefined` means "deal me a new game". */
+  const pinned = options.seed;
+  let game: Game = build(pinned ?? freshSeed());
   let notified = false;
-  let level = 1;
+  let level = startLevel;
   let stepMs = definition.stepMs;
 
   function build(withSeed: number): Game {
@@ -86,6 +127,7 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
       random: rng.next,
       cols: definition.cols,
       rows: definition.rows,
+      startLevel,
     });
   }
 
@@ -127,11 +169,14 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     ...(options.cancelFrame ? { cancelFrame: options.cancelFrame } : {}),
   });
 
+  level = game.status().level;
+  refreshStep();
   paint();
 
   return {
     definition,
     grid,
+    startLevel,
     status: () => game.status(),
     press(action) {
       if (game.status().over) return;
@@ -168,10 +213,9 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     reset(nextSeed) {
       loop.stop();
       held.clear();
-      seed = nextSeed ?? seed;
-      game = build(seed);
+      game = build(nextSeed ?? pinned ?? freshSeed());
       notified = false;
-      level = 1;
+      level = game.status().level;
       refreshStep();
       paint();
     },

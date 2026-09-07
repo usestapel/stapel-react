@@ -1,10 +1,10 @@
 /**
  * Six games, one console — and the keypad the console grows on a phone.
  *
- * Every variant is seeded from the same number, so what you see is what the
- * shot runner sees: Tetris' first piece over its landing shadow, Snake's three
- * segments and its first pellet, Arkanoid's wall, the traffic, the tanks, the
- * memory board face-down under its cursor.
+ * Every variant PINS ITS SEED, which is the one thing a showcase needs and a
+ * player must never have: on the stand each run deals itself a new game, and
+ * here the same one every time, so a shot of Tetris' opening piece is a shot of
+ * the same piece tomorrow.
  */
 import { defineDemo } from "@stapel/showcase";
 import { BrickConsole, Keypad, useBrickT } from "../src/default/index.js";
@@ -91,7 +91,8 @@ export default defineDemo({
       ),
     },
     racing: {
-      description: "Racing: four lanes between two dashed verges.",
+      description:
+        "Racing: two lanes between two dashed verges, the car drawn as the handheld drew it — and its wheels blinking as the road runs.",
       viewport: "desktop",
       step: "racing",
       render: () => (
@@ -101,7 +102,8 @@ export default defineDemo({
       ),
     },
     tanks: {
-      description: "Tanks: the player's tank in its home band, barrel up.",
+      description:
+        "Tanks: the player's tank in the middle band with its barrel up, the tanks it has left marked above it, and enemies that come in at the corners.",
       viewport: "desktop",
       step: "tanks",
       render: () => (
@@ -111,7 +113,8 @@ export default defineDemo({
       ),
     },
     memory: {
-      description: "Memory: sixteen tiles face down, the cursor on the first.",
+      description:
+        "Memory: four 2x2 pads in a d-pad, waiting to light one at a time for the player to repeat.",
       viewport: "desktop",
       step: "memory",
       render: () => (
@@ -130,6 +133,21 @@ export default defineDemo({
           <Console game="snake" games={["tetris", "snake", "memory"]} />
         </ConsoleFrame>
       ),
+    },
+    level: {
+      description:
+        "The starting level, picked before play with the minus and the plus — the board is dealt again at whatever the person chose.",
+      viewport: "desktop",
+      step: "level-3",
+      render: () => (
+        <ConsoleFrame>
+          <Console game="tetris" />
+        </ConsoleFrame>
+      ),
+      play: async ({ click }) => {
+        await click('[data-testid="brick-level-up"]');
+        await click('[data-testid="brick-level-up"]');
+      },
     },
     phone: {
       description:

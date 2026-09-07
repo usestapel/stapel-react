@@ -15,9 +15,18 @@
  * The host can hold the loop too (`paused`): the tick stops and the board
  * stays. Clearing the hold resumes only a run the hold itself stopped — a
  * board the person paused is theirs to resume.
+ *
+ * ── The repeat is ours, not the operating system's ─────────────────────────
+ * A held arrow does not reach a page as a stream of presses: the OS waits
+ * around half a second and only then starts echoing. That pause is what makes
+ * a paddle feel like it "reacts with a big delay", and no amount of animation
+ * work fixes it, because the second press genuinely has not happened yet. So
+ * the console runs its own repeat off the HOLD — first echo after
+ * {@link BRICK_REPEAT_DELAY_MS}, then one every {@link BRICK_REPEAT_RATE_MS} —
+ * and ignores the OS's, for exactly the buttons each game names in `repeat`.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createBrickSession } from "../headless/session.js";
+import { clampLevel, createBrickSession } from "../headless/session.js";
 import { createHighScoreStore } from "../headless/highscores.js";
 import { findGame, TETRIS } from "../headless/games/index.js";
 import type { BrickSession } from "../headless/session.js";
@@ -33,8 +42,15 @@ import type {
 /** What the screen is doing right now. */
 export type BrickPhase = "ready" | "running" | "paused" | "over";
 
+/** How long a held button waits before the console repeats it. */
+export const BRICK_REPEAT_DELAY_MS = 130;
+/** And how often it repeats after that. */
+export const BRICK_REPEAT_RATE_MS = 55;
+
 export interface UseBrickGameOptions {
   readonly game: BrickGameId;
+  /** The level a run starts at. The console owns this; a host may seed it. */
+  readonly startLevel?: number;
   /** Same seed, same deal — a demo and a test both pin it. */
   readonly seed?: number;
   /** Injected for tests and for a host that keeps scores elsewhere. */
@@ -76,6 +92,10 @@ export interface BrickGameBag {
   readonly reset: () => void;
   /** Stop the loop without changing the board. */
   readonly pause: () => void;
+  /** The level the next run will start at. */
+  readonly startLevel: number;
+  /** Pick a different starting level, and deal a fresh board at it. */
+  readonly setStartLevel: (level: number) => void;
 }
 
 /** The store is created lazily and once, not per console. */
@@ -87,6 +107,7 @@ function defaultStore(): HighScoreStore {
 
 export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const { game, seed, highScores, onGameOver, autoStart } = options;
+  const [startLevel, setLevel] = useState(() => clampLevel(options.startLevel ?? 1));
   const paused = options.paused ?? false;
   const resumeOnReturn = options.resumeOnReturn ?? true;
   // An unknown id falls back to Tetris rather than throwing: this component's
@@ -119,12 +140,28 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const [best, setBest] = useState(0);
   const [isRecord, setIsRecord] = useState(false);
 
+  /** The timers behind the console's own key repeat, one entry per held button. */
+  const repeats = useRef(new Map<BrickInput, number[]>());
+  const stopRepeat = useCallback((action: BrickInput) => {
+    const handles = repeats.current.get(action);
+    if (!handles) return;
+    repeats.current.delete(action);
+    for (const handle of handles) {
+      clearTimeout(handle);
+      clearInterval(handle);
+    }
+  }, []);
+  const stopEveryRepeat = useCallback(() => {
+    for (const action of [...repeats.current.keys()]) stopRepeat(action);
+  }, [stopRepeat]);
+
   // One session per game. A change of `game` throws the old board away, which
   // is the only sane reading of "show me a different game".
   useEffect(() => {
     let live = true;
     const session = createBrickSession({
       definition,
+      startLevel,
       ...(seed === undefined ? {} : { seed }),
       onFrame: (grid, next) => {
         if (!live) return;
@@ -162,17 +199,22 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
       session.stop();
       sessionRef.current = null;
     };
-  }, [definition, seed, store, autoStart]);
+  }, [definition, seed, startLevel, store, autoStart]);
+
+  // Nothing may outlive the component: a repeat still ticking after unmount
+  // would press buttons on a session that is gone.
+  useEffect(() => stopEveryRepeat, [stopEveryRepeat]);
 
   const pause = useCallback(() => {
     const session = sessionRef.current;
     if (!session) return;
     // A key released while the tab was away never sends its keyup here.
+    stopEveryRepeat();
     session.releaseAll();
     if (!session.running) return;
     session.stop();
     setPhase("paused");
-  }, []);
+  }, [stopEveryRepeat]);
 
   // Nobody is looking → nothing is running; they are back → it runs again
   // (see the file header).
@@ -208,6 +250,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     const session = sessionRef.current;
     if (!session) return;
     if (paused) {
+      stopEveryRepeat();
       session.releaseAll();
       if (!session.running) return;
       session.stop();
@@ -220,18 +263,19 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     if (session.status().over) return;
     session.start();
     setPhase(session.running ? "running" : "ready");
-  }, [paused]);
+  }, [paused, stopEveryRepeat]);
 
   const reset = useCallback(() => {
     const session = sessionRef.current;
     if (!session) return;
     awayRef.current = false;
+    stopEveryRepeat();
     session.reset();
     setCells(session.grid.cells.slice());
     setStatus(session.status());
     setIsRecord(false);
     setPhase("ready");
-  }, []);
+  }, [stopEveryRepeat]);
 
   const toggleStart = useCallback(() => {
     const session = sessionRef.current;
@@ -244,6 +288,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
       setStatus(session.status());
     }
     if (session.running) {
+      stopEveryRepeat();
       session.releaseAll();
       session.stop();
       setPhase("paused");
@@ -251,16 +296,42 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     }
     session.start();
     setPhase(session.running ? "running" : "ready");
-  }, []);
+  }, [stopEveryRepeat]);
 
   const press = useCallback((action: BrickInput) => {
     const session = sessionRef.current;
     if (session?.running) session.press(action);
   }, []);
 
-  const hold = useCallback((action: BrickInput, isHeld: boolean) => {
-    sessionRef.current?.hold(action, isHeld);
-  }, []);
+  const hold = useCallback(
+    (action: BrickInput, isHeld: boolean) => {
+      sessionRef.current?.hold(action, isHeld);
+      stopRepeat(action);
+      if (!isHeld || !definition.repeat?.includes(action)) return;
+      if (typeof window === "undefined") return;
+      const handles: number[] = [];
+      handles.push(
+        window.setTimeout(() => {
+          handles.push(
+            window.setInterval(() => {
+              const session = sessionRef.current;
+              if (session?.running) session.press(action);
+            }, BRICK_REPEAT_RATE_MS)
+          );
+        }, BRICK_REPEAT_DELAY_MS)
+      );
+      repeats.current.set(action, handles);
+    },
+    [definition, stopRepeat]
+  );
+
+  const setStartLevel = useCallback(
+    (next: number) => {
+      stopEveryRepeat();
+      setLevel(clampLevel(next));
+    },
+    [stopEveryRepeat]
+  );
 
   return {
     definition,
@@ -274,5 +345,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     toggleStart,
     reset,
     pause,
+    startLevel,
+    setStartLevel,
   };
 }

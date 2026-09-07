@@ -67,8 +67,8 @@ export const BRICK_I18N_KEYS = {
   keyLane: "brick.key.lane",
   keyAccelerate: "brick.key.accelerate",
   keyFire: "brick.key.fire",
-  keyCursor: "brick.key.cursor",
-  keyFlip: "brick.key.flip",
+  keyPads: "brick.key.pads",
+  keyDrive: "brick.key.drive",
 
   /** The physical keys behind each button, as the legend prints them. */
   keyNameLeft: "brick.keyname.left",
@@ -87,6 +87,10 @@ export const BRICK_I18N_KEYS = {
   buttonAgain: "brick.button.again",
   buttonReset: "brick.button.reset",
   screenHint: "brick.screen.hint",
+
+  /** The plus and the minus that pick the level a run starts at. */
+  buttonLevelUp: "brick.button.levelup",
+  buttonLevelDown: "brick.button.leveldown",
 } as const;
 
 export type BrickI18nKey = (typeof BRICK_I18N_KEYS)[keyof typeof BRICK_I18N_KEYS];
@@ -127,10 +131,10 @@ export const brickI18nBundleEn: I18nDictionary = {
   "brick.key.harddrop": "Hard drop",
   "brick.key.rotate": "Rotate",
   "brick.key.lane": "Change lane",
-  "brick.key.accelerate": "Speed up",
+  "brick.key.accelerate": "Accelerate — hold",
   "brick.key.fire": "Fire",
-  "brick.key.cursor": "Move the cursor",
-  "brick.key.flip": "Turn a tile",
+  "brick.key.pads": "Repeat the pattern",
+  "brick.key.drive": "Drive and aim",
   "brick.keyname.left": "← A",
   "brick.keyname.right": "→ D",
   "brick.keyname.up": "↑ W",
@@ -145,6 +149,8 @@ export const brickI18nBundleEn: I18nDictionary = {
   "brick.button.again": "Play again",
   "brick.button.reset": "Reset",
   "brick.screen.hint": "Click here or press Enter",
+  "brick.button.levelup": "Higher starting level",
+  "brick.button.leveldown": "Lower starting level",
 };
 
 /**

@@ -27,11 +27,12 @@ no network, and everyone born before the smartphone already knows the controls.
   game can be tested by *playing* it.
 - **headless/games/** — six pure modules behind one four-method interface
   (`tick` / `input` / `render` / `status`, plus optional `hold` / `speed` for a
-  game with a hold behaviour) and one registry. Tetris and Snake are complete;
-  Arkanoid, Racing, Tanks and Memory are minimal and say so, in the README
-  table and in each module's own header. A game declares its own panel size and
-  its own `controls` (the legend is generated from them), so the console takes
-  its shape and its help from the game rather than the other way round.
+  game with a hold behaviour) and one registry. Tetris, Snake and Memory are
+  complete; Arkanoid, Racing and Tanks are minimal and say so, in the README
+  table and in each module's own header. A game declares its own panel size, its
+  own `controls` (the legend is generated from them) and its own `repeat` (which
+  buttons a held finger should echo), so the console takes its shape, its help
+  and its feel from the game rather than the other way round.
 - **headless/highscores.ts** — one number per game through core's
   `createRepository`, `scope: "app"`. Every call is wrapped: blocked storage is
   a normal outcome on the surfaces this package is aimed at.
@@ -72,6 +73,28 @@ no network, and everyone born before the smartphone already knows the controls.
 - **The loop forgives debt beyond the cap.** Carrying a hidden tab's sixty
   seconds would either freeze the frame or fast-forward the game past
   everything the person wanted to see. Both are worse than losing the time.
+- **A new game is a NEW game.** 0.2.x defaulted the session seed to the
+  constant `1`, so every player on every stand opened Tetris with the same
+  piece, met the same first enemy and was shown the same sequence — a second
+  play was the first play again. The default seed is now drawn per session (and
+  per reset) from the one `Math.random` call in the package; a `seed` passed in
+  still replays exactly, which is what demos and tests stand on.
+- **The games are the handheld's, drawn cell by cell.** Racing has TWO lanes
+  and a four-row car whose wheels blink; Tanks is the 3×3 tank turning with its
+  barrel, with enemies entering at the corners and patrolling; Memory is four
+  2×2 pads in a d-pad that grow as they light. 0.2.x had four lanes of 3×3
+  blocks, enemies that fell straight down, and a 4×4 grid of tiles — three games
+  that shared a name with the originals and nothing else.
+- **A drop is not a way to score.** Soft and hard drops paid 1 and 2 points a
+  row through 0.2.x, which made leaning on ↓ the fastest way to a high score and
+  the lines beside the point. Only line clears score now.
+- **The key repeat belongs to the console.** The OS's own repeat starts about
+  half a second after the key goes down; a paddle that waits that long reads as
+  broken. The console repeats off the hold on its own timer and drops the OS
+  echo — see README "Keys".
+- **The level is picked before the run, not during it.** Changing it deals a
+  fresh board, so the stepper is disabled while a run is under way rather than
+  silently throwing the board away.
 - **No analytics.** Every clickable here is marked
   `data-analytics="none"` with a reason: a game input is not a product
   interaction, and a funnel of how many times somebody pressed left while

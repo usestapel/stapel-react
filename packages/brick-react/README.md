@@ -29,16 +29,17 @@ import { WaitingGame } from "@stapel/brick-react/default";
 ## The games, and how complete each one is
 
 Stated honestly, because "six games" and "six finished games" are different
-claims. Every one of them is playable, deterministic from its seed, and ends.
+claims. Every one of them is playable, reproducible from a seed if you pin one,
+a NEW game if you do not, and ends.
 
 | Game | Panel | Completeness | What it has | What it does not have |
 | --- | --- | --- | --- | --- |
-| **Tetris** | 10×20 | **full** | seven tetrominoes, four rotations each, wall kicks off walls and stacks, line clears at 100/300/500/800 × level, a level per ten lines, next-piece preview, soft drop (held: ten times the fall, a point a row), hard drop (two points a row), game over on a blocked spawn | hold piece, T-spin scoring, lock delay |
+| **Tetris** | 10×20 | **full** | seven tetrominoes, four rotations each, wall kicks off walls and stacks, line clears at 100/300/500/800 × level, a level per ten lines, next-piece preview, soft drop (held: ten times the fall), hard drop, game over on a blocked spawn. **Neither drop pays a point** — the score is the wall coming down | hold piece, T-spin scoring, lock delay |
 | **Snake** | 20×20 | **full** | queued turns (no reversal into the neck), growth per pellet, death on wall and on self, a level per five pellets, bounded food placement, twice the speed while the key of its own direction is held | walls-wrap mode, obstacles |
-| **Arkanoid** | 20×20 | minimal | 4-wide paddle, one ball, four rows of two-wide bricks, wall/brick/paddle bounces, paddle-offset angle, clearing the wall ends the run | multi-hit bricks, power-ups, extra lives, second ball |
-| **Racing** | 20×20 | minimal | four lanes, oncoming traffic, dashed verges that scroll, a point per car passed, a level per ten, crash ends the run | acceleration curve, more than one car shape, a crash sequence |
-| **Tanks** | 20×20 | minimal | player tank roaming a five-row home band, one bullet in flight, descending enemies, 20 points a kill, an enemy reaching you ends the run | enemies that shoot back, destructible terrain, lives |
-| **Memory** | 20×20 | minimal | 4×4 board of eight pairs, D-pad cursor, OK to turn a tile, a mismatched pair turns back after three ticks, 50 points a pair, clearing the board ends the run | a timer, a miss penalty, more than one board size |
+| **Arkanoid** | 20×20 | minimal | 4-wide paddle, one ball, four rows of two-wide bricks dealt with their own gaps every game, wall/brick/paddle bounces, paddle-offset angle, clearing the wall ends the run | multi-hit bricks, power-ups, extra lives, second ball |
+| **Racing** | 9×20 | minimal | **two** lanes, the handheld's four-row car with **blinking wheels**, oncoming traffic in the same shape, dashed verges that scroll, a held ↓ for the accelerator, 10 points a car passed, a level per ten, crash ends the run | more than one car shape, a crash sequence, gears |
+| **Tanks** | 13×17 | minimal | the drawn 3×3 tank, turning with the direction it drives; enemies that **enter at the four corners**, patrol their band and shoot; shells twice a tank's speed; **three lives**, marked above the player's band; 20 points a kill | destructible terrain, a base to defend, more than one shell in the air |
+| **Memory** | 12×12 | **full** | four 2×2 pads in a d-pad, each **growing to 4×4** as it lights; a sequence that grows by one every round; the starting level is how many blinks round one has; a wrong repeat ends the run; 20 points × the length of the round | a timer, a shrinking window to answer in |
 
 ## `<BrickConsole/>`
 
@@ -66,7 +67,8 @@ import { BrickConsole } from "@stapel/brick-react/default";
 | `paused` | `false` | Hold the loop from outside; the board stays; clearing it resumes only a run the hold stopped. |
 | `resumeOnReturn` | `true` | A run the blur or the hidden tab stopped starts again on focus / visible. A board the person paused never is. |
 | `autoStart` | `false` (`true` in `<WaitingGame/>`) | Start on mount. |
-| `seed`, `highScores`, `onGameOver`, `ghostPixels` | — | The deal, the store, the report, the LCD ghost. |
+| `startLevel` | `1` | The level the first run opens on. The person moves it with the stepper. |
+| `seed`, `highScores`, `onGameOver`, `ghostPixels` | — | Pin the deal (omit for a new game every run), the store, the report, the LCD ghost. |
 
 ## Layout
 
@@ -76,6 +78,12 @@ keyboard; the game chips go directly under; and under those, the keypad on a
 coarse pointer or the key legend on a fine one. Every gap is a step of the
 token spacing scale. A **paused field wears a veil** — "Paused — click here or
 press Enter" — and clicking it resumes.
+
+The **Level** row is a stepper: a minus, the number, a plus. It picks the level
+a run STARTS at — the tempo, the multiplier and (in Memory) the length of the
+opening sequence all move with it — deals a fresh board on every change, and is
+disabled the moment a run is under way, because changing it mid-run would mean
+throwing that run away.
 
 - **The LCD is DOM, not canvas.** Four hundred `<span>`s follow `data-theme`
   for free, are assertable in a test, and announce as one named image. A canvas
@@ -135,20 +143,30 @@ the field is generated from them, so this table and the screen cannot drift.
 | **Snake** | turn | turn | turn | — | start / pause | reset |
 | | *holding the key of the direction of travel doubles the speed; release, or turn, to drop back* | | | | | |
 | **Arkanoid** | move the paddle | — | — | — | start / pause | reset |
-| **Racing** | change lane | — | speed up | speed up | start / pause | reset |
-| **Tanks** | move | move | move | fire | start / pause | reset |
-| **Memory** | move the cursor | move the cursor | move the cursor | turn a tile | start / pause | reset |
+| **Racing** | change lane | — | accelerate — hold | — | start / pause | reset |
+| **Tanks** | drive and aim | drive and aim | drive and aim | fire | start / pause | reset |
+| **Memory** | the left and right pads | the top pad | the bottom pad | — | start / pause | reset |
 
 A press is applied the moment it lands, not at the next tick — gravity runs on
-the level's step, hands do not. A held ← → auto-repeats (the piece slides); a
-held ↑ / ↓ / Space does not repeat, so a hard drop is one per press.
+the level's step, hands do not.
+
+**The repeat is the console's, not the operating system's.** A held arrow does
+not reach a page as a stream of presses: the OS waits about half a second and
+only then starts echoing, and that pause is what a paddle feels as lag. So the
+console starts its own repeat off the HOLD — the first echo after 130 ms, then
+one every 55 ms (`BRICK_REPEAT_DELAY_MS`, `BRICK_REPEAT_RATE_MS`) — and DROPS
+the OS's echo, so one key down is never two moves. Which buttons repeat is the
+game's to say: every module declares `repeat`, and a button whose hold means
+something else (Tetris' soft drop, Snake's accelerator) is deliberately not in
+it.
 
 ### Tempo
 
-Tetris falls one row per **500 ms at level 1** and each level is **15 %
-faster** than the last — 425, 361, 307, 261 … — down to the loop's 60 ms
+Tetris falls one row per **360 ms at level 1** and each level is **15 %
+faster** than the last — 306, 260, 221, 188 … — down to the loop's 60 ms
 floor (`stepMsForLevel`, `LEVEL_SPEEDUP`). Snake ticks every 180 ms, Arkanoid
-150, Tanks 200, Racing 220, Memory 260; the same curve applies to each.
+150, Tanks 150, Racing 170, Memory 180; the same curve applies to each, from
+whatever level the stepper was left on.
 
 - **`captureKeys="focus"` is the default.** The frame is focusable
   (`tabIndex={0}`): a click or a Tab lands the keys on the console, and a
@@ -222,7 +240,8 @@ worst possible trade.
 ```ts
 import { createBrickSession, TETRIS, gridSignature } from "@stapel/brick-react";
 
-const session = createBrickSession({ definition: TETRIS, seed: 7 });
+// No seed: a new game. `seed: 7` instead, and the run replays cell for cell.
+const session = createBrickSession({ definition: TETRIS, seed: 7, startLevel: 3 });
 session.press("left");
 session.step();              // drain inputs → tick → render, in that order
 gridSignature(session.grid); // the frame, as a comparable string
@@ -233,8 +252,11 @@ gridSignature(session.grid); // the frame, as a comparable string
   Catch-up is capped at five steps a frame and the rest of the debt is
   **forgiven**: a tab that was away for a minute comes back where you left it,
   not thirty seconds into a piece you never saw.
-- `createRng(seed)` is mulberry32. Same seed, same deal — which is what makes a
-  Tetris test able to assert a line clear at all.
+- `createRng(seed)` is mulberry32. A session with no `seed` draws a fresh one
+  per game (and per reset), which is why a second play is not the first play
+  again; a session given one replays exactly, which is what makes a Tetris test
+  able to assert a line clear at all. `Math.random` is called in exactly one
+  place in the package — that first seed — and nowhere after it.
 - A game is four methods (`tick` / `input` / `render` / `status`) and no clock
   of its own. Adding one is a file in `src/headless/games/` plus a line in that
   directory's registry.

@@ -16,10 +16,16 @@
  * truly blank.
  *
  * ── Layout ─────────────────────────────────────────────────────────────────
- * The field is centred; score, best, level, next, Start/Pause and Reset sit in
- * one tight column to its right; the game chips go under; and under those,
- * the keypad on a coarse pointer or the key legend on a fine one. A paused
- * field carries a clickable veil saying so, so a mouse always has a way back.
+ * The field is centred; score, best, the level stepper, next, Start/Pause and
+ * Reset sit in one tight column to its right; the game chips go under; and
+ * under those, the keypad on a coarse pointer or the key legend on a fine one.
+ * A paused field carries a clickable veil saying so, so a mouse always has a
+ * way back.
+ *
+ * The LEVEL is picked before the run, with a plus and a minus: a person who
+ * already knows the game should not have to play four slow levels to reach the
+ * one they wanted. Changing it deals a fresh board, so it is disabled the
+ * moment a run is under way.
  *
  * ── Keys ───────────────────────────────────────────────────────────────────
  * Arrows or WASD, Space for OK, Enter for Start, R for Reset. By default the
@@ -115,6 +121,30 @@ const captionStyle: CSSProperties = {
 const valueStyle: CSSProperties = {
   fontVariantNumeric: "tabular-nums",
   fontWeight: 600,
+};
+
+const stepperStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: spacing[1],
+};
+
+const stepStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: `1px solid ${cssVar("border")}`,
+  borderRadius: radii.sm,
+  background: cssVar("surface"),
+  color: cssVar("text"),
+  padding: spacing[1],
+  cursor: "pointer",
+};
+
+const stepDisabledStyle: CSSProperties = {
+  ...stepStyle,
+  color: cssVar("text-subtle"),
+  cursor: "default",
 };
 
 const buttonStyle: CSSProperties = {
@@ -213,6 +243,16 @@ function Field(props: {
         {props.value}
       </div>
     </div>
+  );
+}
+
+/** The minus and the plus of the level stepper. Drawn, so no prose is hardcoded. */
+function Sign(props: { readonly plus: boolean }): ReactElement {
+  return (
+    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+      <rect x="3" y="7" width="10" height="2" fill="currentColor" />
+      {props.plus && <rect x="7" y="3" width="2" height="10" fill="currentColor" />}
+    </svg>
   );
 }
 
@@ -325,8 +365,13 @@ export interface BrickConsoleProps {
   readonly onGameChange?: (game: BrickGameId) => void;
   /** The LCD pixel size. Default `"auto"` — `sm` on a coarse pointer, `md` otherwise. */
   readonly size?: BrickConsoleSizeChoice;
-  /** Pin the deal, for a demo or a test. */
+  /**
+   * Pin the deal, for a demo or a test. Without it every run is a new game —
+   * new pieces, a new first corner, a new sequence.
+   */
   readonly seed?: number;
+  /** The level the first run opens on; the person moves it with the stepper. */
+  readonly startLevel?: number;
   /** Start playing on mount. Default false — a waiting screen should not
    * ambush someone with a falling piece. */
   readonly autoStart?: boolean;
@@ -374,9 +419,6 @@ const KEY_ACTIONS: Record<string, BrickInput> = {
   S: "down",
   " ": "ok",
 };
-
-/** A held key repeats these (a piece slides); the others fire once per press. */
-const REPEATS: ReadonlySet<BrickInput> = new Set<BrickInput>(["left", "right"]);
 
 /** A target whose keystrokes are its own — never the game's. */
 const EDITABLE = 'input,textarea,select,[contenteditable]:not([contenteditable="false"])';
@@ -448,6 +490,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
 
   const bag = useBrickGame({
     game,
+    ...(props.startLevel === undefined ? {} : { startLevel: props.startLevel }),
     ...(props.seed === undefined ? {} : { seed: props.seed }),
     ...(props.highScores === undefined ? {} : { highScores: props.highScores }),
     ...(props.onGameOver === undefined ? {} : { onGameOver: props.onGameOver }),
@@ -468,11 +511,12 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
       const action = KEY_ACTIONS[event.key];
       if (action) {
         event.preventDefault();
+        // The OS's own echo is DROPPED: the hold started a repeat of ours, at a
+        // rate a game can be played at, and letting both through would move a
+        // piece twice for one key.
         if (!event.repeat) {
           press(action);
           hold(action, true);
-        } else if (REPEATS.has(action)) {
-          press(action);
         }
         return;
       }
@@ -520,6 +564,9 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const phaseKey = statusKey(phase);
   const statusWord = phaseKey === null ? "" : t(phaseKey);
   const recordWord = phase === "over" && bag.isRecord ? t(BRICK_I18N_KEYS.statusRecord) : null;
+  // The level belongs to the run that has not started yet; a run under way owns
+  // its own level and the stepper stops being a control.
+  const levelLocked = phase === "running" || phase === "paused";
 
   return (
     <div
@@ -571,7 +618,44 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
             value={String(Math.max(bag.best, bag.status.score))}
             testId="brick-best"
           />
-          <Field caption={t(BRICK_I18N_KEYS.panelLevel)} value={String(bag.status.level)} />
+          <div>
+            <div style={captionStyle}>{t(BRICK_I18N_KEYS.panelLevel)}</div>
+            <div style={stepperStyle}>
+              <button
+                type="button"
+                style={levelLocked ? stepDisabledStyle : stepStyle}
+                disabled={levelLocked}
+                data-disabled-reason="a run is under way — the status beside these buttons says so, and the level is chosen before a run, not during it"
+                aria-label={t(BRICK_I18N_KEYS.buttonLevelDown)}
+                data-testid="brick-level-down"
+                onClick={() => {
+                  bag.setStartLevel(bag.startLevel - 1);
+                }}
+                data-analytics="none"
+                data-analytics-reason="game input, not a product interaction"
+              >
+                <Sign plus={false} />
+              </button>
+              <span style={valueStyle} data-testid="brick-level">
+                {String(bag.status.level)}
+              </span>
+              <button
+                type="button"
+                style={levelLocked ? stepDisabledStyle : stepStyle}
+                disabled={levelLocked}
+                data-disabled-reason="a run is under way — the status beside these buttons says so, and the level is chosen before a run, not during it"
+                aria-label={t(BRICK_I18N_KEYS.buttonLevelUp)}
+                data-testid="brick-level-up"
+                onClick={() => {
+                  bag.setStartLevel(bag.startLevel + 1);
+                }}
+                data-analytics="none"
+                data-analytics-reason="game input, not a product interaction"
+              >
+                <Sign plus />
+              </button>
+            </div>
+          </div>
           {preview && (
             <div>
               <div style={captionStyle}>{t(BRICK_I18N_KEYS.panelNext)}</div>

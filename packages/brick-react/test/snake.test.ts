@@ -21,6 +21,7 @@ function build(values: readonly number[]): Game {
     random: scripted(values),
     cols: SNAKE.cols,
     rows: SNAKE.rows,
+    startLevel: 1,
   });
 }
 

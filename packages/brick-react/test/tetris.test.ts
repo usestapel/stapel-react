@@ -14,6 +14,7 @@ function build(shapeIndex: number): Game {
     random: fixedShape(shapeIndex),
     cols: TETRIS.cols,
     rows: TETRIS.rows,
+    startLevel: 1,
   });
 }
 
@@ -59,8 +60,9 @@ describe("tetris", () => {
       drop(game);
     }
     expect(game.status().cleared).toBe(2);
-    // 300 points for a double, at level 1, plus the soft-drop points.
-    expect(game.status().score).toBeGreaterThanOrEqual(300);
+    // 300 for a double at level 1 — and exactly that: the drops that put the
+    // pieces there paid nothing.
+    expect(game.status().score).toBe(300);
     // And the board is empty again — every lit cell now belongs to the piece
     // in flight, which is above the halfway line.
     const grid = frame(game);

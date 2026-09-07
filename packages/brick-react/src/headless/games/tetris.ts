@@ -4,11 +4,17 @@
  * scoring, a level every ten lines, a real next-piece preview, and a game over
  * when a spawn has nowhere to go.
  *
- * Controls: left/right move, OK rotates, DOWN is a soft drop (a row and a
- * point per press; held, the fall runs at ten times the level's step and pays
- * a point a row until the piece locks), UP is a hard drop (straight to the
- * landing shadow, two points a row). Tempo: 500ms a row at level 1, 15%
- * faster per level (425, 361, 307, …) down to the loop's 60ms floor.
+ * Controls: left/right move, OK rotates, DOWN is a soft drop (a row per press;
+ * held, the fall runs at ten times the level's step), UP is a hard drop
+ * (straight to the landing shadow). Tempo: 360ms a row at level 1, 15% faster
+ * per level (306, 260, 221, …) down to the loop's 60ms floor.
+ *
+ * ── Why a drop pays nothing ────────────────────────────────────────────────
+ * Because otherwise it pays for EVERYTHING. A held DOWN is ten rows a second,
+ * and a point a row turns the one key a person keeps their thumb on into the
+ * fastest way to score — so the game stops being about lines and starts being
+ * about leaning on a button. On this console the score comes from the wall
+ * coming down and from nowhere else, which is what the handheld did.
  *
  * The board is 10x20, which is the shape the original handheld's LCD had and
  * the reason the console takes the panel size from the GAME rather than the
@@ -97,8 +103,6 @@ const LINE_SCORE: readonly number[] = [0, 100, 300, 500, 800];
 const LINES_PER_LEVEL = 10;
 /** How much faster the piece falls while DOWN is held. */
 const SOFT_DROP_SPEED = 10;
-/** Points a row for a hard drop; a soft drop pays one. */
-const HARD_DROP_SCORE = 2;
 
 function rotateCw(matrix: Matrix): Matrix {
   const size = matrix.length;
@@ -138,7 +142,7 @@ function createTetris(ctx: GameContext): Game {
   }
 
   function level(): number {
-    return Math.floor(lines / LINES_PER_LEVEL) + 1;
+    return ctx.startLevel + Math.floor(lines / LINES_PER_LEVEL);
   }
 
   function occupied(x: number, y: number): boolean {
@@ -259,9 +263,7 @@ function createTetris(ctx: GameContext): Game {
   /** Straight to the landing shadow, and lock there. */
   function hardDrop(): void {
     if (!piece || over) return;
-    const rows = ghostY(piece) - piece.y;
-    piece.y += rows;
-    score += rows * HARD_DROP_SCORE;
+    piece.y = ghostY(piece);
     lock(piece);
   }
 
@@ -272,8 +274,7 @@ function createTetris(ctx: GameContext): Game {
     tick() {
       if (over) return;
       if (!piece) spawn();
-      // A held soft drop pays a point a row, the way the handheld did.
-      if (fall() && softDrop) score += 1;
+      fall();
     },
     input(action: BrickInput) {
       if (over) return;
@@ -281,10 +282,8 @@ function createTetris(ctx: GameContext): Game {
       else if (action === "right") move(1);
       else if (action === "ok") rotate();
       else if (action === "up") hardDrop();
-      else if (action === "down") {
-        // Soft drop: one row and a point per press.
-        if (fall()) score += 1;
-      }
+      // Soft drop: one row per press, and no points for the key itself.
+      else if (action === "down") fall();
     },
     hold(action: BrickInput, isHeld: boolean) {
       if (action === "down") softDrop = isHeld;
@@ -344,7 +343,7 @@ export const TETRIS: GameDefinition = {
   id: "tetris",
   cols: TETRIS_COLS,
   rows: TETRIS_ROWS,
-  stepMs: 500,
+  stepMs: 360,
   labelKey: "brick.game.tetris",
   completeness: "full",
   controls: [
@@ -353,5 +352,7 @@ export const TETRIS: GameDefinition = {
     { inputs: ["down"], labelKey: "brick.key.softdrop" },
     { inputs: ["up"], labelKey: "brick.key.harddrop" },
   ],
+  // Sliding a piece along the floor is a held key; dropping it is not.
+  repeat: ["left", "right"],
   create: createTetris,
 };

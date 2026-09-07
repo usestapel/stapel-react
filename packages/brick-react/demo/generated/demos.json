@@ -44,19 +44,19 @@
         },
         {
           "id": "racing",
-          "description": "Racing: four lanes between two dashed verges.",
+          "description": "Racing: two lanes between two dashed verges, the car drawn as the handheld drew it — and its wheels blinking as the road runs.",
           "viewport": "desktop",
           "step": "racing"
         },
         {
           "id": "tanks",
-          "description": "Tanks: the player's tank in its home band, barrel up.",
+          "description": "Tanks: the player's tank in the middle band with its barrel up, the tanks it has left marked above it, and enemies that come in at the corners.",
           "viewport": "desktop",
           "step": "tanks"
         },
         {
           "id": "memory",
-          "description": "Memory: sixteen tiles face down, the cursor on the first.",
+          "description": "Memory: four 2x2 pads in a d-pad, waiting to light one at a time for the player to repeat.",
           "viewport": "desktop",
           "step": "memory"
         },
@@ -65,6 +65,13 @@
           "description": "Three games allowed: the console draws a menu, and the current one is pressed.",
           "viewport": "desktop",
           "step": "menu"
+        },
+        {
+          "id": "level",
+          "description": "The starting level, picked before play with the minus and the plus — the board is dealt again at whatever the person chose.",
+          "viewport": "desktop",
+          "step": "level-3",
+          "play": true
         },
         {
           "id": "phone",

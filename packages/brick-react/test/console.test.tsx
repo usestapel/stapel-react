@@ -479,25 +479,28 @@ describe("<BrickConsole/> game chips", () => {
 });
 
 describe("<BrickConsole/> tetris keys", () => {
-  it("ArrowDown / S soft-drop a row and a point; ArrowUp / W hard-drop; Space rotates", () => {
+  it("ArrowDown / S soft-drop a row; ArrowUp / W hard-drop; Space rotates — and none of them scores", () => {
     matchMediaFor();
     render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
     const frame = screen.getByTestId("brick-console");
     act(() => {
       frame.focus();
     });
+    const paint = (): string => screen.getByTestId("brick-screen").innerHTML;
     expect(score()).toBe("0");
+    const start = paint();
     expect(keydown(frame, "s").defaultPrevented).toBe(true);
-    expect(score()).toBe("1");
+    const afterSoft = paint();
+    expect(afterSoft, "S did not drop the piece a row").not.toBe(start);
     keydown(frame, "ArrowDown");
-    expect(score()).toBe("2");
-    const before = screen.getByTestId("brick-screen").innerHTML;
+    expect(paint()).not.toBe(afterSoft);
+    const beforeRotate = paint();
     expect(keydown(frame, " ").defaultPrevented).toBe(true);
-    expect(score()).toBe("2");
+    expect(paint(), "Space did not rotate the piece").not.toBe(beforeRotate);
     expect(keydown(frame, "w").defaultPrevented).toBe(true);
-    // A hard drop from near the top pays two a row for a dozen-odd rows.
-    expect(Number(score())).toBeGreaterThanOrEqual(2 + 2 * 10);
-    expect(screen.getByTestId("brick-screen").innerHTML).not.toBe(before);
+    expect(paint()).not.toBe(beforeRotate);
+    // Not one point for any of it: the score is the wall coming down.
+    expect(score()).toBe("0");
   });
 
   it("A / D move like the arrows, and a held key stops soft-dropping on key-up", () => {
@@ -516,7 +519,7 @@ describe("<BrickConsole/> tetris keys", () => {
     expect(up.defaultPrevented).toBe(false);
   });
 
-  it("a key auto-repeat slides a piece but never hard-drops it twice", () => {
+  it("drops the operating system's own key echo — the console repeats on its own timer", () => {
     matchMediaFor();
     render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
     const frame = screen.getByTestId("brick-console");
@@ -528,9 +531,12 @@ describe("<BrickConsole/> tetris keys", () => {
       });
     };
     const before = screen.getByTestId("brick-screen").innerHTML;
+    // An echo the OS sends half a second late is not a press: taking it as one
+    // would move the piece twice for a key that only went down once.
     repeat("ArrowLeft");
-    expect(screen.getByTestId("brick-screen").innerHTML).not.toBe(before);
+    expect(screen.getByTestId("brick-screen").innerHTML).toBe(before);
     repeat("ArrowUp");
+    expect(screen.getByTestId("brick-screen").innerHTML).toBe(before);
     expect(score()).toBe("0");
   });
 
@@ -627,20 +633,23 @@ describe("<BrickConsole/> keypad and legend", () => {
     matchMediaFor(COARSE);
     render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
     const down = screen.getByTestId("brick-pad-down");
+    const paint = (): string => screen.getByTestId("brick-screen").innerHTML;
+    const start = paint();
     act(() => {
       down.dispatchEvent(new Event("pointerdown", { bubbles: true }));
     });
-    expect(score()).toBe("1");
+    const afterDown = paint();
+    expect(afterDown, "the thumb landing did not drop the piece").not.toBe(start);
     act(() => {
       down.dispatchEvent(new Event("pointerup", { bubbles: true }));
       down.click();
     });
-    expect(score()).toBe("1");
+    expect(paint(), "the click after the pointer pressed a second time").toBe(afterDown);
     // A click no pointer preceded — a screen reader's activation — still presses.
     act(() => {
       down.click();
     });
-    expect(score()).toBe("2");
+    expect(paint()).not.toBe(afterDown);
   });
 });
 

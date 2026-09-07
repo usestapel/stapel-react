@@ -17,7 +17,11 @@ export type { WaitingGameProps, WaitingReason } from "./WaitingGame.js";
 export { Keypad } from "./Keypad.js";
 export type { KeypadProps } from "./Keypad.js";
 
-export { useBrickGame } from "./useBrickGame.js";
+export {
+  BRICK_REPEAT_DELAY_MS,
+  BRICK_REPEAT_RATE_MS,
+  useBrickGame,
+} from "./useBrickGame.js";
 export type { BrickGameBag, BrickPhase, UseBrickGameOptions } from "./useBrickGame.js";
 
 export { useBrickT, useCoarsePointer, useMediaQuery, useReducedMotion } from "./hooks.js";
