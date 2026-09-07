@@ -37,6 +37,28 @@ function matchMediaFor(...truthy: readonly string[]): void {
 
 const COARSE = "(pointer: coarse)";
 
+/**
+ * Just the PADDLE, read off the bottom row of the panel.
+ *
+ * The whole panel is the wrong thing to compare in a repeat test. An
+ * autostarting console's loop runs on `requestAnimationFrame`, whose callback
+ * carries a REAL timestamp even when the timers around it are faked — so on a
+ * machine slow enough (a loaded CI runner; never this laptop) enough real
+ * milliseconds pass inside `advanceTimersByTime` for the ball to take a step of
+ * its own, and a test comparing every pixel reports the ball as if it were the
+ * paddle. The paddle's row can hold nothing else: Arkanoid resolves a ball that
+ * reaches it into a bounce or a game over in the same tick, so it is never
+ * painted there.
+ */
+function paddleRow(): string {
+  const panel = screen.getByTestId("brick-screen");
+  const cells = [...panel.children];
+  return cells
+    .slice(cells.length - ARKANOID.cols)
+    .map((cell) => cell.getAttribute("style") ?? "")
+    .join("|");
+}
+
 afterEach(() => {
   cleanup();
   matchMediaFor();
@@ -113,29 +135,28 @@ describe("a held key repeats without waiting for the operating system", () => {
     act(() => {
       frame.focus();
     });
-    const paint = (): string => screen.getByTestId("brick-screen").innerHTML;
     act(() => {
       frame.dispatchEvent(
         new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true })
       );
     });
-    const afterFirst = paint();
+    const afterFirst = paddleRow();
     act(() => {
       vi.advanceTimersByTime(400);
     });
-    const afterHold = paint();
-    expect(afterHold, "the paddle stopped the moment the key stopped repeating").not.toBe(
-      afterFirst
-    );
+    expect(
+      paddleRow(),
+      "the paddle stopped the moment the key stopped repeating"
+    ).not.toBe(afterFirst);
     // Letting go stops it.
     act(() => {
       frame.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowLeft", bubbles: true }));
     });
-    const afterRelease = paint();
+    const afterRelease = paddleRow();
     act(() => {
       vi.advanceTimersByTime(400);
     });
-    expect(paint()).toBe(afterRelease);
+    expect(paddleRow(), "a released key went on repeating").toBe(afterRelease);
   });
 
   it("does not repeat a key the game reads as a hold", () => {
