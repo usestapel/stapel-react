@@ -153,6 +153,13 @@ export const MEMORY: GameDefinition = {
   ],
   // A pad is tapped, never held: repeating it would answer the same pad twice.
   repeat: [],
+  // The one game whose level is not a dial. Here the level IS the sequence: it
+  // is how many blinks the first round had, and the sequence in front of the
+  // player was dealt at that length and has grown by one a round since. Moving
+  // the number mid-run would either lie about what is on the pads or re-deal the
+  // very thing being remembered, so the stepper says so and waits for the run.
+  levelLockedMidRun:
+    "in this game the level IS the sequence being remembered — it was dealt at that length and grows a step a round, so it cannot move under a run; the level for the next run is picked from Start",
   completeness: "full",
   create: createMemory,
 };

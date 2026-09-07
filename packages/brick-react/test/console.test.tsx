@@ -61,6 +61,40 @@ function matchMediaFor(...truthy: readonly string[]): void {
 
 const COARSE = "(pointer: coarse)";
 
+/**
+ * A `matchMedia` whose answer can CHANGE under a mounted console — a tablet a
+ * keyboard is plugged into, a phone handed to a mouse. Returns the switch; the
+ * console hears it through the listener `useMediaQuery` registers, which is the
+ * half of that hook a stub with a fixed answer never exercises.
+ */
+function matchMediaSwitch(query: string): (matches: boolean) => void {
+  const listeners = new Set<() => void>();
+  let on = false;
+  window.matchMedia = ((asked: string) =>
+    ({
+      get matches(): boolean {
+        return asked === query && on;
+      },
+      media: asked,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: (_type: string, fn: () => void): void => {
+        if (asked === query) listeners.add(fn);
+      },
+      removeEventListener: (_type: string, fn: () => void): void => {
+        listeners.delete(fn);
+      },
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList) as typeof window.matchMedia;
+  return (matches: boolean): void => {
+    on = matches;
+    act(() => {
+      for (const fn of [...listeners]) fn();
+    });
+  };
+}
+
 afterEach(() => {
   cleanup();
   matchMediaFor();
@@ -650,6 +684,61 @@ describe("<BrickConsole/> keypad and legend", () => {
     const left = screen.getByTestId("brick-pad-left");
     expect(parseInt(ok.style.minWidth, 10)).toBeGreaterThan(parseInt(left.style.minWidth, 10));
     expect(parseInt(ok.style.minHeight, 10)).toBeGreaterThan(parseInt(left.style.minHeight, 10));
+  });
+
+  it("the keypad's Start and Reset are the console's own, not decoration", () => {
+    matchMediaFor(COARSE);
+    render(<BrickConsole game="tetris" seed={1} highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    const paint = (): string => screen.getByTestId("brick-screen").innerHTML;
+    const opening = paint();
+    expect(frame.dataset["phase"]).toBe("ready");
+
+    act(() => {
+      screen.getByTestId("brick-pad-start").click();
+    });
+    expect(frame.dataset["phase"], "the pad's Start started nothing").toBe("running");
+
+    const down = screen.getByTestId("brick-pad-down");
+    act(() => {
+      down.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+      down.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    });
+    expect(paint(), "the pad never reached the game; the case is not the case").not.toBe(
+      opening
+    );
+
+    act(() => {
+      screen.getByTestId("brick-pad-reset").click();
+    });
+    expect(frame.dataset["phase"], "the pad's Reset left the run running").toBe("ready");
+    // The deal is pinned, so a board back at its opening frame is a board that
+    // was genuinely dealt again.
+    expect(paint()).toBe(opening);
+  });
+
+  it("follows the pointer CHANGING under a mounted console — a pad plugged in mid-wait", () => {
+    const setCoarse = matchMediaSwitch(COARSE);
+    render(<BrickConsole game="snake" seed={1} highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    const describedBy = (): string | null => frame.getAttribute("aria-describedby");
+    const columns = (): string => screen.getByTestId("brick-screen").style.gridTemplateColumns;
+    expect(describedBy()).toBe(screen.getByTestId("brick-legend").id);
+    expect(columns()).toBe("repeat(20, 11px)");
+
+    setCoarse(true);
+    const pad = screen.getByTestId("brick-keypad");
+    expect(screen.queryByTestId("brick-legend"), "the keys stayed listed on a phone").toBeNull();
+    expect(pad.id).not.toBe("");
+    expect(describedBy(), "the frame still points at a legend that is gone").toBe(pad.id);
+    expect(columns(), "the pixels stayed laptop-sized on a touch screen").toBe(
+      "repeat(20, 7px)"
+    );
+
+    setCoarse(false);
+    expect(screen.queryByTestId("brick-keypad")).toBeNull();
+    expect(describedBy()).toBe(screen.getByTestId("brick-legend").id);
+    expect(columns()).toBe("repeat(20, 11px)");
   });
 
   it("the keypad presses on pointer-down, and the click that follows is not a second press", () => {

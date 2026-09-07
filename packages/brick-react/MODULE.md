@@ -122,18 +122,38 @@ no network, and everyone born before the smartphone already knows the controls.
   half a second after the key goes down; a paddle that waits that long reads as
   broken. The console repeats off the hold on its own timer and drops the OS
   echo — see README "Keys".
-- **The level stepper locks against a run the PERSON started, not against any
-  run at all.** Changing the level deals a fresh board, so a stepper live
-  mid-run would silently throw away a board somebody was playing — that is why
-  0.3.0 disabled it. But `<WaitingGame>` autostarts, so from 0.3.0 to 0.4.0
-  every console the owner actually saw was `running` in its first frame and both
-  buttons were dead the instant it appeared: the level he had asked to be able
-  to pick could not be picked at all, at any point, without knowing to pause
-  first. An autostarting console keeps its stepper, and a change there deals a
-  fresh board at the new level which plays on — the stepper's one behaviour,
-  with `autoStart` deciding what becomes of the board it dealt. The number it
-  steps from is the level ON SCREEN, so a run that has levelled up past its
-  start level still moves when the plus is pressed.
+- **A level change moves the RUN, and only an idle board is dealt again.** The
+  stepper went through three shapes to get here. 0.3.0 disabled it mid-run,
+  because its one behaviour was "deal a fresh board" and a mis-aimed plus would
+  throw a game away; but `<WaitingGame>` autostarts, so every console the owner
+  actually saw was `running` in its first frame and both buttons were dead the
+  instant they appeared. 0.5.0 kept them live there — and thereby shipped the
+  defect in the open: a plus pressed four hundred points into a run deleted the
+  board and the score, silently, with no way back. 0.6.0 stops treating "change
+  the level" as "start again". A board with nothing in progress (ready, over, or
+  a deal nobody has touched) is still dealt afresh at the new level. A run in
+  progress — running, or paused on a board that has been played — MOVES: the
+  session re-bases the level the game counts up from, so the level on screen
+  becomes the one asked for, the step is re-timed to it, what the run earned
+  goes on counting from there, and the board, the piece and the score are never
+  touched. That is what the handheld does: you pick before you play, and during
+  play the level only rises.
+- **The one game that cannot is the one that says so.** In five of the six games
+  the level is a tempo and a multiplier, and moving it under a live board is
+  meaningful. In Memory the level IS the sequence being remembered — it is how
+  many blinks the first round had, and the sequence in front of the player was
+  dealt at that length — so moving the number would either lie about the pads or
+  re-deal the very thing being remembered. Memory therefore carries
+  `levelLockedMidRun` with the sentence that says why, the session refuses the
+  change (without touching the board), and the console disables the stepper
+  mid-run with that sentence as its `data-disabled-reason`. Per game, from the
+  game — not a console-wide policy that would have to guess.
+- **The level stopped being a session dependency.** The React defect underneath
+  0.5.0's was mechanical: `startLevel` was in the dependency array of the effect
+  that builds the session, so ANY change to it re-mounted the session — which is
+  a re-deal by construction, whatever the intent. The level now lives in a ref
+  plus a deal counter: the counter going up is how the hook ASKS for a new
+  board, and a live change never touches it.
 - **The frame is described by its controls.** `role="group"` plus a name reads
   as "group, brick game console" and stops — no mention of the keys, though a
   legend of them is on screen for a fine pointer. `aria-describedby` now points

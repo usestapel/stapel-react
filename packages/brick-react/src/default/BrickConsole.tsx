@@ -24,14 +24,23 @@
  *
  * The LEVEL is picked with a plus and a minus: a person who already knows the
  * game should not have to play four slow levels to reach the one they wanted.
- * Changing it always DEALS A FRESH BOARD at the new level — that is the one
- * thing the stepper does, in every phase — and the board then behaves the way
- * the console was mounted: an `autoStart` console plays it, a manual one waits
- * on Start. Because an autostarting console is already running in its very
- * first frame, its stepper stays live; locking it "while a run is under way"
- * would be locking it forever, and the level would be unreachable. A console
- * that starts on a gesture keeps the lock: the run is one the person asked
- * for, and a mis-aimed plus must not throw it away.
+ * The stepper is live in every phase, and what it does depends on the board it
+ * is pressed over:
+ *
+ *  - NOTHING IN PROGRESS (ready, over, or a deal nobody has touched) — a fresh
+ *    board at the new level, which then behaves the way the console was
+ *    mounted: an `autoStart` console plays it, a manual one waits on Start.
+ *  - A RUN IN PROGRESS (running, or paused on a board that has been played) —
+ *    the run itself moves to the new level. The tempo and the score multiplier
+ *    become that level's; the board, the piece and the score are untouched.
+ *
+ * Through 0.5.0 there was only the first behaviour, so a plus pressed four
+ * hundred points into a run threw the run away without a word. The handheld
+ * this imitates never does that: the level is picked before play, and during
+ * play it only ever rises. The single disabled arm is a GAME that says its own
+ * level cannot move mid-run — Memory, where the level is the sequence being
+ * remembered rather than a tempo — and it supplies the `data-disabled-reason`
+ * that says why. Nothing here silently discards a game.
  *
  * ── Keys ───────────────────────────────────────────────────────────────────
  * Arrows or WASD, Space for OK, Enter for Start, R for Reset. By default the
@@ -718,16 +727,16 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const phaseKey = statusKey(phase);
   const statusWord = phaseKey === null ? "" : t(phaseKey);
   const recordWord = phase === "over" && bag.isRecord ? t(BRICK_I18N_KEYS.statusRecord) : null;
-  // The level belongs to the run that has not started yet, so a run the person
-  // asked for locks the stepper rather than losing its board to a mis-aimed
-  // plus. An AUTOSTARTING console has no such run: it is running in its first
-  // frame, before anybody chose anything, and locking there would mean the
-  // level could never be picked at all — so its stepper stays live and a
-  // change deals a fresh board at the new level, which then plays on.
-  const levelLocked = !autoStart && (phase === "running" || phase === "paused");
+  // The stepper is live in every phase, because in every phase it now does
+  // something that costs nothing: on an idle board it deals a fresh one at the
+  // new level, and on a run in progress it moves THAT run — tempo and
+  // multiplier — with the board, the piece and the score kept. The only
+  // disabled arm is a game that says its own level cannot move mid-run, and it
+  // hands over the sentence that says why.
+  const levelLockReason = bag.levelLockReason;
   // The number on screen is the level being PLAYED, and the stepper steps from
-  // it: in a live autostart run the start level may already be behind it, and a
-  // plus that appeared to do nothing would be the same defect one layer down.
+  // it: a run that has levelled up is already past the level it started at, and
+  // a plus that appeared to do nothing would be the same defect one layer down.
   const shownLevel = bag.status.level;
   // The veil may only advertise Enter where Enter actually reaches the console
   // — a question about focus, not about the capture mode (see `enterReaches`).
@@ -810,9 +819,9 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
             <div style={stepperStyle}>
               <button
                 type="button"
-                style={levelLocked ? stepDisabledStyle : stepStyle}
-                disabled={levelLocked}
-                data-disabled-reason="a run the person started is under way — the status beside these buttons says so, and changing the level would deal its board away"
+                style={levelLockReason === null ? stepStyle : stepDisabledStyle}
+                disabled={levelLockReason !== null}
+                data-disabled-reason={levelLockReason}
                 aria-label={t(BRICK_I18N_KEYS.buttonLevelDown)}
                 data-testid="brick-level-down"
                 onClick={() => {
@@ -828,9 +837,9 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
               </span>
               <button
                 type="button"
-                style={levelLocked ? stepDisabledStyle : stepStyle}
-                disabled={levelLocked}
-                data-disabled-reason="a run the person started is under way — the status beside these buttons says so, and changing the level would deal its board away"
+                style={levelLockReason === null ? stepStyle : stepDisabledStyle}
+                disabled={levelLockReason !== null}
+                data-disabled-reason={levelLockReason}
                 aria-label={t(BRICK_I18N_KEYS.buttonLevelUp)}
                 data-testid="brick-level-up"
                 onClick={() => {

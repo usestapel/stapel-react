@@ -16,6 +16,16 @@
  * stays. Clearing the hold resumes only a run the hold itself stopped — a
  * board the person paused is theirs to resume.
  *
+ * ── A level change never costs a game ──────────────────────────────────────
+ * `setStartLevel` reads the board it is asked on. Ready, over, or a deal
+ * nobody has touched: a fresh board at the new level, exactly as before. A run
+ * in progress — running, or paused on a board that has been played: the LIVE
+ * run moves to that level, tempo and multiplier with it, and the board, the
+ * piece and the score stay. Through 0.5.0 there was only the first behaviour,
+ * so a plus pressed four hundred points into a run silently threw the run
+ * away; a game whose rules make a mid-run level meaningless says so
+ * (`levelLockedMidRun`) and is left alone rather than re-dealt.
+ *
  * ── The repeat is ours, not the operating system's ─────────────────────────
  * A held arrow does not reach a page as a stream of presses: the OS waits
  * around half a second and only then starts echoing. That pause is what makes
@@ -98,10 +108,28 @@ export interface BrickGameBag {
   readonly reset: () => void;
   /** Stop the loop without changing the board. */
   readonly pause: () => void;
-  /** The level the next run will start at. */
+  /** The level a fresh deal starts at — the number the stepper last left. */
   readonly startLevel: number;
-  /** Pick a different starting level, and deal a fresh board at it. */
+  /**
+   * Pick a level. On a board nobody is playing — ready, over, or a paused deal
+   * that was never touched — that deals a fresh board at it. On a run IN
+   * PROGRESS it moves the run: the tempo and the multiplier become the new
+   * level's and the board, the piece and the score stay. Nothing here ever
+   * discards a game.
+   *
+   * A game whose rules say the level cannot move mid-run
+   * ({@link levelLockReason}) ignores this while its run is under way — it does
+   * not re-deal either, because a call that cannot be honoured must not cost
+   * the person their board.
+   */
   readonly setStartLevel: (level: number) => void;
+  /**
+   * Why the level cannot be picked right now, or `null` when it can. Only a
+   * game that declared `levelLockedMidRun` ever answers with a sentence, and
+   * only while a run of it is under way; the console renders it as the
+   * stepper's `data-disabled-reason`.
+   */
+  readonly levelLockReason: string | null;
 }
 
 /** The store is created lazily and once, not per console. */
@@ -114,6 +142,12 @@ function defaultStore(): HighScoreStore {
 export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const { game, seed, highScores, onGameOver, autoStart } = options;
   const [startLevel, setLevel] = useState(() => clampLevel(options.startLevel ?? 1));
+  // The level is NOT a dependency of the session: a change to it either moves
+  // the live run or asks for a new deal, and asking is this counter going up.
+  // (Through 0.5.0 it was a dependency, so a plus pressed 400 points into a run
+  // re-mounted the session and the run was gone.)
+  const levelRef = useRef(startLevel);
+  const [deal, setDeal] = useState(0);
   const paused = options.paused ?? false;
   const resumeOnReturn = options.resumeOnReturn ?? true;
   // An unknown id falls back to Tetris rather than throwing: this component's
@@ -167,7 +201,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     let live = true;
     const session = createBrickSession({
       definition,
-      startLevel,
+      startLevel: levelRef.current,
       ...(seed === undefined ? {} : { seed }),
       onFrame: (grid, next) => {
         if (!live) return;
@@ -205,7 +239,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
       session.stop();
       sessionRef.current = null;
     };
-  }, [definition, seed, startLevel, store, autoStart]);
+  }, [definition, seed, deal, store, autoStart]);
 
   // Nothing may outlive the component: a repeat still ticking after unmount
   // would press buttons on a session that is gone.
@@ -345,12 +379,33 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const setStartLevel = useCallback(
     (next: number) => {
       stopEveryRepeat();
-      setLevel(clampLevel(next));
+      const session = sessionRef.current;
+      // A run is IN PROGRESS when the loop is running, or when it is stopped on
+      // a board somebody has already played — the pause a person took is still
+      // their game. Anything else (a fresh deal, a finished one) is a board
+      // there is nothing to lose in dealing again.
+      const inProgress =
+        session !== null && !session.status().over && (session.running || session.played);
+      if (inProgress && definition.levelLockedMidRun !== undefined) return;
+      const level = clampLevel(next);
+      levelRef.current = level;
+      setLevel(level);
+      if (inProgress) {
+        session.setLevel(level);
+        return;
+      }
+      setDeal((n) => n + 1);
     },
-    [stopEveryRepeat]
+    [definition, stopEveryRepeat]
   );
 
+  const levelLockReason =
+    definition.levelLockedMidRun !== undefined && (phase === "running" || phase === "paused")
+      ? definition.levelLockedMidRun
+      : null;
+
   return {
+    levelLockReason,
     definition,
     cells,
     status,

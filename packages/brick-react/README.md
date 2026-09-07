@@ -39,7 +39,7 @@ a NEW game if you do not, and ends.
 | **Arkanoid** | 20×20 | minimal | 4-wide paddle, one ball, four rows of two-wide bricks dealt with their own gaps every game, wall/brick/paddle bounces, paddle-offset angle, clearing the wall ends the run | multi-hit bricks, power-ups, extra lives, second ball |
 | **Racing** | 9×20 | minimal | **two** lanes, the handheld's four-row car with **blinking wheels**, oncoming traffic in the same shape, dashed verges that scroll, a held ↓ for the accelerator, 10 points a car passed, a level per ten, crash ends the run | more than one car shape, a crash sequence, gears |
 | **Tanks** | 13×17 | minimal | the drawn 3×3 tank, turning with the direction it drives; enemies that **enter at the four corners**, patrol their band and shoot; shells twice a tank's speed; **three lives**, marked above the player's band; 20 points a kill | destructible terrain, a base to defend, more than one shell in the air |
-| **Memory** | 12×12 | **full** | four 2×2 pads in a d-pad, each **growing to 4×4** as it lights; a sequence that grows by one every round; the starting level is how many blinks round one has; a wrong repeat ends the run; 20 points × the length of the round | a timer, a shrinking window to answer in |
+| **Memory** | 12×12 | **full** | four 2×2 pads in a d-pad, each **growing to 4×4** as it lights; a sequence that grows by one every round; the starting level is how many blinks round one has; a wrong repeat ends the run; 20 points × the length of the round | a timer, a shrinking window to answer in, a level that can move mid-run (here the level IS the sequence) |
 
 ## `<BrickConsole/>`
 
@@ -67,7 +67,7 @@ import { BrickConsole } from "@stapel/brick-react/default";
 | `paused` | `false` | Hold the loop from outside; the board stays; clearing it resumes only a run the hold stopped. |
 | `resumeOnReturn` | `true` | A run the blur or the hidden tab stopped starts again on focus / visible. A board the person paused never is. |
 | `autoStart` | `false` (`true` in `<WaitingGame/>`) | Start on mount. |
-| `startLevel` | `1` | The level the first run opens on. The person moves it with the stepper. |
+| `startLevel` | `1` | The level the first run opens on. The person moves it with the stepper, before play and during. |
 | `autoFocus` | `false` | Focus the frame on mount — the keys, handed over in the same click that opened the console — and give that focus back on unmount to whatever it was taken from. |
 | `ref` | — | The frame element, for a host that focuses it later. |
 | `onPhaseChange` | — | `ready` / `running` / `paused` / `over`, once on mount and once per change. |
@@ -82,18 +82,28 @@ coarse pointer or the key legend on a fine one. Every gap is a step of the
 token spacing scale. A **paused field wears a veil** — "Paused — click here or
 press Enter" — and clicking it resumes.
 
-The **Level** row is a stepper: a minus, the number, a plus. It picks the level
-a run STARTS at — the tempo, the multiplier and (in Memory) the length of the
-opening sequence all move with it. Every change **deals a fresh board at the
-new level**; what happens to that board is what `autoStart` says, so an
-autostarting console plays on and a manual one waits at Start.
+The **Level** row is a stepper: a minus, the number, a plus. It is **live in
+every phase**, and what it does depends on the board it is pressed over:
 
-It is **disabled only while a run the person started is under way**, where a
-mis-aimed plus would throw away a board they were playing. An `autoStart`
-console is exempt, and has to be: it is running in its very first frame, so
-"disabled while a run is under way" would mean disabled forever and the level
-could never be picked at all. The number the stepper moves is the level **on
-screen**, not a remembered start level, so the plus always moves it.
+| The board | The plus does |
+| --- | --- |
+| Ready, over, or a deal nobody has touched | **deals a fresh board at the new level** — the tempo, the multiplier and (in Memory) the length of the opening sequence move with it. That board then behaves the way the console was mounted: an `autoStart` console plays it, a manual one waits at Start. |
+| A run in progress — running, or paused on a board that has been played | **moves that run**. Tempo and score multiplier become the new level's; the board, the piece and the score stay exactly where they are, and whatever the run had already earned goes on counting from the level just picked. |
+
+Nothing here ever discards a game. Through 0.5.0 the stepper had only the first
+behaviour, so a plus pressed four hundred points into a run threw the run away
+without a word — the handheld this imitates picks the level before play and
+raises it on its own during, and never trades a board for a number.
+
+The one **disabled** arm is a game whose own rules say its level cannot move
+mid-run: **Memory**, where the level IS the sequence being remembered rather
+than a tempo. It supplies the sentence, the console renders it as
+`data-disabled-reason`, and every other game's stepper stays enabled while a run
+of it is under way. A game states this with `levelLockedMidRun` on its
+definition, so it is a per-game fact rather than a console-wide policy.
+
+The number the stepper moves is the level **on screen**, not a remembered start
+level, so the plus always moves it.
 
 - **The LCD is DOM, not canvas.** Four hundred `<span>`s follow `data-theme`
   for free, are assertable in a test, and announce as one named image. A canvas
@@ -313,6 +323,8 @@ const session = createBrickSession({ definition: TETRIS, seed: 7, startLevel: 3 
 session.press("left");
 session.step();              // drain inputs → tick → render, in that order
 gridSignature(session.grid); // the frame, as a comparable string
+session.played;              // true — this board is somebody's run now
+session.setLevel(6);         // the RUN moves to level 6; the board does not move at all
 ```
 
 - `createLoop` accumulates real elapsed milliseconds and runs whole fixed steps,

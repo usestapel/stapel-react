@@ -80,9 +80,18 @@ export interface GameContext {
   readonly cols: number;
   readonly rows: number;
   /**
-   * The level the person picked before pressing Start. A game's own `level`
-   * counts UP from here, so the tempo, the multiplier and (in Memory) the
+   * The level this run counts up from. A game's own `level` is this plus
+   * whatever it has earned, so the tempo, the multiplier and (in Memory) the
    * opening sequence all start where they were asked to.
+   *
+   * READ IT WHEN YOU NEED IT, never once at construction: the session RE-BASES
+   * it when the person moves the stepper mid-run, so that the level on screen
+   * becomes the level they picked while the board, the piece and the score stay
+   * exactly where they are. A game that copies it into a local at construction
+   * freezes its tempo at the opening level and the stepper appears dead — the
+   * one exception being a game that means "the level I was DEALT at" (Memory's
+   * first sequence), which is a fact about the deal and rightly frozen; such a
+   * game says so with {@link GameDefinition.levelLockedMidRun}.
    */
   readonly startLevel: number;
 }
@@ -141,5 +150,17 @@ export interface GameDefinition {
    * are deliberately absent — repeating those would fight `speed()`.
    */
   readonly repeat?: readonly BrickInput[];
+  /**
+   * Why a run of THIS game cannot change level once it is under way, in a
+   * developer's words — and absent, the usual case, when it can. Present, it
+   * does two things: the session's `setLevel` refuses to re-base the live run,
+   * and the console disables its stepper mid-run with this sentence as the
+   * `data-disabled-reason`.
+   *
+   * It is a fact about the game's rules, not a policy: in every game here the
+   * level is a tempo and a multiplier and can move under a board that stays,
+   * except Memory, where the level IS the sequence being remembered.
+   */
+  readonly levelLockedMidRun?: string;
   create(ctx: GameContext): Game;
 }

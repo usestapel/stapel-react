@@ -17,6 +17,16 @@
  * With a `seed`, the run replays exactly, reset included. That is not a
  * fallback: it is what lets a test assert a board, and what lets a demo
  * photograph the same opening frame on every run.
+ *
+ * ── The level moves; the board does not ────────────────────────────────────
+ * A level picked before play is the level the deal opens at. A level picked
+ * DURING a run is a different request, and `setLevel` answers it without
+ * touching the game: the run's level base is re-based so the level on screen
+ * becomes the one asked for, the step is re-timed to it, and the board, the
+ * piece and the score are exactly where they were. The console this package
+ * imitates works the same way round — you pick before you play, and after that
+ * the level only ever rises — so the one thing a level change must never do is
+ * take a run away from the person playing it.
  */
 import { clearGrid, createGrid } from "./grid.js";
 import { createLoop } from "./loop.js";
@@ -62,8 +72,26 @@ export interface BrickSession {
   releaseAll(): void;
   /** The step the loop runs at right now: the level's, divided by the game's speed. */
   readonly stepMs: number;
-  /** The level this session's games begin at. */
+  /** The level a fresh deal begins at. A live {@link BrickSession.setLevel} moves it too. */
   readonly startLevel: number;
+  /**
+   * True once this board has been PLAYED: a step ran, or a press landed. It is
+   * the difference between a board somebody is in the middle of and a board
+   * that was only dealt — and therefore between a level change that must keep
+   * the game and one that may deal another.
+   */
+  readonly played: boolean;
+  /**
+   * Move the RUN IN PROGRESS to `level` (clamped to 1..{@link BRICK_MAX_LEVEL}):
+   * the level on screen becomes `level`, the step is re-timed, whatever the run
+   * has earned keeps counting from there, and the board, the piece and the
+   * score are untouched. A fresh deal from here on opens at `level` too.
+   *
+   * A no-op for a game whose `levelLockedMidRun` says its level cannot move,
+   * and for a finished game — neither is a run this can be applied to, and
+   * throwing the board away instead is the defect this method exists to fix.
+   */
+  setLevel(level: number): void;
   /** Tick, render. Returns the status after the step. */
   step(): GameStatus;
   /** Feed elapsed wall-clock time; runs the whole steps it buys. */
@@ -113,12 +141,20 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
   const definition = options.definition;
   const grid: MutableGrid = createGrid(definition.cols, definition.rows);
   const held = new Set<BrickInput>();
-  const startLevel = clampLevel(options.startLevel ?? 1);
+  /** The level a fresh deal opens at. The stepper moves it, before play and during. */
+  let dealLevel = clampLevel(options.startLevel ?? 1);
+  /**
+   * The level THIS game counts up from. It starts as `dealLevel` and `setLevel`
+   * re-bases it under a live board, which is why the game is handed a getter
+   * rather than a number (see `GameContext.startLevel`).
+   */
+  let levelBase = dealLevel;
   /** The host's pin, if there is one. `undefined` means "deal me a new game". */
   const pinned = options.seed;
   let game: Game = build(pinned ?? freshSeed());
   let notified = false;
-  let level = startLevel;
+  let played = false;
+  let level = levelBase;
   let stepMs = definition.stepMs;
 
   function build(withSeed: number): Game {
@@ -127,7 +163,9 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
       random: rng.next,
       cols: definition.cols,
       rows: definition.rows,
-      startLevel,
+      get startLevel() {
+        return levelBase;
+      },
     });
   }
 
@@ -158,6 +196,7 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
   }
 
   function step(): GameStatus {
+    played = true;
     game.tick();
     return settle();
   }
@@ -176,11 +215,28 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
   return {
     definition,
     grid,
-    startLevel,
+    get startLevel() {
+      return dealLevel;
+    },
+    get played() {
+      return played;
+    },
     status: () => game.status(),
     press(action) {
       if (game.status().over) return;
+      played = true;
       game.input(action);
+      settle();
+    },
+    setLevel(next) {
+      if (definition.levelLockedMidRun !== undefined) return;
+      const status = game.status();
+      if (status.over) return;
+      const wanted = clampLevel(next);
+      // What the run has EARNED stays earned: the base moves so that the level
+      // reads `wanted` now and keeps climbing from there.
+      levelBase += wanted - status.level;
+      dealLevel = wanted;
       settle();
     },
     hold(action, isHeld) {
@@ -213,8 +269,12 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     reset(nextSeed) {
       loop.stop();
       held.clear();
+      // A new deal starts at the level the stepper is on now, not at the base a
+      // mid-run change left behind.
+      levelBase = dealLevel;
       game = build(nextSeed ?? pinned ?? freshSeed());
       notified = false;
+      played = false;
       level = game.status().level;
       refreshStep();
       paint();

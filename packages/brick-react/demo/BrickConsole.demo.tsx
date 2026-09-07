@@ -136,7 +136,7 @@ export default defineDemo({
     },
     level: {
       description:
-        "The starting level, picked before play with the minus and the plus — the board is dealt again at whatever the person chose.",
+        "The level, picked with the minus and the plus. Before play — here — it deals the board again at whatever the person chose; during a run it moves that run instead, tempo and multiplier, with the board, the piece and the score kept.",
       viewport: "desktop",
       step: "level-3",
       render: () => (
