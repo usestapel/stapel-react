@@ -60,8 +60,8 @@ export const brickI18nBundleEs: I18nDictionary = {
   "brick.button.reset": "Reiniciar",
   "brick.screen.hint": "Pulsa aquí o Intro",
   "brick.screen.hintclick": "Pulsa aquí para continuar",
-  "brick.button.levelup": "Nivel inicial más alto",
-  "brick.button.leveldown": "Nivel inicial más bajo",
+  "brick.button.levelup": "Nivel más alto",
+  "brick.button.leveldown": "Nivel más bajo",
 };
 
 /** Register the Spanish copy into a core i18n engine. */

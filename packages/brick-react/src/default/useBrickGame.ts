@@ -17,11 +17,14 @@
  * board the person paused is theirs to resume.
  *
  * ── A level change never costs a game ──────────────────────────────────────
- * `setStartLevel` reads the board it is asked on. Ready, over, or a deal
- * nobody has touched: a fresh board at the new level, exactly as before. A run
- * in progress — running, or paused on a board that has been played: the LIVE
- * run moves to that level, tempo and multiplier with it, and the board, the
- * piece and the score stay. Through 0.5.0 there was only the first behaviour,
+ * `setStartLevel` reads the board it is asked on. A run in progress — the whole
+ * of it is `!over && (running || played)` — moves to that level, tempo and
+ * multiplier with it, and the board, the piece and the score stay. `running`
+ * counts on its own, so an `autoStart` console is in progress from its first
+ * frame and its board is moved, not re-dealt, whether or not anyone has touched
+ * it. The other arm — a fresh board at the new level, exactly as before — is
+ * reached only by a run that is `over` or a stopped board that has taken no
+ * tick and no press. Through 0.5.0 there was only the second behaviour,
  * so a plus pressed four hundred points into a run silently threw the run
  * away; a game whose rules make a mid-run level meaningless says so
  * (`levelLockedMidRun`) and is left alone rather than re-dealt.
@@ -111,11 +114,13 @@ export interface BrickGameBag {
   /** The level a fresh deal starts at — the number the stepper last left. */
   readonly startLevel: number;
   /**
-   * Pick a level. On a board nobody is playing — ready, over, or a paused deal
-   * that was never touched — that deals a fresh board at it. On a run IN
-   * PROGRESS it moves the run: the tempo and the multiplier become the new
-   * level's and the board, the piece and the score stay. Nothing here ever
-   * discards a game.
+   * Pick a level. On a run IN PROGRESS — `!over && (running || played)`, and
+   * `running` counts on its own, so an `autoStart` console qualifies from its
+   * first frame — it moves the run: the tempo and the multiplier become the new
+   * level's and the board, the piece and the score stay. Only the rest — a run
+   * that is `over`, or a stopped board that has taken no tick and no press —
+   * gets a fresh board dealt at the level asked for. Nothing here ever discards
+   * a game.
    *
    * A game whose rules say the level cannot move mid-run
    * ({@link levelLockReason}) ignores this while its run is under way — it does

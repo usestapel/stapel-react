@@ -122,7 +122,8 @@ no network, and everyone born before the smartphone already knows the controls.
   half a second after the key goes down; a paddle that waits that long reads as
   broken. The console repeats off the hold on its own timer and drops the OS
   echo — see README "Keys".
-- **A level change moves the RUN, and only an idle board is dealt again.** The
+- **A level change moves the RUN, and only a finished or never-played board is
+  dealt again.** The
   stepper went through three shapes to get here. 0.3.0 disabled it mid-run,
   because its one behaviour was "deal a fresh board" and a mis-aimed plus would
   throw a game away; but `<WaitingGame>` autostarts, so every console the owner
@@ -130,14 +131,17 @@ no network, and everyone born before the smartphone already knows the controls.
   instant they appeared. 0.5.0 kept them live there — and thereby shipped the
   defect in the open: a plus pressed four hundred points into a run deleted the
   board and the score, silently, with no way back. 0.6.0 stops treating "change
-  the level" as "start again". A board with nothing in progress (ready, over, or
-  a deal nobody has touched) is still dealt afresh at the new level. A run in
-  progress — running, or paused on a board that has been played — MOVES: the
-  session re-bases the level the game counts up from, so the level on screen
-  becomes the one asked for, the step is re-timed to it, what the run earned
-  goes on counting from there, and the board, the piece and the score are never
-  touched. That is what the handheld does: you pick before you play, and during
-  play the level only rises.
+  the level" as "start again". A run in progress — the whole test is
+  `!over && (running || played)` — MOVES: the session re-bases the level the
+  game counts up from, so the level on screen becomes the one asked for, the
+  step is re-timed to it, what the run earned goes on counting from there, and
+  the board, the piece and the score are never touched. `running` counts on its
+  own, which is the part worth stating plainly: an autostarting console is in
+  progress from its first frame, so its board is moved and NOT re-dealt even
+  before anybody has touched it. Only the other side of that line — a run that
+  is `over`, or a stopped board that has taken no tick and no press — is dealt
+  afresh at the new level. That is what the handheld does: you pick before you
+  play, and during play the level only rises.
 - **The one game that cannot is the one that says so.** In five of the six games
   the level is a tempo and a multiplier, and moving it under a live board is
   meaningful. In Memory the level IS the sequence being remembered — it is how

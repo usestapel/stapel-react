@@ -27,14 +27,18 @@
  * The stepper is live in every phase, and what it does depends on the board it
  * is pressed over:
  *
- *  - NOTHING IN PROGRESS (ready, over, or a deal nobody has touched) — a fresh
- *    board at the new level, which then behaves the way the console was
+ *  - A RUN IN PROGRESS — exactly `!over && (running || played)` — the run
+ *    itself moves to the new level. The tempo and the score multiplier become
+ *    that level's; the board, the piece and the score are untouched. RUNNING
+ *    counts on its own: an `autoStart` console is in progress from its first
+ *    frame, so a board there is moved and never re-dealt, touched or not.
+ *  - NOTHING IN PROGRESS — the rest, and only the rest: a run that is `over`,
+ *    or a board whose loop is stopped and which has taken no tick and no press
+ *    (a console waiting at Start, or one the host mounted paused). That gets a
+ *    fresh board at the new level, which then behaves the way the console was
  *    mounted: an `autoStart` console plays it, a manual one waits on Start.
- *  - A RUN IN PROGRESS (running, or paused on a board that has been played) —
- *    the run itself moves to the new level. The tempo and the score multiplier
- *    become that level's; the board, the piece and the score are untouched.
  *
- * Through 0.5.0 there was only the first behaviour, so a plus pressed four
+ * Through 0.5.0 there was only the re-deal, so a plus pressed four
  * hundred points into a run threw the run away without a word. The handheld
  * this imitates never does that: the level is picked before play, and during
  * play it only ever rises. The single disabled arm is a GAME that says its own

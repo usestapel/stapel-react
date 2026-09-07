@@ -85,13 +85,19 @@ press Enter" — and clicking it resumes.
 The **Level** row is a stepper: a minus, the number, a plus. It is **live in
 every phase**, and what it does depends on the board it is pressed over:
 
+A run counts as **in progress** when `!over && (running || played)` — that is
+the whole test, and `running` counts on its own. So an `autoStart` console (the
+one `<WaitingGame/>` mounts) is in progress from its very first frame: its board
+is **moved**, never re-dealt, whether or not anybody has touched it yet. The
+fresh deal is reachable only on the other side of that line.
+
 | The board | The plus does |
 | --- | --- |
-| Ready, over, or a deal nobody has touched | **deals a fresh board at the new level** — the tempo, the multiplier and (in Memory) the length of the opening sequence move with it. That board then behaves the way the console was mounted: an `autoStart` console plays it, a manual one waits at Start. |
-| A run in progress — running, or paused on a board that has been played | **moves that run**. Tempo and score multiplier become the new level's; the board, the piece and the score stay exactly where they are, and whatever the run had already earned goes on counting from the level just picked. |
+| A run in progress — `running`, or stopped after any tick or press (`!over && (running \|\| played)`) | **moves that run**. Tempo and score multiplier become the new level's; the board, the piece and the score stay exactly where they are, and whatever the run had already earned goes on counting from the level just picked. |
+| Everything else — a run that is `over`, or a stopped board that has taken no tick and no press (waiting at Start, or held paused by the host) | **deals a fresh board at the new level** — the tempo, the multiplier and (in Memory) the length of the opening sequence move with it. That board then behaves the way the console was mounted: an `autoStart` console plays it, a manual one waits at Start. |
 
-Nothing here ever discards a game. Through 0.5.0 the stepper had only the first
-behaviour, so a plus pressed four hundred points into a run threw the run away
+Nothing here ever discards a game. Through 0.5.0 the stepper only ever re-dealt,
+so a plus pressed four hundred points into a run threw the run away
 without a word — the handheld this imitates picks the level before play and
 raises it on its own during, and never trades a board for a number.
 

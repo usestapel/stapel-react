@@ -15,14 +15,18 @@
 
   The stepper now reads the board it is pressed over:
 
-  - **Nothing in progress** — ready, over, or a deal nobody has touched: a fresh
-    board at the new level, exactly as before. That board then behaves the way the
-    console was mounted; an `autoStart` console plays it, a manual one waits at
-    Start.
-  - **A run in progress** — running, or paused on a board that has been played:
+  - **A run in progress** — the whole test is `!over && (running || played)`:
     the run itself moves. Tempo and score multiplier become the new level's; the
     board, the piece and the score are untouched, and whatever the run had already
-    earned goes on counting from the level just picked.
+    earned goes on counting from the level just picked. `running` counts on its
+    own, so an `autoStart` console is in progress from its first frame and its
+    board is moved rather than re-dealt, touched or not.
+  - **Nothing in progress** — the rest, and only the rest: a run that is `over`,
+    or a board whose loop is stopped and which has taken no tick and no press (a
+    console waiting at Start, or one the host holds paused). That gets a fresh
+    board at the new level, exactly as before. It then behaves the way the
+    console was mounted; an `autoStart` console plays it, a manual one waits at
+    Start.
 
   The stepper is visible and enabled in both cases. The single disabled arm is a
   GAME that says its own level cannot move mid-run: `Memory`, where the level IS

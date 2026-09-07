@@ -26,6 +26,23 @@ describe("the package's copy", () => {
     }
   });
 
+  /**
+   * 0.6.0 gave the stepper a second meaning: over a run in progress it moves
+   * the LIVE level rather than the level a fresh deal would open at — and on an
+   * autostarting console that is the usual case, not the rare one. The
+   * accessible name is the whole of what a screen-reader player is told, so it
+   * may only claim what is true in both cases: the level, never a starting one.
+   */
+  it("names the stepper for the level, never for a starting level", () => {
+    const startingLevel = /starting|inicial|начальн/i;
+    for (const bundle of [brickI18nBundleEn, brickI18nBundleRu, brickI18nBundleEs]) {
+      for (const key of [BRICK_I18N_KEYS.buttonLevelUp, BRICK_I18N_KEYS.buttonLevelDown]) {
+        expect(bundle[key], key).not.toMatch(startingLevel);
+        expect(bundle[key], key).toMatch(/level|nivel|уровень/i);
+      }
+    }
+  });
+
   it("registers into a core engine, per locale", async () => {
     const engine = createI18n({ locale: "en" });
     registerBrickI18n(engine);

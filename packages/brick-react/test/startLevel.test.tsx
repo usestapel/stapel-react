@@ -10,6 +10,7 @@ import { BrickConsole } from "../src/default/index.js";
 import {
   ARKANOID,
   BRICK_MAX_LEVEL,
+  brickI18nBundleEn,
   createBrickSession,
   createNullHighScoreStore,
   MEMORY,
@@ -356,5 +357,27 @@ describe("the starting level, on screen", () => {
       );
       unmount();
     }
+  });
+
+  /**
+   * The name a screen reader reads has to survive the case the sighted player
+   * is actually in. On an autostarting console the stepper moves the LIVE run,
+   * so a name promising a starting level describes a behaviour that is not the
+   * one about to happen — the floor bundle is asserted here because it is what
+   * a host that registers no locale really ships.
+   */
+  it("names the stepper for the level over a running board, not for a start", () => {
+    matchMediaFor();
+    render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
+    expect(
+      screen.getByTestId("brick-console").dataset["phase"],
+      "the run has not begun; the case is not the case"
+    ).toBe("running");
+    const up = screen.getByTestId("brick-level-up").getAttribute("aria-label");
+    const down = screen.getByTestId("brick-level-down").getAttribute("aria-label");
+    expect(up).toBe(brickI18nBundleEn["brick.button.levelup"]);
+    expect(down).toBe(brickI18nBundleEn["brick.button.leveldown"]);
+    expect(up).not.toMatch(/starting/i);
+    expect(down).not.toMatch(/starting/i);
   });
 });

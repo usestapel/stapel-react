@@ -90,7 +90,14 @@ export const BRICK_I18N_KEYS = {
   /** The same veil where Enter is NOT the console's to offer — see `<BrickConsole/>`. */
   screenHintClick: "brick.screen.hintclick",
 
-  /** The plus and the minus that pick the level a run starts at. */
+  /**
+   * The plus and the minus on the Level row. Since 0.6.0 the same press means
+   * two things — deal the next board at that level, or move the live run to it
+   * — so the NAME may only say "level", never "starting level": on an
+   * autostarting console it is almost always the running board that moves, and
+   * a name that says otherwise tells a screen-reader player something a sighted
+   * one is never told.
+   */
   buttonLevelUp: "brick.button.levelup",
   buttonLevelDown: "brick.button.leveldown",
 } as const;
@@ -152,8 +159,8 @@ export const brickI18nBundleEn: I18nDictionary = {
   "brick.button.reset": "Reset",
   "brick.screen.hint": "Click here or press Enter",
   "brick.screen.hintclick": "Click here to carry on",
-  "brick.button.levelup": "Higher starting level",
-  "brick.button.leveldown": "Lower starting level",
+  "brick.button.levelup": "Higher level",
+  "brick.button.leveldown": "Lower level",
 };
 
 /**
