@@ -165,7 +165,7 @@
     },
     {
       "package": "@stapel/billing-react",
-      "version": "0.10.1",
+      "version": "0.10.2",
       "entries": [
         {
           "id": "account.billing",
