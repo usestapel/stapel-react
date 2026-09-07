@@ -1,4 +1,4 @@
-# @stapel/brick-react 0.1.1
+# @stapel/brick-react 0.2.0
 
 Stapel 4-bit brick games: a tiny fixed-step engine (seeded RNG, input queue, grid model) with Tetris/Snake/Arkanoid/Racing/Tanks/Memory as pure modules, a <BrickConsole> LCD skin drawn in DS tokens with a phone keypad, local high scores, and a <WaitingGame> host helper for the seconds a person spends waiting.
 
@@ -13,6 +13,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - BRICK_I18N_KEYS
 - HIGHSCORES_NAMESPACE
 - INPUT_QUEUE_LIMIT
+- LEVEL_SPEEDUP
 - MAX_STEPS_PER_FRAME
 - MEMORY
 - RACING
@@ -46,6 +47,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - Game
 - GameCompleteness
 - GameContext
+- GameControl
 - GameDefinition
 - GameStatus
 - Grid

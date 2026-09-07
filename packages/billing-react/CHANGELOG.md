@@ -1,5 +1,13 @@
 # @stapel/billing-react
 
+## 0.10.3
+
+### Patch Changes
+
+- Regenerated against the stapel-billing 0.12.1 contract. Nothing in the pair moved: `docs/schema.json`, `docs/errors.json` and `docs/flows.json` are byte-identical to 0.12.0, so the generated types, endpoints, error catalogue and i18n bundles come back unchanged, and the declared range stays `>=0.12 <0.13`. The pin moves so the pair is checked against the contract its hosts now run.
+
+  What 0.12.1 changes on the server, for a host reading this pair's hold flow: a hold that was **released or expired** re-arms under its idempotency key — replaying the same `Idempotency-Key` opens a new hold instead of handing back the resolved one. `hold_already_resolved` therefore now means **captured** only. A host that treated that code as "this reservation is finished, whichever way" should read it as "the credits are already spent"; the released and expired cases now succeed on the replay.
+
 ## 0.10.2
 
 ### Patch Changes

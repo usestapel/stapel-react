@@ -1,6 +1,6 @@
 {
   "name": "@stapel/brick-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Stapel 4-bit brick games: a tiny fixed-step engine (seeded RNG, input queue, grid model) with Tetris/Snake/Arkanoid/Racing/Tanks/Memory as pure modules, a <BrickConsole> LCD skin drawn in DS tokens with a phone keypad, local high scores, and a <WaitingGame> host helper for the seconds a person spends waiting.",
   "license": "MIT",
   "repository": {
