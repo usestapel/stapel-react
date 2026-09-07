@@ -108,6 +108,54 @@ import type { ThemeModeProp } from "./types.js";
 export type SearchFiltersLayout = "column" | "sheet";
 
 /**
+ * WHY the filter sheet's open state moved — handed to `onFiltersOpenChange`
+ * beside the new value.
+ *
+ * A host that only mirrors the boolean can ignore it. A host that ACTS on the
+ * close cannot: "the person pressed Show results" and "the person swiped the
+ * sheet away" are the same `false` and not the same event, and a container
+ * that logs one as the other reports an intent nobody had.
+ *
+ *  - `open` — the sheet was asked for (the all-filters chip, the location
+ *    row's door).
+ *  - `apply` — the footer's "Show N results" committed and closed it.
+ *  - `dismiss` — the dialog itself closed: the X, the scrim, Escape.
+ *  - `consumer` — the host closed it through `filtersHeader`'s `closeFilters`.
+ */
+export type SearchFiltersOpenReason = "open" | "apply" | "dismiss" | "consumer";
+
+/** What `filtersHeader` is handed when a host passes a function. */
+export interface SearchFiltersHeaderSlotProps {
+  /**
+   * Shut the sheet, with the reason `"consumer"`.
+   *
+   * This is the whole point of the callback form: a control in this slot that
+   * NAVIGATES on a press (a partition or axis chip that changes the route)
+   * has to close the sheet on that same press, or the next page opens under a
+   * drawer that is still up. Without it a host had to lift the open state out
+   * of the page — which it could not, because the page only offered
+   * `defaultFiltersOpen`.
+   *
+   * Harmless in the column layout, where there is no sheet to shut: the page
+   * still reports the change, and nothing moves on screen.
+   */
+  readonly closeFilters: () => void;
+  /** Is the sheet open around this header right now. */
+  readonly open: boolean;
+}
+
+/**
+ * The `filtersHeader` slot: a node, or a function told the sheet's state.
+ *
+ * The node form is what it has always been. The function form exists so a
+ * header can close the sheet it is inside without the host owning the open
+ * state — see {@link SearchFiltersHeaderSlotProps.closeFilters}.
+ */
+export type SearchFiltersHeader =
+  | ReactNode
+  | ((slot: SearchFiltersHeaderSlotProps) => ReactNode);
+
+/**
  * WHERE the filter rail earns its 280px, when the token `tablet` edge is the
  * wrong place to draw it.
  *
@@ -437,8 +485,12 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * for. Whatever a host renders here reads and writes the same URL state as
    * the facets beside it (`useSearchState()`), so it is a filter in every
    * sense that matters and not a decoration bolted on top.
+   *
+   * A FUNCTION is handed `{ closeFilters, open }` — for a header whose own
+   * control navigates away, which on a phone has to take the sheet down with
+   * it. See {@link SearchFiltersHeaderSlotProps}.
    */
-  readonly filtersHeader?: ReactNode;
+  readonly filtersHeader?: SearchFiltersHeader;
   /**
    * The block-size that slot will END UP at, declared before it has anything
    * in it — a number in CSS pixels or any length (`"96px"`, `"6rem"`).
@@ -624,9 +676,47 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * from a category page), and for the story that photographs the sheet —
    * a state reached only by a tap is a state nothing outside a browser has
    * ever seen. The person still closes it; this is the initial value, not a
-   * controlled one.
+   * controlled one — pass `filtersOpen` for that.
    */
   readonly defaultFiltersOpen?: boolean;
+  /**
+   * The sheet's open state, OWNED BY THE HOST.
+   *
+   * React's usual contract: pass this and the page stops keeping its own copy
+   * — every open and every close is a call to `onFiltersOpenChange` and
+   * nothing moves until the value comes back. Leave it out and the page is
+   * uncontrolled exactly as before, `defaultFiltersOpen` its initial value.
+   *
+   * It exists because a control the host renders INSIDE the sheet can end the
+   * search that sheet belongs to. A partition chip in `filtersHeader` that
+   * navigates leaves the drawer standing over the page it opened, and the
+   * host had no handle on the state to shut it — the page exposed the initial
+   * value and nothing else. A host that only needs the close and not the
+   * state can take `filtersHeader`'s `closeFilters` instead and keep the page
+   * uncontrolled.
+   *
+   * ```tsx
+   * const [filtersOpen, setFiltersOpen] = useState(false);
+   * <SearchPage
+   *   filtersOpen={filtersOpen}
+   *   onFiltersOpenChange={(open) => { setFiltersOpen(open); }}
+   *   filtersHeader={<PartitionChips onPick={(href) => { setFiltersOpen(false); navigate(href); }} />}
+   * />
+   * ```
+   */
+  readonly filtersOpen?: boolean;
+  /**
+   * Told that the sheet wants to open or close, and WHY — see
+   * {@link SearchFiltersOpenReason}.
+   *
+   * Called in both modes, controlled and not: a host that wants to watch the
+   * sheet (an analytics event on the dismiss, a scroll lock of its own) does
+   * not have to take ownership of the state to hear about it.
+   */
+  readonly onFiltersOpenChange?: (
+    open: boolean,
+    reason: SearchFiltersOpenReason
+  ) => void;
   /** Offer a page-size control beside the sort. Default `true`. */
   readonly pageSize?: boolean;
   /**
@@ -717,7 +807,7 @@ interface SearchPageBodyProps {
   readonly geoLabel?: ReactNode;
   readonly skippedNotice?: boolean;
   readonly footer?: ReactNode;
-  readonly filtersHeader?: ReactNode;
+  readonly filtersHeader?: SearchFiltersHeader;
   readonly resultsHeader?: ReactNode;
   readonly appliedChips?: boolean | "desktop";
   readonly otherCategories?: boolean;
@@ -731,6 +821,11 @@ interface SearchPageBodyProps {
   readonly railTop?: number | string;
   readonly stickyToolbar?: SearchToolbarPin;
   readonly defaultFiltersOpen?: boolean;
+  readonly filtersOpen?: boolean;
+  readonly onFiltersOpenChange?: (
+    open: boolean,
+    reason: SearchFiltersOpenReason
+  ) => void;
   readonly pageSize?: boolean;
   readonly breadcrumb?: ReactNode;
   readonly wrapResults?: SearchResultsWrapper;
@@ -767,7 +862,26 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       : surface === "sheet"
         ? "sheet"
         : "column");
-  const [sheetOpen, setSheetOpen] = useState(props.defaultFiltersOpen === true);
+  // Controlled or not, decided by the PRESENCE of `filtersOpen` and read once
+  // per render — the state the page keeps is only ever the uncontrolled half,
+  // and a controlled host's value is never copied into it (copying it is how
+  // a controlled component starts disagreeing with its owner one frame after
+  // the owner refuses a change).
+  const controlledFiltersOpen = props.filtersOpen;
+  const [ownFiltersOpen, setOwnFiltersOpen] = useState(
+    props.defaultFiltersOpen === true
+  );
+  const sheetOpen = controlledFiltersOpen ?? ownFiltersOpen;
+  const { onFiltersOpenChange } = props;
+  const setSheetOpen = (next: boolean, reason: SearchFiltersOpenReason): void => {
+    if (controlledFiltersOpen === undefined) {
+      setOwnFiltersOpen(next);
+    }
+    onFiltersOpenChange?.(next, reason);
+  };
+  const closeFilters = (): void => {
+    setSheetOpen(false, "consumer");
+  };
 
   // How the results are ARRANGED. Component state, not URL state: it changes
   // how the same answer is drawn, never what the answer is, so it must not
@@ -857,7 +971,14 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             ? { style: { minBlockSize: props.filtersHeaderReserve } }
             : {})}
         >
-          {filtersHeader}
+          {/* The function form is called HERE, inside the slot it fills, so a
+              header that reads `open` re-renders with the sheet. Presence is
+              still decided by the PROP above and never by what the function
+              returned: a header that renders nothing this frame must not
+              collapse the box it reserved. */}
+          {typeof filtersHeader === "function"
+            ? filtersHeader({ closeFilters, open: sheetOpen })
+            : filtersHeader}
         </div>
       )}
       {/* The facet panel is skipped entirely when the only thing it would draw
@@ -1036,7 +1157,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           // has the whole panel on screen beside this row.
           filtersDoor={layout === "sheet"}
           onOpenAll={() => {
-            setSheetOpen(true);
+            setSheetOpen(true, "open");
           }}
         />
       )}
@@ -1073,7 +1194,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
               still the whole panel, for the person who wants all of it. */}
           <FilterChips
             onOpenAll={() => {
-              setSheetOpen(true);
+              setSheetOpen(true, "open");
             }}
             {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
             {...(locale !== undefined ? { locale } : {})}
@@ -1092,7 +1213,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           <SkinDialog
             open={sheetOpen}
             onClose={() => {
-              setSheetOpen(false);
+              setSheetOpen(false, "dismiss");
             }}
             title={t(SEARCH_I18N_KEYS.facetsTitle)}
             dismissLabel={t(SEARCH_I18N_KEYS.filtersDismiss)}
@@ -1105,7 +1226,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
                 data-analytics="none"
                 data-analytics-reason="the filters are already applied; this closes the sheet"
                 onClick={() => {
-                  setSheetOpen(false);
+                  setSheetOpen(false, "apply");
                 }}
               >
                 {applyLabel}
@@ -1175,6 +1296,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     railTop,
     stickyToolbar,
     defaultFiltersOpen,
+    filtersOpen,
+    onFiltersOpenChange,
     pageSize,
     breadcrumb,
     wrapResults,
@@ -1233,6 +1356,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(railTop !== undefined ? { railTop } : {})}
           {...(stickyToolbar !== undefined ? { stickyToolbar } : {})}
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
+          {...(filtersOpen !== undefined ? { filtersOpen } : {})}
+          {...(onFiltersOpenChange !== undefined ? { onFiltersOpenChange } : {})}
           {...(pageSize !== undefined ? { pageSize } : {})}
           {...(breadcrumb !== undefined ? { breadcrumb } : {})}
           {...(wrapResults !== undefined ? { wrapResults } : {})}

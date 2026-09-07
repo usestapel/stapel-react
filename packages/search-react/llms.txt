@@ -85,7 +85,7 @@ const { tracked } = useTracked();
 - search.language-select → <LanguageSelect> [offered|from-a-link]  demo/LanguageSelect.demo.tsx
 - search.location-summary → <LocationSummaryLine> [everywhere|placed|narrowed|long-place|wide]  demo/LocationSummaryLine.demo.tsx
 - search.other-categories-line → <OtherCategoriesLine> [line|narrow|empty]  demo/OtherCategoriesLine.demo.tsx
-- search.page → <SearchPage> [desktop|phone|catalogue-leaf|under-a-header|unreadable-link]  demo/SearchPage.demo.tsx
+- search.page → <SearchPage> [desktop|phone|catalogue-leaf|under-a-header|filters-header-navigates|unreadable-link]  demo/SearchPage.demo.tsx
 - search.page-size-select → <PageSizeSelect> [ladder|off-ladder]  demo/PageSizeSelect.demo.tsx
 - search.partition-chips → <PartitionChips> [parent|child]  demo/PartitionChips.demo.tsx
 - search.popular-values → <PopularValues> [desktop|responsive|narrow-column]  demo/PopularValues.demo.tsx

@@ -50,6 +50,9 @@ export {
 export type {
   SearchPageProps,
   SearchFiltersLayout,
+  SearchFiltersHeader,
+  SearchFiltersHeaderSlotProps,
+  SearchFiltersOpenReason,
   SearchRailFrom,
 } from "./SearchPage.js";
 

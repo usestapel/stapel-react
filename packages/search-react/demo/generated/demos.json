@@ -352,6 +352,13 @@
           "step": "under-a-header"
         },
         {
+          "id": "filters-header-navigates",
+          "description": "A partition row in `filtersHeader`, inside the open sheet on a phone. Choosing a child changes the search AND closes the sheet on the same press — `filtersHeader` as a function is handed `closeFilters`, and the page's own open state is the host's through `filtersOpen` / `onFiltersOpenChange`, which reports `open`, `apply`, `dismiss` or `consumer` for every move. Until this release the page published only `defaultFiltersOpen`, so a header that navigated left the drawer standing over the page it had just opened.",
+          "viewport": "phone",
+          "step": "filters-header-navigates",
+          "play": true
+        },
+        {
           "id": "unreadable-link",
           "description": "A shared link whose location and price range could not be read: the page says which parameters it dropped instead of silently widening the search.",
           "viewport": "phone",
@@ -360,7 +367,7 @@
       ],
       "source": {
         "file": "demo/SearchPage.demo.tsx",
-        "line": 105
+        "line": 185
       }
     },
     {

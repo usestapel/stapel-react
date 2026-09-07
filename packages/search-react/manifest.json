@@ -582,6 +582,7 @@
         "phone",
         "catalogue-leaf",
         "under-a-header",
+        "filters-header-navigates",
         "unreadable-link"
       ],
       "source": "demo/SearchPage.demo.tsx"

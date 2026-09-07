@@ -14,11 +14,14 @@
  * query cache before the first render, so the static shot is the results page
  * rather than the skeleton every variant would otherwise share.
  */
+import { useState } from "react";
 import type { ReactElement } from "react";
 import { Typography } from "antd";
 import { defineDemo } from "@stapel/showcase";
 import { useT } from "@stapel/core";
 import { SearchPage } from "../src/default/SearchPage.js";
+import { PartitionChips } from "../src/default/PartitionChips.js";
+import type { PartitionChild } from "../src/default/PartitionChips.js";
 import { SearchDemoHarness, DemoFrame, useMemoryParams } from "./_harness.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import {
@@ -92,6 +95,83 @@ function Page(props: {
   );
 }
 
+/** The children of a partitioned category, for the header that navigates. */
+const PARTITION_PARENT = "141/151";
+const PARTITION_CHILDREN: readonly (readonly [number, string, string])[] = [
+  [152, `${PARTITION_PARENT}/152`, "demo.partition.new"],
+  [153, `${PARTITION_PARENT}/153`, "demo.partition.used"],
+  [154, `${PARTITION_PARENT}/154`, "demo.partition.parts"],
+  [155, `${PARTITION_PARENT}/155`, "demo.partition.rent"],
+];
+
+/**
+ * The `filtersHeader` whose own control ENDS this search — and therefore has
+ * to take the sheet down with it.
+ *
+ * The page is controlled here (`filtersOpen` + `onFiltersOpenChange`) the way
+ * a container that wants to know about the sheet holds it, and the row inside
+ * the sheet closes through the slot's `closeFilters` rather than reaching for
+ * that state. Both halves of the release are in one frame: without either, a
+ * chip that changes the route leaves the drawer standing over the page it
+ * opened.
+ */
+function PartitionRow(props: {
+  readonly value: string | null;
+  readonly onChange: (path: string | null) => void;
+}): ReactElement {
+  // `useT` inside the slot, not around the harness: the children's names come
+  // from the demo bundle, and the provider that holds it is the harness this
+  // row is rendered inside.
+  const t = useT();
+  const items: readonly PartitionChild[] = PARTITION_CHILDREN.map(
+    ([id, path, key]) => ({ id, path, name: t(key) })
+  );
+  return (
+    <PartitionChips items={items} value={props.value} onChange={props.onChange} />
+  );
+}
+
+function NavigatingHeaderPage(): ReactElement {
+  const adapter = useMemoryParams(RESULTS_SEARCH);
+  // Shut on the first frame and opened by the variant's `play` step: the sheet
+  // is a PORTAL, and a portal cannot be server-rendered, which is what the
+  // distinctness guard renders with. The state is reached the way a person
+  // reaches it — one tap on the all-filters chip.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [partition, setPartition] = useState<string | null>(null);
+  return (
+    <SearchDemoHarness
+      handlers={HANDLERS}
+      seed={SEED}
+      seedSearch={RESULTS_SEARCH}
+    >
+      <DemoFrame phone>
+        <SearchPage
+          adapter={adapter}
+          defaultType={DEMO_TYPE}
+          categoryFeatures={DEMO_FEATURES}
+          filtersLayout="sheet"
+          filtersOpen={filtersOpen}
+          onFiltersOpenChange={(open) => {
+            setFiltersOpen(open);
+          }}
+          filtersHeader={({ closeFilters }) => (
+            <PartitionRow
+              value={partition}
+              onChange={(next) => {
+                // A storefront navigates on this line. The close is the same
+                // press, not a second one the person never makes.
+                setPartition(next);
+                closeFilters();
+              }}
+            />
+          )}
+        />
+      </DemoFrame>
+    </SearchDemoHarness>
+  );
+}
+
 /** What a catalogue leaf puts over its own list — the `resultsLead` slot. */
 function LeafIntro(): ReactElement {
   const t = useT();
@@ -137,6 +217,17 @@ export default defineDemo({
       viewport: "desktop",
       step: "under-a-header",
       render: () => <Page underHeader />,
+    },
+    "filters-header-navigates": {
+      description:
+        "A partition row in `filtersHeader`, inside the open sheet on a phone. Choosing a child changes the search AND closes the sheet on the same press — `filtersHeader` as a function is handed `closeFilters`, and the page's own open state is the host's through `filtersOpen` / `onFiltersOpenChange`, which reports `open`, `apply`, `dismiss` or `consumer` for every move. Until this release the page published only `defaultFiltersOpen`, so a header that navigated left the drawer standing over the page it had just opened.",
+      viewport: "phone",
+      step: "filters-header-navigates",
+      render: () => <NavigatingHeaderPage />,
+      play: async ({ click, find }) => {
+        await click('[data-testid="search-filters-open"]');
+        await find('[data-testid="search-filters-header"]', { portal: true });
+      },
     },
     "unreadable-link": {
       description:
