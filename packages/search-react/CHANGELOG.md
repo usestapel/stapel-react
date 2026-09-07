@@ -1,5 +1,19 @@
 # @stapel/search-react
 
+## 0.37.0
+
+### Minor Changes
+
+- dc87cc0: **Three boxes this pair was letting a storefront hold.** All three were measured on a live stand, and all three are the same defect: a control whose size arrives with the answer instead of with the first frame.
+
+  **The phone chip row reserved 44 where it renders 32.** `CHIP_ROW_MIN_HEIGHT` was a constant, `44 + spacing[1] * 2` — the phone touch floor plus the row's focus-ring bands. But the shared skin raises `controlHeight` to 44 only BELOW the tablet breakpoint: at 768–1023 the chips are 32px buttons and the row renders 40. So from 768px up the reservation stood 12px taller than the row it stood in for, and the results pane ROSE by exactly those 12px the moment the row landed — the shift the reservation exists to prevent, pointing the other way. Measured on a category leaf: 0.00016 CLS at 390 and 0.0725 at 768. It is now `chipRowMinHeight(token.controlHeight)`, read out of the theme the chips are drawn in — the discipline the APPLIED row next to it was already written under. `CHIP_ROW_MIN_HEIGHT` is replaced by `chipRowMinHeight()`: a host laying out around the row asks for the height at the band it is drawing in, because there is no one number that is right at both.
+
+  **The compact sort control grew by 115px when the answer landed.** `<SortSelect compact>` draws the sort the SERVER applied, which for an address naming no `sort` is only known a round trip after the first paint — so the control painted as a bare caret and then grew by the width of its label, the caret's own box moving from x=22 to x=137. The floor was `minWidth: 0` written INLINE, so no consumer stylesheet could hold the box either. It now reserves the width of the longest label it can be asked to show, measured by the browser at the font it will show it in: an `aria-hidden` sizer stacked with the select in one grid cell. Not the desktop arm's 200px — that number wraps a two-control toolbar onto two rows at 390px — and not a pixel guess, which would be wrong in every locale but the one it was written in (`longestSortLabel` and `SORT_SELECT_CHROME` are exported for a surface that lays out its own toolbar).
+
+  **The results pane had no handle.** Its root carried no id, class or test id, so the only hold a consumer had on it was its position among its siblings — the height of the feed was being reserved through `#search-page > :last-child`, a selector that silently starts addressing something else the day the page grows another child. The root now carries `data-testid="search-results-pane"`, and the reservation it was standing in for is a prop: `<SearchResultsPane reserve>` (forwarded as `<SearchPage resultsReserve>`) holds a block-size floor while the FIRST answer is in flight and drops it when the rows land — a floor left standing under a short page would hold a gap open under it for the rest of the session.
+
+  The `default` size budget goes 32.5 → 32.75 KB: measured with dependencies held constant, this package's src before and after is 32.10 → 32.25 KB — 150 B, against a hand-guessed height, a sibling-count selector and two stylesheet rules a consuming storefront can now delete.
+
 ## 0.36.1
 
 ### Patch Changes
