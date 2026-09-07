@@ -89,4 +89,30 @@ describe("<WaitingGame/>", () => {
     rerender(<WaitingGame {...props} active={false} />);
     expect(onDone).toHaveBeenCalledTimes(2);
   });
+
+  it("passes `paused` through: the console holds without unmounting", () => {
+    const props = { reason: "upload" as const, seed: 1, highScores: store };
+    const { rerender } = render(<WaitingGame {...props} />);
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["phase"]).toBe("running");
+    rerender(<WaitingGame {...props} paused />);
+    expect(screen.getByTestId("brick-console")).toBe(frame);
+    expect(frame.dataset["phase"]).toBe("paused");
+    rerender(<WaitingGame {...props} paused={false} />);
+    expect(frame.dataset["phase"]).toBe("running");
+  });
+
+  it("passes the key contract through: an editable field beside it keeps its keys", () => {
+    const { container } = render(
+      <div>
+        <input data-testid="title" />
+        <WaitingGame reason="upload" seed={1} captureKeys="global" highScores={store} />
+      </div>
+    );
+    const input = screen.getByTestId("title");
+    const event = new KeyboardEvent("keydown", { key: "r", bubbles: true, cancelable: true });
+    input.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(container.querySelector('[data-phase="running"]')).not.toBeNull();
+  });
 });

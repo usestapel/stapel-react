@@ -20,8 +20,16 @@
  * snaps rather than fades. The GAME still runs: the request is about
  * decoration, and a person who asked for less movement did not ask to be
  * denied the thing they are looking at.
+ *
+ * ── Keys ───────────────────────────────────────────────────────────────────
+ * By default the frame is focusable and reads keys only while focus is inside
+ * it (`captureKeys="focus"`). `"global"` reads the window instead, for a
+ * console that must play without ever being focused. In both modes a key
+ * whose target is editable, or a Space/Enter on a focused button, stays with
+ * that target; a handler that already called `preventDefault()` keeps the
+ * key; and `enabled={false}` detaches everything.
  */
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { BRICK_GAME_IDS, findGame } from "../headless/games/index.js";
@@ -43,6 +51,9 @@ const CELL_GAP_PX = 1;
 const PREVIEW_SIDE = 4;
 
 export type BrickConsoleSize = "sm" | "md" | "lg";
+
+/** Where the console reads the keyboard from. */
+export type BrickKeyCapture = "focus" | "global";
 
 /** Off, ghost, shadow, lit — the four levels of the panel. */
 const LEVEL_COLOR: readonly string[] = [
@@ -197,6 +208,23 @@ export interface BrickConsoleProps {
   readonly onGameChange?: (game: BrickGameId) => void;
   /** Injected in tests; by default the local `brick-highscores` repository. */
   readonly highScores?: HighScoreStore;
+  /**
+   * Read the keyboard at all. Default true; `false` detaches every key
+   * handler, so a host can hand the keys to something else while the game
+   * stays on screen.
+   */
+  readonly enabled?: boolean;
+  /**
+   * `"focus"` (default): the frame is focusable and reads keys only while
+   * focus is inside it. `"global"`: the window, so the console plays without
+   * ever being focused — an editable target still keeps its keys.
+   */
+  readonly captureKeys?: BrickKeyCapture;
+  /**
+   * Hold the loop: the tick stops, the board stays. Clearing it resumes only a
+   * run this prop paused; a board the person paused stays paused.
+   */
+  readonly paused?: boolean;
   readonly "data-testid"?: string;
 }
 
@@ -208,6 +236,28 @@ const KEY_ACTIONS: Record<string, BrickInput> = {
   ArrowDown: "down",
   " ": "ok",
 };
+
+/** A target whose keystrokes are its own — never the game's. */
+const EDITABLE = 'input,textarea,select,[contenteditable]:not([contenteditable="false"])';
+/** A target that acts on Space and Enter itself. */
+const ACTIVATABLE = "button,a[href],[role=button]";
+
+/** The shape shared by a DOM `KeyboardEvent` and React's synthetic one. */
+interface KeyEventLike {
+  readonly key: string;
+  readonly metaKey: boolean;
+  readonly ctrlKey: boolean;
+  readonly altKey: boolean;
+  readonly defaultPrevented: boolean;
+  readonly target: EventTarget | null;
+  preventDefault(): void;
+}
+
+function targetKeepsKey(target: EventTarget | null, key: string): boolean {
+  if (!(target instanceof Element)) return false;
+  if (target.closest(EDITABLE) !== null) return true;
+  return (key === " " || key === "Enter") && target.closest(ACTIVATABLE) !== null;
+}
 
 /** The word for a phase, or null while the game is simply being played. */
 function statusKey(phase: BrickPhase): string | null {
@@ -230,6 +280,8 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const game = props.game ?? fallback;
   const size = props.size ?? "md";
   const ghostPixels = props.ghostPixels ?? true;
+  const enabled = props.enabled ?? true;
+  const captureKeys = props.captureKeys ?? "focus";
   const coarse = useCoarsePointer();
   const reducedMotion = useReducedMotion();
   const t = useBrickT();
@@ -240,18 +292,18 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
     ...(props.highScores === undefined ? {} : { highScores: props.highScores }),
     ...(props.onGameOver === undefined ? {} : { onGameOver: props.onGameOver }),
     ...(props.autoStart === undefined ? {} : { autoStart: props.autoStart }),
+    ...(props.paused === undefined ? {} : { paused: props.paused }),
   });
   const { press, toggleStart, reset } = bag;
 
-  // The keyboard is bound to the WINDOW rather than to the frame, because a
-  // console dropped into a waiting screen is never the focused element — and
-  // asking someone to click the game before the arrows work is the same as
-  // shipping no arrows. The keys are claimed only while a console is mounted,
-  // and only the ones it uses.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+  // One handler for both modes. A key already claimed by someone else, or
+  // aimed at a target that acts on it, is not the game's to take.
+  const onKeyDown = useCallback(
+    (event: KeyEventLike): void => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      if (targetKeepsKey(event.target, event.key)) return;
       const action = KEY_ACTIONS[event.key];
       if (action) {
         event.preventDefault();
@@ -267,12 +319,20 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
         event.preventDefault();
         reset();
       }
-    };
+    },
+    [press, toggleStart, reset]
+  );
+
+  const focusKeys = enabled && captureKeys === "focus";
+  const globalKeys = enabled && captureKeys === "global";
+
+  useEffect(() => {
+    if (!globalKeys || typeof window === "undefined") return;
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [press, toggleStart, reset]);
+  }, [globalKeys, onKeyDown]);
 
   const cell = CELL_PX[size];
   const preview = bag.status.next;
@@ -288,6 +348,10 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
       data-testid={props["data-testid"] ?? "brick-console"}
       data-phase={phase}
       data-game={bag.definition.id}
+      tabIndex={focusKeys ? 0 : undefined}
+      onKeyDown={focusKeys ? onKeyDown : undefined}
+      data-analytics="none"
+      data-analytics-reason="game input, not a product interaction"
     >
       <div style={bodyStyle}>
         <Panel

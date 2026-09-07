@@ -64,9 +64,13 @@ import { BrickConsole } from "@stapel/brick-react/default";
   next-piece box; the others are 20×20 and have none. An empty preview box and
   "this game has no preview" are different facts and look different.
 - **Keyboard**: arrows move, **Space** is OK (rotate / fire / turn a tile),
-  **Enter** starts, pauses and resumes, **R** resets. The listener is on the
-  window rather than on the frame, because a console dropped into a waiting
-  screen is never the focused element.
+  **Enter** starts, pauses and resumes, **R** resets. Which element the keys
+  are read from, and which keys are never the game's, is a contract — see
+  [Keys](#keys) below.
+- **`paused`** holds the loop from outside: the tick stops, the board and
+  score stay, and Start does nothing until the hold clears. Clearing it
+  resumes only a run the hold itself stopped — a board the person paused is
+  theirs to resume.
 - **Keypad on a coarse pointer only** — `(pointer: coarse)`, not a narrow
   window: a phone-sized browser window on a laptop still has arrow keys. Every
   target is at least the phone control height from the token scale, and every
@@ -76,6 +80,41 @@ import { BrickConsole } from "@stapel/brick-react/default";
   to a piece already three rows down is a bug report.
 - **`prefers-reduced-motion`** removes the cell transition. The game still
   runs — the request was about decoration.
+
+## Keys
+
+```tsx
+<BrickConsole captureKeys="focus" />   // default: keys only while the frame has focus
+<BrickConsole captureKeys="global" />  // the window: plays without ever being focused
+<BrickConsole enabled={false} />       // no key handler at all; the game stays on screen
+```
+
+- **`captureKeys="focus"` is the default.** The frame is focusable
+  (`tabIndex={0}`): a click or a Tab lands the keys on the console, and a
+  keystroke anywhere else on the page is not the game's. A host that embeds a
+  console next to a form gets the form's keys back for free.
+- **`captureKeys="global"`** is the opt-in for a console that must play
+  without ever being focused — the original waiting-screen case. It reads the
+  window, so the guarantees below are what keeps it from swallowing the page.
+- **An editable target keeps its keystrokes in both modes**: `input`,
+  `textarea`, `select`, anything `contenteditable`, or anything inside one.
+  Typing a title while an upload's game is mounted never loses an `r` or a
+  Space.
+- **A focused button or link keeps Space and Enter**, so the console's own
+  menu, and the host's "cancel" next to it, stay reachable by keyboard. Arrows
+  are still the game's.
+- **A handler that runs first and calls `preventDefault()` keeps the key.** A
+  tour overlay stepping on ArrowLeft/Right can decline them; the console
+  checks `defaultPrevented` before it acts. In `"global"` mode that handler
+  must be registered before the console mounts (window listeners run in
+  registration order); in `"focus"` mode a capture-phase handler on any
+  ancestor runs first regardless.
+- **`enabled={false}` detaches everything** — no window listener, no
+  `tabIndex`, no `onKeyDown` — for a host that wants to hand the keyboard to
+  something else while the board stays visible. Modifier chords (⌘/Ctrl/Alt)
+  are never claimed.
+
+`<WaitingGame/>` forwards `captureKeys`, `enabled` and `paused` unchanged.
 
 ## `<WaitingGame/>`
 
@@ -96,6 +135,10 @@ console unmounts — loop, key listener and frames all gone — and `onDone` fir
 **exactly once**; a re-render that passes `active={false}` again fires nothing,
 because a host that navigates away in `onDone` would otherwise do it twice. A
 second wait arms it again.
+
+`paused` is the other host flag: it holds the game **without** unmounting it
+(a modal opened over the wait, a step of a tour), and the board is exactly
+where it was when the hold clears.
 
 ## High scores
 
@@ -142,6 +185,29 @@ and fall back to this package's own English bundle when there is not — a
 waiting screen is exactly the surface a host mounts before its providers are
 up, and a keypad announcing itself as `brick.pad.left` is worse than one
 reading "Left" in the wrong language.
+
+**For a locale to apply, the host must do three things** — the same three
+every `@stapel/*` pair asks for. A console inside a Russian page that still
+reads in English is missing one of them:
+
+```tsx
+import { createI18n, I18nProvider } from "@stapel/core";
+import { registerBrickI18n } from "@stapel/brick-react";
+import { registerBrickI18nRu } from "@stapel/brick-react/i18n/ru";
+
+const i18n = createI18n({ locale: "ru" });
+registerBrickI18n(i18n);      // 1. the English floor, once at startup
+registerBrickI18nRu(i18n);    // 2. the locale bundle, from its subpath
+// 3. the engine on the tree above the console — the same provider the
+//    rest of the page uses; the console reads it through useOptionalI18n
+<I18nProvider i18n={i18n}>
+  <WaitingGame reason="upload" />
+</I18nProvider>;
+```
+
+Without the provider the console never sees an engine and reads its own
+English floor; with the provider but without step 2 the engine has no `ru`
+key to answer with and the floor shows through per key. Neither throws.
 
 ## Demos
 

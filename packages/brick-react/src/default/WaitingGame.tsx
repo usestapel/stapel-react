@@ -20,7 +20,7 @@ import { cssVar, fontSize, spacing } from "@stapel/tokens";
 import { BRICK_I18N_KEYS } from "../i18n/keys.js";
 import { BrickConsole } from "./BrickConsole.js";
 import { useBrickT } from "./hooks.js";
-import type { BrickConsoleSize } from "./BrickConsole.js";
+import type { BrickConsoleSize, BrickKeyCapture } from "./BrickConsole.js";
 import type { HighScoreStore } from "../headless/highscores.js";
 import type { BrickGameId } from "../headless/types.js";
 
@@ -62,6 +62,12 @@ export interface WaitingGameProps {
   readonly onGameOver?: (score: number, game: BrickGameId) => void;
   readonly onGameChange?: (game: BrickGameId) => void;
   readonly highScores?: HighScoreStore;
+  /** Hold the game without unmounting it — the board stays, the tick stops. */
+  readonly paused?: boolean;
+  /** Read the keyboard at all. Default true. */
+  readonly enabled?: boolean;
+  /** `"focus"` (default) or `"global"` — see `<BrickConsole/>`. */
+  readonly captureKeys?: BrickKeyCapture;
   readonly "data-testid"?: string;
 }
 
@@ -104,6 +110,9 @@ export function WaitingGame(props: WaitingGameProps): ReactElement | null {
           ? {}
           : { onGameChange: props.onGameChange })}
         {...(props.highScores === undefined ? {} : { highScores: props.highScores })}
+        {...(props.paused === undefined ? {} : { paused: props.paused })}
+        {...(props.enabled === undefined ? {} : { enabled: props.enabled })}
+        {...(props.captureKeys === undefined ? {} : { captureKeys: props.captureKeys })}
       />
     </div>
   );

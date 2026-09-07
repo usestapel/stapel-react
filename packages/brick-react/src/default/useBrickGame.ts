@@ -8,6 +8,10 @@
  *    lose on the player's behalf, and comes back to a board they never saw.
  *  - IT NEVER RESUMES BY ITSELF. Coming back to a paused board is a person's
  *    decision; coming back to a piece already three rows down is a bug report.
+ *
+ * The host can hold the loop too (`paused`): the tick stops and the board
+ * stays. Clearing the hold resumes only a run the hold itself stopped — a
+ * board the person paused is theirs to resume.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createBrickSession } from "../headless/session.js";
@@ -36,6 +40,12 @@ export interface UseBrickGameOptions {
   readonly onGameOver?: (score: number, game: BrickGameId) => void;
   /** Start the loop as soon as the game is mounted. Default: false. */
   readonly autoStart?: boolean;
+  /**
+   * Hold the loop from outside. The tick stops, the board and score stay,
+   * and Start does nothing until the hold clears. Clearing it resumes only a
+   * run this option stopped. Default: false.
+   */
+  readonly paused?: boolean;
 }
 
 export interface BrickGameBag {
@@ -67,6 +77,7 @@ function defaultStore(): HighScoreStore {
 
 export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const { game, seed, highScores, onGameOver, autoStart } = options;
+  const paused = options.paused ?? false;
   // An unknown id falls back to Tetris rather than throwing: this component's
   // job is to fill a wait, and taking down the page it was embedded in over a
   // typo in a prop would be the one failure worse than a boring wait.
@@ -76,6 +87,10 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const sessionRef = useRef<BrickSession | null>(null);
   const overRef = useRef(onGameOver);
   overRef.current = onGameOver;
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  /** True while the `paused` option, not the person, is what stopped the loop. */
+  const heldRef = useRef(false);
 
   const [cells, setCells] = useState<readonly CellLevel[]>([]);
   const [status, setStatus] = useState<GameStatus>({
@@ -120,7 +135,10 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     void store.get(definition.id).then((value) => {
       if (live) setBest(value);
     });
-    if (autoStart) {
+    if (autoStart && pausedRef.current) {
+      heldRef.current = true;
+      setPhase("paused");
+    } else if (autoStart) {
       session.start();
       setPhase("running");
     }
@@ -155,6 +173,23 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     };
   }, [pause]);
 
+  useEffect(() => {
+    const session = sessionRef.current;
+    if (!session) return;
+    if (paused) {
+      if (!session.running) return;
+      session.stop();
+      heldRef.current = true;
+      setPhase("paused");
+      return;
+    }
+    if (!heldRef.current) return;
+    heldRef.current = false;
+    if (session.status().over) return;
+    session.start();
+    setPhase(session.running ? "running" : "ready");
+  }, [paused]);
+
   const reset = useCallback(() => {
     const session = sessionRef.current;
     if (!session) return;
@@ -167,7 +202,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
 
   const toggleStart = useCallback(() => {
     const session = sessionRef.current;
-    if (!session) return;
+    if (!session || pausedRef.current) return;
     if (session.status().over) {
       session.reset();
       setIsRecord(false);

@@ -51,6 +51,10 @@ no network, and everyone born before the smartphone already knows the controls.
 - **The keypad is gated on `(pointer: coarse)`, never on width.** The question
   is "can this person press an arrow key", and a phone-sized browser window on
   a laptop answers yes.
+- **Keys are read from the focused frame by default, the window only on
+  opt-in — and never from an editable target.** 0.1.0 read the window
+  unconditionally and took `r` and Space out of a form field beside the game;
+  a host pays for `captureKeys="global"` with the guarantees in README "Keys".
 - **`onGameOver` reports; it does not persist.** The store is a separate,
   injectable seam (`highScores`), so a demo can hand it one that remembers
   nothing and a host can hand it one backed by its own account.

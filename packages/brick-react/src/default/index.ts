@@ -4,7 +4,11 @@
  * alone.
  */
 export { BrickConsole, BRICK_CONSOLE_GAMES } from "./BrickConsole.js";
-export type { BrickConsoleProps, BrickConsoleSize } from "./BrickConsole.js";
+export type {
+  BrickConsoleProps,
+  BrickConsoleSize,
+  BrickKeyCapture,
+} from "./BrickConsole.js";
 
 export { WaitingGame } from "./WaitingGame.js";
 export type { WaitingGameProps, WaitingReason } from "./WaitingGame.js";
