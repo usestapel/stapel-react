@@ -627,6 +627,8 @@ export interface components {
              *     correct: neither means anything the caller should act on.
              */
             readonly seller_type: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
         };
         /** @description Public profile for viewing other users. */
         ProfilePublicResponse: {
@@ -683,6 +685,11 @@ export interface components {
              * @example business
              */
             seller_type: string | null;
+            /**
+             * @description ISO 8601 time this PROFILE was created — the tenure a seller page renders as "on the site since March 2024". Not a sign-in time and not an activity signal
+             * @example 2025-01-15T12:00:00Z
+             */
+            created_at: string;
         };
         /**
          * @description Full user profile (for /me endpoint).
