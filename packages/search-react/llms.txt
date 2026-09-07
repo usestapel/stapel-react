@@ -87,7 +87,7 @@ const { tracked } = useTracked();
 - search.other-categories-line → <OtherCategoriesLine> [line|narrow|empty]  demo/OtherCategoriesLine.demo.tsx
 - search.page → <SearchPage> [desktop|phone|catalogue-leaf|under-a-header|filters-header-navigates|unreadable-link]  demo/SearchPage.demo.tsx
 - search.page-size-select → <PageSizeSelect> [ladder|off-ladder]  demo/PageSizeSelect.demo.tsx
-- search.partition-chips → <PartitionChips> [parent|child]  demo/PartitionChips.demo.tsx
+- search.partition-chips → <PartitionChips> [parent|counted|child]  demo/PartitionChips.demo.tsx
 - search.popular-values → <PopularValues> [desktop|responsive|narrow-column]  demo/PopularValues.demo.tsx
 - search.range-filter-row → <RangeFilterRow> [untouched|applied]  demo/RangeFilterRow.demo.tsx
 - search.ranking-pane → <RankingDisclosurePane> [desktop|phone]  demo/RankingDisclosurePane.demo.tsx

@@ -460,11 +460,20 @@ panel's own hairline in both themes. `railScrollbarCss()` and `RAIL_CLASS` are
 exported for a host that lays out its own column.
 
 The panel's footer — the live count, and the clear-all beside it — sits where
-its frame wants it: `footerBar="static"` (what `<SearchPage>` passes in the
+its frame wants it: `footerBar="static"` (the default `<SearchPage>` uses in the
 column layout) puts it after the last group, and `"sticky"` / `true` pins it to
 the scroll port's floor, which is right in a sheet whose port IS the sheet. It
 was pinned everywhere, and on the desktop rail an opaque bar over the last two
 groups made them unreachable.
+
+`<SearchPage footerBar>` overrides that default — including `false`, for a
+surface that draws its own count under the rail. It is a prop because it could
+not be reached any other way: the bar writes its own `display` inline, so a host
+stylesheet can only suppress it with an `!important`, and the page used to
+hard-code the column's value. The bar is also drawn ONLY in the settled rail: it
+reads the count and the clear-all off the answer, which usually arrives before
+the category schema, so mounting it during the hold put it in a place the
+settled rail then moved it from (D465).
 
 ## Under a host's own header: `railTop` and `stickyToolbar`
 

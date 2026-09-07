@@ -413,6 +413,12 @@
           "step": "partition-all"
         },
         {
+          "id": "counted",
+          "description": "Each section with its own total, drawn by the chip in the muted weight the facet rows use — the number a host used to have to concatenate into the name, because `name` was the only string this row accepted.",
+          "viewport": "desktop",
+          "step": "partition-counted"
+        },
+        {
           "id": "child",
           "description": "A shared link into one child, at 390px: the row wraps rather than scrolls, and the chosen chip is the single Tab stop.",
           "viewport": "phone",
@@ -421,7 +427,7 @@
       ],
       "source": {
         "file": "demo/PartitionChips.demo.tsx",
-        "line": 43
+        "line": 50
       }
     },
     {

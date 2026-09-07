@@ -80,6 +80,7 @@ import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { FacetPanelPane } from "./FacetPanelPane.js";
 import type {
   CategoryFilterSlotProps,
+  FacetPanelPaneProps,
   GeoFilterSlotProps,
 } from "./FacetPanelPane.js";
 import { FilterChips } from "./FilterChips.js";
@@ -461,6 +462,22 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * saves less than folding a column's does. Set it to override either.
    */
   readonly visibleGroups?: number | null;
+  /**
+   * The filter panel's footer — what the filters DID (the live count) and the
+   * way out of them — see {@link FacetPanelPaneProps.footerBar}.
+   *
+   * Defaulted PER LAYOUT: `"static"` in the desktop COLUMN (the rail scrolls
+   * with the page, and a bar pinned to the port's floor sat on top of the last
+   * groups), and none in the phone SHEET, whose own "Show N results" footer is
+   * already the count AND the exit.
+   *
+   * It is a PROP because it could not be reached any other way: the bar writes
+   * its own `display` inline, so a host stylesheet cannot suppress it without
+   * `!important`, and this page hard-coded the column's value. A surface that
+   * draws its own count under the rail passes `false`; one that wants the bar
+   * inside the sheet as well passes `"sticky"`.
+   */
+  readonly footerBar?: FacetPanelPaneProps["footerBar"];
   /** Print the engine's list of uncounted facet slugs in the filter panel.
    * Default `false` — see {@link FacetPanelPaneProps.skippedNotice}. */
   readonly skippedNotice?: boolean;
@@ -792,6 +809,7 @@ interface SearchPageBodyProps {
   readonly resultsLead?: ReactNode;
   readonly dictionaryMode?: "field" | "inline" | "sheet";
   readonly visibleGroups?: number | null;
+  readonly footerBar?: FacetPanelPaneProps["footerBar"];
   readonly categoryFeatures?: readonly FeatureDef[];
   readonly categoryFeaturesPending?: boolean;
   readonly filtersHeaderReserve?: number | string;
@@ -862,6 +880,16 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       : surface === "sheet"
         ? "sheet"
         : "column");
+  /**
+   * The rail's footer bar, defaulted PER LAYOUT and overridable — see
+   * {@link SearchPageProps.footerBar}.
+   *
+   * STATIC, not sticky, in the column: the rail scrolls with the page, and a
+   * bar pinned to the port's floor sat on top of the last groups. None in the
+   * sheet, whose own "Show N results" footer is already the count and the exit.
+   */
+  const footerBar: FacetPanelPaneProps["footerBar"] =
+    props.footerBar ?? (layout === "sheet" ? undefined : "static");
   // Controlled or not, decided by the PRESENCE of `filtersOpen` and read once
   // per render — the state the page keeps is only ever the uncontrolled half,
   // and a controlled host's value is never copied into it (copying it is how
@@ -994,11 +1022,8 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           result count scrolled out of sight above the fold. */}
       {filtersEmpty ? null : (
         <FacetPanelPane
-          {...(layout === "sheet"
-            ? { heading: null }
-            : // STATIC, not sticky: the rail scrolls with the page, and a bar
-              // pinned to the port's floor sat on top of the last groups.
-              { footerBar: "static" as const })}
+          {...(layout === "sheet" ? { heading: null } : {})}
+          {...(footerBar !== undefined ? { footerBar } : {})}
           dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "sheet" : "field")}
           // `??` would treat an explicit `null` ("never fold") the same as
           // "not set": `visibleGroups` uses `null` as a real value, unlike
@@ -1310,6 +1335,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     resultsHeadingVisible,
     dictionaryMode,
     visibleGroups,
+    footerBar,
     pinnedFacets,
     mode,
     ...parseOptions
@@ -1324,6 +1350,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(resultsHeadingVisible !== undefined ? { resultsHeadingVisible } : {})}
           {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}
+          {...(footerBar !== undefined ? { footerBar } : {})}
           {...(pinnedFacets !== undefined ? { pinnedFacets } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(categoryFeaturesPending !== undefined

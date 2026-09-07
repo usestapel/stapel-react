@@ -22,21 +22,28 @@ import { DEMO_TYPE } from "./fixtures.js";
 
 const PARENT = "141/151";
 
-const CHILDREN: readonly (readonly [number, string, string])[] = [
-  [152, `${PARENT}/152`, "demo.partition.new"],
-  [153, `${PARENT}/153`, "demo.partition.used"],
-  [154, `${PARENT}/154`, "demo.partition.parts"],
-  [155, `${PARENT}/155`, "demo.partition.rent"],
+const CHILDREN: readonly (readonly [number, string, string, number])[] = [
+  [152, `${PARENT}/152`, "demo.partition.new", 128],
+  [153, `${PARENT}/153`, "demo.partition.used", 4312],
+  [154, `${PARENT}/154`, "demo.partition.parts", 76],
+  [155, `${PARENT}/155`, "demo.partition.rent", 9],
 ];
 
-function Row(props: { readonly initial: string | null }): ReactElement {
+function Row(props: {
+  readonly initial: string | null;
+  /** Draw each section's total beside its name — see `PartitionChild.count`. */
+  readonly counted?: boolean;
+}): ReactElement {
   const t = useT();
   const [chosen, setChosen] = useState<string | null>(props.initial);
-  const items: readonly PartitionChild[] = CHILDREN.map(([id, path, key]) => ({
-    id,
-    path,
-    name: t(key),
-  }));
+  const items: readonly PartitionChild[] = CHILDREN.map(
+    ([id, path, key, count]) => ({
+      id,
+      path,
+      name: t(key),
+      ...(props.counted === true ? { count } : {}),
+    })
+  );
   return <PartitionChips items={items} value={chosen} onChange={setChosen} />;
 }
 
@@ -55,6 +62,17 @@ export default defineDemo({
       render: () => (
         <SearchSkinHarness search={`type=${DEMO_TYPE}&category=${PARENT}`}>
           <Row initial={null} />
+        </SearchSkinHarness>
+      ),
+    },
+    counted: {
+      description:
+        "Each section with its own total, drawn by the chip in the muted weight the facet rows use — the number a host used to have to concatenate into the name, because `name` was the only string this row accepted.",
+      viewport: "desktop",
+      step: "partition-counted",
+      render: () => (
+        <SearchSkinHarness search={`type=${DEMO_TYPE}&category=${PARENT}`}>
+          <Row initial={null} counted />
         </SearchSkinHarness>
       ),
     },

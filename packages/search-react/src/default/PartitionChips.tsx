@@ -55,7 +55,7 @@ import type {
   ReactElement,
   ReactNode,
 } from "react";
-import { Button, Segmented } from "antd";
+import { Button, Segmented, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { radii, spacing } from "@stapel/tokens";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
@@ -67,6 +67,22 @@ export interface PartitionChild {
   readonly id: number | string;
   readonly path: string;
   readonly name: string;
+  /**
+   * How many listings this section holds, drawn by the chip itself in the
+   * muted style every other counted control on the page uses.
+   *
+   * A host that has the number had to concatenate it into `name` — the only
+   * string this row accepted — which is how a count ends up in the same
+   * weight and colour as the word beside it, and how one storefront was
+   * joining the name and the total by hand. Passing the number instead lets
+   * the chip render it the way the facet rows render theirs, and keeps the
+   * label a label (a `Segmented` cell can lay the two out, and the name is not
+   * a string with an integer welded onto its end).
+   *
+   * Omit it and nothing is drawn — an absent count is not a zero, and a
+   * section whose total nobody asked for must not be captioned "0".
+   */
+  readonly count?: number;
 }
 
 export interface PartitionChipsProps {
@@ -152,6 +168,27 @@ function takeArrowMove(): boolean {
   return fresh;
 }
 
+/**
+ * One cell's label: the section's name, and its count beside it in the muted
+ * weight — the same `Typography.Text type="secondary"` a facet option's count
+ * is drawn in, so the two counted controls on one page read as one system.
+ */
+function ChildLabel(props: { readonly child: PartitionChild }): ReactElement {
+  const { child } = props;
+  if (child.count === undefined) return <>{child.name}</>;
+  return (
+    <>
+      {child.name}{" "}
+      <Typography.Text
+        type="secondary"
+        data-testid={`partition-count-${child.path}`}
+      >
+        {child.count}
+      </Typography.Text>
+    </>
+  );
+}
+
 /** The row's cells, as `[value, label]` — the parent first, then the
  * children in catalogue order. */
 function cells(
@@ -160,7 +197,9 @@ function cells(
 ): readonly (readonly [string | null, ReactNode])[] {
   return [
     [null, allLabel] as const,
-    ...items.map((item) => [item.path, item.name] as const),
+    ...items.map(
+      (item) => [item.path, <ChildLabel key={item.path} child={item} />] as const
+    ),
   ];
 }
 

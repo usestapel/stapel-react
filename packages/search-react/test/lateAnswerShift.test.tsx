@@ -43,9 +43,22 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { FacetPanelPane, SearchResultsPane } from "../src/default/index.js";
+import type { ReactElement } from "react";
+import {
+  FacetPanelPane,
+  SearchPage,
+  SearchResultsPane,
+} from "../src/default/index.js";
+import type { SearchParamsAdapter } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
-import { DESKTOP_WIDTH, TestHarness, mockServer, setViewport } from "./harness.js";
+import {
+  DESKTOP_WIDTH,
+  TestHarness,
+  TestProviders,
+  mockServer,
+  setViewport,
+  useTestParams,
+} from "./harness.js";
 
 afterEach(cleanup);
 
@@ -170,5 +183,72 @@ describe("D466 — the toolbar control does not travel when the count lands", ()
     expect(
       screen.getByTestId("search-results-toolbar").style.justifyContent
     ).toBe("");
+  });
+});
+
+/**
+ * D465, the host's half: the bar could not be reached from outside.
+ *
+ * `RailFooterBar` writes `display: flex` INLINE, so no consumer stylesheet can
+ * suppress it without `!important` — which the storefront's own gate forbids —
+ * and `<SearchPage>` hard-coded the column's `footerBar: "static"` and forwarded
+ * no prop. A surface that draws its own count under the rail therefore had no
+ * lever at all. It has one now, and the per-layout defaults are unchanged.
+ */
+describe("SearchPage forwards footerBar, and still defaults per layout", () => {
+  function Page(props: {
+    readonly footerBar?: false | "sticky" | "static";
+  }): ReactElement {
+    const adapter: SearchParamsAdapter = useTestParams(FILTERED);
+    return (
+      <SearchPage
+        adapter={adapter}
+        defaultType="listing"
+        filtersLayout="column"
+        {...(props.footerBar !== undefined ? { footerBar: props.footerBar } : {})}
+      />
+    );
+  }
+
+  function mountPage(node: ReactElement): void {
+    setViewport(DESKTOP_WIDTH);
+    render(
+      <TestProviders server={mockServer({ "/query": { body: searchResponse() } })}>
+        {node}
+      </TestProviders>
+    );
+  }
+
+  it("draws the static bar in the column when the host says nothing", async () => {
+    mountPage(<Page />);
+    await waitFor(() => {
+      expect(screen.getByTestId("facets-footer-bar")).toBeTruthy();
+    });
+    expect(screen.getByTestId("facets-footer-bar").dataset["position"]).toBe(
+      "static"
+    );
+  });
+
+  it("lets a host turn it off — the lever a stylesheet could not be", async () => {
+    mountPage(<Page footerBar={false} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("search-facets")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("facets-footer-bar")).toBeNull();
+    // And clear-all comes BACK to the panel head, so turning the bar off does
+    // not take the way out of the filters with it.
+    await waitFor(() => {
+      expect(screen.getByTestId("facets-clear-all")).toBeTruthy();
+    });
+  });
+
+  it("lets a host pin it instead", async () => {
+    mountPage(<Page footerBar="sticky" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("facets-footer-bar")).toBeTruthy();
+    });
+    expect(screen.getByTestId("facets-footer-bar").dataset["position"]).toBe(
+      "sticky"
+    );
   });
 });

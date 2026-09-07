@@ -141,6 +141,34 @@ describe("PartitionChips", () => {
     ]);
   });
 
+  it("draws a section's count itself, in the muted weight, when it is given one", () => {
+    // A host that has the number used to have exactly one string to put it in
+    // — `name` — so the count rendered in the same weight and colour as the
+    // word beside it, and a storefront was joining the two by hand.
+    mount(
+      <PartitionChips
+        items={[
+          { id: 152, path: "141/151/152", name: "Новые", count: 128 },
+          { id: 153, path: "141/151/153", name: "С пробегом" },
+        ]}
+        value={null}
+        onChange={() => undefined}
+      />
+    );
+    const counted = screen.getByTestId("partition-count-141/151/152");
+    expect(counted.textContent).toBe("128");
+    // The muted style is antd's own secondary text, the same class the facet
+    // rows' counts carry — not a colour this row picked for itself.
+    expect(counted.className).toContain("ant-typography-secondary");
+    // The label still reads as one thing, and the count is beside the name
+    // rather than inside it.
+    expect(screen.getByTestId("partition-chip-141/151/152").textContent).toBe(
+      "Новые 128"
+    );
+    // An absent count is not a zero: nothing is drawn for the sibling.
+    expect(screen.queryByTestId("partition-count-141/151/153")).toBeNull();
+  });
+
   it("is a single choice, announced as one", () => {
     mount(
       <PartitionChips
