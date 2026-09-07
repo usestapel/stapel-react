@@ -48,7 +48,7 @@ import { BrickConsole } from "@stapel/brick-react/default";
 <BrickConsole
   game="tetris"
   games={["tetris", "snake", "memory"]} // >1 draws a menu; 1 draws none
-  size="md"                             // sm | md | lg — the LCD pixel size
+  size="auto"                           // auto (default) | sm | md | lg
   onGameOver={(score, game) => track(game, score)}
 />;
 ```
@@ -63,6 +63,10 @@ import { BrickConsole } from "@stapel/brick-react/default";
 - **The panel is the game's shape**, not a fixed one: Tetris is 10×20 and has a
   next-piece box; the others are 20×20 and have none. An empty preview box and
   "this game has no preview" are different facts and look different.
+- **`size="auto"` is the default**: `sm` on a coarse pointer, `md` otherwise —
+  the same `(pointer: coarse)` question the keypad asks, so a host no longer
+  reads `useCoarsePointer` itself to pick a phone size. An explicit `sm` /
+  `md` / `lg` is kept on any pointer.
 - **Keyboard**: arrows move, **Space** is OK (rotate / fire / turn a tile),
   **Enter** starts, pauses and resumes, **R** resets. Which element the keys
   are read from, and which keys are never the game's, is a contract — see
@@ -100,9 +104,10 @@ import { BrickConsole } from "@stapel/brick-react/default";
   `textarea`, `select`, anything `contenteditable`, or anything inside one.
   Typing a title while an upload's game is mounted never loses an `r` or a
   Space.
-- **A focused button or link keeps Space and Enter**, so the console's own
-  menu, and the host's "cancel" next to it, stay reachable by keyboard. Arrows
-  are still the game's.
+- **A focused button or link keeps Space and Enter** (`button`, `a[href]`,
+  `[role=button]`), so the console's own menu, and the host's "leave" next
+  to it, stay reachable by a keyboard-only person while a game is running.
+  Arrows are still the game's.
 - **A handler that runs first and calls `preventDefault()` keeps the key.** A
   tour overlay stepping on ArrowLeft/Right can decline them; the console
   checks `defaultPrevented` before it acts. In `"global"` mode that handler

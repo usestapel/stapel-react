@@ -221,6 +221,36 @@ describe("<BrickConsole/> keys", () => {
     expect(keydown(button, "ArrowLeft").defaultPrevented).toBe(true);
   });
 
+  it("global: a focused button or link outside the console keeps Enter and Space while a game runs", () => {
+    matchMediaFor();
+    render(
+      <div>
+        <button type="button" data-testid="leave">
+          leave
+        </button>
+        <a href="#top" data-testid="link">
+          top
+        </a>
+        <div role="button" tabIndex={0} data-testid="role-button">
+          custom
+        </div>
+        <BrickConsole game="snake" seed={1} autoStart captureKeys="global" highScores={store} />
+      </div>
+    );
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["phase"]).toBe("running");
+    for (const id of ["leave", "link", "role-button"]) {
+      const target = screen.getByTestId(id);
+      act(() => {
+        (target as HTMLElement).focus();
+      });
+      expect(keydown(target, "Enter").defaultPrevented, id).toBe(false);
+      expect(keydown(target, " ").defaultPrevented, id).toBe(false);
+      // The game never saw a pause.
+      expect(frame.dataset["phase"], id).toBe("running");
+    }
+  });
+
   it("global: a host handler that already claimed the key wins", () => {
     matchMediaFor();
     const claim = (event: KeyboardEvent): void => {
@@ -260,6 +290,27 @@ describe("<BrickConsole/> keys", () => {
     frame = screen.getByTestId("brick-console");
     expect(keydown(frame, "Enter").defaultPrevented).toBe(true);
     expect(frame.dataset["phase"]).toBe("running");
+  });
+});
+
+describe("<BrickConsole/> size", () => {
+  const columns = (): string =>
+    screen.getByTestId("brick-screen").style.gridTemplateColumns;
+
+  it('defaults to "auto": md on a fine pointer, sm on a coarse one', () => {
+    matchMediaFor();
+    const { unmount } = render(<BrickConsole game="snake" seed={1} highScores={store} />);
+    expect(columns()).toBe("repeat(20, 11px)");
+    unmount();
+    matchMediaFor(COARSE);
+    render(<BrickConsole game="snake" seed={1} highScores={store} />);
+    expect(columns()).toBe("repeat(20, 7px)");
+  });
+
+  it("an explicit size is kept on any pointer", () => {
+    matchMediaFor(COARSE);
+    render(<BrickConsole game="snake" seed={1} size="lg" highScores={store} />);
+    expect(columns()).toBe("repeat(20, 15px)");
   });
 });
 

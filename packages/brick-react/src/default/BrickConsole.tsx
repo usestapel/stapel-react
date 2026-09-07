@@ -51,6 +51,8 @@ const CELL_GAP_PX = 1;
 const PREVIEW_SIDE = 4;
 
 export type BrickConsoleSize = "sm" | "md" | "lg";
+/** An explicit pixel size, or `"auto"`: `sm` on a coarse pointer, `md` otherwise. */
+export type BrickConsoleSizeChoice = BrickConsoleSize | "auto";
 
 /** Where the console reads the keyboard from. */
 export type BrickKeyCapture = "focus" | "global";
@@ -194,7 +196,8 @@ export interface BrickConsoleProps {
    * is furniture.
    */
   readonly games?: readonly BrickGameId[];
-  readonly size?: BrickConsoleSize;
+  /** The LCD pixel size. Default `"auto"` — `sm` on a coarse pointer, `md` otherwise. */
+  readonly size?: BrickConsoleSizeChoice;
   /** Pin the deal, for a demo or a test. */
   readonly seed?: number;
   /** Start playing on mount. Default false — a waiting screen should not
@@ -278,11 +281,13 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const games = props.games ?? [];
   const fallback = games[0] ?? "tetris";
   const game = props.game ?? fallback;
-  const size = props.size ?? "md";
   const ghostPixels = props.ghostPixels ?? true;
   const enabled = props.enabled ?? true;
   const captureKeys = props.captureKeys ?? "focus";
   const coarse = useCoarsePointer();
+  const sizeChoice = props.size ?? "auto";
+  const size: BrickConsoleSize =
+    sizeChoice === "auto" ? (coarse ? "sm" : "md") : sizeChoice;
   const reducedMotion = useReducedMotion();
   const t = useBrickT();
 

@@ -7,6 +7,7 @@ export { BrickConsole, BRICK_CONSOLE_GAMES } from "./BrickConsole.js";
 export type {
   BrickConsoleProps,
   BrickConsoleSize,
+  BrickConsoleSizeChoice,
   BrickKeyCapture,
 } from "./BrickConsole.js";
 

@@ -20,7 +20,7 @@ import { cssVar, fontSize, spacing } from "@stapel/tokens";
 import { BRICK_I18N_KEYS } from "../i18n/keys.js";
 import { BrickConsole } from "./BrickConsole.js";
 import { useBrickT } from "./hooks.js";
-import type { BrickConsoleSize, BrickKeyCapture } from "./BrickConsole.js";
+import type { BrickConsoleSizeChoice, BrickKeyCapture } from "./BrickConsole.js";
 import type { HighScoreStore } from "../headless/highscores.js";
 import type { BrickGameId } from "../headless/types.js";
 
@@ -54,7 +54,7 @@ export interface WaitingGameProps {
   readonly onDone?: () => void;
   readonly game?: BrickGameId;
   readonly games?: readonly BrickGameId[];
-  readonly size?: BrickConsoleSize;
+  readonly size?: BrickConsoleSizeChoice;
   readonly seed?: number;
   /** Start the game on mount. Default true here: someone who is waiting
    * already agreed to be entertained. */
