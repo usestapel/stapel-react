@@ -887,7 +887,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.35.0",
+      "version": "0.36.0",
       "entries": [
         {
           "id": "search.results",
