@@ -26,11 +26,12 @@ no network, and everyone born before the smartphone already knows the controls.
   is correct: drain, tick, render. No React, no DOM, no clock — which is why a
   game can be tested by *playing* it.
 - **headless/games/** — six pure modules behind one four-method interface
-  (`tick` / `input` / `render` / `status`) and one registry. Tetris and Snake
-  are complete; Arkanoid, Racing, Tanks and Memory are minimal and say so, in
-  the README table and in each module's own header. A game declares its own
-  panel size, so the console takes its shape from the game rather than the other
-  way round.
+  (`tick` / `input` / `render` / `status`, plus optional `hold` / `speed` for a
+  game with a hold behaviour) and one registry. Tetris and Snake are complete;
+  Arkanoid, Racing, Tanks and Memory are minimal and say so, in the README
+  table and in each module's own header. A game declares its own panel size and
+  its own `controls` (the legend is generated from them), so the console takes
+  its shape and its help from the game rather than the other way round.
 - **headless/highscores.ts** — one number per game through core's
   `createRepository`, `scope: "app"`. Every call is wrapped: blocked storage is
   a normal outcome on the surfaces this package is aimed at.
@@ -55,6 +56,16 @@ no network, and everyone born before the smartphone already knows the controls.
   opt-in — and never from an editable target.** 0.1.0 read the window
   unconditionally and took `r` and Space out of a form field beside the game;
   a host pays for `captureKeys="global"` with the guarantees in README "Keys".
+- **A press is applied at once; gravity is what runs on the step.** 0.1.x
+  queued presses and drained them at the tick, so at level 1 a Left could wait
+  620 ms to happen — most of what "unplayable" meant.
+- **Game selection is the console's unless the host takes it.** 0.1.x's
+  `<WaitingGame/>` pinned `game="tetris"` and the chips under it did nothing;
+  now `defaultGame` + internal state is the default and `game`/`onGameChange`
+  the controlled pair.
+- **It comes back with the person.** 0.1.x paused on blur and offered no way
+  back but an unlabelled Enter; `resumeOnReturn` (default true) restarts a run
+  the blur stopped, and a paused field carries a clickable veil.
 - **`onGameOver` reports; it does not persist.** The store is a separate,
   injectable seam (`highScores`), so a demo can hand it one that remembers
   nothing and a host can hand it one backed by its own account.

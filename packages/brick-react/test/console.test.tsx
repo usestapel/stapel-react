@@ -3,6 +3,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { I18nProvider, createI18n } from "@stapel/core";
 import { BrickConsole } from "../src/default/index.js";
 import { createNullHighScoreStore, registerBrickI18n } from "../src/index.js";
+import type { HighScoreStore } from "../src/index.js";
 import { brickI18nBundleRu, registerBrickI18nRu } from "../src/i18n/ru.js";
 
 /** Dispatch one real keydown at `target` and hand back the event to inspect. */
@@ -15,6 +16,29 @@ function keydown(target: EventTarget, key: string): KeyboardEvent {
 }
 
 const store = createNullHighScoreStore();
+
+function setVisibility(state: "visible" | "hidden"): void {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  });
+}
+
+/** One trip away and back: blur + hidden, then visible + focus. */
+function awayAndBack(): void {
+  act(() => {
+    window.dispatchEvent(new Event("blur"));
+    setVisibility("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  act(() => {
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+  });
+}
+
+const score = (): string => screen.getByTestId("brick-score").textContent ?? "";
 
 /**
  * Install a `matchMedia` that answers true for exactly the queries listed. The
@@ -40,6 +64,7 @@ const COARSE = "(pointer: coarse)";
 afterEach(() => {
   cleanup();
   matchMediaFor();
+  setVisibility("visible");
 });
 
 describe("<BrickConsole/>", () => {
@@ -383,5 +408,295 @@ describe("<BrickConsole/> locale", () => {
     expect(screen.getByTestId("brick-console").getAttribute("aria-label")).toBe(
       "Brick game console"
     );
+  });
+});
+
+describe("<BrickConsole/> game chips", () => {
+  it("switches games on a real click when the console picks its own game", () => {
+    matchMediaFor();
+    render(<BrickConsole games={["tetris", "snake", "memory"]} seed={1} highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["game"]).toBe("tetris");
+    expect(screen.getByTestId("brick-screen").childElementCount).toBe(200);
+    act(() => {
+      screen.getByTestId("brick-menu-snake").click();
+    });
+    expect(frame.dataset["game"]).toBe("snake");
+    expect(screen.getByTestId("brick-screen").childElementCount).toBe(400);
+    expect(screen.getByTestId("brick-menu-snake").getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByTestId("brick-menu-tetris").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("opens on defaultGame", () => {
+    matchMediaFor();
+    render(
+      <BrickConsole defaultGame="memory" games={["tetris", "memory"]} seed={1} highScores={store} />
+    );
+    expect(screen.getByTestId("brick-console").dataset["game"]).toBe("memory");
+  });
+
+  it("controlled: game + onGameChange — the click reports, the prop decides", () => {
+    matchMediaFor();
+    const onGameChange = vi.fn();
+    const props = { games: ["tetris", "snake"] as const, seed: 1, highScores: store, onGameChange };
+    const { rerender } = render(<BrickConsole {...props} game="tetris" />);
+    act(() => {
+      screen.getByTestId("brick-menu-snake").click();
+    });
+    expect(onGameChange).toHaveBeenCalledWith("snake");
+    expect(screen.getByTestId("brick-console").dataset["game"]).toBe("tetris");
+    rerender(<BrickConsole {...props} game="snake" />);
+    expect(screen.getByTestId("brick-console").dataset["game"]).toBe("snake");
+  });
+
+  it("a `game` without `onGameChange` seeds the choice and the chips still switch", () => {
+    matchMediaFor();
+    render(<BrickConsole game="snake" games={["tetris", "snake"]} seed={1} highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["game"]).toBe("snake");
+    act(() => {
+      screen.getByTestId("brick-menu-tetris").click();
+    });
+    expect(frame.dataset["game"]).toBe("tetris");
+  });
+
+  it("each game keeps its own best", async () => {
+    matchMediaFor();
+    const bests: Record<string, number> = { tetris: 1200, snake: 80 };
+    const perGame: HighScoreStore = {
+      get: (game) => Promise.resolve(bests[game] ?? 0),
+      record: () => Promise.resolve(false),
+      clear: () => Promise.resolve(),
+    };
+    render(<BrickConsole games={["tetris", "snake"]} seed={1} highScores={perGame} />);
+    expect((await screen.findByTestId("brick-best")).textContent).toBe("1200");
+    await act(async () => {
+      screen.getByTestId("brick-menu-snake").click();
+      await Promise.resolve();
+    });
+    expect((await screen.findByTestId("brick-best")).textContent).toBe("80");
+  });
+});
+
+describe("<BrickConsole/> tetris keys", () => {
+  it("ArrowDown / S soft-drop a row and a point; ArrowUp / W hard-drop; Space rotates", () => {
+    matchMediaFor();
+    render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    act(() => {
+      frame.focus();
+    });
+    expect(score()).toBe("0");
+    expect(keydown(frame, "s").defaultPrevented).toBe(true);
+    expect(score()).toBe("1");
+    keydown(frame, "ArrowDown");
+    expect(score()).toBe("2");
+    const before = screen.getByTestId("brick-screen").innerHTML;
+    expect(keydown(frame, " ").defaultPrevented).toBe(true);
+    expect(score()).toBe("2");
+    expect(keydown(frame, "w").defaultPrevented).toBe(true);
+    // A hard drop from near the top pays two a row for a dozen-odd rows.
+    expect(Number(score())).toBeGreaterThanOrEqual(2 + 2 * 10);
+    expect(screen.getByTestId("brick-screen").innerHTML).not.toBe(before);
+  });
+
+  it("A / D move like the arrows, and a held key stops soft-dropping on key-up", () => {
+    matchMediaFor();
+    render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    const before = screen.getByTestId("brick-screen").innerHTML;
+    expect(keydown(frame, "a").defaultPrevented).toBe(true);
+    expect(screen.getByTestId("brick-screen").innerHTML).not.toBe(before);
+    expect(keydown(frame, "d").defaultPrevented).toBe(true);
+    // Key-up is read too: a keyup for a game key is never swallowed and never throws.
+    const up = new KeyboardEvent("keyup", { key: "s", bubbles: true, cancelable: true });
+    act(() => {
+      frame.dispatchEvent(up);
+    });
+    expect(up.defaultPrevented).toBe(false);
+  });
+
+  it("a key auto-repeat slides a piece but never hard-drops it twice", () => {
+    matchMediaFor();
+    render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    const repeat = (key: string): void => {
+      act(() => {
+        frame.dispatchEvent(
+          new KeyboardEvent("keydown", { key, repeat: true, bubbles: true, cancelable: true })
+        );
+      });
+    };
+    const before = screen.getByTestId("brick-screen").innerHTML;
+    repeat("ArrowLeft");
+    expect(screen.getByTestId("brick-screen").innerHTML).not.toBe(before);
+    repeat("ArrowUp");
+    expect(score()).toBe("0");
+  });
+
+  it("presses are ignored while the game is not running", () => {
+    matchMediaFor();
+    render(<BrickConsole game="tetris" seed={1} highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    keydown(frame, "s");
+    expect(score()).toBe("0");
+  });
+});
+
+describe("<BrickConsole/> side column", () => {
+  it("Start/Pause and Reset are buttons beside the field, for a mouse", () => {
+    matchMediaFor();
+    render(<BrickConsole game="snake" seed={1} highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    const column = screen.getByTestId("brick-panel");
+    const start = screen.getByTestId("brick-button-start");
+    const resetButton = screen.getByTestId("brick-button-reset");
+    expect(column.contains(start)).toBe(true);
+    expect(column.contains(resetButton)).toBe(true);
+    expect(start.textContent).toBe("Start");
+    act(() => {
+      start.click();
+    });
+    expect(frame.dataset["phase"]).toBe("running");
+    expect(start.textContent).toBe("Pause");
+    act(() => {
+      start.click();
+    });
+    expect(frame.dataset["phase"]).toBe("paused");
+    expect(start.textContent).toBe("Resume");
+    act(() => {
+      resetButton.click();
+    });
+    expect(frame.dataset["phase"]).toBe("ready");
+    expect(start.textContent).toBe("Start");
+  });
+
+  it("a paused field says so and resumes on click", () => {
+    matchMediaFor();
+    render(<BrickConsole game="snake" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    expect(screen.queryByTestId("brick-veil")).toBeNull();
+    keydown(frame, "Enter");
+    expect(frame.dataset["phase"]).toBe("paused");
+    const veil = screen.getByTestId("brick-veil");
+    expect(veil.textContent).toContain("Paused");
+    act(() => {
+      veil.click();
+    });
+    expect(frame.dataset["phase"]).toBe("running");
+    expect(screen.queryByTestId("brick-veil")).toBeNull();
+  });
+});
+
+describe("<BrickConsole/> keypad and legend", () => {
+  it("a coarse pointer gets the keypad, a fine pointer a legend generated from the game", () => {
+    matchMediaFor(COARSE);
+    const { unmount } = render(
+      <BrickConsole games={["tetris", "snake"]} seed={1} highScores={store} />
+    );
+    expect(screen.getByTestId("brick-pad-ok")).toBeDefined();
+    expect(screen.queryByTestId("brick-legend")).toBeNull();
+    unmount();
+
+    matchMediaFor();
+    render(<BrickConsole games={["tetris", "snake"]} seed={1} highScores={store} />);
+    expect(screen.queryByTestId("brick-pad-ok")).toBeNull();
+    const legend = screen.getByTestId("brick-legend");
+    expect(legend.textContent).toContain("Hard drop");
+    expect(legend.textContent).toContain("Soft drop");
+    expect(legend.textContent).toContain("Enter");
+    expect(legend.textContent).toContain("Space");
+    act(() => {
+      screen.getByTestId("brick-menu-snake").click();
+    });
+    const snakeLegend = screen.getByTestId("brick-legend").textContent ?? "";
+    expect(snakeLegend).toContain("hold to speed up");
+    expect(snakeLegend).not.toContain("Hard drop");
+  });
+
+  it("the keypad's action button is visibly larger than a d-pad key", () => {
+    matchMediaFor(COARSE);
+    render(<BrickConsole game="tetris" seed={1} highScores={store} />);
+    const ok = screen.getByTestId("brick-pad-ok");
+    const left = screen.getByTestId("brick-pad-left");
+    expect(parseInt(ok.style.minWidth, 10)).toBeGreaterThan(parseInt(left.style.minWidth, 10));
+    expect(parseInt(ok.style.minHeight, 10)).toBeGreaterThan(parseInt(left.style.minHeight, 10));
+  });
+
+  it("the keypad presses on pointer-down, and the click that follows is not a second press", () => {
+    matchMediaFor(COARSE);
+    render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
+    const down = screen.getByTestId("brick-pad-down");
+    act(() => {
+      down.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    });
+    expect(score()).toBe("1");
+    act(() => {
+      down.dispatchEvent(new Event("pointerup", { bubbles: true }));
+      down.click();
+    });
+    expect(score()).toBe("1");
+    // A click no pointer preceded — a screen reader's activation — still presses.
+    act(() => {
+      down.click();
+    });
+    expect(score()).toBe("2");
+  });
+});
+
+describe("<BrickConsole/> coming back", () => {
+  it("a run the blur and the hidden tab stopped starts again on visible + focus", () => {
+    matchMediaFor();
+    render(<BrickConsole game="snake" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["phase"]).toBe("running");
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+      setVisibility("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(frame.dataset["phase"]).toBe("paused");
+    act(() => {
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(frame.dataset["phase"]).toBe("running");
+  });
+
+  it("a board the person paused stays paused across the same trip", () => {
+    matchMediaFor();
+    render(<BrickConsole game="snake" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    keydown(frame, "Enter");
+    expect(frame.dataset["phase"]).toBe("paused");
+    awayAndBack();
+    expect(frame.dataset["phase"]).toBe("paused");
+  });
+
+  it("resumeOnReturn={false} leaves the board where the blur left it", () => {
+    matchMediaFor();
+    render(
+      <BrickConsole game="snake" seed={1} autoStart resumeOnReturn={false} highScores={store} />
+    );
+    const frame = screen.getByTestId("brick-console");
+    awayAndBack();
+    expect(frame.dataset["phase"]).toBe("paused");
+  });
+
+  it("a host hold is not undone by coming back", () => {
+    matchMediaFor();
+    const { rerender } = render(
+      <BrickConsole game="snake" seed={1} autoStart highScores={store} />
+    );
+    const frame = screen.getByTestId("brick-console");
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+    rerender(<BrickConsole game="snake" seed={1} autoStart paused highScores={store} />);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(frame.dataset["phase"]).toBe("paused");
   });
 });

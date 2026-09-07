@@ -128,6 +128,7 @@ export const ARKANOID: GameDefinition = {
   rows: 20,
   stepMs: 150,
   labelKey: "brick.game.arkanoid",
+  controls: [{ inputs: ["left", "right"], labelKey: "brick.key.move" }],
   completeness: "minimal",
   create: createArkanoid,
 };

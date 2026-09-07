@@ -4,6 +4,9 @@
  * change is QUEUED, not applied. Reading "the current direction" at tick time
  * lets a fast player press up-then-left between two ticks and reverse into
  * their own neck, which looks exactly like the collision code being broken.
+ *
+ * Holding the key of the direction the snake is already travelling in runs it
+ * at twice the level's speed; letting go, or turning, drops it back.
  */
 import { setCell } from "../grid.js";
 import type {
@@ -39,6 +42,12 @@ const OPPOSITE: Record<Direction, Direction> = {
 /** Points per bite, and how many bites buy a level. */
 const FOOD_SCORE = 10;
 const FOOD_PER_LEVEL = 5;
+/** The speed while the travelling direction's key is held. */
+const HELD_SPEED = 2;
+
+function isDirection(action: BrickInput): action is Direction {
+  return action === "left" || action === "right" || action === "up" || action === "down";
+}
 
 export const SNAKE_SIZE = 20;
 
@@ -55,6 +64,8 @@ function createSnake(ctx: GameContext): Game {
   let eaten = 0;
   let over = false;
   let grow = 0;
+  /** The direction key currently held, if any. */
+  let heldKey: Direction | null = null;
 
   function occupies(x: number, y: number): boolean {
     return body.some((p) => p.x === x && p.y === y);
@@ -130,14 +141,21 @@ function createSnake(ctx: GameContext): Game {
       else body.pop();
     },
     input(action: BrickInput) {
-      if (over) return;
-      if (action !== "left" && action !== "right" && action !== "up" && action !== "down") {
-        return;
-      }
+      if (over || !isDirection(action)) return;
       const last = turns[turns.length - 1] ?? direction;
       if (action === last || action === OPPOSITE[last]) return;
       if (turns.length >= 2) return;
       turns.push(action);
+    },
+    hold(action: BrickInput, isHeld: boolean) {
+      if (!isDirection(action)) return;
+      if (isHeld) heldKey = action;
+      else if (heldKey === action) heldKey = null;
+    },
+    speed() {
+      return heldKey !== null && heldKey === direction && turns.length === 0
+        ? HELD_SPEED
+        : 1;
     },
     render(grid: MutableGrid) {
       // Food first: the head passing over it is the frame that ends the bite.
@@ -167,5 +185,6 @@ export const SNAKE: GameDefinition = {
   stepMs: 180,
   labelKey: "brick.game.snake",
   completeness: "full",
+  controls: [{ inputs: ["left", "right", "up", "down"], labelKey: "brick.key.turn" }],
   create: createSnake,
 };

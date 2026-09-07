@@ -65,11 +65,9 @@ describe("every game", () => {
         session.press(EVERY_BUTTON[i % EVERY_BUTTON.length] ?? "ok");
         session.step();
         // Every cell stays inside the four levels — a game that wrote a 7 into
-        // the panel would render an undefined style and paint nothing.
-        for (const cell of session.grid.cells) {
-          expect(cell).toBeGreaterThanOrEqual(0);
-          expect(cell).toBeLessThanOrEqual(3);
-        }
+        // the panel would render an undefined style and paint nothing. One
+        // assertion per frame: two per cell cost 320k `expect` calls a run.
+        expect(session.grid.cells.every((cell) => cell >= 0 && cell <= 3)).toBe(true);
         if (session.status().over) break;
       }
       expect(session.status().score).toBeGreaterThanOrEqual(0);

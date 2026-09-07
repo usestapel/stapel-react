@@ -57,6 +57,36 @@ export const BRICK_I18N_KEYS = {
   waitProcessing: "brick.wait.processing",
   waitUpload: "brick.wait.upload",
   waitQueue: "brick.wait.queue",
+
+  /** What a button does, per game — the legend is generated from each game's `controls`. */
+  keyMove: "brick.key.move",
+  keyTurn: "brick.key.turn",
+  keySoftDrop: "brick.key.softdrop",
+  keyHardDrop: "brick.key.harddrop",
+  keyRotate: "brick.key.rotate",
+  keyLane: "brick.key.lane",
+  keyAccelerate: "brick.key.accelerate",
+  keyFire: "brick.key.fire",
+  keyCursor: "brick.key.cursor",
+  keyFlip: "brick.key.flip",
+
+  /** The physical keys behind each button, as the legend prints them. */
+  keyNameLeft: "brick.keyname.left",
+  keyNameRight: "brick.keyname.right",
+  keyNameUp: "brick.keyname.up",
+  keyNameDown: "brick.keyname.down",
+  keyNameOk: "brick.keyname.ok",
+  keyNameStart: "brick.keyname.start",
+  keyNameReset: "brick.keyname.reset",
+
+  /** The legend's heading, the side-column buttons, and the paused screen's hint. */
+  legendLabel: "brick.legend.label",
+  buttonStart: "brick.button.start",
+  buttonPause: "brick.button.pause",
+  buttonResume: "brick.button.resume",
+  buttonAgain: "brick.button.again",
+  buttonReset: "brick.button.reset",
+  screenHint: "brick.screen.hint",
 } as const;
 
 export type BrickI18nKey = (typeof BRICK_I18N_KEYS)[keyof typeof BRICK_I18N_KEYS];
@@ -91,6 +121,30 @@ export const brickI18nBundleEn: I18nDictionary = {
   "brick.wait.processing": "While we work on it…",
   "brick.wait.upload": "While the upload finishes…",
   "brick.wait.queue": "While you hold your place in the queue…",
+  "brick.key.move": "Move",
+  "brick.key.turn": "Turn — hold to speed up",
+  "brick.key.softdrop": "Soft drop — hold",
+  "brick.key.harddrop": "Hard drop",
+  "brick.key.rotate": "Rotate",
+  "brick.key.lane": "Change lane",
+  "brick.key.accelerate": "Speed up",
+  "brick.key.fire": "Fire",
+  "brick.key.cursor": "Move the cursor",
+  "brick.key.flip": "Turn a tile",
+  "brick.keyname.left": "← A",
+  "brick.keyname.right": "→ D",
+  "brick.keyname.up": "↑ W",
+  "brick.keyname.down": "↓ S",
+  "brick.keyname.ok": "Space",
+  "brick.keyname.start": "Enter",
+  "brick.keyname.reset": "R",
+  "brick.legend.label": "Keys",
+  "brick.button.start": "Start",
+  "brick.button.pause": "Pause",
+  "brick.button.resume": "Resume",
+  "brick.button.again": "Play again",
+  "brick.button.reset": "Reset",
+  "brick.screen.hint": "Click here or press Enter",
 };
 
 /**

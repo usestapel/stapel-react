@@ -108,6 +108,10 @@ export const RACING: GameDefinition = {
   rows: 20,
   stepMs: 220,
   labelKey: "brick.game.racing",
+  controls: [
+    { inputs: ["left", "right"], labelKey: "brick.key.lane" },
+    { inputs: ["down", "ok"], labelKey: "brick.key.accelerate" },
+  ],
   completeness: "minimal",
   create: createRacing,
 };

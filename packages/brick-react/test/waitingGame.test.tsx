@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { WaitingGame } from "../src/default/index.js";
 import { createNullHighScoreStore } from "../src/index.js";
 import { brickI18nBundleEn } from "../src/index.js";
@@ -114,5 +114,46 @@ describe("<WaitingGame/>", () => {
     input.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
     expect(container.querySelector('[data-phase="running"]')).not.toBeNull();
+  });
+
+  it("the chips switch games without any onGameChange from the host", () => {
+    render(
+      <WaitingGame
+        reason="admission"
+        games={["tetris", "snake", "arkanoid", "racing", "tanks", "memory"]}
+        seed={1}
+        autoStart={false}
+        highScores={store}
+      />
+    );
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["game"]).toBe("tetris");
+    act(() => {
+      screen.getByTestId("brick-menu-racing").click();
+    });
+    expect(frame.dataset["game"]).toBe("racing");
+  });
+
+  it("opens on defaultGame and forwards resumeOnReturn", () => {
+    render(
+      <WaitingGame
+        reason="queue"
+        defaultGame="memory"
+        games={["tetris", "memory"]}
+        seed={1}
+        resumeOnReturn={false}
+        highScores={store}
+      />
+    );
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["game"]).toBe("memory");
+    expect(frame.dataset["phase"]).toBe("running");
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(frame.dataset["phase"]).toBe("paused");
   });
 });

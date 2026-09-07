@@ -14,6 +14,7 @@
  *    glyph is announced as "button" and is unaddressable by voice control
  *    (stapel/icon-button-needs-label).
  */
+import { useRef } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { controls, cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { BRICK_I18N_KEYS } from "../i18n/keys.js";
@@ -22,14 +23,15 @@ import type { BrickTranslate } from "./hooks.js";
 
 /** The minimum touch target, from the token scale. */
 const TARGET = controls["height-phone"];
+/** The action button is the one a thumb hammers: visibly larger than a d-pad key. */
+const ACTION = Math.round(TARGET * 1.4);
 
 const padStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: spacing[4],
-  flexWrap: "wrap",
-  paddingBlockStart: spacing[4],
+  justifyContent: "center",
+  gap: spacing[5],
+  paddingBlockStart: spacing[3],
 };
 
 const dpadStyle: CSSProperties = {
@@ -42,7 +44,7 @@ const dpadStyle: CSSProperties = {
 const actionsStyle: CSSProperties = {
   display: "grid",
   gap: spacing[2],
-  justifyItems: "stretch",
+  justifyItems: "center",
 };
 
 const buttonStyle: CSSProperties = {
@@ -63,6 +65,7 @@ const buttonStyle: CSSProperties = {
 };
 
 const roundStyle: CSSProperties = { ...buttonStyle, borderRadius: radii.full };
+const actionStyle: CSSProperties = { ...roundStyle, minWidth: ACTION, minHeight: ACTION };
 
 /** A chevron pointing whichever way the button moves things. */
 function Arrow(props: { readonly rotate: number }): ReactElement {
@@ -90,8 +93,10 @@ function Dot(): ReactElement {
 }
 
 export interface KeypadProps {
-  /** Queue a press. */
+  /** Apply a press. */
   readonly onPress: (action: BrickInput) => void;
+  /** A d-pad or OK button went down or came up — a held soft drop, a held direction. */
+  readonly onHold?: (action: BrickInput, held: boolean) => void;
   /** Start / pause / resume — the same button the handheld had. */
   readonly onStart: () => void;
   readonly onReset: () => void;
@@ -102,13 +107,40 @@ export interface KeypadProps {
 interface PadButtonProps {
   readonly label: string;
   readonly onPress: () => void;
+  readonly onHold?: (held: boolean) => void;
   readonly area: string;
   readonly children: ReactElement;
-  readonly round?: boolean;
+  readonly style?: CSSProperties;
   readonly testId: string;
 }
 
+/**
+ * A pad button presses on pointer-down (a game button acts when the thumb
+ * lands, not when it lifts) and reports the hold until the pointer lifts or
+ * leaves. A click that no pointer-down preceded — a screen reader's
+ * activation, a keyboard on a focused button — still presses once.
+ */
 function PadButton(props: PadButtonProps): ReactElement {
+  const viaPointer = useRef(false);
+  const down = (): void => {
+    viaPointer.current = true;
+    props.onPress();
+    props.onHold?.(true);
+  };
+  const up = (): void => {
+    props.onHold?.(false);
+  };
+  const gone = (): void => {
+    viaPointer.current = false;
+    props.onHold?.(false);
+  };
+  const click = (): void => {
+    if (viaPointer.current) {
+      viaPointer.current = false;
+      return;
+    }
+    props.onPress();
+  };
   return (
     <button
       type="button"
@@ -118,8 +150,12 @@ function PadButton(props: PadButtonProps): ReactElement {
       // funnel of how many times someone pressed left while waiting for a room.
       data-analytics="none"
       data-analytics-reason="game input, not a product interaction"
-      onClick={props.onPress}
-      style={{ ...(props.round ? roundStyle : buttonStyle), gridArea: props.area }}
+      onPointerDown={down}
+      onPointerUp={up}
+      onPointerCancel={gone}
+      onPointerLeave={gone}
+      onClick={click}
+      style={{ ...(props.style ?? buttonStyle), gridArea: props.area }}
     >
       {props.children}
     </button>
@@ -128,65 +164,49 @@ function PadButton(props: PadButtonProps): ReactElement {
 
 /** The keypad: a four-way pad, OK, Start, Reset. */
 export function Keypad(props: KeypadProps): ReactElement {
-  const { onPress, onStart, onReset, t } = props;
+  const { onPress, onHold, onStart, onReset, t } = props;
+  const dir = (
+    action: BrickInput,
+    area: string,
+    labelKey: string,
+    rotate: number
+  ): ReactElement => (
+    <PadButton
+      area={area}
+      testId={`brick-pad-${action}`}
+      label={t(labelKey)}
+      onPress={() => {
+        onPress(action);
+      }}
+      onHold={(held) => onHold?.(action, held)}
+    >
+      <Arrow rotate={rotate} />
+    </PadButton>
+  );
   return (
     <div style={padStyle} role="group" aria-label={t(BRICK_I18N_KEYS.padLabel)}>
       <div style={dpadStyle}>
-        <PadButton
-          area="1 / 2 / 2 / 3"
-          testId="brick-pad-up"
-          label={t(BRICK_I18N_KEYS.padUp)}
-          onPress={() => {
-            onPress("up");
-          }}
-        >
-          <Arrow rotate={0} />
-        </PadButton>
-        <PadButton
-          area="2 / 1 / 3 / 2"
-          testId="brick-pad-left"
-          label={t(BRICK_I18N_KEYS.padLeft)}
-          onPress={() => {
-            onPress("left");
-          }}
-        >
-          <Arrow rotate={-90} />
-        </PadButton>
-        <PadButton
-          area="2 / 3 / 3 / 4"
-          testId="brick-pad-right"
-          label={t(BRICK_I18N_KEYS.padRight)}
-          onPress={() => {
-            onPress("right");
-          }}
-        >
-          <Arrow rotate={90} />
-        </PadButton>
-        <PadButton
-          area="3 / 2 / 4 / 3"
-          testId="brick-pad-down"
-          label={t(BRICK_I18N_KEYS.padDown)}
-          onPress={() => {
-            onPress("down");
-          }}
-        >
-          <Arrow rotate={180} />
-        </PadButton>
+        {dir("up", "1 / 2 / 2 / 3", BRICK_I18N_KEYS.padUp, 0)}
+        {dir("left", "2 / 1 / 3 / 2", BRICK_I18N_KEYS.padLeft, -90)}
+        {dir("right", "2 / 3 / 3 / 4", BRICK_I18N_KEYS.padRight, 90)}
+        {dir("down", "3 / 2 / 4 / 3", BRICK_I18N_KEYS.padDown, 180)}
       </div>
       <div style={actionsStyle}>
         <PadButton
-          round
           area="auto"
+          style={actionStyle}
           testId="brick-pad-ok"
           label={t(BRICK_I18N_KEYS.padOk)}
           onPress={() => {
             onPress("ok");
           }}
+          onHold={(held) => onHold?.("ok", held)}
         >
           <Dot />
         </PadButton>
         <PadButton
           area="auto"
+          style={roundStyle}
           testId="brick-pad-start"
           label={t(BRICK_I18N_KEYS.padStart)}
           onPress={onStart}
@@ -195,6 +215,7 @@ export function Keypad(props: KeypadProps): ReactElement {
         </PadButton>
         <PadButton
           area="auto"
+          style={roundStyle}
           testId="brick-pad-reset"
           label={t(BRICK_I18N_KEYS.padReset)}
           onPress={onReset}

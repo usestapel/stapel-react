@@ -125,6 +125,10 @@ export const MEMORY: GameDefinition = {
   rows: 20,
   stepMs: 260,
   labelKey: "brick.game.memory",
+  controls: [
+    { inputs: ["left", "right", "up", "down"], labelKey: "brick.key.cursor" },
+    { inputs: ["ok"], labelKey: "brick.key.flip" },
+  ],
   completeness: "minimal",
   create: createMemory,
 };

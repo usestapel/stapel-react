@@ -3,16 +3,14 @@
  * the console wires them — and testable without React, which is the reason it
  * is here rather than inside the component.
  *
- * The step order is fixed and it matters: DRAIN inputs, then TICK, then RENDER.
- * Ticking before draining means a press made during a frame is applied to the
- * board the person has already stopped looking at; rendering before ticking
- * paints a frame the simulation has already left.
+ * A press is applied the moment it arrives, and the frame is repainted then:
+ * gravity runs on the level's step, a person's hands do not. A held button
+ * (`hold`) is handed to the game, which may answer with a faster step
+ * (`speed`) — a soft drop, a snake running along its own direction.
  */
 import { clearGrid, createGrid } from "./grid.js";
-import { createInputQueue } from "./inputQueue.js";
 import { createLoop } from "./loop.js";
 import { createRng } from "./rng.js";
-import type { InputQueue } from "./inputQueue.js";
 import type { Loop } from "./loop.js";
 import type {
   BrickInput,
@@ -40,9 +38,15 @@ export interface BrickSession {
   /** The live panel. Repainted in place — read it, never keep the array. */
   readonly grid: Grid;
   status(): GameStatus;
-  /** Queue a button press (applied at the next step). */
+  /** Apply one button press now, and repaint. */
   press(action: BrickInput): void;
-  /** Drain, tick, render. Returns the status after the step. */
+  /** A button went down or came up; the game may change its speed. */
+  hold(action: BrickInput, held: boolean): void;
+  /** Every held button comes up — on blur, on pause, on reset. */
+  releaseAll(): void;
+  /** The step the loop runs at right now: the level's, divided by the game's speed. */
+  readonly stepMs: number;
+  /** Tick, render. Returns the status after the step. */
   step(): GameStatus;
   /** Feed elapsed wall-clock time; runs the whole steps it buys. */
   advance(deltaMs: number): number;
@@ -55,20 +59,26 @@ export interface BrickSession {
   reset(seed?: number): void;
 }
 
-/** How much faster each level runs, as a multiplier on the base step. */
+/** Each level runs 15% faster than the one before, down to a 60ms floor. */
+export const LEVEL_SPEEDUP = 0.85;
+/** The fastest step a boosted game may ask for — about one frame. */
+const MIN_STEP_MS = 16;
+
+/** The level's step: the base, times the speed-up per level, never past the floor. */
 export function stepMsForLevel(definition: GameDefinition, level: number): number {
-  const factor = Math.pow(0.86, Math.max(0, level - 1));
+  const factor = Math.pow(LEVEL_SPEEDUP, Math.max(0, level - 1));
   return Math.max(60, Math.round(definition.stepMs * factor));
 }
 
 export function createBrickSession(options: BrickSessionOptions): BrickSession {
   const definition = options.definition;
   const grid: MutableGrid = createGrid(definition.cols, definition.rows);
-  const queue: InputQueue = createInputQueue();
+  const held = new Set<BrickInput>();
   let seed = options.seed ?? 1;
   let game: Game = build(seed);
   let notified = false;
   let level = 1;
+  let stepMs = definition.stepMs;
 
   function build(withSeed: number): Game {
     const rng = createRng(withSeed);
@@ -84,15 +94,18 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     game.render(grid);
   }
 
-  function step(): GameStatus {
-    for (const action of queue.drain()) game.input(action);
-    game.tick();
+  function refreshStep(): void {
+    const speed = Math.max(1, game.speed?.() ?? 1);
+    stepMs = Math.max(MIN_STEP_MS, Math.round(stepMsForLevel(definition, level) / speed));
+    loop.setStepMs(stepMs);
+  }
+
+  /** After anything that may have changed the board: repaint, re-time, report. */
+  function settle(): GameStatus {
     paint();
     const status = game.status();
-    if (status.level !== level) {
-      level = status.level;
-      loop.setStepMs(stepMsForLevel(definition, level));
-    }
+    if (status.level !== level) level = status.level;
+    refreshStep();
     if (status.over && !notified) {
       notified = true;
       loop.stop();
@@ -100,6 +113,11 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     }
     options.onFrame?.(grid, status);
     return status;
+  }
+
+  function step(): GameStatus {
+    game.tick();
+    return settle();
   }
 
   const loop: Loop = createLoop({
@@ -116,7 +134,23 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     grid,
     status: () => game.status(),
     press(action) {
-      queue.push(action);
+      if (game.status().over) return;
+      game.input(action);
+      settle();
+    },
+    hold(action, isHeld) {
+      if (isHeld) held.add(action);
+      else held.delete(action);
+      game.hold?.(action, isHeld);
+      refreshStep();
+    },
+    releaseAll() {
+      for (const action of held) game.hold?.(action, false);
+      held.clear();
+      refreshStep();
+    },
+    get stepMs() {
+      return stepMs;
     },
     step,
     advance: (deltaMs) => loop.advance(deltaMs),
@@ -133,12 +167,12 @@ export function createBrickSession(options: BrickSessionOptions): BrickSession {
     },
     reset(nextSeed) {
       loop.stop();
-      queue.clear();
+      held.clear();
       seed = nextSeed ?? seed;
       game = build(seed);
       notified = false;
       level = 1;
-      loop.setStepMs(definition.stepMs);
+      refreshStep();
       paint();
     },
   };

@@ -1,5 +1,5 @@
 /**
- * `<BrickConsole/>` — the whole handheld: a 4-bit LCD, the side panel, the
+ * `<BrickConsole/>` — the whole handheld: a 4-bit LCD, the side column, the
  * keyboard, and the keypad a phone gets instead of the keyboard.
  *
  * ── The LCD ────────────────────────────────────────────────────────────────
@@ -15,21 +15,28 @@
  * up the text ramp. Set `ghostPixels={false}` for a panel whose off cells are
  * truly blank.
  *
+ * ── Layout ─────────────────────────────────────────────────────────────────
+ * The field is centred; score, best, level, next, Start/Pause and Reset sit in
+ * one tight column to its right; the game chips go under; and under those,
+ * the keypad on a coarse pointer or the key legend on a fine one. A paused
+ * field carries a clickable veil saying so, so a mouse always has a way back.
+ *
+ * ── Keys ───────────────────────────────────────────────────────────────────
+ * Arrows or WASD, Space for OK, Enter for Start, R for Reset. By default the
+ * frame is focusable and reads keys only while focus is inside it
+ * (`captureKeys="focus"`); `"global"` reads the window instead. In both modes
+ * a key whose target is editable, or a Space/Enter on a focused button, stays
+ * with that target; a handler that already called `preventDefault()` keeps
+ * the key; and `enabled={false}` detaches everything. A key held down is
+ * reported to the game as a hold (a soft drop, a snake at speed).
+ *
  * ── Reduced motion ─────────────────────────────────────────────────────────
  * `prefers-reduced-motion` removes the cell transition, so a moving piece
  * snaps rather than fades. The GAME still runs: the request is about
  * decoration, and a person who asked for less movement did not ask to be
  * denied the thing they are looking at.
- *
- * ── Keys ───────────────────────────────────────────────────────────────────
- * By default the frame is focusable and reads keys only while focus is inside
- * it (`captureKeys="focus"`). `"global"` reads the window instead, for a
- * console that must play without ever being focused. In both modes a key
- * whose target is editable, or a Space/Enter on a focused button, stays with
- * that target; a handler that already called `preventDefault()` keeps the
- * key; and `enabled={false}` detaches everything.
  */
-import { useCallback, useEffect, useMemo } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { BRICK_GAME_IDS, findGame } from "../headless/games/index.js";
@@ -40,14 +47,19 @@ import type { BrickPhase } from "./useBrickGame.js";
 import { useBrickT, useCoarsePointer, useReducedMotion } from "./hooks.js";
 import type { BrickTranslate } from "./hooks.js";
 import type { HighScoreStore } from "../headless/highscores.js";
-import type { BrickGameId, BrickInput, CellLevel } from "../headless/types.js";
+import type {
+  BrickGameId,
+  BrickInput,
+  CellLevel,
+  GameDefinition,
+} from "../headless/types.js";
 
 /** How big one LCD pixel is, per size. */
 const CELL_PX: Record<BrickConsoleSize, number> = { sm: 7, md: 11, lg: 15 };
 /** The gap between pixels — a real LCD has one, and it is what makes it read
  * as pixels rather than as a bitmap. */
 const CELL_GAP_PX = 1;
-/** The preview box in the side panel is always 4x4. */
+/** The preview box in the side column is always 4x4. */
 const PREVIEW_SIDE = 4;
 
 export type BrickConsoleSize = "sm" | "md" | "lg";
@@ -66,7 +78,9 @@ const LEVEL_COLOR: readonly string[] = [
 ];
 
 const frameStyle: CSSProperties = {
-  display: "inline-block",
+  display: "inline-grid",
+  justifyItems: "center",
+  gap: spacing[3],
   padding: spacing[4],
   borderRadius: radii.lg,
   background: cssVar("surface-raised"),
@@ -76,12 +90,16 @@ const frameStyle: CSSProperties = {
 
 const bodyStyle: CSSProperties = {
   display: "flex",
+  justifyContent: "center",
   alignItems: "flex-start",
-  gap: spacing[4],
+  gap: spacing[3],
 };
 
-const panelStyle: CSSProperties = {
+const screenWrapStyle: CSSProperties = { position: "relative" };
+
+const columnStyle: CSSProperties = {
   display: "grid",
+  alignContent: "start",
   gap: spacing[2],
   minWidth: 0,
   fontSize: fontSize.sm.fontSize,
@@ -99,14 +117,52 @@ const valueStyle: CSSProperties = {
   fontWeight: 600,
 };
 
+const buttonStyle: CSSProperties = {
+  border: `1px solid ${cssVar("border")}`,
+  borderRadius: radii.md,
+  background: cssVar("surface"),
+  color: cssVar("text"),
+  paddingBlock: spacing[1],
+  paddingInline: spacing[3],
+  fontSize: fontSize.sm.fontSize,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+const primaryButtonStyle: CSSProperties = {
+  ...buttonStyle,
+  background: cssVar("brand-subtle"),
+  color: cssVar("brand"),
+  borderColor: cssVar("brand"),
+};
+
+const veilStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "grid",
+  placeContent: "center",
+  gap: spacing[1],
+  border: 0,
+  borderRadius: radii.sm,
+  background: `color-mix(in srgb, ${cssVar("surface")} 80%, transparent)`,
+  color: cssVar("text"),
+  textAlign: "center",
+  cursor: "pointer",
+};
+
+const veilHintStyle: CSSProperties = {
+  color: cssVar("text-muted"),
+  fontSize: fontSize.xs.fontSize,
+};
+
 const menuStyle: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
+  justifyContent: "center",
   gap: spacing[2],
-  paddingBlockStart: spacing[4],
 };
 
-const menuButtonStyle: CSSProperties = {
+const chipStyle: CSSProperties = {
   border: `1px solid ${cssVar("border")}`,
   borderRadius: radii.full,
   background: cssVar("surface"),
@@ -116,22 +172,46 @@ const menuButtonStyle: CSSProperties = {
   cursor: "pointer",
 };
 
-const menuButtonActiveStyle: CSSProperties = {
-  ...menuButtonStyle,
+const chipActiveStyle: CSSProperties = {
+  ...chipStyle,
   background: cssVar("brand-subtle"),
   color: cssVar("brand"),
   borderColor: cssVar("brand"),
 };
 
-/** One field of the side panel. */
-function PanelField(props: {
+const legendStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  alignItems: "center",
+  columnGap: spacing[3],
+  rowGap: spacing[1],
+  margin: 0,
+  color: cssVar("text-muted"),
+  fontSize: fontSize.xs.fontSize,
+};
+
+const kbdStyle: CSSProperties = {
+  display: "inline-block",
+  border: `1px solid ${cssVar("border-subtle")}`,
+  borderRadius: radii.sm,
+  paddingInline: spacing[1],
+  fontFamily: "inherit",
+  color: cssVar("text"),
+  whiteSpace: "nowrap",
+};
+
+/** One field of the side column. */
+function Field(props: {
   readonly caption: string;
   readonly value: string;
+  readonly testId?: string;
 }): ReactElement {
   return (
     <div>
       <div style={captionStyle}>{props.caption}</div>
-      <div style={valueStyle}>{props.value}</div>
+      <div style={valueStyle} data-testid={props.testId}>
+        {props.value}
+      </div>
     </div>
   );
 }
@@ -187,15 +267,62 @@ function Panel(props: {
   );
 }
 
+/** The key each button answers to, as the legend prints it. */
+const KEY_NAME: Record<BrickInput, string> = {
+  left: BRICK_I18N_KEYS.keyNameLeft,
+  right: BRICK_I18N_KEYS.keyNameRight,
+  up: BRICK_I18N_KEYS.keyNameUp,
+  down: BRICK_I18N_KEYS.keyNameDown,
+  ok: BRICK_I18N_KEYS.keyNameOk,
+  start: BRICK_I18N_KEYS.keyNameStart,
+  reset: BRICK_I18N_KEYS.keyNameReset,
+};
+
+/** The legend a fine pointer gets instead of the keypad — generated from the game's `controls`. */
+function Legend(props: {
+  readonly definition: GameDefinition;
+  readonly t: BrickTranslate;
+}): ReactElement {
+  const { definition, t } = props;
+  const rows = [
+    ...definition.controls.map((control) => ({
+      keys: control.inputs.map((input) => t(KEY_NAME[input])).join(" · "),
+      label: t(control.labelKey),
+    })),
+    { keys: t(KEY_NAME.start), label: t(BRICK_I18N_KEYS.padStart) },
+    { keys: t(KEY_NAME.reset), label: t(BRICK_I18N_KEYS.padReset) },
+  ];
+  return (
+    <dl style={legendStyle} aria-label={t(BRICK_I18N_KEYS.legendLabel)} data-testid="brick-legend">
+      {rows.map((row) => (
+        <Fragment key={row.keys}>
+          <dt>
+            <kbd style={kbdStyle}>{row.keys}</kbd>
+          </dt>
+          <dd style={{ margin: 0 }}>{row.label}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
+}
+
 export interface BrickConsoleProps {
-  /** Which game to play. Default: the first of `games`, else Tetris. */
-  readonly game?: BrickGameId;
   /**
-   * The games this console offers. More than one draws a menu above the
-   * keypad; one (or none) draws no menu at all — a picker with a single choice
-   * is furniture.
+   * The game to open on when the console picks its own (`defaultGame`), or
+   * the game to show when the host does (`game` + `onGameChange`). A `game`
+   * given without `onGameChange` seeds the console's own choice, and the
+   * chips still switch.
+   */
+  readonly game?: BrickGameId;
+  readonly defaultGame?: BrickGameId;
+  /**
+   * The games this console offers. More than one draws a row of chips; one
+   * (or none) draws no chips at all — a picker with a single choice is
+   * furniture.
    */
   readonly games?: readonly BrickGameId[];
+  /** Called when the person picks a different game. With `game`, makes the selection controlled. */
+  readonly onGameChange?: (game: BrickGameId) => void;
   /** The LCD pixel size. Default `"auto"` — `sm` on a coarse pointer, `md` otherwise. */
   readonly size?: BrickConsoleSizeChoice;
   /** Pin the deal, for a demo or a test. */
@@ -207,8 +334,6 @@ export interface BrickConsoleProps {
   readonly ghostPixels?: boolean;
   /** Fired once per run, with the final score and the game it was scored in. */
   readonly onGameOver?: (score: number, game: BrickGameId) => void;
-  /** Called when the person picks a different game from the menu. */
-  readonly onGameChange?: (game: BrickGameId) => void;
   /** Injected in tests; by default the local `brick-highscores` repository. */
   readonly highScores?: HighScoreStore;
   /**
@@ -228,17 +353,30 @@ export interface BrickConsoleProps {
    * run this prop paused; a board the person paused stays paused.
    */
   readonly paused?: boolean;
+  /** Start again on focus / visible a run the blur or hidden tab stopped. Default true. */
+  readonly resumeOnReturn?: boolean;
   readonly "data-testid"?: string;
 }
 
-/** Keys the console owns while it is mounted. */
+/** Keys the console owns while it is mounted: arrows or WASD, Space for OK. */
 const KEY_ACTIONS: Record<string, BrickInput> = {
   ArrowLeft: "left",
+  a: "left",
+  A: "left",
   ArrowRight: "right",
+  d: "right",
+  D: "right",
   ArrowUp: "up",
+  w: "up",
+  W: "up",
   ArrowDown: "down",
+  s: "down",
+  S: "down",
   " ": "ok",
 };
+
+/** A held key repeats these (a piece slides); the others fire once per press. */
+const REPEATS: ReadonlySet<BrickInput> = new Set<BrickInput>(["left", "right"]);
 
 /** A target whose keystrokes are its own — never the game's. */
 const EDITABLE = 'input,textarea,select,[contenteditable]:not([contenteditable="false"])';
@@ -248,6 +386,7 @@ const ACTIVATABLE = "button,a[href],[role=button]";
 /** The shape shared by a DOM `KeyboardEvent` and React's synthetic one. */
 interface KeyEventLike {
   readonly key: string;
+  readonly repeat: boolean;
   readonly metaKey: boolean;
   readonly ctrlKey: boolean;
   readonly altKey: boolean;
@@ -270,6 +409,14 @@ function statusKey(phase: BrickPhase): string | null {
   return null;
 }
 
+/** What the Start button offers in each phase. */
+const START_LABEL: Record<BrickPhase, string> = {
+  ready: BRICK_I18N_KEYS.buttonStart,
+  running: BRICK_I18N_KEYS.buttonPause,
+  paused: BRICK_I18N_KEYS.buttonResume,
+  over: BRICK_I18N_KEYS.buttonAgain,
+};
+
 /** What a screen reader is told the panel is showing. */
 function screenLabel(t: BrickTranslate, phase: BrickPhase, score: number): string {
   const name = t(BRICK_I18N_KEYS.screenLabel);
@@ -279,8 +426,16 @@ function screenLabel(t: BrickTranslate, phase: BrickPhase, score: number): strin
 
 export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const games = props.games ?? [];
-  const fallback = games[0] ?? "tetris";
-  const game = props.game ?? fallback;
+  const seedGame = props.game ?? props.defaultGame ?? games[0] ?? "tetris";
+  const [ownGame, setOwnGame] = useState<BrickGameId>(seedGame);
+  // A `game` the host moves is followed even when the chips are the
+  // console's; with `onGameChange` beside it the host owns the choice.
+  useEffect(() => {
+    if (props.game !== undefined) setOwnGame(props.game);
+  }, [props.game]);
+  const controlled = props.game !== undefined && props.onGameChange !== undefined;
+  const game = controlled ? (props.game ?? ownGame) : ownGame;
+
   const ghostPixels = props.ghostPixels ?? true;
   const enabled = props.enabled ?? true;
   const captureKeys = props.captureKeys ?? "focus";
@@ -298,8 +453,9 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
     ...(props.onGameOver === undefined ? {} : { onGameOver: props.onGameOver }),
     ...(props.autoStart === undefined ? {} : { autoStart: props.autoStart }),
     ...(props.paused === undefined ? {} : { paused: props.paused }),
+    ...(props.resumeOnReturn === undefined ? {} : { resumeOnReturn: props.resumeOnReturn }),
   });
-  const { press, toggleStart, reset } = bag;
+  const { press, hold, toggleStart, reset } = bag;
 
   // One handler for both modes. A key already claimed by someone else, or
   // aimed at a target that acts on it, is not the game's to take.
@@ -312,20 +468,32 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
       const action = KEY_ACTIONS[event.key];
       if (action) {
         event.preventDefault();
-        press(action);
+        if (!event.repeat) {
+          press(action);
+          hold(action, true);
+        } else if (REPEATS.has(action)) {
+          press(action);
+        }
         return;
       }
       if (event.key === "Enter") {
         event.preventDefault();
-        toggleStart();
+        if (!event.repeat) toggleStart();
         return;
       }
       if (event.key === "r" || event.key === "R") {
         event.preventDefault();
-        reset();
+        if (!event.repeat) reset();
       }
     },
-    [press, toggleStart, reset]
+    [press, hold, toggleStart, reset]
+  );
+  const onKeyUp = useCallback(
+    (event: KeyEventLike): void => {
+      const action = KEY_ACTIONS[event.key];
+      if (action) hold(action, false);
+    },
+    [hold]
   );
 
   const focusKeys = enabled && captureKeys === "focus";
@@ -334,16 +502,24 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   useEffect(() => {
     if (!globalKeys || typeof window === "undefined") return;
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
     };
-  }, [globalKeys, onKeyDown]);
+  }, [globalKeys, onKeyDown, onKeyUp]);
+
+  const choose = (id: BrickGameId): void => {
+    props.onGameChange?.(id);
+    if (!controlled) setOwnGame(id);
+  };
 
   const cell = CELL_PX[size];
   const preview = bag.status.next;
   const phase = bag.phase;
   const phaseKey = statusKey(phase);
   const statusWord = phaseKey === null ? "" : t(phaseKey);
+  const recordWord = phase === "over" && bag.isRecord ? t(BRICK_I18N_KEYS.statusRecord) : null;
 
   return (
     <div
@@ -355,32 +531,47 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
       data-game={bag.definition.id}
       tabIndex={focusKeys ? 0 : undefined}
       onKeyDown={focusKeys ? onKeyDown : undefined}
+      onKeyUp={focusKeys ? onKeyUp : undefined}
       data-analytics="none"
       data-analytics-reason="game input, not a product interaction"
     >
       <div style={bodyStyle}>
-        <Panel
-          cells={bag.cells}
-          cols={bag.definition.cols}
-          cell={cell}
-          ghostPixels={ghostPixels}
-          reducedMotion={reducedMotion}
-          label={screenLabel(t, phase, bag.status.score)}
-          testId="brick-screen"
-        />
-        <aside style={panelStyle} data-testid="brick-panel">
-          <PanelField
+        <div style={screenWrapStyle}>
+          <Panel
+            cells={bag.cells}
+            cols={bag.definition.cols}
+            cell={cell}
+            ghostPixels={ghostPixels}
+            reducedMotion={reducedMotion}
+            label={screenLabel(t, phase, bag.status.score)}
+            testId="brick-screen"
+          />
+          {phase === "paused" && (
+            <button
+              type="button"
+              style={veilStyle}
+              data-testid="brick-veil"
+              onClick={toggleStart}
+              data-analytics="none"
+      data-analytics-reason="game input, not a product interaction"
+            >
+              <span style={valueStyle}>{statusWord}</span>
+              <span style={veilHintStyle}>{t(BRICK_I18N_KEYS.screenHint)}</span>
+            </button>
+          )}
+        </div>
+        <aside style={columnStyle} data-testid="brick-panel">
+          <Field
             caption={t(BRICK_I18N_KEYS.panelScore)}
             value={String(bag.status.score)}
+            testId="brick-score"
           />
-          <PanelField
+          <Field
             caption={t(BRICK_I18N_KEYS.panelHiScore)}
             value={String(Math.max(bag.best, bag.status.score))}
+            testId="brick-best"
           />
-          <PanelField
-            caption={t(BRICK_I18N_KEYS.panelLevel)}
-            value={String(bag.status.level)}
-          />
+          <Field caption={t(BRICK_I18N_KEYS.panelLevel)} value={String(bag.status.level)} />
           {preview && (
             <div>
               <div style={captionStyle}>{t(BRICK_I18N_KEYS.panelNext)}</div>
@@ -395,10 +586,28 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
             </div>
           )}
           <div style={captionStyle} data-testid="brick-status">
-            {phase === "over" && bag.isRecord
-              ? t(BRICK_I18N_KEYS.statusRecord)
-              : statusWord}
+            {recordWord ?? statusWord}
           </div>
+          <button
+            type="button"
+            style={phase === "running" ? buttonStyle : primaryButtonStyle}
+            data-testid="brick-button-start"
+            onClick={toggleStart}
+            data-analytics="none"
+      data-analytics-reason="game input, not a product interaction"
+          >
+            {t(START_LABEL[phase])}
+          </button>
+          <button
+            type="button"
+            style={buttonStyle}
+            data-testid="brick-button-reset"
+            onClick={reset}
+            data-analytics="none"
+      data-analytics-reason="game input, not a product interaction"
+          >
+            {t(BRICK_I18N_KEYS.buttonReset)}
+          </button>
         </aside>
       </div>
 
@@ -413,12 +622,12 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
                 type="button"
                 data-testid={`brick-menu-${id}`}
                 aria-pressed={id === game}
-                data-analytics="none"
-                data-analytics-reason="game choice inside a waiting screen, not a product interaction"
-                style={id === game ? menuButtonActiveStyle : menuButtonStyle}
+                style={id === game ? chipActiveStyle : chipStyle}
                 onClick={() => {
-                  props.onGameChange?.(id);
+                  choose(id);
                 }}
+                data-analytics="none"
+      data-analytics-reason="game input, not a product interaction"
               >
                 {t(definition.labelKey)}
               </button>
@@ -427,8 +636,10 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
         </div>
       )}
 
-      {coarse && (
-        <Keypad onPress={press} onStart={toggleStart} onReset={reset} t={t} />
+      {coarse ? (
+        <Keypad onPress={press} onHold={hold} onStart={toggleStart} onReset={reset} t={t} />
+      ) : (
+        <Legend definition={bag.definition} t={t} />
       )}
     </div>
   );

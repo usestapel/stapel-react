@@ -6,8 +6,11 @@
  *  - IT PAUSES WHEN NOBODY IS LOOKING. Tab hidden or window blurred, the loop
  *    stops. A game that keeps running behind a hidden tab burns battery to
  *    lose on the player's behalf, and comes back to a board they never saw.
- *  - IT NEVER RESUMES BY ITSELF. Coming back to a paused board is a person's
- *    decision; coming back to a piece already three rows down is a bug report.
+ *  - IT COMES BACK WITH THE PERSON (`resumeOnReturn`, default true). A run
+ *    that the blur or the hidden tab stopped starts again on focus or on the
+ *    tab becoming visible; a board the person paused stays paused, and so
+ *    does one the host holds. The loop forgives the time away, so the piece
+ *    is where they left it.
  *
  * The host can hold the loop too (`paused`): the tick stops and the board
  * stays. Clearing the hold resumes only a run the hold itself stopped — a
@@ -46,6 +49,11 @@ export interface UseBrickGameOptions {
    * run this option stopped. Default: false.
    */
   readonly paused?: boolean;
+  /**
+   * Start again on focus / visible a run that a blur or a hidden tab stopped.
+   * Default true. A board the person paused is never resumed by this.
+   */
+  readonly resumeOnReturn?: boolean;
 }
 
 export interface BrickGameBag {
@@ -58,8 +66,10 @@ export interface BrickGameBag {
   readonly best: number;
   /** True when the run that just ended beat the stored best. */
   readonly isRecord: boolean;
-  /** Queue a button press. */
+  /** Apply a button press to a running game; ignored while it is not running. */
   readonly press: (action: BrickInput) => void;
+  /** A button went down or came up (a soft drop, a held direction). */
+  readonly hold: (action: BrickInput, held: boolean) => void;
   /** Start, pause, resume, or replay — whichever the phase calls for. */
   readonly toggleStart: () => void;
   /** Back to a fresh board, stopped. */
@@ -78,6 +88,7 @@ function defaultStore(): HighScoreStore {
 export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const { game, seed, highScores, onGameOver, autoStart } = options;
   const paused = options.paused ?? false;
+  const resumeOnReturn = options.resumeOnReturn ?? true;
   // An unknown id falls back to Tetris rather than throwing: this component's
   // job is to fill a wait, and taking down the page it was embedded in over a
   // typo in a prop would be the one failure worse than a boring wait.
@@ -91,6 +102,10 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   pausedRef.current = paused;
   /** True while the `paused` option, not the person, is what stopped the loop. */
   const heldRef = useRef(false);
+  const resumeRef = useRef(resumeOnReturn);
+  resumeRef.current = resumeOnReturn;
+  /** True while a blur or a hidden tab, not the person, is what stopped the loop. */
+  const awayRef = useRef(false);
 
   const [cells, setCells] = useState<readonly CellLevel[]>([]);
   const [status, setStatus] = useState<GameStatus>({
@@ -151,25 +166,41 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
 
   const pause = useCallback(() => {
     const session = sessionRef.current;
-    if (!session || !session.running) return;
+    if (!session) return;
+    // A key released while the tab was away never sends its keyup here.
+    session.releaseAll();
+    if (!session.running) return;
     session.stop();
     setPhase("paused");
   }, []);
 
-  // Nobody is looking → nothing is running (see the file header).
+  // Nobody is looking → nothing is running; they are back → it runs again
+  // (see the file header).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onHide = (): void => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        return;
-      }
+    const away = (): void => {
+      if (sessionRef.current?.running) awayRef.current = true;
       pause();
     };
-    window.addEventListener("blur", pause);
-    document.addEventListener("visibilitychange", onHide);
+    const back = (): void => {
+      const session = sessionRef.current;
+      if (!awayRef.current || !session || document.visibilityState !== "visible") return;
+      awayRef.current = false;
+      if (!resumeRef.current || pausedRef.current || session.status().over) return;
+      session.start();
+      setPhase(session.running ? "running" : "ready");
+    };
+    const onVisibility = (): void => {
+      if (document.visibilityState === "visible") back();
+      else away();
+    };
+    window.addEventListener("blur", away);
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.removeEventListener("blur", pause);
-      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("blur", away);
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [pause]);
 
@@ -177,6 +208,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     const session = sessionRef.current;
     if (!session) return;
     if (paused) {
+      session.releaseAll();
       if (!session.running) return;
       session.stop();
       heldRef.current = true;
@@ -193,6 +225,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const reset = useCallback(() => {
     const session = sessionRef.current;
     if (!session) return;
+    awayRef.current = false;
     session.reset();
     setCells(session.grid.cells.slice());
     setStatus(session.status());
@@ -203,6 +236,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   const toggleStart = useCallback(() => {
     const session = sessionRef.current;
     if (!session || pausedRef.current) return;
+    awayRef.current = false;
     if (session.status().over) {
       session.reset();
       setIsRecord(false);
@@ -210,6 +244,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
       setStatus(session.status());
     }
     if (session.running) {
+      session.releaseAll();
       session.stop();
       setPhase("paused");
       return;
@@ -219,7 +254,12 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   }, []);
 
   const press = useCallback((action: BrickInput) => {
-    sessionRef.current?.press(action);
+    const session = sessionRef.current;
+    if (session?.running) session.press(action);
+  }, []);
+
+  const hold = useCallback((action: BrickInput, isHeld: boolean) => {
+    sessionRef.current?.hold(action, isHeld);
   }, []);
 
   return {
@@ -230,6 +270,7 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
     best,
     isRecord,
     press,
+    hold,
     toggleStart,
     reset,
     pause,

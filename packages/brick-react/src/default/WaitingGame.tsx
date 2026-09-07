@@ -52,6 +52,9 @@ export interface WaitingGameProps {
   readonly active?: boolean;
   /** Fired once, on the edge where the wait ends. */
   readonly onDone?: () => void;
+  /** The game to open on. Default: the first of `games`, else Tetris. */
+  readonly defaultGame?: BrickGameId;
+  /** Controlled selection, with `onGameChange`; see `<BrickConsole/>`. */
   readonly game?: BrickGameId;
   readonly games?: readonly BrickGameId[];
   readonly size?: BrickConsoleSizeChoice;
@@ -68,6 +71,8 @@ export interface WaitingGameProps {
   readonly enabled?: boolean;
   /** `"focus"` (default) or `"global"` — see `<BrickConsole/>`. */
   readonly captureKeys?: BrickKeyCapture;
+  /** Start again on return a run the hidden tab stopped. Default true. */
+  readonly resumeOnReturn?: boolean;
   readonly "data-testid"?: string;
 }
 
@@ -100,8 +105,9 @@ export function WaitingGame(props: WaitingGameProps): ReactElement | null {
     >
       <p style={captionStyle}>{t(CAPTION_KEY[props.reason])}</p>
       <BrickConsole
-        game={props.game ?? "tetris"}
         autoStart={props.autoStart ?? true}
+        {...(props.defaultGame === undefined ? {} : { defaultGame: props.defaultGame })}
+        {...(props.game === undefined ? {} : { game: props.game })}
         {...(props.games === undefined ? {} : { games: props.games })}
         {...(props.size === undefined ? {} : { size: props.size })}
         {...(props.seed === undefined ? {} : { seed: props.seed })}
@@ -113,6 +119,9 @@ export function WaitingGame(props: WaitingGameProps): ReactElement | null {
         {...(props.paused === undefined ? {} : { paused: props.paused })}
         {...(props.enabled === undefined ? {} : { enabled: props.enabled })}
         {...(props.captureKeys === undefined ? {} : { captureKeys: props.captureKeys })}
+        {...(props.resumeOnReturn === undefined
+          ? {}
+          : { resumeOnReturn: props.resumeOnReturn })}
       />
     </div>
   );

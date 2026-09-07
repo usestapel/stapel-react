@@ -87,9 +87,22 @@ export interface Game {
   tick(): void;
   /** Apply one button press. */
   input(action: BrickInput): void;
+  /**
+   * A button went down or came up. Optional: a game with a hold behaviour
+   * (a soft drop, a held direction) reads it in `tick` and `speed`.
+   */
+  hold?(action: BrickInput, held: boolean): void;
+  /** How much faster than the level's step to run right now. Optional; 1 when absent. */
+  speed?(): number;
   /** Paint the current frame. The grid arrives already cleared to 0. */
   render(grid: MutableGrid): void;
   status(): GameStatus;
+}
+
+/** One row of the key legend: the buttons, and the i18n key of what they do here. */
+export interface GameControl {
+  readonly inputs: readonly BrickInput[];
+  readonly labelKey: string;
 }
 
 /** How complete a game is — stated per game, in the README and here. */
@@ -105,5 +118,10 @@ export interface GameDefinition {
   /** i18n key of the game's name (`brick.game.<id>`). */
   readonly labelKey: string;
   readonly completeness: GameCompleteness;
+  /**
+   * The buttons this game reads, in legend order, each with what it does.
+   * Start and Reset belong to the console and are not listed.
+   */
+  readonly controls: readonly GameControl[];
   create(ctx: GameContext): Game;
 }

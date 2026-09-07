@@ -24,7 +24,7 @@ export type { InputQueue } from "./headless/inputQueue.js";
 export { createLoop, MAX_STEPS_PER_FRAME } from "./headless/loop.js";
 export type { Loop, LoopOptions } from "./headless/loop.js";
 
-export { createBrickSession, stepMsForLevel } from "./headless/session.js";
+export { createBrickSession, LEVEL_SPEEDUP, stepMsForLevel } from "./headless/session.js";
 export type { BrickSession, BrickSessionOptions } from "./headless/session.js";
 
 export {
@@ -53,6 +53,7 @@ export type {
   Game,
   GameCompleteness,
   GameContext,
+  GameControl,
   GameDefinition,
   GameStatus,
   Grid,

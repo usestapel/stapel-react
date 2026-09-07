@@ -4,6 +4,12 @@
  * scoring, a level every ten lines, a real next-piece preview, and a game over
  * when a spawn has nowhere to go.
  *
+ * Controls: left/right move, OK rotates, DOWN is a soft drop (a row and a
+ * point per press; held, the fall runs at ten times the level's step and pays
+ * a point a row until the piece locks), UP is a hard drop (straight to the
+ * landing shadow, two points a row). Tempo: 500ms a row at level 1, 15%
+ * faster per level (425, 361, 307, …) down to the loop's 60ms floor.
+ *
  * The board is 10x20, which is the shape the original handheld's LCD had and
  * the reason the console takes the panel size from the GAME rather than the
  * other way round.
@@ -89,6 +95,10 @@ const KICKS: readonly (readonly [number, number])[] = [
 const LINE_SCORE: readonly number[] = [0, 100, 300, 500, 800];
 /** Lines per level. */
 const LINES_PER_LEVEL = 10;
+/** How much faster the piece falls while DOWN is held. */
+const SOFT_DROP_SPEED = 10;
+/** Points a row for a hard drop; a soft drop pays one. */
+const HARD_DROP_SCORE = 2;
 
 function rotateCw(matrix: Matrix): Matrix {
   const size = matrix.length;
@@ -121,6 +131,7 @@ function createTetris(ctx: GameContext): Game {
   let over = false;
   let piece: Piece | null = null;
   let nextShape = 0;
+  let softDrop = false;
 
   function pickShape(): number {
     return Math.min(SHAPES.length - 1, Math.floor(ctx.random() * SHAPES.length));
@@ -203,6 +214,9 @@ function createTetris(ctx: GameContext): Game {
     }
     clearLines();
     piece = null;
+    // A lock ends the soft drop: the next piece is not flung down by a key
+    // that was held for the previous one.
+    softDrop = false;
     if (!over) spawn();
   }
 
@@ -242,6 +256,15 @@ function createTetris(ctx: GameContext): Game {
     return y;
   }
 
+  /** Straight to the landing shadow, and lock there. */
+  function hardDrop(): void {
+    if (!piece || over) return;
+    const rows = ghostY(piece) - piece.y;
+    piece.y += rows;
+    score += rows * HARD_DROP_SCORE;
+    lock(piece);
+  }
+
   nextShape = pickShape();
   spawn();
 
@@ -249,17 +272,25 @@ function createTetris(ctx: GameContext): Game {
     tick() {
       if (over) return;
       if (!piece) spawn();
-      fall();
+      // A held soft drop pays a point a row, the way the handheld did.
+      if (fall() && softDrop) score += 1;
     },
     input(action: BrickInput) {
       if (over) return;
       if (action === "left") move(-1);
       else if (action === "right") move(1);
-      else if (action === "up" || action === "ok") rotate();
+      else if (action === "ok") rotate();
+      else if (action === "up") hardDrop();
       else if (action === "down") {
-        // Soft drop: one row and a point, the way the handheld paid for it.
+        // Soft drop: one row and a point per press.
         if (fall()) score += 1;
       }
+    },
+    hold(action: BrickInput, isHeld: boolean) {
+      if (action === "down") softDrop = isHeld;
+    },
+    speed() {
+      return softDrop ? SOFT_DROP_SPEED : 1;
     },
     render(grid: MutableGrid) {
       for (let y = 0; y < rows; y += 1) {
@@ -313,8 +344,14 @@ export const TETRIS: GameDefinition = {
   id: "tetris",
   cols: TETRIS_COLS,
   rows: TETRIS_ROWS,
-  stepMs: 620,
+  stepMs: 500,
   labelKey: "brick.game.tetris",
   completeness: "full",
+  controls: [
+    { inputs: ["left", "right"], labelKey: "brick.key.move" },
+    { inputs: ["ok"], labelKey: "brick.key.rotate" },
+    { inputs: ["down"], labelKey: "brick.key.softdrop" },
+    { inputs: ["up"], labelKey: "brick.key.harddrop" },
+  ],
   create: createTetris,
 };

@@ -56,14 +56,14 @@
       "limit": "6 KB"
     },
     {
-      "name": "default — the console skin, the keypad and the waiting host (the engine travels with them)",
+      "name": "default — the console skin, the side column, the keypad, the legend and the waiting host (the engine travels with them)",
       "path": "dist/default/index.js",
-      "limit": "9 KB"
+      "limit": "10.25 KB"
     },
     {
       "name": "i18n/ru — one locale bundle, opt-in",
       "path": "dist/i18n/ru.js",
-      "limit": "1 KB"
+      "limit": "1.25 KB"
     }
   ],
   "peerDependencies": {

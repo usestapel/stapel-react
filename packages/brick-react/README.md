@@ -33,8 +33,8 @@ claims. Every one of them is playable, deterministic from its seed, and ends.
 
 | Game | Panel | Completeness | What it has | What it does not have |
 | --- | --- | --- | --- | --- |
-| **Tetris** | 10×20 | **full** | seven tetrominoes, four rotations each, wall kicks off walls and stacks, line clears at 100/300/500/800 × level, a level per ten lines, next-piece preview, soft drop, game over on a blocked spawn | hold piece, hard drop, T-spin scoring, lock delay |
-| **Snake** | 20×20 | **full** | queued turns (no reversal into the neck), growth per pellet, death on wall and on self, a level per five pellets, bounded food placement | walls-wrap mode, obstacles |
+| **Tetris** | 10×20 | **full** | seven tetrominoes, four rotations each, wall kicks off walls and stacks, line clears at 100/300/500/800 × level, a level per ten lines, next-piece preview, soft drop (held: ten times the fall, a point a row), hard drop (two points a row), game over on a blocked spawn | hold piece, T-spin scoring, lock delay |
+| **Snake** | 20×20 | **full** | queued turns (no reversal into the neck), growth per pellet, death on wall and on self, a level per five pellets, bounded food placement, twice the speed while the key of its own direction is held | walls-wrap mode, obstacles |
 | **Arkanoid** | 20×20 | minimal | 4-wide paddle, one ball, four rows of two-wide bricks, wall/brick/paddle bounces, paddle-offset angle, clearing the wall ends the run | multi-hit bricks, power-ups, extra lives, second ball |
 | **Racing** | 20×20 | minimal | four lanes, oncoming traffic, dashed verges that scroll, a point per car passed, a level per ten, crash ends the run | acceleration curve, more than one car shape, a crash sequence |
 | **Tanks** | 20×20 | minimal | player tank roaming a five-row home band, one bullet in flight, descending enemies, 20 points a kill, an enemy reaching you ends the run | enemies that shoot back, destructible terrain, lives |
@@ -46,12 +46,36 @@ claims. Every one of them is playable, deterministic from its seed, and ends.
 import { BrickConsole } from "@stapel/brick-react/default";
 
 <BrickConsole
-  game="tetris"
-  games={["tetris", "snake", "memory"]} // >1 draws a menu; 1 draws none
+  games={["tetris", "snake", "memory"]} // >1 draws a row of chips; 1 draws none
+  defaultGame="snake"                   // the chips switch on click; see below for a controlled pair
   size="auto"                           // auto (default) | sm | md | lg
   onGameOver={(score, game) => track(game, score)}
 />;
 ```
+
+**The host contract**, in one table:
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `games` | `[]` | The chips. More than one draws the row; the console picks the first as its opening game. |
+| `defaultGame` | first of `games`, else `tetris` | Where an uncontrolled console opens. The chips switch games on click; each game keeps its own best. |
+| `game` + `onGameChange` | — | The controlled pair: the click reports, the prop decides. A `game` given *without* `onGameChange` only seeds the choice, and the chips still switch. |
+| `size` | `"auto"` | `sm` on a coarse pointer, `md` otherwise; `sm` / `md` / `lg` pin it. |
+| `captureKeys` | `"focus"` | Where the keys are read from — [Keys](#keys). |
+| `enabled` | `true` | `false` detaches every key handler while the board stays on screen. |
+| `paused` | `false` | Hold the loop from outside; the board stays; clearing it resumes only a run the hold stopped. |
+| `resumeOnReturn` | `true` | A run the blur or the hidden tab stopped starts again on focus / visible. A board the person paused never is. |
+| `autoStart` | `false` (`true` in `<WaitingGame/>`) | Start on mount. |
+| `seed`, `highScores`, `onGameOver`, `ghostPixels` | — | The deal, the store, the report, the LCD ghost. |
+
+## Layout
+
+The field is centred; **Score / Best / Level / Next, Start-Pause and Reset**
+sit in one tight column immediately to its right, so a mouse never needs the
+keyboard; the game chips go directly under; and under those, the keypad on a
+coarse pointer or the key legend on a fine one. Every gap is a step of the
+token spacing scale. A **paused field wears a veil** — "Paused — click here or
+press Enter" — and clicking it resumes.
 
 - **The LCD is DOM, not canvas.** Four hundred `<span>`s follow `data-theme`
   for free, are assertable in a test, and announce as one named image. A canvas
@@ -67,21 +91,27 @@ import { BrickConsole } from "@stapel/brick-react/default";
   the same `(pointer: coarse)` question the keypad asks, so a host no longer
   reads `useCoarsePointer` itself to pick a phone size. An explicit `sm` /
   `md` / `lg` is kept on any pointer.
-- **Keyboard**: arrows move, **Space** is OK (rotate / fire / turn a tile),
-  **Enter** starts, pauses and resumes, **R** resets. Which element the keys
-  are read from, and which keys are never the game's, is a contract — see
-  [Keys](#keys) below.
+- **Keyboard**: arrows or **WASD**, **Space** is OK (rotate / fire / turn a
+  tile), **Enter** starts, pauses and resumes, **R** resets. Which element the
+  keys are read from, and which keys are never the game's, is a contract — see
+  [Keys](#keys) below. A held key is a *hold* the game can read: Tetris
+  soft-drops while DOWN is held, Snake runs at double speed while the key of
+  its own direction is held.
 - **`paused`** holds the loop from outside: the tick stops, the board and
   score stay, and Start does nothing until the hold clears. Clearing it
   resumes only a run the hold itself stopped — a board the person paused is
   theirs to resume.
 - **Keypad on a coarse pointer only** — `(pointer: coarse)`, not a narrow
   window: a phone-sized browser window on a laptop still has arrow keys. Every
-  target is at least the phone control height from the token scale, and every
-  icon-only button carries its own accessible name.
-- **It pauses when nobody is looking** (window blur, tab hidden) and **never
-  resumes by itself**: coming back to a paused board is a decision; coming back
-  to a piece already three rows down is a bug report.
+  target is at least the phone control height from the token scale, the action
+  button is visibly larger than a d-pad key, every icon-only button carries
+  its own accessible name, and a button presses on pointer-down and holds until
+  the thumb lifts. On a fine pointer the keypad's place is taken by a compact
+  **legend**, generated from the game's own `controls`.
+- **It pauses when nobody is looking** (window blur, tab hidden) and **comes
+  back with the person** (`resumeOnReturn`, default true): a run the blur
+  stopped starts again on focus / visible, the loop forgives the time away, so
+  the piece is where they left it. A board the person paused stays paused.
 - **`prefers-reduced-motion`** removes the cell transition. The game still
   runs — the request was about decoration.
 
@@ -92,6 +122,33 @@ import { BrickConsole } from "@stapel/brick-react/default";
 <BrickConsole captureKeys="global" />  // the window: plays without ever being focused
 <BrickConsole enabled={false} />       // no key handler at all; the game stays on screen
 ```
+
+### The key map, per game
+
+The console owns arrows / WASD, Space, Enter and R. What each does is the
+game's to say — every module declares its `controls`, and the legend under
+the field is generated from them, so this table and the screen cannot drift.
+
+| Game | ← → / A D | ↑ / W | ↓ / S | Space | Enter | R |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Tetris** | move | hard drop | soft drop — hold for ten times the fall, a point a row | rotate | start / pause | reset |
+| **Snake** | turn | turn | turn | — | start / pause | reset |
+| | *holding the key of the direction of travel doubles the speed; release, or turn, to drop back* | | | | | |
+| **Arkanoid** | move the paddle | — | — | — | start / pause | reset |
+| **Racing** | change lane | — | speed up | speed up | start / pause | reset |
+| **Tanks** | move | move | move | fire | start / pause | reset |
+| **Memory** | move the cursor | move the cursor | move the cursor | turn a tile | start / pause | reset |
+
+A press is applied the moment it lands, not at the next tick — gravity runs on
+the level's step, hands do not. A held ← → auto-repeats (the piece slides); a
+held ↑ / ↓ / Space does not repeat, so a hard drop is one per press.
+
+### Tempo
+
+Tetris falls one row per **500 ms at level 1** and each level is **15 %
+faster** than the last — 425, 361, 307, 261 … — down to the loop's 60 ms
+floor (`stepMsForLevel`, `LEVEL_SPEEDUP`). Snake ticks every 180 ms, Arkanoid
+150, Tanks 200, Racing 220, Memory 260; the same curve applies to each.
 
 - **`captureKeys="focus"` is the default.** The frame is focusable
   (`tabIndex={0}`): a click or a Tab lands the keys on the console, and a

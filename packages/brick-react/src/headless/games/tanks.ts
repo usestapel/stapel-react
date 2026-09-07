@@ -119,6 +119,10 @@ export const TANKS: GameDefinition = {
   rows: 20,
   stepMs: 200,
   labelKey: "brick.game.tanks",
+  controls: [
+    { inputs: ["left", "right", "up", "down"], labelKey: "brick.key.move" },
+    { inputs: ["ok"], labelKey: "brick.key.fire" },
+  ],
   completeness: "minimal",
   create: createTanks,
 };
