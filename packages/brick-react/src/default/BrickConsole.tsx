@@ -553,7 +553,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
               data-testid="brick-veil"
               onClick={toggleStart}
               data-analytics="none"
-      data-analytics-reason="game input, not a product interaction"
+              data-analytics-reason="game input, not a product interaction"
             >
               <span style={valueStyle}>{statusWord}</span>
               <span style={veilHintStyle}>{t(BRICK_I18N_KEYS.screenHint)}</span>
@@ -594,7 +594,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
             data-testid="brick-button-start"
             onClick={toggleStart}
             data-analytics="none"
-      data-analytics-reason="game input, not a product interaction"
+            data-analytics-reason="game input, not a product interaction"
           >
             {t(START_LABEL[phase])}
           </button>
@@ -604,7 +604,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
             data-testid="brick-button-reset"
             onClick={reset}
             data-analytics="none"
-      data-analytics-reason="game input, not a product interaction"
+            data-analytics-reason="game input, not a product interaction"
           >
             {t(BRICK_I18N_KEYS.buttonReset)}
           </button>
@@ -627,7 +627,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
                   choose(id);
                 }}
                 data-analytics="none"
-      data-analytics-reason="game input, not a product interaction"
+                data-analytics-reason="game input, not a product interaction"
               >
                 {t(definition.labelKey)}
               </button>
