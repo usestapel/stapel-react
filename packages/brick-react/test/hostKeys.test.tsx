@@ -142,6 +142,86 @@ describe("handing the console the keyboard", () => {
     expect(paint(), "the focused frame did not read its own arrow").not.toBe(before);
   });
 
+  it("gives the focus back to whatever it took it from when it unmounts", () => {
+    matchMediaFor();
+    render(
+      <div>
+        <button type="button" data-testid="host-toggle">
+          play
+        </button>
+        <div data-testid="slot" />
+      </div>
+    );
+    const toggle = screen.getByTestId("host-toggle");
+    act(() => {
+      toggle.focus();
+    });
+    const panel = render(
+      <BrickConsole game="tetris" seed={1} autoStart autoFocus highScores={store} />,
+      { container: screen.getByTestId("slot") }
+    );
+    expect(document.activeElement).toBe(screen.getByTestId("brick-console"));
+    act(() => {
+      panel.unmount();
+    });
+    expect(
+      document.activeElement,
+      "the keyboard-only person was dropped at the top of the document"
+    ).toBe(toggle);
+  });
+
+  it("leaves focus alone when it never took it, and when the person moved on", () => {
+    matchMediaFor();
+    render(
+      <div>
+        <button type="button" data-testid="host-toggle">
+          play
+        </button>
+        <button type="button" data-testid="elsewhere">
+          elsewhere
+        </button>
+        <div data-testid="slot-a" />
+        <div data-testid="slot-b" />
+      </div>
+    );
+    const toggle = screen.getByTestId("host-toggle");
+    const elsewhere = screen.getByTestId("elsewhere");
+
+    // Never moved focus: nothing to give back, and nothing taken from anyone.
+    act(() => {
+      toggle.focus();
+    });
+    const plain = render(<BrickConsole game="tetris" seed={1} highScores={store} />, {
+      container: screen.getByTestId("slot-a"),
+    });
+    expect(document.activeElement).toBe(toggle);
+    act(() => {
+      elsewhere.focus();
+    });
+    act(() => {
+      plain.unmount();
+    });
+    expect(document.activeElement).toBe(elsewhere);
+
+    // Took focus, but the person has since focused something of their own —
+    // that focus is theirs, not the package's to take back.
+    act(() => {
+      toggle.focus();
+    });
+    const focused = render(
+      <BrickConsole game="tetris" seed={1} autoStart autoFocus highScores={store} />,
+      { container: screen.getByTestId("slot-b") }
+    );
+    expect(document.activeElement).toBe(screen.getByTestId("brick-console"));
+    act(() => {
+      elsewhere.focus();
+    });
+    act(() => {
+      focused.unmount();
+    });
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it("hands the frame back through a ref, for a host that focuses it later", () => {
     matchMediaFor();
     let node: HTMLElement | null = null;
@@ -164,42 +244,72 @@ describe("handing the console the keyboard", () => {
 });
 
 describe("the paused veil says what is true", () => {
-  it("offers Enter only where Enter is actually the console's", async () => {
+  it("offers Enter where Enter is, not where the capture mode is", () => {
     const engine = createI18n({ locale: "en" });
     registerBrickI18n(engine);
     registerBrickI18nRu(engine);
 
     matchMediaFor();
-    const { unmount } = render(
-      <I18nProvider i18n={engine}>
-        <BrickConsole game="tetris" seed={1} autoStart captureKeys="global" highScores={store} />
-      </I18nProvider>
-    );
-    pressOnBody("Enter");
-    expect(screen.getByTestId("brick-veil").textContent).toContain("Enter");
-    unmount();
-
-    // In "focus" the console leaves Enter to whatever the host focused, which
-    // is normally the button that opened the panel — so it must not promise it.
     render(
       <I18nProvider i18n={engine}>
-        <BrickConsole game="tetris" seed={1} autoStart captureKeys="focus" highScores={store} />
+        <div>
+          <button type="button" data-testid="host-toggle">
+            open
+          </button>
+          <BrickConsole game="tetris" seed={1} autoStart captureKeys="claim" highScores={store} />
+        </div>
       </I18nProvider>
     );
-    const frame = screen.getByTestId("brick-console");
+    const toggle = screen.getByTestId("host-toggle");
     act(() => {
-      frame.focus();
-      frame.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
-      );
+      toggle.focus();
     });
-    const veil = screen.getByTestId("brick-veil");
-    expect(veil.textContent).not.toContain("Enter");
-    // …and it is still a real way back, from wherever focus happens to be.
+    // The console is revealed by a host toggle, so focus is still on that
+    // toggle — where the package's own guarantee gives Enter to the BUTTON.
     act(() => {
-      veil.click();
+      screen.getByTestId("brick-button-start").click();
+    });
+    expect(document.activeElement, "the click moved focus; the test is not the case").toBe(
+      toggle
+    );
+    expect(screen.getByTestId("brick-console").dataset["phase"]).toBe("paused");
+    expect(
+      screen.getByTestId("brick-veil").textContent,
+      "the veil promised a key the focused host toggle keeps"
+    ).not.toContain("Enter");
+
+    // Move focus into the console — onto the Start button a real browser
+    // focuses when it is clicked — and the same veil, in the same mode, may
+    // promise Enter: the key now activates the console's own control.
+    act(() => {
+      screen.getByTestId("brick-button-start").focus();
+    });
+    expect(screen.getByTestId("brick-veil").textContent).toContain("Enter");
+
+    // …and the click is a real way back from wherever focus happens to be.
+    act(() => {
+      screen.getByTestId("brick-veil").click();
     });
     expect(screen.getByTestId("brick-console").dataset["phase"]).toBe("running");
+  });
+
+  it('"focus" outside the frame is still a click-only veil', () => {
+    matchMediaFor();
+    render(
+      <div>
+        <button type="button" data-testid="host-toggle">
+          open
+        </button>
+        <BrickConsole game="tetris" seed={1} autoStart captureKeys="focus" highScores={store} />
+      </div>
+    );
+    act(() => {
+      screen.getByTestId("host-toggle").focus();
+    });
+    act(() => {
+      screen.getByTestId("brick-button-start").click();
+    });
+    expect(screen.getByTestId("brick-veil").textContent).not.toContain("Enter");
   });
 
   it("translates both hints", async () => {
@@ -212,18 +322,28 @@ describe("the paused veil says what is true", () => {
     matchMediaFor();
     render(
       <I18nProvider i18n={engine}>
-        <BrickConsole game="tetris" seed={1} autoStart captureKeys="focus" highScores={store} />
+        <div>
+          <button type="button" data-testid="host-toggle">
+            open
+          </button>
+          <BrickConsole game="tetris" seed={1} autoStart captureKeys="claim" highScores={store} />
+        </div>
       </I18nProvider>
     );
-    const frame = screen.getByTestId("brick-console");
     act(() => {
-      frame.focus();
-      frame.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
-      );
+      screen.getByTestId("host-toggle").focus();
+    });
+    act(() => {
+      screen.getByTestId("brick-button-start").click();
     });
     expect(screen.getByTestId("brick-veil").textContent).toContain(
       brickI18nBundleRu["brick.screen.hintclick"]
+    );
+    act(() => {
+      screen.getByTestId("brick-button-start").focus();
+    });
+    expect(screen.getByTestId("brick-veil").textContent).toContain(
+      brickI18nBundleRu["brick.screen.hint"]
     );
   });
 });

@@ -65,15 +65,25 @@ no network, and everyone born before the smartphone already knows the controls.
   could see. `"claim"` reads on the capture phase and stops the keys it takes,
   but ONLY while `phase === "running"`: the scope of the claim is the run, not
   the mount.
-- **`autoFocus` exists because the alternative was going page-wide.** A host
-  that opens the console from a toggle button could either ask for a second
-  gesture into the frame or take the whole window's keyboard. Focusing the frame
-  on mount is the third answer and keeps `"focus"`'s scope.
-- **The veil never names a key it does not own.** In `"focus"` the console
-  leaves Enter to whatever the host focused — normally the toggle that opened
-  the panel — so a veil saying "press Enter" sent people to the control that
-  closes the game. The hint is chosen from the capture mode; the click always
-  works.
+- **`autoFocus` exists because the alternative was going page-wide — and it
+  gives the focus back.** A host that opens the console from a toggle button
+  could either ask for a second gesture into the frame or take the whole
+  window's keyboard. Focusing the frame on mount is the third answer and keeps
+  `"focus"`'s scope. Through 0.4.0 it was only the taking half: hiding the
+  console unmounted it, focus fell to `<body>`, and a keyboard-only person was
+  dropped at the top of the document. The host cannot fix that from outside —
+  at unmount the element focus came from is known only in here — so the restore
+  belongs to the package. It fires only where the package actually moved focus,
+  only onto an element still in the document, and never over a focus the person
+  has since chosen themselves.
+- **The veil names a key by where FOCUS is, not by the capture mode.** 0.4.0
+  read the mode: `"claim"` and `"global"` promised Enter. But the package's own
+  guarantee is that a focused button or link keeps Space and Enter — and a
+  console revealed by a host toggle leaves focus on that toggle, so the promise
+  was false in exactly the arrangement it was written for: the Enter collapsed
+  the host's panel. Only a console that had taken page focus with `autoFocus`
+  made it true. The hint now asks whether Enter would reach the console right
+  now, and follows focus while the veil is up; the click always works.
 - **The phase is published, not scraped.** `data-phase` is for a stylesheet and
   a test; `onPhaseChange` is for a host. A host reduced to reading an attribute
   is a host we forgot to give an API to.
@@ -112,9 +122,25 @@ no network, and everyone born before the smartphone already knows the controls.
   half a second after the key goes down; a paddle that waits that long reads as
   broken. The console repeats off the hold on its own timer and drops the OS
   echo — see README "Keys".
-- **The level is picked before the run, not during it.** Changing it deals a
-  fresh board, so the stepper is disabled while a run is under way rather than
-  silently throwing the board away.
+- **The level stepper locks against a run the PERSON started, not against any
+  run at all.** Changing the level deals a fresh board, so a stepper live
+  mid-run would silently throw away a board somebody was playing — that is why
+  0.3.0 disabled it. But `<WaitingGame>` autostarts, so from 0.3.0 to 0.4.0
+  every console the owner actually saw was `running` in its first frame and both
+  buttons were dead the instant it appeared: the level he had asked to be able
+  to pick could not be picked at all, at any point, without knowing to pause
+  first. An autostarting console keeps its stepper, and a change there deals a
+  fresh board at the new level which plays on — the stepper's one behaviour,
+  with `autoStart` deciding what becomes of the board it dealt. The number it
+  steps from is the level ON SCREEN, so a run that has levelled up past its
+  start level still moves when the plus is pressed.
+- **The frame is described by its controls.** `role="group"` plus a name reads
+  as "group, brick game console" and stops — no mention of the keys, though a
+  legend of them is on screen for a fine pointer. `aria-describedby` now points
+  at whichever surface is rendered: the legend (whose contents ARE the
+  description, which is why it lost its own `aria-label` — a described
+  element's label replaces its contents) or, on a coarse pointer, the keypad,
+  whose name is the honest answer for a device with no keys to list.
 - **No analytics.** Every clickable here is marked
   `data-analytics="none"` with a reason: a game input is not a product
   interaction, and a funnel of how many times somebody pressed left while

@@ -58,7 +58,7 @@
     {
       "name": "default — the console skin, the side column, the level stepper, the keypad, the legend and the waiting host (the engine travels with them)",
       "path": "dist/default/index.js",
-      "limit": "11.35 KB"
+      "limit": "11.65 KB"
     },
     {
       "name": "i18n/ru — one locale bundle, opt-in",

@@ -620,6 +620,29 @@ describe("<BrickConsole/> keypad and legend", () => {
     expect(snakeLegend).not.toContain("Hard drop");
   });
 
+  it("the frame is described by whichever control surface is on screen", () => {
+    matchMediaFor();
+    const { unmount } = render(<BrickConsole game="tetris" seed={1} highScores={store} />);
+    const legend = screen.getByTestId("brick-legend");
+    const described = screen.getByTestId("brick-console").getAttribute("aria-describedby");
+    expect(described, "the frame announced itself with no word about its keys").toBeTruthy();
+    expect(described).toBe(legend.id);
+    expect(legend.id).not.toBe("");
+    // The description is the key list itself: a label on the legend would stand
+    // in for its contents and describe the console as "Keys".
+    expect(legend.hasAttribute("aria-label")).toBe(false);
+    unmount();
+
+    // On a coarse pointer the same id lands on the keypad — the controls that
+    // device actually has, named rather than recited.
+    matchMediaFor(COARSE);
+    render(<BrickConsole game="tetris" seed={1} highScores={store} />);
+    const pad = screen.getByTestId("brick-keypad");
+    expect(screen.getByTestId("brick-console").getAttribute("aria-describedby")).toBe(pad.id);
+    expect(pad.id).not.toBe("");
+    expect(pad.getAttribute("aria-label")).toBe("Game controls");
+  });
+
   it("the keypad's action button is visibly larger than a d-pad key", () => {
     matchMediaFor(COARSE);
     render(<BrickConsole game="tetris" seed={1} highScores={store} />);

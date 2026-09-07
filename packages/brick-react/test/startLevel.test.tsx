@@ -97,7 +97,43 @@ describe("the starting level, on screen", () => {
     expect(value()).toBe(String(BRICK_MAX_LEVEL));
   });
 
-  it("cannot be changed once the game is running", () => {
+  it("stays reachable in an autostarting console — the only console with no idle frame", () => {
+    matchMediaFor();
+    render(<BrickConsole game="tetris" seed={1} autoStart highScores={store} />);
+    const frame = screen.getByTestId("brick-console");
+    expect(frame.dataset["phase"], "the run has not begun; the case is not the case").toBe(
+      "running"
+    );
+    const up = screen.getByTestId("brick-level-up") as HTMLButtonElement;
+    const down = screen.getByTestId("brick-level-down") as HTMLButtonElement;
+    expect(up.disabled, "the plus was dead in the first frame the person ever saw").toBe(false);
+    expect(down.disabled).toBe(false);
+
+    // Play the deal a little, so "the board is fresh" is a claim with teeth:
+    // the opening frame of a seeded deal is the same picture at any level.
+    const paint = (): string => screen.getByTestId("brick-screen").innerHTML;
+    const opening = paint();
+    act(() => {
+      frame.focus();
+      frame.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true })
+      );
+    });
+    expect(paint(), "the arrow never reached the game; the case is not the case").not.toBe(
+      opening
+    );
+
+    act(() => {
+      up.click();
+    });
+    expect(screen.getByTestId("brick-level").textContent).toBe("2");
+    // A fresh board at the new level, still playing — the stepper's one
+    // behaviour, and `autoStart` deciding what happens to the board it dealt.
+    expect(paint(), "the old run's piece was carried into the new level").toBe(opening);
+    expect(frame.dataset["phase"]).toBe("running");
+  });
+
+  it("cannot be changed once a run the person started is under way", () => {
     matchMediaFor();
     render(<BrickConsole game="tetris" seed={1} highScores={store} />);
     act(() => {

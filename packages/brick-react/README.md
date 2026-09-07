@@ -68,7 +68,7 @@ import { BrickConsole } from "@stapel/brick-react/default";
 | `resumeOnReturn` | `true` | A run the blur or the hidden tab stopped starts again on focus / visible. A board the person paused never is. |
 | `autoStart` | `false` (`true` in `<WaitingGame/>`) | Start on mount. |
 | `startLevel` | `1` | The level the first run opens on. The person moves it with the stepper. |
-| `autoFocus` | `false` | Focus the frame on mount — the keys, handed over in the same click that opened the console. |
+| `autoFocus` | `false` | Focus the frame on mount — the keys, handed over in the same click that opened the console — and give that focus back on unmount to whatever it was taken from. |
 | `ref` | — | The frame element, for a host that focuses it later. |
 | `onPhaseChange` | — | `ready` / `running` / `paused` / `over`, once on mount and once per change. |
 | `seed`, `highScores`, `onGameOver`, `ghostPixels` | — | Pin the deal (omit for a new game every run), the store, the report, the LCD ghost. |
@@ -84,9 +84,16 @@ press Enter" — and clicking it resumes.
 
 The **Level** row is a stepper: a minus, the number, a plus. It picks the level
 a run STARTS at — the tempo, the multiplier and (in Memory) the length of the
-opening sequence all move with it — deals a fresh board on every change, and is
-disabled the moment a run is under way, because changing it mid-run would mean
-throwing that run away.
+opening sequence all move with it. Every change **deals a fresh board at the
+new level**; what happens to that board is what `autoStart` says, so an
+autostarting console plays on and a manual one waits at Start.
+
+It is **disabled only while a run the person started is under way**, where a
+mis-aimed plus would throw away a board they were playing. An `autoStart`
+console is exempt, and has to be: it is running in its very first frame, so
+"disabled while a run is under way" would mean disabled forever and the level
+could never be picked at all. The number the stepper moves is the level **on
+screen**, not a remembered start level, so the plus always moves it.
 
 - **The LCD is DOM, not canvas.** Four hundred `<span>`s follow `data-theme`
   for free, are assertable in a test, and announce as one named image. A canvas
@@ -125,6 +132,17 @@ throwing that run away.
   the piece is where they left it. A board the person paused stays paused.
 - **`prefers-reduced-motion`** removes the cell transition. The game still
   runs — the request was about decoration.
+- **The frame is announced with its controls.** `role="group"` and a name are
+  not enough: a screen-reader user landing on the frame (with `autoFocus`, in
+  the same gesture that opened it) would hear "group, brick game console" and
+  nothing about how to play. `aria-describedby` points at whichever control
+  surface is on screen — the key **legend** on a fine pointer, so the
+  description IS the key list; the **keypad** on a coarse one, where the
+  description is the pad's own name, because the buttons are on the screen and
+  reachable by touch and reciting seven of them before the game starts helps
+  nobody. The legend therefore carries no `aria-label` of its own: a described
+  element's label stands in for its contents, and a legend named "Keys" would
+  describe the console as "Keys".
 
 ## Keys
 
@@ -191,12 +209,18 @@ whatever level the stepper was left on.
   because a board nobody is playing has no claim on the page's keyboard. Every
   guarantee below still holds in `"claim"`: an editable target, a focused
   button's Space and Enter, and the modifier chords are never taken.
-- **`autoFocus` hands the console the keyboard in the gesture that opened it.**
-  A host that reveals the console from a toggle button had two options and
-  neither was right: a second gesture into the frame, or going page-wide. This
-  is the third — the frame takes focus on mount and `"focus"`'s narrow scope is
-  kept. `ref` gives the same frame element back for a host that wants to focus
-  (or blur) it later.
+- **`autoFocus` hands the console the keyboard in the gesture that opened it,
+  and gives it back when the console goes.** A host that reveals the console
+  from a toggle button had two options and neither was right: a second gesture
+  into the frame, or going page-wide. This is the third — the frame takes focus
+  on mount and `"focus"`'s narrow scope is kept. On unmount the focus goes back
+  to the element it was taken from (the toggle), which is the other half of the
+  disclosure pattern and the half a host cannot supply: by then the element is
+  known only here. It is restored only where the package actually moved focus,
+  only if that element is still in the document, and never if the person has
+  since focused something of their own. Without `autoFocus` the package touches
+  focus at neither end. `ref` gives the same frame element back for a host that
+  wants to focus (or blur) it later.
 - **An editable target keeps its keystrokes in both modes**: `input`,
   `textarea`, `select`, anything `contenteditable`, or anything inside one.
   Typing a title while an upload's game is mounted never loses an `r` or a
@@ -219,10 +243,15 @@ whatever level the stepper was left on.
   are never claimed.
 
 - **The paused veil promises only what is true.** It is always clickable, from
-  wherever the host left focus. It offers **Enter** only in `"global"` and
-  `"claim"`, where Enter actually reaches the console; in `"focus"` it reads
-  "Click here to carry on", because Enter belongs to whatever the host focused
-  — typically the button that opened the panel, which would collapse it.
+  wherever the host left focus. It offers **Enter** only when Enter would
+  actually reach the console *right now*, which is a question about WHERE FOCUS
+  IS, not about the capture mode: focus inside the frame (the frame itself, the
+  veil, Start) always reaches it; focus outside reaches it only in `"global"` /
+  `"claim"` and only when the focused element is not one that keeps Enter for
+  itself. A console revealed by a host toggle leaves focus on that toggle — a
+  button, and the package's own guarantee hands Enter to a focused button — so
+  the veil reads "Click here to carry on" there in every mode, `"claim"`
+  included. It follows focus while the veil is up.
 
 `<WaitingGame/>` forwards `captureKeys`, `autoFocus`, `enabled`, `paused`,
 `startLevel` and `onPhaseChange` unchanged.

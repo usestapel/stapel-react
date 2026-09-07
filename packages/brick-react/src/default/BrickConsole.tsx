@@ -22,10 +22,16 @@
  * A paused field carries a clickable veil saying so, so a mouse always has a
  * way back.
  *
- * The LEVEL is picked before the run, with a plus and a minus: a person who
- * already knows the game should not have to play four slow levels to reach the
- * one they wanted. Changing it deals a fresh board, so it is disabled the
- * moment a run is under way.
+ * The LEVEL is picked with a plus and a minus: a person who already knows the
+ * game should not have to play four slow levels to reach the one they wanted.
+ * Changing it always DEALS A FRESH BOARD at the new level — that is the one
+ * thing the stepper does, in every phase — and the board then behaves the way
+ * the console was mounted: an `autoStart` console plays it, a manual one waits
+ * on Start. Because an autostarting console is already running in its very
+ * first frame, its stepper stays live; locking it "while a run is under way"
+ * would be locking it forever, and the level would be unreachable. A console
+ * that starts on a gesture keeps the lock: the run is one the person asked
+ * for, and a mis-aimed plus must not throw it away.
  *
  * ── Keys ───────────────────────────────────────────────────────────────────
  * Arrows or WASD, Space for OK, Enter for Start, R for Reset. By default the
@@ -41,8 +47,14 @@
  * snaps rather than fades. The GAME still runs: the request is about
  * decoration, and a person who asked for less movement did not ask to be
  * denied the thing they are looking at.
+ *
+ * ── Announced with its controls ────────────────────────────────────────────
+ * The frame is a named group, and `aria-describedby` points at whichever
+ * control surface is on screen: the key legend on a fine pointer, the keypad
+ * on a coarse one. Landing on the frame therefore says what the thing is AND
+ * how it is played, instead of "group, brick game console" and silence.
  */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactElement, Ref } from "react";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { BRICK_GAME_IDS, findGame } from "../headless/games/index.js";
@@ -331,8 +343,17 @@ const KEY_NAME: Record<BrickInput, string> = {
   reset: BRICK_I18N_KEYS.keyNameReset,
 };
 
-/** The legend a fine pointer gets instead of the keypad — generated from the game's `controls`. */
+/**
+ * The legend a fine pointer gets instead of the keypad — generated from the
+ * game's `controls`.
+ *
+ * It carries the frame's description, and therefore NO `aria-label` of its
+ * own: a described element's label REPLACES its content in the description, so
+ * a `<dl>` named "Keys" would describe the console as "Keys" and the key list
+ * would never be read. The list is the description.
+ */
 function Legend(props: {
+  readonly id: string;
   readonly definition: GameDefinition;
   readonly t: BrickTranslate;
 }): ReactElement {
@@ -346,7 +367,7 @@ function Legend(props: {
     { keys: t(KEY_NAME.reset), label: t(BRICK_I18N_KEYS.padReset) },
   ];
   return (
-    <dl style={legendStyle} aria-label={t(BRICK_I18N_KEYS.legendLabel)} data-testid="brick-legend">
+    <dl style={legendStyle} id={props.id} data-testid="brick-legend">
       {rows.map((row) => (
         <Fragment key={row.keys}>
           <dt>
@@ -474,6 +495,33 @@ function targetKeepsKey(target: EventTarget | null, key: string): boolean {
   return (key === " " || key === "Enter") && target.closest(ACTIVATABLE) !== null;
 }
 
+/**
+ * Would Enter, pressed right now, reach the console?
+ *
+ * This is a question about WHERE FOCUS IS, not about the capture mode. The
+ * package's own guarantee is that a focused button or link keeps Space and
+ * Enter — so a console revealed by a host toggle, with focus still on that
+ * toggle, does not get Enter in ANY mode, `"claim"` included: the toggle
+ * collapses the panel instead. The veil must not promise a key that behaves
+ * like that.
+ */
+function enterReaches(
+  frame: HTMLElement | null,
+  capture: BrickKeyCapture,
+  enabled: boolean
+): boolean {
+  if (!enabled || typeof document === "undefined") return false;
+  const active = document.activeElement;
+  // Focus inside the frame: the key is the console's in every mode — either
+  // read by the frame itself, or acted on by the console's own focused control
+  // (the veil is a button; so is Start).
+  if (frame !== null && active !== null && frame.contains(active)) return true;
+  // Outside the frame, `"focus"` has no listener to read it with…
+  if (capture === "focus") return false;
+  // …and the window modes still leave Enter to a target that acts on it.
+  return !targetKeepsKey(active, "Enter");
+}
+
 /** The word for a phase, or null while the game is simply being played. */
 function statusKey(phase: BrickPhase): string | null {
   if (phase === "over") return BRICK_I18N_KEYS.statusOver;
@@ -512,6 +560,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const ghostPixels = props.ghostPixels ?? true;
   const enabled = props.enabled ?? true;
   const captureKeys = props.captureKeys ?? "focus";
+  const autoStart = props.autoStart ?? false;
   const coarse = useCoarsePointer();
   const sizeChoice = props.size ?? "auto";
   const size: BrickConsoleSize =
@@ -525,7 +574,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
     ...(props.seed === undefined ? {} : { seed: props.seed }),
     ...(props.highScores === undefined ? {} : { highScores: props.highScores }),
     ...(props.onGameOver === undefined ? {} : { onGameOver: props.onGameOver }),
-    ...(props.autoStart === undefined ? {} : { autoStart: props.autoStart }),
+    autoStart,
     ...(props.paused === undefined ? {} : { paused: props.paused }),
     ...(props.resumeOnReturn === undefined ? {} : { resumeOnReturn: props.resumeOnReturn }),
     ...(props.onPhaseChange === undefined ? {} : { onPhaseChange: props.onPhaseChange }),
@@ -633,8 +682,29 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
     [outerRef]
   );
   const autoFocus = props.autoFocus ?? false;
+  // Taking focus is half of the disclosure pattern; GIVING IT BACK is the
+  // other half, and a host cannot supply it — by the time the console
+  // unmounts, the element it took focus from is only known here. Without this
+  // a keyboard-only person closing the console is dropped to the top of the
+  // document.
   useEffect(() => {
-    if (autoFocus) frameRef.current?.focus();
+    const frame = frameRef.current;
+    if (!autoFocus || frame === null) return;
+    const previous = document.activeElement;
+    frame.focus();
+    // Restore only what this package actually moved: the focus call has to have
+    // landed, and there has to be somewhere real to put it back.
+    if (document.activeElement !== frame) return;
+    if (!(previous instanceof HTMLElement) || previous === frame) return;
+    if (previous === document.body) return;
+    return () => {
+      // The person has moved on to something of their own since — that focus is
+      // theirs, not ours to take back.
+      const active = document.activeElement;
+      const stillOurs = active === null || active === document.body || frame.contains(active);
+      if (!stillOurs || !previous.isConnected) return;
+      previous.focus();
+    };
   }, [autoFocus]);
 
   const choose = (id: BrickGameId): void => {
@@ -648,24 +718,47 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   const phaseKey = statusKey(phase);
   const statusWord = phaseKey === null ? "" : t(phaseKey);
   const recordWord = phase === "over" && bag.isRecord ? t(BRICK_I18N_KEYS.statusRecord) : null;
-  // The level belongs to the run that has not started yet; a run under way owns
-  // its own level and the stepper stops being a control.
-  const levelLocked = phase === "running" || phase === "paused";
-  // The veil may only advertise Enter where Enter actually reaches the console.
-  // In `"focus"` it does not: the console leaves Enter to whatever the host
-  // focused, which is normally the button that opened the panel — and a hint
-  // that names a key belonging to something else sends people to the wrong
-  // control. The click is always true, so that is what it promises.
-  const hintKey =
-    enabled && captureKeys !== "focus"
-      ? BRICK_I18N_KEYS.screenHint
-      : BRICK_I18N_KEYS.screenHintClick;
+  // The level belongs to the run that has not started yet, so a run the person
+  // asked for locks the stepper rather than losing its board to a mis-aimed
+  // plus. An AUTOSTARTING console has no such run: it is running in its first
+  // frame, before anybody chose anything, and locking there would mean the
+  // level could never be picked at all — so its stepper stays live and a
+  // change deals a fresh board at the new level, which then plays on.
+  const levelLocked = !autoStart && (phase === "running" || phase === "paused");
+  // The number on screen is the level being PLAYED, and the stepper steps from
+  // it: in a live autostart run the start level may already be behind it, and a
+  // plus that appeared to do nothing would be the same defect one layer down.
+  const shownLevel = bag.status.level;
+  // The veil may only advertise Enter where Enter actually reaches the console
+  // — a question about focus, not about the capture mode (see `enterReaches`).
+  // The click is always true, so that is the other thing it can promise.
+  const [enterHint, setEnterHint] = useState(false);
+  useEffect(() => {
+    if (phase !== "paused") return;
+    const read = (): void => {
+      setEnterHint(enterReaches(frameRef.current, captureKeys, enabled));
+    };
+    read();
+    // Focus can move while the veil is up — into the frame, or away from it —
+    // and the promise has to move with it.
+    document.addEventListener("focusin", read);
+    document.addEventListener("focusout", read);
+    return () => {
+      document.removeEventListener("focusin", read);
+      document.removeEventListener("focusout", read);
+    };
+  }, [phase, captureKeys, enabled]);
+  const hintKey = enterHint ? BRICK_I18N_KEYS.screenHint : BRICK_I18N_KEYS.screenHintClick;
+  // One id for whichever control surface is on screen, so the frame is
+  // announced WITH its controls rather than as a group with nothing in it.
+  const helpId = useId();
 
   return (
     <div
       style={frameStyle}
       role="group"
       aria-label={t(BRICK_I18N_KEYS.consoleLabel)}
+      aria-describedby={helpId}
       data-testid={props["data-testid"] ?? "brick-console"}
       data-phase={phase}
       data-game={bag.definition.id}
@@ -719,11 +812,11 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
                 type="button"
                 style={levelLocked ? stepDisabledStyle : stepStyle}
                 disabled={levelLocked}
-                data-disabled-reason="a run is under way — the status beside these buttons says so, and the level is chosen before a run, not during it"
+                data-disabled-reason="a run the person started is under way — the status beside these buttons says so, and changing the level would deal its board away"
                 aria-label={t(BRICK_I18N_KEYS.buttonLevelDown)}
                 data-testid="brick-level-down"
                 onClick={() => {
-                  bag.setStartLevel(bag.startLevel - 1);
+                  bag.setStartLevel(shownLevel - 1);
                 }}
                 data-analytics="none"
                 data-analytics-reason="game input, not a product interaction"
@@ -731,17 +824,17 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
                 <Sign plus={false} />
               </button>
               <span style={valueStyle} data-testid="brick-level">
-                {String(bag.status.level)}
+                {String(shownLevel)}
               </span>
               <button
                 type="button"
                 style={levelLocked ? stepDisabledStyle : stepStyle}
                 disabled={levelLocked}
-                data-disabled-reason="a run is under way — the status beside these buttons says so, and the level is chosen before a run, not during it"
+                data-disabled-reason="a run the person started is under way — the status beside these buttons says so, and changing the level would deal its board away"
                 aria-label={t(BRICK_I18N_KEYS.buttonLevelUp)}
                 data-testid="brick-level-up"
                 onClick={() => {
-                  bag.setStartLevel(bag.startLevel + 1);
+                  bag.setStartLevel(shownLevel + 1);
                 }}
                 data-analytics="none"
                 data-analytics-reason="game input, not a product interaction"
@@ -815,9 +908,16 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
       )}
 
       {coarse ? (
-        <Keypad onPress={press} onHold={hold} onStart={toggleStart} onReset={reset} t={t} />
+        <Keypad
+          id={helpId}
+          onPress={press}
+          onHold={hold}
+          onStart={toggleStart}
+          onReset={reset}
+          t={t}
+        />
       ) : (
-        <Legend definition={bag.definition} t={t} />
+        <Legend id={helpId} definition={bag.definition} t={t} />
       )}
     </div>
   );

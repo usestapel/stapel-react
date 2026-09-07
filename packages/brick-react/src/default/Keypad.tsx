@@ -93,6 +93,16 @@ function Dot(): ReactElement {
 }
 
 export interface KeypadProps {
+  /**
+   * The pad's element id, so the console can point `aria-describedby` at it.
+   * A coarse-pointer console is described by its keypad rather than by a list
+   * of keys the device has not got — and the description a reader gets is the
+   * pad's own name ("Game controls"), because a described element's label
+   * stands in for its contents. That is the right answer here: the buttons are
+   * on the screen and reachable by touch, so the useful thing to say is that
+   * they exist, not to recite all seven of them before the game starts.
+   */
+  readonly id?: string;
   /** Apply a press. */
   readonly onPress: (action: BrickInput) => void;
   /** A d-pad or OK button went down or came up — a held soft drop, a held direction. */
@@ -184,7 +194,13 @@ export function Keypad(props: KeypadProps): ReactElement {
     </PadButton>
   );
   return (
-    <div style={padStyle} role="group" aria-label={t(BRICK_I18N_KEYS.padLabel)}>
+    <div
+      style={padStyle}
+      id={props.id}
+      role="group"
+      aria-label={t(BRICK_I18N_KEYS.padLabel)}
+      data-testid="brick-keypad"
+    >
       <div style={dpadStyle}>
         {dir("up", "1 / 2 / 2 / 3", BRICK_I18N_KEYS.padUp, 0)}
         {dir("left", "2 / 1 / 3 / 2", BRICK_I18N_KEYS.padLeft, -90)}
