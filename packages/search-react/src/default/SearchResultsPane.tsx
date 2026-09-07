@@ -216,6 +216,24 @@ const WIDE_HEADING: CSSProperties = { margin: 0, minInlineSize: 0 };
  */
 const TOOLBAR_END: CSSProperties = { flex: "0 0 auto" };
 
+/**
+ * The wide row's LEADING half, and it is always in the row (D466).
+ *
+ * The count arrives with the answer, one render after the toolbar is already
+ * on screen, and `<Count>` renders nothing at all until it does — so a row
+ * spaced by `justify: space-between` had ONE item in the first frame and TWO
+ * in the second, which moved the sort/view control from the leading edge to
+ * the trailing one as the number landed: x 328→459 at 1280, 564→863 at 1920,
+ * 312→796 at 1100, and the same jump on a seller's page.
+ *
+ * A leading box that is always there, and grows, is what fixes it: the
+ * trailing group's x is then `row right − its own width` in every frame,
+ * whatever the count says or whether it says anything. `min-inline-size: 0`
+ * lets a long count shrink into the space that is left rather than push the
+ * controls, which the row's own `overflow-x` then scrolls.
+ */
+const TOOLBAR_LEAD: CSSProperties = { flex: "1 1 auto", minInlineSize: 0 };
+
 /** The compact shape's toolbar box — the row the pin acts on. */
 const COMPACT_TOOLBAR: CSSProperties = {
   display: "flex",
@@ -751,14 +769,19 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   </Typography.Title>
                 </div>
                 <Flex
-                  justify="space-between"
                   align="center"
                   gap={spacing[3]}
                   className={RESULTS_TOOLBAR_CLASS}
                   data-testid="search-results-toolbar"
                   style={{ ...TOOLBAR_ROW, ...toolbarPin }}
                 >
-                  <Count bag={bag} />
+                  {/* The elastic half, present whether or not there is a
+                      count in it — see TOOLBAR_LEAD. It is what holds the
+                      controls against the trailing edge in the frame before
+                      the number arrives, so nothing travels when it does. */}
+                  <div style={TOOLBAR_LEAD} data-testid="search-results-toolbar-lead">
+                    <Count bag={bag} />
+                  </div>
                   <Flex align="center" gap={spacing[3]} style={TOOLBAR_END}>
                     {props.toolbar}
                   </Flex>

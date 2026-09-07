@@ -1139,7 +1139,18 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               }}
             </LoadList>
 
-            {footerBar !== "none" && (
+            {/* NOTHING MOUNTS IN THE HOLD THAT THE SETTLED RAIL WILL MOVE
+                (D465). The count and the clear-all come from the ANSWER, which
+                on 9 of 12 measured loads lands before the schema — so this bar
+                used to mount under the loading box at `schema=pending`, in its
+                own commit, and then travel down the rail when the groups
+                replaced that box. A schema-first load drew the rail in one
+                commit and shifted nothing, which is what made the shift
+                intermittent (CLS 0.0056 at 1280, 0.0018 at 1920, 0.0076 at
+                1100). The bar is part of the settled rail, so it waits for it:
+                while the shape of the panel is undecided there is no floor to
+                stick to and no place under the groups to sit. */}
+            {footerBar !== "none" && !schemaPending && (
               <RailFooterBar
                 activeFilters={bag.activeFilters}
                 clearAll={bag.clearAll}
