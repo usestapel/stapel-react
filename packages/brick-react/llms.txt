@@ -80,7 +80,7 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- brick.console → <BrickConsole> [default|snake|arkanoid|racing|tanks|memory|menu|level|phone]  demo/BrickConsole.demo.tsx
+- brick.console → <BrickConsole> [default|snake|arkanoid|racing|tanks|memory|menu|level|paused|phone]  demo/BrickConsole.demo.tsx
 - brick.waiting → <WaitingGame> [default|processing|done]  demo/WaitingGame.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

@@ -42,8 +42,8 @@
  * decoration, and a person who asked for less movement did not ask to be
  * denied the thing they are looking at.
  */
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import type { CSSProperties, ReactElement } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactElement, Ref } from "react";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { BRICK_GAME_IDS, findGame } from "../headless/games/index.js";
 import { BRICK_I18N_KEYS } from "../i18n/keys.js";
@@ -72,8 +72,21 @@ export type BrickConsoleSize = "sm" | "md" | "lg";
 /** An explicit pixel size, or `"auto"`: `sm` on a coarse pointer, `md` otherwise. */
 export type BrickConsoleSizeChoice = BrickConsoleSize | "auto";
 
-/** Where the console reads the keyboard from. */
-export type BrickKeyCapture = "focus" | "global";
+/**
+ * Where the console reads the keyboard from, and how hard it insists.
+ *
+ *  - `"focus"` — only while focus is inside the frame. The narrowest scope, and
+ *    the default: a console next to a form never takes the form's keys.
+ *  - `"global"` — the window, POLITELY: a key someone else already claimed
+ *    (`defaultPrevented`) is not the game's. Window listeners fire in
+ *    registration order, so a host shortcut surface that mounted first wins.
+ *  - `"claim"` — the window, and a run in progress takes its keys FIRST: the
+ *    listener is on the capture phase, so mount order stops deciding who gets
+ *    the arrows, and a key the game consumes is stopped rather than merely
+ *    marked. The moment the run is not running, it is `"global"` again — a
+ *    paused or finished board has no claim on the page's keyboard.
+ */
+export type BrickKeyCapture = "focus" | "global" | "claim";
 
 /** Off, ghost, shadow, lit — the four levels of the panel. */
 const LEVEL_COLOR: readonly string[] = [
@@ -388,11 +401,28 @@ export interface BrickConsoleProps {
    */
   readonly enabled?: boolean;
   /**
-   * `"focus"` (default): the frame is focusable and reads keys only while
-   * focus is inside it. `"global"`: the window, so the console plays without
-   * ever being focused — an editable target still keeps its keys.
+   * Where the keys come from, and how hard the console insists on them — see
+   * {@link BrickKeyCapture}. Default `"focus"`.
    */
   readonly captureKeys?: BrickKeyCapture;
+  /**
+   * Take the keyboard on mount. A host that opens the console from a toggle
+   * button has, without this, only two choices: a second gesture into the
+   * frame, or going page-wide with `captureKeys`. Focusing the frame is the
+   * third — the narrow scope, handed over in the same click.
+   */
+  readonly autoFocus?: boolean;
+  /**
+   * The frame element, for a host that wants to focus (or blur) it later. The
+   * same node `data-testid="brick-console"` names.
+   */
+  readonly ref?: Ref<HTMLDivElement>;
+  /**
+   * Every phase the console moves through — `ready`, `running`, `paused`,
+   * `over` — reported once per change and once on mount. `data-phase` says the
+   * same thing on the DOM; this is so a host never has to read it from there.
+   */
+  readonly onPhaseChange?: (phase: BrickPhase) => void;
   /**
    * Hold the loop: the tick stops, the board stays. Clearing it resumes only a
    * run this prop paused; a board the person paused stays paused.
@@ -435,6 +465,7 @@ interface KeyEventLike {
   readonly defaultPrevented: boolean;
   readonly target: EventTarget | null;
   preventDefault(): void;
+  stopPropagation(): void;
 }
 
 function targetKeepsKey(target: EventTarget | null, key: string): boolean {
@@ -497,20 +528,30 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
     ...(props.autoStart === undefined ? {} : { autoStart: props.autoStart }),
     ...(props.paused === undefined ? {} : { paused: props.paused }),
     ...(props.resumeOnReturn === undefined ? {} : { resumeOnReturn: props.resumeOnReturn }),
+    ...(props.onPhaseChange === undefined ? {} : { onPhaseChange: props.onPhaseChange }),
   });
   const { press, hold, toggleStart, reset } = bag;
 
-  // One handler for both modes. A key already claimed by someone else, or
-  // aimed at a target that acts on it, is not the game's to take.
-  const onKeyDown = useCallback(
-    (event: KeyEventLike): void => {
+  // One reader for every mode. A key aimed at a target that acts on it is never
+  // the game's; a key someone else already claimed is not the game's either,
+  // unless this console is CLAIMING (in which case nobody has had a turn yet —
+  // it is reading on the capture phase, before the rest of the page).
+  const readKey = useCallback(
+    (event: KeyEventLike, claiming: boolean): void => {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
       if (targetKeepsKey(event.target, event.key)) return;
+      // Taking a key means saying so both ways: `preventDefault` for the page's
+      // default action, and — while claiming — stopping it reaching the host
+      // listeners that would otherwise act on the same arrow.
+      const take = (): void => {
+        event.preventDefault();
+        if (claiming) event.stopPropagation();
+      };
       const action = KEY_ACTIONS[event.key];
       if (action) {
-        event.preventDefault();
+        take();
         // The OS's own echo is DROPPED: the hold started a repeat of ours, at a
         // rate a game can be played at, and letting both through would move a
         // piece twice for one key.
@@ -521,16 +562,22 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
         return;
       }
       if (event.key === "Enter") {
-        event.preventDefault();
+        take();
         if (!event.repeat) toggleStart();
         return;
       }
       if (event.key === "r" || event.key === "R") {
-        event.preventDefault();
+        take();
         if (!event.repeat) reset();
       }
     },
     [press, hold, toggleStart, reset]
+  );
+  const onKeyDown = useCallback(
+    (event: KeyEventLike): void => {
+      readKey(event, false);
+    },
+    [readKey]
   );
   const onKeyUp = useCallback(
     (event: KeyEventLike): void => {
@@ -542,16 +589,53 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
 
   const focusKeys = enabled && captureKeys === "focus";
   const globalKeys = enabled && captureKeys === "global";
+  const claimKeys = enabled && captureKeys === "claim";
+  // Read inside the listeners, so a phase change never re-registers them.
+  const phaseRef = useRef<BrickPhase>(bag.phase);
+  phaseRef.current = bag.phase;
 
   useEffect(() => {
-    if (!globalKeys || typeof window === "undefined") return;
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
+    if ((!globalKeys && !claimKeys) || typeof window === "undefined") return;
+    // Claiming: the capture phase, and only while a run is actually on. This is
+    // the whole difference — a host shortcut surface that mounted first no
+    // longer decides who gets the arrows, because registration order does not
+    // reach across phases.
+    const claimDown = (event: KeyboardEvent): void => {
+      if (phaseRef.current === "running") readKey(event, true);
     };
-  }, [globalKeys, onKeyDown, onKeyUp]);
+    // Everything else stays polite, on the bubble phase, yielding to whoever
+    // claimed the key first.
+    const politeDown = (event: KeyboardEvent): void => {
+      if (!claimKeys || phaseRef.current !== "running") readKey(event, false);
+    };
+    // Key-UP is read on the capture phase in both modes: a hold that is never
+    // released because a host swallowed the keyup is a piece that never stops
+    // falling.
+    if (claimKeys) window.addEventListener("keydown", claimDown, true);
+    window.addEventListener("keydown", politeDown);
+    window.addEventListener("keyup", onKeyUp, true);
+    return () => {
+      if (claimKeys) window.removeEventListener("keydown", claimDown, true);
+      window.removeEventListener("keydown", politeDown);
+      window.removeEventListener("keyup", onKeyUp, true);
+    };
+  }, [globalKeys, claimKeys, readKey, onKeyUp]);
+
+  // The frame, for `autoFocus` and for a host that focuses it later.
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const outerRef = props.ref;
+  const setFrame = useCallback(
+    (node: HTMLDivElement | null): void => {
+      frameRef.current = node;
+      if (typeof outerRef === "function") outerRef(node);
+      else if (outerRef) outerRef.current = node;
+    },
+    [outerRef]
+  );
+  const autoFocus = props.autoFocus ?? false;
+  useEffect(() => {
+    if (autoFocus) frameRef.current?.focus();
+  }, [autoFocus]);
 
   const choose = (id: BrickGameId): void => {
     props.onGameChange?.(id);
@@ -567,6 +651,15 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
   // The level belongs to the run that has not started yet; a run under way owns
   // its own level and the stepper stops being a control.
   const levelLocked = phase === "running" || phase === "paused";
+  // The veil may only advertise Enter where Enter actually reaches the console.
+  // In `"focus"` it does not: the console leaves Enter to whatever the host
+  // focused, which is normally the button that opened the panel — and a hint
+  // that names a key belonging to something else sends people to the wrong
+  // control. The click is always true, so that is what it promises.
+  const hintKey =
+    enabled && captureKeys !== "focus"
+      ? BRICK_I18N_KEYS.screenHint
+      : BRICK_I18N_KEYS.screenHintClick;
 
   return (
     <div
@@ -576,7 +669,8 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
       data-testid={props["data-testid"] ?? "brick-console"}
       data-phase={phase}
       data-game={bag.definition.id}
-      tabIndex={focusKeys ? 0 : undefined}
+      ref={setFrame}
+      tabIndex={focusKeys || autoFocus ? 0 : undefined}
       onKeyDown={focusKeys ? onKeyDown : undefined}
       onKeyUp={focusKeys ? onKeyUp : undefined}
       data-analytics="none"
@@ -603,7 +697,7 @@ export function BrickConsole(props: BrickConsoleProps): ReactElement {
               data-analytics-reason="game input, not a product interaction"
             >
               <span style={valueStyle}>{statusWord}</span>
-              <span style={veilHintStyle}>{t(BRICK_I18N_KEYS.screenHint)}</span>
+              <span style={veilHintStyle}>{t(hintKey)}</span>
             </button>
           )}
         </div>

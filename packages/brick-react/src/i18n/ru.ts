@@ -63,6 +63,7 @@ export const brickI18nBundleRu: I18nDictionary = {
   "brick.button.again": "Ещё раз",
   "brick.button.reset": "Сброс",
   "brick.screen.hint": "Нажмите здесь или Enter",
+  "brick.screen.hintclick": "Нажмите здесь, чтобы продолжить",
   "brick.button.levelup": "Уровень выше",
   "brick.button.leveldown": "Уровень ниже",
 };

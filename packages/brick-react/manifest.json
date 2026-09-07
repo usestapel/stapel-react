@@ -43,6 +43,7 @@
         "memory",
         "menu",
         "level",
+        "paused",
         "phone"
       ],
       "source": "demo/BrickConsole.demo.tsx"
@@ -116,6 +117,7 @@
     "brick.panel.next",
     "brick.panel.score",
     "brick.screen.hint",
+    "brick.screen.hintclick",
     "brick.status.over",
     "brick.status.paused",
     "brick.status.ready",

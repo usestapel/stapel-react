@@ -74,6 +74,13 @@
           "play": true
         },
         {
+          "id": "paused",
+          "description": "The paused field wears a clickable veil — and it offers Enter only where Enter actually reaches the console.",
+          "viewport": "desktop",
+          "step": "paused",
+          "play": true
+        },
+        {
           "id": "phone",
           "description": "The keypad a coarse pointer gets: a four-way pad and OK / Start / Reset, every target at the phone control height, every button carrying its own accessible name.",
           "viewport": "phone",

@@ -68,6 +68,9 @@ import { BrickConsole } from "@stapel/brick-react/default";
 | `resumeOnReturn` | `true` | A run the blur or the hidden tab stopped starts again on focus / visible. A board the person paused never is. |
 | `autoStart` | `false` (`true` in `<WaitingGame/>`) | Start on mount. |
 | `startLevel` | `1` | The level the first run opens on. The person moves it with the stepper. |
+| `autoFocus` | `false` | Focus the frame on mount — the keys, handed over in the same click that opened the console. |
+| `ref` | — | The frame element, for a host that focuses it later. |
+| `onPhaseChange` | — | `ready` / `running` / `paused` / `over`, once on mount and once per change. |
 | `seed`, `highScores`, `onGameOver`, `ghostPixels` | — | Pin the deal (omit for a new game every run), the store, the report, the LCD ghost. |
 
 ## Layout
@@ -173,8 +176,27 @@ whatever level the stepper was left on.
   keystroke anywhere else on the page is not the game's. A host that embeds a
   console next to a form gets the form's keys back for free.
 - **`captureKeys="global"`** is the opt-in for a console that must play
-  without ever being focused — the original waiting-screen case. It reads the
-  window, so the guarantees below are what keeps it from swallowing the page.
+  without ever being focused — the original waiting-screen case, and the right
+  answer for a console that autostarts behind a host toggle, where `"focus"`
+  would hand somebody a running board with dead keys. It reads the window
+  POLITELY, so the guarantees below are what keeps it from swallowing the page.
+- **`captureKeys="claim"`** is `"global"` plus one rule: **while a run is
+  actually running**, the console reads on the CAPTURE phase and stops the keys
+  it takes. `"global"` yields to any handler that called `preventDefault()`
+  first, and window listeners fire in registration order — so a host shortcut
+  surface that mounted before the console silently eats the arrows and the game
+  gets nothing, which makes a working console a matter of mount order. `"claim"`
+  removes the accident: the thing being played gets its own arrows first. The
+  moment the run is not running — ready, paused, over — it is `"global"` again,
+  because a board nobody is playing has no claim on the page's keyboard. Every
+  guarantee below still holds in `"claim"`: an editable target, a focused
+  button's Space and Enter, and the modifier chords are never taken.
+- **`autoFocus` hands the console the keyboard in the gesture that opened it.**
+  A host that reveals the console from a toggle button had two options and
+  neither was right: a second gesture into the frame, or going page-wide. This
+  is the third — the frame takes focus on mount and `"focus"`'s narrow scope is
+  kept. `ref` gives the same frame element back for a host that wants to focus
+  (or blur) it later.
 - **An editable target keeps its keystrokes in both modes**: `input`,
   `textarea`, `select`, anything `contenteditable`, or anything inside one.
   Typing a title while an upload's game is mounted never loses an `r` or a
@@ -188,13 +210,30 @@ whatever level the stepper was left on.
   checks `defaultPrevented` before it acts. In `"global"` mode that handler
   must be registered before the console mounts (window listeners run in
   registration order); in `"focus"` mode a capture-phase handler on any
-  ancestor runs first regardless.
+  ancestor runs first regardless. In `"claim"` mode this is true everywhere
+  except during a run, which is the entire point of the mode — pick `"global"`
+  if the host's shortcuts must always win.
 - **`enabled={false}` detaches everything** — no window listener, no
   `tabIndex`, no `onKeyDown` — for a host that wants to hand the keyboard to
   something else while the board stays visible. Modifier chords (⌘/Ctrl/Alt)
   are never claimed.
 
-`<WaitingGame/>` forwards `captureKeys`, `enabled` and `paused` unchanged.
+- **The paused veil promises only what is true.** It is always clickable, from
+  wherever the host left focus. It offers **Enter** only in `"global"` and
+  `"claim"`, where Enter actually reaches the console; in `"focus"` it reads
+  "Click here to carry on", because Enter belongs to whatever the host focused
+  — typically the button that opened the panel, which would collapse it.
+
+`<WaitingGame/>` forwards `captureKeys`, `autoFocus`, `enabled`, `paused`,
+`startLevel` and `onPhaseChange` unchanged.
+
+### Knowing what the console is doing
+
+`data-phase` on the frame says `ready` / `running` / `paused` / `over`, and
+**`onPhaseChange(phase)`** says the same thing to the host — once on mount and
+once per change, never twice for a re-render. Reading the attribute is not the
+supported way to find out whether a run is under way; this is. The same phase
+is on `useBrickGame`'s bag for a host building its own skin.
 
 ## `<WaitingGame/>`
 

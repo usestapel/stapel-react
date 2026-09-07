@@ -70,6 +70,12 @@ export interface UseBrickGameOptions {
    * Default true. A board the person paused is never resumed by this.
    */
   readonly resumeOnReturn?: boolean;
+  /**
+   * Every phase the console moves through, reported once per change and once on
+   * mount. A host that needs to know a run is under way should be told, not left
+   * to read `data-phase` off the DOM.
+   */
+  readonly onPhaseChange?: (phase: BrickPhase) => void;
 }
 
 export interface BrickGameBag {
@@ -204,6 +210,17 @@ export function useBrickGame(options: UseBrickGameOptions): BrickGameBag {
   // Nothing may outlive the component: a repeat still ticking after unmount
   // would press buttons on a session that is gone.
   useEffect(() => stopEveryRepeat, [stopEveryRepeat]);
+
+  // The phase, published. Once per CHANGE — a host that re-renders is not a
+  // host whose game moved.
+  const phaseReportRef = useRef(options.onPhaseChange);
+  phaseReportRef.current = options.onPhaseChange;
+  const reportedRef = useRef<BrickPhase | null>(null);
+  useEffect(() => {
+    if (reportedRef.current === phase) return;
+    reportedRef.current = phase;
+    phaseReportRef.current?.(phase);
+  }, [phase]);
 
   const pause = useCallback(() => {
     const session = sessionRef.current;

@@ -57,6 +57,26 @@ no network, and everyone born before the smartphone already knows the controls.
   opt-in — and never from an editable target.** 0.1.0 read the window
   unconditionally and took `r` and Space out of a form field beside the game;
   a host pays for `captureKeys="global"` with the guarantees in README "Keys".
+- **A run in progress may claim its keys; a board nobody is playing may not.**
+  `"global"` yields to whoever called `preventDefault()` first, and window
+  listeners fire in registration order — so through 0.3.0 a host whose shortcut
+  surface mounted before the console had a game that silently got no arrows,
+  and one whose mounted after had a working game, for no reason either of them
+  could see. `"claim"` reads on the capture phase and stops the keys it takes,
+  but ONLY while `phase === "running"`: the scope of the claim is the run, not
+  the mount.
+- **`autoFocus` exists because the alternative was going page-wide.** A host
+  that opens the console from a toggle button could either ask for a second
+  gesture into the frame or take the whole window's keyboard. Focusing the frame
+  on mount is the third answer and keeps `"focus"`'s scope.
+- **The veil never names a key it does not own.** In `"focus"` the console
+  leaves Enter to whatever the host focused — normally the toggle that opened
+  the panel — so a veil saying "press Enter" sent people to the control that
+  closes the game. The hint is chosen from the capture mode; the click always
+  works.
+- **The phase is published, not scraped.** `data-phase` is for a stylesheet and
+  a test; `onPhaseChange` is for a host. A host reduced to reading an attribute
+  is a host we forgot to give an API to.
 - **A press is applied at once; gravity is what runs on the step.** 0.1.x
   queued presses and drained them at the tick, so at level 1 a Left could wait
   620 ms to happen — most of what "unplayable" meant.

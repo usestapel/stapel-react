@@ -59,6 +59,7 @@ export const brickI18nBundleEs: I18nDictionary = {
   "brick.button.again": "Otra vez",
   "brick.button.reset": "Reiniciar",
   "brick.screen.hint": "Pulsa aquí o Intro",
+  "brick.screen.hintclick": "Pulsa aquí para continuar",
   "brick.button.levelup": "Nivel inicial más alto",
   "brick.button.leveldown": "Nivel inicial más bajo",
 };

@@ -21,6 +21,7 @@ import { BRICK_I18N_KEYS } from "../i18n/keys.js";
 import { BrickConsole } from "./BrickConsole.js";
 import { useBrickT } from "./hooks.js";
 import type { BrickConsoleSizeChoice, BrickKeyCapture } from "./BrickConsole.js";
+import type { BrickPhase } from "./useBrickGame.js";
 import type { HighScoreStore } from "../headless/highscores.js";
 import type { BrickGameId } from "../headless/types.js";
 
@@ -59,6 +60,8 @@ export interface WaitingGameProps {
   readonly games?: readonly BrickGameId[];
   readonly size?: BrickConsoleSizeChoice;
   readonly seed?: number;
+  /** The level the first run opens on; see `<BrickConsole/>`. */
+  readonly startLevel?: number;
   /** Start the game on mount. Default true here: someone who is waiting
    * already agreed to be entertained. */
   readonly autoStart?: boolean;
@@ -69,8 +72,12 @@ export interface WaitingGameProps {
   readonly paused?: boolean;
   /** Read the keyboard at all. Default true. */
   readonly enabled?: boolean;
-  /** `"focus"` (default) or `"global"` — see `<BrickConsole/>`. */
+  /** `"focus"` (default), `"global"` or `"claim"` — see `<BrickConsole/>`. */
   readonly captureKeys?: BrickKeyCapture;
+  /** Take the keyboard on mount — see `<BrickConsole/>`. */
+  readonly autoFocus?: boolean;
+  /** Every phase change, so a host never reads `data-phase` off the DOM. */
+  readonly onPhaseChange?: (phase: BrickPhase) => void;
   /** Start again on return a run the hidden tab stopped. Default true. */
   readonly resumeOnReturn?: boolean;
   readonly "data-testid"?: string;
@@ -111,6 +118,11 @@ export function WaitingGame(props: WaitingGameProps): ReactElement | null {
         {...(props.games === undefined ? {} : { games: props.games })}
         {...(props.size === undefined ? {} : { size: props.size })}
         {...(props.seed === undefined ? {} : { seed: props.seed })}
+        {...(props.startLevel === undefined ? {} : { startLevel: props.startLevel })}
+        {...(props.autoFocus === undefined ? {} : { autoFocus: props.autoFocus })}
+        {...(props.onPhaseChange === undefined
+          ? {}
+          : { onPhaseChange: props.onPhaseChange })}
         {...(props.onGameOver === undefined ? {} : { onGameOver: props.onGameOver })}
         {...(props.onGameChange === undefined
           ? {}

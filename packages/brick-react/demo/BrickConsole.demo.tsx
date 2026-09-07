@@ -149,6 +149,21 @@ export default defineDemo({
         await click('[data-testid="brick-level-up"]');
       },
     },
+    paused: {
+      description:
+        "The paused field wears a clickable veil — and it offers Enter only where Enter actually reaches the console.",
+      viewport: "desktop",
+      step: "paused",
+      render: () => (
+        <ConsoleFrame>
+          <Console game="tetris" />
+        </ConsoleFrame>
+      ),
+      play: async ({ click }) => {
+        await click('[data-testid="brick-button-start"]');
+        await click('[data-testid="brick-button-start"]');
+      },
+    },
     phone: {
       description:
         "The keypad a coarse pointer gets: a four-way pad and OK / Start / Reset, every target at the phone control height, every button carrying its own accessible name.",

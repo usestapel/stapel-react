@@ -87,6 +87,8 @@ export const BRICK_I18N_KEYS = {
   buttonAgain: "brick.button.again",
   buttonReset: "brick.button.reset",
   screenHint: "brick.screen.hint",
+  /** The same veil where Enter is NOT the console's to offer — see `<BrickConsole/>`. */
+  screenHintClick: "brick.screen.hintclick",
 
   /** The plus and the minus that pick the level a run starts at. */
   buttonLevelUp: "brick.button.levelup",
@@ -149,6 +151,7 @@ export const brickI18nBundleEn: I18nDictionary = {
   "brick.button.again": "Play again",
   "brick.button.reset": "Reset",
   "brick.screen.hint": "Click here or press Enter",
+  "brick.screen.hintclick": "Click here to carry on",
   "brick.button.levelup": "Higher starting level",
   "brick.button.leveldown": "Lower starting level",
 };
