@@ -67,6 +67,8 @@ export const recordingsI18nBundleRu: I18nDictionary = {
   "recordings.player.label": "Аудио записи",
   "recordings.player.preparing": "Готовим воспроизведение…",
   "recordings.player.not_stored": "У этой записи нет сохранённого медиафайла.",
+  "recordings.player.converting":
+    "Мы ещё готовим звук. Воспроизведение откроется, как только он будет готов.",
   "recordings.player.unavailable":
     "Выдача медиа сейчас недоступна. Запись цела, воспроизведение — нет.",
   "recordings.player.blocked_not_ready":
@@ -134,8 +136,12 @@ export const recordingsI18nBundleRu: I18nDictionary = {
   "recordings.uploader.blocked_no_workspace":
     "Выберите пространство, в котором сохранить запись.",
   "recordings.uploader.too_large": "Файл больше, чем допускает эта загрузка.",
+  "recordings.uploader.too_large_named":
+    "Файл весит {size}, а эта загрузка принимает не больше {limit}.",
+  "recordings.uploader.limit_hint":
+    "До {max} на файл. Храним только речь — примерно {perHour} за час.",
   "recordings.uploader.unsupported_type":
-    "Это не аудио и не видео — расшифровывать нечего.",
+    "Эта установка не принимает файлы такого типа.",
   "recordings.uploader.session_expired":
     "Окно загрузки закрылось. Начните загрузку заново.",
   "recordings.uploader.source_meet": "Встреча",

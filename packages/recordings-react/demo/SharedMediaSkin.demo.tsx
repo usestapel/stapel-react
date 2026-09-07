@@ -8,12 +8,27 @@ import { SkinDemo } from "./_fixtures.js";
 const GRANTED = {
   state: { status: "ready", data: MEDIA } as const,
   granted: true,
+  isConverting: false,
   refresh: (): void => undefined,
 };
 
 const NOT_GRANTED = {
   state: { status: "loading" } as const,
   granted: false,
+  isConverting: false,
+  refresh: (): void => undefined,
+};
+
+/** The share opened while the pipeline is still extracting the audio: the read
+ * answered 409, and a visitor is told to wait rather than told the link is
+ * empty. */
+const CONVERTING = {
+  state: {
+    status: "failed",
+    error: { code: "error.409.recording_media_not_stored", message: "not stored" },
+  } as const,
+  granted: true,
+  isConverting: true,
   refresh: (): void => undefined,
 };
 
@@ -29,6 +44,14 @@ function PhoneVariant(): ReactElement {
   return (
     <SkinDemo>
       <SharedMedia media={NOT_GRANTED} />
+    </SkinDemo>
+  );
+}
+
+function ConvertingVariant(): ReactElement {
+  return (
+    <SkinDemo>
+      <SharedMedia media={CONVERTING} />
     </SkinDemo>
   );
 }
@@ -51,6 +74,13 @@ export default defineDemo({
       viewport: "phone",
       step: "not-granted",
       render: () => <PhoneVariant />,
+    },
+    converting: {
+      description:
+        "The audio has not been extracted yet: a wait, not the empty-link sentence and not a red box.",
+      viewport: "desktop",
+      step: "waiting",
+      render: () => <ConvertingVariant />,
     },
   },
 });

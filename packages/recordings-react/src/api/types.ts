@@ -39,9 +39,33 @@ export type UploadSession = Schemas["UploadSessionDTO"];
 /** POST /recordings/{id}/finalize request body — the uploaded object's size. */
 export type FinalizeUploadRequest = Schemas["FinalizeUploadRequest"];
 /**
+ * The ceilings, and what survives them, read BEFORE the first byte —
+ * `GET /recordings/upload-limits` (backend 0.22.0).
+ *
+ * The two numbers are different ceilings and the difference is the module's
+ * whole shape: `max_upload_bytes` is what a deployment will ACCEPT (what
+ * `error.413.recording_too_large` enforces), `max_stored_bytes` is what it will
+ * KEEP. While `audio_only_ingest` is on, the accepted file is transport — its
+ * audio track is extracted, downmixed to `stored_audio_channels` at
+ * `stored_audio_sample_rate` in `stored_audio_codec`, and that is the whole of
+ * what the service holds — which is why the first number can be orders of
+ * magnitude larger than the second. `stored_bytes_per_hour` is that profile
+ * expressed the way a person reads it: what an hour of talking costs.
+ *
+ * A host reads this BEFORE it opens a file picker, so an oversized or
+ * unsupported file is refused locally, in the deployment's real numbers,
+ * instead of after a full upload and a `413`.
+ */
+export type UploadLimits = Schemas["UploadLimitsDTO"];
+/**
  * A short-lived authorized URL to a recording's media object. The expiry
  * travels WITH the url because a player has to plan around it: the link dies
  * and the player must come back here rather than retry a dead one.
+ *
+ * The object behind it is AUDIO. Whatever container was uploaded was transport
+ * (see {@link UploadLimits}); nothing in this contract hands one back, so a
+ * consumer binds this to an `<audio>` element and never to a `<video>` one or
+ * to a "download the original" affordance.
  */
 export type MediaUrl = Schemas["MediaURLDTO"];
 /** The receipt for a 202 — which background run was accepted, and its state. */

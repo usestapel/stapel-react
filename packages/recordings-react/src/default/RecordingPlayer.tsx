@@ -105,7 +105,22 @@ function PlayerBody(props: {
           <Skeleton.Input active block />
         </div>
       ) : null}
-      {arm.status === "failed" ? (
+      {/* NOT YET IS NOT AN ERROR. The module keeps audio: until the pipeline
+          has extracted the track from the uploaded container there is nothing
+          to sign, and that read answers 409 — the same code a recording with
+          genuinely nothing stored answers. Rendered as a red box it tells a
+          person their upload is gone while it is being transcribed, so the
+          mid-pipeline case gets the waiting sentence and no alert. */}
+      {arm.status === "failed" && bag.isConverting ? (
+        <Typography.Text
+          type="secondary"
+          role="status"
+          data-testid={`${testId}-converting`}
+        >
+          {t(RECORDINGS_I18N_KEYS.playerConverting)}
+        </Typography.Text>
+      ) : null}
+      {arm.status === "failed" && !bag.isConverting ? (
         <ErrorAlert
           message={
             bag.isNotStored

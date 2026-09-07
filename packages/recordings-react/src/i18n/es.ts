@@ -63,6 +63,8 @@ export const recordingsI18nBundleEs: I18nDictionary = {
   "recordings.player.label": "Audio de la grabación",
   "recordings.player.preparing": "Preparando la reproducción…",
   "recordings.player.not_stored": "Esta grabación no tiene archivo guardado.",
+  "recordings.player.converting":
+    "Todavía estamos preparando el audio. La reproducción se abrirá en cuanto esté listo.",
   "recordings.player.unavailable":
     "La entrega de archivos no está disponible ahora. La grabación está a salvo; la reproducción no.",
   "recordings.player.blocked_not_ready":
@@ -131,8 +133,12 @@ export const recordingsI18nBundleEs: I18nDictionary = {
     "Elige el espacio donde guardar esta grabación.",
   "recordings.uploader.too_large":
     "Ese archivo es mayor de lo que permite esta subida.",
+  "recordings.uploader.too_large_named":
+    "Ese archivo ocupa {size} y esta subida admite hasta {limit}.",
+  "recordings.uploader.limit_hint":
+    "Hasta {max} por archivo. Solo se guarda la voz: unos {perHour} por hora.",
   "recordings.uploader.unsupported_type":
-    "Ese archivo no es audio ni vídeo, así que no hay nada que transcribir.",
+    "Esta instalación no acepta archivos de ese tipo.",
   "recordings.uploader.session_expired":
     "La ventana de subida se ha cerrado. Empieza la subida de nuevo.",
   "recordings.uploader.source_meet": "Reunión",

@@ -16,7 +16,8 @@ import type { RefObject } from "react";
  * is the difference between a smooth pane and a hot laptop.
  */
 export interface MediaSync {
-  /** Bind to the `<audio>`/`<video>` element. */
+  /** Bind to the `<audio>` element. The module stores an audio track and
+   * nothing else, so there is no video element for a transcript to follow. */
   readonly mediaRef: RefObject<HTMLMediaElement | null>;
   /** Whole seconds into the recording. */
   readonly currentTime: number;

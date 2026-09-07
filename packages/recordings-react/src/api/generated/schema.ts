@@ -281,6 +281,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recordings/api/v1/recordings/upload-limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The upload ceilings, before the first byte.
+         *
+         *     ``MAX_UPLOAD_BYTES`` (the ``413`` line), the multipart part size and
+         *     part cap, and the extension allowlist (the ``415`` line) — the numbers a
+         *     frontend needs to refuse a file locally and to phrase the refusal with
+         *     the real limit. Same door as creating a recording: an account, not a
+         *     guest session.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["recordings_api_v1_recordings_upload_limits_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recordings/api/v1/shares/{link_token}": {
         parameters: {
             query?: never;
@@ -510,6 +537,36 @@ export interface components {
             speaker: string | null;
             text: string;
         };
+        /**
+         * @description The upload ceilings, and what will be kept, readable before the first
+         *     byte is sent.
+         *
+         *     ``max_upload_bytes`` is what ``error.413.recording_too_large`` enforces;
+         *     ``multipart_part_size`` / ``max_multipart_parts`` bound the multipart
+         *     flow; ``allowed_extensions`` is what ``error.415.recording_unsupported_media``
+         *     enforces. A client that reads this can refuse a file locally and phrase
+         *     the refusal with the real numbers instead of discovering them from a
+         *     rejected request.
+         *
+         *     The ``audio_only_ingest`` / ``stored_audio_*`` half says what the
+         *     service does with an accepted file: extracts its audio track, downmixes
+         *     to mono, keeps that and nothing else. It is why ``max_upload_bytes`` can
+         *     be much larger than ``max_stored_bytes`` — and
+         *     ``stored_bytes_per_hour`` is what a UI multiplies to tell someone what
+         *     an hour of recording will cost them.
+         */
+        UploadLimitsDTO: {
+            max_upload_bytes: number;
+            max_stored_bytes: number;
+            audio_only_ingest: boolean;
+            stored_audio_codec: string;
+            stored_audio_channels: number;
+            stored_audio_sample_rate: number;
+            stored_bytes_per_hour: number;
+            multipart_part_size: number;
+            max_multipart_parts: number;
+            allowed_extensions: string[];
+        };
         /** @description A single-PUT upload session. */
         UploadSessionDTO: {
             id: string;
@@ -714,6 +771,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TranscriptPage"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_upload_limits_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadLimitsDTO"];
                 };
             };
         };

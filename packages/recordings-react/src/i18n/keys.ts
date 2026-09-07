@@ -68,6 +68,10 @@ export const RECORDINGS_I18N_KEYS = {
   playerLabel: "recordings.player.label",
   playerPreparing: "recordings.player.preparing",
   playerNotStored: "recordings.player.not_stored",
+  // The 409 that means "not yet": the audio track has not been extracted from
+  // the uploaded container yet, so there is nothing to sign. A wait, and the
+  // same sentence serves the owner's player and a share.
+  playerConverting: "recordings.player.converting",
   playerUnavailable: "recordings.player.unavailable",
   playerBlockedNotReady: "recordings.player.blocked_not_ready",
   playerBlockedDeleted: "recordings.player.blocked_deleted",
@@ -130,6 +134,12 @@ export const RECORDINGS_I18N_KEYS = {
   uploaderBlockedNoTitle: "recordings.uploader.blocked_no_title",
   uploaderBlockedNoWorkspace: "recordings.uploader.blocked_no_workspace",
   uploaderTooLarge: "recordings.uploader.too_large",
+  // The same refusal with the deployment's real numbers in it, which is what
+  // GET /recordings/upload-limits is for.
+  uploaderTooLargeNamed: "recordings.uploader.too_large_named",
+  // What this deployment takes, and what it keeps of it — read before the
+  // picker opens, not after a rejected upload.
+  uploaderLimitHint: "recordings.uploader.limit_hint",
   uploaderUnsupportedType: "recordings.uploader.unsupported_type",
   uploaderSessionExpired: "recordings.uploader.session_expired",
   uploaderSourceMeet: "recordings.uploader.source_meet",
@@ -222,6 +232,8 @@ export const recordingsI18nBundleEn: I18nDictionary = {
   "recordings.player.label": "Recording audio",
   "recordings.player.preparing": "Preparing playback…",
   "recordings.player.not_stored": "This recording has no media file stored.",
+  "recordings.player.converting":
+    "We are still preparing the audio. Playback opens as soon as it is ready.",
   "recordings.player.unavailable":
     "Media delivery is unavailable right now. The recording is safe; playback is not.",
   "recordings.player.blocked_not_ready":
@@ -289,8 +301,12 @@ export const recordingsI18nBundleEn: I18nDictionary = {
   "recordings.uploader.blocked_no_workspace":
     "Pick a workspace to put this recording in.",
   "recordings.uploader.too_large": "That file is larger than this upload allows.",
+  "recordings.uploader.too_large_named":
+    "That file is {size}, and this upload takes up to {limit}.",
+  "recordings.uploader.limit_hint":
+    "Up to {max} per file. Only the speech is kept — about {perHour} an hour.",
   "recordings.uploader.unsupported_type":
-    "That file is not audio or video, so there is nothing to transcribe.",
+    "This deployment does not accept that kind of file.",
   "recordings.uploader.session_expired":
     "The upload window closed. Start the upload again.",
   "recordings.uploader.source_meet": "Meeting",

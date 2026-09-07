@@ -13,6 +13,7 @@ import type {
   SharedRecording,
   TranscriptPage,
   TranscriptParams,
+  UploadLimits,
 } from "./types.js";
 
 /**
@@ -78,6 +79,16 @@ export interface RecordingsApi {
    * inside it", not "everything in it".
    */
   listRecordings(params?: RecordingListParams): Promise<Recording[]>;
+  /**
+   * The upload ceilings, BEFORE the first byte — the read a host makes before
+   * it opens a file picker. It returns the size this deployment accepts, the
+   * size it keeps, the audio profile it keeps it in, what an hour costs, the
+   * multipart bounds and the extension allowlist, so an oversized or
+   * unsupported file is refused locally and named in the real numbers instead
+   * of being discovered from a rejected upload. Same door as creating a
+   * recording: an account, not a guest session.
+   */
+  getUploadLimits(): Promise<UploadLimits>;
   /**
    * Create a recording and open its single-PUT upload session; resolves to the
    * 201 body — the {@link Recording} plus the {@link UploadSession} to PUT the
@@ -177,6 +188,8 @@ export function createRecordingsApi(client: StapelClient): RecordingsApi {
       }
       return client.get("/recordings", { query });
     },
+
+    getUploadLimits: () => client.get("/recordings/upload-limits"),
 
     createRecording: (body) => client.post("/recordings", body, mutating()),
 

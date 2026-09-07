@@ -12,3 +12,6 @@ Default.parameters = { stapel: {"viewport":"desktop","step":"granted"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
 Phone.parameters = { stapel: {"viewport":"phone","step":"not-granted"} };
+export const Converting = (): ReactElement => renderDemoVariant(demo, "converting");
+Converting.storyName = "converting";
+Converting.parameters = { stapel: {"viewport":"desktop","step":"waiting"} };

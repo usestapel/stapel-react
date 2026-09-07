@@ -51,7 +51,20 @@ export function SharedMedia(props: {
           <Skeleton.Input active block />
         </div>
       ) : null}
-      {arm.status === "failed" ? (
+      {/* Same rule as the owner's player: a 409 on a recording that is still
+          mid-pipeline means the audio has not been extracted yet, and a
+          visitor told "no media file" about a link that plays in a minute has
+          been told the wrong thing. */}
+      {arm.status === "failed" && media.isConverting ? (
+        <Typography.Text
+          type="secondary"
+          role="status"
+          data-testid={`${testId}-converting`}
+        >
+          {t(RECORDINGS_I18N_KEYS.playerConverting)}
+        </Typography.Text>
+      ) : null}
+      {arm.status === "failed" && !media.isConverting ? (
         <ErrorAlert
           thrown={arm.error}
           onRetry={media.refresh}

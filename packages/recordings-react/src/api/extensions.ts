@@ -5,7 +5,7 @@
  * operations (`api/recordingsApi.ts`), not here.
  */
 import { StapelApiError, putToForeignOrigin } from "@stapel/core";
-import type { UploadSession } from "./types.js";
+import type { UploadLimits, UploadSession } from "./types.js";
 
 /**
  * Why an upload was refused BEFORE any bytes left the browser.
@@ -21,17 +21,33 @@ export type UploadPreflightReason =
   | "unsupported_type";
 
 /**
- * The upload cannot start — the file is over the session's ceiling, or the
- * session's window has closed. Thrown instead of a bare `RangeError` so a UI
- * can name WHICH of them happened without parsing a message.
+ * The upload cannot start — the file is over the ceiling this deployment
+ * accepts, or the session's window has closed. Thrown instead of a bare
+ * `RangeError` so a UI can name WHICH of them happened without parsing a
+ * message.
+ *
+ * `sizeBytes` / `limitBytes` travel with a `too_large`, because the whole
+ * reason `GET /recordings/upload-limits` exists is that a refusal can now say
+ * the two numbers instead of "too big". A skin formats them; this layer has no
+ * i18n and acquires none.
  */
 export class UploadPreflightError extends Error {
   readonly reason: UploadPreflightReason;
+  /** The file's own size, when the refusal is about a size. */
+  readonly sizeBytes: number | undefined;
+  /** The ceiling it broke, in the same unit. */
+  readonly limitBytes: number | undefined;
 
-  constructor(reason: UploadPreflightReason, message: string) {
+  constructor(
+    reason: UploadPreflightReason,
+    message: string,
+    numbers?: { readonly sizeBytes?: number; readonly limitBytes?: number }
+  ) {
     super(message);
     this.name = "UploadPreflightError";
     this.reason = reason;
+    this.sizeBytes = numbers?.sizeBytes;
+    this.limitBytes = numbers?.limitBytes;
   }
 }
 
@@ -65,11 +81,18 @@ export interface UploadBlobOptions {
   readonly onProgress?: (progress: UploadProgress) => void;
 }
 
-/** Extensions of a media file this module's pipeline can ingest, by MIME type
- * prefix. A local pre-check only: the backend's answer
+/**
+ * MIME prefixes this module's INGEST accepts, which is not the same list as
+ * what it stores. A video container is still a legal upload — it is transport,
+ * and the pipeline extracts its audio track and discards the rest (see
+ * {@link UploadLimits}) — so refusing one here would refuse a file the backend
+ * would have taken.
+ *
+ * A local pre-check only: the backend's answer
  * (`error.415.recording_unsupported_media`) is authoritative, and a blob with
  * no `type` at all is NOT rejected here — browsers omit it often enough that
- * refusing on absence would block real uploads. */
+ * refusing on absence would block real uploads.
+ */
 const ACCEPTED_MEDIA_PREFIXES = ["audio/", "video/"];
 
 /**
@@ -80,6 +103,53 @@ const ACCEPTED_MEDIA_PREFIXES = ["audio/", "video/"];
 export function isAcceptedMediaType(contentType?: string): boolean {
   if (contentType === undefined || contentType === "") return true;
   return ACCEPTED_MEDIA_PREFIXES.some((prefix) => contentType.startsWith(prefix));
+}
+
+/**
+ * The `accept` attribute for a file input, from the deployment's own allowlist.
+ *
+ * With limits in hand this is the deployment's `allowed_extensions` — the same
+ * list `error.415.recording_unsupported_media` enforces — so the picker offers
+ * exactly what will be taken. Without them (the read has not landed, or a host
+ * never made it) it falls back to the MIME prefixes above rather than to
+ * nothing: a picker that filters on a list it does not have is a picker that
+ * shows no files at all.
+ */
+export function uploadAccept(limits?: UploadLimits | null): string {
+  const extensions = limits?.allowed_extensions ?? [];
+  if (extensions.length === 0) return ACCEPTED_MEDIA_PREFIXES.map((p) => `${p}*`).join(",");
+  return extensions.map((ext) => (ext.startsWith(".") ? ext : `.${ext}`)).join(",");
+}
+
+/**
+ * Is this filename's extension one the deployment allows? `true` whenever
+ * there is no allowlist to check against — the backend is the authority, and a
+ * pair that has not read the limits yet must not invent a refusal.
+ */
+export function isAllowedUploadName(
+  filename: string,
+  limits?: UploadLimits | null
+): boolean {
+  const extensions = limits?.allowed_extensions ?? [];
+  if (extensions.length === 0) return true;
+  const dot = filename.lastIndexOf(".");
+  if (dot < 0) return false;
+  const found = filename.slice(dot + 1).toLowerCase();
+  return extensions.some(
+    (ext) => (ext.startsWith(".") ? ext.slice(1) : ext).toLowerCase() === found
+  );
+}
+
+/**
+ * What an hour of recording costs this deployment in STORED bytes.
+ *
+ * Not the file's own size: while `audio_only_ingest` is on, the container is
+ * transport and what survives is the mono track at the deployment's audio
+ * profile, so the honest number to show someone planning a long meeting is
+ * this one. `hours` may be fractional.
+ */
+export function storedBytesForHours(limits: UploadLimits, hours: number): number {
+  return Math.round(limits.stored_bytes_per_hour * Math.max(0, hours));
 }
 
 /**
@@ -118,7 +188,8 @@ export async function uploadRecordingBlob(
   if (blob.size > session.max_size_bytes) {
     throw new UploadPreflightError(
       "too_large",
-      `recording blob is ${String(blob.size)} bytes, over the session limit of ${String(session.max_size_bytes)}`
+      `recording blob is ${String(blob.size)} bytes, over the session limit of ${String(session.max_size_bytes)}`,
+      { sizeBytes: blob.size, limitBytes: session.max_size_bytes }
     );
   }
   if (options?.onProgress === undefined || typeof XMLHttpRequest === "undefined") {

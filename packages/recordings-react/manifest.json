@@ -4,7 +4,7 @@
   "version": "0.6.2",
   "backend": {
     "module": "stapel-recordings",
-    "contract": ">=0.21 <0.22"
+    "contract": ">=0.22 <0.23"
   },
   "layers": [
     "api",
@@ -71,6 +71,13 @@
       "tag": "Recordings",
       "request": null,
       "response": "TranscriptPage"
+    },
+    "recordings_api_v1_recordings_upload_limits_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/recordings/upload-limits",
+      "tag": "Recordings",
+      "request": null,
+      "response": "UploadLimitsDTO"
     },
     "recordings_api_v1_shares_media_retrieve": {
       "method": "GET",
@@ -186,6 +193,14 @@
           "recording-shares"
         ]
       ]
+    },
+    "useUploadLimits": {
+      "kind": "query",
+      "operation": "getUploadLimits",
+      "queryKey": [
+        "recordings",
+        "upload-limits"
+      ]
     }
   },
   "errors": {
@@ -298,6 +313,20 @@
     "error.400.recording_invalid_state": {
       "status": 400,
       "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.recording_multipart_parts_invalid": {
+      "status": 400,
+      "params": [
+        "max_parts"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.recording_upload_size_invalid": {
+      "status": 400,
+      "params": [
+        "limit"
+      ],
       "remediation": "fix_input"
     },
     "error.400.validation_error": {
@@ -442,7 +471,10 @@
     },
     "error.413.recording_too_large": {
       "status": 413,
-      "params": [],
+      "params": [
+        "size",
+        "limit"
+      ],
       "remediation": "retry"
     },
     "error.415.recording_unsupported_media": {
@@ -627,7 +659,8 @@
       "component": "SharedMedia",
       "variants": [
         "default",
-        "phone"
+        "phone",
+        "converting"
       ],
       "source": "demo/SharedMediaSkin.demo.tsx"
     },
@@ -699,6 +732,8 @@
     "error.400.field.unique",
     "error.400.invalid_ad_id",
     "error.400.recording_invalid_state",
+    "error.400.recording_multipart_parts_invalid",
+    "error.400.recording_upload_size_invalid",
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
@@ -773,6 +808,7 @@
     "recordings.payment.title",
     "recordings.player.blocked_deleted",
     "recordings.player.blocked_not_ready",
+    "recordings.player.converting",
     "recordings.player.heading",
     "recordings.player.label",
     "recordings.player.not_stored",
@@ -838,6 +874,7 @@
     "recordings.uploader.heading",
     "recordings.uploader.language_auto",
     "recordings.uploader.language_label",
+    "recordings.uploader.limit_hint",
     "recordings.uploader.pick",
     "recordings.uploader.picked",
     "recordings.uploader.progress",
@@ -854,6 +891,7 @@
     "recordings.uploader.title_label",
     "recordings.uploader.title_placeholder",
     "recordings.uploader.too_large",
+    "recordings.uploader.too_large_named",
     "recordings.uploader.unsupported_type"
   ],
   "exports": {
@@ -893,6 +931,7 @@
       "formatTimecode",
       "hasErrorCode",
       "isAcceptedMediaType",
+      "isAllowedUploadName",
       "isErrorCode",
       "isKnownRecordingStatus",
       "isNoTranscript",
@@ -913,8 +952,11 @@
       "segmentIndexAt",
       "shareGrants",
       "speakerLabel",
+      "storedBytesForHours",
       "toFlowError",
+      "uploadAccept",
       "uploadGate",
+      "uploadPreflightBytes",
       "uploadPreflightKey",
       "uploadRecordingBlob",
       "useCreateRecording",
@@ -932,7 +974,8 @@
       "useSharedMedia",
       "useSharedRecording",
       "useTranscript",
-      "useUnlockShare"
+      "useUnlockShare",
+      "useUploadLimits"
     ],
     "types": [
       "CreateRecordingRequest",
@@ -984,6 +1027,7 @@
       "UnlockShareVariables",
       "UploadBlobOptions",
       "UploadFinalizerBag",
+      "UploadLimits",
       "UploadPreflightReason",
       "UploadProgress",
       "UploadSession",

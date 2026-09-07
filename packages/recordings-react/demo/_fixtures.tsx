@@ -164,8 +164,34 @@ export const SHARED_VIEW_ONLY = {
   segments: [],
 };
 
-/** Handler map for the owner-side screens with a finished recording. */
+/**
+ * What the deployment accepts, and what it keeps of it — the read the uploader
+ * makes before its picker opens. The numbers are a live stand's: 16 GiB
+ * accepted because the container is only transport, 512 MiB kept because what
+ * survives is the mono Opus track, and ~10.8 MB an hour is the honest answer to
+ * "how much will this cost me".
+ */
+export const UPLOAD_LIMITS = {
+  max_upload_bytes: 17179869184,
+  max_stored_bytes: 536870912,
+  audio_only_ingest: true,
+  stored_audio_codec: "opus",
+  stored_audio_channels: 1,
+  stored_audio_sample_rate: 16000,
+  stored_bytes_per_hour: 10800000,
+  multipart_part_size: 10485760,
+  max_multipart_parts: 10000,
+  allowed_extensions: [
+    "aac", "flac", "m4a", "mka", "mkv", "mov", "mp3", "mp4",
+    "mpeg", "mpga", "oga", "ogg", "opus", "wav", "webm", "wma",
+  ],
+};
+
+/** Handler map for the owner-side screens with a finished recording. The
+ * literal upload-limits route comes FIRST: matching is by substring in
+ * declaration order, and `/recordings` would otherwise swallow it. */
 export const OWNER_HANDLERS: DemoHandlers = {
+  "/recordings/upload-limits": UPLOAD_LIMITS,
   "/transcript": TRANSCRIPT_PAGE,
   "/media": MEDIA,
   "/recordings/rec-2": DONE,

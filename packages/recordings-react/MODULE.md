@@ -44,11 +44,42 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   `Recordings.demo.tsx` covers `RecordingsProvider`, and `RecordingList` /
   `RecordingComposer` / `UploadFinalizer` each have their own. Demos never ship.
 
+## Audio, not a container (backend 0.22.0)
+
+stapel-recordings is an audio service, not a video host. An upload of any
+supported container is **transport**: the pipeline extracts its audio track,
+downmixes it to mono at the deployment's `stored_audio_*` profile, keeps that,
+and deletes the container. Nothing in the contract hands the container back, so
+this pair has no video element, no "download the original" affordance and no
+type that implies one — `MediaUrl` always points at audio.
+
+Two consequences the pair carries:
+
+- **two ceilings, not one.** `max_upload_bytes` is what a deployment will
+  ACCEPT (the `error.413.recording_too_large` line); `max_stored_bytes` is what
+  it will KEEP. They differ by orders of magnitude, and a host that gates on the
+  wrong one refuses uploads the backend wanted. `useUploadLimits()` reads both,
+  plus the audio profile, `stored_bytes_per_hour` (what an hour costs),
+  the multipart bounds and the extension allowlist — see below.
+- **a `409` on the media read can mean "not yet".** Until the convert stage has
+  run there is no stored object to sign, so a mid-pipeline recording answers
+  `error.409.recording_media_not_stored` on its way to being playable.
+  `RecordingMediaBag.isConverting` (and `SharedMediaBag.isConverting`) tells
+  that apart from a recording that genuinely has nothing, by the recording's own
+  status; the skin renders a wait, not an error box.
+
 ## The create → upload → finalize surface
 
 The recording lifecycle is three steps, split across the client so the host owns
-the media transfer:
+the media transfer — with one read before all of them:
 
+0. **the ceilings, before the picker** — `useUploadLimits()` /
+   `api.getUploadLimits()` reads `GET /recordings/upload-limits`. A host builds
+   its file input's `accept` from `uploadAccept(limits)`, refuses an oversized or
+   unlisted file locally with `uploadGate({ …, limits })`, and can say what an
+   hour of recording costs with `storedBytesForHours(limits, hours)`. Without it
+   the gate falls back to a MIME-prefix guess and lets the backend be the
+   authority — a pair that has not read the limits invents no refusal.
 1. **create** — `useCreateRecording()` / `<RecordingComposer>` POSTs the draft
    and resolves to `{ recording, upload }`. The `upload` is a single-PUT session:
    `presigned_url`, `max_size_bytes`, `expires_at`.
@@ -57,6 +88,8 @@ the media transfer:
    JSON envelope), so it is NOT a client operation; `uploadRecordingBlob(upload,
    blob, { contentType })` in `api/extensions.ts` does it (guarding
    `max_size_bytes` up front) and `isUploadExpired(upload)` gates a stale session.
+   A `too_large` refusal carries `sizeBytes`/`limitBytes` (read them with
+   `uploadPreflightBytes(error)`) so the sentence names the real numbers.
 3. **finalize** — `useFinalizeUpload()` / `<UploadFinalizer>` POSTs
    `/{id}/finalize` (optionally with `file_size_bytes`) to enqueue the
    transcription pipeline; a finalize on a recording not awaiting it fails
@@ -82,6 +115,9 @@ scaffold `create<X>Flow(deps)` machines from `flows.json`, bind each `id` to the
 
 ## Localization
 
-en-only. stapel-recordings ships no `translations/errors.<lang>.json` catalogs
-yet, so `gen:errors` emits no per-locale bundle. Add a `./i18n/<locale>` subpath
-(following the notifications-react etalon) once the backend ships a catalog.
+en + ru + es. The UI keys are authored in `src/i18n/{keys,ru,es}.ts` and shipped
+on the `@stapel/recordings-react/i18n/{ru,es}` subpaths (opt-in, kept out of the
+main bundle by size-limit and the bundle-purity test). Every `error.*` string is
+GENERATED: stapel-recordings ships `translations/errors.{ru,es}.json` for its own
+codes and stapel-core covers the cross-cutting ones, so nothing here re-authors a
+backend key. Locale parity is a lint anchored on `keys.ts` and a test.

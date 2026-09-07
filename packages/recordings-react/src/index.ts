@@ -21,6 +21,9 @@ export {
   uploadRecordingBlob,
   isUploadExpired,
   isAcceptedMediaType,
+  isAllowedUploadName,
+  uploadAccept,
+  storedBytesForHours,
   UploadPreflightError,
 } from "./api/extensions.js";
 export type {
@@ -46,6 +49,7 @@ export type {
   CreateRecordingRequest,
   CreateRecordingResponse,
   UploadSession,
+  UploadLimits,
   FinalizeUploadRequest,
   MediaUrl,
   MediaUrlOptions,
@@ -94,6 +98,7 @@ export { recordingsQueryKeys } from "./model/queryKeys.js";
 export {
   useRecordings,
   useRecording,
+  useUploadLimits,
   useRecordingMedia,
   useTranscript,
   useSharedRecording,
@@ -145,6 +150,7 @@ export {
   RecordingUpload,
   uploadGate,
   uploadPreflightKey,
+  uploadPreflightBytes,
 } from "./headless/RecordingUpload.js";
 export type {
   RecordingUploadBag,

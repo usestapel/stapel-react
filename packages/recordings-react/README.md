@@ -51,6 +51,24 @@ per-module override — `clients={{ recordings: runtime.client }}` — and nest
 providers (`StapelConfigProvider` + `QueryClientProvider` + `I18nProvider`)
 remain exported for bespoke composition.
 
+## Audio, not a container
+
+The backend keeps an audio track and nothing else: whatever container you upload
+is transport, and it is deleted once its track is out. Read the ceilings before
+you open a file picker —
+
+```tsx
+import { useUploadLimits, uploadAccept } from "@stapel/recordings-react";
+
+const { data: limits } = useUploadLimits();
+<input type="file" accept={uploadAccept(limits)} />;
+```
+
+`limits.max_upload_bytes` is what the deployment ACCEPTS, `max_stored_bytes` what
+it KEEPS, and `stored_bytes_per_hour` is what an hour of speech costs — the three
+numbers a refusal can now be phrased in, instead of being discovered from a
+`413`.
+
 ## Layers
 
 ```

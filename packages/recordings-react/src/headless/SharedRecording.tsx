@@ -7,16 +7,26 @@ import type {
   SharePermission,
   SharedRecording as SharedRecordingDto,
 } from "../api/types.js";
-import { shareGrants } from "../api/types.js";
+import { isProcessingStatus, shareGrants } from "../api/types.js";
 import { useSharedMedia, useSharedRecording } from "../model/queries.js";
 import { useUnlockShare } from "../model/mutations.js";
 import { hasErrorCode } from "../flows/errors.js";
 
-/** The media half of {@link SharedRecordingBag} — the share's own short-TTL URL. */
+/** The media half of {@link SharedRecordingBag} — the share's own short-TTL
+ * URL to the extracted AUDIO (the uploaded container is transport and is not
+ * kept, so there is nothing else a share could hand back). */
 export interface SharedMediaBag {
   readonly state: LoadState<MediaUrl>;
   /** The share grants `media`; without it there is nothing to render. */
   readonly granted: boolean;
+  /**
+   * The read answered `409 recording_media_not_stored` while the recording is
+   * still mid-pipeline: the audio has not been extracted yet. A wait, not a
+   * failure — the same rule as {@link RecordingMediaBag.isConverting}, and a
+   * visitor who is told "this recording has no media file" about a link that
+   * will play in a minute has been told the wrong thing.
+   */
+  readonly isConverting: boolean;
   refresh(): void;
 }
 
@@ -120,6 +130,10 @@ export function SharedRecording(props: {
     media: {
       state: loadStateFromQuery(mediaQuery),
       granted,
+      isConverting:
+        hasErrorCode(mediaQuery.error, "error.409.recording_media_not_stored") &&
+        shared !== undefined &&
+        isProcessingStatus(shared.status),
       refresh: () => {
         void mediaQuery.refetch();
       },

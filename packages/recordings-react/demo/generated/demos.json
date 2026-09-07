@@ -241,11 +241,17 @@
           "description": "A link that does not grant media: the sentence, and no transport.",
           "viewport": "phone",
           "step": "not-granted"
+        },
+        {
+          "id": "converting",
+          "description": "The audio has not been extracted yet: a wait, not the empty-link sentence and not a red box.",
+          "viewport": "desktop",
+          "step": "waiting"
         }
       ],
       "source": {
         "file": "demo/SharedMediaSkin.demo.tsx",
-        "line": 36
+        "line": 59
       }
     },
     {

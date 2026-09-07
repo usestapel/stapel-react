@@ -14,6 +14,7 @@ import type {
   SharedRecording,
   TranscriptPage,
   TranscriptParams,
+  UploadLimits,
 } from "../api/types.js";
 import { useRecordingsApi } from "./context.js";
 import { mediaRefreshMs, pollIntervalMs } from "./polling.js";
@@ -64,6 +65,36 @@ export function useRecordings(
         .filter((ms): ms is number => ms !== false);
       return hints.length === 0 ? false : Math.min(...hints);
     },
+  });
+}
+
+/**
+ * The deployment's upload ceilings, read BEFORE the file picker opens.
+ *
+ * This is the point of the 0.22.0 contract: the numbers are a property of the
+ * deployment, not of a recording, so a host can refuse an oversized or
+ * unsupported file locally — naming the real limit — instead of uploading
+ * gigabytes and reading them off a `413`. `max_upload_bytes` is what will be
+ * ACCEPTED and `max_stored_bytes` what will be KEPT; while `audio_only_ingest`
+ * is on the container is transport and only the mono audio track survives,
+ * which is why the two differ by orders of magnitude and why
+ * `stored_bytes_per_hour` — not the file's own size — is what an hour costs.
+ *
+ * Cached under one module-wide key and never polled: it changes when a
+ * deployment is reconfigured, not while a person is picking a file. Gated on
+ * {@link useActiveSessionReady} like every other authenticated read here — the
+ * endpoint is behind the same door as creating a recording.
+ */
+export function useUploadLimits(options?: {
+  readonly enabled?: boolean;
+}): UseQueryResult<UploadLimits, StapelApiError> {
+  const api = useRecordingsApi();
+  const sessionReady = useActiveSessionReady();
+  const enabled = options?.enabled ?? true;
+  return useQuery({
+    queryKey: recordingsQueryKeys.uploadLimits(),
+    queryFn: () => api.getUploadLimits(),
+    enabled: sessionReady && enabled,
   });
 }
 

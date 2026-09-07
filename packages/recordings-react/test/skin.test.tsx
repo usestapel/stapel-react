@@ -21,6 +21,7 @@ import { RecordingsProvider } from "../src/headless/RecordingsProvider.js";
 import { recordingsI18nBundleRu } from "../src/i18n/ru.js";
 import { recordingsI18nBundleEs } from "../src/i18n/es.js";
 import { RecordingsList } from "../src/default/RecordingsList.js";
+import { RecordingPlayer } from "../src/default/RecordingPlayer.js";
 import { RecordingStatusChip } from "../src/default/RecordingStatusChip.js";
 
 const BASE = "https://recordings.stapel.test/recordings/api/v1";
@@ -124,7 +125,7 @@ describe("gates carry a reason, never a bare boolean", () => {
     expect(noFile.block?.code).toBe(RECORDINGS_I18N_KEYS.uploaderBlockedNoFile);
   });
 
-  it("refuses a file that is not audio or video", () => {
+  it("falls back to the MIME guess while the deployment's allowlist is unread", () => {
     const pdf = new File([new Uint8Array(4)], "notes.pdf", {
       type: "application/pdf",
     });
@@ -174,8 +175,12 @@ describe("i18n locale parity (en / ru / es)", () => {
       "error.403.recording_action_denied",
       "error.403.share_permission_denied",
       "error.404.share_not_found",
+      "error.400.recording_multipart_parts_invalid",
+      "error.400.recording_upload_size_invalid",
       "error.409.recording_media_not_stored",
       "error.409.recording_no_transcript",
+      "error.413.recording_too_large",
+      "error.415.recording_unsupported_media",
       "error.429.share_unlock_throttled",
       "error.503.recording_media_unavailable",
       "error.503.recording_summarize_unavailable",
@@ -254,5 +259,63 @@ describe("<RecordingsList> — the shipped screen", () => {
       await Promise.resolve();
     });
     expect(root()?.getAttribute("data-stapel-skin-mode")).toBe("dark");
+  });
+});
+
+// ── the player does not call a wait a failure ────────────────────────────────
+//
+// Backend 0.22.0 keeps AUDIO and nothing else: the uploaded container is
+// transport and is deleted once its track is out, so a recording that has not
+// reached the convert stage has no object to sign and its media read answers
+// `409 recording_media_not_stored` on the way to being playable. Rendered as a
+// red alert saying "this recording has no media file stored", that tells a
+// person their upload is lost while it is being transcribed.
+describe("<RecordingPlayer> — a 409 mid-pipeline reads as 'still preparing'", () => {
+  function serve409(): void {
+    server.use(
+      http.get(`${BASE}/recordings/:id/media`, () =>
+        HttpResponse.json(
+          {
+            localizable_error: "error.409.recording_media_not_stored",
+            error: "This recording has no media stored",
+            params: {},
+          },
+          { status: 409 }
+        )
+      )
+    );
+  }
+
+  it("says it is still preparing, and shows no error box", async () => {
+    serve409();
+    render(
+      wrap(
+        <RecordingPlayer
+          recording={{ id: "rec-3", status: "normalizing", title: "Standup" }}
+        />
+      )
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("recording-player-converting")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("recording-player-failed")).toBeNull();
+    expect(
+      screen.getByTestId("recording-player-converting").textContent
+    ).toBe(recordingsI18nBundleEn[RECORDINGS_I18N_KEYS.playerConverting]);
+  });
+
+  it("still calls a TERMINAL 409 what it is — nothing was stored", async () => {
+    serve409();
+    render(
+      wrap(
+        <RecordingPlayer
+          recording={{ id: "rec-4", status: "completed", title: "Interview" }}
+        />
+      )
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("recording-player-failed")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("recording-player-converting")).toBeNull();
   });
 });

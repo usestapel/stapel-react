@@ -2,15 +2,17 @@ import { useCallback, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { actionAvailable, actionBlocked, firstBlock } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import type { Recording, UploadSession } from "../api/types.js";
+import type { Recording, UploadLimits, UploadSession } from "../api/types.js";
 import {
   UploadPreflightError,
   isAcceptedMediaType,
+  isAllowedUploadName,
   isUploadExpired,
   uploadRecordingBlob,
 } from "../api/extensions.js";
 import type { UploadProgress, UploadPreflightReason } from "../api/extensions.js";
 import { useCreateRecording, useFinalizeUpload } from "../model/mutations.js";
+import { useUploadLimits } from "../model/queries.js";
 import { RECORDINGS_I18N_KEYS } from "../i18n/keys.js";
 
 /**
@@ -45,10 +47,18 @@ export interface RecordingUploadBag {
   patchDraft(patch: Partial<RecordingDraft>): void;
   /**
    * Whether starting is possible, with the reason when it is not: no file, no
-   * title, no workspace, a file that is not audio or video. A gate, never a
-   * `disabled` boolean — the reason is shown beside the button.
+   * title, no workspace, a file this deployment does not accept, a file over
+   * the size it accepts. A gate, never a `disabled` boolean — the reason is
+   * shown beside the button.
    */
   readonly gate: ActionAvailability;
+  /**
+   * What this deployment accepts and what it keeps, or `null` while the read
+   * is in flight. Read BEFORE the picker: a skin builds its `accept` from
+   * `allowed_extensions` and can say what an hour costs from
+   * `stored_bytes_per_hour` without waiting for a refusal to teach it.
+   */
+  readonly limits: UploadLimits | null;
   /** Run the whole act: create the recording, PUT the media, finalize. */
   start(): void;
   /** Abort an upload in flight (the PUT only — the recording stays created). */
@@ -78,9 +88,11 @@ const EMPTY_DRAFT: RecordingDraft = {
  *
  * Three things it does that a host wiring the calls by hand does not:
  *
- *  - **checks the size ceiling before the round-trip.** `max_size_bytes` comes
- *    back with the session, so an over-size file is caught the moment the
- *    session opens instead of after minutes of upload and a `413`.
+ *  - **checks the size ceiling before the round-trip — and before the picker.**
+ *    `GET /recordings/upload-limits` (backend 0.22.0) says what this
+ *    deployment accepts and what it keeps, so an over-size or unsupported file
+ *    is refused with the real numbers the moment it is chosen; the session's
+ *    own `max_size_bytes` is checked again when it opens, as the authority.
  *  - **refuses to PUT into a dead session.** `expires_at` is checked
  *    immediately before the PUT; an expired window means create again, not
  *    push bytes at a URL that no longer signs.
@@ -103,6 +115,8 @@ export function RecordingUpload(props: {
   const { workspaceId, onFinalized } = props;
   const create = useCreateRecording();
   const finalize = useFinalizeUpload();
+  const limitsQuery = useUploadLimits();
+  const limits = limitsQuery.data ?? null;
   const [file, setFile] = useState<File | null>(null);
   const [draft, setDraft] = useState<RecordingDraft>(EMPTY_DRAFT);
   const [step, setStep] = useState<UploadStep>("idle");
@@ -137,7 +151,7 @@ export function RecordingUpload(props: {
     setProgress(null);
   }, []);
 
-  const gate = uploadGate({ file, title: draft.title, workspaceId });
+  const gate = uploadGate({ file, title: draft.title, workspaceId, limits });
 
   const start = useCallback((): void => {
     if (!gate.available || file === null || workspaceId === undefined) return;
@@ -160,7 +174,8 @@ export function RecordingUpload(props: {
       if (file.size > created.upload.max_size_bytes) {
         throw new UploadPreflightError(
           "too_large",
-          "file is over the session ceiling"
+          "file is over the session ceiling",
+          { sizeBytes: file.size, limitBytes: created.upload.max_size_bytes }
         );
       }
       if (isUploadExpired(created.upload)) {
@@ -198,6 +213,7 @@ export function RecordingUpload(props: {
     draft,
     patchDraft,
     gate,
+    limits,
     start,
     cancel,
     progress,
@@ -228,9 +244,31 @@ export function uploadPreflightKey(error: unknown): string | undefined {
 }
 
 /**
+ * The two numbers a `too_large` refusal is about, in bytes, or `null`.
+ *
+ * A skin formats them (`useRecordingsFormat().bytes`) and interpolates them
+ * into the copy, so "that file is too big" becomes the deployment's real
+ * ceiling. `null` for every other reason: there is no number to print.
+ */
+export function uploadPreflightBytes(
+  error: unknown
+): { readonly size: number; readonly limit: number } | null {
+  if (!(error instanceof UploadPreflightError)) return null;
+  if (error.sizeBytes === undefined || error.limitBytes === undefined) return null;
+  return { size: error.sizeBytes, limit: error.limitBytes };
+}
+
+/**
  * Can this draft be uploaded, and if not, why not — in the order a person
  * would be told: pick a workspace, pick a file, name it, and only then the
- * quibble about the file's type.
+ * quibbles about the file itself.
+ *
+ * `limits` is what the deployment answered on `GET /recordings/upload-limits`;
+ * with it in hand the type check is the deployment's own extension allowlist
+ * and the size check happens HERE rather than after a session has been opened
+ * and bytes sent. Without it the gate falls back to the MIME-prefix guess and
+ * lets the backend be the authority — a pair that has not read the limits must
+ * not invent a refusal.
  *
  * Exported so a skin's button and a host's own affordance cannot disagree.
  */
@@ -238,19 +276,28 @@ export function uploadGate(input: {
   readonly file: File | null;
   readonly title: string;
   readonly workspaceId: string | undefined;
+  readonly limits?: UploadLimits | null;
 }): ActionAvailability {
+  const limits = input.limits ?? null;
+  const file = input.file;
   return firstBlock(
     input.workspaceId === undefined || input.workspaceId === ""
       ? actionBlocked(RECORDINGS_I18N_KEYS.uploaderBlockedNoWorkspace)
       : actionAvailable(),
-    input.file === null
+    file === null
       ? actionBlocked(RECORDINGS_I18N_KEYS.uploaderBlockedNoFile)
       : actionAvailable(),
     input.title.trim() === ""
       ? actionBlocked(RECORDINGS_I18N_KEYS.uploaderBlockedNoTitle)
       : actionAvailable(),
-    input.file !== null && !isAcceptedMediaType(input.file.type)
+    file !== null &&
+      !(limits !== null
+        ? isAllowedUploadName(file.name, limits)
+        : isAcceptedMediaType(file.type))
       ? actionBlocked(RECORDINGS_I18N_KEYS.uploaderUnsupportedType)
+      : actionAvailable(),
+    file !== null && limits !== null && file.size > limits.max_upload_bytes
+      ? actionBlocked(RECORDINGS_I18N_KEYS.uploaderTooLarge)
       : actionAvailable()
   );
 }

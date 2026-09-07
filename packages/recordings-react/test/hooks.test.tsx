@@ -11,10 +11,15 @@ import { RecordingsProvider } from "../src/headless/RecordingsProvider.js";
 import { RecordingList } from "../src/headless/RecordingList.js";
 import { RecordingComposer } from "../src/headless/RecordingComposer.js";
 import { UploadFinalizer } from "../src/headless/UploadFinalizer.js";
-import { useRecordings } from "../src/model/queries.js";
+import { RecordingMedia } from "../src/headless/RecordingMedia.js";
+import { uploadGate } from "../src/headless/RecordingUpload.js";
+import { useRecordings, useUploadLimits } from "../src/model/queries.js";
+import { RECORDINGS_I18N_KEYS } from "../src/i18n/keys.js";
 import {
   UploadPreflightError,
   isUploadExpired,
+  storedBytesForHours,
+  uploadAccept,
   uploadRecordingBlob,
 } from "../src/api/extensions.js";
 
@@ -342,5 +347,197 @@ describe("<RecordingList> — a failed read is not an empty list", () => {
     await waitFor(() =>
       expect(screen.getByTestId("empty-count").textContent).toBe("no recordings yet")
     );
+  });
+});
+
+// ── the ceilings, before the picker (backend 0.22.0) ─────────────────────────
+//
+// The module became an AUDIO service: a container is transport, its track is
+// extracted and downmixed, and the container is deleted. That is why there are
+// two ceilings and why they differ by orders of magnitude — a host that only
+// knows one of them either refuses files the deployment would have taken or
+// lets a person upload 16 GB to learn about a 413. The numbers below are a
+// live stand's.
+const UPLOAD_LIMITS = {
+  max_upload_bytes: 17179869184,
+  max_stored_bytes: 536870912,
+  audio_only_ingest: true,
+  stored_audio_codec: "opus",
+  stored_audio_channels: 1,
+  stored_audio_sample_rate: 16000,
+  stored_bytes_per_hour: 10800000,
+  multipart_part_size: 10485760,
+  max_multipart_parts: 10000,
+  allowed_extensions: ["m4a", "mp3", "mp4", "ogg", "opus", "wav", "webm"],
+};
+
+describe("useUploadLimits — the read a host makes BEFORE the file picker", () => {
+  it("reads the ceilings and the stored audio profile off one endpoint", async () => {
+    let seenUrl = "";
+    server.use(
+      http.get(`${BASE}/recordings/upload-limits`, ({ request }) => {
+        seenUrl = request.url;
+        return HttpResponse.json(UPLOAD_LIMITS);
+      })
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useUploadLimits(), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(seenUrl).toContain("/recordings/upload-limits");
+    const limits = result.current.data;
+    // ACCEPTED and KEPT are different numbers, and the pair must not collapse
+    // them: the first is the 413 line, the second is what survives ingest.
+    expect(limits?.max_upload_bytes).toBe(17179869184);
+    expect(limits?.max_stored_bytes).toBe(536870912);
+    expect(limits?.audio_only_ingest).toBe(true);
+    expect(limits?.stored_audio_codec).toBe("opus");
+    expect(limits?.stored_audio_channels).toBe(1);
+    expect(limits?.stored_audio_sample_rate).toBe(16000);
+    expect(limits?.multipart_part_size).toBe(10485760);
+    expect(limits?.max_multipart_parts).toBe(10000);
+    expect(limits?.allowed_extensions).toContain("m4a");
+  });
+
+  it("prices an hour of speech off the STORED profile, not the upload", () => {
+    expect(storedBytesForHours(UPLOAD_LIMITS, 2)).toBe(21600000);
+    expect(storedBytesForHours(UPLOAD_LIMITS, 0)).toBe(0);
+  });
+});
+
+describe("uploadGate — the deployment's own allowlist, and its own ceiling", () => {
+  /** A `File` of a stated size without allocating it — a 16 GiB fixture is
+   * not something a test can hold in memory. */
+  function sized(name: string, size: number): File {
+    const file = new File([new Uint8Array(1)], name, { type: "audio/mpeg" });
+    Object.defineProperty(file, "size", { value: size });
+    return file;
+  }
+
+  it("takes a listed extension", () => {
+    const gate = uploadGate({
+      file: sized("standup.m4a", 1024),
+      title: "Standup",
+      workspaceId: "ws-1",
+      limits: UPLOAD_LIMITS,
+    });
+    expect(gate.available).toBe(true);
+  });
+
+  it("refuses an extension this deployment does not list", () => {
+    const gate = uploadGate({
+      file: sized("standup.aiff", 1024),
+      title: "Standup",
+      workspaceId: "ws-1",
+      limits: UPLOAD_LIMITS,
+    });
+    expect(gate.available).toBe(false);
+    expect(gate.block?.code).toBe(
+      RECORDINGS_I18N_KEYS.uploaderUnsupportedType
+    );
+  });
+
+  it("refuses a file over the ACCEPTED ceiling before a byte is sent", () => {
+    const gate = uploadGate({
+      file: sized("marathon.wav", UPLOAD_LIMITS.max_upload_bytes + 1),
+      title: "Marathon",
+      workspaceId: "ws-1",
+      limits: UPLOAD_LIMITS,
+    });
+    expect(gate.available).toBe(false);
+    expect(gate.block?.code).toBe(RECORDINGS_I18N_KEYS.uploaderTooLarge);
+  });
+
+  it("does NOT judge a file against the STORED ceiling — the container is transport", () => {
+    // 1 GB is over `max_stored_bytes` and far under `max_upload_bytes`. The
+    // deployment takes it and keeps the extracted audio; a pair that gated on
+    // the wrong number would refuse an upload the backend wanted.
+    const gate = uploadGate({
+      file: sized("meeting.mp4", 1073741824),
+      title: "Meeting",
+      workspaceId: "ws-1",
+      limits: UPLOAD_LIMITS,
+    });
+    expect(gate.available).toBe(true);
+  });
+
+  it("invents no refusal while the limits have not landed", () => {
+    const gate = uploadGate({
+      file: sized("standup.aiff", 999999999999),
+      title: "Standup",
+      workspaceId: "ws-1",
+      limits: null,
+    });
+    expect(gate.available).toBe(true);
+  });
+});
+
+describe("uploadAccept — the picker offers what the deployment takes", () => {
+  it("builds the accept list from allowed_extensions", () => {
+    expect(uploadAccept(UPLOAD_LIMITS)).toBe(
+      ".m4a,.mp3,.mp4,.ogg,.opus,.wav,.webm"
+    );
+  });
+
+  it("falls back to the media prefixes rather than to nothing", () => {
+    // A picker filtered on a list it does not have is a picker that shows no
+    // files at all.
+    expect(uploadAccept(null)).toBe("audio/*,video/*");
+  });
+});
+
+// ── 409 on a recording still in the pipeline is a WAIT, not a loss ───────────
+//
+// Since 0.22.0 `media_storage_key` refuses to serve the uploaded container at
+// all while audio-only ingest runs, so a recording that has not reached the
+// convert stage answers its media read `409 recording_media_not_stored` — the
+// same code a recording with genuinely nothing stored answers. Told apart by
+// the recording's own status, or the pair says "this recording has no media
+// file" about audio that is being written as the person reads it.
+describe("<RecordingMedia> — the 409 that means 'not yet'", () => {
+  function mountMedia(status: string): void {
+    server.use(
+      http.get(`${BASE}/recordings/:id/media`, () =>
+        HttpResponse.json(
+          {
+            localizable_error: "error.409.recording_media_not_stored",
+            error: "This recording has no media stored",
+            params: {},
+          },
+          { status: 409 }
+        )
+      )
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <RecordingMedia recording={{ id: "rec-1", status }}>
+          {({ isNotStored, isConverting }) => (
+            <div>
+              <span data-testid="not-stored">{String(isNotStored)}</span>
+              <span data-testid="converting">{String(isConverting)}</span>
+            </div>
+          )}
+        </RecordingMedia>
+      )
+    );
+  }
+
+  it("reads a mid-pipeline 409 as still converting", async () => {
+    mountMedia("normalizing");
+    await waitFor(() =>
+      expect(screen.getByTestId("not-stored").textContent).toBe("true")
+    );
+    expect(screen.getByTestId("converting").textContent).toBe("true");
+  });
+
+  it("keeps a terminal 409 a real 'nothing stored'", async () => {
+    mountMedia("completed");
+    await waitFor(() =>
+      expect(screen.getByTestId("not-stored").textContent).toBe("true")
+    );
+    expect(screen.getByTestId("converting").textContent).toBe("false");
   });
 });

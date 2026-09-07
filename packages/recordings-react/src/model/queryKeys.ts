@@ -28,6 +28,7 @@ export const recordingsQueryKeys: {
   ): readonly ["recordings", "list", RecordingListParams];
   detail(recordingId: string): readonly ["recordings", "detail", string];
   media(recordingId: string): readonly ["recordings", "media", string];
+  uploadLimits(): readonly ["recordings", "upload-limits"];
   transcript(
     recordingId: string,
     params: TranscriptParams
@@ -52,6 +53,9 @@ export const recordingsQueryKeys: {
   // its own key so re-minting it does not churn the detail read, and so a
   // detail invalidation does not throw away a URL that is still valid.
   media: (recordingId) => [ROOT, "media", recordingId],
+  // A property of the DEPLOYMENT, not of any recording: one entry for the
+  // whole module, read once and reused by every picker on the page.
+  uploadLimits: () => [ROOT, "upload-limits"],
   transcript: (recordingId, params) => [ROOT, "transcript", recordingId, params],
   // The unlock token is part of the key, not a header the cache cannot see: a
   // locked read and an unlocked read of the same link are DIFFERENT payloads

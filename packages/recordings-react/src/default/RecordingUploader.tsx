@@ -4,7 +4,12 @@ import { useT } from "@stapel/core";
 import { ErrorAlert, GatedButton, SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
 import type { Recording } from "../api/types.js";
-import { RecordingUpload, uploadPreflightKey } from "../headless/RecordingUpload.js";
+import { uploadAccept } from "../api/extensions.js";
+import {
+  RecordingUpload,
+  uploadPreflightBytes,
+  uploadPreflightKey,
+} from "../headless/RecordingUpload.js";
 import type { RecordingUploadBag } from "../headless/RecordingUpload.js";
 import { useRecordingsFormat } from "../model/format.js";
 import { RECORDINGS_I18N_KEYS } from "../i18n/keys.js";
@@ -33,6 +38,8 @@ function UploaderBody(props: { bag: RecordingUploadBag; testId: string }): React
   const busy = bag.step !== "idle" && bag.step !== "done";
   const label = stepKey(bag.step);
   const preflight = uploadPreflightKey(bag.error);
+  const refused = uploadPreflightBytes(bag.error);
+  const limits = bag.limits;
   return (
     <section style={{ ...stackStyle, gap: spacing["4"] }} data-testid={testId}>
       <Typography.Title level={3} style={{ margin: 0 }}>
@@ -41,9 +48,13 @@ function UploaderBody(props: { bag: RecordingUploadBag; testId: string }): React
 
       <label style={{ ...stackStyle, gap: spacing["1"] }}>
         <Typography.Text>{t(RECORDINGS_I18N_KEYS.uploaderPick)}</Typography.Text>
+        {/* The deployment's OWN allowlist, read before this picker opens —
+            not a guess at what an audio service takes. A video container is
+            still on the list: it is transport, and only its audio track is
+            kept. */}
         <input
           type="file"
-          accept="audio/*,video/*"
+          accept={uploadAccept(limits)}
           onChange={(event) => {
             const picked = event.target.files?.[0] ?? null;
             bag.setFile(picked);
@@ -54,6 +65,17 @@ function UploaderBody(props: { bag: RecordingUploadBag; testId: string }): React
           data-testid={`${testId}-file`}
         />
       </label>
+      {/* The ceiling and the cost, BEFORE a file is chosen. What this module
+          keeps is the speech, not the container, so the honest number for
+          "will this fit" is the per-hour one and not the file's own size. */}
+      {limits !== null ? (
+        <Typography.Text type="secondary" data-testid={`${testId}-limits`}>
+          {t(RECORDINGS_I18N_KEYS.uploaderLimitHint, {
+            max: format.bytes(limits.max_upload_bytes),
+            perHour: format.bytes(limits.stored_bytes_per_hour),
+          })}
+        </Typography.Text>
+      ) : null}
       {bag.file !== null ? (
         <Typography.Text type="secondary">
           {t(RECORDINGS_I18N_KEYS.uploaderPicked, {
@@ -118,7 +140,17 @@ function UploaderBody(props: { bag: RecordingUploadBag; testId: string }): React
       ) : null}
 
       {preflight !== undefined ? (
-        <ErrorAlert message={t(preflight)} testId={`${testId}-preflight`} />
+        <ErrorAlert
+          message={
+            refused !== null
+              ? t(RECORDINGS_I18N_KEYS.uploaderTooLargeNamed, {
+                  size: format.bytes(refused.size),
+                  limit: format.bytes(refused.limit),
+                })
+              : t(preflight)
+          }
+          testId={`${testId}-preflight`}
+        />
       ) : (
         <ErrorAlert thrown={bag.error} testId={`${testId}-error`} />
       )}
