@@ -15,7 +15,7 @@
  * That is the whole defect this file used to carry: the one sort a person
  * would most want on a phone was greyed out with its explanation in a hover.
  */
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { Flex, Select, Typography } from "antd";
 import { actionAvailable, actionBlocked, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
@@ -34,6 +34,61 @@ import { sortLabelKey } from "./sortLabels.js";
  */
 export const SORT_SELECT_MIN_WIDTH = 200;
 
+/**
+ * The select's own chrome around its label: antd's two inline paddings plus
+ * the caret and its margin. Added to the compact form's sizer (below), which
+ * measures a bare label.
+ */
+export const SORT_SELECT_CHROME = 40;
+
+/**
+ * ── THE COMPACT CONTROL'S BOX, HELD FROM THE FIRST FRAME ────────────────────
+ *
+ * The compact arm draws `value={active ?? null}`, and `active` is only known
+ * once the page in cache reports the sort the SERVER applied (see
+ * {@link useAppliedSort}) — for an address that names no `sort`, that is a
+ * whole round trip after the first paint. So the control rendered as a bare
+ * caret and then GREW by the width of its label: measured on a category leaf,
+ * the caret's own box moved from x=22 to x=137, 115px, the largest single
+ * term in that page's layout shift. `minWidth: 0` was written inline, so no
+ * consumer stylesheet could hold the box either.
+ *
+ * The floor is not {@link SORT_SELECT_MIN_WIDTH}: 200px is the desktop arm's
+ * number and would wrap a two-control toolbar onto two rows at 390px. It is
+ * the width of the longest label THIS control can be asked to show, at the
+ * font it will show it in — so it is measured by the browser rather than
+ * guessed in pixels, and it is right in every locale (a Russian sort label is
+ * half again as long as its English original).
+ *
+ * One grid cell, two children stacked in it: an `aria-hidden` sizer carrying
+ * the longest label, and the select itself. The cell is as wide as the sizer,
+ * the select fills it, and neither depends on `active`.
+ */
+const COMPACT_WRAP: CSSProperties = {
+  display: "inline-grid",
+  flex: "0 1 auto",
+};
+
+const COMPACT_SIZER: CSSProperties = {
+  gridArea: "1 / 1",
+  visibility: "hidden",
+  blockSize: 0,
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  pointerEvents: "none",
+  paddingInline: SORT_SELECT_CHROME,
+};
+
+const COMPACT_SELECT: CSSProperties = { gridArea: "1 / 1", minWidth: 0 };
+
+/** The longest of the labels the control can display, which is the one the
+ * sizer holds. Ties keep the first — they are the same width. */
+export function longestSortLabel(labels: readonly string[]): string {
+  return labels.reduce((longest, label) =>
+    label.length > longest.length ? label : longest
+  , "");
+}
+
 /** Why `sort=distance` is refused without a centre — the server's own code, so
  * the control and the 400 it would have earned say the same sentence. */
 const SORT_DISTANCE_BLOCKED = "error.400.search_sort_needs_center";
@@ -49,9 +104,11 @@ export interface SortSelectProps {
    *
    *  - the "Sort" caption goes (the select already shows a sort by name; the
    *    accessible name keeps the word);
-   *  - the {@link SORT_SELECT_MIN_WIDTH} floor goes, so the control shares one
+   *  - the {@link SORT_SELECT_MIN_WIDTH} floor goes — the control shares one
    *    row with whatever the surface puts beside it instead of pushing it to
-   *    the next line;
+   *    the next line — and is replaced by a floor the width of this control's
+   *    OWN longest label, so the box does not grow when the answer names the
+   *    sort (see `COMPACT_WRAP`);
    *  - the line under the control goes. The blocked option's REASON does not:
    *    it is on the option itself at every width now (see `optionsFor`), and
    *    what the compact form drops is the second, separate copy of it.
@@ -110,14 +167,25 @@ export function SortSelect(props: SortSelectProps): ReactElement {
    * accessible description of the SELECT, the other is the label of the OPTION
    * that is refused, and they are read in different moments.
    */
+  /**
+   * The names this control can DISPLAY, which is what the compact form's
+   * sizer is measured on. The blocked row's appended reason is deliberately
+   * not among them: it reaches the CLOSED control only for a sort the address
+   * itself names, and a sort in the address is known from the first frame —
+   * so it can widen the box but can never move it.
+   */
+  const plainLabels = values.map((value) => {
+    const key = sortLabelKey(value);
+    return key !== undefined ? t(key) : value;
+  });
+
   const optionsFor = (): {
     readonly value: string;
     readonly label: string;
     readonly disabled: boolean;
   }[] =>
-    values.map((value) => {
-      const key = sortLabelKey(value);
-      const label = key !== undefined ? t(key) : value;
+    values.map((value, index) => {
+      const label = plainLabels[index] ?? value;
       const blocked = value === "distance" && !hasCentre;
       return {
         value,
@@ -128,20 +196,23 @@ export function SortSelect(props: SortSelectProps): ReactElement {
 
   if (props.compact === true) {
     return (
-      <Select<string>
-        data-testid="search-sort"
-        data-stapel-gated={hasCentre ? "available" : "blocked"}
-        aria-label={t(SEARCH_I18N_KEYS.sortLabel)}
-        // `minWidth: 0` and not the floor: a control that refuses to be
-        // narrower than 200px is a control that wraps a two-item toolbar onto
-        // two rows at 390px.
-        style={{ minWidth: 0, flex: "0 1 auto" }}
-        value={active ?? null}
-        onChange={(next) => {
-          setSort(next);
-        }}
-        options={optionsFor()}
-      />
+      <div style={COMPACT_WRAP} data-testid="search-sort-compact">
+        {/* The box, not a caption — see `COMPACT_WRAP`. */}
+        <span aria-hidden="true" data-testid="search-sort-sizer" style={COMPACT_SIZER}>
+          {longestSortLabel(plainLabels)}
+        </span>
+        <Select<string>
+          data-testid="search-sort"
+          data-stapel-gated={hasCentre ? "available" : "blocked"}
+          aria-label={t(SEARCH_I18N_KEYS.sortLabel)}
+          style={COMPACT_SELECT}
+          value={active ?? null}
+          onChange={(next) => {
+            setSort(next);
+          }}
+          options={optionsFor()}
+        />
+      </div>
     );
   }
 

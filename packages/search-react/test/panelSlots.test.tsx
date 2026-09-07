@@ -16,23 +16,29 @@
  *  - **A blocked sort option's reason.** It was on the row in the compact arm
  *    and behind the open dropdown at every other width.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
+import { theme as antdTheme } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
+import { breakpoints } from "@stapel/tokens";
 import {
-  CHIP_ROW_MIN_HEIGHT,
   FilterChips,
   PopularValues,
   SearchPage,
   SortSelect,
+  chipRowMinHeight,
   popularValuesLadderCss,
 } from "../src/default/index.js";
 import type { FacetGroup, SearchParamsAdapter } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
 import {
+  DESKTOP_WIDTH,
+  PHONE_WIDTH,
   TestHarness,
   TestProviders,
   mockServer,
+  setViewport,
   useTestParams,
 } from "./harness.js";
 
@@ -304,9 +310,74 @@ describe("the phone chip row reserves its height", () => {
       </TestHarness>
     );
     const reserve = screen.getByTestId("search-filter-chips-reserve");
-    expect(reserve.style.minBlockSize).toBe(`${String(CHIP_ROW_MIN_HEIGHT)}px`);
+    expect(reserve.style.minBlockSize).toBe(`${String(chipRowMinHeight(32))}px`);
     // A reservation is scaffolding, not content.
     expect(reserve.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  /**
+   * THE RESERVE AND THE ROW ARE THE SAME BOX — at every width.
+   *
+   * The chips are default-size `Button`s, so the row is `controlHeight` plus
+   * the two bands of focus-ring room the row pads itself with. `SkinTheme`
+   * raises `controlHeight` to the 44px touch floor only BELOW the tablet
+   * breakpoint, and the reserve was written `44 + …` as a constant: from
+   * 768px up it stood 12px taller than the row it stood in for, so the
+   * results pane ROSE by 12px the moment the row landed — the shift the
+   * reservation exists to prevent, pointing the other way. Measured on a
+   * category leaf: 0.00016 CLS at 390, 0.0725 at 768.
+   *
+   * The token is read through a probe inside the SAME theme the chips are
+   * drawn in, so this asserts against antd's own number rather than against a
+   * second copy of the arithmetic; the literals below pin the two answers so
+   * a reserve that stopped moving with the band cannot pass.
+   */
+  describe("the reserve is the row's own height at both bands", () => {
+    function LiveControlHeight(): ReactElement {
+      const { token } = antdTheme.useToken();
+      return (
+        <span data-testid="probe-control-height">{String(token.controlHeight)}</span>
+      );
+    }
+
+    function reserveAt(width: number): { reserve: number; control: number } {
+      setViewport(width);
+      render(
+        <TestHarness
+          server={slowServer()}
+          initialSearch="type=listing&category=32/149"
+        >
+          <SkinTheme>
+            <LiveControlHeight />
+            <FilterChips onOpenAll={() => undefined} categoryFeatures={CAR_FEATURES} />
+          </SkinTheme>
+        </TestHarness>
+      );
+      const control = Number(screen.getByTestId("probe-control-height").textContent);
+      const reserve = Number.parseFloat(
+        screen.getByTestId("search-filter-chips-reserve").style.minBlockSize
+      );
+      return { reserve, control };
+    }
+
+    afterEach(() => {
+      setViewport(DESKTOP_WIDTH);
+    });
+
+    it("holds 52 on a phone, where the touch floor raises the chips to 44", () => {
+      const { reserve, control } = reserveAt(PHONE_WIDTH);
+      expect(control).toBe(44);
+      expect(reserve).toBe(chipRowMinHeight(control));
+      expect(reserve).toBe(52);
+    });
+
+    it("holds 40 at the tablet band, where the chips are 32 again", () => {
+      const { reserve, control } = reserveAt(breakpoints.tablet);
+      expect(control).toBe(32);
+      expect(reserve).toBe(chipRowMinHeight(control));
+      // 0.36.1 reserved 52 here and the row rendered 40.
+      expect(reserve).toBe(40);
+    });
   });
 
   it("reserves nothing for a bare text query, where there will be no row", () => {

@@ -514,3 +514,64 @@ describe("the compact header's caption (phone)", () => {
     expect(heading.hasAttribute("data-heading")).toBe(false);
   });
 });
+
+// --------------------------------------------------------------------------
+// the pane's own handle
+// --------------------------------------------------------------------------
+
+/**
+ * THE PANE HAD NOTHING TO AIM AT.
+ *
+ * Its root carried no id, class or test id, so the only hold a consumer had
+ * on it was its position among its siblings — an integrator was reserving the
+ * feed's height with `#search-page > :last-child`, a selector that starts
+ * addressing something else the day this page grows another child. The root
+ * now names itself, and the reservation it was standing in for is a prop.
+ */
+describe("the results pane is addressable, and holds its own box", () => {
+  it("names its root", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    const pane = screen.getByTestId("search-results-pane");
+    // The named root is the one that CONTAINS the feed — a handle on some
+    // inner wrapper would not be the box a host reserves.
+    await waitFor(() => {
+      expect(pane.contains(screen.getByTestId("search-results"))).toBe(true);
+    });
+  });
+
+  it("holds `reserve` while the first answer is in flight and drops it after", async () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane reserve={900} />
+      </TestHarness>
+    );
+    const pane = screen.getByTestId("search-results-pane");
+    // The pane's own column, which is the box the feed fills.
+    const held = (): HTMLElement => pane.firstElementChild as HTMLElement;
+    expect(held().style.minBlockSize).toBe("900px");
+    // The rows are the box now. A floor left standing under a SHORT page would
+    // hold a gap open under it for the rest of the session.
+    await waitFor(() => {
+      expect(screen.getByTestId("search-results")).toBeTruthy();
+    });
+    expect(held().style.minBlockSize).toBe("");
+  });
+
+  it("reserves nothing when the host names no height", () => {
+    const server = mockServer({ "/query": { body: searchResponse() } });
+    render(
+      <TestHarness server={server}>
+        <SearchResultsPane />
+      </TestHarness>
+    );
+    const column = screen.getByTestId("search-results-pane")
+      .firstElementChild as HTMLElement;
+    expect(column.style.minBlockSize).toBe("");
+  });
+});

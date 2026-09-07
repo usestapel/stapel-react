@@ -93,7 +93,6 @@ export {
   CHIP_BAND_ORDER,
   CHIP_ROW_CAP,
   CHIP_ROW_CLASS,
-  CHIP_ROW_MIN_HEIGHT,
   CHIP_ROW_STYLE_HREF,
   appliedChipTestId,
   appliedRowMinHeight,
@@ -101,6 +100,7 @@ export {
   capChipRow,
   categoryLeaf,
   chipRowCss,
+  chipRowMinHeight,
   orderChipFilters,
   rangeChipText,
   rangeLabelSource,
@@ -179,7 +179,12 @@ export type { RankingDisclosurePaneProps } from "./RankingDisclosurePane.js";
 // ── controls, exported so a host can compose its own layout ─────────────────
 export { SearchBox } from "./SearchBox.js";
 export type { SearchBoxProps } from "./SearchBox.js";
-export { SortSelect, SORT_SELECT_MIN_WIDTH } from "./SortSelect.js";
+export {
+  SortSelect,
+  SORT_SELECT_CHROME,
+  SORT_SELECT_MIN_WIDTH,
+  longestSortLabel,
+} from "./SortSelect.js";
 export type { SortSelectProps } from "./SortSelect.js";
 export { ViewSwitch, SEARCH_BUILTIN_VIEWS, resolveView } from "./ViewSwitch.js";
 export type { ViewSwitchProps, SearchView, SearchResultsLayout } from "./ViewSwitch.js";

@@ -794,6 +794,13 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly resultsColumns?: ResultsColumns;
   /**
+   * The box the results arrive into — `<SearchResultsPane reserve>`,
+   * forwarded. Here for the same reason `resultsColumns` is: the page is what
+   * a storefront mounts, and this was the last thing on it a host could only
+   * reach with `#search-page > :last-child` in its own stylesheet.
+   */
+  readonly resultsReserve?: number | string;
+  /**
    * Is the results caption SEEN below the sheet breakpoint —
    * `<SearchResultsPane headingVisible>`, forwarded. Default: the host's own
    * `resultsHeading` is drawn there and the pair's "Results" is not.
@@ -804,6 +811,7 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
 interface SearchPageBodyProps {
   readonly renderCard?: SearchCardRenderer;
   readonly resultsColumns?: ResultsColumns;
+  readonly resultsReserve?: number | string;
   readonly resultsHeadingVisible?: boolean;
   readonly categoryFilter?: boolean;
   readonly resultsLead?: ReactNode;
@@ -1112,6 +1120,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(props.resultsColumns !== undefined
         ? { columns: props.resultsColumns }
         : {})}
+      {...(props.resultsReserve !== undefined
+        ? { reserve: props.resultsReserve }
+        : {})}
       {...(props.resultsHeadingVisible !== undefined
         ? { headingVisible: props.resultsHeadingVisible }
         : {})}
@@ -1332,6 +1343,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     resultsAction,
     resultsHeadingLevel,
     resultsColumns,
+    resultsReserve,
     resultsHeadingVisible,
     dictionaryMode,
     visibleGroups,
@@ -1347,6 +1359,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
         <SearchPageBody
           {...(renderCard !== undefined ? { renderCard } : {})}
           {...(resultsColumns !== undefined ? { resultsColumns } : {})}
+          {...(resultsReserve !== undefined ? { resultsReserve } : {})}
           {...(resultsHeadingVisible !== undefined ? { resultsHeadingVisible } : {})}
           {...(dictionaryMode !== undefined ? { dictionaryMode } : {})}
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}

@@ -488,6 +488,25 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * `null` lets the container decide. */
   readonly maxWidth?: number | null;
   /**
+   * THE BOX THE RESULTS ARRIVE INTO — a block-size floor the pane holds while
+   * the first answer is in flight, and drops the moment the rows land.
+   *
+   * The pane cannot know how tall its own page will be (the row count is the
+   * host's `limit` and the card height is the host's card), so this is a
+   * number the host measures once for its own feed — `limit × card + gaps` —
+   * and it stops the fold below the results from rising into the space the
+   * feed is about to take.
+   *
+   * What it replaces is a stylesheet rule aimed at this pane with the only
+   * hold a consumer had on it: `#search-page > :last-child`, a selector that
+   * silently starts addressing something else the day this page grows a
+   * seventh child. The pane's root now also carries
+   * `data-testid="search-results-pane"`, so a host that wants its own rule
+   * has a handle that is part of this pair's surface instead of a count of
+   * siblings.
+   */
+  readonly reserve?: number | string;
+  /**
    * How the loaded rows are arranged: as many card columns as fit
    * (`"grid"`, the default) or one wide row each (`"list"`). The view SWITCH
    * that flips this lives in `<ViewSwitch>`; the pane only draws.
@@ -713,6 +732,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   return (
     <SkinTheme
       surface="base"
+      data-testid="search-results-pane"
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
       style={{
         width: "100%",
@@ -721,7 +741,16 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
     >
       <SearchResults {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}>
         {(bag) => (
-          <Flex vertical gap={spacing[4]}>
+          <Flex
+            vertical
+            gap={spacing[4]}
+            // The box the results arrive into — see `reserve`. Only until the
+            // FIRST answer lands: a floor under rows already on screen would
+            // hold a gap open under a short page for the rest of the session.
+            {...(props.reserve !== undefined && bag.state.status === "loading"
+              ? { style: { minBlockSize: props.reserve } }
+              : {})}
+          >
             {props.lead !== undefined && (
               <div data-testid="search-results-lead">{props.lead}</div>
             )}

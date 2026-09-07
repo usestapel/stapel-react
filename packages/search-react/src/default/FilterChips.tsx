@@ -325,10 +325,19 @@ export const CHIP_ROW_CAP = 8;
  * answer really is "no row" and reserving would be the same shift in the
  * opposite direction.
  *
- * 44 is the phone control floor the chips themselves are sized to, plus the
- * row's two `spacing[1]` bands of focus-ring room.
+ * A NUMBER OUT OF THE THEME, not a constant — the same discipline
+ * {@link appliedRowMinHeight} is written under, and this row did not have it.
+ * The chips are default-size `Button`s, so their height IS antd's
+ * `controlHeight`, and the shared `SkinTheme` raises that to the 44px touch
+ * floor only BELOW the tablet breakpoint. Written as `44 + …` the reserve was
+ * right on a phone and 12px too tall from 768px up, where the row renders at
+ * 32 + 8 = 40: the results pane ROSE by those 12px the moment the row landed,
+ * which is the shift the reservation exists to prevent, pointing the other
+ * way. Measured on a category leaf: 0.00016 CLS at 390 and 0.0725 at 768.
  */
-export const CHIP_ROW_MIN_HEIGHT: number = 44 + spacing[1] * 2;
+export function chipRowMinHeight(chipHeight: number): number {
+  return chipHeight + spacing[1] * 2;
+}
 
 /**
  * The visible row and what the door owes: the first `max` specs — and EVERY
@@ -480,6 +489,9 @@ export function FilterChips(props: FilterChipsProps): ReactElement | null {
 
 function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
   const t = useT();
+  // The chips' own height, from the theme they are drawn in — see
+  // `chipRowMinHeight`.
+  const { token } = antdTheme.useToken();
   const { state, setCategory } = useSearchState();
   const bag = useFacetPanel({
     ...(props.categoryFeatures !== undefined
@@ -595,7 +607,7 @@ function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
    */
   const hasChips = showCategoryChip || ordered.length > 0;
   if (!hasChips) {
-    // THE BOX THE ROW WILL ARRIVE INTO — see `CHIP_ROW_MIN_HEIGHT`. Only
+    // THE BOX THE ROW WILL ARRIVE INTO — see `chipRowMinHeight`. Only
     // while the answer is still in flight and this search is one a row is
     // predictable for; a settled answer with no chips renders nothing, which
     // is what it has always done and what it should do.
@@ -606,7 +618,7 @@ function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
       <div
         aria-hidden="true"
         data-testid="search-filter-chips-reserve"
-        style={{ minBlockSize: CHIP_ROW_MIN_HEIGHT }}
+        style={{ minBlockSize: chipRowMinHeight(token.controlHeight) }}
       />
     ) : null;
   }
