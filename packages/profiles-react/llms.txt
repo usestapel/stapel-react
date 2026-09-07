@@ -90,6 +90,8 @@ const { tracked } = useTracked();
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - profiles.connections-skin → <ConnectionsPage> [followers|list-and-row|blocked-empty]  demo/ConnectionsSkin.demo.tsx
 - profiles.initial-setup-skin → <InitialSetupModal> [first-run|blocking]  demo/InitialSetupModalSkin.demo.tsx
+- profiles.member-since-skin → <MemberSince> [tenured|fresh|ladder]  demo/MemberSinceSkin.demo.tsx
+- profiles.person-avatar-skin → <PersonAvatar> [sides|monogram|heading|compact]  demo/PersonAvatarSkin.demo.tsx
 - profiles.profile-name-heading-skin → <ProfileNameHeading> [loading|ready|unnamed]  demo/ProfileNameHeadingSkin.demo.tsx
 - profiles.public-profile-skin → <PublicProfilePage> [profile|control|unwritten]  demo/PublicProfileSkin.demo.tsx
 - profiles.settings-skin → <ProfileSettings> [settings|sections|manifest-failed]  demo/ProfileSettingsSkin.demo.tsx

@@ -88,6 +88,10 @@ export const profilesI18nBundleRu: I18nDictionary = {
   "profiles.connections.kind_label": "Какой список показать",
   "profiles.public.unwritten": "Этот человек ещё не заполнил профиль.",
   "profiles.public.location": "Местоположение",
+  // The month arrives from `Intl` in the nominative case, so this line states
+  // the fact rather than saying "since" — see keys.ts. The phrasing is what
+  // moves; the formatter is the same one in every language.
+  "profiles.public.member_since": "Дата регистрации: {date}",
   "profiles.public.seller_type": "Продавец",
   "profiles.public.count.following.one": "Подписан на {count} человека",
   "profiles.public.count.following.few": "Подписан на {count} человек",

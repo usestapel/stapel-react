@@ -34,12 +34,19 @@ export { InitialSetupModal } from "./InitialSetupModal.js";
 export type { InitialSetupModalProps } from "./InitialSetupModal.js";
 export {
   PersonRow,
+  PersonAvatar,
   personMonogram,
   PERSON_ROW_AVATAR,
   PERSON_HEADER_AVATAR,
   PERSON_COMPACT_AVATAR,
 } from "./PersonRow.js";
-export type { PersonRowProps } from "./PersonRow.js";
+export type {
+  PersonRowProps,
+  PersonAvatarProps,
+  PersonNameHeadingLevel,
+} from "./PersonRow.js";
+export { MemberSince } from "./MemberSince.js";
+export type { MemberSinceProps } from "./MemberSince.js";
 export {
   PROFILE_NAME_CLASS,
   PROFILE_NAME_LINE_VAR,

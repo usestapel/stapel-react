@@ -19,6 +19,28 @@ export const ALAN_ID = "3b5c8e47-4444-4000-8000-000000000004";
 /** Registered, provisioned by `user.registered`, has typed nothing yet. */
 export const NEWCOMER_ID = "4d1f2a68-5555-4000-8000-000000000005";
 
+/**
+ * An 8x8 solid PNG, inline. A demo must never reach the network for a picture
+ * — the smoke render runs in jsdom and the showcase photographs offline — and
+ * base64 keeps the colour out of the source, where `stapel/no-raw-colors`
+ * would (rightly) have something to say about a hex literal.
+ */
+export const AVATAR_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR42mOoyluBFTEMLQkAB5FkAVCjVn4AAAAASUVORK5CYII=";
+
+/** A `StapelImageDTO` exactly as the wire spells it: `source` a bare string,
+ * `variants` absent. The pair narrows it (`profileAvatarImage`). */
+export const AVATAR_IMAGE = {
+  source: "file",
+  url: AVATAR_PNG,
+  mime: "image/png",
+  width: 8,
+  height: 8,
+  aspect: 1,
+  square: true,
+  preview_b64: null,
+};
+
 /** One `ProfilePublicResponse`, with everything a row or a header can draw. */
 function publicProfile(input: {
   userId: string;
@@ -28,13 +50,17 @@ function publicProfile(input: {
   following?: number;
   rating?: number;
   relationship?: string | null;
+  createdAt?: string;
+  avatarImage?: Record<string, unknown> | null;
 }): Record<string, unknown> {
   return {
     user_id: input.userId,
     display_name: input.displayName,
     avatar_source: "file",
     avatar: null,
-    avatar_image: null,
+    avatar_image: input.avatarImage ?? null,
+    // stapel-profiles 0.19.2: tenure is on the public read itself.
+    created_at: input.createdAt ?? "2024-03-15T12:00:00Z",
     location_id: null,
     location_display_name_narrow: input.location ?? "",
     location_display_name_broad: input.location ?? "",
@@ -53,6 +79,7 @@ export const ADA = publicProfile({
   following: 31,
   rating: 4.8,
   relationship: "neutral",
+  avatarImage: AVATAR_IMAGE,
 });
 
 export const GRACE = publicProfile({
@@ -80,6 +107,7 @@ export const ALAN = publicProfile({
 export const NEWCOMER = publicProfile({
   userId: NEWCOMER_ID,
   displayName: "",
+  createdAt: "2026-09-01T09:00:00Z",
 });
 
 /** `POST /batch` for the followers list — two found, one `missing`. */

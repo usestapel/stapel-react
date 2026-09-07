@@ -13,6 +13,13 @@
 export { createProfilesApi } from "./api/profilesApi.js";
 export type { ProfilesApi } from "./api/profilesApi.js";
 export type { Schemas } from "./api/types.js";
+// The avatar descriptor, narrowed to what `<Image>` consumes — the one repair
+// of the wire's three under-descriptions, so no host writes the cast again.
+export { profileAvatarImage } from "./api/extensions.js";
+export type {
+  ProfileAvatarImage,
+  ProfileWithAvatarImage,
+} from "./api/extensions.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────
 // The flow-machine primitive lives in `@stapel/core` (one reviewed copy for

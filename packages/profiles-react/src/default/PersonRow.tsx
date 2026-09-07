@@ -46,6 +46,21 @@
  * anchor and its own avatar rather than use this pair, which is how a user id
  * gets back onto the glass. The four states stay four here too: the compact
  * arm skeletons and speaks exactly like the other two.
+ *
+ * ── The name can be the page's heading ────────────────────────────────────
+ *
+ * On a seller page the person's name IS the heading of the document, and this
+ * component drew it as a `<span>`: a screen-reader's heading list skipped
+ * straight past the subject of the page, and a storefront that wanted the
+ * outline right had to rebuild the row. `headingLevel` makes the name an
+ * `h1`–`h4` — the ELEMENT changes, nothing else does. It inherits the row's
+ * own font and carries no margin, so a heading row and a plain row are the
+ * same picture; only the document outline differs, which is the whole request.
+ * Omitted, the row is byte-for-byte what it was.
+ *
+ * (`<ProfileNameHeading/>` remains the other answer: a name as the sole,
+ * type-scaled heading of a page, with its height reserved while the read is in
+ * flight. This one is a heading INSIDE a row.)
  */
 import type { ReactElement, ReactNode } from "react";
 import { Avatar, Flex, Skeleton, Typography } from "antd";
@@ -53,8 +68,8 @@ import { spacing } from "@stapel/tokens";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import { Image } from "@stapel/image";
-import type { StapelImage } from "@stapel/image";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
+import { profileAvatarImage } from "../api/extensions.js";
 import type { ProfileBatchEntry } from "../model/profileBatch.js";
 import type { PublicProfile } from "../api/types.js";
 
@@ -82,6 +97,14 @@ export function personMonogram(displayName: string): string {
       : `${(words[0] ?? "").slice(0, 1)}${(words[1] ?? "").slice(0, 1)}`;
   return initials.toUpperCase();
 }
+
+/**
+ * Which heading the name is, when it is one. Stops at `4` deliberately: `h5`
+ * and `h6` under a row of this size describe a document nobody has, and a
+ * component that offered them would be inviting an outline built out of the
+ * deepest levels because they happened to be available.
+ */
+export type PersonNameHeadingLevel = 1 | 2 | 3 | 4;
 
 export interface PersonRowProps {
   /**
@@ -129,6 +152,17 @@ export interface PersonRowProps {
    * caption-sized line, for a card's seller line (see the module doc).
    */
   readonly size?: "row" | "header" | "compact";
+  /**
+   * Draw the NAME as a real document heading (`h1`–`h4`) instead of a span.
+   * Only the element changes: the heading inherits the row's font and carries
+   * no margin, so the picture is identical and the outline is not. Omitted,
+   * the row is exactly what it was — a page with several people on it must not
+   * accidentally grow several headings.
+   *
+   * Which level is the HOST's to know: the same row is the `h1` of a seller
+   * page and an `h3` in a list on somebody else's.
+   */
+  readonly headingLevel?: PersonNameHeadingLevel;
   readonly testId?: string;
 }
 
@@ -139,15 +173,29 @@ function avatarSide(size: PersonRowProps["size"]): number {
   return PERSON_ROW_AVATAR;
 }
 
-/** The person's avatar: the backend's source-agnostic descriptor when there
- * is one (so `<Image>` picks the right ladder rung and blurs up), else a
- * monogram. Never a broken `<img>`. */
-function PersonAvatar(props: {
-  profile: PublicProfile | null;
-  fallbackName: string;
-  side: number;
-}): ReactElement {
-  const image = props.profile?.avatar_image as StapelImage | null | undefined;
+export interface PersonAvatarProps {
+  /** Whose face. `null` — nobody was found, so the monogram is all there is. */
+  readonly profile: PublicProfile | null;
+  /** The name the monogram is built from when there is no avatar. */
+  readonly fallbackName: string;
+  /** The side, in CSS pixels — one of the `PERSON_*_AVATAR` constants, or a
+   * host's own number. */
+  readonly side: number;
+}
+
+/**
+ * The person's avatar: the backend's source-agnostic descriptor when there is
+ * one (so `<Image>` picks the right ladder rung and blurs up), else a
+ * monogram. Never a broken `<img>`.
+ *
+ * Exported because a host draws avatars where a whole row does not fit — a
+ * chat bubble's gutter, a table cell, an overlapping stack of facepiles — and
+ * every one of those was otherwise a private reimplementation of the same
+ * "descriptor or monogram" decision, which is how a broken `<img>` (or a
+ * truncated user id) gets back onto the glass.
+ */
+export function PersonAvatar(props: PersonAvatarProps): ReactElement {
+  const image = profileAvatarImage(props.profile);
   if (image) {
     return (
       <Image
@@ -167,6 +215,30 @@ function PersonAvatar(props: {
     <Avatar size={props.side} style={{ flexShrink: 0 }}>
       {personMonogram(props.fallbackName)}
     </Avatar>
+  );
+}
+
+/**
+ * The name as an `h1`–`h4`, and NOTHING else different.
+ *
+ * `font: inherit` and a zeroed margin are the whole implementation: a browser's
+ * default heading metrics inside a 40px row would resize the row and space it
+ * apart, which is a redesign nobody asked for — the request was an outline, so
+ * an outline is all that changes. `minWidth: 0` keeps the name's own ellipsis
+ * working inside the flex line it now sits one element deeper in.
+ */
+function PersonNameHeading(props: {
+  level: PersonNameHeadingLevel;
+  children: ReactNode;
+}): ReactElement {
+  const Tag = `h${String(props.level)}` as "h1" | "h2" | "h3" | "h4";
+  return (
+    <Tag
+      style={{ margin: 0, font: "inherit", minWidth: 0 }}
+      data-stapel-person-heading={String(props.level)}
+    >
+      {props.children}
+    </Tag>
   );
 }
 
@@ -235,7 +307,7 @@ export function PersonRow(props: PersonRowProps): ReactElement {
           },
         }),
   } as const;
-  const nameNode: ReactNode =
+  const linkedName: ReactNode =
     href === undefined ? (
       nameText
     ) : HostLink !== undefined ? (
@@ -246,6 +318,15 @@ export function PersonRow(props: PersonRowProps): ReactElement {
       <Typography.Link href={href} {...linkAttrs}>
         {nameText}
       </Typography.Link>
+    );
+  // The heading wraps the LINK, not the other way round: `<h2><a>…</a></h2>`
+  // is a heading you can click, `<a><h2>…</h2></a>` is a link that happens to
+  // contain one.
+  const nameNode: ReactNode =
+    props.headingLevel === undefined ? (
+      linkedName
+    ) : (
+      <PersonNameHeading level={props.headingLevel}>{linkedName}</PersonNameHeading>
     );
 
   const trailingNode: ReactNode =

@@ -37,6 +37,7 @@ import { spacing } from "@stapel/tokens";
 import { useProfile } from "../model/queries.js";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 import { PersonRow } from "./PersonRow.js";
+import { MemberSince } from "./MemberSince.js";
 import { Relationship } from "./Relationship.js";
 import type { PublicProfile } from "../api/types.js";
 
@@ -148,6 +149,15 @@ function PublicProfileBody(props: {
                 value={tPlural(PROFILES_I18N_KEYS.publicCountFollowing, {
                   count: profile.following_count,
                 })}
+              />
+              {/* HOW LONG THIS PERSON HAS BEEN HERE — the tenure a buyer reads
+                  a stranger's page for, and the reason stapel-profiles 0.19.2
+                  puts `created_at` on this very read rather than behind a
+                  second lookup. Renders nothing on a deployment whose profile
+                  model predates the field. */}
+              <MemberSince
+                created_at={profile.created_at}
+                testId="public-profile-member-since"
               />
             </Flex>
           }

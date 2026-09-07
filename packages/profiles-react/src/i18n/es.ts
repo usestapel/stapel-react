@@ -88,6 +88,7 @@ export const profilesI18nBundleEs: I18nDictionary = {
   "profiles.connections.kind_label": "Qué lista mostrar",
   "profiles.public.unwritten": "Esta persona todavía no ha configurado su perfil.",
   "profiles.public.location": "Ubicación",
+  "profiles.public.member_since": "Miembro desde {date}",
   "profiles.public.seller_type": "Vendedor",
   "profiles.public.count.following.one": "Sigue a {count} persona",
   "profiles.public.count.following.other": "Sigue a {count} personas",

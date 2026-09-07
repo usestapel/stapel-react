@@ -89,6 +89,17 @@ export const PROFILES_I18N_KEYS = {
   publicUnwritten: "profiles.public.unwritten",
   publicLocation: "profiles.public.location",
   /**
+   * The tenure line (`<MemberSince/>`) — `{date}` is a MONTH AND A YEAR
+   * already formatted at the app's locale, never an ISO string.
+   *
+   * The Russian text states the fact as "registration date: <month year>"
+   * rather than with a preposition: `Intl` writes the month in the nominative
+   * case and every Russian "since <month>" phrasing governs the genitive, so
+   * the SENTENCE moves rather than the formatter (see
+   * `default/MemberSince.tsx`).
+   */
+  publicMemberSince: "profiles.public.member_since",
+  /**
    * The heading over the trading capacity — the answer to "am I buying from a
    * person or from a shop", which is a different question from who they are.
    */
@@ -239,6 +250,7 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.connections.kind_label": "Which list to show",
   "profiles.public.unwritten": "This person has not set up their profile yet.",
   "profiles.public.location": "Location",
+  "profiles.public.member_since": "Member since {date}",
   "profiles.public.seller_type": "Seller",
   "profiles.public.count.following.one": "Follows {count} person",
   "profiles.public.count.following.other": "Follows {count} people",

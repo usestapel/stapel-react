@@ -74,6 +74,84 @@
       }
     },
     {
+      "id": "profiles.member-since-skin",
+      "title": "Member since (skin)",
+      "description": "A profile's created_at as one quiet line at the app's locale — a month and a year, never the raw ISO instant and never a day. Renders nothing at all when the deployment's profile carries no creation time, because a component that cannot state its fact should not take up a line saying so.",
+      "component": "MemberSince",
+      "covers": [],
+      "tokens": [
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "tenured",
+          "description": "Years on the site — the shape a buyer is looking for.",
+          "viewport": "phone",
+          "step": "tenured"
+        },
+        {
+          "id": "fresh",
+          "description": "Signed up this month: the same sentence, and a fact worth reading differently.",
+          "viewport": "phone",
+          "step": "fresh"
+        },
+        {
+          "id": "ladder",
+          "description": "Several tenures together — month and year each, so the lines compare at a glance.",
+          "viewport": "desktop",
+          "step": "ladder"
+        }
+      ],
+      "source": {
+        "file": "demo/MemberSinceSkin.demo.tsx",
+        "line": 54
+      }
+    },
+    {
+      "id": "profiles.person-avatar-skin",
+      "title": "Person avatar and heading (skin)",
+      "description": "The pair's face primitive on its own — the backend's source-agnostic avatar descriptor drawn through <Image> at any of the three named sides, degrading to a monogram when a profile carries no avatar — and <PersonRow>'s headingLevel, which makes the person's name a real h1–h4 without changing a pixel of the row.",
+      "component": "PersonAvatar",
+      "covers": [
+        "PersonRow"
+      ],
+      "tokens": [
+        "surface-sunken",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "sides",
+          "description": "One descriptor at the three named sides (compact 20, row 40, header 72) — <Image> picks the ladder rung for each.",
+          "viewport": "phone",
+          "step": "sides"
+        },
+        {
+          "id": "monogram",
+          "description": "No descriptor on the wire, and no profile at all: initials, then an empty monogram. Never a broken <img>.",
+          "viewport": "phone",
+          "step": "monogram"
+        },
+        {
+          "id": "heading",
+          "description": "headingLevel={2}: the same header row, with the name as the document's h2 wrapping its own link.",
+          "viewport": "desktop",
+          "step": "heading"
+        },
+        {
+          "id": "compact",
+          "description": "The caption-sized arm a listing card puts under its photo — same avatar, same four states.",
+          "viewport": "phone",
+          "step": "compact"
+        }
+      ],
+      "source": {
+        "file": "demo/PersonAvatarSkin.demo.tsx",
+        "line": 102
+      }
+    },
+    {
       "id": "profiles.profile-name-heading-skin",
       "title": "Profile name heading (skin)",
       "description": "A person's display name as a page heading, with the height of that heading reserved while the profile read is in flight. Both states render the same <Typography.Title>, so antd's heading margins and line box apply identically and nothing below the name moves when the answer lands.",
