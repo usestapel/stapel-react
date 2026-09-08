@@ -490,10 +490,11 @@ half-translated submission form is visible immediately.
 The seventeen `stapel_listings` error keys are no longer among them.
 stapel-listings 0.22.8 ships `translations/errors.{ru,es}.json`, so they arrive
 generated, from the module, and the seventeen strings this pair used to author
-are deleted: one string, one source, and the drift gate owns it. Exactly one is
-still overridden by hand — `error.409.invalid_listing_transition`, whose
-upstream text interpolates the raw wire status into translated prose — and the
-override is commented where it sits.
+are deleted: one string, one source, and the drift gate owns it. Nothing is
+overridden by hand any more either — the single survivor,
+`error.409.invalid_listing_transition`, was overridden because upstream
+interpolated the raw wire status into translated prose, and stapel-listings
+0.22.10 dropped that placeholder in every language.
 
 The thirteen `stapel_attributes` keys are deliberately NOT here either:
 `@stapel/attributes-react` owns and translates them, and one refusal must not

@@ -67,13 +67,16 @@ const LISTINGS_OWNED = [
 ];
 
 /**
- * The ONE upstream string this pair still overrides by hand, and why.
+ * The upstream strings this pair overrides by hand: NONE, as of
+ * stapel-listings 0.22.10.
  *
- * stapel-listings' own ru/es text for it interpolates `{from_status}` — the
- * WIRE value ('draft', 'archived') — into translated prose, which is the
- * sentence a live cabinet showed a seller. See the note in `src/i18n/keys.ts`.
+ * There was exactly one until then — `error.409.invalid_listing_transition`,
+ * whose upstream ru/es text interpolated `{from_status}`, the WIRE value
+ * ('draft', 'archived'), into translated prose. 0.22.10 dropped the slot from
+ * all three languages, the override went with it, and the assertion below
+ * flipped to guard the new state instead of being deleted.
  */
-const AUTHORED_OVERRIDES = ["error.409.invalid_listing_transition"];
+const AUTHORED_OVERRIDES: string[] = [];
 
 /** The `error.*` keys a locale file writes BY HAND. The generated bundle
  * arrives as a spread, so it contributes no literal key here — which is
@@ -148,7 +151,7 @@ describe("ownership of the thirty module- and library-owned keys", () => {
     }
   });
 
-  it("and the pair re-authors none of them but the documented override", () => {
+  it("and the pair re-authors none of them at all", () => {
     // The point of the 0.22.8 pin: one string, one source. A re-added
     // hand-written copy would leave this test green on every key-set check
     // and drift from upstream on the next backend reword — so the assertion
@@ -158,17 +161,24 @@ describe("ownership of the thirty module- and library-owned keys", () => {
     }
   });
 
-  it("the override really does differ from upstream, in both locales", () => {
-    // If upstream ever drops `{from_status}`, this goes red and the override
-    // is deleted rather than quietly duplicating the catalogue.
+  it("upstream no longer prints the wire status, so nothing is overridden", () => {
+    // THE FLIP. This assertion used to read `toContain("{from_status}")` over
+    // the generated bundle, guarding an override with the note "if upstream
+    // ever drops {from_status}, this goes red and the override is deleted".
+    // stapel-listings 0.22.10 dropped it; the assertion is inverted rather
+    // than removed, so it now fails on the two ways this could regress — a
+    // re-added `{from_status}` upstream, and a re-added hand-written copy here.
     for (const bundle of [listingsErrorBundleRu, listingsErrorBundleEs]) {
-      expect(bundle["error.409.invalid_listing_transition"]).toContain(
-        "{from_status}"
-      );
+      const text = bundle["error.409.invalid_listing_transition"];
+      expect(text).toBeTruthy();
+      expect(text).not.toContain("{from_status}");
     }
     for (const bundle of [listingsI18nBundleRu, listingsI18nBundleEs]) {
-      expect(bundle["error.409.invalid_listing_transition"]).not.toContain(
-        "{from_status}"
+      // The merged bundle is the generated string verbatim now: no override.
+      expect(bundle["error.409.invalid_listing_transition"]).toBe(
+        bundle === listingsI18nBundleRu
+          ? listingsErrorBundleRu["error.409.invalid_listing_transition"]
+          : listingsErrorBundleEs["error.409.invalid_listing_transition"]
       );
     }
   });

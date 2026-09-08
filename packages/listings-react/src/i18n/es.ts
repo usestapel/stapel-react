@@ -32,13 +32,9 @@ export const listingsI18nBundleEs: I18nDictionary = {
   // source. The reasoning, and the single surviving override, are spelled out
   // once in `./ru.ts`; this is its es half.
   //
-  // Upstream's es interpolates {from_status} — the WIRE value ('draft',
-  // 'archived') — into translated prose. The status is already named, in the
-  // reader's own words, beside every control this refusal appears under; see
-  // the note on this pair of keys in keys.ts. Remove this override when
-  // stapel-listings drops the placeholder.
-  "error.409.invalid_listing_transition":
-    "Desde su estado actual, el anuncio no se puede mover así",
+  // The one override that survived 0.22.8 is gone with it: stapel-listings
+  // 0.22.10 dropped the {from_status} slot from all three languages, so there
+  // is nothing left for this pair to correct.
 
   "listings.error.unknown": "Algo salió mal con este anuncio",
 

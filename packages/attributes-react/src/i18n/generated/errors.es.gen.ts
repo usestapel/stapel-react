@@ -3,33 +3,32 @@
 // Regenerate: pnpm gen:errors   ·   Drift gate: pnpm gen:errors:check
 // Locale source: backend translations/errors.es.json (locale catalog
 // beside the canonical errors.json — i18n-shipping.md §1).
-import type { CategoriesErrorCode } from "./errors.gen.js";
+import type { AttributesErrorCode } from "./errors.gen.js";
 
 /**
- * `es` texts for the backend error codes this catalog carries.
- *
- * PARTIAL, and deliberately typed to say so: 13 key(s) owned by
- * stapel_attributes are absent, because that owner ships no locale catalog
- * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
- * artifact via the en bundle; the pair layers its own authored `es`
- * strings over this one until upstream ships translations. `Partial` is what
- * makes the gap visible to TypeScript instead of a silent English fallback.
- *
- * Import from the pair's `./i18n/es` subpath, NOT the main entry, so
- * the locale stays out of hosts that don't ship it.
+ * `es` texts for every backend error code — complete over the registry by
+ * construction (the generator fails on a gap; the Record type fails compilation
+ * on drift). Import from the pair's `./i18n/es` subpath, NOT the main
+ * entry, so the locale stays out of hosts that don't ship it.
  */
-export const categoriesErrorBundleEs: Partial<Record<CategoriesErrorCode, string>> = {
+export const attributesErrorBundleEs: Record<AttributesErrorCode, string> = {
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",
-  "error.400.categories_config_required": "Se requiere un objeto config",
-  "error.400.categories_database_error": "Error de base de datos al aplicar los cambios",
-  "error.400.categories_duplicate_slug": "Ya existe una característica con el slug «{slug}»",
-  "error.400.categories_expected_list": "Se esperaba una lista de objetos",
-  "error.400.categories_feature_editor_invalid": "Solicitud al editor de características no válida: {reason}",
-  "error.400.categories_invalid_conversion": "Conversión de tipo no válida (solo se admite select ↔ string)",
-  "error.400.categories_not_deleted": "La categoría no está eliminada",
+  "error.400.description_too_long": "La descripción debe tener como máximo {max_length} caracteres",
+  "error.400.description_too_short": "La descripción debe tener al menos {min_length} caracteres",
   "error.400.expected_list": "Se esperaba una lista de elementos",
+  "error.400.feature_above_maximum": "El valor de {feature} es superior al máximo permitido",
+  "error.400.feature_below_minimum": "El valor de {feature} es inferior al mínimo permitido",
+  "error.400.feature_invalid_config": "Configuración no válida para {feature}",
+  "error.400.feature_invalid_format": "Formato no válido para {feature}",
+  "error.400.feature_invalid_rules": "Reglas no válidas para {feature}",
+  "error.400.feature_invalid_type": "Tipo de valor no válido para {feature}",
+  "error.400.feature_mandatory_missing": "La característica {feature} es obligatoria",
+  "error.400.feature_not_allowed": "La característica {feature} no está permitida aquí",
+  "error.400.feature_not_in_options": "El valor de {feature} no es una opción permitida",
+  "error.400.feature_unknown": "Característica desconocida: {feature}",
+  "error.400.feature_unknown_type": "Tipo de característica desconocido para {feature}",
   "error.400.field.blank": "{field} no puede estar vacío",
   "error.400.field.does_not_exist": "{field} no existe",
   "error.400.field.invalid": "{field} no es válido",
@@ -52,13 +51,11 @@ export const categoriesErrorBundleEs: Partial<Record<CategoriesErrorCode, string
   "error.403.verification_enrollment_required": "Es necesario registrar un factor de verificación.",
   "error.403.verification_required": "Se requiere verificación adicional",
   "error.404.ad_not_found": "Anuncio no encontrado",
-  "error.404.categories_slug_not_found": "No existe ninguna categoría con el slug «{slug}»",
   "error.404.not_found": "Recurso solicitado no encontrado",
   "error.404.verification_challenge_not_found": "Desafío de verificación no encontrado o caducado",
   "error.405.method_not_allowed": "Método no permitido",
   "error.406.not_acceptable": "No aceptable",
   "error.408.request_timeout": "Tiempo de espera de la solicitud agotado",
-  "error.409.categories_feature_editor_conflict": "Otro editor ha modificado la categoría (se esperaba la revisión {expected}, ahora es {actual}); recarga la página y vuelve a intentarlo",
   "error.409.conflict": "El recurso ya existe",
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",

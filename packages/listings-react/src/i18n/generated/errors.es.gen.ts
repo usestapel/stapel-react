@@ -66,7 +66,7 @@ export const listingsErrorBundleEs: Partial<Record<ListingsErrorCode, string>> =
   "error.408.request_timeout": "Tiempo de espera de la solicitud agotado",
   "error.409.already_favorited": "El anuncio ya está en favoritos",
   "error.409.conflict": "El recurso ya existe",
-  "error.409.invalid_listing_transition": "Cambio de estado no válido para {from_status}",
+  "error.409.invalid_listing_transition": "El anuncio no puede pasar de su estado actual al estado elegido",
   "error.409.listing_cannot_delete_active": "No se puede eliminar un anuncio activo. Archívalo primero.",
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",

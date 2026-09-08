@@ -18,7 +18,7 @@ export type Remediation =
   | "contact_support"
   | "bug";
 
-export interface ListingsErrorSpec {
+export interface AttributesErrorSpec {
   /** HTTP status the backend raises this key with. */
   readonly status: number;
   /** `{param}` interpolation slots present in the message. */
@@ -30,15 +30,14 @@ export interface ListingsErrorSpec {
 }
 
 /**
- * The LISTINGS_ERRORS map — every `error.*` key stapel-auth can raise, keyed by its
+ * The ATTRIBUTES_ERRORS map — every `error.*` key stapel-auth can raise, keyed by its
  * canonical code. The single source of truth behind the en fallback bundle, the
  * remediation lookup, and the manifest `errors` block.
  */
-export const LISTINGS_ERRORS = {
+export const ATTRIBUTES_ERRORS = {
   "error.400.bad_request": { status: 400, params: [], remediation: "fix_input", en: "Bad request" },
   "error.400.captcha_invalid": { status: 400, params: [], remediation: "retry", en: "Captcha verification failed. Please try again." },
   "error.400.captcha_required": { status: 400, params: [], remediation: "retry", en: "Captcha token is required." },
-  "error.400.category_required": { status: 400, params: [], remediation: "fix_input", en: "Category is required" },
   "error.400.description_too_long": { status: 400, params: ["max_length"], remediation: "fix_input", en: "Description must be at most {max_length} characters" },
   "error.400.description_too_short": { status: 400, params: ["min_length"], remediation: "fix_input", en: "Description must be at least {min_length} characters" },
   "error.400.expected_list": { status: 400, params: [], remediation: "fix_input", en: "Expected a list of items" },
@@ -64,39 +63,23 @@ export const LISTINGS_ERRORS = {
   "error.400.field.null": { status: 400, params: ["field"], remediation: "fix_input", en: "{field} may not be null" },
   "error.400.field.required": { status: 400, params: ["field"], remediation: "fix_input", en: "{field} is required" },
   "error.400.field.unique": { status: 400, params: ["field"], remediation: "fix_input", en: "{field} must be unique" },
-  "error.400.image_required": { status: 400, params: [], remediation: "fix_input", en: "At least one image is required to publish" },
   "error.400.invalid_ad_id": { status: 400, params: [], remediation: "fix_input", en: "Invalid advertisement ID" },
-  "error.400.listing_draft_meta_too_large": { status: 400, params: ["max_bytes"], remediation: "fix_input", en: "draft_meta is too large ({max_bytes} bytes max)" },
-  "error.400.listing_feature_not_allowed": { status: 400, params: ["feature"], remediation: "fix_input", en: "Feature '{feature}' is not allowed for this category" },
-  "error.400.listing_features_draft_shape": { status: 400, params: ["got_type","example"], remediation: "fix_input", en: "features_draft must be an object keyed by feature slug, or the list of feature objects a listing read returns (each carrying its own 'slug') — got {got_type}. Example of the accepted object form: {example}" },
-  "error.400.listing_features_draft_unknown_slug": { status: 400, params: ["index","example"], remediation: "fix_input", en: "Every entry of a features_draft list must carry its own non-empty 'slug' string (the slug a listing read stores on that element) so it can be filed back under the right feature — entry at index {index} has none. Example: {example}" },
-  "error.400.listing_features_draft_value_shape": { status: 400, params: ["slug","got_type","example"], remediation: "fix_input", en: "features_draft['{slug}'] must itself be an object of the form {{\"type\": <feature type>, \"value\": <feature value>}} — got {got_type}. Example: {example}" },
-  "error.400.listing_invalid_status_filter": { status: 400, params: ["status"], remediation: "fix_input", en: "Unknown listing status '{status}'" },
-  "error.400.listing_location_required": { status: 400, params: [], remediation: "fix_input", en: "Choose where the item is before publishing" },
-  "error.400.listing_zero_price_not_allowed": { status: 400, params: [], remediation: "fix_input", en: "A price of 0 is not allowed in this category. Leave the price empty for \"price not stated\"." },
-  "error.400.publish_validation_failed": { status: 400, params: [], remediation: "fix_input", en: "Listing validation failed" },
   "error.400.validation_error": { status: 400, params: [], remediation: "fix_input", en: "Validation error" },
   "error.400.verification_failed": { status: 400, params: [], remediation: "verify", en: "Verification failed" },
   "error.400.verification_invalid_factor": { status: 400, params: [], remediation: "verify", en: "This verification factor is not available" },
   "error.401.unauthorized": { status: 401, params: [], remediation: "reauthenticate", en: "Authentication required" },
   "error.402.payment_required": { status: 402, params: [], remediation: "retry", en: "Payment required" },
   "error.403.forbidden": { status: 403, params: [], remediation: "retry", en: "You do not have permission to perform this action" },
-  "error.403.listing_anonymous_not_allowed": { status: 403, params: [], remediation: "retry", en: "A guest account may not publish a listing" },
-  "error.403.listing_not_owner": { status: 403, params: [], remediation: "retry", en: "Not your listing" },
   "error.403.network_blocked": { status: 403, params: [], remediation: "contact_support", en: "Requests from this network are not allowed" },
   "error.403.verification_enrollment_required": { status: 403, params: [], remediation: "verify", en: "Verification factor enrollment required" },
   "error.403.verification_required": { status: 403, params: [], remediation: "verify", en: "Additional verification required" },
   "error.404.ad_not_found": { status: 404, params: [], remediation: "retry", en: "Listing not found" },
-  "error.404.listing_not_found": { status: 404, params: [], remediation: "retry", en: "Listing not found" },
   "error.404.not_found": { status: 404, params: [], remediation: "retry", en: "Requested resource not found" },
   "error.404.verification_challenge_not_found": { status: 404, params: [], remediation: "verify", en: "Verification challenge not found or expired" },
   "error.405.method_not_allowed": { status: 405, params: [], remediation: "retry", en: "Method not allowed" },
   "error.406.not_acceptable": { status: 406, params: [], remediation: "retry", en: "Not acceptable" },
   "error.408.request_timeout": { status: 408, params: [], remediation: "retry", en: "Request timeout" },
-  "error.409.already_favorited": { status: 409, params: [], remediation: "fix_input", en: "Listing already favorited" },
   "error.409.conflict": { status: 409, params: [], remediation: "fix_input", en: "Resource already exists" },
-  "error.409.invalid_listing_transition": { status: 409, params: [], remediation: "fix_input", en: "This listing cannot move to that status from the one it is in now" },
-  "error.409.listing_cannot_delete_active": { status: 409, params: [], remediation: "fix_input", en: "Cannot delete an active listing. Archive it first." },
   "error.410.gone": { status: 410, params: [], remediation: "retry", en: "Resource has been permanently removed" },
   "error.413.payload_too_large": { status: 413, params: [], remediation: "retry", en: "Request body is too large" },
   "error.415.unsupported_media_type": { status: 415, params: [], remediation: "retry", en: "Unsupported media type" },
@@ -109,14 +92,13 @@ export const LISTINGS_ERRORS = {
   "error.503.mandate_unavailable": { status: 503, params: [], remediation: "retry", en: "Cannot verify workspace mandate right now" },
 } as const;
 
-export type ListingsErrorCode = keyof typeof LISTINGS_ERRORS;
+export type AttributesErrorCode = keyof typeof ATTRIBUTES_ERRORS;
 
 /** Every backend error code this module can surface, sorted. */
-export const LISTINGS_ERROR_CODES: readonly ListingsErrorCode[] = [
+export const ATTRIBUTES_ERROR_CODES: readonly AttributesErrorCode[] = [
   "error.400.bad_request",
   "error.400.captcha_invalid",
   "error.400.captcha_required",
-  "error.400.category_required",
   "error.400.description_too_long",
   "error.400.description_too_short",
   "error.400.expected_list",
@@ -142,39 +124,23 @@ export const LISTINGS_ERROR_CODES: readonly ListingsErrorCode[] = [
   "error.400.field.null",
   "error.400.field.required",
   "error.400.field.unique",
-  "error.400.image_required",
   "error.400.invalid_ad_id",
-  "error.400.listing_draft_meta_too_large",
-  "error.400.listing_feature_not_allowed",
-  "error.400.listing_features_draft_shape",
-  "error.400.listing_features_draft_unknown_slug",
-  "error.400.listing_features_draft_value_shape",
-  "error.400.listing_invalid_status_filter",
-  "error.400.listing_location_required",
-  "error.400.listing_zero_price_not_allowed",
-  "error.400.publish_validation_failed",
   "error.400.validation_error",
   "error.400.verification_failed",
   "error.400.verification_invalid_factor",
   "error.401.unauthorized",
   "error.402.payment_required",
   "error.403.forbidden",
-  "error.403.listing_anonymous_not_allowed",
-  "error.403.listing_not_owner",
   "error.403.network_blocked",
   "error.403.verification_enrollment_required",
   "error.403.verification_required",
   "error.404.ad_not_found",
-  "error.404.listing_not_found",
   "error.404.not_found",
   "error.404.verification_challenge_not_found",
   "error.405.method_not_allowed",
   "error.406.not_acceptable",
   "error.408.request_timeout",
-  "error.409.already_favorited",
   "error.409.conflict",
-  "error.409.invalid_listing_transition",
-  "error.409.listing_cannot_delete_active",
   "error.410.gone",
   "error.413.payload_too_large",
   "error.415.unsupported_media_type",
@@ -192,11 +158,10 @@ export const LISTINGS_ERROR_CODES: readonly ListingsErrorCode[] = [
  * never renders as a raw key. Merged UNDER the hand-polished UI copy in
  * {@link authI18nBundleEn} (polish wins; this guarantees coverage).
  */
-export const listingsErrorBundleEn: Record<ListingsErrorCode, string> = {
+export const attributesErrorBundleEn: Record<AttributesErrorCode, string> = {
   "error.400.bad_request": "Bad request",
   "error.400.captcha_invalid": "Captcha verification failed. Please try again.",
   "error.400.captcha_required": "Captcha token is required.",
-  "error.400.category_required": "Category is required",
   "error.400.description_too_long": "Description must be at most {max_length} characters",
   "error.400.description_too_short": "Description must be at least {min_length} characters",
   "error.400.expected_list": "Expected a list of items",
@@ -222,39 +187,23 @@ export const listingsErrorBundleEn: Record<ListingsErrorCode, string> = {
   "error.400.field.null": "{field} may not be null",
   "error.400.field.required": "{field} is required",
   "error.400.field.unique": "{field} must be unique",
-  "error.400.image_required": "At least one image is required to publish",
   "error.400.invalid_ad_id": "Invalid advertisement ID",
-  "error.400.listing_draft_meta_too_large": "draft_meta is too large ({max_bytes} bytes max)",
-  "error.400.listing_feature_not_allowed": "Feature '{feature}' is not allowed for this category",
-  "error.400.listing_features_draft_shape": "features_draft must be an object keyed by feature slug, or the list of feature objects a listing read returns (each carrying its own 'slug') — got {got_type}. Example of the accepted object form: {example}",
-  "error.400.listing_features_draft_unknown_slug": "Every entry of a features_draft list must carry its own non-empty 'slug' string (the slug a listing read stores on that element) so it can be filed back under the right feature — entry at index {index} has none. Example: {example}",
-  "error.400.listing_features_draft_value_shape": "features_draft['{slug}'] must itself be an object of the form {{\"type\": <feature type>, \"value\": <feature value>}} — got {got_type}. Example: {example}",
-  "error.400.listing_invalid_status_filter": "Unknown listing status '{status}'",
-  "error.400.listing_location_required": "Choose where the item is before publishing",
-  "error.400.listing_zero_price_not_allowed": "A price of 0 is not allowed in this category. Leave the price empty for \"price not stated\".",
-  "error.400.publish_validation_failed": "Listing validation failed",
   "error.400.validation_error": "Validation error",
   "error.400.verification_failed": "Verification failed",
   "error.400.verification_invalid_factor": "This verification factor is not available",
   "error.401.unauthorized": "Authentication required",
   "error.402.payment_required": "Payment required",
   "error.403.forbidden": "You do not have permission to perform this action",
-  "error.403.listing_anonymous_not_allowed": "A guest account may not publish a listing",
-  "error.403.listing_not_owner": "Not your listing",
   "error.403.network_blocked": "Requests from this network are not allowed",
   "error.403.verification_enrollment_required": "Verification factor enrollment required",
   "error.403.verification_required": "Additional verification required",
   "error.404.ad_not_found": "Listing not found",
-  "error.404.listing_not_found": "Listing not found",
   "error.404.not_found": "Requested resource not found",
   "error.404.verification_challenge_not_found": "Verification challenge not found or expired",
   "error.405.method_not_allowed": "Method not allowed",
   "error.406.not_acceptable": "Not acceptable",
   "error.408.request_timeout": "Request timeout",
-  "error.409.already_favorited": "Listing already favorited",
   "error.409.conflict": "Resource already exists",
-  "error.409.invalid_listing_transition": "This listing cannot move to that status from the one it is in now",
-  "error.409.listing_cannot_delete_active": "Cannot delete an active listing. Archive it first.",
   "error.410.gone": "Resource has been permanently removed",
   "error.413.payload_too_large": "Request body is too large",
   "error.415.unsupported_media_type": "Unsupported media type",

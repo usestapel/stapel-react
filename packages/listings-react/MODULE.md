@@ -279,13 +279,15 @@ and the 17 `stapel_listings` ones from the module's own, merged under it by
 `src/i18n/{ru,es}.ts` are deleted in the same change: a key with two sources
 drifts, and neither file could say which one a screen had shown.
 
-One override survives, and it is a defect in the upstream text rather than a
-preference: `error.409.invalid_listing_transition` interpolates
-`params.from_status` — the WIRE value — into translated prose, which is the
-sentence a live cabinet showed a seller. The status is already named in the
-reader's own words beside every control that raises it (see the note in
-`src/i18n/keys.ts`). **Upstream ask**: drop `{from_status}` from the ru and es
-texts for that code, and the override goes with it.
+No override survives. One did until stapel-listings 0.22.10:
+`error.409.invalid_listing_transition` interpolated `params.from_status` — the
+WIRE value — into translated prose, which is the sentence a live cabinet showed
+a seller. The upstream ask filed here ("drop `{from_status}` from the ru and es
+texts, and the override goes with it") was answered in 0.22.10, which dropped
+the slot from all three languages including the en canon; the override is
+deleted and the assertion that guarded it is inverted rather than removed. The
+value still travels in `params.from_status`, which is what `ListingActions`
+reads.
 
 The 13 `stapel_attributes` codes stay with `@stapel/attributes-react`.
 stapel-attributes 0.9.3 ships a catalogue of its own now, but merging it into

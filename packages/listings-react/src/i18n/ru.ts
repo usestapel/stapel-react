@@ -54,16 +54,11 @@ export const listingsI18nBundleRu: I18nDictionary = {
   // it: a key with two sources drifts, and nothing in this file could tell a
   // reader which of the two a screen had shown them.
   //
-  // Exactly ONE key is still overridden, and it is a defect in the upstream
-  // text rather than a preference: upstream's ru interpolates {from_status}
-  // — the WIRE value ('draft', 'archived') — into translated prose, which is
-  // the sentence a live cabinet already showed a seller once. The placeholder
-  // carries nothing the screen lacks: the status is named, in the reader's
-  // own words, beside every control this refusal appears under. See the long
-  // note on this pair of keys in keys.ts. Remove this override when
-  // stapel-listings drops the placeholder from the ru/es catalogues.
-  "error.409.invalid_listing_transition":
-    "Из текущего состояния объявление так перевести нельзя",
+  // The ONE override this pair kept at 0.22.8 is gone too, as its own note
+  // said it should be: upstream's text interpolated {from_status} — the WIRE
+  // value ('draft', 'archived') — into translated prose, and stapel-listings
+  // 0.22.10 dropped the placeholder from all three languages. The pair now
+  // authors nothing at all under `error.*`.
 
   "listings.error.unknown": "Что-то пошло не так с этим объявлением",
 

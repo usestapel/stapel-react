@@ -1,4 +1,7 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { attributesErrorBundleRu } from "./generated/errors.ru.gen.js";
+
+export { attributesErrorBundleRu } from "./generated/errors.ru.gen.js";
 
 /**
  * Russian bundle — the `@stapel/attributes-react/i18n/ru` subpath, opt-in
@@ -6,28 +9,32 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  * host that does not register it never carries these strings (gated by
  * size-limit).
  *
- * PROVENANCE, stated rather than implied: stapel-attributes ships English
- * only (no `translations/` directory — which is why `gen:errors` runs with
- * `ERRORS_LOCALE_EXEMPT_OWNERS=stapel_attributes` for forms-react), so the
- * error copy below is pair-authored, not upstream, and unreviewed. Same grade
- * as forms-react's copy of the same twelve keys, and deliberately the same
- * WORDING — two pairs must not give one refusal two sentences.
+ * ── Where the error strings come from ──────────────────────────────────────
+ *
+ * From upstream, as of stapel-attributes 0.9.4. The thirteen
+ * `error.400.feature_*` / `error.400.description_*` lines that used to be
+ * authored HERE are deleted: this library shipped
+ * `translations/errors.{ru,es}.json` from 0.9.3, and 0.9.4 added the
+ * `docs/errors.json` registry that lets `pnpm gen:errors` read them — so the
+ * spread below carries all thirteen, plus the forty-two cross-cutting
+ * `stapel_core` keys merged in from core's own catalogue, and this file
+ * authors none of them. One refusal, one sentence, one source, with a drift
+ * gate (`pnpm gen:errors:check`) that owns it.
+ *
+ * The thirteen belong to THIS pair and to no other. `@stapel/listings-react`
+ * and `@stapel/categories-react` both keep `stapel_attributes` in
+ * `ERRORS_LOCALE_EXEMPT_OWNERS`, so neither emits them — which matters more
+ * than it reads: `registerListingsI18nRu` calls `registerAttributesI18nRu`
+ * and then registers its own bundle AFTER it, so a duplicate over there would
+ * silently win and nothing on screen would say which of the two sentences a
+ * seller had been shown.
+ *
+ * PROVENANCE, stated rather than implied: upstream's catalogue and core's
+ * both ship `origin=seed:authored` and are UNREVIEWED; the UI copy below is
+ * pair-authored and the same grade. None of it is a claim of review.
  */
 export const attributesI18nBundleRu: I18nDictionary = {
-  "error.400.feature_below_minimum": "Значение меньше минимального для «{feature}»",
-  "error.400.feature_above_maximum": "Значение больше максимального для «{feature}»",
-  "error.400.feature_not_in_options":
-    "Значение отсутствует среди допустимых вариантов для «{feature}»",
-  "error.400.feature_invalid_type": "Неверный тип значения для «{feature}»",
-  "error.400.feature_invalid_format": "Неверный формат значения для «{feature}»",
-  "error.400.feature_invalid_rules": "Неверные условия отображения поля «{feature}»",
-  "error.400.feature_mandatory_missing": "Поле «{feature}» обязательно для заполнения",
-  "error.400.feature_unknown_type": "Неизвестный тип поля «{feature}»",
-  "error.400.feature_not_allowed": "Поле «{feature}» здесь недопустимо",
-  "error.400.feature_unknown": "Неизвестное поле «{feature}»",
-  "error.400.feature_invalid_config": "Неверная конфигурация поля «{feature}»",
-  "error.400.description_too_short": "Описание должно содержать не менее {min_length} символов",
-  "error.400.description_too_long": "Описание должно содержать не более {max_length} символов",
+  ...attributesErrorBundleRu,
 
   "attributes.unsupported_type": "Эту характеристику здесь пока нельзя заполнить.",
   "attributes.submit.blocked.unsupported_type":

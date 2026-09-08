@@ -21,13 +21,6 @@
     "en": "Captcha token is required."
   },
   {
-    "code": "error.400.category_required",
-    "status": 400,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "Category is required"
-  },
-  {
     "code": "error.400.description_too_long",
     "status": 400,
     "params": [
@@ -255,97 +248,11 @@
     "en": "{field} must be unique"
   },
   {
-    "code": "error.400.image_required",
-    "status": 400,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "At least one image is required to publish"
-  },
-  {
     "code": "error.400.invalid_ad_id",
     "status": 400,
     "params": [],
     "remediation": "fix_input",
     "en": "Invalid advertisement ID"
-  },
-  {
-    "code": "error.400.listing_draft_meta_too_large",
-    "status": 400,
-    "params": [
-      "max_bytes"
-    ],
-    "remediation": "fix_input",
-    "en": "draft_meta is too large ({max_bytes} bytes max)"
-  },
-  {
-    "code": "error.400.listing_feature_not_allowed",
-    "status": 400,
-    "params": [
-      "feature"
-    ],
-    "remediation": "fix_input",
-    "en": "Feature '{feature}' is not allowed for this category"
-  },
-  {
-    "code": "error.400.listing_features_draft_shape",
-    "status": 400,
-    "params": [
-      "got_type",
-      "example"
-    ],
-    "remediation": "fix_input",
-    "en": "features_draft must be an object keyed by feature slug, or the list of feature objects a listing read returns (each carrying its own 'slug') — got {got_type}. Example of the accepted object form: {example}"
-  },
-  {
-    "code": "error.400.listing_features_draft_unknown_slug",
-    "status": 400,
-    "params": [
-      "index",
-      "example"
-    ],
-    "remediation": "fix_input",
-    "en": "Every entry of a features_draft list must carry its own non-empty 'slug' string (the slug a listing read stores on that element) so it can be filed back under the right feature — entry at index {index} has none. Example: {example}"
-  },
-  {
-    "code": "error.400.listing_features_draft_value_shape",
-    "status": 400,
-    "params": [
-      "slug",
-      "got_type",
-      "example"
-    ],
-    "remediation": "fix_input",
-    "en": "features_draft['{slug}'] must itself be an object of the form {{\"type\": <feature type>, \"value\": <feature value>}} — got {got_type}. Example: {example}"
-  },
-  {
-    "code": "error.400.listing_invalid_status_filter",
-    "status": 400,
-    "params": [
-      "status"
-    ],
-    "remediation": "fix_input",
-    "en": "Unknown listing status '{status}'"
-  },
-  {
-    "code": "error.400.listing_location_required",
-    "status": 400,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "Choose where the item is before publishing"
-  },
-  {
-    "code": "error.400.listing_zero_price_not_allowed",
-    "status": 400,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "A price of 0 is not allowed in this category. Leave the price empty for \"price not stated\"."
-  },
-  {
-    "code": "error.400.publish_validation_failed",
-    "status": 400,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "Listing validation failed"
   },
   {
     "code": "error.400.validation_error",
@@ -390,20 +297,6 @@
     "en": "You do not have permission to perform this action"
   },
   {
-    "code": "error.403.listing_anonymous_not_allowed",
-    "status": 403,
-    "params": [],
-    "remediation": "retry",
-    "en": "A guest account may not publish a listing"
-  },
-  {
-    "code": "error.403.listing_not_owner",
-    "status": 403,
-    "params": [],
-    "remediation": "retry",
-    "en": "Not your listing"
-  },
-  {
     "code": "error.403.network_blocked",
     "status": 403,
     "params": [],
@@ -426,13 +319,6 @@
   },
   {
     "code": "error.404.ad_not_found",
-    "status": 404,
-    "params": [],
-    "remediation": "retry",
-    "en": "Listing not found"
-  },
-  {
-    "code": "error.404.listing_not_found",
     "status": 404,
     "params": [],
     "remediation": "retry",
@@ -474,32 +360,11 @@
     "en": "Request timeout"
   },
   {
-    "code": "error.409.already_favorited",
-    "status": 409,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "Listing already favorited"
-  },
-  {
     "code": "error.409.conflict",
     "status": 409,
     "params": [],
     "remediation": "fix_input",
     "en": "Resource already exists"
-  },
-  {
-    "code": "error.409.invalid_listing_transition",
-    "status": 409,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "This listing cannot move to that status from the one it is in now"
-  },
-  {
-    "code": "error.409.listing_cannot_delete_active",
-    "status": 409,
-    "params": [],
-    "remediation": "fix_input",
-    "en": "Cannot delete an active listing. Archive it first."
   },
   {
     "code": "error.410.gone",

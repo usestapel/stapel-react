@@ -671,9 +671,7 @@
     },
     "error.409.invalid_listing_transition": {
       "status": 409,
-      "params": [
-        "from_status"
-      ],
+      "params": [],
       "remediation": "fix_input"
     },
     "error.409.listing_cannot_delete_active": {

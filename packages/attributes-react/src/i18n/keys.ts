@@ -1,4 +1,5 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { attributesErrorBundleEn } from "./generated/errors.gen.js";
 
 /**
  * `@stapel/attributes-react`'s own translation KEYS (frontend-standard §4.2):
@@ -14,8 +15,13 @@ import type { I18nDictionary, I18nEngine } from "@stapel/core";
  *    error catalogue (`stapel_attributes.errors.ATTRIBUTES_ERRORS`, registered
  *    with stapel-core), carried here as an English floor so a host that has
  *    not installed a pair whose `gen:errors` bundle includes them still shows
- *    a sentence rather than a key. A host that HAS one registers it after
- *    this bundle and the generated copy wins.
+ *    a sentence rather than a key. Since stapel-attributes 0.9.4 that floor is
+ *    GENERATED from the library's own `docs/errors.json` rather than retyped,
+ *    and the ru/es bundles beside it are generated from the library's own
+ *    catalogues — this pair authors no error string in any language, and it is
+ *    the only pair that carries these thirteen (listings-react and
+ *    categories-react both leave them out via
+ *    `ERRORS_LOCALE_EXEMPT_OWNERS`).
  *
  * ── What is NOT a key here ─────────────────────────────────────────────────
  *
@@ -208,26 +214,19 @@ export type AttributesI18nKey =
   (typeof ATTRIBUTES_I18N_KEYS)[keyof typeof ATTRIBUTES_I18N_KEYS];
 
 /**
- * The engine's error catalogue, English — a verbatim mirror of
- * `stapel_attributes.errors.ATTRIBUTES_ERRORS`, including its
- * `{feature}`/`{min_length}`/`{max_length}` placeholders. Same key, same
- * sentence, whichever side of the wire noticed the problem.
+ * The engine's error catalogue, English — GENERATED, as of
+ * stapel-attributes 0.9.4.
+ *
+ * It used to be thirteen strings retyped here from
+ * `stapel_attributes.errors.ATTRIBUTES_ERRORS`. The library emits
+ * `docs/errors.json` now, so `pnpm gen:errors` reads the registry directly and
+ * this is a re-export of what it produced: the same thirteen keys with the
+ * same `{feature}` / `{min_length}` / `{max_length}` slots, plus the
+ * forty-two cross-cutting `stapel_core` codes any host of this library can
+ * also raise. Same key, same sentence, whichever side of the wire noticed the
+ * problem — and now that is true by construction rather than by review.
  */
-export const ATTRIBUTES_ERROR_BUNDLE_EN: I18nDictionary = {
-  "error.400.feature_below_minimum": "Value is below minimum for {feature}",
-  "error.400.feature_above_maximum": "Value is above maximum for {feature}",
-  "error.400.feature_not_in_options": "Value is not in allowed options for {feature}",
-  "error.400.feature_invalid_type": "Invalid type for {feature}",
-  "error.400.feature_invalid_format": "Invalid format for {feature}",
-  "error.400.feature_invalid_rules": "Invalid rules for {feature}",
-  "error.400.feature_mandatory_missing": "Mandatory feature {feature} is required",
-  "error.400.feature_unknown_type": "Unknown feature type for {feature}",
-  "error.400.feature_not_allowed": "Feature {feature} is not allowed here",
-  "error.400.feature_unknown": "Unknown feature {feature}",
-  "error.400.feature_invalid_config": "Invalid config for {feature}",
-  "error.400.description_too_short": "Description must be at least {min_length} characters",
-  "error.400.description_too_long": "Description must be at most {max_length} characters",
-};
+export const ATTRIBUTES_ERROR_BUNDLE_EN: I18nDictionary = attributesErrorBundleEn;
 
 export const attributesI18nBundleEn: I18nDictionary = {
   ...ATTRIBUTES_ERROR_BUNDLE_EN,

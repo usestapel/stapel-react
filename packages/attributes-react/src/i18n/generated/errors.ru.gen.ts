@@ -3,27 +3,32 @@
 // Regenerate: pnpm gen:errors   ·   Drift gate: pnpm gen:errors:check
 // Locale source: backend translations/errors.ru.json (locale catalog
 // beside the canonical errors.json — i18n-shipping.md §1).
-import type { ListingsErrorCode } from "./errors.gen.js";
+import type { AttributesErrorCode } from "./errors.gen.js";
 
 /**
- * `ru` texts for the backend error codes this catalog carries.
- *
- * PARTIAL, and deliberately typed to say so: 13 key(s) owned by
- * stapel_attributes are absent, because that owner ships no locale catalog
- * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
- * artifact via the en bundle; the pair layers its own authored `ru`
- * strings over this one until upstream ships translations. `Partial` is what
- * makes the gap visible to TypeScript instead of a silent English fallback.
- *
- * Import from the pair's `./i18n/ru` subpath, NOT the main entry, so
- * the locale stays out of hosts that don't ship it.
+ * `ru` texts for every backend error code — complete over the registry by
+ * construction (the generator fails on a gap; the Record type fails compilation
+ * on drift). Import from the pair's `./i18n/ru` subpath, NOT the main
+ * entry, so the locale stays out of hosts that don't ship it.
  */
-export const listingsErrorBundleRu: Partial<Record<ListingsErrorCode, string>> = {
+export const attributesErrorBundleRu: Record<AttributesErrorCode, string> = {
   "error.400.bad_request": "Некорректный запрос",
   "error.400.captcha_invalid": "Проверка капчи не пройдена. Пожалуйста, попробуйте ещё раз.",
   "error.400.captcha_required": "Требуется токен капчи.",
-  "error.400.category_required": "Категория обязательна",
+  "error.400.description_too_long": "Описание должно содержать не более {max_length} символов",
+  "error.400.description_too_short": "Описание должно содержать не менее {min_length} символов",
   "error.400.expected_list": "Ожидался список элементов",
+  "error.400.feature_above_maximum": "Значение характеристики «{feature}» больше максимально допустимого",
+  "error.400.feature_below_minimum": "Значение характеристики «{feature}» меньше минимально допустимого",
+  "error.400.feature_invalid_config": "Некорректная конфигурация характеристики «{feature}»",
+  "error.400.feature_invalid_format": "Недопустимый формат значения характеристики «{feature}»",
+  "error.400.feature_invalid_rules": "Некорректные правила для характеристики «{feature}»",
+  "error.400.feature_invalid_type": "Недопустимый тип значения характеристики «{feature}»",
+  "error.400.feature_mandatory_missing": "Характеристика «{feature}» обязательна",
+  "error.400.feature_not_allowed": "Характеристика «{feature}» здесь недопустима",
+  "error.400.feature_not_in_options": "Значение характеристики «{feature}» не входит в список допустимых",
+  "error.400.feature_unknown": "Неизвестная характеристика «{feature}»",
+  "error.400.feature_unknown_type": "Неизвестный тип характеристики «{feature}»",
   "error.400.field.blank": "Поле «{field}» не может быть пустым",
   "error.400.field.does_not_exist": "«{field}» не существует",
   "error.400.field.invalid": "Поле «{field}» содержит недопустимое значение",
@@ -35,39 +40,23 @@ export const listingsErrorBundleRu: Partial<Record<ListingsErrorCode, string>> =
   "error.400.field.null": "Поле «{field}» не может быть null",
   "error.400.field.required": "Поле «{field}» обязательно",
   "error.400.field.unique": "Значение поля «{field}» должно быть уникальным",
-  "error.400.image_required": "Для публикации нужна хотя бы одна фотография",
   "error.400.invalid_ad_id": "Недопустимый идентификатор объявления",
-  "error.400.listing_draft_meta_too_large": "Поле draft_meta слишком большое (не более {max_bytes} байт)",
-  "error.400.listing_feature_not_allowed": "Характеристика «{feature}» недопустима для этой категории",
-  "error.400.listing_features_draft_shape": "features_draft должен быть объектом с ключами-слагами характеристик либо списком объектов характеристик, который возвращает чтение объявления (у каждого есть собственный «slug») — получено {got_type}. Пример допустимой формы объекта: {example}",
-  "error.400.listing_features_draft_unknown_slug": "Каждый элемент списка features_draft должен содержать собственную непустую строку «slug» (тот слаг, который чтение объявления сохраняет в этом элементе), чтобы значение вернулось к нужной характеристике — у элемента с индексом {index} его нет. Пример: {example}",
-  "error.400.listing_features_draft_value_shape": "features_draft['{slug}'] сам должен быть объектом вида {{\"type\": <тип характеристики>, \"value\": <значение характеристики>}} — получено {got_type}. Пример: {example}",
-  "error.400.listing_invalid_status_filter": "Неизвестный статус объявления «{status}»",
-  "error.400.listing_location_required": "Перед публикацией укажите, где находится товар",
-  "error.400.listing_zero_price_not_allowed": "Цена 0 в этой категории недопустима. Оставьте поле цены пустым — это означает «цена не указана».",
-  "error.400.publish_validation_failed": "Объявление не прошло проверку",
   "error.400.validation_error": "Ошибка валидации",
   "error.400.verification_failed": "Проверка не пройдена",
   "error.400.verification_invalid_factor": "Этот способ подтверждения недоступен",
   "error.401.unauthorized": "Требуется аутентификация",
   "error.402.payment_required": "Требуется оплата",
   "error.403.forbidden": "У вас нет прав для выполнения этого действия",
-  "error.403.listing_anonymous_not_allowed": "Гостевая учётная запись не может публиковать объявления",
-  "error.403.listing_not_owner": "Это не ваше объявление",
   "error.403.network_blocked": "Запросы из этой сети не разрешены.",
   "error.403.verification_enrollment_required": "Требуется регистрация фактора подтверждения.",
   "error.403.verification_required": "Требуется дополнительная проверка",
   "error.404.ad_not_found": "Объявление не найдено",
-  "error.404.listing_not_found": "Объявление не найдено",
   "error.404.not_found": "Запрошенный ресурс не найден",
   "error.404.verification_challenge_not_found": "Запрос на подтверждение не найден или истёк",
   "error.405.method_not_allowed": "Метод не разрешён",
   "error.406.not_acceptable": "Недопустимый формат ответа",
   "error.408.request_timeout": "Время ожидания запроса истекло",
-  "error.409.already_favorited": "Объявление уже в избранном",
   "error.409.conflict": "Ресурс уже существует",
-  "error.409.invalid_listing_transition": "Из текущего статуса объявление нельзя перевести в выбранный",
-  "error.409.listing_cannot_delete_active": "Активное объявление нельзя удалить. Сначала перенесите его в архив.",
   "error.410.gone": "Ресурс был безвозвратно удалён",
   "error.413.payload_too_large": "Тело запроса слишком большое",
   "error.415.unsupported_media_type": "Неподдерживаемый тип данных",

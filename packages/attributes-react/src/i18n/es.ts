@@ -1,26 +1,24 @@
 import type { I18nDictionary, I18nEngine } from "@stapel/core";
+import { attributesErrorBundleEs } from "./generated/errors.es.gen.js";
+
+export { attributesErrorBundleEs } from "./generated/errors.es.gen.js";
 
 /**
  * Spanish bundle — the `@stapel/attributes-react/i18n/es` subpath, opt-in
- * (i18n-shipping.md §2), same shape and same provenance caveat as `./ru`:
- * stapel-attributes ships English only, so this copy is pair-authored and
- * unreviewed, and deliberately worded to match forms-react's copy of the same
- * twelve engine keys.
+ * (i18n-shipping.md §2), same shape as `./ru`.
+ *
+ * The thirteen engine error strings are GENERATED from upstream's own
+ * catalogue (stapel-attributes 0.9.4 ships the `docs/errors.json` registry
+ * that made `pnpm gen:errors` possible here), together with the forty-two
+ * cross-cutting `stapel_core` keys. The thirteen hand-authored lines that
+ * stood in for them are deleted — the reasoning, including why no other pair
+ * may carry them, is spelled out once in `./ru.ts`; this is its es half.
+ *
+ * PROVENANCE: upstream's catalogue and core's are UNREVIEWED
+ * (`origin=seed:authored`); the UI copy below is pair-authored, same grade.
  */
 export const attributesI18nBundleEs: I18nDictionary = {
-  "error.400.feature_below_minimum": "El valor es inferior al mínimo de {feature}",
-  "error.400.feature_above_maximum": "El valor supera el máximo de {feature}",
-  "error.400.feature_not_in_options": "El valor no está entre las opciones de {feature}",
-  "error.400.feature_invalid_type": "Tipo de valor no válido para {feature}",
-  "error.400.feature_invalid_format": "Formato no válido para {feature}",
-  "error.400.feature_invalid_rules": "Condiciones no válidas en {feature}",
-  "error.400.feature_mandatory_missing": "{feature} es obligatorio",
-  "error.400.feature_unknown_type": "Tipo de característica desconocido para {feature}",
-  "error.400.feature_not_allowed": "{feature} no se admite aquí",
-  "error.400.feature_unknown": "Característica desconocida {feature}",
-  "error.400.feature_invalid_config": "Configuración no válida de {feature}",
-  "error.400.description_too_short": "La descripción debe tener al menos {min_length} caracteres",
-  "error.400.description_too_long": "La descripción debe tener como máximo {max_length} caracteres",
+  ...attributesErrorBundleEs,
 
   "attributes.unsupported_type": "Este detalle todavía no se puede rellenar aquí.",
   "attributes.submit.blocked.unsupported_type":

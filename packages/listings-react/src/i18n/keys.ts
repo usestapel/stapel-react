@@ -546,13 +546,12 @@ export const listingsI18nBundleEn: Record<string, string> = {
    * the reader needs is which MOVE is impossible, and that is the control
    * they are looking at.
    *
-   * The SERVER's own 409 (`error.409.invalid_listing_transition`) carries the
-   * same placeholder and is reworded in the ru and es bundles beside this
-   * one, where a real reader met it. It is deliberately NOT overridden in the
-   * English bundle: that bundle spreads the generated backend texts whole,
-   * and a hand-written entry for one error code makes this pair's catalogue
-   * claim a namespace it does not own — `stapel/i18n-locale-parity` says so
-   * and is right. The refusal is in any case now close to unreachable: the
+   * The SERVER's own 409 (`error.409.invalid_listing_transition`) carried the
+   * same placeholder and was reworded here, in the ru and es bundles, for the
+   * same reason. That override is GONE as of stapel-listings 0.22.10, which
+   * dropped the slot upstream in all three languages — so the refusal now
+   * arrives already free of the wire value and this pair authors nothing under
+   * `error.*` at all. The refusal is in any case close to unreachable: the
    * dashboard offers only the moves the server declared.
    */
   "listings.blocked.transition":

@@ -93,7 +93,6 @@ Param-bearing keys (interpolation slots matter):
 - error.400.listing_features_draft_unknown_slug [400] → fix_input {index,example}
 - error.400.listing_features_draft_value_shape [400] → fix_input {slug,got_type,example}
 - error.400.listing_invalid_status_filter [400] → fix_input {status}
-- error.409.invalid_listing_transition [409] → fix_input {from_status}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
