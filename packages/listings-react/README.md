@@ -483,12 +483,21 @@ the parts worth getting right are tested without a DOM.
 
 ## Locales
 
-English is inline. `./i18n/ru` and `./i18n/es` are opt-in subpaths and carry
-the UI copy as well as the nine `stapel_listings` error keys — the storefront
-is ru-first (owner verdict F1), and a half-translated submission form is
-visible immediately. The twelve `stapel_attributes` keys are deliberately NOT
-here: `@stapel/attributes-react` owns and translates them, and one refusal must
-not have two sentences.
+English is inline. `./i18n/ru` and `./i18n/es` are opt-in subpaths carrying
+the UI copy — the storefront is ru-first (owner verdict F1), and a
+half-translated submission form is visible immediately.
+
+The seventeen `stapel_listings` error keys are no longer among them.
+stapel-listings 0.22.8 ships `translations/errors.{ru,es}.json`, so they arrive
+generated, from the module, and the seventeen strings this pair used to author
+are deleted: one string, one source, and the drift gate owns it. Exactly one is
+still overridden by hand — `error.409.invalid_listing_transition`, whose
+upstream text interpolates the raw wire status into translated prose — and the
+override is commented where it sits.
+
+The thirteen `stapel_attributes` keys are deliberately NOT here either:
+`@stapel/attributes-react` owns and translates them, and one refusal must not
+have two sentences.
 
 ## Documentation
 

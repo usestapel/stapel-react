@@ -770,16 +770,19 @@ registerAttributesI18nRu(i18n);   // ← not optional if you render features
 ```
 
 **A ru/es host must register `@stapel/attributes-react/i18n/{ru,es}` as well.**
-`stapel-categories` embeds `stapel_attributes`, which owns twelve of the
-sixty-two error codes in the registry (`error.400.feature_below_minimum`,
-`…feature_mandatory_missing`, `…description_too_long`, …) and ships no
-`translations/` directory upstream, so those sentences live in the pair that
-draws and validates those values. This package deliberately does **not** carry
-them: two pairs giving one refusal two sentences is exactly what that rule
-exists to prevent. Skip the attributes bundle and twelve feature-validation
-refusals render in English in the middle of a translated form.
-`test/i18n.test.ts` asserts over the union of the two bundles, not over this
-one, so the arrangement cannot silently rot.
+`stapel-categories` embeds `stapel_attributes`, which owns thirteen of the
+sixty-four error codes in the registry (`error.400.feature_below_minimum`,
+`…feature_mandatory_missing`, `…description_too_long`, …), and those sentences
+live in the pair that draws and validates those values. This package
+deliberately does **not** carry them: two pairs giving one refusal two
+sentences is exactly what that rule exists to prevent. Skip the attributes
+bundle and thirteen feature-validation refusals render in English in the middle
+of a translated form. `test/i18n.test.ts` asserts over the union of the two
+bundles, not over this one, so the arrangement cannot silently rot.
+
+The nine `stapel_categories` codes went the other way in 0.21.5: the module
+ships `translations/errors.{ru,es}.json` now, so this pair generates them and
+authors none of them.
 
 ## Not in this version
 

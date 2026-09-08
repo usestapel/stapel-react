@@ -1,15 +1,24 @@
 /**
  * Every error code in the registry must resolve to a SENTENCE in all three
- * locales — with the twelve `stapel_attributes` keys coming from the package
- * that owns them.
+ * locales — with the thirteen `stapel_attributes` keys coming from the package
+ * that owns them, and the seventeen `stapel_listings` ones coming from the
+ * MODULE, not from this pair.
  *
- * That last clause is the test's whole reason for existing. `stapel-listings`
- * ships no `translations/` directory, so 22 of the 64 registry codes have no
- * upstream catalogue; they split by OWNER, and this pair authors only its own
- * ten. If a future edit copied attributes' twelve in here "to make the test
- * pass", one refusal would have two sentences and they would drift. So the
- * assertion is over the UNION of the two bundles a host actually registers.
+ * Both clauses exist for the same reason: a refusal with two sentences drifts.
+ *
+ *  - stapel-listings 0.22.8 ships `translations/errors.ru.json` / `.es.json`,
+ *    so the seventeen codes it owns now arrive through the generated spread.
+ *    The seventeen strings this pair used to author beside them are deleted,
+ *    and `authoredErrorKeys` below is the gate that keeps them deleted — a
+ *    key-set-only check would stay green with the duplicate back in place,
+ *    because the key resolves either way.
+ *  - the thirteen `stapel_attributes` codes stay with
+ *    `@stapel/attributes-react`. If a future edit copied them in here "to make
+ *    the test pass", one refusal would have two sentences. So the resolution
+ *    assertion is over the UNION of the two bundles a host actually registers.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createI18n } from "@stapel/core";
 import { registerAttributesI18n } from "@stapel/attributes-react";
@@ -20,30 +29,64 @@ import {
   LISTINGS_I18N_KEYS,
   registerListingsI18n,
 } from "../src/index.js";
-import { listingsI18nBundleRu, registerListingsI18nRu } from "../src/i18n/ru.js";
-import { listingsI18nBundleEs, registerListingsI18nEs } from "../src/i18n/es.js";
+import {
+  listingsErrorBundleRu,
+  listingsI18nBundleRu,
+  registerListingsI18nRu,
+} from "../src/i18n/ru.js";
+import {
+  listingsErrorBundleEs,
+  listingsI18nBundleEs,
+  registerListingsI18nEs,
+} from "../src/i18n/es.js";
 
 /** The codes `stapel_listings.errors` registers — everything under a
- * listing-shaped slug, plus the two the module owns without the word.
+ * listing-shaped slug, plus the three the module owns without the word.
  *
- * The last two arrived with the 0.17 contract pin and are here for the reason
- * the list exists at all: they reached the registry with English only, and
- * the assertions below are what turned that into a red test instead of two
- * refusals a Russian seller reads in English. */
+ * Written out rather than filtered off a prefix: this list is the claim that
+ * the module's ru/es catalogue is COMPLETE over what it owns, and a prefix
+ * filter would shrink silently along with the registry. */
 const LISTINGS_OWNED = [
   "error.400.category_required",
   "error.400.image_required",
+  "error.400.listing_draft_meta_too_large",
   "error.400.listing_feature_not_allowed",
+  "error.400.listing_features_draft_shape",
+  "error.400.listing_features_draft_unknown_slug",
+  "error.400.listing_features_draft_value_shape",
   "error.400.listing_invalid_status_filter",
   "error.400.listing_location_required",
   "error.400.listing_zero_price_not_allowed",
   "error.400.publish_validation_failed",
+  "error.403.listing_anonymous_not_allowed",
   "error.403.listing_not_owner",
   "error.404.listing_not_found",
   "error.409.already_favorited",
   "error.409.invalid_listing_transition",
   "error.409.listing_cannot_delete_active",
 ];
+
+/**
+ * The ONE upstream string this pair still overrides by hand, and why.
+ *
+ * stapel-listings' own ru/es text for it interpolates `{from_status}` — the
+ * WIRE value ('draft', 'archived') — into translated prose, which is the
+ * sentence a live cabinet showed a seller. See the note in `src/i18n/keys.ts`.
+ */
+const AUTHORED_OVERRIDES = ["error.409.invalid_listing_transition"];
+
+/** The `error.*` keys a locale file writes BY HAND. The generated bundle
+ * arrives as a spread, so it contributes no literal key here — which is
+ * exactly what makes this readable as "what did the pair author". */
+function authoredErrorKeys(locale: "ru" | "es"): string[] {
+  // Resolved from the package root (`process.cwd()`), where both `vitest`
+  // and `turbo run test` start: under jsdom `import.meta.url` is a blob-ish
+  // URL and `../src` off it lands at the filesystem root.
+  const src = readFileSync(resolve(process.cwd(), `src/i18n/${locale}.ts`), "utf8");
+  return [...src.matchAll(/^\s*"(error\.[^"]+)":/gm)]
+    .map((m) => m[1] as string)
+    .sort();
+}
 
 const ATTRIBUTES_OWNED = LISTINGS_ERROR_CODES.filter(
   (code) =>
@@ -86,8 +129,9 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the twenty-three un-catalogued keys", () => {
+describe("ownership of the thirty module- and library-owned keys", () => {
   it("the registry really does carry every module-owned code", () => {
+    expect(LISTINGS_OWNED).toHaveLength(17);
     for (const code of LISTINGS_OWNED) {
       expect(LISTINGS_ERROR_CODES, code).toContain(code);
     }
@@ -97,10 +141,35 @@ describe("ownership of the twenty-three un-catalogued keys", () => {
     expect(ATTRIBUTES_OWNED).toContain("error.400.feature_invalid_rules");
   });
 
-  it("the pair authors its own in ru and es", () => {
+  it("the module's own catalogue covers all seventeen, in ru and es", () => {
     for (const code of LISTINGS_OWNED) {
       expect(listingsI18nBundleRu[code], code).toBeTruthy();
       expect(listingsI18nBundleEs[code], code).toBeTruthy();
+    }
+  });
+
+  it("and the pair re-authors none of them but the documented override", () => {
+    // The point of the 0.22.8 pin: one string, one source. A re-added
+    // hand-written copy would leave this test green on every key-set check
+    // and drift from upstream on the next backend reword — so the assertion
+    // is over the FILE, not over the merged bundle.
+    for (const locale of ["ru", "es"] as const) {
+      expect(authoredErrorKeys(locale), locale).toEqual(AUTHORED_OVERRIDES);
+    }
+  });
+
+  it("the override really does differ from upstream, in both locales", () => {
+    // If upstream ever drops `{from_status}`, this goes red and the override
+    // is deleted rather than quietly duplicating the catalogue.
+    for (const bundle of [listingsErrorBundleRu, listingsErrorBundleEs]) {
+      expect(bundle["error.409.invalid_listing_transition"]).toContain(
+        "{from_status}"
+      );
+    }
+    for (const bundle of [listingsI18nBundleRu, listingsI18nBundleEs]) {
+      expect(bundle["error.409.invalid_listing_transition"]).not.toContain(
+        "{from_status}"
+      );
     }
   });
 

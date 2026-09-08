@@ -8,11 +8,13 @@ export { categoriesErrorBundleEs } from "./generated/errors.es.gen.js";
  * `@stapel/categories-react/i18n/es` subpath (i18n-shipping.md §2), opt-in
  * exactly like `ru`.
  *
- * Same composition and the same three-way split by owner as `./ru`: the 42
- * cross-cutting `stapel_core` codes are generated from core's catalogue, the 8
- * `stapel_categories` codes are pair-authored here until upstream ships a
- * `translations/` directory, and the 12 `stapel_attributes` codes stay with
- * `@stapel/attributes-react`, which owns them.
+ * Same composition and the same three-way split by owner as `./ru`: of the 64
+ * registry codes the 42 cross-cutting `stapel_core` ones are generated from
+ * core's catalogue and the 9 `stapel_categories` ones from the module's own —
+ * which stapel-categories 0.21.5 ships for the first time, and which is why
+ * the nine strings that used to be authored here are gone. The 13
+ * `stapel_attributes` codes stay with `@stapel/attributes-react`, which owns
+ * them.
  *
  * `es` carries the full UI copy, not just the refusals: the catalogue is the
  * first thing a visitor sees, and a half-translated menu above a translated
@@ -24,22 +26,13 @@ export { categoriesErrorBundleEs } from "./generated/errors.es.gen.js";
 export const categoriesI18nBundleEs: I18nDictionary = {
   ...categoriesErrorBundleEs,
 
-  // ── the 8 stapel_categories-owned codes, pair-authored ───────────────────
-  "error.400.categories_config_required": "Se requiere un objeto config.",
-  "error.400.categories_database_error":
-    "Error de base de datos al aplicar los cambios.",
-  "error.400.categories_duplicate_slug":
-    "Ya existe una característica con el slug «{slug}».",
-  "error.400.categories_expected_list": "Se esperaba una lista de objetos.",
-  "error.400.categories_feature_editor_invalid":
-    "Solicitud del editor de características no válida: {reason}",
-  "error.400.categories_invalid_conversion":
-    "Conversión de tipo no válida (solo se admite select ↔ string).",
-  "error.400.categories_not_deleted": "La categoría no está eliminada.",
-  "error.404.categories_slug_not_found":
-    "No existe ninguna categoría con el slug «{slug}».",
-  "error.409.categories_feature_editor_conflict":
-    "Otro editor modificó la categoría (se esperaba la revisión {expected}, ahora {actual}); recarga y vuelve a intentarlo.",
+  // ── stapel_categories' own refusals: NONE are authored here any more ─────
+  //
+  // stapel-categories 0.21.5 ships `translations/errors.es.json`, so all NINE
+  // codes it owns arrive through the generated spread above and the nine lines
+  // that stood in for them are deleted — one string, one source. As in
+  // `./ru.ts`, no override survives: upstream's es differs only in punctuation
+  // and, on two keys, in whether the slug is quoted.
 
   "categories.error.unknown": "Algo salió mal con el catálogo.",
 

@@ -1,15 +1,24 @@
 /**
  * Every error code in the registry must resolve to a SENTENCE in all three
- * locales — with the twelve `stapel_attributes` keys coming from the package
- * that owns them.
+ * locales — with the thirteen `stapel_attributes` keys coming from the package
+ * that owns them, and the nine `stapel_categories` ones coming from the
+ * MODULE, not from this pair.
  *
- * That last clause is the test's whole reason for existing. `stapel-categories`
- * ships no `translations/` directory, so 20 of the 62 registry codes have no
- * upstream catalogue; they split by OWNER, and this pair authors only its own
- * eight. If a future edit copied attributes' twelve in here "to make the test
- * pass", one refusal would have two sentences and they would drift. So the
- * assertion is over the UNION of the two bundles a host actually registers.
+ * Both clauses exist for the same reason: a refusal with two sentences drifts.
+ *
+ *  - stapel-categories 0.21.5 ships `translations/errors.ru.json` / `.es.json`,
+ *    so the nine codes it owns now arrive through the generated spread. The
+ *    nine strings this pair used to author beside them are deleted, and
+ *    `authoredErrorKeys` below is the gate that keeps them deleted — a
+ *    key-set-only check would stay green with the duplicate back in place,
+ *    because the key resolves either way.
+ *  - the thirteen `stapel_attributes` codes stay with
+ *    `@stapel/attributes-react`. If a future edit copied them in here "to make
+ *    the test pass", one refusal would have two sentences. So the resolution
+ *    assertion is over the UNION of the two bundles a host actually registers.
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createI18n } from "@stapel/core";
 import {
@@ -30,6 +39,20 @@ import { categoriesI18nBundleEs, registerCategoriesI18nEs } from "../src/i18n/es
 const CATEGORIES_OWNED = CATEGORIES_ERROR_CODES.filter((c) =>
   c.includes("categories_")
 );
+
+/** The `error.*` keys a locale file writes BY HAND. The generated bundle
+ * arrives as a spread, so it contributes no literal key here — which is
+ * exactly what makes this readable as "what did the pair author". Since the
+ * 0.21.5 pin the answer is: nothing. */
+function authoredErrorKeys(locale: "ru" | "es"): string[] {
+  // Resolved from the package root (`process.cwd()`), where both `vitest`
+  // and `turbo run test` start: under jsdom `import.meta.url` is a blob-ish
+  // URL and `../src` off it lands at the filesystem root.
+  const src = readFileSync(resolve(process.cwd(), `src/i18n/${locale}.ts`), "utf8");
+  return [...src.matchAll(/^\s*"(error\.[^"]+)":/gm)]
+    .map((m) => m[1] as string)
+    .sort();
+}
 
 /** Families are catalogued per CLDR form, so they have no flat key to resolve. */
 const PLURAL_FAMILIES = new Set<string>(CATEGORIES_I18N_PLURAL_KEYS);
@@ -108,8 +131,8 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the twenty un-catalogued keys", () => {
-  it("the pair authors its own nine in ru and es", () => {
+describe("ownership of the twenty-two module- and library-owned keys", () => {
+  it("the module's own catalogue covers all nine, in ru and es", () => {
     expect(CATEGORIES_OWNED).toHaveLength(9);
     for (const code of CATEGORIES_OWNED) {
       expect(categoriesI18nBundleRu[code], code).toBeTruthy();
@@ -117,7 +140,16 @@ describe("ownership of the twenty un-catalogued keys", () => {
     }
   });
 
-  it("the pair authors NONE of the twelve attributes-owned keys", () => {
+  it("and the pair re-authors none of them", () => {
+    // The point of the 0.21.5 pin: one string, one source. A re-added
+    // hand-written copy would leave the assertion above green and drift from
+    // upstream on the next backend reword — so this one is over the FILE.
+    for (const locale of ["ru", "es"] as const) {
+      expect(authoredErrorKeys(locale), locale).toEqual([]);
+    }
+  });
+
+  it("the pair authors NONE of the thirteen attributes-owned keys", () => {
     // §13.2 note 3: a pair may not own another module's namespace, and two
     // pairs must not give one refusal two sentences.
     for (const bundle of [categoriesI18nBundleRu, categoriesI18nBundleEs]) {

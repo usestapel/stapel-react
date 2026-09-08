@@ -272,14 +272,20 @@ narrowing before the person has picked a child.
 4. **`include_deleted` is honoured** (`RevisionViewSetMixin.get_queryset`),
    despite being documented on the paginator, which ignores it. Its default is
    `true`.
-5. **No `translations/` directory.** 20 of the 62 registry codes can never come
-   from an upstream catalogue. They split by owner: the 42 cross-cutting
-   `stapel_core` codes are generated from core's catalogue, the 8
-   `stapel_categories` codes are authored in this pair's `./i18n/{ru,es}`, and
-   the 12 `stapel_attributes` codes stay with `@stapel/attributes-react`, which
-   already translates them. `test/i18n.test.ts` asserts over the UNION of the
-   two bundles a host registers, so nobody can "fix" a red test by copying
-   another package's twelve keys in and giving one refusal two sentences.
+5. **The `translations/` gap is closed.** stapel-categories 0.21.5 ships
+   `translations/errors.{ru,es}.json`, so of the 64 registry codes the 42
+   cross-cutting `stapel_core` ones are generated from core's catalogue and the
+   9 `stapel_categories` ones from the module's own. The nine strings this pair
+   used to author in `./i18n/{ru,es}` are deleted: a key with two sources
+   drifts. No override survives — upstream's wording differed from the deleted
+   lines only in punctuation and a synonym or two. The 13 `stapel_attributes`
+   codes stay with `@stapel/attributes-react`, which already translates them;
+   stapel-attributes 0.9.3 ships a catalogue too, but its consumer is that
+   pair, not this one. `test/i18n.test.ts` asserts over the UNION of the two
+   bundles a host registers, so nobody can "fix" a red test by copying another
+   package's thirteen keys in and giving one refusal two sentences — and it now
+   reads `src/i18n/{ru,es}.ts` as TEXT, so nobody can quietly re-add a
+   duplicate either.
 
 ## Tests
 
@@ -293,6 +299,6 @@ narrowing before the person has picked a child.
 | `catalog.test.tsx` | loading / ready-empty / failed as three different sentences; "unknown slug" only after the catalogue loaded; the second mount asking for a delta |
 | `features.test.tsx` | the attributes-react bridge, including `unsupportedTypes` over the un-reshaped payload |
 | `skin.test.tsx` | the four `matchList` arms on screen; both blocked reasons named; searching without a request; ru copy |
-| `i18n.test.ts` | every registry code resolving in en/ru/es over the union of the two bundles; ownership of the twenty un-catalogued keys; interpolation slots preserved |
+| `i18n.test.ts` | every registry code resolving in en/ru/es over the union of the two bundles; ownership of the twenty-two module- and library-owned keys, including that this pair re-authors NONE of the nine upstream now ships; interpolation slots preserved |
 | `pair.test.ts` | query-key namespace; the API surface being exactly the five public reads; nav ids, surfaces, routes and components |
 | `prodBundlePurity.test.ts` | no demo/showcase code in the tarball |

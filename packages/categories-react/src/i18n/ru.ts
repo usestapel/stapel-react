@@ -14,23 +14,30 @@ export { categoriesErrorBundleRu } from "./generated/errors.ru.gen.js";
  *
  * ── What comes from where ──────────────────────────────────────────────────
  *
- * `stapel-categories` ships **no `translations/` directory at all**, so 20 of
- * the 62 registry codes can never come from an upstream catalogue. They split
- * by owner, and the split is the whole point:
+ * `stapel-categories` 0.21.5 ships `translations/errors.ru.json`, which is
+ * the line that used to say the opposite. Of the 64 registry codes:
  *
  *  - the 42 cross-cutting `stapel_core` codes are GENERATED, merged in from
- *    stapel-core's own catalogue by `pnpm gen:errors` (spread first below);
- *  - the **8 `stapel_categories` codes** are authored here — and when upstream
- *    ships a catalogue, eight lines are deleted and no key or text moves;
- *  - the **12 `stapel_attributes` codes** are NOT here. They belong to
+ *    stapel-core's own catalogue by `pnpm gen:errors`;
+ *  - the **9 `stapel_categories` codes** are GENERATED too, from the module's
+ *    own catalogue — the nine hand-authored lines that stood in for it are
+ *    deleted, so each of those strings has exactly one source and the drift
+ *    gate owns it;
+ *  - the **13 `stapel_attributes` codes** are NOT here. They belong to
  *    `@stapel/attributes-react`, which already translates them and which is a
  *    peer of this pair anyway. Two pairs must not give one refusal two
  *    sentences (§13.2 note 3). A host registers both bundles;
- *    `test/i18n.test.ts` proves the union covers the registry.
+ *    `test/i18n.test.ts` proves the union covers the registry. stapel-attributes
+ *    0.9.3 ships a catalogue of its own now, and merging it in HERE would
+ *    recreate the two-sources problem this file just removed.
+ *
+ * The first two bullets are the whole generated spread below; everything after
+ * it is UI copy, and this pair keeps no error-text override at all.
  *
  * PROVENANCE, stated rather than implied: the core catalogue ships
- * `origin=seed:authored` and is UNREVIEWED; the pair-authored strings below
- * are the same grade. Neither is a claim of review.
+ * `origin=seed:authored` and is UNREVIEWED; the module's own catalogue and the
+ * pair-authored UI copy below are the same grade. None of it is a claim of
+ * review.
  *
  * And once more, because it is the fact this pair exists to be honest about:
  * **no category name is translated here.** Category and feature names arrive
@@ -40,22 +47,15 @@ export { categoriesErrorBundleRu } from "./generated/errors.ru.gen.js";
 export const categoriesI18nBundleRu: I18nDictionary = {
   ...categoriesErrorBundleRu,
 
-  // ── the 8 stapel_categories-owned codes, pair-authored ───────────────────
-  "error.400.categories_config_required": "Требуется объект config.",
-  "error.400.categories_database_error":
-    "Ошибка базы данных при сохранении изменений.",
-  "error.400.categories_duplicate_slug":
-    "Характеристика со слагом «{slug}» уже существует.",
-  "error.400.categories_expected_list": "Ожидался список объектов.",
-  "error.400.categories_feature_editor_invalid":
-    "Некорректный запрос редактора характеристик: {reason}",
-  "error.400.categories_invalid_conversion":
-    "Недопустимое преобразование типа (поддерживается только select ↔ string).",
-  "error.400.categories_not_deleted": "Категория не удалена.",
-  "error.404.categories_slug_not_found":
-    "Категория со слагом «{slug}» не найдена.",
-  "error.409.categories_feature_editor_conflict":
-    "Категорию изменил другой редактор (ожидалась ревизия {expected}, сейчас {actual}); перезагрузите страницу и повторите.",
+  // ── stapel_categories' own refusals: NONE are authored here any more ─────
+  //
+  // The module ships `translations/errors.ru.json` as of 0.21.5, so all NINE
+  // codes it owns arrive through the generated spread above. The nine lines
+  // that used to sit here are deleted rather than kept beside it: a key with
+  // two sources drifts, and nothing in this file could tell a reader which of
+  // the two a screen had shown them. Upstream's wording differs from the
+  // deleted lines only in punctuation and a synonym or two — nothing here was
+  // worth an override, so this pair now keeps none.
 
   "categories.error.unknown": "Что-то пошло не так с каталогом.",
 

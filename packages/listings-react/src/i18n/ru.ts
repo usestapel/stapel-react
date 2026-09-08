@@ -17,50 +17,53 @@ export { listingsErrorBundleRu } from "./generated/errors.ru.gen.js";
  *
  * ── What comes from where ──────────────────────────────────────────────────
  *
- * `stapel-listings` ships **no `translations/` directory at all**, so 21 of
- * the 63 registry codes can never come from an upstream catalogue. They split
- * by owner:
+ * `stapel-listings` 0.22.8 ships `translations/errors.ru.json`, which is the
+ * line that used to say the opposite. Of the 72 registry codes:
  *
  *  - the 42 cross-cutting `stapel_core` codes are GENERATED, merged in from
- *    stapel-core's own catalogue by `pnpm gen:errors` (spread first below);
- *  - the **9 `stapel_listings` codes** are authored here — and when upstream
- *    ships a catalogue, nine lines are deleted and no key or text moves;
- *  - the **12 `stapel_attributes` codes** are NOT here. They belong to
+ *    stapel-core's own catalogue by `pnpm gen:errors`;
+ *  - the **17 `stapel_listings` codes** are GENERATED too, from the module's
+ *    own catalogue — the seventeen hand-authored lines that stood in for it
+ *    are deleted, so each of those strings has exactly one source and the
+ *    drift gate owns it;
+ *  - the **13 `stapel_attributes` codes** are NOT here. They belong to
  *    `@stapel/attributes-react`, which already translates them and which is a
  *    peer of this pair anyway. Two packages must not give one refusal two
  *    sentences (spec §13.2, note 3). A host registers both bundles;
- *    `test/i18n.test.ts` proves the union covers the registry.
+ *    `test/i18n.test.ts` proves the union covers the registry. stapel-attributes
+ *    0.9.3 ships a catalogue of its own now, and merging it in HERE would
+ *    recreate exactly the two-sources problem this file just removed — the
+ *    place to consume it is that pair, not this one.
+ *
+ * The first two bullets are the whole generated spread below; what follows it
+ * by hand is UI copy plus one deliberate override, called out where it sits.
  *
  * PROVENANCE, stated rather than implied: the core catalogue ships
- * `origin=seed:authored` and is UNREVIEWED; the pair-authored strings below
- * are the same grade. Neither is a claim of review.
+ * `origin=seed:authored` and is UNREVIEWED; the module's own catalogue and the
+ * pair-authored UI copy below are the same grade. None of it is a claim of
+ * review.
  */
 export const listingsI18nBundleRu: I18nDictionary = {
   ...listingsErrorBundleRu,
 
-  // ── the 10 stapel_listings-owned codes, pair-authored ────────────────────
-  "error.400.category_required": "Нужно выбрать категорию",
-  "error.400.image_required":
-    "Чтобы опубликовать объявление, добавьте хотя бы одно фото",
-  "error.400.listing_feature_not_allowed":
-    "Характеристика «{feature}» не относится к этой категории",
-  "error.400.listing_invalid_status_filter":
-    "Неизвестный статус объявления: «{status}»",
-  "error.400.publish_validation_failed":
-    "Объявление не прошло проверку и не опубликовано",
-  "error.403.listing_anonymous_not_allowed":
-    "Чтобы подать объявление, войдите или зарегистрируйтесь",
-  "error.403.listing_not_owner": "Это не ваше объявление",
-  "error.404.listing_not_found": "Объявление не найдено",
-  "error.409.already_favorited": "Объявление уже в избранном",
-  // No `{from_status}`: what landed in that slot was the wire value
-  // ('draft', 'archived'), and the status is already named in the reader's
-  // own words beside the control. See the note on this pair of keys in
-  // keys.ts.
+  // ── stapel_listings' own refusals: NONE are authored here any more ───────
+  //
+  // The module ships `translations/errors.ru.json` as of 0.22.8, so all
+  // SEVENTEEN codes it owns arrive through the generated spread above. The
+  // seventeen lines that used to sit here are deleted rather than kept beside
+  // it: a key with two sources drifts, and nothing in this file could tell a
+  // reader which of the two a screen had shown them.
+  //
+  // Exactly ONE key is still overridden, and it is a defect in the upstream
+  // text rather than a preference: upstream's ru interpolates {from_status}
+  // — the WIRE value ('draft', 'archived') — into translated prose, which is
+  // the sentence a live cabinet already showed a seller once. The placeholder
+  // carries nothing the screen lacks: the status is named, in the reader's
+  // own words, beside every control this refusal appears under. See the long
+  // note on this pair of keys in keys.ts. Remove this override when
+  // stapel-listings drops the placeholder from the ru/es catalogues.
   "error.409.invalid_listing_transition":
     "Из текущего состояния объявление так перевести нельзя",
-  "error.409.listing_cannot_delete_active":
-    "Сначала снимите объявление с публикации — активное удалить нельзя",
 
   "listings.error.unknown": "Что-то пошло не так с этим объявлением",
 
@@ -253,30 +256,6 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.favorites.sign_in_hint":
     "Избранное хранится в аккаунте, поэтому переходит с вами на другие устройства.",
 
-  // The two publish checks the 0.17 contract brought with it: a place is
-  // required, and a zero price in such a category is an empty field rather
-  // than "free".
-  "error.400.listing_location_required":
-    "Перед публикацией укажите, где находится товар",
-  "error.400.listing_zero_price_not_allowed":
-    "В этой категории цена 0 недопустима. Оставьте поле пустым — это и есть «цена не указана».",
-
-  // stapel-listings 0.21.2: the composer's per-field provenance sidecar has a
-  // size ceiling, and the number is the server's own — never restated here.
-  "error.400.listing_draft_meta_too_large":
-    "Черновик слишком большой (не больше {max_bytes} байт). Уберите часть данных и сохраните ещё раз.",
-
-  // stapel-listings 0.22.3: the features_draft WRITE now accepts the shape a
-  // listing READ returns. These three are the refusals for a body that is
-  // neither — read by whoever is wiring the integration, so each names the
-  // shape it wanted instead of advising "try again".
-  "error.400.listing_features_draft_shape":
-    "features_draft должен быть объектом со слагами признаков в ключах — или тем списком объектов признаков, который возвращает чтение объявления (у каждого свой «slug»). Пришло: {got_type}. Пример принимаемой формы объекта: {example}",
-  "error.400.listing_features_draft_unknown_slug":
-    "У каждого элемента списка features_draft должен быть свой непустой «slug» — тот, который чтение объявления хранит на этом элементе, иначе значение некуда положить. У элемента с индексом {index} его нет. Пример: {example}",
-  "error.400.listing_features_draft_value_shape":
-    "features_draft['{slug}'] сам должен быть объектом вида {{\"type\": <тип признака>, \"value\": <значение признака>}}. Пришло: {got_type}. Пример: {example}",
-
   "listings.blocked.sign_in": "Войдите, чтобы сделать это",
   "listings.blocked.guest":
     "Этот аккаунт пока так не может — сначала завершите настройку",
@@ -303,17 +282,17 @@ export const listingsI18nBundleRu: I18nDictionary = {
 };
 
 /**
- * Register the Russian bundle into a core i18n engine — AND the twelve
+ * Register the Russian bundle into a core i18n engine — AND the thirteen
  * `stapel_attributes` sentences this pair deliberately does not author.
  *
  * The split of ownership is right and stays: two packages must not give one
  * refusal two sentences. What was wrong was leaving the JOIN to a README. A
- * host that registered only this bundle got twelve of the composer's most
+ * host that registered only this bundle got thirteen of the composer's most
  * common refusals ("this value is below the minimum", "the description is too
  * long") in English on a Russian page, and nothing failed anywhere to say so.
  *
  * `@stapel/attributes-react` is a peer of this pair and its editors are what
- * RAISE those twelve, so a listings-ru host is an attributes-ru host by
+ * RAISE those thirteen, so a listings-ru host is an attributes-ru host by
  * construction; chaining the registration states that instead of asking. It is
  * idempotent — a host that also registers the bundle itself simply writes the
  * same keys twice.

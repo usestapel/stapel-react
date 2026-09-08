@@ -8,8 +8,8 @@ import type { CategoriesErrorCode } from "./errors.gen.js";
 /**
  * `ru` texts for the backend error codes this catalog carries.
  *
- * PARTIAL, and deliberately typed to say so: 22 key(s) owned by
- * stapel_attributes, stapel_categories are absent, because that owner ships no locale catalog
+ * PARTIAL, and deliberately typed to say so: 13 key(s) owned by
+ * stapel_attributes are absent, because that owner ships no locale catalog
  * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
  * artifact via the en bundle; the pair layers its own authored `ru`
  * strings over this one until upstream ships translations. `Partial` is what
@@ -22,6 +22,13 @@ export const categoriesErrorBundleRu: Partial<Record<CategoriesErrorCode, string
   "error.400.bad_request": "Некорректный запрос",
   "error.400.captcha_invalid": "Проверка капчи не пройдена. Пожалуйста, попробуйте ещё раз.",
   "error.400.captcha_required": "Требуется токен капчи.",
+  "error.400.categories_config_required": "Требуется объект config",
+  "error.400.categories_database_error": "Ошибка базы данных при применении изменений",
+  "error.400.categories_duplicate_slug": "Характеристика со слагом «{slug}» уже существует",
+  "error.400.categories_expected_list": "Ожидался список объектов",
+  "error.400.categories_feature_editor_invalid": "Некорректный запрос к редактору характеристик: {reason}",
+  "error.400.categories_invalid_conversion": "Недопустимое преобразование типа (поддерживается только select ↔ string)",
+  "error.400.categories_not_deleted": "Категория не удалена",
   "error.400.expected_list": "Ожидался список элементов",
   "error.400.field.blank": "Поле «{field}» не может быть пустым",
   "error.400.field.does_not_exist": "«{field}» не существует",
@@ -45,11 +52,13 @@ export const categoriesErrorBundleRu: Partial<Record<CategoriesErrorCode, string
   "error.403.verification_enrollment_required": "Требуется регистрация фактора подтверждения.",
   "error.403.verification_required": "Требуется дополнительная проверка",
   "error.404.ad_not_found": "Объявление не найдено",
+  "error.404.categories_slug_not_found": "Категория со слагом «{slug}» не найдена",
   "error.404.not_found": "Запрошенный ресурс не найден",
   "error.404.verification_challenge_not_found": "Запрос на подтверждение не найден или истёк",
   "error.405.method_not_allowed": "Метод не разрешён",
   "error.406.not_acceptable": "Недопустимый формат ответа",
   "error.408.request_timeout": "Время ожидания запроса истекло",
+  "error.409.categories_feature_editor_conflict": "Категорию изменил другой редактор (ожидалась ревизия {expected}, сейчас {actual}); обновите страницу и повторите попытку",
   "error.409.conflict": "Ресурс уже существует",
   "error.410.gone": "Ресурс был безвозвратно удалён",
   "error.413.payload_too_large": "Тело запроса слишком большое",

@@ -8,8 +8,8 @@ import type { CategoriesErrorCode } from "./errors.gen.js";
 /**
  * `es` texts for the backend error codes this catalog carries.
  *
- * PARTIAL, and deliberately typed to say so: 22 key(s) owned by
- * stapel_attributes, stapel_categories are absent, because that owner ships no locale catalog
+ * PARTIAL, and deliberately typed to say so: 13 key(s) owned by
+ * stapel_attributes are absent, because that owner ships no locale catalog
  * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
  * artifact via the en bundle; the pair layers its own authored `es`
  * strings over this one until upstream ships translations. `Partial` is what
@@ -22,6 +22,13 @@ export const categoriesErrorBundleEs: Partial<Record<CategoriesErrorCode, string
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",
+  "error.400.categories_config_required": "Se requiere un objeto config",
+  "error.400.categories_database_error": "Error de base de datos al aplicar los cambios",
+  "error.400.categories_duplicate_slug": "Ya existe una característica con el slug {slug}",
+  "error.400.categories_expected_list": "Se esperaba una lista de objetos",
+  "error.400.categories_feature_editor_invalid": "Solicitud al editor de características no válida: {reason}",
+  "error.400.categories_invalid_conversion": "Conversión de tipo no válida (solo se admite select ↔ string)",
+  "error.400.categories_not_deleted": "La categoría no está eliminada",
   "error.400.expected_list": "Se esperaba una lista de elementos",
   "error.400.field.blank": "{field} no puede estar vacío",
   "error.400.field.does_not_exist": "{field} no existe",
@@ -45,11 +52,13 @@ export const categoriesErrorBundleEs: Partial<Record<CategoriesErrorCode, string
   "error.403.verification_enrollment_required": "Es necesario registrar un factor de verificación.",
   "error.403.verification_required": "Se requiere verificación adicional",
   "error.404.ad_not_found": "Anuncio no encontrado",
+  "error.404.categories_slug_not_found": "No existe ninguna categoría con el slug {slug}",
   "error.404.not_found": "Recurso solicitado no encontrado",
   "error.404.verification_challenge_not_found": "Desafío de verificación no encontrado o caducado",
   "error.405.method_not_allowed": "Método no permitido",
   "error.406.not_acceptable": "No aceptable",
   "error.408.request_timeout": "Tiempo de espera de la solicitud agotado",
+  "error.409.categories_feature_editor_conflict": "Otro editor ha modificado la categoría (se esperaba la revisión {expected}, ahora es {actual}); recarga la página y vuelve a intentarlo",
   "error.409.conflict": "El recurso ya existe",
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",

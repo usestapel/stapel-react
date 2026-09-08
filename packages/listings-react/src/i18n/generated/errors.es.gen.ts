@@ -8,8 +8,8 @@ import type { ListingsErrorCode } from "./errors.gen.js";
 /**
  * `es` texts for the backend error codes this catalog carries.
  *
- * PARTIAL, and deliberately typed to say so: 30 key(s) owned by
- * stapel_attributes, stapel_listings are absent, because that owner ships no locale catalog
+ * PARTIAL, and deliberately typed to say so: 13 key(s) owned by
+ * stapel_attributes are absent, because that owner ships no locale catalog
  * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
  * artifact via the en bundle; the pair layers its own authored `es`
  * strings over this one until upstream ships translations. `Partial` is what
@@ -22,6 +22,7 @@ export const listingsErrorBundleEs: Partial<Record<ListingsErrorCode, string>> =
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",
+  "error.400.category_required": "La categoría es obligatoria",
   "error.400.expected_list": "Se esperaba una lista de elementos",
   "error.400.field.blank": "{field} no puede estar vacío",
   "error.400.field.does_not_exist": "{field} no existe",
@@ -34,23 +35,39 @@ export const listingsErrorBundleEs: Partial<Record<ListingsErrorCode, string>> =
   "error.400.field.null": "{field} no puede ser nulo",
   "error.400.field.required": "{field} es obligatorio",
   "error.400.field.unique": "{field} debe ser único",
+  "error.400.image_required": "Se necesita al menos una imagen para publicar",
   "error.400.invalid_ad_id": "ID de anuncio no válido",
+  "error.400.listing_draft_meta_too_large": "El campo draft_meta es demasiado grande (máximo {max_bytes} bytes)",
+  "error.400.listing_feature_not_allowed": "La característica {feature} no está permitida en esta categoría",
+  "error.400.listing_features_draft_shape": "features_draft debe ser un objeto con los slugs de las características como claves, o la lista de objetos de característica que devuelve la lectura de un anuncio (cada uno con su propio «slug»); se recibió {got_type}. Ejemplo de la forma de objeto aceptada: {example}",
+  "error.400.listing_features_draft_unknown_slug": "Cada elemento de una lista features_draft debe llevar su propia cadena «slug» no vacía (el slug que la lectura de un anuncio guarda en ese elemento) para poder asignarlo a la característica correcta; el elemento con índice {index} no la tiene. Ejemplo: {example}",
+  "error.400.listing_features_draft_value_shape": "features_draft['{slug}'] debe ser a su vez un objeto de la forma {{\"type\": <tipo de característica>, \"value\": <valor de la característica>}}; se recibió {got_type}. Ejemplo: {example}",
+  "error.400.listing_invalid_status_filter": "Estado de anuncio desconocido: {status}",
+  "error.400.listing_location_required": "Indica dónde se encuentra el artículo antes de publicar",
+  "error.400.listing_zero_price_not_allowed": "No se permite un precio de 0 en esta categoría. Deja el precio vacío para indicar «precio no indicado».",
+  "error.400.publish_validation_failed": "La validación del anuncio ha fallado",
   "error.400.validation_error": "Error de validación",
   "error.400.verification_failed": "La verificación ha fallado",
   "error.400.verification_invalid_factor": "Este factor de verificación no está disponible",
   "error.401.unauthorized": "Se requiere autenticación",
   "error.402.payment_required": "Se requiere pago",
   "error.403.forbidden": "No tienes permiso para realizar esta acción",
+  "error.403.listing_anonymous_not_allowed": "Una cuenta de invitado no puede publicar anuncios",
+  "error.403.listing_not_owner": "Este anuncio no es tuyo",
   "error.403.network_blocked": "No se permiten solicitudes desde esta red.",
   "error.403.verification_enrollment_required": "Es necesario registrar un factor de verificación.",
   "error.403.verification_required": "Se requiere verificación adicional",
   "error.404.ad_not_found": "Anuncio no encontrado",
+  "error.404.listing_not_found": "Anuncio no encontrado",
   "error.404.not_found": "Recurso solicitado no encontrado",
   "error.404.verification_challenge_not_found": "Desafío de verificación no encontrado o caducado",
   "error.405.method_not_allowed": "Método no permitido",
   "error.406.not_acceptable": "No aceptable",
   "error.408.request_timeout": "Tiempo de espera de la solicitud agotado",
+  "error.409.already_favorited": "El anuncio ya está en favoritos",
   "error.409.conflict": "El recurso ya existe",
+  "error.409.invalid_listing_transition": "Cambio de estado no válido para {from_status}",
+  "error.409.listing_cannot_delete_active": "No se puede eliminar un anuncio activo. Archívalo primero.",
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",
   "error.415.unsupported_media_type": "Tipo de contenido no compatible",

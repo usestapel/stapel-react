@@ -333,7 +333,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Retrieve one category by its slug. `slug` is unique, so this is an alternate primary key, not a search.
+         * @description Retrieve one category by its slug. `slug` is unique, so this is an alternate primary key, not a search. A slug the category USED to carry (renamed since) answers 301 to the current one.
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
@@ -2687,6 +2687,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Category"];
                 };
+            };
+            /** @description No response body */
+            301: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             404: {
                 headers: {

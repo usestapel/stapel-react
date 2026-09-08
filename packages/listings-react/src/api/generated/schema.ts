@@ -1369,6 +1369,8 @@ export interface components {
             labels?: string[];
             vocabulary?: string | null;
             level?: string | null;
+            prefix?: string | null;
+            postfix?: string | null;
         };
         /** @description Serializer for the ref_select feature DTO. */
         RefSelectDto: {

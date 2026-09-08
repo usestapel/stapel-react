@@ -8,39 +8,37 @@ export { listingsErrorBundleEs } from "./generated/errors.es.gen.js";
  * Spanish bundle for listings-react — the `@stapel/listings-react/i18n/es`
  * subpath (i18n-shipping.md §2), opt-in exactly like `./i18n/ru`.
  *
- * It carries the UI copy too, not only the nine module-owned error keys. The
+ * It carries the UI copy, which is now the ONLY thing it carries by hand. The
  * composer and the owner's dashboard are the surfaces a seller works in for
  * minutes at a time; a half-translated form there is visible immediately, in
  * the way a half-translated settings pane is not. Same call chat-react made
  * for the buyer↔seller thread.
  *
- * Provenance and the owner split are as in `./ru.ts`: 42 cross-cutting codes
- * generated from stapel-core's catalogue, 9 `stapel_listings` codes authored
- * here until upstream ships `translations/`, and the 12 `stapel_attributes`
- * codes deliberately left to `@stapel/attributes-react`.
+ * Provenance and the owner split are as in `./ru.ts`: of the 72 registry
+ * codes, 42 cross-cutting `stapel_core` ones are generated from core's
+ * catalogue and the 17 `stapel_listings` ones from the module's own — which
+ * stapel-listings 0.22.8 ships for the first time, and which is why the
+ * seventeen strings that used to be authored here are gone. The 13
+ * `stapel_attributes` codes stay with `@stapel/attributes-react`.
  */
 export const listingsI18nBundleEs: I18nDictionary = {
   ...listingsErrorBundleEs,
 
-  // ── the 10 stapel_listings-owned codes, pair-authored ────────────────────
-  "error.400.category_required": "Hay que elegir una categoría",
-  "error.400.image_required":
-    "Para publicar el anuncio hace falta al menos una foto",
-  "error.400.listing_feature_not_allowed":
-    "El detalle «{feature}» no pertenece a esta categoría",
-  "error.400.listing_invalid_status_filter":
-    "Estado de anuncio desconocido: «{status}»",
-  "error.400.publish_validation_failed":
-    "El anuncio no pasó la revisión y no se publicó",
-  "error.403.listing_anonymous_not_allowed":
-    "Para publicar un anuncio, inicia sesión o crea una cuenta",
-  "error.403.listing_not_owner": "Este anuncio no es tuyo",
-  "error.404.listing_not_found": "No se encontró el anuncio",
-  "error.409.already_favorited": "El anuncio ya está en favoritos",
+  // ── stapel_listings' own refusals: NONE are authored here any more ───────
+  //
+  // stapel-listings 0.22.8 ships `translations/errors.es.json`, so all
+  // SEVENTEEN codes it owns arrive through the generated spread above and the
+  // seventeen lines that stood in for them are deleted — one string, one
+  // source. The reasoning, and the single surviving override, are spelled out
+  // once in `./ru.ts`; this is its es half.
+  //
+  // Upstream's es interpolates {from_status} — the WIRE value ('draft',
+  // 'archived') — into translated prose. The status is already named, in the
+  // reader's own words, beside every control this refusal appears under; see
+  // the note on this pair of keys in keys.ts. Remove this override when
+  // stapel-listings drops the placeholder.
   "error.409.invalid_listing_transition":
     "Desde su estado actual, el anuncio no se puede mover así",
-  "error.409.listing_cannot_delete_active":
-    "Archívalo primero — un anuncio a la venta no se puede borrar",
 
   "listings.error.unknown": "Algo salió mal con este anuncio",
 
@@ -229,26 +227,6 @@ export const listingsI18nBundleEs: I18nDictionary = {
     "Toca «Guardar en favoritos» en cualquier anuncio y te estará esperando aquí.",
   "listings.favorites.sign_in_hint":
     "Los favoritos se guardan en tu cuenta, así que te siguen entre dispositivos.",
-
-  // Las dos comprobaciones de publicación que llegaron con el contrato 0.17.
-  "error.400.listing_location_required":
-    "Indica dónde está el artículo antes de publicarlo",
-  "error.400.listing_zero_price_not_allowed":
-    "En esta categoría no se permite un precio de 0. Deja el precio vacío para «precio no indicado».",
-
-  "error.400.listing_draft_meta_too_large":
-    "El borrador es demasiado grande (máximo {max_bytes} bytes). Quita parte de los datos y guarda de nuevo.",
-
-  // stapel-listings 0.22.3: the features_draft WRITE now accepts the shape a
-  // listing READ returns. These three are the refusals for a body that is
-  // neither — read by whoever is wiring the integration, so each names the
-  // shape it wanted instead of advising "try again".
-  "error.400.listing_features_draft_shape":
-    "features_draft debe ser un objeto con los slugs de las características como claves, o la lista de objetos de característica que devuelve la lectura del anuncio (cada uno con su propio «slug»). Llegó: {got_type}. Ejemplo de la forma de objeto aceptada: {example}",
-  "error.400.listing_features_draft_unknown_slug":
-    "Cada elemento de una lista features_draft debe llevar su propio «slug» no vacío — el que la lectura del anuncio guarda en ese elemento — para poder archivarlo bajo la característica correcta. El elemento en el índice {index} no lo tiene. Ejemplo: {example}",
-  "error.400.listing_features_draft_value_shape":
-    "features_draft['{slug}'] debe ser a su vez un objeto de la forma {{\"type\": <tipo de característica>, \"value\": <valor de característica>}}. Llegó: {got_type}. Ejemplo: {example}",
 
   "listings.blocked.sign_in": "Inicia sesión para hacer esto",
   "listings.blocked.guest":

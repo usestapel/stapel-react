@@ -271,14 +271,29 @@ it is with `params.from_status` in the sentence.
 
 ## 6. Locales
 
-`stapel-listings` ships no `translations/` directory, so 21 of the 63 registry
-codes have no upstream catalogue. They split by owner: 42 cross-cutting
-`stapel_core` codes are generated from core's catalogue, the 9
-`stapel_listings` codes are authored in `src/i18n/{ru,es}.ts` (nine lines to
-delete when upstream localizes), and the 12 `stapel_attributes` codes are
-deliberately left to `@stapel/attributes-react`. `test/i18n.test.ts` asserts
-over the UNION of the two bundles a host actually registers, so nobody can
-make it pass by copying the other package's keys in.
+`stapel-listings` 0.22.8 ships `translations/errors.{ru,es}.json` — the first
+release that gives its own codes any language but English. Of the 72 registry
+codes, 42 cross-cutting `stapel_core` ones are generated from core's catalogue
+and the 17 `stapel_listings` ones from the module's own, merged under it by
+`gen:errors`. The seventeen strings this pair used to author in
+`src/i18n/{ru,es}.ts` are deleted in the same change: a key with two sources
+drifts, and neither file could say which one a screen had shown.
+
+One override survives, and it is a defect in the upstream text rather than a
+preference: `error.409.invalid_listing_transition` interpolates
+`params.from_status` — the WIRE value — into translated prose, which is the
+sentence a live cabinet showed a seller. The status is already named in the
+reader's own words beside every control that raises it (see the note in
+`src/i18n/keys.ts`). **Upstream ask**: drop `{from_status}` from the ru and es
+texts for that code, and the override goes with it.
+
+The 13 `stapel_attributes` codes stay with `@stapel/attributes-react`.
+stapel-attributes 0.9.3 ships a catalogue of its own now, but merging it into
+THIS pair's bundle would re-create the two-sources problem one package over —
+that catalogue's consumer is the pair that owns those keys. `test/i18n.test.ts`
+asserts over the UNION of the two bundles a host actually registers, so nobody
+can make it pass by copying the other package's keys in; and it now reads
+`src/i18n/{ru,es}.ts` as TEXT, so nobody can quietly re-add a duplicate either.
 
 ## 7. Tests
 

@@ -65,7 +65,7 @@
       "limit": "31 KB"
     },
     {
-      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry. Raised 5 -> 5.5 KB (measured 5.02): three sentences the wave added — the fourth tab and its empty state, and the delete warning that does not promise the archive to a listing already in it. A bundle sitting exactly ON its limit is a limit the next sentence breaks. Raised 5.5 -> 6 KB (measured 5.48) for the three features_draft refusals the stapel-listings 0.22.3 pin brought with it: the module is locale-exempt upstream, so a code that arrives without a ru sentence renders its own key on a Russian host, and each of these three has to NAME the shape it wanted rather than say \"try again\". 5.48 of 5.5 is twenty bytes of headroom — the rounding this entry already warns about.",
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry. Raised 5 -> 5.5 KB (measured 5.02): three sentences the wave added — the fourth tab and its empty state, and the delete warning that does not promise the archive to a listing already in it. A bundle sitting exactly ON its limit is a limit the next sentence breaks. Raised 5.5 -> 6 KB (measured 5.48) for the three features_draft refusals the stapel-listings 0.22.3 pin brought with it: each of these three has to NAME the shape it wanted rather than say \"try again\". 5.48 of 5.5 is twenty bytes of headroom — the rounding this entry already warns about. The 0.22.8 pin then moved the seventeen module-owned sentences from this file to the module's own catalogue: same keys, upstream wording, 5.52 KB.",
       "path": "dist/i18n/ru.js",
       "limit": "6 KB"
     },

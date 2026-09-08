@@ -162,14 +162,16 @@ describe("the runtime carries the deployment's knowledge", () => {
 
 describe("errors", () => {
   it("carries the whole registry with a remediation each", () => {
+    // Still 72 at stapel-listings 0.22.8, which adds no code — it adds the
+    // ru/es CATALOGUE for the seventeen this module owns, so the sentences
+    // this pair used to author for them now come from upstream and the
+    // module is no longer locale-exempt in gen:errors.
     // 72 as of stapel-listings 0.22.3, whose features_draft WRITE now accepts
     // the shape a listing READ returns, and says what it wanted when it does
     // not: error.400.listing_features_draft_shape, _unknown_slug and
-    // _value_shape, with ru/es authored in this pair (the module is
-    // locale-exempt upstream).
+    // _value_shape.
     // 69 as of stapel-listings 0.21.2, whose draft_meta sidecar has a size
-    // ceiling: error.400.listing_draft_meta_too_large, with ru/es authored in
-    // this pair (the module is locale-exempt upstream).
+    // ceiling: error.400.listing_draft_meta_too_large.
     // 68 as of stapel-listings 0.17.0: the contract-pin bump brought two
     // publish checks with it — error.400.listing_location_required and
     // error.400.listing_zero_price_not_allowed (a price of 0 is an empty
