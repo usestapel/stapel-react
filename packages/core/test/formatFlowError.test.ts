@@ -78,6 +78,29 @@ describe("formatFlowError", () => {
     expect(text).toBe("Bundle text");
   });
 
+  // The whole point of fallback #2, over the envelope a Stapel backend
+  // actually sends. Until @stapel/core 0.26.1 the parser looked for a field
+  // named `language` while every backend emits `error_language`, so this
+  // returned the raw code on every deployment and the ru/es sentences the
+  // python libraries ship could not reach the glass through this path.
+  it("end-to-end over the real wire name: a ru refusal reaches a ru host", () => {
+    const apiError = parseErrorEnvelope(404, {
+      localizable_error: "error.404.categories_slug_not_found",
+      error: "Категория по такому адресу не найдена",
+      params: { slug: "novye" },
+      error_language: "ru",
+    });
+    const flowError = toFlowError(apiError);
+    expect(flowError.language).toBe("ru");
+    expect(formatFlowError(flowError, {}, { locale: "ru" })).toBe(
+      "Категория по такому адресу не найдена"
+    );
+    // And it is still refused on a host reading another language.
+    expect(formatFlowError(flowError, {}, { locale: "es" })).toBe(
+      "error.404.categories_slug_not_found"
+    );
+  });
+
   it("end-to-end with toFlowError: a real StapelApiError round-trips language + message", () => {
     const apiError = parseErrorEnvelope(400, {
       localizable_error: "auth.otp.invalid",

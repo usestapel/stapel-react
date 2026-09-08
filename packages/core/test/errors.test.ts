@@ -67,16 +67,51 @@ describe("parseErrorEnvelope", () => {
     expect(parseErrorEnvelope(400, body).body).toBe(body);
   });
 
-  it("carries the envelope's language tag when present", () => {
+  // The wire name is `error_language` — what
+  // `stapel_core.django.api.errors.StapelError` has always emitted. Reading a
+  // field named `language` left `.language` undefined on every real response,
+  // so `formatFlowError`'s "the backend wrote it in the host's locale"
+  // fallback was unreachable fleet-wide.
+  it("carries the envelope's error_language tag, the name backends send", () => {
     const error = parseErrorEnvelope(400, {
       localizable_error: "auth.otp.invalid",
+      error: "Код неверный",
+      params: {},
+      error_language: "ru",
+    });
+    expect(error.language).toBe("ru");
+  });
+
+  it("reads error_language off a verbatim stapel-core refusal envelope", () => {
+    // Copied from a live client stand, byte for byte (2026-09-08).
+    const error = parseErrorEnvelope(401, {
+      localizable_error: "error.401.unauthorized",
+      error: "Authentication required",
+      params: { detail: "Authentication credentials were not provided." },
+      error_language: "en-us",
+    });
+    expect(error.code).toBe("error.401.unauthorized");
+    expect(error.language).toBe("en-us");
+  });
+
+  it("still accepts the legacy `language` alias", () => {
+    const error = parseErrorEnvelope(400, {
       error: "Code invalide",
       language: "fr",
     });
     expect(error.language).toBe("fr");
   });
 
-  it("language is undefined when the backend doesn't send one (rollout in progress)", () => {
+  it("prefers error_language when a body carries both", () => {
+    const error = parseErrorEnvelope(400, {
+      error: "Код неверный",
+      error_language: "ru",
+      language: "fr",
+    });
+    expect(error.language).toBe("ru");
+  });
+
+  it("language is undefined when the backend doesn't send one", () => {
     const error = parseErrorEnvelope(400, { error: "boom" });
     expect(error.language).toBeUndefined();
   });

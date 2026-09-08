@@ -2,16 +2,26 @@
  * The Stapel backend error envelope:
  * `{ localizable_error: "auth.otp.invalid", error: "Invalid OTP", params: {...} }`
  * `localizable_error` is an i18n key; `params` feed `{param}` interpolation.
- * `language` (optional — backends are rolling this out) is the BCP-47/locale
- * tag the envelope's `error` text is actually written in, e.g. from
- * `Accept-Language`; see `formatFlowError` in `./flows/flowError.js`, which
- * only trusts `error` as a display fallback when this matches the host's
- * current locale.
+ * `error_language` is the locale tag the envelope's `error` text is actually
+ * written in — `stapel_core.django.api.errors.StapelError.error_language`,
+ * the active Django locale at render time. See `formatFlowError` in
+ * `./flows/flowError.js`, which only trusts `error` as a display fallback
+ * when this matches the host's current locale.
+ *
+ * The wire name is `error_language` and has been since the envelope shipped;
+ * this parser read a field named `language` until @stapel/core 0.26.1, so the
+ * locale was ALWAYS `undefined` on the client and that fallback was
+ * unreachable on every deployment. `language` stays accepted as a legacy
+ * alias — no Stapel backend emits it — so a host or fixture that spells it
+ * the old way keeps working.
  */
 export interface StapelErrorEnvelope {
   readonly localizable_error?: string;
   readonly error?: string;
   readonly params?: Record<string, unknown>;
+  /** Locale tag `error` is written in (e.g. `"ru"`, `"en-us"`). */
+  readonly error_language?: string;
+  /** @deprecated Legacy alias for {@link StapelErrorEnvelope.error_language}. */
   readonly language?: string;
 }
 
@@ -48,6 +58,18 @@ export class StapelApiError extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** First key of `keys` whose value is a non-empty string, else `undefined`. */
+function firstNonEmptyString(
+  body: Record<string, unknown>,
+  ...keys: readonly string[]
+): string | undefined {
+  for (const key of keys) {
+    const value = body[key];
+    if (typeof value === "string" && value.length > 0) return value;
+  }
+  return undefined;
 }
 
 // ── One dialect ─────────────────────────────────────────────────────────────
@@ -251,10 +273,9 @@ export function parseErrorEnvelope(
       ? body["error"]
       : code;
   const params = isRecord(body["params"]) ? body["params"] : {};
-  const language =
-    typeof body["language"] === "string" && body["language"].length > 0
-      ? body["language"]
-      : undefined;
+  // The fleet's wire name is `error_language`; `language` is a legacy alias
+  // no Stapel backend emits (see StapelErrorEnvelope).
+  const language = firstNonEmptyString(body, "error_language", "language");
   return new StapelApiError({
     code,
     message,

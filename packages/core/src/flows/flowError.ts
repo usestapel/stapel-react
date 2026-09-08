@@ -24,9 +24,9 @@ export interface FlowError {
   /** The envelope's raw `error` text (== this error's `.message` when it came
    * from a `StapelApiError`). `undefined` for non-API faults. */
   readonly message: string | undefined;
-  /** The locale tag `message` is written in, when the backend sends one
-   * (rolling out — see `StapelErrorEnvelope.language`). `undefined` if the
-   * backend didn't send it. */
+  /** The locale tag `message` is written in — the envelope's
+   * `error_language` (see `StapelErrorEnvelope`). `undefined` if the backend
+   * didn't send it. */
   readonly language: string | undefined;
 }
 
