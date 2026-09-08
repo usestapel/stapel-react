@@ -2,7 +2,7 @@
  * The three hooks a call on a phone does not survive without.
  *
  * Every one of these is a fix for an observed production failure in the
- * meettoday conference client, not a nicety, and each fails in a way that
+ * client's conference app, not a nicety, and each fails in a way that
  * looks like something else — which is why they are ported verbatim in
  * BEHAVIOUR rather than reinvented from the platform docs.
  *

@@ -802,7 +802,7 @@ number}).status`. A 4xx that arrives as the raw envelope was previously
 
 - 8c4f9c2: An unreachable backend no longer logs the user out.
 
-  Owner-reported live incident (2026-07-26, app.ironmemo.com mid-redeploy):
+  Owner-reported live incident (2026-07-26, a client host mid-redeploy):
   "сервак явно не отвечал, но фронт меня выкинул на sign-in page. Ну да, не
   получилось отрефрешиться или auth/me вызвать, но это же не повод сессию
   терминейтить, юзера не разлогинило, бэк прилёг."

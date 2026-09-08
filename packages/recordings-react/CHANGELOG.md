@@ -278,7 +278,7 @@
   generated registry returns automatically once the backend documents its first
   flow.
 - 48f8ce2: New pair: **`@stapel/recordings-react`** — the headless React pair for
-  stapel-recordings (client priority #1: ironmemo + meettoday need audio/video
+  stapel-recordings (client priority #1: two client products need audio/video
   recording + transcription). Generated §17-native, directly from the backend
   module's OWN per-module contract (`stapel-recordings/docs/{schema,flows,errors}.json`)
   rather than the unified monolith schema. Thin surface over the module's current
@@ -315,7 +315,7 @@
 ### Minor Changes
 
 - New pair: **`@stapel/recordings-react`** — the headless React pair for
-  stapel-recordings (client priority #1: ironmemo + meettoday need audio/video
+  stapel-recordings (client priority #1: two client products need audio/video
   recording + transcription). Generated §17-native, directly from the backend
   module's OWN per-module contract
   (`stapel-recordings/docs/{schema,flows,errors}.json`) rather than the unified

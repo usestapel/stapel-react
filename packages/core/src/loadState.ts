@@ -1,7 +1,7 @@
 /**
  * The absence of a result, made impossible to mistake for a result.
  *
- * THE INCIDENT (app.ironmemo.com, 2026-08-09). The workspace-list endpoint
+ * THE INCIDENT (a client host, 2026-08-09). The workspace-list endpoint
  * was mounted one path segment too deep and answered 404 to every request.
  * The screen said **"you have no workspaces"** and greyed out the upload
  * button, for hours, while the network tab showed the outage the whole time.

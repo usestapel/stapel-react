@@ -48,7 +48,7 @@ async function lintAs(relativePath, code) {
 }
 
 // The regression this release exists for. A consumer's test file is where the
-// canon leaks hardest (meettoday's sweep reported 5603 -> 0 and still had 15
+// canon leaks hardest (a client's sweep reported 5603 -> 0 and still had 15
 // live hits in one `.test.ts`), and it is also where a blanket glob is most
 // tempting. Every path shape the old TEST_FILES glob covered must now be
 // covered BY the rules instead.

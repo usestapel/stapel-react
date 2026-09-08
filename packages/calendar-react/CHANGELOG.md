@@ -319,7 +319,7 @@
 ### Patch Changes
 
 - 9a4a3da: New pair: **`@stapel/calendar-react`** — the headless React pair for
-  stapel-calendar (client priority: meettoday migrates onto stapel-calendar). The
+  stapel-calendar (a client priority: a meeting app migrates onto stapel-calendar). The
   first pair generated §17-native, directly from the backend module's OWN
   per-module contract (`stapel-calendar/docs/{schema,flows,errors}.json`) rather
   than the unified monolith schema.
@@ -379,7 +379,7 @@
 ### Minor Changes
 
 - New pair: **`@stapel/calendar-react`** — the headless React pair for
-  stapel-calendar (client priority: meettoday migrates onto stapel-calendar).
+  stapel-calendar (a client priority: a meeting app migrates onto stapel-calendar).
   The first pair generated §17-native, directly from the backend module's OWN
   per-module contract (`stapel-calendar/docs/{schema,flows,errors}.json`) rather
   than the unified monolith schema.

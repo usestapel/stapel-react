@@ -1,7 +1,7 @@
 /**
  * THE INCIDENT, AS A TEST.
  *
- * 2026-08-09, app.ironmemo.com: the workspace-list route was mounted one path
+ * 2026-08-09, a client host: the workspace-list route was mounted one path
  * segment too deep, so `GET /workspaces/api/v1/` answered 404 to every
  * request. Every screen built on this pair said "you have no workspaces" and
  * greyed out the upload button, for hours, while the network tab showed the

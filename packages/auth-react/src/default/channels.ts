@@ -150,7 +150,7 @@ export function resolveInteraction(
  * backend promise.
  *
  * Alpha-canon (owner directive): there is no supported "old backend" — every
- * real deployment (meettoday, ironmemo) is kept upgraded to the latest
+ * real deployment on the fleet is kept upgraded to the latest
  * stapel-auth. A missing/empty `methods[]` on a NON-EMPTY channel list is
  * therefore a configuration error, not a signal to fall back to a fixed
  * placement table — it throws loudly instead of silently reproducing a

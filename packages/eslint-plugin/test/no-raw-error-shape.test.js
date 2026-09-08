@@ -7,7 +7,7 @@ const IMPORT = `import { StapelApiError, isStapelApiError, hasErrorCode, toStape
 describe("no-raw-error-shape", () => {
   tsxTester().run("stapel/no-raw-error-shape", rule, {
     valid: [
-      // instanceof — the guard the product got right (ironmemo auth-context).
+      // instanceof — the guard the product got right (a client auth-context).
       `${IMPORT}try { await load(); } catch (e) { if (e instanceof StapelApiError && e.status === 404) setEmpty(); }`,
       // The imported typeguard.
       `${IMPORT}try { await load(); } catch (e) { if (isStapelApiError(e)) { report(e.code); } }`,

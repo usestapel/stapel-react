@@ -2,7 +2,7 @@
  * The LoadState law, asserted (spec §7.2): a failed schema fetch is NEVER
  * "no form here".
  *
- * These are the tests that would have caught the app.ironmemo.com incident
+ * These are the tests that would have caught the client-host incident
  * this fleet's `LoadState` exists because of — a 404'd read rendered as an
  * empty state. A form is worse: a blank page where a form should be looks
  * like a bad link, and the person leaves.

@@ -1,7 +1,7 @@
 /**
  * The absence of a result must never be spelled like a result.
  *
- * On 2026-08-09 app.ironmemo.com's list endpoint answered 404 for hours while
+ * On 2026-08-09 a client host's list endpoint answered 404 for hours while
  * the screen said "you have nothing" and greyed the action out with no
  * reason on it. These tests hold the three answers apart on this pair's
  * surfaces, at the wire (msw), where the outage actually lives:

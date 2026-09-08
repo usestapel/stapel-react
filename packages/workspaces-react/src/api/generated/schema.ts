@@ -1432,7 +1432,7 @@ export interface components {
             /** @description True when the caller holds NO active mandate anywhere (permissions.is_guest) — the wire form of the mandate-model vardict's guest predicate (2026-08-03), so a frontend can render the "incomplete dashboard" without re-deriving it from workspaces == [] */
             is_guest?: boolean;
             /**
-             * @description Which workspace a client should open when the person has expressed no choice — the instance's STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"], echoed back ONLY when the caller actually holds an active membership in it, else "". Exists because clients that had to guess guessed badly: meettoday took `workspaces[0]` off a list ordered by last access, so a person in two spaces landed wherever they happened to have been last (measured 2026-08-06 as "the owner cannot see his own invitations" — they were in the OTHER space). A default, not a cage: an explicit choice still wins
+             * @description Which workspace a client should open when the person has expressed no choice — the instance's STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"], echoed back ONLY when the caller actually holds an active membership in it, else "". Exists because clients that had to guess guessed badly: one frontend took `workspaces[0]` off a list ordered by last access, so a person in two spaces landed wherever they happened to have been last (measured 2026-08-06 as "the owner cannot see his own invitations" — they were in the OTHER space). A default, not a cage: an explicit choice still wins
              * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
              */
             default_workspace_id?: string;

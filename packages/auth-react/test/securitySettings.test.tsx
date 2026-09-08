@@ -119,7 +119,7 @@ describe("<SecuritySettings/> — composed, grouped page", () => {
 
   /**
    * A failed capabilities read is not an empty deployment: silently deleting
-   * a whole security section because a request 404'd is the ironmemo
+   * a whole security section because a request 404'd is the client
    * incident one level up from the list itself.
    */
   it("KEEPS the Connected-accounts group when the capabilities read FAILS, and states the failure", async () => {

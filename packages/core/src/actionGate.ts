@@ -1,7 +1,7 @@
 /**
  * A control that is switched off must say why.
  *
- * THE INCIDENT (app.ironmemo.com, 2026-08-09), second half. While the
+ * THE INCIDENT (a client host, 2026-08-09), second half. While the
  * workspace list was answering 404, the upload button went grey. No tooltip,
  * no sentence, no alert — a dead rectangle. A person looking at it could not
  * tell whether they had hit a quota, lacked a permission, needed a workspace

@@ -142,7 +142,7 @@ export const PROFILES_I18N_KEYS = {
   themeDark: "profiles.settings.theme.dark",
   themeSystem: "profiles.settings.theme.system",
   // Initial setup (InitialSetupPrompt headless / InitialSetupModal default
-  // skin — workspaces-org-program §B5, texts ported from ironmemo's
+  // skin — workspaces-org-program §B5, texts ported from a client's
   // onboarding-modal). Field labels reuse the settings-canon keys above
   // (fieldDisplayName, fieldTheme + themes, fieldAppLanguage) so first-run
   // and settings read identically.

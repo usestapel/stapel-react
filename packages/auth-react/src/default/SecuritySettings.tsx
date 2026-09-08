@@ -18,7 +18,7 @@
  * Composed rather than left as ungrouped tabs because a host wiring
  * `@stapel/shell-react`'s nav needs ONE component per menu item — this reads
  * as one scrollable settings page with real section headings instead of a
- * flat stack (the ironmemo-port failure mode this rebuild fixes: no page
+ * flat stack (the client-port failure mode this rebuild fixes: no page
  * title, no per-section structure, a single `<Divider>`-separated blob). A
  * host that wants the pieces separately still can: every widget stays
  * individually exported from `./security/index.js`.
@@ -124,7 +124,7 @@ export function SecuritySettings(props: SecuritySettingsProps = {}): ReactElemen
   //
   // A FAILED capabilities read is not an empty deployment, so it keeps the
   // section: silently deleting a security section because a request 404'd is
-  // exactly the ironmemo incident, one level up from the list itself.
+  // exactly the client incident, one level up from the list itself.
   // `<OAuthLinks/>` states the failure inside its own Card.
   //
   // The verdict is LATCHED because "loading" recurs: a query that errored

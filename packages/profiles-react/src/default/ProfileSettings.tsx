@@ -1,7 +1,7 @@
 /**
  * `<ProfileSettings/>` — default skin for the "profile" settings screen
- * (owner directive: pull the settings components into the lib, ironmemo
- * `pages/app/profile.tsx`'s Account+Preferences cards, minus the security
+ * (owner directive: pull the settings components into the lib, a client's
+ * `pages/app/profile.tsx` Account+Preferences cards, minus the security
  * surfaces auth-react/default owns). Built entirely on this pair's EXISTING
  * hooks (`useMyProfile`, `useUpdateMyProfile`, `useAvatarUpload`) plus the
  * NEW {@link useProfileFieldManifest} — no new backend surface beyond the
@@ -485,7 +485,7 @@ export function ProfileSettings(props: ProfileSettingsProps): ReactElement {
   const mutation = useUpdateMyProfile();
   // ONE operation: upload + store the ref WITH its source. The two-call
   // shape this replaced (`upload()` then `mutate({avatar})`) is exactly how
-  // the meettoday stand ended up with CDN refs tagged `file` — see
+  // a client stand ended up with CDN refs tagged `file` — see
   // `useSetAvatar`'s module doc.
   const avatarUpload = useSetAvatar();
   const fileInputRef = useRef<HTMLInputElement | null>(null);

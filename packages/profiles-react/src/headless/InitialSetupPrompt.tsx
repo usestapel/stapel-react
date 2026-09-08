@@ -1,6 +1,6 @@
 /**
  * `InitialSetupPrompt` — headless first-run setup form (workspaces-org-program
- * §B5; port of ironmemo's `onboarding-modal.tsx` initial-setup mode into the
+ * §B5; port of a client's `onboarding-modal.tsx` initial-setup mode into the
  * pair as a canon). Renderless (frontend-standard §2): wires the pair's
  * EXISTING hooks (`useMyProfile` + `useUpdateMyProfile`) into a render-prop
  * bag of the three first-run fields — display name, theme, app language —
@@ -70,7 +70,7 @@ export interface InitialSetupPromptBag {
    * deliberately NO PATCH. */
   skip(): void;
   /** `submit()` would be accepted: not already saving, and the display name
-   * draft is non-blank when that field is enabled (ironmemo's `canSave`). */
+   * draft is non-blank when that field is enabled (the client's `canSave`). */
   readonly canSubmit: boolean;
   /** The profile read is still in flight (drafts not seeded yet). */
   readonly isLoading: boolean;

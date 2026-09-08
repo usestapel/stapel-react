@@ -126,7 +126,7 @@ describe("qr login: stale poll guard (key identity, not just step)", () => {
 /**
  * Live-verified 2026-07-17 (owner deepening of the settings-page QR audit):
  * driving `createQrLoginFlow` directly against a real running stapel-auth
- * 0.6.0 backend (docker-composed `meettoday` stack) through its full 300s
+ * 0.6.0 backend (a docker-composed client stack) through its full 300s
  * TTL showed polling AND the expired→regenerate transition both complete
  * correctly at the flow layer — `qrGenerate`'s response IS what unblocks the
  * `"generating"` step, every time. That live run only exercised THIS flow

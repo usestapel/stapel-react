@@ -395,7 +395,7 @@ export function WorkspaceSelectionProvider(
   }, [refetchQuery]);
 
   // Memoised, and that is load-bearing rather than a performance nicety
-  // (ironmemo #251): consumers put `current` straight into `useEffect`
+  // (a client fleet, #251): consumers put `current` straight into `useEffect`
   // dependency arrays to refetch when the workspace changes. A fresh object
   // literal here would be a new value on every render of this provider, so
   // every such effect would re-run on every render — and when the effect also

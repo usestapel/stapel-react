@@ -290,7 +290,7 @@ export function createVideoApi(client: StapelClient): VideoApi {
 
     scopeUsage: (scopeKey, request, options) =>
       client.get(
-        // The scope key is host-chosen and opaque (for meettoday: a workspace
+        // The scope key is host-chosen and opaque (for a meeting app: a workspace
         // id). Encoded, because "opaque" includes shapes that are not path-safe.
         `/scopes/${encodeURIComponent(scopeKey)}/usage/`,
         { query: usageQuery(request), ...signalOf(options) }

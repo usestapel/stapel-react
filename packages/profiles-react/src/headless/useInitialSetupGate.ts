@@ -6,8 +6,8 @@
  *
  *  - `require` — what counts as "setup missing":
  *      `"displayName"`   → the profile has no non-blank `display_name`
- *                          (meettoday's join-a-call case, ex-`GuestNameModal`);
- *      `"initialSetup"`  → `initial_setup_passed` is not true (the ironmemo
+ *                          (a client's join-a-call case, ex-`GuestNameModal`);
+ *      `"initialSetup"`  → `initial_setup_passed` is not true (the client
  *                          onboarding case; also the invite-flow basic-data
  *                          step, §B4).
  *  - `mode` — how insistently:

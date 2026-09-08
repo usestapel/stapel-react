@@ -8,7 +8,7 @@
 //
 // ── What a key ARGUMENT can be, and what this rule says about each ────────
 //
-// (ironmemo 2026-08-14: `app.settings.tab-security` shipped to a stand as the
+// (a client fleet, 2026-08-14: `app.settings.tab-security` shipped to a stand as the
 // literal string "app.settings.tab-security". Every other i18n gate in that
 // repo compares catalogues against each other; nothing checked that a key a
 // call USES exists. This rule did — and was a no-op there, because no registry

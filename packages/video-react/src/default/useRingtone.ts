@@ -9,7 +9,7 @@
  * this hook treats a refused `play()` as ordinary and silent. The OVERLAY is
  * the signal; the sound is an enhancement.
  *
- * meettoday has nothing to copy here — it has no `startAudio` path at all,
+ * The client app has nothing to copy here — it has no `startAudio` path at all,
  * because its audio always follows a "Join" click. That click is the gesture
  * this path does not have.
  *

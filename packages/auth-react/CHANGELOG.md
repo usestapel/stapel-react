@@ -601,7 +601,7 @@
 - 3dfb47e: The /default skin can be imported by Node, not only by a bundler.
 
   Found while auditing why the passkey fix (0.12.1) still looked absent in a
-  host: `meettoday`'s frontend could not write a single test that renders a real
+  host: a client's frontend could not write a single test that renders a real
   `@stapel/auth-react/default` component. Importing the barrel under plain Node
   ESM threw `ERR_MODULE_NOT_FOUND` on `dist/default/OtpField`.
 
@@ -697,7 +697,7 @@
 
   **Guest entry.** "Continue as guest" was a `Typography.Link` small enough to
   miss, so every host that cared about it drew its own prominent CTA beside it —
-  and ended up with TWO guest entries on one screen (3571.meettoday.app,
+  and ended up with TWO guest entries on one screen (a client host,
   2026-07-29). The canonical form is now a full-width `Button` with a hint line
   underneath, which removes the reason to add a second one. It stays
   `type="default"` rather than primary: guest entry is the alternative to signing
@@ -770,7 +770,7 @@
 
 - 8c4f9c2: An unreachable backend no longer logs the user out.
 
-  Owner-reported live incident (2026-07-26, app.ironmemo.com mid-redeploy):
+  Owner-reported live incident (2026-07-26, a client host mid-redeploy):
   "сервак явно не отвечал, но фронт меня выкинул на sign-in page. Ну да, не
   получилось отрефрешиться или auth/me вызвать, но это же не повод сессию
   терминейтить, юзера не разлогинило, бэк прилёг."
@@ -849,7 +849,7 @@
 
 ### Minor Changes
 
-- 8caba53: Owner-diagnosed live incident (meettoday migrators, composes with the bearer-mode `bootstrapProbe` fix): `AuthSession` could settle into `{ status: "authenticated", user: null }` — an inconsistent state this library neither prevented nor documented. Path: bearer mode, only a QR-minted httponly cookie present. Cold load → `restore()` finds nothing locally → `bootstrapProbe()` → `sessionManager.refresh()` → `doRefresh()` → `setTokens()`, which spread the (still-null) prior `state.user` and hand-set `status: "authenticated"` regardless — only `adopt()` ever set `user`. A `ProtectedRoute` that correctly checks BOTH `status` and `user` (`!isAuthenticated || !user`) saw a contradiction and bounced a signed-in user back to login on every navigation.
+- 8caba53: Owner-diagnosed live incident (a client fleet's migrators, composes with the bearer-mode `bootstrapProbe` fix): `AuthSession` could settle into `{ status: "authenticated", user: null }` — an inconsistent state this library neither prevented nor documented. Path: bearer mode, only a QR-minted httponly cookie present. Cold load → `restore()` finds nothing locally → `bootstrapProbe()` → `sessionManager.refresh()` → `doRefresh()` → `setTokens()`, which spread the (still-null) prior `state.user` and hand-set `status: "authenticated"` regardless — only `adopt()` ever set `user`. A `ProtectedRoute` that correctly checks BOTH `status` and `user` (`!isAuthenticated || !user`) saw a contradiction and bounced a signed-in user back to login on every navigation.
 
   Two layers, both shipped (documentation alone was explicitly not acceptable — the fix makes the illegal state unrepresentable):
 
@@ -860,7 +860,7 @@
 
   See the README's new "The `status`/`user` invariant" section for the contract and a `ProtectedRoute` example.
 
-- 3747681: Consumer-reported gap (meettoday migrators, real production incident): `bootstrapProbe()` silently no-op'd in bearer mode (`cookieMode: false`) whenever nothing was persisted locally — exactly the shape of a `session_share` QR scan, magic-link click, SSO, or OAuth callback, all of which mint fresh httponly JWT cookies via a plain HTTP redirect entirely outside this runtime. A bearer-mode host cold-loading afterwards had a perfectly valid server-side session and no way to discover it — it just looked logged out.
+- 3747681: Consumer-reported gap (a client fleet's migrators, real production incident): `bootstrapProbe()` silently no-op'd in bearer mode (`cookieMode: false`) whenever nothing was persisted locally — exactly the shape of a `session_share` QR scan, magic-link click, SSO, or OAuth callback, all of which mint fresh httponly JWT cookies via a plain HTTP redirect entirely outside this runtime. A bearer-mode host cold-loading afterwards had a perfectly valid server-side session and no way to discover it — it just looked logged out.
 
   - **New runtime option `bootstrapProbe?: "auto" | "always" | "off"`** (`createAuthRuntime` and `createAuthSession`), default `"auto"`:
     - `"auto"` probes bearer mode when the non-httponly `stapel_auth_hint` cookie is present (a plain `document.cookie` check, SSR-safe) — this cookie is set by `stapel-auth ^0.7.6` alongside every httponly refresh cookie it mints, so a bearer host pays **zero** extra network calls on a cold load that never touched a cookie-minting flow (verified via a mock-fetch call-count assertion).
@@ -887,7 +887,7 @@
 
   - Every `default/security/*` widget (`SessionsList`, `TotpManager`, `PasskeysManager`, `PasswordChangePanel`, `OAuthLinks`, `QrDeviceLinkPanel`) now self-wraps in its **own `<Card title=…>`** — the section heading moved into the Card title, so each widget reads as a distinct settings section even mounted bare, not just inside `SecuritySettings`.
   - **New `EmailChangePanel`/`PhoneChangePanel`** (default-skin, `default/security/`), both thin `channel`-parametrized wrappers around a new shared `AuthenticatorChangePanel` — built entirely on the EXISTING `<AuthenticatorChange>` headless flow (instant: request-old → verify-old → request-new → verify-new) and the existing `useDelayedChangeStatus`/`useCancelDelayedChange` hooks, no flow rebuilt. Shows the masked current email/phone, a primary "Change email/phone" action (instant, default), and a secondary "No access to your old email/phone?" path into the delayed (14-day) strategy via the new `useInitiateDelayedChange` mutation. A pending delayed change — on mount, or freshly started — short-circuits straight to a pending-status banner ("Changing to … in N days", with a cancel action) instead of the change form.
-  - **New `AuditLogPanel`** (default-skin) — re-adds the security audit log UI dropped during the ironmemo port, over the existing `useAuditLog` query: an antd `List` with loading/empty/error states and "Load more" pagination.
+  - **New `AuditLogPanel`** (default-skin) — re-adds the security audit log UI dropped during the client port, over the existing `useAuditLog` query: an antd `List` with loading/empty/error states and "Load more" pagination.
   - `SecuritySettings` is now `Typography.Title level={2}` "Security" + a subtitle, then the widgets in grouped, titled sections: Contact details (email/phone change) → Password → Two-factor authentication (TOTP, passkeys) → Devices & sessions (sessions, QR device link) → Connected accounts (OAuth) → Security log (audit).
   - New i18n keys (en + ru) for all of the above; `EmailChangePanel`/`PhoneChangePanel`/`AuditLogPanel`/`AuthenticatorChangePanel` exported from `@stapel/auth-react/default`; `useInitiateDelayedChange` now exported from the main entry (it existed on the API client already — `changeDelayedInitiate` — just had no query hook wired to it).
   - `size-limit` budgets bumped (14 KB → 15 KB main entry, 8.5 KB → 9.5 KB `i18n/ru`) to fit the new keys; both stay well under their new ceilings.
@@ -961,7 +961,7 @@
     throttles `setTimeout`-driven polling; the instant the tab is foregrounded
     again, status is re-checked immediately. An explicit "that code
     expired — getting you a new one…" caption now shows during an
-    auto-regenerate (ironmemo-frontend reference semantics), instead of
+    auto-regenerate (client-frontend reference semantics), instead of
     silently swapping the old code for an unexplained spinner.
   - `PasswordChangePanel` gained a "confirm new password" field (both the
     old-password and OTP-verified tabs) with cross-field match validation.
@@ -981,7 +981,7 @@
     sign-in `QrPanel` render at 240px (was 200px) with explicit black-on-white
     - a white quiet-zone padding, instead of antd's transparent default (which
       renders unscannable low-contrast over anything but a plain white page —
-      the same bug already fixed once for the in-room QR modal in the meettoday
+      the same bug already fixed once for the in-room QR modal in a client
       host app). A new live scan-decodability test
       (`test/qrScannability.test.ts`) renders the same value/contrast/size with
       a spec-compliant encoder and decodes it with a real QR reader (`jsqr`),
@@ -996,7 +996,7 @@
   - **Anonymous ("continue as guest") entry added to `AuthPanel`**: when the
     backend's `capabilities.registration.anonymous` is `true`, a fixed
     "Continue as guest" link now appears under the sign-in form
-    (ironmemo-frontend placement parity) — previously there was no way to
+    (client-frontend placement parity) — previously there was no way to
     reach the existing headless `AnonymousSession` flow from the default
     skin at all. Deliberately NOT modeled as a `methods[]`-tracked channel
     (no placement/order/interaction) — a fixed skin element is enough for

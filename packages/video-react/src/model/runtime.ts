@@ -33,7 +33,7 @@ export type VideoRuntime = ModuleRuntime<VideoApi> & {
 export interface CreateVideoRuntimeOptions extends CreateModuleRuntimeOptions {
   /**
    * The partition this app instance reads usage for — the `scope_key` half of
-   * `GET /scopes/{scope_key}/usage/` (for meettoday: the workspace id).
+   * `GET /scopes/{scope_key}/usage/` (for a meeting app: the workspace id).
    *
    * Optional, and there is no default: the key is HOST-chosen and opaque, and
    * a library that guessed one would be wrong for every host but the one it

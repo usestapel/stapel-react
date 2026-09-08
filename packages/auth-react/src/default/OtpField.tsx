@@ -8,7 +8,7 @@
  * `width: 100%` with the default `flex-shrink: 1`, so when the row has
  * less inline space than the boxes need, flexbox takes the difference out
  * of their width while their height stays put. Square becomes rectangle
- * (reported on 3571.meettoday.app, twice).
+ * (reported on a client host, twice).
  *
  * So the fix belongs on the boxes, not on the row. antd v6 exposes the
  * `input` slot, and each box gets:

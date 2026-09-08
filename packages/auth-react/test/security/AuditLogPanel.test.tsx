@@ -1,6 +1,6 @@
 /**
  * `<AuditLogPanel/>` — default skin for `AuditLogViewSet` (auth-sa.md §16),
- * dropped during the ironmemo port and re-added here. Built entirely on the
+ * dropped during the client port and re-added here. Built entirely on the
  * pair's EXISTING `useAuditLog(page)` query.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";

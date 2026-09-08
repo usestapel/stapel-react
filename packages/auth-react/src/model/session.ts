@@ -19,7 +19,7 @@ import type { AuthResponse, AuthTokens, StapelUser } from "../api/types.js";
 export type TeardownReason = "revoked" | "expired" | "logout";
 
 /**
- * INVARIANT (owner incident, 2026-07-20 — meettoday migrators, composing
+ * INVARIANT (owner incident, 2026-07-20 — a client fleet's migrators, composing
  * with the bearer-mode `bootstrapProbe` fix in 3747681): `status ===
  * "authenticated"` is UNREACHABLE while `user === null`. `status` is not an
  * independently settable field — every mutator below derives it from
@@ -121,7 +121,7 @@ export interface AuthSessionOptions {
   readonly cookieMode?: boolean;
   /**
    * Gates the cold-`restore()` refresh probe (see `bootstrapProbe()` below)
-   * — consumer-reported gap (meettoday migrators, 2026-07-19): a
+   * — consumer-reported gap (a client fleet's migrators, 2026-07-19): a
    * `session_share` QR scan mints fresh httponly JWT cookies via a plain
    * HTTP redirect entirely outside this runtime, so a bearer-mode host
    * (`cookieMode: false`) landing on ANY other page afterwards had no local
@@ -342,7 +342,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
    *
    * `onTeardown(reason)` fires ONLY if `sessionManager.sessionLost()`
    * actually performed a teardown (owner-diagnosed live incident,
-   * 2026-07-17, meettoday race): a request racing in with a 401 while an
+   * 2026-07-17, a client race): a request racing in with a 401 while an
    * explicit `logout()` is already tearing this session down gets a `false`
    * back (core's `SessionManager` guards `sessionLost()` off for the
    * duration of `logout()`) — calling `onTeardown('expired'|'revoked')`
@@ -358,7 +358,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
       // and never runs a teardown.
       //
       // Owner-reported live incident, 2026-07-26 (the redirect strobe,
-      // second and deeper cause): the ironmemo app keeps its OWN auth
+      // second and deeper cause): the client app keeps its OWN auth
       // context, which calls GET /me/ through the runtime client. With a
       // live access cookie and a dead refresh cookie — a state the server is
       // entitled to be in — /me answered 200 and the app marked the manager
@@ -604,7 +604,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
   }
 
   /**
-   * Explicit logout (owner-diagnosed live incident, 2026-07-17, meettoday
+   * Explicit logout (owner-diagnosed live incident, 2026-07-17, a client
    * race): local teardown runs FIRST, the server revoke is best-effort
    * AFTER. This used to await the network revoke before any local
    * teardown — in the window between the server honoring that revoke and
@@ -639,7 +639,7 @@ export function createAuthSession(options: AuthSessionOptions): AuthSession {
 
   /**
    * Bootstrap probe (owner-diagnosed live incident, 2026-07-17; gating
-   * fixed 2026-07-19 after a bearer-mode consumer report — meettoday
+   * fixed 2026-07-19 after a bearer-mode consumer report — a client fleet's
    * migrators): a `session_share` QR scan (or magic link / SSO / OAuth
    * callback) sets fresh httponly JWT cookies via a plain HTTP redirect,
    * entirely outside this JS runtime's `adopt()`/`restore()` — the freshly

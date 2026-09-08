@@ -173,7 +173,7 @@ describe("session persistence (frontend-standard §4.6)", () => {
   });
 });
 
-// Owner-reported live incident, 2026-07-26 (app.ironmemo.com mid-redeploy):
+// Owner-reported live incident, 2026-07-26 (a client host mid-redeploy):
 // "the backend clearly wasn't responding, but the frontend still threw me
 // onto the sign-in page. Sure, the refresh or auth/me call failed, but
 // that's no reason to tear down the session — the user was never logged
@@ -309,7 +309,7 @@ describe("an unreachable backend is not an authentication verdict", () => {
   });
 });
 
-// Owner-reported live incident, 2026-07-26: "opened ironmemo and got a
+// Owner-reported live incident, 2026-07-26: "opened a client app and got a
 // redirect stroboscope, /app ↔ /sign-in in a loop" — 222 requests in a loop
 // before it settled.
 //
@@ -405,7 +405,7 @@ describe("the persisted user is really gone before teardown reports done", () =>
 
 // The redirect strobe's SECOND and deeper cause (owner-reported, 2026-07-26).
 //
-// The ironmemo app keeps its own auth context, which calls GET /me/ through
+// The client app keeps its own auth context, which calls GET /me/ through
 // the runtime client. On a server with a live access cookie and a dead
 // refresh cookie — a state it is entitled to be in — /me answers 200 and the
 // app marks the manager authenticated, while this library's restore(),

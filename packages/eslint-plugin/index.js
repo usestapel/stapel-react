@@ -531,7 +531,7 @@ const recommended = [
       // Cyrillic and homoglyph words, that being what a script-canon rule's
       // test suite IS — would lint clean. The cost was a blanket exemption
       // every consumer inherited on every test file, and test files are
-      // exactly where the canon leaks: meettoday's sweep reported 5603 → 0
+      // exactly where the canon leaks: a client's sweep reported 5603 → 0
       // and still had 15 live hits in one `.test.ts` the gate was skipping.
       // The Python half of the same canon (stapel-tools R010/R011) runs ON
       // test files for precisely that reason — Russian identifiers were

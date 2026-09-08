@@ -6,7 +6,7 @@ import { createAuthSession } from "../src/model/session.js";
 import { BASE, makeApi, testUser } from "./helpers.js";
 
 /**
- * `AuthSessionOptions.bootstrapProbe` (consumer-reported gap, meettoday
+ * `AuthSessionOptions.bootstrapProbe` (consumer-reported gap, a client fleet's
  * migrators, 2026-07-19): a `session_share` QR scan (and magic-link/SSO/OAuth
  * callback) mints fresh httponly JWT cookies via a plain HTTP redirect. A
  * bearer-mode host (`cookieMode: false`) had NO way to discover that session

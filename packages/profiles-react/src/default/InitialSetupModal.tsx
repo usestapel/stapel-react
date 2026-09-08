@@ -1,6 +1,6 @@
 /**
  * `<InitialSetupModal/>` — default antd skin for the InitialSetupPrompt canon
- * (workspaces-org-program §B5; ironmemo `onboarding-modal.tsx` ported to this
+ * (workspaces-org-program §B5; a client's `onboarding-modal.tsx` ported to this
  * pair's default-skin conventions, see `ProfileSettings.tsx`). Built entirely
  * on the pair's headless {@link InitialSetupPrompt} + `useLanguages` — no new
  * backend surface.
@@ -12,7 +12,7 @@
  * <InitialSetupModal open={gate.shouldShow} onClose={gate.dismiss} />
  * ```
  *
- * The meettoday blocking case (`mode: "always"`, `require: "displayName"` —
+ * The client blocking case (`mode: "always"`, `require: "displayName"` —
  * the ex-`GuestNameModal`: a guest cannot join a call nameless) passes
  * `skippable={false}`: no Skip button, and no dismissal — the mask, Esc, the
  * ✕ and the sheet's swipe are all inert, so Save is the only way out, exactly
@@ -86,7 +86,7 @@ export interface InitialSetupModalProps {
   /**
    * Default `true`: a Skip ("maybe later") button plus the usual ✕/Esc/mask
    * dismissal. `false` is the blocking mode (§B5 `always`+`displayName`,
-   * meettoday's join-a-call case): Save is the only way out.
+   * a client's join-a-call case): Save is the only way out.
    */
   readonly skippable?: boolean;
   /** Which first-run fields to collect — forwarded to the headless

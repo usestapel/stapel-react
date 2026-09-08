@@ -1,6 +1,6 @@
 /**
  * The `authenticated && user == null` bug (owner incident, 2026-07-20 —
- * meettoday migrators): `AuthSession` used to be able to settle into
+ * a client fleet's migrators): `AuthSession` used to be able to settle into
  * `{ status: "authenticated", user: null }` — `setTokens()` spread the prior
  * (possibly still-null) `state.user` and hand-set `status: "authenticated"`
  * regardless. A `ProtectedRoute` that correctly checks BOTH `status` and
@@ -140,7 +140,7 @@ describe("the authenticated-without-user invariant", () => {
     warnSpy.mockRestore();
   });
 
-  it("composes with the bearer-mode bootstrapProbe fix (3747681): QR/hint-cookie cold load → probe → refresh → user resolved → authenticated with a non-null user — this is exactly what unblocks meettoday's `|| !user` ProtectedRoute guard", async () => {
+  it("composes with the bearer-mode bootstrapProbe fix (3747681): QR/hint-cookie cold load → probe → refresh → user resolved → authenticated with a non-null user — this is exactly what unblocks a client's `|| !user` ProtectedRoute guard", async () => {
     setHintCookie(); // simulates the stapel_auth_hint cookie a QR session_share mint left behind
     let refreshCalls = 0;
     let meCalls = 0;

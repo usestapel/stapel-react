@@ -1,10 +1,10 @@
 /**
  * `<QrDeviceLinkPanel/>` — default skin for `session_share` QR device-handoff
- * (auth-sa.md §8; ironmemo parity — a logged-in device generates a QR, an
+ * (auth-sa.md §8; client parity — a logged-in device generates a QR, an
  * unauthenticated device scans it with a camera and receives the same
  * session). Built entirely on the pair's EXISTING `QrLogin` headless flow
  * (`qrGenerate`/`qrStatus`/`qrReject` — no new backend surface): this
- * component only adds the UI shape ironmemo's frontend already validated —
+ * component only adds the UI shape a client's frontend already validated —
  * immediate QR render on trigger (no extra "generate" click), a live TTL
  * countdown, silent auto-refresh on backend-reported `expired` (the flow's
  * existing behavior), and a Cancel action that best-effort tells the backend
@@ -46,7 +46,7 @@ function formatCountdown(seconds: number): string {
 
 /** Antd's `<QRCode status>` primitive expresses generating/expired visually
  * (RULE 6 — states are expressed by the primitive, not hand-drawn
- * overlays); the text countdown below it is the ironmemo-parity addition. */
+ * overlays); the text countdown below it is the client-parity addition. */
 function qrCodeStatus(step: QrLoginState["step"]): "active" | "expired" | "loading" {
   switch (step) {
     case "generating":
@@ -120,7 +120,7 @@ function QrJourney(props: {
   // Latches once a code has actually been shown — distinguishes the FIRST
   // generate (a bare antd loading spinner is the right amount of ceremony)
   // from an auto-REGENERATE after the backend reports `expired` (owner UX
-  // audit, ironmemo-frontend reference semantics reproduced: say so, rather
+  // audit, client-frontend reference semantics reproduced: say so, rather
   // than silently swapping the old code for a spinner with zero explanation —
   // indistinguishable, without this line, from the panel just hanging).
   const hadKeyRef = useRef(false);
@@ -139,7 +139,7 @@ function QrJourney(props: {
           background, which over anything but a plain white page renders a
           technically-valid but practically unscannable low-contrast
           pattern — the same bug already fixed once for the in-room QR
-          modal (`components/room/QRModal.tsx` in the meettoday host app);
+          modal (a `QRModal.tsx` in a client host app);
           this is that same fix applied to the settings-tab surface. */}
       <QrCanvas
         value={scanUrl}

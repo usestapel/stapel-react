@@ -8,7 +8,7 @@
 // After that line, `workspaces.length === 0` is the only question a skin can
 // ask, and it has THREE true answers behind it — "still loading", "loaded,
 // genuinely none", "the request failed". On 2026-08-09 the third one was the
-// live case: app.ironmemo.com's workspace endpoint answered 404 to every
+// live case: a client host's workspace endpoint answered 404 to every
 // request for hours while the screen said "you have no workspaces" and greyed
 // out the upload button. The outage was in the network tab the whole time;
 // the UI actively argued against it.

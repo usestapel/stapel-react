@@ -2,7 +2,7 @@
  * `<AuditLogPanel/>` — default skin for the security audit log
  * (`AuditLogViewSet`, auth-sa.md §16). Built entirely on the pair's EXISTING
  * `useAuditLog(page)` query — no new backend surface. Dropped during the
- * ironmemo port; re-added here as its own Card so the security page always
+ * client port; re-added here as its own Card so the security page always
  * shows recent account activity, not just the mutable settings around it.
  */
 import { fontSize } from "@stapel/tokens";

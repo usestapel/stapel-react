@@ -167,7 +167,7 @@ describe("<AuthPanel/> — the §54 default skin renders out of the box", () => 
 
   /**
    * Owner directive 2026-07-17: `registration.anonymous: true` gets a fixed
-   * "Continue as guest" entry (ironmemo-frontend parity) — not modeled as a
+   * "Continue as guest" entry (client-frontend parity) — not modeled as a
    * `methods[]` channel, just a fixed skin element.
    */
   it("shows 'Continue as guest' when registration.anonymous is true, and it authenticates", async () => {

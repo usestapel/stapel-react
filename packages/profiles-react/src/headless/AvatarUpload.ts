@@ -49,7 +49,7 @@ import { useUpdateMyProfile } from "../model/mutations.js";
  * band, to also write `avatar_source: "cdn"`; the profile model's default is
  * `file`, so forgetting was silent.
  *
- * Nobody remembered. On the meettoday sandbox 2 of 2 profiles that ever had an
+ * Nobody remembered. On a client sandbox 2 of 2 profiles that ever had an
  * avatar were stored as a CDN ref tagged `file` — a 100% failure rate of the
  * manual upload path, on two different people. Serializing such a row opened
  * the CDN variant DIRECTORY as a plain file and raised, so `/profiles/api/v1/me`

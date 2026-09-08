@@ -10,7 +10,7 @@
  * A conference draws N tiles and has to decide which is big. A call has
  * exactly one other person, so the layout is settled: the remote fills the
  * frame and the local view is a corner picture. That is not a simplification
- * of a grid, it is a different component — which is why the meettoday Grid,
+ * of a grid, it is a different component — which is why a client's Grid,
  * Stage and Participants panels are NOT ported, and why there is no speaker
  * detection here to get wrong.
  *
@@ -290,7 +290,7 @@ export function CallPanel(props: CallPanelProps): ReactElement {
    *
    * A constraint swap asks for a new stream and renegotiates; cycling
    * `videoinput` devices switches the one already published, which is what
-   * `switchActiveDevice` is for and what meettoday does. It also degrades
+   * `switchActiveDevice` is for and what a client's app does. It also degrades
    * honestly on a laptop with two webcams, where "front/back" means nothing.
    */
   const flipCamera = useCallback(async (): Promise<void> => {

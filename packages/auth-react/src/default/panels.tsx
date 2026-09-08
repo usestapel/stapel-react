@@ -547,7 +547,7 @@ function QrPanelBody(props: {
     onStart();
   }, [onStart]);
   // Same latch as the settings-page QrDeviceLinkPanel (owner UX audit,
-  // ironmemo-frontend reference semantics): distinguishes the first
+  // client-frontend reference semantics): distinguishes the first
   // generate from an auto-regenerate after the backend reports `expired`,
   // so this surface says so instead of silently swapping the old code for a
   // spinner with zero explanation.

@@ -19,7 +19,7 @@ import { BASE } from "./helpers.js";
  * torn down (there was nothing to tear down) — it either finds a live
  * session or settles quietly into "unauthenticated".
  *
- * Verified against the real stack too (docker-composed `meettoday`,
+ * Verified against the real stack too (a docker-composed client stack,
  * stapel-auth 0.6.0 real backend, `localhost:8080`) — see the write-up for
  * the curl cookie-jar recipe; these tests pin the exact regression at the
  * unit level so it can't silently come back.
