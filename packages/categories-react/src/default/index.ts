@@ -45,6 +45,7 @@ export type {
   CategoryIconResolver,
   CategoryTileGridProps,
   TileDensity,
+  TileLabelHyphens,
   TileLayout,
   TileOverflow,
   TileSize,

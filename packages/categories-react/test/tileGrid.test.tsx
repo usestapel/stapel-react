@@ -182,13 +182,25 @@ describe("<CategoryTileGrid>", () => {
       expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
     });
     const list = screen.getByTestId("categories-tile-grid-list");
-    // One per tile, All included. The art fallback is the category's own
-    // INITIAL, not a muted disc: a grid of identical grey circles reads as
-    // images still loading, which is the state a live catalogue with no
-    // uploaded art is permanently in.
+    // One per CATALOGUE ROW, and the All tile is not one of them. The art
+    // fallback is the category's own INITIAL, not a muted disc: a grid of
+    // identical grey circles reads as images still loading, which is the
+    // state a live catalogue with no uploaded art is permanently in.
+    //
+    // The All tile used to be counted here too, and a phone walk of the
+    // landing is what took it back out: it stands first among ten siblings
+    // that all draw a picture, so a lone faint capital there read as an image
+    // that had failed rather than as a fallback. It has no `catalog_icon` to
+    // wait for — it is the grid's own control — so it draws a pictogram
+    // instead (`test/tileLabelBreak.test.tsx`), and the monogram stays
+    // exactly what it always was: the answer for a row whose art the
+    // catalogue has not supplied.
     expect(
       list.querySelectorAll('[data-stapel-tile-art="monogram"]')
-    ).toHaveLength(CAROUSEL.length + 1);
+    ).toHaveLength(CAROUSEL.length);
+    expect(
+      list.querySelectorAll('[data-stapel-tile-art="all"]')
+    ).toHaveLength(1);
     expect(list.querySelectorAll("img")).toHaveLength(0);
   });
 

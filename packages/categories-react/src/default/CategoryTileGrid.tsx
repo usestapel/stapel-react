@@ -64,7 +64,7 @@ import { useMemo, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Flex, Input, List, Skeleton } from "antd";
 import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
-import { STAPEL_UI_KEYS, useT } from "@stapel/core";
+import { STAPEL_UI_KEYS, useI18n, useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import type { Category } from "../api/types.js";
 import { renderCategoryLabel } from "../catalog/labels.js";
@@ -615,6 +615,37 @@ function firstLetter(label: string): string {
 }
 
 /**
+ * WHETHER THE BROWSER MAY HYPHENATE A CAPTION IT CANNOT FIT.
+ *
+ * `"manual"` is the default and the skin's own long-standing answer (D90): a
+ * caption too wide for its column breaks at {@link labelStyle}'s
+ * `overflow-wrap: anywhere` — the whole word stays readable and no character
+ * appears that the catalogue author did not write.
+ *
+ * `"auto"` is the OTHER reading of the same break, and a deployment whose
+ * catalogue disagrees with D90 needs it: a walk of a 390px phone measured
+ * "Nedvizhimost" and "Elektronika" set over two lines with the break INSIDE
+ * the word and nothing marking it — "Nedvizhim / ost" — which a reader has to
+ * notice is one word before they can decide whether to tap it. The arithmetic
+ * is not a rendering accident and no line count can escape it: at the
+ * compact tile's measured 63px caption column, a 12-letter root name is
+ * ~83px wide, so SOME break is forced and the only question is whether it is
+ * marked.
+ *
+ * A PROP and not a flip, because the two readings are both measured and they
+ * disagree: D90 walked a catalogue whose long captions read worse hyphenated,
+ * this one walks a catalogue whose long captions read worse unhyphenated, and
+ * neither is the other's bug. The default is unchanged, so no existing host
+ * moves; the deployment that measured the second reading asks for it by name.
+ *
+ * `hyphens: auto` needs a LANGUAGE to hyphenate by — without one the browser
+ * has no pattern set and the declaration is inert. So the caption is stamped
+ * with the i18n engine's own locale when this is `"auto"`, rather than the
+ * pair trusting a host to have put `lang` on its `<html>`.
+ */
+export type TileLabelHyphens = "manual" | "auto";
+
+/**
  * The label style of ONE tile — the anatomy's own, with the host's
  * {@link CategoryTileGridProps.labelLines} standing in for its clamp when one
  * is given.
@@ -628,7 +659,8 @@ function firstLetter(label: string): string {
 function labelStyleFor(
   density: TileDensity,
   size: TileSize,
-  labelLines: number | undefined
+  labelLines: number | undefined,
+  hyphens: TileLabelHyphens
 ): CSSProperties {
   const base =
     size === "compact"
@@ -636,9 +668,9 @@ function labelStyleFor(
       : density === "compact"
         ? labelCompact
         : labelStyle;
-  return labelLines === undefined
-    ? base
-    : { ...base, WebkitLineClamp: labelLines };
+  const clamped =
+    labelLines === undefined ? base : { ...base, WebkitLineClamp: labelLines };
+  return hyphens === "manual" ? clamped : { ...clamped, hyphens };
 }
 
 /**
@@ -678,11 +710,25 @@ function tileBody(props: {
   readonly size: TileSize;
   readonly density: TileDensity;
   readonly labelLines: number | undefined;
+  readonly labelHyphens: TileLabelHyphens;
+  /** The i18n engine's locale, for `hyphens: auto` to hyphenate BY — see
+   * {@link TileLabelHyphens}. Absent under `"manual"`, where the declaration
+   * is not made and a `lang` would say nothing the host has not already
+   * said. */
+  readonly labelLang: string | undefined;
   readonly testId?: string;
 }): ReactElement {
   const label = (
     <span
-      style={labelStyleFor(props.density, props.size, props.labelLines)}
+      style={labelStyleFor(
+        props.density,
+        props.size,
+        props.labelLines,
+        props.labelHyphens
+      )}
+      {...(props.labelHyphens === "auto" && props.labelLang !== undefined
+        ? { lang: props.labelLang }
+        : {})}
       data-testid={props.testId ?? CATEGORY_TILE_LABEL_TESTID}
     >
       {props.label}
@@ -723,6 +769,8 @@ function Tile(props: {
   readonly density: TileDensity;
   readonly size: TileSize;
   readonly labelLines: number | undefined;
+  readonly labelHyphens: TileLabelHyphens;
+  readonly labelLang: string | undefined;
 }): ReactElement {
   return (
     <CategoryLink
@@ -755,6 +803,8 @@ function MoreTile(props: {
   readonly density: TileDensity;
   readonly size: TileSize;
   readonly labelLines: number | undefined;
+  readonly labelHyphens: TileLabelHyphens;
+  readonly labelLang: string | undefined;
   readonly testId: string;
   readonly onClick: () => void;
   /** `stapel/clickable-needs-event` opt-out, checked on THIS element — see
@@ -783,8 +833,59 @@ function MoreTile(props: {
         size: props.size,
         density: props.density,
         labelLines: props.labelLines,
+        labelHyphens: props.labelHyphens,
+        labelLang: props.labelLang,
       })}
     </button>
+  );
+}
+
+/**
+ * THE "ALL" TILE'S OWN ART — a pictogram, never the monogram.
+ *
+ * The "All" tile stands FIRST in the grid, beside ten siblings that every
+ * seeded catalogue draws with a picture. Handed {@link TileMonogram} it drew
+ * its label's initial instead — a lone faint capital where ten pictures are,
+ * which a walk of the phone home screen read as an image that failed to load
+ * (measured: `categories-tile-grid-all` carried zero `<img>`/`<svg>` while
+ * the grid carried ten).
+ *
+ * The monogram's own argument is why it cannot be the answer here. It is a
+ * fallback for a row whose art the CATALOGUE has not supplied, and its value
+ * is that "every tile then differs from every other tile". This tile is not a
+ * catalogue row: it is the grid's own control, it has no `catalog_icon` to
+ * wait for, and its meaning — "all of them" — is the one meaning a pictogram
+ * can carry exactly. So it gets a drawn glyph and not a letter.
+ *
+ * Inline, and not an icon dependency: this package ships no icon set and one
+ * four-square glyph is not the reason to take one. `aria-hidden`, like every
+ * other tile's art — the accessible name is the tile's own label.
+ */
+function AllCategoriesGlyph(): ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      data-stapel-tile-art="all"
+      viewBox="0 0 24 24"
+      style={{
+        width: "100%",
+        height: "100%",
+        // `contain` is what the picture arm uses, and the two sit side by
+        // side in one grid: a glyph that filled its box while its neighbours
+        // fitted theirs would be the odd tile in the row.
+        objectFit: "contain",
+        fill: "currentColor",
+        color: cssVar("text-muted"),
+      }}
+    >
+      {/* Four rounded cells — the catalogue-grid idiom, and the same shape
+          the tiles it opens are laid out in. */}
+      <rect x="3" y="3" width="8" height="8" rx="2" />
+      <rect x="13" y="3" width="8" height="8" rx="2" />
+      <rect x="3" y="13" width="8" height="8" rx="2" />
+      <rect x="13" y="13" width="8" height="8" rx="2" />
+    </svg>
   );
 }
 
@@ -962,6 +1063,13 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    */
   readonly labelLines?: number;
   /**
+   * WHETHER A CAPTION TOO WIDE FOR ITS COLUMN MAY BE HYPHENATED. Default
+   * `"manual"` — the skin's own answer, unchanged for every host that does
+   * not ask. See {@link TileLabelHyphens} for both readings and why this is a
+   * deployment's choice rather than the skin's.
+   */
+  readonly labelHyphens?: TileLabelHyphens;
+  /**
    * Cap the grid at this many rows before offering the rest through
    * {@link CategoryTileGridProps.overflow}. Ignored unless `overflow` is
    * `"modal"` — see there. The "All" tile is not counted against the cap.
@@ -1125,6 +1233,7 @@ function TileRow(props: {
   readonly density: TileDensity;
   readonly size: TileSize;
   readonly labelLines: number | undefined;
+  readonly labelHyphens: TileLabelHyphens;
   readonly layout: TileLayout;
   readonly minTileWidth: number;
   readonly eagerCount: number;
@@ -1132,6 +1241,12 @@ function TileRow(props: {
   readonly overflow: TileOverflow;
 }): ReactElement {
   const t = useT();
+  /* The locale the captions are hyphenated BY — see `TileLabelHyphens`. Read
+     from the engine rather than taken as a prop: the pair already resolves
+     every one of these labels through that same engine, so a second answer
+     to "what language is this" could only ever disagree with the first. */
+  const { locale } = useI18n();
+  const labelLang = props.labelHyphens === "auto" ? locale : undefined;
   const [dialogOpen, setDialogOpen] = useState(false);
   const linkProps =
     props.linkComponent !== undefined
@@ -1159,9 +1274,11 @@ function TileRow(props: {
               density={props.density}
               size={props.size}
               labelLines={props.labelLines}
+              labelHyphens={props.labelHyphens}
+              labelLang={labelLang}
               href={props.basePath}
               label={allLabel}
-              art={<TileMonogram label={allLabel} />}
+              art={<AllCategoriesGlyph />}
               testId="categories-tile-grid-all"
             />
           );
@@ -1175,6 +1292,8 @@ function TileRow(props: {
               density={props.density}
               size={props.size}
               labelLines={props.labelLines}
+              labelHyphens={props.labelHyphens}
+              labelLang={labelLang}
               href={entry.href}
               slug={entry.category.slug}
               categoryId={entry.category.id}
@@ -1197,6 +1316,8 @@ function TileRow(props: {
             density={props.density}
             size={props.size}
             labelLines={props.labelLines}
+            labelHyphens={props.labelHyphens}
+            labelLang={labelLang}
             testId="categories-tile-grid-more"
             data-analytics="none"
             data-analytics-reason="opens the local overflow dialog; nothing leaves the browser"
@@ -1247,6 +1368,7 @@ export function CategoryTileGrid(
     density,
     size,
     labelLines: props.labelLines,
+    labelHyphens: props.labelHyphens ?? "manual",
     layout,
     minTileWidth,
     eagerCount,
