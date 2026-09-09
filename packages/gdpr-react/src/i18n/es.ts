@@ -10,7 +10,7 @@ export { gdprErrorBundleEs } from "./generated/errors.es.gen.js";
  * module — gated by size-limit and the bundle-purity test).
  *
  * ONE SOURCE FOR THE ERRORS, as in `ru.ts`. stapel-gdpr ships
- * `translations/errors.es.json` covering all fifteen keys it owns and
+ * `translations/errors.es.json` covering all eighteen keys it owns and
  * stapel-core supplies the forty-two cross-cutting ones, so
  * `gdprErrorBundleEs` is COMPLETE over the registry and nothing below is
  * authored to paper over an upstream gap. What is authored here is this pair's

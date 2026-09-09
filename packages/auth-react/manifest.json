@@ -4,7 +4,7 @@
   "version": "0.21.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.34 <0.35"
+    "contract": ">=0.35 <0.36"
   },
   "layers": [
     "api",
@@ -1899,6 +1899,16 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.401.gdpr.closure_token_expired": {
+      "status": 401,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.401.gdpr.closure_token_invalid": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.401.invalid_credentials": {
       "status": 401,
       "params": [],
@@ -1963,6 +1973,11 @@
       "status": 403,
       "params": [],
       "remediation": "retry"
+    },
+    "error.403.gdpr.closure_token_scope": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
     },
     "error.403.gdpr.erasure_forbidden": {
       "status": 403,
@@ -3026,6 +3041,8 @@
     "error.400.verification_invalid_factor",
     "error.400.wrong_password",
     "error.401.account_disabled",
+    "error.401.gdpr.closure_token_expired",
+    "error.401.gdpr.closure_token_invalid",
     "error.401.invalid_credentials",
     "error.401.qr_auth_required",
     "error.401.refresh_invalid",
@@ -3039,6 +3056,7 @@
     "error.403.change_requires_current",
     "error.403.forbidden",
     "error.403.gdpr.account_closed",
+    "error.403.gdpr.closure_token_scope",
     "error.403.gdpr.erasure_forbidden",
     "error.403.mfa_enrollment_required",
     "error.403.mock_otp_admin",

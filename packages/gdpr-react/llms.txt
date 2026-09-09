@@ -49,7 +49,7 @@ Paths are relative to `/gdpr/api/v1/`.
 - useUpdateDsar (mutation) → updateDsar
 
 ## Errors (render t(code, params); UX from remediation)
-57 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 21 · verify 5 · wait_and_retry 5 · contact_support 3 · reauthenticate 1.
+60 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 21 · verify 5 · wait_and_retry 5 · contact_support 4 · reauthenticate 3.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

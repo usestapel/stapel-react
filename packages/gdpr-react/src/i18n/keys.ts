@@ -202,7 +202,7 @@ export const GDPR_I18N_KEYS = {
   // Backend error keys whose registry English is true but useless on a
   // screen. Listed here so `i18n-key-exists` knows them and the i18n suite
   // can prove BOTH locales carry them. stapel-gdpr ships
-  // `translations/errors.{ru,es}.json` covering all 15 of its own keys, so —
+  // `translations/errors.{ru,es}.json` covering all 18 of its own keys, so —
   // unlike the video/chat/cdn precedent — nothing here is authored to cover a
   // gap; these three are deliberate OVERRIDES of a correct-but-terse text.
   errorNoActiveClosure: "error.404.gdpr.no_active_closure",

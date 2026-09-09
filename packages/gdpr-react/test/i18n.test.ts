@@ -7,7 +7,7 @@ import {
 import { gdprErrorBundleRu, gdprI18nBundleRu } from "../src/i18n/ru.js";
 import { gdprErrorBundleEs, gdprI18nBundleEs } from "../src/i18n/es.js";
 
-/** The 15 codes stapel_gdpr owns — the ones a sibling module cannot supply. */
+/** The 18 codes stapel_gdpr owns — the ones a sibling module cannot supply. */
 const OWNED = GDPR_ERROR_CODES.filter((code) => code.includes(".gdpr."));
 
 describe("both locales carry every key this pair renders", () => {
@@ -35,7 +35,7 @@ describe("both locales carry every key this pair renders", () => {
 /**
  * The generated ru bundle is COMPLETE here, unlike in most pairs.
  *
- * stapel-gdpr ships `translations/errors.{ru,es}.json` covering all fifteen
+ * stapel-gdpr ships `translations/errors.{ru,es}.json` covering all eighteen
  * keys it owns, and stapel-core supplies the forty-two cross-cutting ones — so
  * `gen:errors` runs with no `ERRORS_LOCALE_EXEMPT_OWNERS` and the pair authors
  * NOTHING to paper over a missing catalogue (contrast @stapel/video-react and
@@ -45,9 +45,9 @@ describe("both locales carry every key this pair renders", () => {
  * the point: the gap would otherwise surface as a raw key on a screen about
  * deletion.
  */
-describe("the fifteen keys stapel-gdpr owns are GENERATED, not hand-authored", () => {
-  it("finds all fifteen", () => {
-    expect(OWNED.length).toBe(15);
+describe("the eighteen keys stapel-gdpr owns are GENERATED, not hand-authored", () => {
+  it("finds all eighteen", () => {
+    expect(OWNED.length).toBe(18);
   });
 
   it.each([

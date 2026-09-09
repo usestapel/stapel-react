@@ -365,6 +365,16 @@
       "params": [],
       "remediation": "verify"
     },
+    "error.401.gdpr.closure_token_expired": {
+      "status": 401,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.401.gdpr.closure_token_invalid": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.401.unauthorized": {
       "status": 401,
       "params": [],
@@ -384,6 +394,11 @@
       "status": 403,
       "params": [],
       "remediation": "retry"
+    },
+    "error.403.gdpr.closure_token_scope": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
     },
     "error.403.gdpr.erasure_forbidden": {
       "status": 403,
@@ -737,10 +752,13 @@
     "error.400.validation_error",
     "error.400.verification_failed",
     "error.400.verification_invalid_factor",
+    "error.401.gdpr.closure_token_expired",
+    "error.401.gdpr.closure_token_invalid",
     "error.401.unauthorized",
     "error.402.payment_required",
     "error.403.forbidden",
     "error.403.gdpr.account_closed",
+    "error.403.gdpr.closure_token_scope",
     "error.403.gdpr.erasure_forbidden",
     "error.403.network_blocked",
     "error.403.verification_enrollment_required",

@@ -186,15 +186,9 @@ export interface paths {
         put?: never;
         /**
          * Cancel account closure during grace period
-         * @description Stop a closure that is still inside its grace period.
+         * @description Authorized either by a live session or by the `X-Closure-Token` returned with the closure's 202 — the closure revoked every session of the account, so the token is normally the only credential the caller still holds. 401 when neither is present, when the token is not ours, or when its grace period is over; 403 when the token names an earlier closure of the same account.
          *
-         *     The account is reactivated and a ``user.deletion_cancelled`` comm action
-         *     is emitted — the mirror of the ``user.deletion_initiated`` that started
-         *     the closure, so every consumer that took a reversible action on the
-         *     initiation (suppressed notifications, hidden content, suspended
-         *     memberships) is told to lift it instead of waiting for its next sync.
-         *
-         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
+         *     **Permissions:** `AllowAny`
          */
         post: operations["gdpr_api_v1_user_account_cancel_close_create"];
         delete?: never;
@@ -214,7 +208,7 @@ export interface paths {
         put?: never;
         /**
          * Initiate account closure
-         * @description Starts a 30-day grace period. The account is deactivated and all of its sessions are revoked immediately. Can be cancelled by logging in during the grace period.
+         * @description Starts a 30-day grace period. The account is deactivated and all of its sessions are revoked immediately — including the one that made this call. The 202 therefore carries `closure_token`, a single-purpose capability for this closure: send it as the `X-Closure-Token` header to poll the status endpoint or to cancel, with no session at all. It is returned exactly once and expires with the grace period. A host whose auth backend admits deactivated users can also cancel by logging back in; Django's default backend does not, which is what the token is for.
          *
          *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
@@ -234,15 +228,9 @@ export interface paths {
         };
         /**
          * Get account closure status
-         * @description Base view exposing serializer seams.
+         * @description Authorized either by a live session or by the `X-Closure-Token` returned with the closure's 202. The token keeps answering after the sessions are gone and while the erasure runs, until the grace period it was signed for ends.
          *
-         *     Every concrete view declares ``request_serializer_class`` /
-         *     ``response_serializer_class`` (``None`` when that direction carries no
-         *     serialized payload). Subclasses may swap either class attribute — or
-         *     override the getters — to customize the request/response envelopes
-         *     without rewriting the method bodies.
-         *
-         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
+         *     **Permissions:** `AllowAny`
          */
         get: operations["gdpr_api_v1_user_account_close_status_retrieve"];
         put?: never;
@@ -346,6 +334,11 @@ export interface components {
              * @example true
              */
             can_cancel: boolean;
+            /**
+             * @description Single-purpose capability for polling and cancelling THIS closure after its sessions were revoked — present only on the 202 that starts the closure, null everywhere else. Store it and send it as the X-Closure-Token header; it expires with the grace period
+             * @example eyJjaWQiOjQyfQ:1uL9Wq:0S3n...
+             */
+            closure_token?: string | null;
         };
         /** @description Whether a declared data owner is answering probes. */
         DataOwnerHealthDTO: {
@@ -471,6 +464,8 @@ export interface components {
             counts?: {
                 [key: string]: unknown;
             };
+            /** @description Whether this owner never answered at all — still waiting, or timed out in silence. A failed part answered; this one did not */
+            unanswered?: boolean;
         };
         /** @description State of an erasure request, with everything it is waiting on. */
         ErasureStatusDTO: {
@@ -520,6 +515,11 @@ export interface components {
              */
             fully_erased_by: string;
             /**
+             * @description What the report may say — pending, complete, or incomplete. Never complete while an owner is unanswered or completeness was waived
+             * @example incomplete
+             */
+            outcome?: string;
+            /**
              * @description ISO datetime the erasure was certified, null while open
              * @example 2026-08-24T09:12:00Z
              */
@@ -540,6 +540,13 @@ export interface components {
              *     ]
              */
             unreceipted_owners?: string[];
+            /**
+             * @description Owners that never answered — the subset that went silent rather than reporting a failure
+             * @example [
+             *       "media"
+             *     ]
+             */
+            unanswered_owners?: string[];
         };
         /** @description Response after initiating a data export request. */
         ExportRequestDTO: {
@@ -991,7 +998,10 @@ export interface operations {
     gdpr_api_v1_user_account_cancel_close_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `closure_token` returned with the closure's 202, standing in for the session that closure revoked. Scoped to that one closure and expiring with its grace period. Send this **or** authenticate normally; sending neither is a 401. */
+                "X-Closure-Token"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1003,6 +1013,22 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClosureStatusDTO"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
             404: {
@@ -1053,7 +1079,10 @@ export interface operations {
     gdpr_api_v1_user_account_close_status_retrieve: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description The `closure_token` returned with the closure's 202, standing in for the session that closure revoked. Scoped to that one closure and expiring with its grace period. Send this **or** authenticate normally; sending neither is a 401. */
+                "X-Closure-Token"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1065,6 +1094,22 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClosureStatusDTO"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
             404: {
