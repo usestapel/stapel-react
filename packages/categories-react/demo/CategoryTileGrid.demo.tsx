@@ -106,6 +106,21 @@ export default defineDemo({
         </CategoriesDemoHarness>
       ),
     },
+    "compact flat": {
+      description:
+        "size=\"compact\" with the flat surface — the reference's second-level tile, half the root tile's height, as a LIST ROW: the art first, the caption second, adjacent and against the leading edge. The 2026-09-04 anatomy put the name at one end of that row and the picture at the other, which works while a fill holds the two together and reads as scattered text once the fill is gone (measured on the stand) — the same finding as the regular tile's corners, along the row's own axis. Height, density and padding are unchanged; size=\"compact\" with tileSurface=\"card\" keeps the 2026-09-04 arrangement exactly.",
+      viewport: "desktop",
+      step: "ready-compact-flat",
+      render: () => (
+        <CategoriesDemoHarness seed={SEEDED}>
+          <CategoryTileGrid
+            size="compact"
+            layout="wrap"
+            renderIcon={(reference) => <Art reference={reference} />}
+          />
+        </CategoriesDemoHarness>
+      ),
+    },
     "card tiles": {
       description:
         "tileSurface=\"card\" — the filled tile this grid used to draw for everybody, kept for a surface that was designed around it. The default is now \"flat\": no fill and no border at rest (every other variant here), with the same token fill and the same radius arriving on hover and on keyboard focus, where it means «this is the one you are about to open». A dozen filled boxes on a landing outweigh the art inside them, which is the whole finding.",

@@ -44,7 +44,10 @@ const ENTRIES: readonly CarouselEntry[] = CAROUSEL.map((category) => ({
   href: `/c/${category.slug}`,
 }));
 
-async function mount(surface?: "flat" | "card"): Promise<HTMLElement> {
+async function mount(
+  surface?: "flat" | "card",
+  size?: "regular" | "compact"
+): Promise<HTMLElement> {
   render(
     <TestProviders server={mockServer(OK)}>
       <CategoryTileGrid
@@ -53,6 +56,7 @@ async function mount(surface?: "flat" | "card"): Promise<HTMLElement> {
         // this suite is about an ordinary tile's own anatomy.
         allTile={false}
         {...(surface !== undefined ? { tileSurface: surface } : {})}
+        {...(size !== undefined ? { size } : {})}
       />
     </TestProviders>
   );
@@ -271,5 +275,89 @@ describe("the scroller declares no row it has no tile for", () => {
     expect(
       screen.getByTestId("categories-tile-grid-list").style.gridTemplateRows
     ).toBe("repeat(2, auto)");
+  });
+});
+
+/**
+ * THE COMPACT TILE'S OWN AXIS.
+ *
+ * `size: "compact"` is a horizontal row half a tile high, and the owner's
+ * 2026-09-04 anatomy put the name against one end of it and the picture
+ * against the other. That is a CARD's arrangement for the same reason the
+ * regular tile's corners were: the filled box is what makes two marks at
+ * opposite ends read as one thing. Without a fill the row is two pieces of
+ * scattered text with a gap in the middle — measured on the stand — so the
+ * architect's verdict supersedes the 2026-09-04 ruling FOR THE FLAT SURFACE
+ * ONLY: art first, caption second, adjacent, against the leading edge.
+ *
+ * Height, density and padding are the 2026-09-04 ruling either way; only the
+ * arrangement inside the row moves.
+ */
+describe("size=compact + tileSurface=flat — a LIST ROW", () => {
+  it("puts the art first and the caption second, adjacent", async () => {
+    const tile = await mount("flat", "compact");
+    const marks = [...tile.children];
+    expect(marks.length).toBe(2);
+    // ART leads; the caption follows it.
+    expect(marks[0]?.getAttribute("data-testid")).not.toBe(
+      CATEGORY_TILE_LABEL_TESTID
+    );
+    expect(marks[1]?.getAttribute("data-testid")).toBe(CATEGORY_TILE_LABEL_TESTID);
+    // Adjacent, not at opposite ends: one gap between them and nothing
+    // pushing them apart.
+    expect(tile.style.justifyContent).toBe("flex-start");
+    expect(tile.style.gap).toBe("8px");
+  });
+
+  it("is still a ROW, aligned on its centre line", async () => {
+    const tile = await mount("flat", "compact");
+    expect(tile.style.flexDirection).toBe("row");
+    expect(tile.style.alignItems).toBe("center");
+  });
+
+  it("keeps the caption left-aligned and the half-tile height", async () => {
+    const tile = await mount("flat", "compact");
+    const caption = tile.querySelector<HTMLElement>(
+      `[data-testid="${CATEGORY_TILE_LABEL_TESTID}"]`
+    );
+    // A list row's caption reads from the leading edge — never centred like
+    // the regular flat tile's stack.
+    expect(caption?.style.textAlign).toBe("start");
+    // The 2026-09-04 height, untouched: only the arrangement moved.
+    expect(tile.style.aspectRatio).toBe("8 / 3");
+  });
+
+  it("takes the same hover fill as every other flat tile", async () => {
+    const tile = await mount("flat", "compact");
+    expect(tile.classList.contains(CATEGORY_TILE_FLAT_CLASS)).toBe(true);
+    expect(tile.style.background).toBe("");
+  });
+});
+
+describe("size=compact + tileSurface=card — the 2026-09-04 anatomy, exactly", () => {
+  it("keeps the caption first and the picture at the far end", async () => {
+    const tile = await mount("card", "compact");
+    const marks = [...tile.children];
+    expect(marks[0]?.getAttribute("data-testid")).toBe(CATEGORY_TILE_LABEL_TESTID);
+    expect(tile.style.justifyContent).toBe("space-between");
+    expect(tile.style.flexDirection).toBe("row");
+    expect(tile.style.aspectRatio).toBe("8 / 3");
+    // And it still has the fill that made those opposite ends read as one.
+    expect(tile.style.background).toBe("var(--stapel-surface-sunken)");
+  });
+});
+
+describe("size=regular + tileSurface=flat is untouched by the row rule", () => {
+  it("is still the centred stack", async () => {
+    const tile = await mount("flat", "regular");
+    expect(tile.style.justifyContent).toBe("center");
+    expect(tile.style.alignItems).toBe("center");
+    expect(tile.style.aspectRatio).toBe("4 / 3");
+    const marks = [...tile.children];
+    expect(marks[1]?.getAttribute("data-testid")).toBe(CATEGORY_TILE_LABEL_TESTID);
+    const caption = tile.querySelector<HTMLElement>(
+      `[data-testid="${CATEGORY_TILE_LABEL_TESTID}"]`
+    );
+    expect(caption?.style.textAlign).toBe("center");
   });
 });

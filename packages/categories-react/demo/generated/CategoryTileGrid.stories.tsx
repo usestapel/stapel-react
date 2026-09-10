@@ -18,6 +18,9 @@ HostTiles.parameters = { stapel: {"viewport":"phone","step":"ready-from-entries"
 export const InsideACategory = (): ReactElement => renderDemoVariant(demo, "inside a category");
 InsideACategory.storyName = "inside a category";
 InsideACategory.parameters = { stapel: {"viewport":"desktop","step":"ready-without-all"} };
+export const CompactFlat = (): ReactElement => renderDemoVariant(demo, "compact flat");
+CompactFlat.storyName = "compact flat";
+CompactFlat.parameters = { stapel: {"viewport":"desktop","step":"ready-compact-flat"} };
 export const CardTiles = (): ReactElement => renderDemoVariant(demo, "card tiles");
 CardTiles.storyName = "card tiles";
 CardTiles.parameters = { stapel: {"viewport":"phone","step":"ready-card-surface"} };

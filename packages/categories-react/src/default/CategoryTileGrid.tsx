@@ -126,9 +126,14 @@ export type TileDensity = "cozy" | "compact";
  * `"regular"` (default) is the reference root tile — label top-left, art
  * bottom-right, unchanged. `"compact"` is the reference's SECOND-level tile
  * (owner's verdict, 2026-09-04): a person landing inside a category sees a
- * denser row — name on the left, a small picture on the right, about HALF the
- * root tile's height for the same width. A root page (the home) stays
- * `"regular"`; every tile page below it is where `"compact"` belongs.
+ * denser row about HALF the root tile's height for the same width. A root page
+ * (the home) stays `"regular"`; every tile page below it is where `"compact"`
+ * belongs.
+ *
+ * WHAT IS IN THAT ROW depends on the SURFACE, and only since the flat tile
+ * (architect's verdict, superseding 2026-09-04 for the flat surface only) —
+ * see {@link tileSizeCompact} and {@link tileSizeCompactFlat}. The height and
+ * the density are the 2026-09-04 ruling either way.
  */
 export type TileSize = "regular" | "compact";
 
@@ -393,9 +398,13 @@ const tileCompact: CSSProperties = {
 };
 
 /**
- * `size: "compact"`'s own tile — a HORIZONTAL row (name left, small picture
+ * `size: "compact"`'s CARD tile — a HORIZONTAL row (name left, small picture
  * right), not the `density: "compact"` icon-over-label square above. `size`
  * takes precedence: the two never both apply to one tile.
+ *
+ * The owner's 2026-09-04 anatomy, unchanged and still the answer whenever
+ * there is a fill to hold it — see {@link tileSizeCompactFlat} for what the
+ * same row does without one.
  */
 const tileSizeCompact: CSSProperties = {
   display: "flex",
@@ -410,6 +419,31 @@ const tileSizeCompact: CSSProperties = {
   color: cssVar("text"),
   scrollSnapAlign: "start",
   overflow: "hidden",
+};
+
+/**
+ * `size: "compact"` WITHOUT a fill — a LIST ROW (architect's verdict, which
+ * supersedes the 2026-09-04 ruling for the flat surface only).
+ *
+ * `justify-content: space-between` puts the name against one end of the row
+ * and the picture against the other, and that is a CARD's anatomy: the filled
+ * box is what makes two marks at opposite ends read as one thing. Take the
+ * fill away — the owner's ruling for every tile — and the same row is two
+ * pieces of scattered text with a gap in the middle, which is what the stand
+ * measured.
+ *
+ * So the flat compact tile is what a list row has always been: the art first,
+ * the caption second, adjacent, both against the leading edge, with the
+ * design system's own gap between them. It is the same fix the regular flat
+ * tile got ({@link tileFlat}) applied to a row instead of a stack — proximity
+ * replacing the box in the axis the anatomy actually runs along.
+ *
+ * Everything else is the 2026-09-04 ruling: the same half-tile height, the
+ * same density, the same padding. Only the arrangement inside the row moves.
+ */
+const tileSizeCompactFlat: CSSProperties = {
+  ...tileSizeCompact,
+  justifyContent: "flex-start",
 };
 
 /* ── THE TILE'S SURFACE ────────────────────────────────────────────────────
@@ -486,9 +520,11 @@ export function categoryTileCss(): string {
  * moves — a flat tile occupies exactly the box the card tile did, so every
  * reservation, every track height and every measured stage is unchanged.
  *
- * `size: "compact"` keeps its own anatomy: it is a horizontal ROW half a
- * tile high (name left, small picture right, adjacent rather than in opposite
- * corners) ruled by the owner on 2026-09-04, and it has no void to close.
+ * `size: "compact"` has the SAME problem and the same answer along its own
+ * axis: it is a horizontal row half a tile high, and putting the name against
+ * one end and the picture against the other is a card's arrangement too. Flat,
+ * it becomes a list row — art first, caption second, adjacent — see
+ * {@link tileSizeCompactFlat}. Its height and density are untouched.
  */
 const tileFlat: CSSProperties = {
   ...tileBase,
@@ -497,10 +533,26 @@ const tileFlat: CSSProperties = {
   gap: spacing[1],
 };
 
-/** Which anatomy this tile draws: the card's corners, or the flat tile's
- * centred stack. `size: "compact"` is neither — see {@link tileFlat}. */
+/**
+ * The flat tile's STACK — a regular-size tile with no fill: art over caption,
+ * both centred. See {@link tileFlat}.
+ */
 function isFlatStack(size: TileSize, surface: TileSurface): boolean {
   return size !== "compact" && surface === "flat";
+}
+
+/**
+ * The flat tile's ROW — a compact-size tile with no fill: art first, caption
+ * second, adjacent and against the leading edge. See
+ * {@link tileSizeCompactFlat}.
+ *
+ * Two predicates rather than one "is this flat", because the anatomy differs
+ * by AXIS and each one names the arrangement it selects: a stack and a row are
+ * not two spellings of the same rule, and a single flag would have to be read
+ * together with `size` at every call site to mean anything.
+ */
+function isFlatRow(size: TileSize, surface: TileSurface): boolean {
+  return size === "compact" && surface === "flat";
 }
 
 /** The classes one tile carries, for the surface it draws. */
@@ -517,7 +569,9 @@ function tileStyle(
 ): CSSProperties {
   const base =
     size === "compact"
-      ? tileSizeCompact
+      ? surface === "flat"
+        ? tileSizeCompactFlat
+        : tileSizeCompact
       : density === "compact"
         ? tileCompact
         : surface === "flat"
@@ -937,11 +991,24 @@ function tileBody(props: {
       {props.label}
     </span>
   );
-  if (props.size === "compact") {
+  // The CARD's compact row: name against one end, picture against the other.
+  // The flat one falls through to the art-first arrangement below — see
+  // `tileSizeCompactFlat` for why the corners stop working without a fill.
+  if (props.size === "compact" && !isFlatRow(props.size, props.surface)) {
     return (
       <>
         {label}
         <span style={artSizeCompact}>{props.art}</span>
+      </>
+    );
+  }
+  // A LIST ROW: the art leads, the caption follows, adjacent. Same picture box
+  // as the card row — only the order and the alignment change.
+  if (isFlatRow(props.size, props.surface)) {
+    return (
+      <>
+        <span style={artSizeCompact}>{props.art}</span>
+        {label}
       </>
     );
   }
