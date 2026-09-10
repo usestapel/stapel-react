@@ -185,8 +185,39 @@ const ART_ASPECT_RATIO = "3 / 2";
  */
 const LABEL_LINES = 3;
 
-/** How many tiles the loading arm reserves room for. */
-const SKELETON_TILES = [1, 2, 3, 4] as const;
+/**
+ * HOW MANY ROWS `count` TILES TAKE IN `columns` COLUMNS.
+ *
+ * One line of arithmetic, exported, because three places need the same answer
+ * and a fourth (a host holding the stage's box from outside the pair) had no
+ * way to ask for it and was guessing a height instead — which is the defect
+ * this file's budget note keeps recording under other names.
+ *
+ * Six tiles in five columns is TWO rows; five in five is ONE. A stage that
+ * reserves a fixed number of rows leaves the difference as an empty band
+ * under the last tile, before whatever block comes next.
+ *
+ * Zero tiles is zero rows and not one: there is no content, so there is no
+ * box, and a row reserved for nothing is the hole an empty state exists to
+ * replace.
+ */
+export function tileStageRows(count: number, columns: number): number {
+  if (count <= 0) return 0;
+  return Math.ceil(count / Math.max(1, columns));
+}
+
+/**
+ * How many tiles the loading arm reserves room for when the caller does not
+ * say — the number this arm has always drawn.
+ *
+ * A caller that KNOWS how many are coming says so
+ * ({@link CategoryTileGridProps.reserveCount}) and the reservation is then the
+ * box the tiles land in rather than a fixed four: the skeletons sit in the
+ * SAME grid, so the browser lays out `tileStageRows(count, columns)` rows for
+ * the reserve exactly as it will for the answer, with no second copy of the
+ * geometry to drift from the first.
+ */
+const RESERVED_TILES_DEFAULT = 4;
 
 /**
  * THE BOX THE TILES ARRIVE INTO — the row's own geometry, filled with
@@ -204,12 +235,24 @@ function ReservedTiles(props: {
   readonly density: TileDensity;
   readonly minTileWidth: number;
   readonly size: TileSize;
+  /** How many tiles are coming. One skeleton each, in the grid they will land
+   * in, so the reserved height is the rows they will take and no more. */
+  readonly count: number;
 }): ReactElement {
+  const slots = Array.from({ length: Math.max(0, props.count) }, (_, i) => i);
   return (
     <div
-      style={listStyle(props.layout, props.density, props.minTileWidth, props.size)}
+      style={listStyle(
+        props.layout,
+        props.density,
+        props.minTileWidth,
+        props.size,
+        props.count
+      )}
+      data-testid="categories-tile-grid-reserved-list"
+      data-reserved-tiles={String(slots.length)}
     >
-      {SKELETON_TILES.map((slot) => (
+      {slots.map((slot) => (
         <Skeleton.Button
           key={slot}
           active
@@ -228,17 +271,27 @@ function ReservedTiles(props: {
 /** The scroller's own geometry, `gap` threaded through so `size: "compact"`
  * (see {@link COMPACT_SIZE_GAP}) can tighten it without a second copy of the
  * grid rules. */
-function scrollerStyle(density: TileDensity, gap: number): CSSProperties {
+function scrollerStyle(
+  density: TileDensity,
+  gap: number,
+  count: number
+): CSSProperties {
   const columns =
     density === "compact"
       ? `min(calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${gap}px), ${COMPACT_MAX_COLUMN_PX}px)`
       : // `100%` is the SCROLL PORT's content box, so the tile is a fraction
         // of the box it was mounted in — see this file's header.
         `calc(100% / ${VISIBLE_COLUMNS} - ${gap}px)`;
+  // Two rows is the shape, not a floor. `grid-auto-flow: column` fills a
+  // declared row whether or not a tile lands in it, so a stage with one tile
+  // used to declare a second, empty row and pay its gap — an empty band under
+  // the only thing on screen. The rows are what the tiles need, capped at the
+  // reference's two.
+  const rows = Math.min(TILE_ROWS, Math.max(1, count));
   return {
     display: "grid",
     gridAutoFlow: "column",
-    gridTemplateRows: `repeat(${TILE_ROWS}, auto)`,
+    gridTemplateRows: `repeat(${String(rows)}, auto)`,
     gridAutoColumns: columns,
     gap,
     overflowX: "auto",
@@ -293,10 +346,17 @@ function listStyle(
   layout: TileLayout,
   density: TileDensity,
   minTileWidth: number,
-  size: TileSize
+  size: TileSize,
+  count: number
 ): CSSProperties {
   const gap = size === "compact" ? COMPACT_SIZE_GAP : DEFAULT_GAP;
-  return layout === "wrap" ? wrapStyle(minTileWidth, gap) : scrollerStyle(density, gap);
+  // `wrap` needs no row count of its own: the tiles are the grid's items, so
+  // the browser lays out `tileStageRows(count, columns)` rows and not one
+  // more — which is the whole reason the reserve draws one skeleton per tile
+  // rather than a fixed four.
+  return layout === "wrap"
+    ? wrapStyle(minTileWidth, gap)
+    : scrollerStyle(density, gap, count);
 }
 
 const tileBase: CSSProperties = {
@@ -407,6 +467,42 @@ export function categoryTileCss(): string {
   ].join("\n");
 }
 
+/**
+ * THE FLAT TILE'S ANATOMY — centred, art over caption.
+ *
+ * Taking the fill away was right and it was only half the change. The card
+ * anatomy puts the caption in the top-left corner and the art in the
+ * bottom-right, and a filled box is what held those two marks together: with
+ * no fill they are two unrelated things with a void between them, and six of
+ * them across a desktop row read as a loose list rather than as a grid of
+ * tiles (owner's walk of 0.27.0, both themes).
+ *
+ * The phone landing's dense grid already reads correctly with no fill, and it
+ * is the same arrangement every catalogue app uses at that size: the icon
+ * centred with the caption centred under it. Proximity is what groups them,
+ * so the group survives the loss of the box.
+ *
+ * The RATIO stays 4/3 and the padding stays the card's. Only the arrangement
+ * moves — a flat tile occupies exactly the box the card tile did, so every
+ * reservation, every track height and every measured stage is unchanged.
+ *
+ * `size: "compact"` keeps its own anatomy: it is a horizontal ROW half a
+ * tile high (name left, small picture right, adjacent rather than in opposite
+ * corners) ruled by the owner on 2026-09-04, and it has no void to close.
+ */
+const tileFlat: CSSProperties = {
+  ...tileBase,
+  justifyContent: "center",
+  alignItems: "center",
+  gap: spacing[1],
+};
+
+/** Which anatomy this tile draws: the card's corners, or the flat tile's
+ * centred stack. `size: "compact"` is neither — see {@link tileFlat}. */
+function isFlatStack(size: TileSize, surface: TileSurface): boolean {
+  return size !== "compact" && surface === "flat";
+}
+
 /** The classes one tile carries, for the surface it draws. */
 function tileClassName(surface: TileSurface): string {
   return surface === "flat"
@@ -424,7 +520,9 @@ function tileStyle(
       ? tileSizeCompact
       : density === "compact"
         ? tileCompact
-        : tileBase;
+        : surface === "flat"
+          ? tileFlat
+          : tileBase;
   if (surface === "card") return base;
   // The fill leaves the inline style entirely rather than being overwritten
   // with `transparent`: an inline declaration would beat the sheet's own
@@ -503,6 +601,14 @@ const labelCompact: CSSProperties = {
  * width plus {@link ART_ASPECT_RATIO} — see that constant — instead of a
  * shrink-to-fit cap, so the box has its final size before anything is drawn
  * inside it. */
+/** The flat tile's caption: the card's own type, centred under the art —
+ * NOT `labelCompact`'s 12px, which belongs to an ~80px phone tile. The clamp
+ * is the regular one, and `labelLines` still overrides it. */
+const labelFlat: CSSProperties = {
+  ...labelStyle,
+  textAlign: "center",
+};
+
 const artCompact: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -751,6 +857,7 @@ export type TileLabelHyphens = "manual" | "auto";
 function labelStyleFor(
   density: TileDensity,
   size: TileSize,
+  surface: TileSurface,
   labelLines: number | undefined,
   hyphens: TileLabelHyphens
 ): CSSProperties {
@@ -759,7 +866,9 @@ function labelStyleFor(
       ? labelSizeCompact
       : density === "compact"
         ? labelCompact
-        : labelStyle;
+        : isFlatStack(size, surface)
+          ? labelFlat
+          : labelStyle;
   const clamped =
     labelLines === undefined ? base : { ...base, WebkitLineClamp: labelLines };
   return hyphens === "manual" ? clamped : { ...clamped, hyphens };
@@ -801,6 +910,7 @@ function tileBody(props: {
   readonly art: ReactNode;
   readonly size: TileSize;
   readonly density: TileDensity;
+  readonly surface: TileSurface;
   readonly labelLines: number | undefined;
   readonly labelHyphens: TileLabelHyphens;
   /** The i18n engine's locale, for `hyphens: auto` to hyphenate BY — see
@@ -815,6 +925,7 @@ function tileBody(props: {
       style={labelStyleFor(
         props.density,
         props.size,
+        props.surface,
         props.labelLines,
         props.labelHyphens
       )}
@@ -834,7 +945,10 @@ function tileBody(props: {
       </>
     );
   }
-  if (props.density === "compact") {
+  // Art over caption, both centred — the dense phone grid's arrangement, and
+  // the FLAT tile's too: with no fill to hold them, proximity is what makes
+  // the icon and the name one thing. See `tileFlat`.
+  if (props.density === "compact" || isFlatStack(props.size, props.surface)) {
     return (
       <>
         <span style={artCompact}>{props.art}</span>
@@ -928,6 +1042,7 @@ function MoreTile(props: {
         art: <MoreGlyph count={props.extraCount} />,
         size: props.size,
         density: props.density,
+        surface: props.surface,
         labelLines: props.labelLines,
         labelHyphens: props.labelHyphens,
         labelLang: props.labelLang,
@@ -1092,6 +1207,23 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * nothing at all — there are no tiles to reserve room for.
    */
   readonly reserve?: boolean | "pending";
+  /**
+   * HOW MANY TILES the reservation holds room for. Default 4 — the number
+   * this arm has always drawn.
+   *
+   * The reserved box is not a height: it is one skeleton per tile in the grid
+   * the tiles themselves land in, so the browser lays out
+   * `tileStageRows(count, columns)` rows for the reservation exactly as it
+   * will for the answer. A caller that already knows the count — a host whose
+   * own read returns the children, a page that has the tree in hand — states
+   * it here, and the band under the last row goes away in both directions: no
+   * hole where the answer is shorter, no shift where it is taller.
+   *
+   * See {@link tileStageRows} for the rule itself, which is exported so a
+   * host holding the stage's box from OUTSIDE this pair computes it from the
+   * same arithmetic instead of guessing a pixel height.
+   */
+  readonly reserveCount?: number;
   /**
    * The 0-indexed depth of the category whose children these tiles are — a
    * top-level category is `0`, its child is `1`. Omitted means the catalogue
@@ -1397,7 +1529,13 @@ function TileRow(props: {
   return (
     <>
       <div
-        style={listStyle(props.layout, props.density, props.minTileWidth, props.size)}
+        style={listStyle(
+          props.layout,
+          props.density,
+          props.minTileWidth,
+          props.size,
+          visible.length + (props.allTile !== false ? 1 : 0) + (capped ? 1 : 0)
+        )}
         data-stapel-tile-layout={props.layout}
         data-testid="categories-tile-grid-list"
       >
@@ -1510,6 +1648,10 @@ export function CategoryTileGrid(
   const density: TileDensity = props.density ?? "cozy";
   const size: TileSize = props.size ?? "regular";
   const surface: TileSurface = props.tileSurface ?? "flat";
+  // How many tiles the reservation holds room for. A caller that knows the
+  // number says it and the box is the rows those tiles will take — see
+  // `tileStageRows`; one that does not gets the arm's own long-standing four.
+  const reserveCount = props.reserveCount ?? RESERVED_TILES_DEFAULT;
   const overflow: TileOverflow = props.overflow ?? "none";
   const layout: TileLayout = props.layout ?? "scroll";
   const minTileWidth =
@@ -1580,6 +1722,7 @@ export function CategoryTileGrid(
               density={density}
               minTileWidth={minTileWidth}
               size={size}
+              count={reserveCount}
             />
           </div>
         ) : override !== undefined ? (
@@ -1606,6 +1749,7 @@ export function CategoryTileGrid(
                     density={density}
                     minTileWidth={minTileWidth}
                     size={size}
+                    count={reserveCount}
                   />
                 }
                 failed={(error) => (

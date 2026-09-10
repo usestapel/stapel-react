@@ -55,6 +55,7 @@ export {
   CATEGORY_TILE_LABEL_TESTID,
   CATEGORY_TILE_STYLE_HREF,
   categoryTileCss,
+  tileStageRows,
 } from "./CategoryTileGrid.js";
 export type {
   CategoryIconResolver,

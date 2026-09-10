@@ -533,6 +533,31 @@ describe("tile layout (the wrapping arm the storefront had to draw itself)", () 
       // the inline style the component wrote, not from the image settling.
       expect(image.closest("a")?.style.aspectRatio).toBe("4 / 3");
       expect(image.parentElement?.style.aspectRatio).toBe("3 / 2");
+      // The FLAT tile (the default) stacks a centred half-width art box over
+      // the caption; the CARD tile keeps its 60% bottom-right corner. Both
+      // are fixed fractions of a fixed-ratio tile, which is the property
+      // under test — the number differs by anatomy, not by what loaded.
+      expect(image.parentElement?.style.width).toBe("50%");
+    }
+  });
+
+  it("the CARD anatomy keeps its bottom-right art corner at 60%", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid
+          layout="wrap"
+          tileSurface="card"
+          entries={IMAGE_TILES}
+          allTile={false}
+        />
+      </TestProviders>
+    );
+    await waitFor(() =>
+      expect(tileList().querySelectorAll("img")).toHaveLength(IMAGE_TILES.length)
+    );
+    for (const image of [...tileList().querySelectorAll("img")]) {
+      expect(image.closest("a")?.style.aspectRatio).toBe("4 / 3");
+      expect(image.parentElement?.style.aspectRatio).toBe("3 / 2");
       expect(image.parentElement?.style.width).toBe("60%");
     }
   });

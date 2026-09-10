@@ -431,6 +431,12 @@
           "step": "partition-counted"
         },
         {
+          "id": "pointer",
+          "description": "A LINKED child among the sections — a pointer at another branch of the catalogue, not one of this template's halves. It is out of the partition entirely: no radio, no count (the storefront's live row read «All | New 0 | Used 3 | Car rental 0», where the last zero counted somebody else's category), never the chosen section even when the address names it. It is drawn after the row as an outlined link chip with a trailing arrow — a real `<a href>` to the target, which a middle-click opens in a new tab. `linkedChildren=\"none\"` omits it here for a page whose tile stage already shows the same destination.",
+          "viewport": "desktop",
+          "step": "partition-pointer"
+        },
+        {
           "id": "child",
           "description": "A shared link into one child, at 390px: the row wraps rather than scrolls, and the chosen chip is the single Tab stop.",
           "viewport": "phone",
@@ -439,7 +445,7 @@
       ],
       "source": {
         "file": "demo/PartitionChips.demo.tsx",
-        "line": 50
+        "line": 76
       }
     },
     {

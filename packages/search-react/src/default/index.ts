@@ -167,7 +167,11 @@ export {
 } from "./PopularValues.js";
 export type { PopularValuesProps } from "./PopularValues.js";
 export { PartitionChips } from "./PartitionChips.js";
-export type { PartitionChild, PartitionChipsProps } from "./PartitionChips.js";
+export type {
+  PartitionChild,
+  PartitionChipsProps,
+  PartitionLinkedChildren,
+} from "./PartitionChips.js";
 
 export {
   FacetPanelPane,

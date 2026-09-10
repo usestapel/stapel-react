@@ -21,6 +21,9 @@ InsideACategory.parameters = { stapel: {"viewport":"desktop","step":"ready-witho
 export const CardTiles = (): ReactElement => renderDemoVariant(demo, "card tiles");
 CardTiles.storyName = "card tiles";
 CardTiles.parameters = { stapel: {"viewport":"phone","step":"ready-card-surface"} };
+export const ReservedRows = (): ReactElement => renderDemoVariant(demo, "reserved rows");
+ReservedRows.storyName = "reserved rows";
+ReservedRows.parameters = { stapel: {"viewport":"desktop","step":"reserved-rows"} };
 export const NothingFeatured = (): ReactElement => renderDemoVariant(demo, "nothing featured");
 NothingFeatured.storyName = "nothing featured";
 NothingFeatured.parameters = { stapel: {"viewport":"desktop","step":"empty"} };

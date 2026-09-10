@@ -29,22 +29,48 @@ const CHILDREN: readonly (readonly [number, string, string, number])[] = [
   [155, `${PARENT}/155`, "demo.partition.rent", 9],
 ];
 
+/** A POINTER among the children: another branch of the catalogue an operator
+ * drew here, with the count a mechanical host mapping hands over anyway. */
+const POINTER: readonly [number, string, string, number] = [
+  400,
+  "141/400",
+  "demo.partition.rent",
+  0,
+];
+
 function Row(props: {
   readonly initial: string | null;
   /** Draw each section's total beside its name — see `PartitionChild.count`. */
   readonly counted?: boolean;
+  /** Add a linked child to the row — see `PartitionChild.linked`. */
+  readonly pointer?: boolean;
+  readonly linkedChildren?: "chip" | "none";
 }): ReactElement {
   const t = useT();
   const [chosen, setChosen] = useState<string | null>(props.initial);
-  const items: readonly PartitionChild[] = CHILDREN.map(
+  const rows =
+    props.pointer === true ? [...CHILDREN, POINTER] : CHILDREN;
+  const items: readonly PartitionChild[] = rows.map(
     ([id, path, key, count]) => ({
       id,
       path,
       name: t(key),
       ...(props.counted === true ? { count } : {}),
+      ...(path === POINTER[1]
+        ? { linked: true, count, href: "/c/arenda-avto" }
+        : {}),
     })
   );
-  return <PartitionChips items={items} value={chosen} onChange={setChosen} />;
+  return (
+    <PartitionChips
+      items={items}
+      value={chosen}
+      onChange={setChosen}
+      {...(props.linkedChildren !== undefined
+        ? { linkedChildren: props.linkedChildren }
+        : {})}
+    />
+  );
 }
 
 export default defineDemo({
@@ -73,6 +99,17 @@ export default defineDemo({
       render: () => (
         <SearchSkinHarness search={`type=${DEMO_TYPE}&category=${PARENT}`}>
           <Row initial={null} counted />
+        </SearchSkinHarness>
+      ),
+    },
+    pointer: {
+      description:
+        "A LINKED child among the sections — a pointer at another branch of the catalogue, not one of this template's halves. It is out of the partition entirely: no radio, no count (the storefront's live row read «All | New 0 | Used 3 | Car rental 0», where the last zero counted somebody else's category), never the chosen section even when the address names it. It is drawn after the row as an outlined link chip with a trailing arrow — a real `<a href>` to the target, which a middle-click opens in a new tab. `linkedChildren=\"none\"` omits it here for a page whose tile stage already shows the same destination.",
+      viewport: "desktop",
+      step: "partition-pointer",
+      render: () => (
+        <SearchSkinHarness search={`type=${DEMO_TYPE}&category=${PARENT}`}>
+          <Row initial={null} counted pointer />
         </SearchSkinHarness>
       ),
     },

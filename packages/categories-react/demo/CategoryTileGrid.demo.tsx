@@ -120,6 +120,17 @@ export default defineDemo({
         </CategoriesDemoHarness>
       ),
     },
+    "reserved rows": {
+      description:
+        "reserve + reserveCount — the box the tiles arrive into, while a HOST's own read is still in flight. One skeleton per tile in the grid the tiles land in, so the reservation is `tileStageRows(count, columns)` rows and no more: six tiles in five columns is two rows, five is one, and the difference used to stand as an empty band under the last tile before the next block. A caller that does not know the number still gets this arm's own four.",
+      viewport: "desktop",
+      step: "reserved-rows",
+      render: () => (
+        <CategoriesDemoHarness handlers={OUTAGE}>
+          <CategoryTileGrid layout="wrap" reserve="pending" reserveCount={6} />
+        </CategoriesDemoHarness>
+      ),
+    },
     "nothing featured": {
       description: "A real configuration — a landing that says so instead of spinning.",
       viewport: "desktop",

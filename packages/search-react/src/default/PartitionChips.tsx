@@ -57,7 +57,7 @@ import type {
 } from "react";
 import { Button, Segmented, Typography } from "antd";
 import { useT } from "@stapel/core";
-import { radii, spacing } from "@stapel/tokens";
+import { cssVar, radii, spacing } from "@stapel/tokens";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
 /** One child of a partitioned category. `path` is the slash-joined id path
@@ -81,9 +81,47 @@ export interface PartitionChild {
    *
    * Omit it and nothing is drawn — an absent count is not a zero, and a
    * section whose total nobody asked for must not be captioned "0".
+   *
+   * Ignored on a POINTER — see {@link linked}.
    */
   readonly count?: number;
+  /**
+   * This entry is a POINTER to another category, not a section of THIS
+   * template (`CategoryChild.linked`, stapel-categories 0.22.0).
+   *
+   * A partition is one template split by a value its children's names express
+   * — new / used / for rent. A pointer is a different branch of the catalogue
+   * that an operator drew among these children so a person can reach it from
+   * here. It is not one of the halves, it does not narrow this feed, and it
+   * has NO count of its own: the number beside it is the number of listings in
+   * somebody else's category, which is why the storefront's
+   * `/c/transport-avtomobili` read `All | New 0 | Used 3 | Car rental 0`
+   * — two of those zeroes were a partition's real emptiness and one was a
+   * question nobody had asked.
+   *
+   * So a linked entry never becomes a radio, never carries a count, and never
+   * matches {@link PartitionChipsProps.value} — a stale address naming one
+   * leaves the row on its parent chip rather than lighting a pointer up as the
+   * chosen section. It is drawn AFTER the partitions as a link, or not at all:
+   * see {@link PartitionChipsProps.linkedChildren}.
+   */
+  readonly linked?: boolean;
+  /**
+   * WHERE a pointer leads — the target's own address, as the host builds it
+   * (`/c/<slug>`). Read only on a {@link linked} entry.
+   *
+   * The pointer's `path` is an id path into the CATALOGUE, and following it
+   * as a `category` filter is exactly the confusion this shape exists to end:
+   * a pointer is a destination, so the chip is a real `<a href>` that
+   * navigates, with no `f=` and no state change on this page. A linked entry
+   * with no `href` is not drawn — a link with no address is not a link.
+   */
+  readonly href?: string;
 }
+
+/** What the row does with a POINTER among its children — see
+ * {@link PartitionChipsProps.linkedChildren}. */
+export type PartitionLinkedChildren = "chip" | "none";
 
 export interface PartitionChipsProps {
   /** The children, in the order the catalogue declares them. */
@@ -109,6 +147,24 @@ export interface PartitionChipsProps {
    * browser's own `input[type=radio]` in `segmented`.
    */
   readonly variant?: "chips" | "segmented";
+  /**
+   * What the row does with a POINTER among its children. Default `"chip"`.
+   *
+   *  - `"chip"` — drawn AFTER the partitions as an outlined link chip: the
+   *    target's name and a trailing arrow, no count, a real `<a href>` that
+   *    navigates to the target rather than filtering this page. Outlined and
+   *    separate on purpose — it is not one of the choices, and a control that
+   *    looks like the others while doing something else is worse than one
+   *    that looks different;
+   *  - `"none"` — not drawn here at all, for a page whose TILE STAGE already
+   *    shows the same pointer as a tile. One destination offered twice, a row
+   *    apart, is a person wondering what the difference is.
+   *
+   * Either way a pointer is out of the partition semantics: no radio, no
+   * count, never the chosen section. This prop only decides whether the link
+   * is offered in this row.
+   */
+  readonly linkedChildren?: PartitionLinkedChildren;
 }
 
 /**
@@ -125,6 +181,23 @@ const ROW: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
   gap: spacing[2],
+};
+
+/**
+ * The pointer chip: the partition pill's geometry, OUTLINED — a hairline and
+ * no fill, so it reads as a way out of this page rather than as one of the
+ * choices on it.
+ */
+const POINTER_CHIP: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: spacing[1],
+  borderRadius: radii.full,
+  border: `1px solid ${cssVar("border")}`,
+  paddingBlock: spacing[1],
+  paddingInline: spacing[3],
+  color: cssVar("text"),
+  lineHeight: 1.4,
 };
 
 /** The keys that move the choice, in both variants. */
@@ -189,6 +262,68 @@ function ChildLabel(props: { readonly child: PartitionChild }): ReactElement {
   );
 }
 
+/**
+ * The pointer chip's trailing mark — an arrow leaving to the right, the one
+ * glyph that says "this goes somewhere else" rather than "this narrows what
+ * is here".
+ *
+ * Drawn inline in `currentColor`, like every other glyph in this skin
+ * (`ChevronGlyph`, `PinGlyph`, `SlidersGlyph`): this package ships no icon set
+ * and one arrow is not the reason to take one. `aria-hidden`, because the
+ * chip's accessible name is the target's own — a screen reader announcing an
+ * arrow after it would be reading the decoration.
+ */
+function PointerGlyph(): ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 16 16"
+      width="1em"
+      height="1em"
+      style={{ flex: "0 0 auto" }}
+    >
+      <path
+        d="M6 3.5 10.5 8 6 12.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The pointers, after the partitions and outside the radiogroup.
+ *
+ * OUTSIDE is not a layout preference: a `role="radiogroup"` whose children
+ * include a link announces a choice that has an option you cannot choose. The
+ * pointers are their own row, and each one is an ordinary anchor — a
+ * middle-click, a ctrl/cmd-click and "open in a new tab" all work, which is
+ * the whole difference between a destination and a filter.
+ */
+function PointerChips(props: {
+  readonly items: readonly PartitionChild[];
+}): ReactElement {
+  return (
+    <div style={ROW} data-testid="partition-links">
+      {props.items.map((item) => (
+        <a
+          key={item.path}
+          href={item.href}
+          style={POINTER_CHIP}
+          data-testid={`partition-link-${item.path}`}
+        >
+          {item.name}
+          <PointerGlyph />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 /** The row's cells, as `[value, label]` — the parent first, then the
  * children in catalogue order. */
 function cells(
@@ -206,8 +341,19 @@ function cells(
 export function PartitionChips(props: PartitionChipsProps): ReactElement {
   const t = useT();
   const row = useRef<HTMLDivElement>(null);
+  /* THE TWO KINDS OF CHILD, SPLIT ONCE. Everything below the split — the
+     cells, the roving stop, the value lookup, the arrow keys — sees only the
+     SECTIONS, which is what keeps a pointer out of the partition's semantics
+     rather than out of one rendering of them. */
+  const sections = props.items.filter((item) => item.linked !== true);
+  const pointers =
+    props.linkedChildren === "none"
+      ? []
+      : props.items.filter(
+          (item) => item.linked === true && item.href !== undefined
+        );
   const options = cells(
-    props.items,
+    sections,
     props.allLabel ?? t(SEARCH_I18N_KEYS.partitionAll)
   );
 
@@ -282,6 +428,20 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
 
   const name = props.label ?? t(SEARCH_I18N_KEYS.partitionLabel);
 
+  /* The pointers ride BESIDE whichever control was drawn, never inside it —
+     see `PointerChips`. A fragment rather than a wrapper element: this row is
+     mounted in a vertical `<Flex>` that already spaces its children, and an
+     extra box here would take that gap away from the row it wraps. */
+  const withPointers = (control: ReactElement): ReactElement =>
+    pointers.length === 0 ? (
+      control
+    ) : (
+      <>
+        {control}
+        <PointerChips items={pointers} />
+      </>
+    );
+
   if (props.variant === "segmented") {
     // antd's own control: `.ant-segmented`, one `input[type=radio]` per cell
     // under a shared `name`, the selected cell's `checked`, and the arrow keys
@@ -289,7 +449,7 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
     // `aria-label` reach the root because the component spreads what it is
     // given over its own defaults (which are `radiogroup` and the string
     // "segmented control").
-    return (
+    return withPointers(
       <Segmented
         block
         size="small"
@@ -328,7 +488,7 @@ export function PartitionChips(props: PartitionChipsProps): ReactElement {
     );
   }
 
-  return (
+  return withPointers(
     <div
       style={ROW}
       data-variant="chips"
