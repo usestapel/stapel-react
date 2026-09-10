@@ -1757,7 +1757,35 @@ export function CategoryTileGrid(
   if (!offersTiles) return null;
 
   return (
-    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    /* THE CONTAINER TAKES THE TILES' OWN SURFACE.
+     *
+     * `SkinTheme` defaults to `surface="raised"`, which paints
+     * `colorBgContainer` over the whole component — and that is a PANEL behind
+     * the tile row: a lighter strip the width of the grid on the desktop
+     * catalogue page, a full panel on the phone and behind the landing's
+     * compact strip (owner's read of 0.29.0, dark). It is the same block fill
+     * the tiles themselves just lost, one box further out, and it survived the
+     * flat tile because it is painted by the wrapper rather than by anything
+     * this file styles: the list geometry, the reserve box and the scroller
+     * all sit INSIDE it and paint nothing of their own, so one gate here is
+     * every one of the three.
+     *
+     * Flat tiles sit on the PAGE. `surface="bare"` paints nothing at all —
+     * which also drops the text colour `raised` would have written, so the
+     * flat arm states it from the token instead: `--stapel-text` resolves per
+     * theme at paint time, where `SkinTheme` would have frozen the value of
+     * whichever side was mounted first. The tiles' own hover fill
+     * (`surface-sunken`) is then the only fill in the box, which is what makes
+     * it read as a hover at all — over a `colorBgContainer` panel the two are
+     * a step apart and the highlight is nearly invisible in the dark theme.
+     *
+     * `"card"` keeps the panel: a grid of filled tiles was designed on it.
+     */
+    <SkinTheme
+      surface={surface === "flat" ? "bare" : "raised"}
+      {...(surface === "flat" ? { style: { color: cssVar("text") } } : {})}
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
       <nav
         aria-label={t(CATEGORIES_I18N_KEYS.carouselTitle)}
         data-tile-surface={surface}

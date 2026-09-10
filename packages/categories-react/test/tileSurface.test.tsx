@@ -361,3 +361,96 @@ describe("size=regular + tileSurface=flat is untouched by the row rule", () => {
     expect(caption?.style.textAlign).toBe("center");
   });
 });
+
+/**
+ * THE CONTAINER TAKES THE TILES' OWN SURFACE.
+ *
+ * The tiles went flat and the box around them did not: `SkinTheme` defaults to
+ * `surface="raised"`, so the whole component still painted `colorBgContainer`
+ * — a lighter strip the width of the grid on the desktop catalogue page, a
+ * full panel on the phone and behind the landing's compact strip (owner's read
+ * of 0.29.0, dark). The same block fill the tiles just lost, one box further
+ * out.
+ *
+ * Everything this file draws — the wrap grid, the scroller, the reserve box —
+ * sits INSIDE that wrapper and paints nothing of its own, so the one gate is
+ * all three; the tests below check the wrapper in each of the three shapes to
+ * prove it rather than assume it.
+ */
+describe("the grid container is flat when the tiles are", () => {
+  function container(): HTMLElement {
+    const node = screen
+      .getByTestId("categories-tile-grid")
+      .closest<HTMLElement>("[data-stapel-skin-root]");
+    expect(node, "the grid is not inside a skin root").not.toBeNull();
+    return node as HTMLElement;
+  }
+
+  it("paints no background and no border at rest", async () => {
+    await mount();
+    const box = container();
+    expect(box.dataset["stapelSkinSurface"]).toBe("bare");
+    expect(box.style.backgroundColor).toBe("");
+    expect(getComputedStyle(box).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(box).borderStyle).toBe("");
+    expect(box.style.boxShadow).toBe("");
+  });
+
+  it("still anchors its text to the token, which `bare` would have dropped", async () => {
+    await mount();
+    // `raised` writes `colorText` as a frozen value; the flat arm states the
+    // custom property instead, so both themes resolve at paint time.
+    expect(container().style.color).toBe("var(--stapel-text)");
+  });
+
+  it("leaves the tiles' hover fill as the only fill in the box", async () => {
+    await mount();
+    // Over a painted panel the hover step is nearly invisible in the dark
+    // theme; on the page ground it is the one fill there is.
+    expect(getComputedStyle(container()).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(categoryTileCss()).toContain("background-color:var(--stapel-surface-sunken)");
+  });
+
+  it("is flat for the phone strip and the dense grid too", async () => {
+    // The scroller (the landing's own shape) and the compact density draw
+    // inside the same wrapper — one gate, and this is the proof.
+    for (const props of [
+      { density: "compact" as const },
+      { size: "compact" as const },
+      {},
+    ]) {
+      cleanup();
+      render(
+        <TestProviders server={mockServer(OK)}>
+          <CategoryTileGrid entries={ENTRIES} allTile={false} {...props} />
+        </TestProviders>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId("categories-tile-grid-list")).toBeTruthy();
+      });
+      expect(container().dataset["stapelSkinSurface"]).toBe("bare");
+      expect(getComputedStyle(container()).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    }
+  });
+
+  it("is flat around the RESERVE box as well", async () => {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryTileGrid layout="wrap" reserve="pending" reserveCount={6} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-tile-grid-reserved-list")).toBeTruthy();
+    });
+    expect(container().dataset["stapelSkinSurface"]).toBe("bare");
+  });
+
+  it('keeps the panel under "card" — a grid of filled tiles was designed on it', async () => {
+    await mount("card");
+    const box = container();
+    expect(box.dataset["stapelSkinSurface"]).toBe("raised");
+    // The wrapper's own fill, exactly as it has always been written.
+    expect(box.style.backgroundColor).not.toBe("");
+    expect(getComputedStyle(box).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  });
+});
