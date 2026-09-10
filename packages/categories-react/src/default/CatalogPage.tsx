@@ -30,6 +30,12 @@ import type { LinkComponentProp } from "./CategoryLink.js";
 import { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
 import { CATEGORY_MEASURE } from "./CategoryPage.js";
+import {
+  BLOCK_RHYTHM_CLASS,
+  BLOCK_RHYTHM_STYLE_HREF,
+  blockRhythmCss,
+} from "./blockRhythm.js";
+import type { BlockRhythm } from "./blockRhythm.js";
 import type { ThemeModeProp } from "./types.js";
 
 export interface CatalogPageProps extends ThemeModeProp, LinkComponentProp {
@@ -41,6 +47,13 @@ export interface CatalogPageProps extends ThemeModeProp, LinkComponentProp {
    * default this screen may impose by dropping the prop.
    */
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
+  /**
+   * WHERE the space between this page's blocks comes from. Default `"token"`
+   * — the same token pair `<CategoryPage>` and `@stapel/search-react` read, so
+   * one declaration tunes every screen. `"legacy"` keeps the flat `spacing[4]`
+   * this page wrote inline. See `blockRhythmCss`.
+   */
+  readonly blockRhythm?: BlockRhythm;
 }
 
 export function CatalogPage(props: CatalogPageProps): ReactElement {
@@ -53,6 +66,7 @@ export function CatalogPage(props: CatalogPageProps): ReactElement {
       : {};
   const icon =
     props.renderIcon !== undefined ? { renderIcon: props.renderIcon } : {};
+  const legacyRhythm = props.blockRhythm === "legacy";
 
   return (
     <SkinTheme
@@ -61,10 +75,18 @@ export function CatalogPage(props: CatalogPageProps): ReactElement {
     >
       <Flex
         vertical
-        gap={spacing[4]}
+        {...(legacyRhythm
+          ? { gap: spacing[4] }
+          : { className: BLOCK_RHYTHM_CLASS })}
         style={{ padding: spacing[4], maxWidth: CATEGORY_MEASURE }}
+        data-rhythm={legacyRhythm ? "legacy" : "token"}
         data-testid="categories-catalog-page"
       >
+        {!legacyRhythm && (
+          <style href={BLOCK_RHYTHM_STYLE_HREF} precedence="default">
+            {blockRhythmCss()}
+          </style>
+        )}
         <Typography.Title level={3} style={{ margin: 0 }}>
           {t(CATEGORIES_I18N_KEYS.catalogTitle)}
         </Typography.Title>

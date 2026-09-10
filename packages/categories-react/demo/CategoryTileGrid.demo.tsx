@@ -106,6 +106,20 @@ export default defineDemo({
         </CategoriesDemoHarness>
       ),
     },
+    "card tiles": {
+      description:
+        "tileSurface=\"card\" — the filled tile this grid used to draw for everybody, kept for a surface that was designed around it. The default is now \"flat\": no fill and no border at rest (every other variant here), with the same token fill and the same radius arriving on hover and on keyboard focus, where it means «this is the one you are about to open». A dozen filled boxes on a landing outweigh the art inside them, which is the whole finding.",
+      viewport: "phone",
+      step: "ready-card-surface",
+      render: () => (
+        <CategoriesDemoHarness seed={SEEDED}>
+          <CategoryTileGrid
+            tileSurface="card"
+            renderIcon={(reference) => <Art reference={reference} />}
+          />
+        </CategoriesDemoHarness>
+      ),
+    },
     "nothing featured": {
       description: "A real configuration — a landing that says so instead of spinning.",
       viewport: "desktop",

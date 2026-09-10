@@ -352,9 +352,85 @@ const tileSizeCompact: CSSProperties = {
   overflow: "hidden",
 };
 
-function tileStyle(density: TileDensity, size: TileSize): CSSProperties {
-  if (size === "compact") return tileSizeCompact;
-  return density === "compact" ? tileCompact : tileBase;
+/* ── THE TILE'S SURFACE ────────────────────────────────────────────────────
+ *
+ * A tile is an icon and a name. The filled box behind it was never carrying
+ * information: on the walked storefront the home grid read as a wall of dark
+ * rectangles, each one competing with the picture inside it, and the fills
+ * added up to more visual weight than the whole catalogue they stand for.
+ *
+ * `"flat"` takes the fill and the border away and leaves the tile's contents —
+ * and gives the SURFACE back on hover and on `:focus-visible`, where a fill
+ * means something: this is the one you are about to open. The radius is the
+ * same one the filled tile always had, so the hovered shape is the tile the
+ * grid was already laid out for, and nothing about the focus ring is touched:
+ * a keyboard walk still shows the browser's own outline over the fill.
+ *
+ * `"card"` is the filled tile, unchanged, for a surface that was designed
+ * around it.
+ */
+
+/** Whether a tile draws a surface of its own — see
+ * {@link CategoryTileGridProps.tileSurface}. */
+export type TileSurface = "flat" | "card";
+
+/** The class every tile carries, whichever surface it draws. */
+export const CATEGORY_TILE_CLASS = "stapel-category-tile";
+
+/** The modifier a `"flat"` tile carries — the hover/focus rules hang on it. */
+export const CATEGORY_TILE_FLAT_CLASS = "stapel-category-tile-flat";
+
+/** The `href` the hoisted tile sheet is deduplicated by. */
+export const CATEGORY_TILE_STYLE_HREF = "stapel-category-tile";
+
+/**
+ * The flat tile's rule set.
+ *
+ * `background-color`, never the `background` shorthand: the shorthand would
+ * also reset an image a host put behind a tile of its own, and a rule that
+ * quietly erases somebody else's declaration is not a surface choice.
+ *
+ * A sheet rather than inline styles because `:hover` and `:focus-visible`
+ * cannot be said in a style attribute, and the colours are `--stapel-*`
+ * custom properties so both themes resolve at paint time. `surface-sunken` is
+ * this design system's tertiary-fill role — literally the fill the card tile
+ * wears at rest, which is what makes the hover state read as the same tile
+ * rather than as a new colour.
+ */
+export function categoryTileCss(): string {
+  const flat = `.${CATEGORY_TILE_FLAT_CLASS}`;
+  return [
+    // A `<button>` brings a platform fill of its own; a link does not.
+    `${flat}{background-color:transparent;border:none}`,
+    `${flat}:hover,${flat}:focus-visible{` +
+      `background-color:${cssVar("surface-sunken")}}`,
+  ].join("\n");
+}
+
+/** The classes one tile carries, for the surface it draws. */
+function tileClassName(surface: TileSurface): string {
+  return surface === "flat"
+    ? `${CATEGORY_TILE_CLASS} ${CATEGORY_TILE_FLAT_CLASS}`
+    : CATEGORY_TILE_CLASS;
+}
+
+function tileStyle(
+  density: TileDensity,
+  size: TileSize,
+  surface: TileSurface = "card"
+): CSSProperties {
+  const base =
+    size === "compact"
+      ? tileSizeCompact
+      : density === "compact"
+        ? tileCompact
+        : tileBase;
+  if (surface === "card") return base;
+  // The fill leaves the inline style entirely rather than being overwritten
+  // with `transparent`: an inline declaration would beat the sheet's own
+  // hover rule, which is where the fill now lives.
+  const { background: _fill, ...flat } = base;
+  return flat;
 }
 
 /**
@@ -784,6 +860,7 @@ function Tile(props: {
   readonly testId?: string;
   readonly density: TileDensity;
   readonly size: TileSize;
+  readonly surface: TileSurface;
   readonly labelLines: number | undefined;
   readonly labelHyphens: TileLabelHyphens;
   readonly labelLang: string | undefined;
@@ -798,7 +875,8 @@ function Tile(props: {
         ? { categoryId: props.categoryId }
         : {})}
       href={props.href}
-      style={tileStyle(props.density, props.size)}
+      className={tileClassName(props.surface)}
+      style={tileStyle(props.density, props.size, props.surface)}
     >
       {tileBody(props)}
     </CategoryLink>
@@ -818,6 +896,7 @@ function MoreTile(props: {
   readonly extraCount: number;
   readonly density: TileDensity;
   readonly size: TileSize;
+  readonly surface: TileSurface;
   readonly labelLines: number | undefined;
   readonly labelHyphens: TileLabelHyphens;
   readonly labelLang: string | undefined;
@@ -831,8 +910,9 @@ function MoreTile(props: {
   return (
     <button
       type="button"
+      className={tileClassName(props.surface)}
       style={{
-        ...tileStyle(props.density, props.size),
+        ...tileStyle(props.density, props.size, props.surface),
         border: "none",
         cursor: "pointer",
         font: "inherit",
@@ -1064,6 +1144,23 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    */
   readonly size?: TileSize;
   /**
+   * Whether a tile draws a SURFACE of its own. Default `"flat"`.
+   *
+   *  - `"flat"` — no fill and no border at rest: the icon and the caption are
+   *    the tile. The surface arrives on hover and on `:focus-visible`, in the
+   *    same radius and the same token fill the card tile wears, so pointing at
+   *    a tile is what colours it in. The focus ring is untouched;
+   *  - `"card"` — the filled tile this grid has always drawn.
+   *
+   * The default is the NEW behaviour, deliberately: `surface-sunken` behind
+   * every tile was inherited from the first carousel strip, and a grid of a
+   * dozen of them is a wall of boxes with the catalogue inside — the fills
+   * carry no information and outweigh the art they contain. A surface that
+   * was designed around the filled tile says `tileSurface="card"` and keeps
+   * it exactly.
+   */
+  readonly tileSurface?: TileSurface;
+  /**
    * HOW MANY LINES A TILE'S LABEL MAY TAKE before it is clipped — the one
    * number of the label a deployment owns.
    *
@@ -1269,6 +1366,7 @@ function TileRow(props: {
   readonly resolveIconSrc?: CategoryIconResolver;
   readonly density: TileDensity;
   readonly size: TileSize;
+  readonly surface: TileSurface;
   readonly labelLines: number | undefined;
   readonly labelHyphens: TileLabelHyphens;
   readonly layout: TileLayout;
@@ -1310,6 +1408,7 @@ function TileRow(props: {
               {...linkProps}
               density={props.density}
               size={props.size}
+              surface={props.surface}
               labelLines={props.labelLines}
               labelHyphens={props.labelHyphens}
               labelLang={labelLang}
@@ -1332,6 +1431,7 @@ function TileRow(props: {
               {...linkProps}
               density={props.density}
               size={props.size}
+              surface={props.surface}
               labelLines={props.labelLines}
               labelHyphens={props.labelHyphens}
               labelLang={labelLang}
@@ -1366,6 +1466,7 @@ function TileRow(props: {
             extraCount={hiddenCount}
             density={props.density}
             size={props.size}
+            surface={props.surface}
             labelLines={props.labelLines}
             labelHyphens={props.labelHyphens}
             labelLang={labelLang}
@@ -1408,6 +1509,7 @@ export function CategoryTileGrid(
   const offersTiles = categoryOffersTileGrid(props.categoryDepth);
   const density: TileDensity = props.density ?? "cozy";
   const size: TileSize = props.size ?? "regular";
+  const surface: TileSurface = props.tileSurface ?? "flat";
   const overflow: TileOverflow = props.overflow ?? "none";
   const layout: TileLayout = props.layout ?? "scroll";
   const minTileWidth =
@@ -1418,6 +1520,7 @@ export function CategoryTileGrid(
     basePath,
     density,
     size,
+    surface,
     labelLines: props.labelLines,
     labelHyphens: props.labelHyphens ?? "manual",
     layout,
@@ -1448,8 +1551,17 @@ export function CategoryTileGrid(
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
       <nav
         aria-label={t(CATEGORIES_I18N_KEYS.carouselTitle)}
+        data-tile-surface={surface}
         data-testid="categories-tile-grid"
       >
+        {/* The flat tile's hover and focus states — see `categoryTileCss`.
+            Hoisted, deduped by `href`, and not mounted for a grid of cards,
+            whose fill is an inline declaration and needs no rule. */}
+        {surface === "flat" && (
+          <style href={CATEGORY_TILE_STYLE_HREF} precedence="default">
+            {categoryTileCss()}
+          </style>
+        )}
         {reserving ? (
           // The substrate's own loading arm, by hand: this load belongs to the
           // host, so `LoadList` has no state to route — but the box, the busy

@@ -25,7 +25,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { FacetPanelPane, SearchPage } from "../src/default/index.js";
+import {
+  FacetPanelPane,
+  RAIL_SCROLLBAR_CLASS,
+  SearchPage,
+  railScrollbarCss,
+} from "../src/default/index.js";
 import type { SearchParamsAdapter } from "../src/index.js";
 import {
   PHONE_FACETS,
@@ -262,8 +267,14 @@ describe("the rail's inner scroll is visible, and its floor answers back", () =>
     // On overlay-scrollbar platforms an `overflow-y: auto` column shows
     // NOTHING until you happen to scroll inside it — 5717px of content with
     // no sign there is more.
-    expect(rail.style.scrollbarWidth).toBe("thin");
+    //
+    // The gutter is still the rail's own inline declaration, because it is
+    // reserved whichever bar draws in it. The WIDTH moved into the skin's rule
+    // set, where a thumb that wakes on hover can be said at all — see
+    // `railScrollbarCss`.
     expect(rail.style.scrollbarGutter).toBe("stable");
+    expect(rail.classList.contains(RAIL_SCROLLBAR_CLASS)).toBe(true);
+    expect(railScrollbarCss()).toContain("scrollbar-width:thin");
   });
 
   it("states the live count in a footer at the foot of the rail", async () => {

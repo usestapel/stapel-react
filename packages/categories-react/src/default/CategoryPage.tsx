@@ -111,6 +111,12 @@ import {
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
 import type { Category, CategoryChild } from "../api/types.js";
+import {
+  BLOCK_RHYTHM_CLASS,
+  BLOCK_RHYTHM_STYLE_HREF,
+  blockRhythmCss,
+} from "./blockRhythm.js";
+import type { BlockRhythm } from "./blockRhythm.js";
 import { categoryAncestorChain } from "../catalog/cascade.js";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
 import { browseStage, isRowChild } from "../catalog/stage.js";
@@ -143,6 +149,7 @@ import type {
   TileLayout,
   TileOverflow,
   TileSize,
+  TileSurface,
 } from "./CategoryTileGrid.js";
 import { CategoryLevelList } from "./CategoryLevelList.js";
 import { CategoryTreePane } from "./CategoryTreePane.js";
@@ -215,6 +222,7 @@ function TileSubcategories(props: {
   readonly tileLayout?: TileLayout;
   readonly tileMinWidth?: number;
   readonly tileSize?: TileSize;
+  readonly tileSurface?: TileSurface;
   readonly tileLabelLines?: number;
   readonly maxVisible?: number;
   readonly overflow?: TileOverflow;
@@ -273,6 +281,9 @@ function TileSubcategories(props: {
           ? { minTileWidth: props.tileMinWidth }
           : {})}
         {...(props.tileSize !== undefined ? { size: props.tileSize } : {})}
+        {...(props.tileSurface !== undefined
+          ? { tileSurface: props.tileSurface }
+          : {})}
         {...(props.tileLabelLines !== undefined
           ? { labelLines: props.tileLabelLines }
           : {})}
@@ -493,6 +504,31 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    * makes about the indent.
    */
   readonly measure?: number | string;
+  /**
+   * WHERE the space between this page's blocks comes from. Default `"token"`.
+   *
+   *  - `"token"` — one gap for every block, read from
+   *    `var(--stapel-block-gap)` (and `var(--stapel-block-gap-compact)` on a
+   *    coarse pointer or a narrow window), defaulting to the design system's
+   *    own spacing steps, with every direct block's outer margin reset so the
+   *    distance between two of them is ONE number a host can retune by
+   *    declaring the property once — see {@link blockRhythmCss};
+   *  - `"legacy"` — the flat `spacing[4]` this page wrote inline, for a host
+   *    whose own layout was measured against it.
+   *
+   * The default is the NEW behaviour: 16px between a page's sections was the
+   * value a vertical `<Flex>` was given when the page was first assembled, not
+   * a rhythm anybody chose, and it is what made the blocks read as one column
+   * with no seams. `@stapel/search-react` declares the same two properties, so
+   * a storefront tunes both halves of a category screen with one declaration.
+   */
+  readonly blockRhythm?: BlockRhythm;
+  /**
+   * The SURFACE the subcategory tiles draw — forwarded to
+   * {@link CategoryTileGridProps.tileSurface}. Only the `"tiles"` arm of
+   * {@link subcategories} reads it; default `"flat"`, like the grid's own.
+   */
+  readonly subcategoryTileSurface?: TileSurface;
   /**
    * The page's own side padding — its distance from whatever is to its left
    * and right.
@@ -765,6 +801,7 @@ function Subcategories(props: {
   readonly tileLayout?: TileLayout;
   readonly tileMinWidth?: number;
   readonly tileSize?: TileSize;
+  readonly tileSurface?: TileSurface;
   readonly tileLabelLines?: number;
   readonly maxVisible?: number;
   readonly overflow?: TileOverflow;
@@ -826,6 +863,9 @@ function Subcategories(props: {
           ? { tileMinWidth: props.tileMinWidth }
           : {})}
         {...(props.tileSize !== undefined ? { tileSize: props.tileSize } : {})}
+        {...(props.tileSurface !== undefined
+          ? { tileSurface: props.tileSurface }
+          : {})}
         {...(props.tileLabelLines !== undefined
           ? { tileLabelLines: props.tileLabelLines }
           : {})}
@@ -897,6 +937,7 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
    */
   const heldId =
     source.state.status === "ready" ? (source.state.data.current?.id ?? null) : null;
+  const legacyRhythm = props.blockRhythm === "legacy";
 
   return (
     <SkinTheme
@@ -905,7 +946,11 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
     >
       <Flex
         vertical
-        gap={spacing[4]}
+        // ONE gap for every block on this page, from the token pair — or the
+        // 16px this page used to state inline, for a host pinned to it.
+        {...(legacyRhythm
+          ? { gap: spacing[4] }
+          : { className: BLOCK_RHYTHM_CLASS })}
         style={{
           // Block padding always; inline padding only when nothing outside is
           // already holding the page gutter — see `CategoryPageProps.gutter`.
@@ -914,8 +959,17 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
           maxWidth: props.measure ?? CATEGORY_MEASURE,
         }}
         data-gutter={props.gutter === false ? "off" : "on"}
+        data-rhythm={legacyRhythm ? "legacy" : "token"}
         data-testid="categories-category-page"
       >
+        {/* The rhythm's rules — see `blockRhythmCss`. Hoisted, deduped by
+            `href`, and not mounted at all when the host asked for the old
+            inline gap. */}
+        {!legacyRhythm && (
+          <style href={BLOCK_RHYTHM_STYLE_HREF} precedence="default">
+            {blockRhythmCss()}
+          </style>
+        )}
         {/* The page owns the outage and the dead address; the bar under
             the same read must not state either a second time in a second
             visual language. */}
@@ -974,7 +1028,12 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                 }
               />
             ) : (
-              <Flex vertical gap={spacing[4]}>
+              <Flex
+                vertical
+                {...(legacyRhythm
+                  ? { gap: spacing[4] }
+                  : { className: BLOCK_RHYTHM_CLASS })}
+              >
                 <Typography.Title
                   level={props.headingLevel ?? 3}
                   style={{ margin: 0 }}
@@ -1006,6 +1065,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     : {})}
                   {...(props.subcategoryTileSize !== undefined
                     ? { tileSize: props.subcategoryTileSize }
+                    : {})}
+                  {...(props.subcategoryTileSurface !== undefined
+                    ? { tileSurface: props.subcategoryTileSurface }
                     : {})}
                   {...(props.subcategoryLabelLines !== undefined
                     ? { tileLabelLines: props.subcategoryLabelLines }

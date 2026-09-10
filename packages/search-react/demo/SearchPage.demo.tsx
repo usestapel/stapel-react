@@ -66,6 +66,10 @@ function Page(props: {
   leaf?: boolean;
   /** Both columns told where the host's chrome ends — see `under-a-header`. */
   underHeader?: boolean;
+  /** The platform's own scrollbar back on the rail — see `system-scrollbar`. */
+  systemScrollbar?: boolean;
+  /** The flat 16px gap this page used to write inline — see `legacy-rhythm`. */
+  legacyRhythm?: boolean;
 }): ReactElement {
   const search = props.search ?? RESULTS_SEARCH;
   const adapter = useMemoryParams(search);
@@ -88,6 +92,12 @@ function Page(props: {
                 railTop: DEMO_HEADER_HEIGHT,
                 stickyToolbar: { top: DEMO_HEADER_HEIGHT },
               }
+            : {})}
+          {...(props.systemScrollbar === true
+            ? { railScrollbar: "system" as const }
+            : {})}
+          {...(props.legacyRhythm === true
+            ? { blockRhythm: "legacy" as const }
             : {})}
         />
       </DemoFrame>
@@ -217,6 +227,20 @@ export default defineDemo({
       viewport: "desktop",
       step: "under-a-header",
       render: () => <Page underHeader />,
+    },
+    "system-scrollbar": {
+      description:
+        "The rail keeps its own scroll — filters that stay put while the results move under them are the point of it — and `railScrollbar` says whose BAR draws in the gutter. `\"styled\"` (the default, in every other variant here) is the skin's: a 6px track with no arrows and no track fill, and a thumb that is transparent at rest and arrives from the tokens on hover or focus-within, in both themes. `\"system\"`, shown here, hands the port back to the platform, for a host whose own stylesheet already dresses every scroller on the page.",
+      viewport: "desktop",
+      step: "system-scrollbar",
+      render: () => <Page systemScrollbar />,
+    },
+    "legacy-rhythm": {
+      description:
+        "`blockRhythm=\"legacy\"`: the flat 16px this page used to write inline between every block, next to the default `\"token\"` arm every other variant draws — one gap read from `--stapel-block-gap` (32px) and `--stapel-block-gap-compact` (24px, on a coarse pointer or under the tablet edge), with each block's own outer margin reset so the distance is ONE number a host can retune with a single declaration.",
+      viewport: "desktop",
+      step: "legacy-rhythm",
+      render: () => <Page legacyRhythm />,
     },
     "filters-header-navigates": {
       description:

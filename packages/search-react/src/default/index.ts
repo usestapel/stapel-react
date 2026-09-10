@@ -42,7 +42,13 @@
 // ── surfaces ────────────────────────────────────────────────────────────────
 export {
   SearchPage,
+  BLOCK_GAP_COMPACT_VAR,
+  BLOCK_GAP_VAR,
+  BLOCK_RHYTHM_CLASS,
+  BLOCK_RHYTHM_STYLE_HREF,
+  blockRhythmCss,
   RAIL_CLASS,
+  RAIL_SCROLLBAR_CLASS,
   RAIL_STYLE_HREF,
   railScrollbarCss,
   railStyle,
@@ -53,7 +59,9 @@ export type {
   SearchFiltersHeader,
   SearchFiltersHeaderSlotProps,
   SearchFiltersOpenReason,
+  SearchBlockRhythm,
   SearchRailFrom,
+  SearchRailScrollbar,
 } from "./SearchPage.js";
 
 export {

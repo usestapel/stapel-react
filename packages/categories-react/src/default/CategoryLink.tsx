@@ -46,6 +46,10 @@ export interface CategoryLinkProps {
   /** Inline styles for the anchor — how a list row makes the WHOLE row the
    * target instead of a 24px word inside it. */
   readonly style?: CSSProperties;
+  /** Classes for the anchor, for the states an inline style cannot say —
+   * `:hover`, `:focus-visible`. Already part of core's `LinkComponentProps`,
+   * so a host router's own `<Link>` receives it unchanged. */
+  readonly className?: string;
   /**
    * Fired on click — and, for a plain anchor or a router `<Link>` alike, on
    * Enter, since both dispatch a native `click` for a focused link with no
@@ -70,6 +74,7 @@ export function CategoryLink(props: CategoryLinkProps): ReactElement {
       ? {}
       : { "data-category-id": String(props.categoryId) }),
     ...(props.style === undefined ? {} : { style: props.style }),
+    ...(props.className === undefined ? {} : { className: props.className }),
     ...(props.onClick === undefined ? {} : { onClick: props.onClick }),
     ...(props["data-analytics"] === undefined
       ? {}

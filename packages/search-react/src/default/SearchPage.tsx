@@ -66,7 +66,7 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex } from "antd";
 import { SkinDialog, SkinTheme, useDialogSurface } from "@stapel/tokens-antd/skin";
 import { useT, useTPlural } from "@stapel/core";
-import { cssVar, spacing } from "@stapel/tokens";
+import { breakpoints, cssVar, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { SearchStateProvider, useSearchState } from "../headless/SearchStateProvider.js";
 import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
@@ -261,47 +261,89 @@ export const FILTERS_RAIL_WIDTH = 280;
  * `alignSelf: flex-start` is load-bearing: a flex child stretches to the row's
  * height by default, and a stretched box has nothing to stick to.
  */
-/** The class the rail's own scrollbar rules are hung on. */
+/** The class the rail's own geometry and scrollbar rules are hung on. */
 export const RAIL_CLASS = "stapel-search-rail";
+
+/**
+ * The class that carries the SKIN's scrollbar — present under
+ * `railScrollbar: "styled"` and absent under `"system"`, so the two arms are
+ * one class apart and a stand can read which one is on screen.
+ */
+export const RAIL_SCROLLBAR_CLASS = "stapel-search-rail-scrollbar";
 
 /** The `href` the hoisted rail sheet is deduplicated by. */
 export const RAIL_STYLE_HREF = "stapel-search-rail";
 
+/** Whose scrollbar the rail's own scroll port draws — see
+ * {@link SearchPageProps.railScrollbar}. */
+export type SearchRailScrollbar = "styled" | "system";
+
 /**
- * The rail scrolls, and its scrollbar must not sit ON the filters.
+ * The scrollbar's track width, in CSS pixels.
  *
- * `scrollbar-width: thin` and `scrollbar-gutter: stable` (below, in `RAIL`)
- * are the standard half of this and they are not enough: on every WebKit
- * platform with overlay scrollbars — a Mac by default, every iOS browser —
- * the bar is drawn OVER the content and the gutter reserves nothing, so the
- * walker saw the bar lying across the right edge of the checkbox labels.
+ * Not on the spacing scale on purpose, and not a spacing decision: this is the
+ * thickness of a hairline instrument, the size every platform's own overlay
+ * bar lands within, and the number the storefront's owner named. Six is thin
+ * enough to read as part of the panel and thick enough to grab.
+ */
+const RAIL_SCROLLBAR_WIDTH = 6;
+
+/**
+ * The rail scrolls, and the bar that says so is the SKIN's, not the platform's.
  *
- * So the rail also declares a CLASSIC scrollbar through the WebKit
- * pseudo-elements: a bar with a real width, which pushes the panel's content
- * in by exactly that much instead of floating above it, drawn in the token
- * palette so it is the panel's own hairline in both themes rather than a
- * hard-coded grey that glows in the dark one. `--stapel-*` custom properties
- * resolve per theme at paint time, which is why this is a sheet and not a
- * pair of computed inline values: an inline colour would freeze whichever
- * theme was mounted first.
+ * The system bar was never a decision — it is what an `overflow-y: auto` box
+ * gets when nobody says otherwise, and on the storefront it landed as a grey
+ * chrome-coloured strip standing next to the filters in a dark theme. What it
+ * is replaced with:
+ *
+ *  - a 6px track with no arrows and no track fill — the rail's own hairline,
+ *    not a widget;
+ *  - a thumb that is TRANSPARENT at rest and appears on `:hover` of the rail
+ *    (which is what a pointer scrolling inside it is doing) and on
+ *    `:focus-within` (which is what a keyboard is doing). A coarse pointer
+ *    fires neither, so under `(pointer: coarse)` the thumb stands — a touch
+ *    surface with an invisible scrollbar is a rail with no sign it has a tail;
+ *  - `scrollbar-gutter: stable`, so the panel's right edge does not move when
+ *    the thumb arrives.
+ *
+ * Both vendor forms, because they are not alternatives: Firefox reads
+ * `scrollbar-width`/`scrollbar-color` and nothing else, WebKit and Chromium
+ * read the `::-webkit-scrollbar` pseudo-elements and (in Chromium) the
+ * standard properties too.
+ *
+ * The colours are `--stapel-*` custom properties, which resolve per theme at
+ * paint time — an inline colour or a `useToken()` value would freeze whichever
+ * theme was mounted first. This design system's neutral vocabulary has no
+ * `colorFill*` ramp of its own: `border` IS its tertiary-fill role (the
+ * hairline every pane is separated by) and `text-subtle` is that role one step
+ * stronger, which is what the thumb takes when a pointer is on the thumb
+ * itself.
  *
  * Emitted as one hoisted `<style>` (React 19 dedupes by `href`), because a
  * pseudo-element is unreachable from an inline style — the same reason
  * `<LocationSummaryLine>` hoists one.
  */
 export function railScrollbarCss(): string {
-  const rail = `.${RAIL_CLASS}`;
+  const bar = `.${RAIL_SCROLLBAR_CLASS}`;
+  const size = `${String(RAIL_SCROLLBAR_WIDTH)}px`;
+  const thumb = cssVar("border");
+  const awake = `${bar}:hover,${bar}:focus-within`;
   return [
-    // A real width: an overlay bar occupies no space and therefore overlaps.
-    `${rail}::-webkit-scrollbar{inline-size:8px;block-size:8px}`,
-    `${rail}::-webkit-scrollbar-track{background:transparent}`,
-    `${rail}::-webkit-scrollbar-thumb{background:${cssVar("border")};` +
+    // ── Firefox ────────────────────────────────────────────────────────────
+    `${bar}{scrollbar-width:thin;scrollbar-gutter:stable;` +
+      `scrollbar-color:transparent transparent}`,
+    `${awake}{scrollbar-color:${thumb} transparent}`,
+    // ── WebKit / Chromium ──────────────────────────────────────────────────
+    `${bar}::-webkit-scrollbar{inline-size:${size};block-size:${size}}`,
+    `${bar}::-webkit-scrollbar-track{background:transparent}`,
+    `${bar}::-webkit-scrollbar-thumb{background:transparent;` +
       `border-radius:${cssVar("radius-full")}}`,
-    `${rail}::-webkit-scrollbar-thumb:hover{background:${cssVar("text-subtle")}}`,
-    // Firefox/Chromium's standard properties, stated here too so the rule
-    // travels with the class when the panel is used outside `<SearchPage>`.
-    `${rail}{scrollbar-width:thin;scrollbar-gutter:stable;` +
-      `scrollbar-color:${cssVar("border")} transparent}`,
+    `${bar}:hover::-webkit-scrollbar-thumb,` +
+      `${bar}:focus-within::-webkit-scrollbar-thumb{background:${thumb}}`,
+    `${bar}::-webkit-scrollbar-thumb:hover{background:${cssVar("text-subtle")}}`,
+    // ── A surface with no hover at all ─────────────────────────────────────
+    `@media (pointer:coarse){${bar}{scrollbar-color:${thumb} transparent}` +
+      `${bar}::-webkit-scrollbar-thumb{background:${thumb}}}`,
   ].join("\n");
 }
 
@@ -320,14 +362,11 @@ const RAIL: CSSProperties = {
   maxHeight: "100dvh",
   overflowY: "auto",
   overscrollBehavior: "contain",
-  // The inner scroll must be VISIBLE. On overlay-scrollbar platforms (every
-  // Mac by default, most phones) an `overflow-y: auto` column shows no
-  // scrollbar until a pointer happens to scroll INSIDE it — so a rail taller
-  // than the window is indistinguishable from a rail that ends at the fold,
-  // and the walker measured 5717px of panel whose tail nothing signposted.
-  // A thin, always-there scrollbar is the sign there is more; the stable
-  // gutter keeps the panel's right edge from jumping when it appears.
-  scrollbarWidth: "thin",
+  // The gutter is the rail's, whichever bar draws in it: reserved here so the
+  // panel's right edge does not move when the thumb arrives. The bar's own
+  // width and colour are the skin's and live in `railScrollbarCss` — a rule
+  // set, not an inline pair, because a thumb that appears on hover cannot be
+  // said in a style attribute.
   scrollbarGutter: "stable",
   // Room for the focus ring of the last control against the scroll edge.
   paddingBlockEnd: spacing[2],
@@ -354,6 +393,71 @@ export function railStyle(top: number | string | undefined): CSSProperties {
 /** The results take what is left. `minWidth: 0` so a long word inside a card
  * cannot push the grid wider than its column. */
 const RESULTS_COLUMN: CSSProperties = { flex: "1 1 auto", minWidth: 0 };
+
+/* ── THE RHYTHM: ONE GAP BETWEEN BLOCKS, SAID ONCE ─────────────────────────
+ *
+ * This page is an assembly of BLOCKS — the query box, the breadcrumb, the
+ * location row, the header band, the applied chips, the columns — and every
+ * gap between two of them used to be `spacing[4]` on the root plus whatever
+ * outer margin the block itself happened to carry. Sixteen pixels is what a
+ * form's fields are spaced by, not what a page's sections are: on the walked
+ * storefront the blocks read as one undifferentiated column, and the owner's
+ * word for it was that everything is stuck together.
+ *
+ * The gap is now ONE PAIR of custom properties, declared as a usage and not as
+ * a definition — `var(--stapel-block-gap, 32px)`. That is the whole point of
+ * the shape: a host (or a container's own stylesheet, or a brand) sets the
+ * property anywhere above this page and every block on it moves together,
+ * while a host that sets nothing gets the design system's own spacing step.
+ *
+ * The compact value is for a COARSE POINTER or a narrow window, in one query
+ * with two arms: a phone has less height to spend on air, and a tablet held in
+ * a hand is a phone for this purpose whatever its width says.
+ *
+ * The names are the pair's published contract, which is why they are exported:
+ * `categories-react`'s pages declare the same two, so a storefront that tunes
+ * the rhythm tunes BOTH pairs with one declaration.
+ */
+
+/** The custom property every block gap on this page reads. */
+export const BLOCK_GAP_VAR = "--stapel-block-gap";
+
+/** Its coarse-pointer / narrow-window twin. */
+export const BLOCK_GAP_COMPACT_VAR = "--stapel-block-gap-compact";
+
+/** The class the rhythm's rules are hung on. */
+export const BLOCK_RHYTHM_CLASS = "stapel-block-rhythm";
+
+/** The `href` the hoisted rhythm sheet is deduplicated by. */
+export const BLOCK_RHYTHM_STYLE_HREF = "stapel-block-rhythm";
+
+/** Where the page's block gap comes from — see
+ * {@link SearchPageProps.blockRhythm}. */
+export type SearchBlockRhythm = "token" | "legacy";
+
+/**
+ * The rhythm's rule set.
+ *
+ * Three rules, and the third is half of the fix: `margin-block: 0` on every
+ * direct child. A gap only governs the space a container puts BETWEEN its
+ * children — a block that also carries its own top or bottom margin adds to it
+ * and the spacing stops being one number, which is exactly how a page ends up
+ * with four different distances nobody chose.
+ *
+ * A sheet rather than inline styles because the compact arm is a media query
+ * and the reset addresses children this component does not own.
+ */
+export function blockRhythmCss(): string {
+  const block = `.${BLOCK_RHYTHM_CLASS}`;
+  const narrow = `(max-width:${String(breakpoints.tablet - 1)}px)`;
+  return [
+    `${block}{gap:var(${BLOCK_GAP_VAR},${String(spacing[6])}px)}`,
+    `@media (pointer:coarse),${narrow}{` +
+      `${block}{gap:var(${BLOCK_GAP_COMPACT_VAR},${String(spacing[5])}px)}}`,
+    // A block's own outer margin is a second opinion about the same distance.
+    `${block}>*{margin-block:0}`,
+  ].join("\n");
+}
 
 export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions {
   /** The URL binding. `useRouterSearchParams()` from `./router` is the
@@ -660,6 +764,46 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly railTop?: number | string;
   /**
+   * WHOSE SCROLLBAR the rail's own scroll port draws. Default `"styled"`.
+   *
+   * The rail is a scroll container and stays one: a person who has scrolled
+   * the filters and ticked one does not want the page to have moved under
+   * them. What it stopped drawing is the PLATFORM's bar — a grey chrome strip
+   * beside the filters, which is what an `overflow-y: auto` box gets when
+   * nobody decides otherwise.
+   *
+   *  - `"styled"` — the skin's own bar, from the tokens, in both themes: a 6px
+   *    track, no arrows, no track fill, and a thumb that is transparent at
+   *    rest and appears while the rail is hovered or focused within (always,
+   *    on a coarse pointer that can do neither). See {@link railScrollbarCss};
+   *  - `"system"` — the platform's, untouched, for a host whose own stylesheet
+   *    already dresses every scroll port on the page and would then be
+   *    dressing this one twice.
+   *
+   * The default is the NEW behaviour, deliberately: the system bar was never a
+   * design decision here — it was the absence of one, and it is the thing the
+   * page was measured on.
+   */
+  readonly railScrollbar?: SearchRailScrollbar;
+  /**
+   * WHERE the space between this page's blocks comes from. Default `"token"`.
+   *
+   *  - `"token"` — one gap for every block, read from
+   *    `var(--stapel-block-gap)` (and `var(--stapel-block-gap-compact)` on a
+   *    coarse pointer or a narrow window), defaulting to the design system's
+   *    own spacing steps. Every direct block also has its outer margin reset,
+   *    so the distance between two blocks is ONE number and a host can retune
+   *    all of them by declaring the property once — see {@link blockRhythmCss};
+   *  - `"legacy"` — the flat `spacing[4]` this page wrote inline for a host
+   *    whose own layout was measured against it.
+   *
+   * The default is the NEW behaviour: 16px between a page's sections was the
+   * value a vertical `<Flex>` was given when the page was first assembled, not
+   * a rhythm anybody chose, and it is what made the blocks read as one column
+   * with no seams.
+   */
+  readonly blockRhythm?: SearchBlockRhythm;
+  /**
    * PIN the results toolbar under whatever chrome is above this page — the
    * other column's half of {@link railTop}.
    *
@@ -845,6 +989,8 @@ interface SearchPageBodyProps {
   readonly railFrom?: SearchRailFrom;
   readonly filtersLayout?: SearchFiltersLayout;
   readonly railTop?: number | string;
+  readonly railScrollbar?: SearchRailScrollbar;
+  readonly blockRhythm?: SearchBlockRhythm;
   readonly stickyToolbar?: SearchToolbarPin;
   readonly defaultFiltersOpen?: boolean;
   readonly filtersOpen?: boolean;
@@ -1152,14 +1298,28 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     />
   );
 
+  const legacyRhythm = props.blockRhythm === "legacy";
   return (
     <Flex
       vertical
-      gap={spacing[4]}
+      // ONE gap for every block on this page, from the token pair — or the
+      // 16px this page used to state inline, for a host pinned to it.
+      {...(legacyRhythm
+        ? { gap: spacing[4] }
+        : { className: BLOCK_RHYTHM_CLASS })}
       data-testid="search-page"
+      data-rhythm={legacyRhythm ? "legacy" : "token"}
       data-filters={showFilters ? "on" : "off"}
       data-filters-layout={layout}
     >
+      {/* The rhythm's rules — see `blockRhythmCss`. Hoisted, deduped by
+          `href`, and not mounted at all when the host asked for the old
+          inline gap. */}
+      {!legacyRhythm && (
+        <style href={BLOCK_RHYTHM_STYLE_HREF} precedence="default">
+          {blockRhythmCss()}
+        </style>
+      )}
       {props.searchBox !== false && <SearchBox />}
       {props.breadcrumb !== undefined && (
         <div data-testid="search-breadcrumb">{props.breadcrumb}</div>
@@ -1275,12 +1435,23 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         </>
       ) : showFilters ? (
         <Flex align="flex-start" gap={spacing[5]} data-testid="search-page-columns">
-          <div className={RAIL_CLASS} style={railStyle(props.railTop)}>
+          <div
+            className={
+              props.railScrollbar === "system"
+                ? RAIL_CLASS
+                : `${RAIL_CLASS} ${RAIL_SCROLLBAR_CLASS}`
+            }
+            style={railStyle(props.railTop)}
+          >
             {/* The rail's scrollbar, in the gutter and in the token palette —
-                see `railScrollbarCss`. Hoisted, deduped by `href`. */}
-            <style href={RAIL_STYLE_HREF} precedence="default">
-              {railScrollbarCss()}
-            </style>
+                see `railScrollbarCss`. Hoisted, deduped by `href`. Not mounted
+                at all under `"system"`: a sheet whose only selector is a class
+                nothing carries is dead weight in the document. */}
+            {props.railScrollbar !== "system" && (
+              <style href={RAIL_STYLE_HREF} precedence="default">
+                {railScrollbarCss()}
+              </style>
+            )}
             {panel}
           </div>
           {/* ONE heading and ONE sort control. The page used to caption
@@ -1330,6 +1501,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     railFrom,
     filtersLayout,
     railTop,
+    railScrollbar,
+    blockRhythm,
     stickyToolbar,
     defaultFiltersOpen,
     filtersOpen,
@@ -1394,6 +1567,8 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(railFrom !== undefined ? { railFrom } : {})}
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
           {...(railTop !== undefined ? { railTop } : {})}
+          {...(railScrollbar !== undefined ? { railScrollbar } : {})}
+          {...(blockRhythm !== undefined ? { blockRhythm } : {})}
           {...(stickyToolbar !== undefined ? { stickyToolbar } : {})}
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(filtersOpen !== undefined ? { filtersOpen } : {})}

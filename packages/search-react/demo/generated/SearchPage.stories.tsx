@@ -18,6 +18,12 @@ CatalogueLeaf.parameters = { stapel: {"viewport":"desktop","step":"catalogue-lea
 export const UnderAHeader = (): ReactElement => renderDemoVariant(demo, "under-a-header");
 UnderAHeader.storyName = "under-a-header";
 UnderAHeader.parameters = { stapel: {"viewport":"desktop","step":"under-a-header"} };
+export const SystemScrollbar = (): ReactElement => renderDemoVariant(demo, "system-scrollbar");
+SystemScrollbar.storyName = "system-scrollbar";
+SystemScrollbar.parameters = { stapel: {"viewport":"desktop","step":"system-scrollbar"} };
+export const LegacyRhythm = (): ReactElement => renderDemoVariant(demo, "legacy-rhythm");
+LegacyRhythm.storyName = "legacy-rhythm";
+LegacyRhythm.parameters = { stapel: {"viewport":"desktop","step":"legacy-rhythm"} };
 export const FiltersHeaderNavigates = (): ReactElement => <DemoStage demo={demo} variant="filters-header-navigates" />;
 FiltersHeaderNavigates.storyName = "filters-header-navigates";
 FiltersHeaderNavigates.parameters = { stapel: {"viewport":"phone","step":"filters-header-navigates","play":true} };

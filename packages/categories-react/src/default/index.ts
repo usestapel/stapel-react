@@ -40,7 +40,22 @@ export { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
 export { CategoryMegaMenu } from "./CategoryMegaMenu.js";
 export type { CategoryMegaMenuProps } from "./CategoryMegaMenu.js";
-export { CategoryTileGrid, CATEGORY_TILE_LABEL_TESTID } from "./CategoryTileGrid.js";
+export {
+  BLOCK_GAP_COMPACT_VAR,
+  BLOCK_GAP_VAR,
+  BLOCK_RHYTHM_CLASS,
+  BLOCK_RHYTHM_STYLE_HREF,
+  blockRhythmCss,
+} from "./blockRhythm.js";
+export type { BlockRhythm } from "./blockRhythm.js";
+export {
+  CategoryTileGrid,
+  CATEGORY_TILE_CLASS,
+  CATEGORY_TILE_FLAT_CLASS,
+  CATEGORY_TILE_LABEL_TESTID,
+  CATEGORY_TILE_STYLE_HREF,
+  categoryTileCss,
+} from "./CategoryTileGrid.js";
 export type {
   CategoryIconResolver,
   CategoryTileGridProps,
@@ -49,6 +64,7 @@ export type {
   TileLayout,
   TileOverflow,
   TileSize,
+  TileSurface,
 } from "./CategoryTileGrid.js";
 /** Re-exported here because `<CategoryTileGrid>`'s `entries` and `renderIcon`
  * both make it part of a skin caller's vocabulary — a host composing tiles

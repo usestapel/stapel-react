@@ -645,14 +645,17 @@ describe("a bounded integer axis is a PICKER, not a bare number", () => {
   });
 });
 
-describe("the rail's scrollbar is in the gutter, not on the filters", () => {
-  it("emits a thin bar in the token palette", () => {
+describe("the rail's scrollbar is the skin's, not the platform's", () => {
+  it("emits both vendor forms, with a thumb that is asleep at rest", () => {
     expect(railScrollbarCss()).toMatchInlineSnapshot(`
-      ".stapel-search-rail::-webkit-scrollbar{inline-size:8px;block-size:8px}
-      .stapel-search-rail::-webkit-scrollbar-track{background:transparent}
-      .stapel-search-rail::-webkit-scrollbar-thumb{background:var(--stapel-border);border-radius:var(--stapel-radius-full)}
-      .stapel-search-rail::-webkit-scrollbar-thumb:hover{background:var(--stapel-text-subtle)}
-      .stapel-search-rail{scrollbar-width:thin;scrollbar-gutter:stable;scrollbar-color:var(--stapel-border) transparent}"
+      ".stapel-search-rail-scrollbar{scrollbar-width:thin;scrollbar-gutter:stable;scrollbar-color:transparent transparent}
+      .stapel-search-rail-scrollbar:hover,.stapel-search-rail-scrollbar:focus-within{scrollbar-color:var(--stapel-border) transparent}
+      .stapel-search-rail-scrollbar::-webkit-scrollbar{inline-size:6px;block-size:6px}
+      .stapel-search-rail-scrollbar::-webkit-scrollbar-track{background:transparent}
+      .stapel-search-rail-scrollbar::-webkit-scrollbar-thumb{background:transparent;border-radius:var(--stapel-radius-full)}
+      .stapel-search-rail-scrollbar:hover::-webkit-scrollbar-thumb,.stapel-search-rail-scrollbar:focus-within::-webkit-scrollbar-thumb{background:var(--stapel-border)}
+      .stapel-search-rail-scrollbar::-webkit-scrollbar-thumb:hover{background:var(--stapel-text-subtle)}
+      @media (pointer:coarse){.stapel-search-rail-scrollbar{scrollbar-color:var(--stapel-border) transparent}.stapel-search-rail-scrollbar::-webkit-scrollbar-thumb{background:var(--stapel-border)}}"
     `);
   });
 
