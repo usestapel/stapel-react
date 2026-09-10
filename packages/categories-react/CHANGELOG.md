@@ -1,5 +1,72 @@
 # @stapel/categories-react
 
+## 0.26.0
+
+### Minor Changes
+
+- 4e0f7b8: A child is not always a row: pointers and values (stapel-categories 0.22.0).
+
+  The pin moves to v0.22.0 and `GET /{id}/children/` stops answering an array of
+  `Category`. It answers `CategoryChild`, a union of three: a real subcategory; a
+  POINTER into another branch (`linked: true`, every other key the TARGET's, so
+  following it lands on the target's own page) inserted at the `order` its
+  operator gave it AMONG the real children; and, on a category that expands a
+  feature into its children (`children_expand_by`), a VALUE with no row at all —
+  `name`, `value` and a `{feature slug: value}` `filter`.
+
+  A pointer costs the pair no rendering path, and that is the contract's own
+  promise kept rather than a shortcut: `CategoryRowChild` is `Category` plus
+  `linked`, so every reader, tile and link already handles one. What the flag
+  buys is the two refusals — `catalog/wrapper.ts` will not read a pointer as a
+  one-rung import wrapper and will not collapse it for a target that happens to
+  be `children_as: "transparent"`, either of which would put the inside of a
+  branch where an operator drew its door. `hasChildren` answers `false` for a
+  value before consulting anything else, so a lone value is not mistaken for a
+  wrapper either. `browseChildren` therefore passes both new kinds through
+  untouched and in place, and a level with neither comes back as the very same
+  array it was handed.
+
+  A value's address is the host's, and the pair will not guess one — the same
+  rule `categoryIconSrc` keeps about a CDN base.
+  `categoryChildTileEntries(children, basePath, hrefForVirtual?)` maps a whole
+  level in the server's order: rows and pointers become the usual
+  `CarouselEntry`, values become a `VirtualTileEntry` that `<CategoryTileGrid>`
+  draws with the value's own caption and a monogram, linking wherever
+  `hrefForVirtual(filter, child)` says. Without the callback a value is dropped
+  and a development build says so. `<CategoryPage hrefForVirtual>` threads it
+  into the page's `"tiles"` arm.
+
+  Also on the wire and now on the types: `children_axis_tag` beside
+  `children_axis_label` — the source catalogue's own identifier for the field a
+  level enumerates, never shown, where the label is the translation key a person
+  reads — and `children_expand_by`. The staff paths `/{id}/links/` are generated
+  and deliberately not on `CategoriesApi`: a storefront renders the assembled
+  child list, it never authors a pointer.
+
+  The skin's size budget goes 17.8 -> 18.5 KB. 143 B of that was already owed
+  before this change and 266 B is a value getting drawn; both are written into
+  the budget entry's own note.
+
+- 3bcacb7: The phone landing's tiles: a caption break a reader can see, and a pictogram on the "All" tile.
+
+  `labelHyphens` is a new prop on `<CategoryTileGrid>` (default `"manual"` — no
+  existing host changes). A 390px walk measured the compact tile's caption column
+  at ~63px and a twelve-letter root name at ~83px in it: some break is forced, and
+  the skin printed no hyphen at it, so a one-word name arrived as two unrelated
+  fragments. D90 measured the opposite catalogue and its ruling stays the default;
+  `"auto"` is how a deployment that measured this one asks for the mark, and the
+  caption is stamped with the i18n engine's locale when it does — `hyphens: auto`
+  without a language is inert, which is the half that fails silently.
+  `overflow-wrap: anywhere` is unchanged under both, so a name with no hyphenation
+  point in it still breaks rather than clipping.
+
+  The grid's own "All" tile draws a four-cell pictogram instead of
+  `<TileMonogram>`. It stands first among ten siblings that all draw a picture, so
+  a lone faint capital there read as an image that had failed to load. It is the
+  grid's own control and has no `catalog_icon` to wait for; the monogram is
+  untouched as what a CATALOGUE ROW falls back to when its art has not been
+  uploaded.
+
 ## 0.25.1
 
 ### Patch Changes
