@@ -57,7 +57,11 @@ export type { CategoriesRawTransport } from "./api/featuresRaw.js";
 export type {
   AxisRole,
   Category,
+  CategoryChild,
   CategoryChildrenAs,
+  CategoryLinkedChild,
+  CategoryRowChild,
+  CategoryVirtualChild,
   CategoryFeature,
   CategoryFeatureConfig,
   CategoryFeaturesEffectiveFrom,
@@ -90,7 +94,7 @@ export {
   isBrowsableCategory,
   isTestCategory,
 } from "./catalog/browse.js";
-export type { CategoryVisibilityOptions } from "./catalog/browse.js";
+export type { BrowsableRow, CategoryVisibilityOptions } from "./catalog/browse.js";
 export {
   MAX_TILE_DEPTH,
   categoryIconSrc,
@@ -102,6 +106,9 @@ export {
   categoryLiveChildCount,
   childControl,
   hasChildren,
+  isLinkedChild,
+  isRowChild,
+  isVirtualChild,
 } from "./catalog/stage.js";
 export type { BrowseStage, BrowseStageInput, ChildControl } from "./catalog/stage.js";
 export {
@@ -217,11 +224,18 @@ export type {
   CategoryBreadcrumbsProps,
   CategoryCrumb,
 } from "./headless/CategoryBreadcrumbs.js";
-export { CategoryCarousel, categoryTileEntry } from "./headless/CategoryCarousel.js";
+export {
+  CategoryCarousel,
+  categoryChildTileEntries,
+  categoryTileEntry,
+} from "./headless/CategoryCarousel.js";
 export type {
   CarouselEntry,
   CategoryCarouselBag,
   CategoryCarouselProps,
+  CategoryTileEntry,
+  VirtualChildHref,
+  VirtualTileEntry,
 } from "./headless/CategoryCarousel.js";
 export { CategoryPicker } from "./headless/CategoryPicker.js";
 export type {

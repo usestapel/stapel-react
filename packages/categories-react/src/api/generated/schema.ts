@@ -102,7 +102,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get all non-deleted children of this category, sorted by tn_priority descending.
+         * @description The level below this category, in the order a storefront draws it. Three kinds of entry, and a client that renders the first renders the others with no new code: a real child; a POINTER into another branch (`linked: true`, every other key the target's); and, on a category with `children_expand_by`, a VIRTUAL value (`virtual: true`, no id and no slug — a `filter` pair the client turns into its own filter URL on THIS category).
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
@@ -215,6 +215,53 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/v1/categories/{id}/links/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The pointers drawn among this category's children. Staff only: the public reads serve the ASSEMBLED child list, and the table behind it is operator bookkeeping.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        get: operations["categories_api_v1_categories_links_list"];
+        put?: never;
+        /**
+         * @description Create a pointer from this category to another. `order` is its position among the children; `external_source` says who authored it — an operator's own links use `storefront` and survive every catalogue reload.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        post: operations["categories_api_v1_categories_links_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/api/v1/categories/{id}/links/{target_pk}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Delete the pointer from this category to `target_pk`. Deleting a pointer deletes nothing else: the target keeps its own place in the tree.
+         *
+         *     **Permissions:** `IsStaffUser`
+         */
+        delete: operations["categories_api_v1_categories_links_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -688,7 +735,16 @@ export interface components {
          *     * `mileage` - Mileage
          * @enum {string}
          */
-        AxisRoleDerivedEnum: "make" | "model" | "generation" | "year" | "mileage";
+        AxisRoleAuthoredE96Enum: "make" | "model" | "generation" | "year" | "mileage";
+        /**
+         * @description * `make` - Make (brand / vendor / manufacturer)
+         *     * `model` - Model
+         *     * `generation` - Generation
+         *     * `year` - Year of manufacture
+         *     * `mileage` - Mileage
+         * @enum {string}
+         */
+        AxisRoleEnum: "make" | "model" | "generation" | "year" | "mileage";
         /** @enum {unknown} */
         BlankEnum: "";
         /** @description Serializer for boolean feature configuration. */
@@ -749,6 +805,10 @@ export interface components {
             readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Name of the axis the children split on, for a `chips` row (e.g. a key rendering as 'Condition' over New | Used). A translation key, like `name` — empty when nobody named it. */
             readonly children_axis_label: string;
+            /** @description External tag of the field the children enumerate (e.g. `operation_type`) — the source catalogue's own identifier, NOT a translation key. It is how a client recognises that this level and an ordinary feature elsewhere in the tree are the same question. Empty when nobody named it. */
+            readonly children_axis_tag: string;
+            /** @description Slug of the feature whose values ARE this category's children. When set, `GET /children/` answers with virtual children (each a `{feature: value}` filter on this category) and `children_pks` is empty — there are no rows. Empty for every ordinary node. */
+            readonly children_expand_by: string;
             /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
             readonly children_pks: number[];
             /** @description How many children a reader can see — `len(children_pks)`. */
@@ -796,6 +856,7 @@ export interface components {
         CategoryBulkCommand: {
             categories: components["schemas"]["CategoryCommand"][];
         };
+        CategoryChild: components["schemas"]["Category"] | components["schemas"]["CategoryLinkedChild"] | components["schemas"]["CategoryVirtualChild"];
         /** @description Serializer for category command pattern. */
         CategoryCommand: {
             /** @description Category ID (null for add command) */
@@ -823,6 +884,83 @@ export interface components {
             parent_id?: number | null;
             /** @description Tree node priority (for add/reorder) */
             priority?: number;
+        };
+        /**
+         * @description Staff read/write of one pointer between two categories.
+         *
+         *     ``source`` is the URL's category, so it is never in the body. ``target``
+         *     is a category id; ``external_source`` says who authored the link and is
+         *     what a catalogue reload keys its rewrite on — an operator's own links
+         *     carry ``storefront`` and survive every import.
+         */
+        CategoryLink: {
+            readonly id: number;
+            /** @description The category the pointer leads to. */
+            target: number;
+            readonly target_slug: string;
+            readonly target_name: string;
+            /**
+             * Format: int64
+             * @description Position among the source's children — the pointer is inserted at this index into the child list, not appended after it.
+             */
+            order?: number;
+            /** @description Text drawn on the pointer — a translation key, like `name`. Empty means the target's own name. */
+            label?: string;
+            /** @description Who created this link: an importer's name, or `storefront` for an operator's own. A catalogue reload rewrites only the links carrying the source it loads. */
+            external_source?: string;
+        };
+        /**
+         * @description A POINTER among a category's children — the target, marked as one.
+         *
+         *     Every key is the target's, so a client that already renders a child
+         *     renders this one with no new code: the address it navigates to, the
+         *     breadcrumbs it draws and the listings it counts all belong to the node
+         *     the pointer leads to. Two keys are the pointer's own: ``linked``, which
+         *     says not to treat this as a child of the category being listed, and
+         *     ``name``, which is the link's label when it carries one.
+         */
+        CategoryLinkedChild: {
+            readonly id: number;
+            name: string;
+            slug: string;
+            /** @description CDN catalog icon reference (opaque string, e.g. catalog/asset-name) */
+            catalog_icon?: string;
+            /** @description CDN carousel icon reference (opaque string, e.g. carousel/asset-name) */
+            carousel_icon?: string;
+            /** @description Whether this category appears in the carousel */
+            carousel_enabled?: boolean;
+            /** @description Whether this category is active */
+            active?: boolean;
+            /** @description How this category's children are presented: `tiles` (real subcategories), `chips` (a partition of one attribute template) or `transparent` (browsing skips this node — its children appear where it would, and its own page is its parent's). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
+            readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
+            /** @description Name of the axis the children split on, for a `chips` row (e.g. a key rendering as 'Condition' over New | Used). A translation key, like `name` — empty when nobody named it. */
+            readonly children_axis_label: string;
+            /** @description External tag of the field the children enumerate (e.g. `operation_type`) — the source catalogue's own identifier, NOT a translation key. It is how a client recognises that this level and an ordinary feature elsewhere in the tree are the same question. Empty when nobody named it. */
+            readonly children_axis_tag: string;
+            /** @description Slug of the feature whose values ARE this category's children. When set, `GET /children/` answers with virtual children (each a `{feature: value}` filter on this category) and `children_pks` is empty — there are no rows. Empty for every ordinary node. */
+            readonly children_expand_by: string;
+            /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
+            readonly children_pks: number[];
+            /** @description How many children a reader can see — `len(children_pks)`. */
+            readonly children_count: number;
+            readonly features: number[];
+            /** @description If True, category name is a translation key */
+            translatable?: boolean;
+            /** Parent */
+            tn_parent?: number | null;
+            /**
+             * Priority
+             * Format: int64
+             */
+            tn_priority?: number;
+            /** Ancestors pks */
+            readonly tn_ancestors_pks: string;
+            /** @description django-treenode's raw structure column, `,`-joined. Counts soft-deleted and retired rows, so it is NOT the child set a reader can fetch — use `children_pks`. Kept because the revision-sync feed's consumers mirror the tree columns. */
+            readonly tn_children_pks: string;
+            readonly revision: number;
+            deleted?: boolean;
+            /** @description Always `true`. This node is drawn here but lives elsewhere in the tree — `id`, `slug` and `tn_parent` are the target's. */
+            readonly linked: boolean;
         };
         /**
          * @description The public projection plus provenance — staff writes only.
@@ -858,6 +996,8 @@ export interface components {
             /** @description How this category's children are presented: `tiles` (real subcategories), `chips` (a partition of one attribute template) or `transparent` (browsing skips this node — its children appear where it would, and its own page is its parent's). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             children_axis_label?: string;
+            children_axis_tag?: string;
+            children_expand_by?: string;
             /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
             readonly children_pks: number[];
             /** @description How many children a reader can see — `len(children_pks)`. */
@@ -926,12 +1066,44 @@ export interface components {
             children_as: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Name of the axis the children split on, for a `chips` row. A translation key, like `name`; empty when nobody named it. */
             children_axis_label: string;
+            /** @description External tag of the field the children enumerate — the source catalogue's own identifier, not a translation key. Empty when nobody named it. */
+            children_axis_tag: string;
+            /** @description Present and `true` on a POINTER: this node is drawn among its parent's children but lives elsewhere in the tree. Its `id`, `slug` and `path` are the target's, so following it lands on the target's own page; only `name` may be the pointer's. */
+            linked?: boolean;
+            /** @description Present and `true` on a value of an expanded branch (the parent's `children_expand_by`). Such a node has no `id`, no `slug` and no `path` — it carries `name`, `value` and a `filter` object the client turns into its own filter URL on the PARENT category. */
+            virtual?: boolean;
+            /** @description Virtual nodes only: the option code this node stands for. */
+            value?: string;
+            /** @description Virtual nodes only: the `{feature_slug: value}` pair that selects this node's listings on the parent category. */
+            filter?: {
+                [key: string]: string;
+            };
             /** @description How many children this node HAS — live rows only, so it counts no soft-deleted or retired row. Not `len(children)`: at the requested depth `children` is empty and this still says whether there is another level to ask for. */
             children_count: number;
             /** @description Nodes of this same shape; empty at the requested depth. */
             children: {
                 [key: string]: unknown;
             }[];
+        };
+        /**
+         * @description One value of an expanded branch — a child with no row behind it.
+         *
+         *     Emitted where the parent carries ``children_expand_by``. There is no
+         *     ``id`` and no ``slug`` because there is nothing to address; the address
+         *     is the client's own filter URL on the PARENT category, built from
+         *     ``filter``.
+         */
+        CategoryVirtualChild: {
+            /** @description Display label of the value — a translation key, like `name`. */
+            name: string;
+            /** @description The option code this node stands for. */
+            value: string;
+            /** @description Always `true`. */
+            virtual: boolean;
+            /** @description The `{feature_slug: value}` pair that selects this node's listings on the parent category. */
+            filter: {
+                [key: string]: string;
+            };
         };
         /**
          * @description * `auto` - Auto (derive)
@@ -1062,7 +1234,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role: (components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["NullEnum"]) | null;
+            readonly axis_role: (components["schemas"]["AxisRoleEnum"] | components["schemas"]["NullEnum"]) | null;
             /**
              * @description The authoring column: blank leaves the role to `load_catalog`'s slug-table derivation, a value pins it. `axis_role` above is the RESOLVED read.
              *
@@ -1072,7 +1244,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role_authored?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
+            axis_role_authored?: components["schemas"]["AxisRoleAuthoredE96Enum"] | components["schemas"]["BlankEnum"];
             readonly axis_role_derived: string;
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
@@ -1173,17 +1345,9 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
-            /**
-             * @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value.
-             *
-             *     * `make` - Make (brand / vendor / manufacturer)
-             *     * `model` - Model
-             *     * `generation` - Generation
-             *     * `year` - Year of manufacture
-             *     * `mileage` - Mileage
-             */
-            readonly axis_role_derived: components["schemas"]["AxisRoleDerivedEnum"];
+            axis_role?: components["schemas"]["AxisRoleEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value. */
+            readonly axis_role_derived: string;
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1235,7 +1399,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role: (components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["NullEnum"]) | null;
+            readonly axis_role: (components["schemas"]["AxisRoleEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1330,17 +1494,9 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
-            /**
-             * @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value.
-             *
-             *     * `make` - Make (brand / vendor / manufacturer)
-             *     * `model` - Model
-             *     * `generation` - Generation
-             *     * `year` - Year of manufacture
-             *     * `mileage` - Mileage
-             */
-            readonly axis_role_derived: components["schemas"]["AxisRoleDerivedEnum"];
+            axis_role?: components["schemas"]["AxisRoleEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value. */
+            readonly axis_role_derived: string;
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1548,7 +1704,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role: (components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["NullEnum"]) | null;
+            readonly axis_role: (components["schemas"]["AxisRoleEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1844,6 +2000,8 @@ export interface components {
             /** @description How this category's children are presented: `tiles` (real subcategories), `chips` (a partition of one attribute template) or `transparent` (browsing skips this node — its children appear where it would, and its own page is its parent's). `null` when the category has no children. The authoring value `auto` is resolved server-side and never appears here. */
             readonly children_as?: (components["schemas"]["ChildrenAsEnum"] | components["schemas"]["NullEnum"]) | null;
             children_axis_label?: string;
+            children_axis_tag?: string;
+            children_expand_by?: string;
             /** @description Ids of the children a reader can see — exactly what `GET /categories/{id}/children/` returns, in the same order. Read this, not `tn_children_pks`: that is django-treenode's raw structure column and it counts soft-deleted and retired rows too, so a rule built on it (leaf-ness, child counts, a one-child wrapper check) sees children no reader can fetch. */
             readonly children_pks?: number[];
             /** @description How many children a reader can see — `len(children_pks)`. */
@@ -1950,17 +2108,9 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
-            /**
-             * @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value.
-             *
-             *     * `make` - Make (brand / vendor / manufacturer)
-             *     * `model` - Model
-             *     * `generation` - Generation
-             *     * `year` - Year of manufacture
-             *     * `mileage` - Mileage
-             */
-            readonly axis_role_derived?: components["schemas"]["AxisRoleDerivedEnum"];
+            axis_role?: components["schemas"]["AxisRoleEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value. */
+            readonly axis_role_derived?: string;
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -2390,7 +2540,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Category"][];
+                    "application/json": components["schemas"]["CategoryChild"][];
                 };
             };
         };
@@ -2515,6 +2665,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeatureEffective"][];
+                };
+            };
+        };
+    };
+    categories_api_v1_categories_links_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryLink"][];
+                };
+            };
+        };
+    };
+    categories_api_v1_categories_links_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryLink"];
+                "application/x-www-form-urlencoded": components["schemas"]["CategoryLink"];
+                "multipart/form-data": components["schemas"]["CategoryLink"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryLink"];
+                };
+            };
+        };
+    };
+    categories_api_v1_categories_links_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this category. */
+                id: number;
+                target_pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

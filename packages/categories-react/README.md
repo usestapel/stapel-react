@@ -364,6 +364,51 @@ only option on that rung — and `<CategoryPage subcategories="tiles">` /
 `useCategoryTree()` callers get the same splice through `browseChildren`,
 unchanged at the call site.
 
+## A child is not always a row: pointers and values
+
+Since **stapel-categories 0.22.0** `GET /{id}/children/` — and every
+`CategoryTreeNode` — can carry three kinds of entry. `CategoryChild` is the
+union, and `isRowChild` / `isLinkedChild` / `isVirtualChild` are the three
+questions you can ask of one.
+
+| kind | what it is | what a reader does with it |
+| --- | --- | --- |
+| a **row** | a real subcategory | unchanged |
+| a **pointer** (`linked: true`) | another branch, drawn here | renders and navigates exactly like a row — every key is the TARGET's, `id` and `slug` included, so following it lands on the target's own page |
+| a **value** (`virtual: true`) | one option of the parent's `children_expand_by` feature | no `id`, no `slug`: it carries `name`, `value` and a `filter` pair, and only the host knows what URL that pair becomes |
+
+The server inserts a pointer at the `order` its operator gave it, **among**
+the real children, so nothing on this side re-sorts a level. `browseChildren`
+passes both new kinds through untouched and in place — a pointer is never
+read as a one-rung wrapper (the level it names was drawn on purpose), and a
+value has no children for a splice to reveal.
+
+A value's address is yours to spell:
+
+```tsx
+const entries = categoryChildTileEntries(children, "/c", (filter) =>
+  `/c/${parent.slug}?${new URLSearchParams(filter).toString()}`
+);
+<CategoryTileGrid entries={entries} allTile={false} />
+```
+
+`categoryChildTileEntries(children, basePath, hrefForVirtual?)` maps a whole
+level in one pass, keeping the server's order; rows and pointers become the
+usual `CarouselEntry`, values become a `VirtualTileEntry` whose caption is the
+value's own (translation-key) name and whose art is the caption's monogram.
+Omit `hrefForVirtual` and a value is **dropped**, with a development-build
+warning — the pair will not guess a filter route, for the same reason it will
+not guess a CDN base out of an opaque icon reference.
+
+`<CategoryPage hrefForVirtual={…}>` threads the same callback into the page's
+`"tiles"` arm.
+
+Two fields travel beside them. `children_axis_label` is the axis's
+**translation key** — the caption over a chip row — and `children_axis_tag`
+(0.22.0) is the SOURCE CATALOGUE's own identifier for the same question
+(`operation_type`), never shown, and the way a client recognises that this
+level and an ordinary feature elsewhere in the tree ask the same thing.
+
 ## The desktop mega-menu: one call, three levels
 
 `useCategoryTree(depth)` is `GET /tree/?depth=N` — active nodes, ordered,

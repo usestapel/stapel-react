@@ -16,6 +16,7 @@ import {
   browsableCategories,
   buildCategoryTree,
   isBrowsableCategory,
+  isRowChild,
   isTestCategory,
   useCategoryCarousel,
   useCategoryChildren,
@@ -162,7 +163,10 @@ function ChildrenProbe(props: {
     <span data-testid={props.admin === true ? "admin" : "browse"}>
       {query.data === undefined
         ? ""
-        : query.data.map((row) => row.slug).join(",")}
+        : query.data
+            .filter(isRowChild)
+            .map((row) => row.slug)
+            .join(",")}
     </span>
   );
 }

@@ -70,7 +70,11 @@ import type { Category } from "../api/types.js";
 import { renderCategoryLabel } from "../catalog/labels.js";
 import { categoryIconSrc, categoryOffersTileGrid } from "../catalog/tiles.js";
 import { CategoryCarousel } from "../headless/CategoryCarousel.js";
-import type { CarouselEntry } from "../headless/CategoryCarousel.js";
+import type {
+  CarouselEntry,
+  CategoryTileEntry,
+  VirtualTileEntry,
+} from "../headless/CategoryCarousel.js";
 import { CATEGORIES_I18N_KEYS } from "../i18n/keys.js";
 import { CategoryLink } from "./CategoryLink.js";
 import type { LinkComponentProp } from "./CategoryLink.js";
@@ -575,6 +579,18 @@ function TileImage(props: {
 export type CategoryIconResolver = (category: Category) => string | undefined;
 
 /**
+ * Is this tile a VALUE of an expanded branch rather than a row?
+ *
+ * The two differ in exactly three places — the React key, whether the link
+ * carries a category identity, and whether there is art to resolve — and
+ * nowhere else, which is why they share one {@link Tile} rather than getting
+ * a second component.
+ */
+function isVirtualTile(entry: CategoryTileEntry): entry is VirtualTileEntry {
+  return "virtual" in entry;
+}
+
+/**
  * The art of one tile: the host's `renderIcon`, then an address, then the
  * monogram — and EVERY arm may decline.
  *
@@ -959,8 +975,15 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    * one load two owners — {@link CategoryTileGridProps.reserve} is how the
    * host lends this one back the ONE thing it cannot own, which is the row's
    * height before the rows exist.
+   *
+   * Since stapel-categories 0.22.0 an entry is not always a row: a POINTER
+   * arrives as an ordinary {@link CarouselEntry} (its every key is the
+   * target's, so it draws and navigates like any other tile), and a VALUE of
+   * an expanded branch arrives as a {@link VirtualTileEntry} — no id, no
+   * slug, and the `href` its own host built out of the `filter` pair. Build
+   * both with `categoryChildTileEntries`.
    */
-  readonly entries?: readonly CarouselEntry[];
+  readonly entries?: readonly CategoryTileEntry[];
   /**
    * HOLD THE ROW'S BOX WHILE THE HOST'S OWN FETCH IS IN FLIGHT.
    *
@@ -1114,7 +1137,7 @@ const ALL_CATEGORIES_SEARCH_THRESHOLD = 20;
 function AllCategoriesDialog(props: {
   readonly open: boolean;
   readonly onClose: () => void;
-  readonly entries: readonly CarouselEntry[];
+  readonly entries: readonly CategoryTileEntry[];
   readonly linkComponent?: LinkComponent;
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
   readonly resolveIconSrc?: CategoryIconResolver;
@@ -1173,15 +1196,24 @@ function AllCategoriesDialog(props: {
             data-testid="categories-tile-grid-dialog-list"
             size="small"
             dataSource={filtered}
-            renderItem={({ entry, label }) => (
+            renderItem={({ entry, label }) => {
+              const value = isVirtualTile(entry);
+              const key = value
+                ? `value-${entry.virtual.value}`
+                : String(entry.category.id);
+              return (
               <List.Item
-                key={entry.category.id}
-                data-testid={`categories-tile-grid-dialog-option-${String(entry.category.id)}`}
+                key={key}
+                data-testid={`categories-tile-grid-dialog-option-${key}`}
               >
                 <CategoryLink
                   {...linkProps}
-                  slug={entry.category.slug}
-                  categoryId={entry.category.id}
+                  {...(value
+                    ? {}
+                    : {
+                        slug: entry.category.slug,
+                        categoryId: entry.category.id,
+                      })}
                   href={entry.href}
                   style={{
                     display: "flex",
@@ -1201,18 +1233,23 @@ function AllCategoriesDialog(props: {
                       flex: "0 0 auto",
                     }}
                   >
-                    {tileArt(
-                      entry.icon,
-                      label,
-                      entry,
-                      false,
-                      props.renderIcon,
-                      props.resolveIconSrc
+                    {value ? (
+                      <TileMonogram label={label} />
+                    ) : (
+                      tileArt(
+                        entry.icon,
+                        label,
+                        entry,
+                        false,
+                        props.renderIcon,
+                        props.resolveIconSrc
+                      )
                     )}
                   </span>
                 </CategoryLink>
               </List.Item>
-            )}
+              );
+            }}
           />
         )}
       </Flex>
@@ -1224,7 +1261,7 @@ function AllCategoriesDialog(props: {
  * past `maxVisible` under `overflow: "modal"` — the "All categories" tile and
  * its dialog. */
 function TileRow(props: {
-  readonly entries: readonly CarouselEntry[];
+  readonly entries: readonly CategoryTileEntry[];
   readonly basePath: string;
   readonly allTile?: boolean;
   readonly linkComponent?: LinkComponent;
@@ -1285,9 +1322,13 @@ function TileRow(props: {
         })()}
         {visible.map((entry, index) => {
           const label = renderCategoryLabel(entry.label, t);
+          const value = isVirtualTile(entry);
           return (
             <Tile
-              key={entry.category.id}
+              // A value has no id to key by, and its option code is unique
+              // among its siblings by construction — they are the values of
+              // one feature.
+              key={value ? `value:${entry.virtual.value}` : entry.category.id}
               {...linkProps}
               density={props.density}
               size={props.size}
@@ -1295,17 +1336,27 @@ function TileRow(props: {
               labelHyphens={props.labelHyphens}
               labelLang={labelLang}
               href={entry.href}
-              slug={entry.category.slug}
-              categoryId={entry.category.id}
+              {...(value
+                ? {}
+                : { slug: entry.category.slug, categoryId: entry.category.id })}
               label={label}
-              art={tileArt(
-                entry.icon,
-                label,
-                entry,
-                index < props.eagerCount,
-                props.renderIcon,
-                props.resolveIconSrc
-              )}
+              art={
+                value ? (
+                  // No row, so no `catalog_icon` and nothing for a host
+                  // resolver to key on: the caption's own monogram, which is
+                  // what an unglyphed category tile draws too.
+                  <TileMonogram label={label} />
+                ) : (
+                  tileArt(
+                    entry.icon,
+                    label,
+                    entry,
+                    index < props.eagerCount,
+                    props.renderIcon,
+                    props.resolveIconSrc
+                  )
+                )
+              }
             />
           );
         })}

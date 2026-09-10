@@ -58,7 +58,7 @@
  * treats a flagged leaf as an ordinary leaf and warns in development.
  */
 import type { BrowseStageInput } from "./stage.js";
-import { categoryLiveChildCount, hasChildren } from "./stage.js";
+import { categoryLiveChildCount, hasChildren, isLinkedChild } from "./stage.js";
 
 /**
  * A child's own children, however the caller's shape carries them.
@@ -91,7 +91,12 @@ export function isTransparentWrapper<C extends BrowseStageInput>(
 ): boolean {
   if (children.length !== 1) return false;
   const [only] = children;
-  return only !== undefined && hasChildren(only);
+  // A POINTER is never a wrapper, however many children its target has. The
+  // rule exists to skip a level the SOURCE CATALOGUE nested by accident; a
+  // link is the opposite — a level an operator drew on purpose — and
+  // replacing it with the target's children would draw the inside of a
+  // branch where the storefront asked for its door.
+  return only !== undefined && !isLinkedChild(only) && hasChildren(only);
 }
 
 /**
@@ -138,6 +143,10 @@ function inDevelopment(): boolean {
  * condition it fires under cannot drift apart between `browseChildren`,
  * `browseStage` and the cascade. */
 function isActionableTransparentNode<C extends BrowseStageInput>(node: C): boolean {
+  // `children_as` on a POINTER is the TARGET's, and the target being a
+  // transparent level says nothing about the link: collapsing here would
+  // delete the pointer and put the target's children in its place.
+  if (isLinkedChild(node)) return false;
   if (!isTransparentNode(node)) return false;
   if (hasChildren(node)) return true;
   if (inDevelopment()) {
@@ -168,6 +177,11 @@ function isActionableTransparentNode<C extends BrowseStageInput>(node: C): boole
  * Still one hop: a spliced-in grandchild that is itself transparent is not
  * chased further. The addendum names one substitution per transparent node,
  * not a walk to the first branching descendant.
+ *
+ * The two kinds of child stapel-categories 0.22.0 added pass through UNTOUCHED
+ * and IN PLACE — a POINTER (`isLinkedChild`) because the level it names was
+ * drawn on purpose, a VALUE of an expanded branch (`isVirtualChild`) because
+ * it has no children for a splice to reveal.
  */
 export function browseChildren<C extends BrowseStageInput>(
   children: readonly C[],

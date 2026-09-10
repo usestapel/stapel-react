@@ -3,6 +3,7 @@ import { fetchCategoryFeatures } from "./featuresRaw.js";
 import type { CategoriesRawTransport } from "./featuresRaw.js";
 import type {
   Category,
+  CategoryChild,
   CategoryFeaturesResult,
   CategoryListParams,
   CategoryPage,
@@ -102,17 +103,23 @@ export interface CategoriesApi {
   ): Promise<Category>;
 
   /**
-   * Non-deleted direct children of one category, `tn_priority` descending.
+   * The level below one category, in the order a storefront draws it.
    *
    * Redundant with the synced tree by construction, and deliberately kept: a
    * host that wants one branch without paying for the catalogue (an SSR
    * category page, a lazily-expanded admin-ish picker) has an endpoint for it,
    * and it is the one place the server does the `deleted` filtering.
+   *
+   * Since stapel-categories 0.22.0 the answer is a {@link CategoryChild} and
+   * not a row: a POINTER into another branch arrives here at the `order` its
+   * operator gave it, and an expanded branch answers with VALUES that have no
+   * row at all. Both are still ordered by the server, so nothing on this side
+   * re-sorts the array.
    */
   children(
     id: number,
     options?: { readonly signal?: AbortSignal }
-  ): Promise<readonly Category[]>;
+  ): Promise<readonly CategoryChild[]>;
 
   /**
    * The carousel strip: `active` AND `carousel_enabled`, `tn_priority`

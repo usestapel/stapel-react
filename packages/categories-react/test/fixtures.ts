@@ -12,7 +12,9 @@ import type {
   Category,
   CategoryFeature,
   CategoryListPage,
+  CategoryRowChild,
   CategoryTreeNode,
+  CategoryVirtualChild,
 } from "../src/index.js";
 
 export function categoryRow(
@@ -426,3 +428,28 @@ export const TREE: readonly CategoryTreeNode[] = [
   TREE_TRANSPORT,
   TREE_ELECTRONICS,
 ];
+
+/**
+ * A POINTER among a category's children (stapel-categories 0.22.0): the
+ * TARGET's whole row, plus `linked`.
+ *
+ * Built from {@link categoryRow} on purpose — the wire really does send every
+ * key as the target's, so a fixture that invented a narrower shape would let
+ * a reader pass here and fail on the live payload.
+ */
+export function linkedChild(target: Category): CategoryRowChild {
+  return { ...target, linked: true };
+}
+
+/**
+ * A VALUE of an expanded branch: no id, no slug, no row — a display key, the
+ * option code, and the `{feature slug: value}` pair that selects its listings
+ * on the PARENT category.
+ */
+export function virtualChild(
+  name: string,
+  value: string,
+  filter: Record<string, string>
+): CategoryVirtualChild {
+  return { name, value, virtual: true, filter };
+}

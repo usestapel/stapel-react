@@ -50,7 +50,34 @@
  * row the server sends (see `catalog/sync.ts`), and only the projection over
  * it drops rows. Filtering the cache would break the next delta.
  */
-import type { Category } from "../api/types.js";
+
+/**
+ * The two flags the predicate below DECLARES; `is_test` is read off the wire
+ * beside them, undeclared, for the reason this file's header gives.
+ *
+ * A structural shape rather than a `Category` row, because since
+ * stapel-categories 0.22.0 the children endpoint also sends VALUES of an
+ * expanded branch, which are not rows and carry none of these keys. Every
+ * flag is optional and an absent flag reads exactly as it does on a row — a
+ * value is live, browsable and never a tombstone — so the same one predicate
+ * still answers for every entry a browse surface can be handed.
+ *
+ * A type ALIAS, not an interface: an interface has no implicit index
+ * signature and {@link wireField} would stop being able to read the
+ * undeclared `is_test` flag off it.
+ */
+export type BrowsableRow = {
+  /** A TOMBSTONE flag, not an absence — see this file's header. */
+  readonly deleted?: boolean;
+  /** The storefront's visibility switch. Absent means active. */
+  readonly active?: boolean;
+  /** Declared here only so a VALUE of an expanded branch, which carries
+   * NEITHER flag above, is still one of the shapes this predicate accepts —
+   * TypeScript refuses an all-optional type nothing shares a key with. The
+   * predicate never reads it: a value has no tombstone and no visibility
+   * switch, and is therefore always browsable. */
+  readonly virtual?: boolean;
+};
 
 /**
  * Which non-browsable rows to keep. Every flag defaults to `false`, which is
@@ -82,7 +109,7 @@ export const ADMIN_VISIBILITY: CategoryVisibilityOptions = {
  * Read a field the pinned schema does not declare, without lying about its
  * type. Returns `unknown`; the caller narrows.
  */
-function wireField(row: Category, field: string): unknown {
+function wireField(row: BrowsableRow, field: string): unknown {
   const bag: Record<string, unknown> = row;
   return bag[field];
 }
@@ -95,7 +122,7 @@ function wireField(row: Category, field: string): unknown {
  * test row" — see this file's header for why the opposite default would empty
  * every catalogue.
  */
-export function isTestCategory(row: Category): boolean {
+export function isTestCategory(row: BrowsableRow): boolean {
   return wireField(row, "is_test") === true;
 }
 
@@ -107,7 +134,7 @@ export function isTestCategory(row: Category): boolean {
  * so a new surface cannot invent a fourth answer to "is this row live".
  */
 export function isBrowsableCategory(
-  row: Category,
+  row: BrowsableRow,
   options: CategoryVisibilityOptions = {}
 ): boolean {
   if (row.deleted === true && options.includeDeleted !== true) return false;
@@ -120,10 +147,10 @@ export function isBrowsableCategory(
  * {@link isBrowsableCategory} over a list, order preserved.
  *
  * Generic in the row so a caller keeps whatever narrower type it had — a
- * filter that widened `Category` to something else would push a cast onto
- * every call site.
+ * filter that widened {@link BrowsableRow} to something else would push a
+ * cast onto every call site.
  */
-export function browsableCategories<T extends Category>(
+export function browsableCategories<T extends BrowsableRow>(
   rows: Iterable<T>,
   options: CategoryVisibilityOptions = {}
 ): readonly T[] {

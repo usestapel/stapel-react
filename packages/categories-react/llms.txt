@@ -1,6 +1,6 @@
 # @stapel/categories-react 0.25.1
 
-Headless React flow pair for stapel-categories (contract >=0.21 <0.22) — business + state, zero visual opinion.
+Headless React flow pair for stapel-categories (contract >=0.22 <0.23) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -34,6 +34,9 @@ Paths are relative to `/categories/api/v1/`.
 - categories_api_v1_categories_feature_editor_draft_create: POST /categories/{id}/feature-editor/draft/
 - categories_api_v1_categories_feature_editor_retrieve: GET /categories/{id}/feature-editor/
 - categories_api_v1_categories_features_list: GET /categories/{id}/features/
+- categories_api_v1_categories_links_create: POST /categories/{id}/links/
+- categories_api_v1_categories_links_destroy: DELETE /categories/{id}/links/{target_pk}/
+- categories_api_v1_categories_links_list: GET /categories/{id}/links/
 - categories_api_v1_categories_list: GET /categories/
 - categories_api_v1_categories_partial_update: PATCH /categories/{id}/
 - categories_api_v1_categories_retrieve: GET /categories/{id}/

@@ -54,7 +54,12 @@ export type {
  * both make it part of a skin caller's vocabulary — a host composing tiles
  * should not have to reach into the headless entry for the row type it is
  * handed and asked to hand back. Same type, one door closer. */
-export type { CarouselEntry } from "../headless/CategoryCarousel.js";
+export type {
+  CarouselEntry,
+  CategoryTileEntry,
+  VirtualChildHref,
+  VirtualTileEntry,
+} from "../headless/CategoryCarousel.js";
 export { CategorySearchHits } from "./CategorySearchHits.js";
 export type { CategorySearchHitsProps } from "./CategorySearchHits.js";
 /** Re-exported for the same reason as `CarouselEntry`: a host that mounts

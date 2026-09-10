@@ -20,9 +20,12 @@ import { describe, expect, it } from "vitest";
 import { AXIS_ROLES, axisRoleOf } from "@stapel/attributes-react";
 import type {
   AxisRole,
+  Category,
   CategoryFeature,
   CategoryFeatureConfig,
   CategoryFeatureType,
+  CategoryLinkedChild,
+  CategoryVirtualChild,
   Schemas,
 } from "../src/index.js";
 
@@ -112,5 +115,33 @@ describe("axis_role — the catalogue's value and the reader's vocabulary", () =
     const unclaimed: CategoryFeature = { slug: "colour", config: { type: "select" } };
     expect(axisRoleOf(unclaimed)).toBeNull();
     expect(axisRoleOf({ ...unclaimed, axis_role: null })).toBeNull();
+  });
+});
+
+/**
+ * A POINTER IS A ROW, AND THE CONTRACT SAYS SO.
+ *
+ * The whole reason this pair grew no second rendering path for a linked child
+ * is upstream's promise that "a client that already renders a child renders
+ * this one with no new code": every key on `CategoryLinkedChild` is the
+ * target's. That promise is a SHAPE, so it is asserted as one. If a future
+ * release narrows the pointer's payload — drops the ancestry columns, say, or
+ * the icons — this fails `tsc -p tsconfig.test.json` here, at the seam, rather
+ * than in a storefront's tile grid.
+ *
+ * The other direction is deliberately NOT asserted: `Category` is missing
+ * `linked`, which is exactly the one key the pointer adds.
+ */
+type PointerIsARow = CategoryLinkedChild extends Category ? true : never;
+const _pointerIsARow: PointerIsARow = true;
+
+/** …and a VALUE is the opposite: nothing addressable at all. */
+type ValueHasNoId = "id" extends keyof CategoryVirtualChild ? never : true;
+const _valueHasNoId: ValueHasNoId = true;
+
+describe("the three kinds of child", () => {
+  it("keeps a pointer assignable to a row and a value un-addressable", () => {
+    expect(_pointerIsARow).toBe(true);
+    expect(_valueHasNoId).toBe(true);
   });
 });

@@ -45,7 +45,12 @@
  *    nested array is the last resort, for a plain tree node that carries
  *    none of the above.
  */
-import type { CategoryChildrenAs, CategoryTreeNode } from "../api/types.js";
+import type {
+  CategoryChild,
+  CategoryChildrenAs,
+  CategoryRowChild,
+  CategoryTreeNode,
+} from "../api/types.js";
 import { warnLegacyFallback } from "./devWarn.js";
 import { parseTreenodePks } from "./pks.js";
 
@@ -101,6 +106,11 @@ export interface BrowseStageInput {
    * root. The last resort for parentage, on a shape with neither treenode
    * column. */
   readonly path?: string;
+  /** Present and `true` on a POINTER — see {@link isLinkedChild}. */
+  readonly linked?: boolean;
+  /** Present and `true` on a VALUE of an expanded branch — see
+   * {@link isVirtualChild}. */
+  readonly virtual?: boolean;
   /** The nested children of a tree read, cut at its depth. */
   readonly children?: readonly CategoryTreeNode[];
 }
@@ -123,6 +133,47 @@ function isRoot(category: BrowseStageInput): boolean {
     return !category.path.includes("/");
   }
   return false;
+}
+
+/**
+ * Is this entry a POINTER — a child drawn among its parent's children whose
+ * `id`, `slug` and `path` belong to another node (stapel-categories 0.22.0)?
+ *
+ * Every other key is the target's, so a reader renders it exactly as it
+ * renders a real child and lands on the target's own page. What the flag is
+ * FOR is the rules that would otherwise treat the row as this parent's own:
+ * `catalog/wrapper.ts` must never collapse a level away and put the target's
+ * children where the operator drew a pointer.
+ */
+export function isLinkedChild(child: BrowseStageInput): boolean {
+  return child.linked === true;
+}
+
+/**
+ * Is this entry a VALUE of an expanded branch — a child with no row behind it
+ * (stapel-categories 0.22.0)?
+ *
+ * It has no id, no slug and no children of its own, ever: it is one option of
+ * the parent's `children_expand_by` feature, and its address is the host's own
+ * filter URL on the PARENT. {@link hasChildren} answers `false` for one
+ * without consulting anything else, which is what keeps a lone virtual child
+ * from being read as a one-rung wrapper and spliced away.
+ */
+export function isVirtualChild(child: BrowseStageInput): boolean {
+  return child.virtual === true;
+}
+
+/**
+ * The complement of {@link isVirtualChild}, as a TYPE GUARD over the wire
+ * union: is this entry a row a reader can address by id and slug?
+ *
+ * A pointer is one — its id and slug are the target's, which is the whole
+ * point of the shape. Every reader in this pair that walks the tree BY ID
+ * (`useCategoryLevels`, the cascade, the level pane, the breadcrumb) narrows
+ * with this rather than carrying an entry that has no id to walk from.
+ */
+export function isRowChild(child: CategoryChild): child is CategoryRowChild {
+  return child.virtual !== true;
 }
 
 /**
@@ -172,6 +223,10 @@ export function categoryLiveChildCount(
  * stage check would disagree with this file about the same row.
  */
 export function hasChildren(category: BrowseStageInput): boolean {
+  // A VALUE of an expanded branch has no row and therefore no children, and
+  // it states none of the channels below — so the "assume it has some"
+  // default at the bottom of this chain would answer `true` for it.
+  if (isVirtualChild(category)) return false;
   const liveCount = categoryLiveChildCount(category);
   if (liveCount !== undefined) return liveCount > 0;
   if (category.children_as !== undefined) return category.children_as !== null;

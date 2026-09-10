@@ -77,6 +77,28 @@ export type CategoryPresentation = {
    */
   readonly children_axis_label?: string;
   /**
+   * The SOURCE CATALOGUE's own identifier for the field the children
+   * enumerate — `operation_type`, `body_type` (stapel-categories 0.22.0).
+   *
+   * Sits beside {@link children_axis_label} and is the opposite kind of
+   * string: the label is a TRANSLATION KEY a person reads, this tag is the
+   * import's own name for the question and is never shown. It is how a client
+   * recognises that this level and an ordinary feature elsewhere in the tree
+   * ask the same thing. Empty when nobody named it, and absent on a server
+   * that predates the field — read as the same thing.
+   */
+  readonly children_axis_tag?: string;
+  /**
+   * Slug of the feature whose VALUES are this category's children
+   * (stapel-categories 0.22.0).
+   *
+   * Set only on an expanded branch, and it changes what
+   * `GET /{id}/children/` answers: virtual children, one per value, and
+   * `children_pks` empty because there are no rows. Empty for every ordinary
+   * node. See {@link CategoryVirtualChild}.
+   */
+  readonly children_expand_by?: string;
+  /**
    * The ids of the children a READER can fetch — what
    * `GET /categories/{id}/children/` returns, in the same order
    * (stapel-categories 0.20.5).
@@ -130,6 +152,65 @@ export type CategoryPresentation = {
  */
 export type Category = Omit<Schemas["Category"], keyof CategoryPresentation> &
   CategoryPresentation;
+
+/**
+ * A POINTER among a category's children, as the children endpoint sends it
+ * (stapel-categories 0.22.0).
+ *
+ * EVERY key is the TARGET's — `id`, `slug`, `tn_parent`, the ancestry columns,
+ * the icons, the child counts — so the address a reader navigates to, the
+ * breadcrumbs it draws and the listings it counts all belong to the node the
+ * pointer leads to. Two keys are the pointer's own: `linked`, which says this
+ * row lives elsewhere in the tree, and `name`, which is the link's label when
+ * an operator gave it one.
+ *
+ * That is why this pair grows no second rendering path for it: structurally a
+ * linked child IS a {@link Category} plus `linked`, which is exactly what
+ * {@link CategoryRowChild} says. The presentation keys are optional here for
+ * the same reason they are on `Category` — see {@link CategoryPresentation}.
+ */
+export type CategoryLinkedChild = Omit<
+  Schemas["CategoryLinkedChild"],
+  keyof CategoryPresentation
+> &
+  CategoryPresentation;
+
+/**
+ * One VALUE of an expanded branch — a child with no row behind it
+ * (stapel-categories 0.22.0).
+ *
+ * Emitted where the parent carries {@link CategoryPresentation.children_expand_by}.
+ * There is no `id`, no `slug` and no `path`, because there is nothing to
+ * address: the address is the HOST's own filter URL on the PARENT category,
+ * built from `filter` — a `{feature slug: value}` pair. This pair does not
+ * invent that route; it hands the pair over (see `categoryChildTileEntries`).
+ */
+export type CategoryVirtualChild = Schemas["CategoryVirtualChild"];
+
+/**
+ * A child that is a ROW: a real subcategory, or a {@link CategoryLinkedChild}
+ * pointing at one.
+ *
+ * One type for both, deliberately. `virtual?: false` is the discriminant of
+ * {@link CategoryChild} and nothing else — it is never sent on the wire.
+ */
+export type CategoryRowChild = Category & {
+  /** Present and `true` on a POINTER — this row is drawn here but lives
+   * elsewhere in the tree, and every other key is the target's. */
+  readonly linked?: boolean;
+  readonly virtual?: false;
+};
+
+/**
+ * What `GET /categories/{id}/children/` answers since stapel-categories
+ * 0.22.0: the level below a category, in the order a storefront draws it.
+ *
+ * Three kinds of entry, and a reader that renders the first renders the second
+ * with no new code — a pointer carries the target's whole row. The third is
+ * the one that needs the host: a virtual child has no id and no slug, so only
+ * the host can say what URL its `filter` becomes.
+ */
+export type CategoryChild = CategoryRowChild | CategoryVirtualChild;
 
 /** The `{pagination, revisions, results}` envelope of `RevisionPagination`.
  * Its rows are {@link Category}, not the generated row: the two presentation
@@ -245,6 +326,26 @@ export interface CategoryTreeNode {
   readonly catalog_icon?: string;
   readonly translatable?: boolean;
   readonly children_as?: CategoryChildrenAs | null;
+  /** The axis's translation key, for a `chips` row — the caption over the
+   * chips (stapel-categories 0.20.0). Empty when nobody named it. */
+  readonly children_axis_label?: string;
+  /** The SOURCE CATALOGUE's own identifier for the field the children
+   * enumerate, beside the label and never shown (stapel-categories 0.22.0) —
+   * see {@link CategoryPresentation.children_axis_tag}. */
+  readonly children_axis_tag?: string;
+  /** Present and `true` on a POINTER: `id`, `slug` and `path` are the
+   * TARGET's, so following it lands on the target's own page; only `name` may
+   * be the pointer's (stapel-categories 0.22.0). */
+  readonly linked?: boolean;
+  /** Present and `true` on a VALUE of an expanded branch: no `id`, no `slug`
+   * and no `path` — {@link value} and {@link filter} are what it carries
+   * (stapel-categories 0.22.0). */
+  readonly virtual?: boolean;
+  /** Virtual nodes only: the option code this node stands for. */
+  readonly value?: string;
+  /** Virtual nodes only: the `{feature slug: value}` pair that selects this
+   * node's listings on the PARENT category. */
+  readonly filter?: Readonly<Record<string, string>>;
   /**
    * How many LIVE children this node has, over the whole visible set — not
    * `len(children)`, which is cut at the requested `depth` (stapel-categories

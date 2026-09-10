@@ -27,3 +27,17 @@ export function warnLegacyFallback(preferred: string, legacy: string): void {
     `[@stapel/categories-react] falling back to "${legacy}": this row has no "${preferred}" (server predates stapel-categories 0.20.5). "${legacy}" counts soft-deleted/retired rows too and may overstate this row's real children.`
   );
 }
+
+/**
+ * Warn, in development only, that a VIRTUAL child was dropped because nobody
+ * said what URL its `filter` becomes.
+ *
+ * The alternative failures are both silent: a tile with an empty `href`, or a
+ * level that renders one row short with no reason given anywhere.
+ */
+export function warnMissingVirtualHref(): void {
+  if (!inDevelopment()) return;
+  console.warn(
+    '[@stapel/categories-react] a virtual child was dropped: this category expands a feature into its children (children_expand_by) and no hrefForVirtual was given, so there is no address for the {feature: value} pair.'
+  );
+}

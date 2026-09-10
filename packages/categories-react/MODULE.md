@@ -248,6 +248,47 @@ union DOWN would be wrong (see `catalog/cascade.ts`), but a non-leaf that could
 report the features its children AGREE on would let a level-2 page offer a
 narrowing before the person has picked a child.
 
+## A level is a union: rows, pointers, values
+
+stapel-categories 0.22.0 made `GET /{id}/children/` answer `CategoryChild`
+instead of `Category`. Where the seam runs on this side:
+
+- **`api/types.ts`** owns the union. `CategoryRowChild` is `Category` plus
+  `linked?` — one type for a real child and for a POINTER, because the wire's
+  own promise is that every key of a pointer is the TARGET's. It also carries
+  the discriminant `virtual?: false`, which is never sent and exists so a
+  reader can narrow. `CategoryVirtualChild` is the third arm.
+- **`catalog/stage.ts`** owns the three questions (`isLinkedChild`,
+  `isVirtualChild`, `isRowChild`) and the one behavioural consequence:
+  `hasChildren` answers `false` for a value before consulting any channel,
+  because a value has no row and would otherwise fall through to this chain's
+  "assume it has some" default.
+- **`catalog/wrapper.ts`** refuses to collapse a POINTER. A link's
+  `children_as` and child counts are the target's, so both the structural
+  one-child rule and the authored `"transparent"` rule would otherwise splice
+  the pointer away and put the target's children where an operator drew its
+  door.
+- **`catalog/browse.ts`** widened from `Category` to a structural
+  `BrowsableRow`: a value carries neither `deleted` nor `active`, and an
+  absent flag already means "live", so the ONE browse predicate still answers
+  for every entry rather than growing a second one.
+- **`model/queries.ts`** splits into two projections. `useCategoryChildren`
+  hands back the whole level, values included. `useCategoryLevels` — the hook
+  every walk BY ID is built out of (the cascade, the level pane, the
+  transparent-child reads) — drops values through `useRowProjection`, because
+  an entry with no id is nothing to walk from.
+- **`headless/CategoryCarousel.tsx`** owns the host seam.
+  `categoryChildTileEntries(children, basePath, hrefForVirtual?)` maps one
+  level in the server's order; `VirtualChildHref` is where a
+  `{feature slug: value}` pair becomes a URL. The pair does not own that URL
+  and will not guess one, exactly as it will not guess a CDN base — see
+  `categoryIconSrc`.
+
+The staff paths `/{id}/links/` and `/{id}/links/{target_pk}/` are generated
+into `schema.ts` and deliberately absent from `CategoriesApi`: a storefront
+renders the assembled child list, it never authors a pointer, and the table
+behind one is `IsStaffUser` operator bookkeeping.
+
 ## Notes on the contract, recorded rather than worked around
 
 1. **`FeatureConfig`'s discriminator is malformed, and the generated types are
@@ -289,7 +330,7 @@ narrowing before the person has picked a child.
 
 ## Tests
 
-277 in 19 files (273 in `test`, 4 in `test:pack`).
+481 in 29 files (477 in `test`, 4 in `test:pack`).
 
 | File | What it holds down |
 |---|---|
@@ -301,4 +342,5 @@ narrowing before the person has picked a child.
 | `skin.test.tsx` | the four `matchList` arms on screen; both blocked reasons named; searching without a request; ru copy |
 | `i18n.test.ts` | every registry code resolving in en/ru/es over the union of the two bundles; ownership of the twenty-two module- and library-owned keys, including that this pair re-authors NONE of the nine upstream now ships; interpolation slots preserved |
 | `pair.test.ts` | query-key namespace; the API surface being exactly the five public reads; nav ids, surfaces, routes and components |
+| `childKinds.test.tsx` | the three kinds of child: a POINTER keeping its place and never being read as a wrapper; a VALUE having no children, handing its `filter` to the host callback, being dropped loudly without one, and drawing a tile captioned with its own name; a level with neither kind coming back from both readers unchanged |
 | `prodBundlePurity.test.ts` | no demo/showcase code in the tarball |

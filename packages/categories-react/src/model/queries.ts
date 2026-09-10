@@ -4,12 +4,14 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import type { StapelApiError } from "@stapel/core";
 import type {
   Category,
+  CategoryChild,
   CategoryFeaturesResult,
   CategoryTreeNode,
   MaxRevision,
 } from "../api/types.js";
 import { browsableCategories } from "../catalog/browse.js";
-import type { CategoryVisibilityOptions } from "../catalog/browse.js";
+import type { BrowsableRow, CategoryVisibilityOptions } from "../catalog/browse.js";
+import { isRowChild } from "../catalog/stage.js";
 import { buildCategoryTree } from "../catalog/tree.js";
 import type { BuildCategoryTreeOptions, CategoryIndex } from "../catalog/tree.js";
 import type { CategorySnapshot } from "../catalog/sync.js";
@@ -163,20 +165,42 @@ export function useCategoryCatalog(
  * somewhere else on the page cannot make TanStack recompute (and re-render)
  * every consumer of a category list.
  */
-function useBrowseProjection(
+function useBrowseProjection<T extends BrowsableRow>(
   options: CategoryVisibilityOptions | undefined
-): (rows: readonly Category[]) => readonly Category[] {
+): (rows: readonly T[]) => readonly T[] {
   const includeDeleted = options?.includeDeleted;
   const includeInactive = options?.includeInactive;
   const includeTest = options?.includeTest;
   return useCallback(
-    (rows: readonly Category[]) =>
+    (rows: readonly T[]) =>
       browsableCategories(rows, {
         ...(includeDeleted !== undefined ? { includeDeleted } : {}),
         ...(includeInactive !== undefined ? { includeInactive } : {}),
         ...(includeTest !== undefined ? { includeTest } : {}),
       }),
     [includeDeleted, includeInactive, includeTest]
+  );
+}
+
+/**
+ * {@link useBrowseProjection}, narrowed to the entries that are ROWS.
+ *
+ * The hooks that WALK the tree by id — `useCategoryLevels` and everything
+ * built on it — need an id per entry, and since stapel-categories 0.22.0 a
+ * level can also contain VALUES of an expanded branch, which have none. They
+ * are dropped here rather than at each walker, and a surface that draws them
+ * reads the level itself ({@link useCategoryChildren}) instead.
+ *
+ * Stable across renders for the same reason the projection it wraps is: it
+ * closes over that one identity and nothing else.
+ */
+function useRowProjection(
+  options: CategoryVisibilityOptions | undefined
+): (rows: readonly CategoryChild[]) => readonly Category[] {
+  const visible = useBrowseProjection<CategoryChild>(options);
+  return useCallback(
+    (rows: readonly CategoryChild[]) => visible(rows).filter(isRowChild),
+    [visible]
   );
 }
 
@@ -202,9 +226,9 @@ export interface CategoryBrowseOptions extends CategoryVisibilityOptions {
 export function useCategoryChildren(
   id: number | null | undefined,
   options?: CategoryBrowseOptions
-): UseQueryResult<readonly Category[], StapelApiError> {
+): UseQueryResult<readonly CategoryChild[], StapelApiError> {
   const api = useCategoriesApi();
-  const visible = useBrowseProjection(options);
+  const visible = useBrowseProjection<CategoryChild>(options);
   return useQuery({
     queryKey: categoriesQueryKeys.children(id ?? -1),
     queryFn: ({ signal }) => api.children(id as number, { signal }),
@@ -347,7 +371,7 @@ export function useCategoryLevels(
   options?: CategoryBrowseOptions
 ): CategoryFanOut<readonly Category[]> {
   const api = useCategoriesApi();
-  const visible = useBrowseProjection(options);
+  const visible = useRowProjection(options);
   const enabled = options?.enabled ?? true;
   return useQueries({
     queries: parentIds.map((parentId) => ({
@@ -386,7 +410,7 @@ export function useCategoryCarousel(
   options?: UseCategoryCarouselOptions
 ): UseQueryResult<readonly Category[], StapelApiError> {
   const api = useCategoriesApi();
-  const visible = useBrowseProjection(options);
+  const visible = useBrowseProjection<Category>(options);
   return useQuery({
     queryKey: categoriesQueryKeys.carousel,
     queryFn: ({ signal }) => api.carousel({ signal }),

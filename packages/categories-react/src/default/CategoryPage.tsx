@@ -110,18 +110,21 @@ import {
   LoadBoundary,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import type { Category } from "../api/types.js";
+import type { Category, CategoryChild } from "../api/types.js";
 import { categoryAncestorChain } from "../catalog/cascade.js";
 import { categoryLabel, renderCategoryLabel } from "../catalog/labels.js";
-import { browseStage } from "../catalog/stage.js";
+import { browseStage, isRowChild } from "../catalog/stage.js";
 import { resolveCategorySlug } from "../catalog/tree.js";
 import {
   browseChildren,
   isTransparentNode,
   isTransparentWrapper,
 } from "../catalog/wrapper.js";
-import { categoryTileEntry } from "../headless/CategoryCarousel.js";
-import type { CarouselEntry } from "../headless/CategoryCarousel.js";
+import { categoryChildTileEntries } from "../headless/CategoryCarousel.js";
+import type {
+  CarouselEntry,
+  VirtualChildHref,
+} from "../headless/CategoryCarousel.js";
 import {
   useCategory,
   useCategoryCatalog,
@@ -201,9 +204,10 @@ export type CategoryHeading =
  * `"cascade"` or `"none"`.
  */
 function TileSubcategories(props: {
-  readonly childRows: readonly Category[];
+  readonly childRows: readonly CategoryChild[];
   readonly basePath: string;
   readonly depth: number;
+  readonly hrefForVirtual?: VirtualChildHref;
   readonly linkComponent?: LinkComponent;
   readonly renderIcon?: (reference: string, entry: CarouselEntry) => ReactNode;
   readonly resolveIconSrc?: CategoryIconResolver;
@@ -231,10 +235,10 @@ function TileSubcategories(props: {
     };
     if (isTransparentWrapper(props.childRows)) {
       const only = props.childRows[0];
-      if (only !== undefined) addCandidate(only.id);
+      if (only !== undefined && isRowChild(only)) addCandidate(only.id);
     }
     for (const row of props.childRows) {
-      if (isTransparentNode(row)) addCandidate(row.id);
+      if (isRowChild(row) && isTransparentNode(row)) addCandidate(row.id);
     }
     return ids;
   }, [props.childRows]);
@@ -246,7 +250,11 @@ function TileSubcategories(props: {
     });
     return map;
   }, [transparentIds, transparentChildQueries.rows]);
-  const entries = browseChildren(props.childRows, (child) => childrenById.get(child.id));
+  // A VALUE has no id to look grandchildren up by, and `browseChildren`
+  // never asks for one — it splices out nothing that is not a row.
+  const entries = browseChildren(props.childRows, (child) =>
+    isRowChild(child) ? childrenById.get(child.id) : undefined
+  );
 
   return (
     <Flex vertical gap={spacing[2]}>
@@ -283,7 +291,11 @@ function TileSubcategories(props: {
         // Already inside a category: an "All" tile here points at the
         // catalogue root the visitor has just come from.
         allTile={false}
-        entries={entries.map((row) => categoryTileEntry(row, props.basePath))}
+        entries={categoryChildTileEntries(
+          entries,
+          props.basePath,
+          props.hrefForVirtual
+        )}
       />
     </Flex>
   );
@@ -426,6 +438,18 @@ export interface CategoryPageProps extends ThemeModeProp, LinkComponentProp {
    */
   readonly subcategoryOverflow?: TileOverflow;
   /**
+   * WHAT URL A VIRTUAL CHILD'S `filter` BECOMES — see
+   * {@link VirtualChildHref}.
+   *
+   * A category that expands a feature into its children
+   * (`children_expand_by`, stapel-categories 0.22.0) has children with no row
+   * and no slug: their address is a filter on THIS category, spelled the way
+   * the storefront spells filters, which this page cannot know. Without it
+   * such a child is dropped from the `"tiles"` arm and a development build
+   * says so; every other kind of child is unaffected.
+   */
+  readonly hrefForVirtual?: VirtualChildHref;
+  /**
    * A narrowing made in the cascade below the tiles.
    *
    * The page does not own where that goes — the results are another pair's,
@@ -555,7 +579,10 @@ interface CategoryPageFrame {
    * which only the SLUG path can produce (an unknown id is a 404, and that
    * arrives as `failed`). */
   readonly current: Category | null;
-  readonly children: readonly Category[];
+  /** The level under it, as the wire sends it — POINTERS at their own
+   * `order` among the rows, and, on an expanded branch, VALUES with no row
+   * behind them (stapel-categories 0.22.0). */
+  readonly children: readonly CategoryChild[];
   /** The landing's own 0-indexed depth — from `tn_ancestors_pks` on the id
    * path, from the built node on the slug path. `null` with no landing. */
   readonly depth: number | null;
@@ -717,7 +744,7 @@ function Subcategories(props: {
   /** Named `childRows`, not `children`: a prop called `children` on a React
    * component IS the element's children, and an array of category rows put
    * there would be rendered as content instead of read as data. */
-  readonly childRows: readonly Category[];
+  readonly childRows: readonly CategoryChild[];
   /**
    * Which address resolved `childRows`. `true` = the id path: the rows are
    * `GET {id}/children/`, already paid for, and the pane arm renders them
@@ -741,6 +768,7 @@ function Subcategories(props: {
   readonly tileLabelLines?: number;
   readonly maxVisible?: number;
   readonly overflow?: TileOverflow;
+  readonly hrefForVirtual?: VirtualChildHref;
 }): ReactElement | null {
   const t = useT();
   const link =
@@ -785,6 +813,9 @@ function Subcategories(props: {
         childRows={props.childRows}
         basePath={props.basePath}
         {...link}
+        {...(props.hrefForVirtual !== undefined
+          ? { hrefForVirtual: props.hrefForVirtual }
+          : {})}
         {...(props.tileDensity !== undefined
           ? { tileDensity: props.tileDensity }
           : {})}
@@ -819,7 +850,7 @@ function Subcategories(props: {
   if (props.rowsFromId) {
     return (
       <SubcategoryLevelPane
-        childRows={props.childRows}
+        childRows={props.childRows.filter(isRowChild)}
         basePath={props.basePath}
         {...link}
       />
@@ -984,6 +1015,9 @@ export function CategoryPage(props: CategoryPageProps): ReactElement {
                     : {})}
                   {...(props.subcategoryOverflow !== undefined
                     ? { overflow: props.subcategoryOverflow }
+                    : {})}
+                  {...(props.hrefForVirtual !== undefined
+                    ? { hrefForVirtual: props.hrefForVirtual }
                     : {})}
                   current={frame.current}
                   depth={frame.depth ?? 0}

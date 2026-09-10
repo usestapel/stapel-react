@@ -1,9 +1,15 @@
 import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState } from "@stapel/core";
-import type { Category } from "../api/types.js";
+import type {
+  Category,
+  CategoryChild,
+  CategoryVirtualChild,
+} from "../api/types.js";
 import { categoryLabel } from "../catalog/labels.js";
 import type { CategoryLabel } from "../catalog/labels.js";
+import { warnMissingVirtualHref } from "../catalog/devWarn.js";
+import { isRowChild } from "../catalog/stage.js";
 import { useCategoryCarousel } from "../model/queries.js";
 
 /** One carousel tile. */
@@ -22,6 +28,85 @@ export interface CarouselEntry {
   /** The storefront path for this tile. Slug-based, because that is the
    * route the spec defines — and the reason the client resolves slugs. */
   readonly href: string;
+}
+
+/**
+ * One tile for a VALUE of an expanded branch — a child with no row behind it
+ * (stapel-categories 0.22.0).
+ *
+ * A separate shape from {@link CarouselEntry} rather than a `CarouselEntry`
+ * with a fabricated `category`: there IS no row, and inventing one would give
+ * the tile an id that addresses somebody else's category. What it has instead
+ * is the `filter` pair, and the `href` the HOST built out of it.
+ */
+export interface VirtualTileEntry {
+  /** The wire node, `filter` included — handed on so a host that renders its
+   * own tile keeps the pair without a second lookup. */
+  readonly virtual: CategoryVirtualChild;
+  /** The value's own display string. A translation KEY like every other name
+   * in this contract — see `catalog/labels.ts`. */
+  readonly label: CategoryLabel;
+  /** What {@link VirtualChildHref} answered for this node's `filter`. */
+  readonly href: string;
+}
+
+/** A tile of either kind — a row (real or a POINTER at one), or a VALUE. */
+export type CategoryTileEntry = CarouselEntry | VirtualTileEntry;
+
+/**
+ * WHAT URL A VIRTUAL CHILD'S `filter` BECOMES — the host's answer, because it
+ * is the only one that exists.
+ *
+ * A virtual child selects listings on the PARENT category by a
+ * `{feature slug: value}` pair, and how that pair is spelled in an address is
+ * the storefront's own scheme: a query string, a path segment, an encoded
+ * facet state. This pair refuses to guess one — a guessed route is a dead
+ * link on every deployment that spells it differently, which is the same rule
+ * `categoryIconSrc` keeps about a CDN base.
+ *
+ * The node is passed beside the pair so a host can read `value` and `name`
+ * without re-deriving them from the filter's single entry.
+ */
+export type VirtualChildHref = (
+  filter: Readonly<Record<string, string>>,
+  child: CategoryVirtualChild
+) => string;
+
+/**
+ * The children of one category, mapped to tiles — rows, pointers and values
+ * alike, IN THE ORDER THE SERVER SENT THEM.
+ *
+ * Order is the whole reason this is one function rather than two: the server
+ * inserts a pointer at the `order` its operator gave it, among the real
+ * children, and a caller that mapped the two kinds separately and concatenated
+ * would silently move it to the end.
+ *
+ * Without `hrefForVirtual` a virtual child is OMITTED and a development build
+ * says so. Dropping it is the lesser of the two honest answers — the other is
+ * a tile whose `href` is `""` — and it is loud rather than silent.
+ */
+export function categoryChildTileEntries(
+  children: readonly CategoryChild[],
+  basePath: string,
+  hrefForVirtual?: VirtualChildHref
+): readonly CategoryTileEntry[] {
+  const out: CategoryTileEntry[] = [];
+  for (const child of children) {
+    if (isRowChild(child)) {
+      out.push(categoryTileEntry(child, basePath));
+      continue;
+    }
+    if (hrefForVirtual === undefined) {
+      warnMissingVirtualHref();
+      continue;
+    }
+    out.push({
+      virtual: child,
+      label: { kind: "key", value: child.name },
+      href: hrefForVirtual(child.filter, child),
+    });
+  }
+  return out;
 }
 
 export interface CategoryCarouselBag {

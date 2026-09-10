@@ -4,7 +4,7 @@
   "version": "0.25.1",
   "backend": {
     "module": "stapel-categories",
-    "contract": ">=0.21 <0.22"
+    "contract": ">=0.22 <0.23"
   },
   "layers": [
     "api",
@@ -103,6 +103,27 @@
     "categories_api_v1_categories_features_list": {
       "method": "GET",
       "path": "/categories/api/v1/categories/{id}/features/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_links_create": {
+      "method": "POST",
+      "path": "/categories/api/v1/categories/{id}/links/",
+      "tag": "Categories",
+      "request": "CategoryLink",
+      "response": "CategoryLink"
+    },
+    "categories_api_v1_categories_links_destroy": {
+      "method": "DELETE",
+      "path": "/categories/api/v1/categories/{id}/links/{target_pk}/",
+      "tag": "Categories",
+      "request": null,
+      "response": null
+    },
+    "categories_api_v1_categories_links_list": {
+      "method": "GET",
+      "path": "/categories/api/v1/categories/{id}/links/",
       "tag": "Categories",
       "request": null,
       "response": null
@@ -1126,6 +1147,7 @@
       "categoryAncestorIds",
       "categoryBreadcrumbs",
       "categoryChildIds",
+      "categoryChildTileEntries",
       "categoryIconSrc",
       "categoryLabel",
       "categoryListParams",
@@ -1147,9 +1169,12 @@
       "hasChildren",
       "isBrowsableCategory",
       "isEmptySnapshot",
+      "isLinkedChild",
+      "isRowChild",
       "isTestCategory",
       "isTransparentNode",
       "isTransparentWrapper",
+      "isVirtualChild",
       "isWrapperAncestor",
       "memoryCatalogStore",
       "navEntries",
@@ -1180,6 +1205,7 @@
     ],
     "types": [
       "AxisRole",
+      "BrowsableRow",
       "BrowseStage",
       "BrowseStageInput",
       "BuildCategoryTreeOptions",
@@ -1208,6 +1234,7 @@
       "CategoryCascadeSource",
       "CategoryCascadeStep",
       "CategoryCatalog",
+      "CategoryChild",
       "CategoryChildrenAs",
       "CategoryCrumb",
       "CategoryFanOut",
@@ -1222,6 +1249,7 @@
       "CategoryIndex",
       "CategoryLabel",
       "CategoryLabelKind",
+      "CategoryLinkedChild",
       "CategoryListPage",
       "CategoryListParams",
       "CategoryMatchKind",
@@ -1232,12 +1260,15 @@
       "CategoryPickerProps",
       "CategoryPresentation",
       "CategoryRevisions",
+      "CategoryRowChild",
       "CategorySearchHit",
       "CategorySnapshot",
+      "CategoryTileEntry",
       "CategoryTreeBag",
       "CategoryTreeNode",
       "CategoryTreeParams",
       "CategoryTreeProps",
+      "CategoryVirtualChild",
       "CategoryVisibilityOptions",
       "ChildControl",
       "ChildrenOf",
@@ -1254,7 +1285,9 @@
       "UseCategoryCascadeOptions",
       "UseCategoryCatalogOptions",
       "UseCategorySearchOptions",
-      "UseCategoryTreeOptions"
+      "UseCategoryTreeOptions",
+      "VirtualChildHref",
+      "VirtualTileEntry"
     ]
   }
 }
