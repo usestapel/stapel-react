@@ -1,4 +1,4 @@
-# @stapel/search-react 0.38.0
+# @stapel/search-react 0.39.0
 
 Headless React flow pair for stapel-search (contract >=0.16 <0.17) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -87,7 +87,7 @@ const { tracked } = useTracked();
 - search.other-categories-line → <OtherCategoriesLine> [line|narrow|empty]  demo/OtherCategoriesLine.demo.tsx
 - search.page → <SearchPage> [desktop|phone|catalogue-leaf|under-a-header|system-scrollbar|legacy-rhythm|filters-header-navigates|unreadable-link]  demo/SearchPage.demo.tsx
 - search.page-size-select → <PageSizeSelect> [ladder|off-ladder]  demo/PageSizeSelect.demo.tsx
-- search.partition-chips → <PartitionChips> [parent|counted|child]  demo/PartitionChips.demo.tsx
+- search.partition-chips → <PartitionChips> [parent|counted|pointer|child]  demo/PartitionChips.demo.tsx
 - search.popular-values → <PopularValues> [desktop|responsive|narrow-column]  demo/PopularValues.demo.tsx
 - search.range-filter-row → <RangeFilterRow> [untouched|applied]  demo/RangeFilterRow.demo.tsx
 - search.ranking-pane → <RankingDisclosurePane> [desktop|phone]  demo/RankingDisclosurePane.demo.tsx

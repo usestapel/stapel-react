@@ -1,4 +1,4 @@
-# @stapel/categories-react 0.27.0
+# @stapel/categories-react 0.28.0
 
 Headless React flow pair for stapel-categories (contract >=0.22 <0.23) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
@@ -131,7 +131,7 @@ const { tracked } = useTracked();
 - categories.picker → <CategoryPickerField> [on a phone|the closed trigger|inline|too general|chosen|outage]  demo/CategoryPickerField.demo.tsx
 - categories.quick-search → <CategoryQuickSearchPanel> [counted|counting|a floor, not a total|no fields]  demo/CategoryQuickSearchPanel.demo.tsx
 - categories.search-hits → <CategorySearchHits> [ranked|one hit|nothing matched]  demo/CategorySearchHits.demo.tsx
-- categories.tile-grid → <CategoryTileGrid> [tiles|no art|host tiles|inside a category|card tiles|nothing featured|outage]  demo/CategoryTileGrid.demo.tsx
+- categories.tile-grid → <CategoryTileGrid> [tiles|no art|host tiles|inside a category|card tiles|reserved rows|nothing featured|outage]  demo/CategoryTileGrid.demo.tsx
 - categories.tree → <CategoryTreePane> [roots|one level down|leaf|partial catalogue|outage]  demo/CategoryTreePane.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

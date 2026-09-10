@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.16 <0.17"
@@ -611,6 +611,7 @@
       "variants": [
         "parent",
         "counted",
+        "pointer",
         "child"
       ],
       "source": "demo/PartitionChips.demo.tsx"
