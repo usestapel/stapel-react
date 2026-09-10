@@ -65,6 +65,7 @@ import { breakpoints, cssVar, spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE, dockRenders } from "./NavDock.js";
+import { useRouteScrollReset } from "./routeScroll.js";
 import { CloseGlyph, HomeGlyph, MenuGlyph } from "./icons.js";
 import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SiteBrand } from "./SiteBrand.js";
@@ -626,6 +627,28 @@ export interface PublicShellProps {
    * accepted trade and what covers it.
    */
   readonly themeControl?: boolean;
+  /**
+   * Where a route LANDS. Default `true`, and the default is the fix.
+   *
+   * A single-page app changes the address without loading a document, so
+   * nothing moves the viewport: a card tapped two thousand pixels down a feed
+   * opened a listing already scrolled past its own photographs. On a PUSH to
+   * another page the shell now lands at the top; on a POP it restores the
+   * offset that entry was left at, so Back returns a feed to the reader's
+   * place in it; a hash target and a query-only change (a chip, a tab,
+   * `?step=`) are both left alone. `useRouteScrollReset` states the whole
+   * rule and argues each of the four cases.
+   *
+   * ON by default because the alternative is a storefront that is broken
+   * until somebody notices — a chrome that owns the `<Outlet/>` and does not
+   * place what it renders has left the one job only it can do.
+   *
+   * `false` for a host that mounts react-router's own `<ScrollRestoration/>`,
+   * or one whose pages place themselves. The two must not both run: this hook
+   * takes `history.scrollRestoration` for as long as it is mounted, and so
+   * does react-router's component.
+   */
+  readonly scrollRestoration?: boolean;
 }
 
 /** The default `accountSlot`: the entry point that must never be absent. */
@@ -662,6 +685,10 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === "desktop";
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Where a route lands: the top on a PUSH, where it was left on a POP, and
+  // untouched for a hash or a query-only change. See `scrollRestoration`.
+  useRouteScrollReset(props.scrollRestoration ?? true);
 
   // The decluttered phone chrome, and ONLY below the desktop breakpoint: the
   // prop describes a phone, and a desktop that changed shape because of it

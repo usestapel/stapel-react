@@ -37,6 +37,11 @@ export {
   publicShellCss,
 } from "./PublicShell.js";
 export type { HeaderScrollThresholds } from "./PublicShell.js";
+// WHERE A ROUTE LANDS — both chromes call this, and it is exported so a host
+// that arranges its own chrome around an `<Outlet/>` states the same rule
+// rather than a fifth version of it. `<AppShell scrollRestoration={false}>` /
+// `<PublicShell scrollRestoration={false}>` opt out.
+export { useRouteScrollReset } from "./routeScroll.js";
 // The two host-resolved brand slots `<PublicShell/>` falls back to when the
 // host passes neither `brand` nor `footer` and a `<SiteProvider>` is mounted
 // (multibrand spec, frontend decision). Exported on their own so a host that arranges its own

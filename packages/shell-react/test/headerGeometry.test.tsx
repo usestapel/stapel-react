@@ -393,11 +393,18 @@ describe("the scroll flag", () => {
     ).toBeTruthy();
   });
 
-  it("registers no scroll listener", () => {
+  it("answers the flag with an observer and no scroll listener of its own", () => {
     stubObserver();
     const add = vi.spyOn(window, "addEventListener");
     setViewportWidth(DESKTOP);
-    render(wrap({ headerScrollFlag: true }));
+    // `scrollRestoration={false}` is what narrows this to the FLAG. The shell
+    // does register one `scroll` listener now — `useRouteScrollReset` needs
+    // an offset, and no observer reports one — and that listener is
+    // deliberate, passive, and argued in `routeScroll.ts`. The claim here is
+    // the one it was always about: the header's "has the page moved" is a
+    // THRESHOLD, and a threshold is an `IntersectionObserver`'s to answer off
+    // the main thread rather than a handler's to recompute every frame.
+    render(wrap({ headerScrollFlag: true, scrollRestoration: false }));
     expect(add.mock.calls.filter(([type]) => type === "scroll")).toEqual([]);
     add.mockRestore();
   });

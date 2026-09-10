@@ -251,7 +251,55 @@ frame of a feed of photographs. The sentinel takes a pixel and gives it straight
 back (`margin-block-end: -1px`), so it is a position in the page and never a
 change to it. Off, the attribute is absent entirely rather than `"false"`: a
 host that did not ask for the observer should not be able to write a rule that
-silently never fires.
+silently never fires. (The one `scroll` listener this package does register is
+`scrollRestoration`'s, below, and it answers a different kind of question — an
+offset, which no observer reports.)
+
+### `scrollRestoration` — where a route lands (both shells, ON by default)
+
+```tsx
+<PublicShell nav={nav} />                          {/* the top on a PUSH, your place back on a POP */}
+<PublicShell nav={nav} scrollRestoration={false} /> {/* the host places its own pages */}
+```
+
+A single-page app changes the address without loading a document, so nothing
+moves the viewport. Left alone, a card tapped two thousand pixels down a feed
+opens a listing page already scrolled past its own photographs — reported as
+"the page opens at the bottom" — and the way back is no better, because the
+browser's own restoration fires against a document the app has not finished
+rendering. The chromes own the `<Outlet/>`, so the chromes own this:
+
+| Navigation | What the shell does |
+|---|---|
+| PUSH to another **path** | lands at the top |
+| POP (Back/Forward) | restores the offset that history entry was left at |
+| a **hash** (`#terms`) | scrolls to the target; nothing is reset over it |
+| the same path, a different **query** (a chip, a tab, `?step=`) | nothing moves |
+| REPLACE | nothing moves — an address corrected under a standing screen |
+
+The query row is why this is not react-router's `<ScrollRestoration/>`: that
+component resets on every PUSH unless each individual `<Link>` and `navigate()`
+passes `preventScrollReset`, so one forgotten call site throws a filtering
+reader back to the top of the results. Here the rule is read off the address,
+and there is nothing per call site to forget.
+
+`scrollRestoration={false}` hands the viewport back whole, including
+`history.scrollRestoration` — which the shell otherwise takes for as long as it
+is mounted. That is the opt-out for a host mounting react-router's own
+component; the two must not both run. A host arranging its own chrome around an
+`<Outlet/>` can state the same rule instead of inventing a fifth version of it:
+
+```tsx
+import { useRouteScrollReset } from "@stapel/shell-react/default";
+function MyChrome() {
+  useRouteScrollReset(true);
+  return <Outlet />;
+}
+```
+
+It reads and writes `window`, because both shells scroll the document (a
+`minHeight`, never a `height` with an `overflow`). A chrome with an inner
+scrollport would have to move the hook onto that element.
 
 ### Dock geometry — aligning a host's own sticky chrome
 

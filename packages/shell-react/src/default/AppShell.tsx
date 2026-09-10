@@ -37,6 +37,7 @@ import { adminNavIds } from "../headless/resolveNav.js";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
+import { useRouteScrollReset } from "./routeScroll.js";
 import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
@@ -132,6 +133,21 @@ export interface AppShellProps {
    * mechanism (`useThemePreference` stays available).
    */
   readonly themeControl?: boolean;
+  /**
+   * Where a route LANDS. Default `true`, and the default is the fix.
+   *
+   * The chrome owns the `<Outlet/>`, so the chrome owns the one thing a
+   * client-side navigation does not do for itself: move the viewport. On a
+   * PUSH to another page the shell lands at the top; on a POP it restores the
+   * offset that entry was left at; a hash target and a query-only change (a
+   * tab, a filter, `?step=`) are both left alone. `useRouteScrollReset`
+   * states the whole rule and argues each of the four cases.
+   *
+   * `false` for a host that mounts react-router's own `<ScrollRestoration/>`,
+   * or one whose pages place themselves. The two must not both run: both take
+   * `history.scrollRestoration` for as long as they are mounted.
+   */
+  readonly scrollRestoration?: boolean;
 }
 
 /** Full app chrome: responsive `Sider`/`Drawer` nav + `<Outlet/>` content. */
@@ -165,6 +181,10 @@ function AppChrome(props: AppShellProps): ReactElement {
   const breakpoint = useBreakpoint();
   const isDesktop = breakpoint === "desktop";
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Where a route lands: the top on a PUSH, where it was left on a POP, and
+  // untouched for a hash or a query-only change. See `scrollRestoration`.
+  useRouteScrollReset(props.scrollRestoration ?? true);
 
   const staff = props.staff ?? false;
   const themeControl = props.themeControl !== false;
