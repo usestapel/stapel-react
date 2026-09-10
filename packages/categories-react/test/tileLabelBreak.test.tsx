@@ -2,8 +2,8 @@
  * THE PHONE LANDING'S FIRST SCREEN: how a caption breaks, and what the "All"
  * tile draws where its siblings draw a picture.
  *
- * Both were walked on a 390px phone (`ruberi.ru/`, anonymous, pre-launch
- * sweep §4) and both are measurements rather than opinions:
+ * Both were walked on a 390px phone (a client fleet's landing, anonymous,
+ * pre-launch sweep §4) and both are measurements rather than opinions:
  *
  *   tiles:  {"text":"Nedvizhimost","w":63,"h":29,"lines":2}
  *           {"text":"Elektronika","w":63,"h":29,"lines":2}
