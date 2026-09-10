@@ -141,6 +141,10 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.composer.blocked.empty": "Escribe algo primero.",
   "chat.composer.blocked.too_long":
     "Eso supera los {max} caracteres — acórtalo un poco.",
+  "chat.composer.blocked.sign_in": "Inicia sesión para enviar un mensaje.",
+  "chat.composer.sign_in":
+    "Escribes como invitado: la conversación solo queda en este navegador. " +
+    "Inicia sesión para conservarla.",
 
   "chat.start.button": "Escribir al vendedor",
   "chat.start.starting": "Abriendo…",

@@ -1,6 +1,12 @@
 import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
-import { actionAvailable, actionBlocked, firstBlock } from "@stapel/core";
+import {
+  actionAvailable,
+  actionBlocked,
+  firstBlock,
+  matchMandate,
+  useMandate,
+} from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
 import { useSendMessage } from "../model/mutations.js";
 import { CHAT_DEFAULT_MAX_BODY_LENGTH } from "../model/limits.js";
@@ -35,6 +41,30 @@ export interface MessageComposerBag {
   /** Nothing has been typed and no send has been attempted since the last
    * reset — the state a freshly drawn and a just-sent composer are both in. */
   readonly pristine: boolean;
+  /**
+   * THE SENTENCE A COMPOSER THAT WORKS STILL OWES A GUEST — an i18n key, or
+   * `null` when there is nothing to say.
+   *
+   * Not an {@link ActionAvailability}, and that is the whole point of it
+   * being a separate field: a guest CAN send. `POST
+   * /conversations/{id}/messages/` is `IsAuthenticated` and an issued
+   * anonymous identity satisfies that, so blocking the control would refuse
+   * something the server accepts — and on a host that mints a guest to open
+   * the thread in the first place, it would leave the person in a room they
+   * were deliberately let into and cannot speak in.
+   *
+   * What is true instead is that the identity is a browser-local one. The
+   * conversation is reachable from this device and no other until they sign
+   * in, and nothing on the screen said so: a walk of a listing page found the
+   * CALL control beside this composer stating its refusal in a sentence while
+   * the composer — live, enabled, one gesture from a first message — carried
+   * none.
+   *
+   * `member` and `unavailable` answer `null`: the first has an account, and
+   * the second is core's "we could not ask", which is not a fact about the
+   * person and must not be narrated as one.
+   */
+  readonly signInHint: string | null;
   readonly isSending: boolean;
   /** The thrown value from the last failed send, for the error dialect. */
   readonly error: unknown;
@@ -82,7 +112,41 @@ export function MessageComposer(props: {
   const length = [...value].length;
   const trimmed = value.trim();
 
+  /**
+   * WHO IS WRITING — the same axis `<StartDirectChat>` and `<StartCall>` read,
+   * split here into the two different things it decides.
+   *
+   * `anonymous` is a BLOCK, for the reason `<StartDirectChat>` states about
+   * the same endpoint family: the POST is `IsAuthenticated`, so a visitor
+   * with no identity buys a 401 delivered after the press, which is the one
+   * moment a refusal is useless. `guest` is NOT a block — see
+   * {@link MessageComposerBag.signInHint} — and neither is `asking`, which is
+   * a transient answer about a person who is already standing inside a thread
+   * they reached: switching their composer off mid-question would be this
+   * component narrating its own network. `unavailable` stays available
+   * exactly as it does on every other control here — "we could not ask" is
+   * not "you may not", and the server refuses if the guess is wrong.
+   */
+  const mandate = useMandate();
+  const mandateGate = matchMandate<ActionAvailability>(mandate, {
+    member: () => actionAvailable(),
+    guest: () => actionAvailable(),
+    anonymous: () => actionBlocked(CHAT_I18N_KEYS.composerBlockedSignIn),
+    asking: () => actionAvailable(),
+    unavailable: () => actionAvailable(),
+  });
+  const signInHint = matchMandate<string | null>(mandate, {
+    member: () => null,
+    guest: () => CHAT_I18N_KEYS.composerSignIn,
+    // Already said, and said as a refusal — a control that is switched off
+    // with a reason does not also need a warning about the same fact.
+    anonymous: () => null,
+    asking: () => null,
+    unavailable: () => null,
+  });
+
   const availability: ActionAvailability = firstBlock(
+    mandateGate,
     trimmed.length === 0
       ? actionBlocked(CHAT_I18N_KEYS.composerBlockedEmpty)
       : actionAvailable(),
@@ -127,6 +191,11 @@ export function MessageComposer(props: {
     availability,
     visibleAvailability: interacted ? availability : actionAvailable(),
     pristine: !interacted,
+    // NOT gated on `interacted`, unlike the refusal above. A reason for a
+    // switched-off control is earned by trying it; a warning about what
+    // happens if you DO use a control that works has to arrive before the
+    // gesture, or it is an explanation of something already done.
+    signInHint,
     isSending: isPending,
     error,
     send: doSend,

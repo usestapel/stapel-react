@@ -210,6 +210,27 @@ export const CHAT_I18N_KEYS = {
   composerSending: "chat.composer.sending",
   composerBlockedEmpty: "chat.composer.blocked.empty",
   composerBlockedTooLong: "chat.composer.blocked.too_long",
+  /**
+   * A VISITOR WITH NO IDENTITY AT ALL. `POST /conversations/{id}/messages/` is
+   * `IsAuthenticated`, so the press buys a 401 — the same refusal
+   * {@link CHAT_I18N_KEYS.startBlockedSignIn} exists to deliver before the
+   * click rather than after it.
+   */
+  composerBlockedSignIn: "chat.composer.blocked.sign_in",
+  /**
+   * A GUEST — an issued anonymous identity — and therefore NOT a block: the
+   * send goes through, because the guest is authenticated. What it does not
+   * have is a way back. The account lives in this browser and nowhere else,
+   * so the conversation the person is about to start is reachable only from
+   * this device until they sign in.
+   *
+   * Said beside the send control and not in place of it, because the two are
+   * different claims: a blocked control owes a reason, a working one that
+   * carries a risk owes a warning. A walk of a listing page found the call
+   * door stating its refusal and this composer — live, enabled, on the same
+   * screen — saying nothing at all.
+   */
+  composerSignIn: "chat.composer.sign_in",
 
   // "Message the seller"
   startButton: "chat.start.button",
@@ -416,6 +437,10 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.composer.blocked.empty": "Write something first.",
   "chat.composer.blocked.too_long":
     "That is longer than {max} characters — shorten it a little.",
+  "chat.composer.blocked.sign_in": "Sign in to send a message.",
+  "chat.composer.sign_in":
+    "You are writing as a guest — this conversation lives only in this browser. " +
+    "Sign in to keep it.",
 
   "chat.start.button": "Message the seller",
   "chat.start.starting": "Opening…",

@@ -312,6 +312,7 @@ function Composer(props: {
           availability={bag.availability}
           visibleAvailability={bag.visibleAvailability}
           pristine={bag.pristine}
+          signInHint={bag.signInHint}
           errorNode={<ErrorAlert error={errorDisplay(bag.error)} />}
           t={t}
         />
@@ -331,6 +332,7 @@ function ComposerBody(props: {
   availability: Parameters<typeof useActionGate>[0];
   visibleAvailability: Parameters<typeof useActionGate>[0];
   pristine: boolean;
+  signInHint: string | null;
   errorNode: ReactElement | null;
   t: (key: string, params?: Readonly<Record<string, unknown>>) => string;
 }): ReactElement {
@@ -398,6 +400,17 @@ function ComposerBody(props: {
             {earned.reason}
           </Typography.Text>
         ) : null}
+        {/* A control that WORKS and carries a consequence states it too, in
+            the same place and the same voice as a refusal — see
+            `MessageComposerBag.signInHint`. Unconditional on interaction: a
+            warning that waits for the gesture it is warning about arrives
+            after the fact. It is never both this and a reason above, because
+            the one mandate arm that blocks is the one arm that has no hint. */}
+        {props.signInHint === null ? null : (
+          <Typography.Text type="secondary" data-testid="chat-composer-sign-in">
+            {t(props.signInHint)}
+          </Typography.Text>
+        )}
         <Typography.Text type="secondary" style={{ marginLeft: "auto" }}>
           {`${props.length}/${props.maxLength}`}
         </Typography.Text>

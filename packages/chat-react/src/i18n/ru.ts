@@ -144,6 +144,10 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.composer.blocked.empty": "Сначала напишите текст.",
   "chat.composer.blocked.too_long":
     "Это длиннее {max} символов — немного сократите.",
+  "chat.composer.blocked.sign_in": "Войдите, чтобы отправить сообщение.",
+  "chat.composer.sign_in":
+    "Вы пишете как гость — переписка сохранится только в этом браузере. " +
+    "Войдите, чтобы её не потерять.",
 
   "chat.start.button": "Написать продавцу",
   "chat.start.starting": "Открываем…",
