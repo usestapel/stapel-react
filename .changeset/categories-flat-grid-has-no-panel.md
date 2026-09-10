@@ -31,7 +31,23 @@ Two details worth knowing:
   the dark theme.
 
 `tileSurface="card"` keeps the panel — a grid of filled tiles was designed on
-it. No new prop: the container follows the surface the tiles already take.
+it. No new prop on the grid: the container follows the surface the tiles
+already take.
 
-The `default` size budget holds at 19 KB (18846 → 18864 B, dependencies held
-constant), recorded in the entry's own note — 136 B of room left.
+**`<CategoryCarouselStrip>` takes the same rule**, and it gains the prop —
+`tileSurface?: "flat" | "card"`, default `"flat"`, the same word and the same
+default the grid uses, because a landing that draws both rows must not be flat
+in one and panelled in the next. It had BOTH fills: the `raised` wrapper behind
+the row and an antd `Card` behind every entry inside it. Flat, the wrapper is
+`bare` with the same token text colour, and there is no card at all — the LINK
+carries the tile's box (the padding and radius the card was giving it) and the
+two classes, so the whole tile is the pointer target and its hover fill comes
+from `<CategoryTileGrid>`'s own published rule set, hoisted under the same
+`href`. One sheet, one hover, no second definition to drift. `"card"` restores
+the strip exactly as it was.
+
+The `default` size budget goes 19 → 19.5 KB (18846 → 18967 B, dependencies held
+constant), written into the entry's own note. The change fits under the old
+line and would have left it with 33 B, which by that entry's own standard is
+not a ceiling but a gate that fails on the next honest byte — raised here
+rather than left as a red for the wave after this one.

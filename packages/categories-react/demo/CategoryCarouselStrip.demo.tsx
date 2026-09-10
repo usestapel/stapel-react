@@ -72,6 +72,20 @@ export default defineDemo({
         </CategoriesDemoHarness>
       ),
     },
+    "card tiles": {
+      description:
+        "tileSurface=\"card\" — the strip as it was: an antd Card per entry inside a raised wrapper. The default is now \"flat\" (every other variant here), the same word and the same default `<CategoryTileGrid>` takes, because a landing that draws both must not be flat in one row and panelled in the next: no fill and no border on the wrapper or on a tile, and the token fill arriving under the pointer or a keyboard focus from the grid's own rule set rather than a second copy of it.",
+      viewport: "desktop",
+      step: "ready-card-surface",
+      render: () => (
+        <CategoriesDemoHarness seed={SEEDED}>
+          <CategoryCarouselStrip
+            tileSurface="card"
+            renderIcon={(reference) => <Glyph reference={reference} />}
+          />
+        </CategoriesDemoHarness>
+      ),
+    },
     "nothing featured": {
       description: "A real configuration — a landing page that says so instead of spinning.",
       viewport: "desktop",

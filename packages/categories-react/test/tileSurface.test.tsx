@@ -20,6 +20,8 @@ import {
   CATEGORY_TILE_CLASS,
   CATEGORY_TILE_FLAT_CLASS,
   CATEGORY_TILE_LABEL_TESTID,
+  CATEGORY_TILE_STYLE_HREF,
+  CategoryCarouselStrip,
   CategoryTileGrid,
   categoryTileCss,
   tileStageRows,
@@ -452,5 +454,87 @@ describe("the grid container is flat when the tiles are", () => {
     // The wrapper's own fill, exactly as it has always been written.
     expect(box.style.backgroundColor).not.toBe("");
     expect(getComputedStyle(box).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  });
+});
+
+/**
+ * THE STRIP TAKES THE SAME SURFACE AS THE GRID.
+ *
+ * `<CategoryCarouselStrip>` is the landing's other row of tiles, and it had
+ * the same two fills: `SkinTheme`'s default `raised` panel behind the row, and
+ * an antd `Card` behind every entry inside it. One landing that is flat in one
+ * row and panelled in the next is worse than either, so the strip takes the
+ * same word, the same default and the same hover rule — `categoryTileCss()`
+ * itself, not a second copy of it.
+ */
+describe("<CategoryCarouselStrip tileSurface> — flat is the default", () => {
+  async function strip(surface?: "flat" | "card"): Promise<HTMLElement> {
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryCarouselStrip
+          {...(surface !== undefined ? { tileSurface: surface } : {})}
+        />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("categories-carousel-list")).toBeTruthy();
+    });
+    return screen.getByTestId("categories-carousel-list");
+  }
+
+  function container(): HTMLElement {
+    const node = screen
+      .getByTestId("categories-carousel")
+      .closest<HTMLElement>("[data-stapel-skin-root]");
+    expect(node, "the strip is not inside a skin root").not.toBeNull();
+    return node as HTMLElement;
+  }
+
+  it("paints no background and no border on the wrapper", async () => {
+    await strip();
+    const box = container();
+    expect(box.dataset["stapelSkinSurface"]).toBe("bare");
+    expect(box.style.backgroundColor).toBe("");
+    expect(getComputedStyle(box).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(box).borderStyle).toBe("");
+    expect(box.style.boxShadow).toBe("");
+    // `bare` drops the text colour too — stated from the token instead.
+    expect(box.style.color).toBe("var(--stapel-text)");
+  });
+
+  it("draws no card behind a tile, and the tile IS the link", async () => {
+    const list = await strip();
+    expect(list.querySelector(".ant-card")).toBeNull();
+    const tile = list.querySelector<HTMLElement>(`.${CATEGORY_TILE_CLASS}`);
+    expect(tile).not.toBeNull();
+    expect(tile?.tagName).toBe("A");
+    expect(tile?.classList.contains(CATEGORY_TILE_FLAT_CLASS)).toBe(true);
+    // The whole tile is the target, and it carries no fill of its own.
+    expect(tile?.style.background).toBe("");
+    expect(tile?.style.backgroundColor).toBe("");
+  });
+
+  it("takes its hover fill from the GRID's rule set, not a second copy", async () => {
+    await strip();
+    // One sheet, deduped by `href`: a landing drawing both a strip and a grid
+    // ships the rule once.
+    expect(
+      document.querySelectorAll(`style[data-href="${CATEGORY_TILE_STYLE_HREF}"]`)
+        .length
+    ).toBe(1);
+    expect(categoryTileCss()).toContain(
+      `.${CATEGORY_TILE_FLAT_CLASS}:hover,.${CATEGORY_TILE_FLAT_CLASS}:focus-visible{` +
+        "background-color:var(--stapel-surface-sunken)}"
+    );
+  });
+
+  it('keeps the panel and the cards under "card"', async () => {
+    const list = await strip("card");
+    expect(container().dataset["stapelSkinSurface"]).toBe("raised");
+    expect(getComputedStyle(container()).backgroundColor).not.toBe(
+      "rgba(0, 0, 0, 0)"
+    );
+    expect(list.querySelector(".ant-card")).not.toBeNull();
+    expect(list.querySelector(`.${CATEGORY_TILE_FLAT_CLASS}`)).toBeNull();
   });
 });
