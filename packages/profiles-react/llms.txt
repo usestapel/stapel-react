@@ -1,6 +1,6 @@
 # @stapel/profiles-react 0.23.0
 
-Headless React flow pair for stapel-profiles (contract >=0.19 <0.20) — business + state, zero visual opinion.
+Headless React flow pair for stapel-profiles (contract >=0.20 <0.21) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -21,9 +21,13 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/profiles/api/v1/`.
+- add_my_contact: POST /contacts
 - batch_profiles: POST /batch
 - block_user: POST /{user_id}/block
+- confirm_contact_verification: POST /contacts/{contact_id}/verify/confirm
+- delete_my_contact: DELETE /contacts/{contact_id}
 - follow_user: POST /{user_id}/follow
+- get_contact_reveal_summary: GET /contacts/{contact_id}/reveals/summary
 - get_field_manifest: GET /field-manifest
 - get_language: GET /languages/{code}/
 - get_my_blocked: GET /me/blocked
@@ -33,9 +37,13 @@ Paths are relative to `/profiles/api/v1/`.
 - get_profile: GET /{user_id}
 - get_relationship: GET /{user_id}/relationship
 - list_languages: GET /languages/
+- list_my_contacts: GET /contacts
+- request_contact_verification: POST /contacts/{contact_id}/verify/request
+- reveal_contacts: POST /contacts/reveal
 - unblock_user: POST /{user_id}/unblock
 - unfollow_user: POST /{user_id}/unfollow
 - unsubscribe_notifications: POST /notifications/unsubscribe
+- update_my_contact: PATCH /contacts/{contact_id}
 - update_my_profile: PATCH /me
 
 ## Query hooks (server state; keys come only from the key factory)
@@ -51,9 +59,11 @@ Paths are relative to `/profiles/api/v1/`.
 - useUpdateMyProfile (mutation) → updateMyProfile
 
 ## Errors (render t(code, params); UX from remediation)
-57 keys (full catalog: manifest.json §errors). By remediation: fix_input 31 · retry 13 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+67 keys (full catalog: manifest.json §errors). By remediation: fix_input 36 · retry 15 · wait_and_retry 7 · verify 5 · contact_support 2 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.avatar_url_scheme [400] → fix_input {schemes}
+- error.400.contacts_invalid_code [400] → fix_input {attempts_remaining}
+- error.400.contacts_invalid_policy [400] → fix_input {policies}
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
 - error.400.field.invalid [400] → fix_input {field}
@@ -66,6 +76,8 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
 - error.400.too_many_ids [400] → fix_input {requested,limit}
+- error.429.contacts_code_rate [429] → wait_and_retry {retry_after}
+- error.429.contacts_reveal_budget [429] → wait_and_retry {retry_after}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)

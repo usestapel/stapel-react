@@ -72,6 +72,38 @@
     "en": "Captcha token is required."
   },
   {
+    "code": "error.400.contacts_code_expired",
+    "status": 400,
+    "params": [],
+    "remediation": "retry",
+    "en": "That code is no longer valid. Ask for a new one."
+  },
+  {
+    "code": "error.400.contacts_invalid_code",
+    "status": 400,
+    "params": [
+      "attempts_remaining"
+    ],
+    "remediation": "fix_input",
+    "en": "Wrong code. {attempts_remaining} attempt(s) left."
+  },
+  {
+    "code": "error.400.contacts_invalid_phone",
+    "status": 400,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "Enter the phone number in international form, starting with +"
+  },
+  {
+    "code": "error.400.contacts_invalid_policy",
+    "status": 400,
+    "params": [
+      "policies"
+    ],
+    "remediation": "fix_input",
+    "en": "Unknown visibility policy. Allowed here: {policies}"
+  },
+  {
     "code": "error.400.display_name_emoji",
     "status": 400,
     "params": [],
@@ -276,6 +308,13 @@
     "en": "Payment required"
   },
   {
+    "code": "error.403.contacts_registration_required",
+    "status": 403,
+    "params": [],
+    "remediation": "reauthenticate",
+    "en": "Register an account to see a seller's phone number"
+  },
+  {
     "code": "error.403.forbidden",
     "status": 403,
     "params": [],
@@ -309,6 +348,13 @@
     "params": [],
     "remediation": "retry",
     "en": "Listing not found"
+  },
+  {
+    "code": "error.404.contact_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "Contact not found"
   },
   {
     "code": "error.404.not_found",
@@ -360,6 +406,13 @@
     "en": "Resource already exists"
   },
   {
+    "code": "error.409.contacts_duplicate",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "You have already added this number"
+  },
+  {
     "code": "error.410.gone",
     "status": 410,
     "params": [],
@@ -402,6 +455,24 @@
     "en": "Too many failed attempts — verification locked"
   },
   {
+    "code": "error.429.contacts_code_rate",
+    "status": 429,
+    "params": [
+      "retry_after"
+    ],
+    "remediation": "wait_and_retry",
+    "en": "Too many attempts. Try again in {retry_after} seconds."
+  },
+  {
+    "code": "error.429.contacts_reveal_budget",
+    "status": 429,
+    "params": [
+      "retry_after"
+    ],
+    "remediation": "wait_and_retry",
+    "en": "Too many phone lookups. Try again in {retry_after} seconds."
+  },
+  {
     "code": "error.429.rate_limit",
     "status": 429,
     "params": [
@@ -423,6 +494,13 @@
     "params": [],
     "remediation": "contact_support",
     "en": "Something went wrong"
+  },
+  {
+    "code": "error.503.contacts_code_unavailable",
+    "status": 503,
+    "params": [],
+    "remediation": "retry",
+    "en": "The code could not be sent right now. Try again shortly."
   },
   {
     "code": "error.503.mandate_unavailable",

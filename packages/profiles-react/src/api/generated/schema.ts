@@ -156,6 +156,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profiles/api/v1/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my contacts
+         * @description The caller's own contacts, oldest first, WITH their numbers and reveal counters — this shape is never sent to anybody else. `policies` carries the policy vocabulary this deployment accepts, so the picker renders from the server's answer.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["list_my_contacts"];
+        put?: never;
+        /**
+         * Add a contact
+         * @description Store a phone number for the caller. It is normalised to E.164 and starts UNVERIFIED — until `verify/request` + `verify/confirm` have run it is revealed to nobody and the caller's public profile keeps saying `contacts.phone: false`.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["add_my_contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/api/v1/contacts/{contact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a contact
+         * @description Remove the number and its journal. The journal goes with it on purpose: the rows exist to tell the OWNER who asked for THIS number, and a number nobody holds any more has no owner to tell.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["delete_my_contact"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a contact
+         * @description Change the label, the policy or the on/off switch (PATCH semantics). The number itself is not editable — a different number is a different thing to prove — and nothing here touches `verified_at`. Somebody else's contact answers 404.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        patch: operations["update_my_contact"];
+        trace?: never;
+    };
+    "/profiles/api/v1/contacts/{contact_id}/reveals/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reveal counters for one of my contacts
+         * @description Counts only — never who. The owner is entitled to know how often their number was handed out; the identity of the people who asked is the viewers' data, and this module does not trade one person's privacy for another's curiosity.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["get_contact_reveal_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/api/v1/contacts/{contact_id}/verify/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a verification code
+         * @description Check the code against the provider and, on a match, stamp `verified_at`. This is the moment the number becomes revealable and the owner's public profile starts saying `contacts.phone: true` (policy permitting).
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["confirm_contact_verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/api/v1/contacts/{contact_id}/verify/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a verification code
+         * @description Ask the OTP provider (`STAPEL_PROFILES['CONTACTS']['OTP_PROVIDER']`, stapel-auth's phone service by default) to send a code to this number. The provider owns the code's lifetime, its attempt budget and its resend cooldown; this module owns none of it. Repeats answer 429 `error.429.contacts_code_rate` with `retry_after`.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["request_contact_verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/api/v1/contacts/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Show a seller's phone numbers
+         * @description Return the seller's numbers this viewer is admitted to, per the policy on each number. An empty list is a normal 200: the seller has no published number, or none for this viewer — the two are deliberately indistinguishable. A caller without an account (signed out OR a guest session) gets 403 `error.403.contacts_registration_required`, which is the storefront's cue to open full registration. Over the hourly budget the answer is 429 `error.429.contacts_reveal_budget` with `retry_after` in seconds. The owner asking for their own numbers always gets all of them, unbudgeted and unjournalled.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["reveal_contacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/profiles/api/v1/field-manifest": {
         parameters: {
             query?: never;
@@ -350,6 +494,204 @@ export interface components {
          * @enum {string}
          */
         AvatarSourceEnum: "file" | "url" | "gravatar" | "cdn";
+        /** @description Result of a contact action that returns no contact. */
+        ContactActionResponse: {
+            /**
+             * @description Whether the action succeeded
+             * @example true
+             */
+            success: boolean;
+        };
+        /**
+         * @description Add a contact.
+         *
+         *     The number must be in international form (leading `+`); it is stored
+         *     E.164, and the same number cannot be added twice by the same person. A
+         *     new contact starts UNVERIFIED, and therefore invisible to every viewer
+         *     until `verify/request` + `verify/confirm` have run.
+         */
+        ContactCreateRequest: {
+            /**
+             * @description Phone number in international form
+             * @example +15550100
+             */
+            value: string;
+            /**
+             * @description The owner's own label for it
+             * @example Work
+             */
+            label?: string;
+            /**
+             * @description Who may be handed it; omitted means this deployment's default policy
+             * @example members
+             */
+            policy?: string | null;
+            /**
+             * @description What sort of contact this is. Only "phone" exists today
+             * @example phone
+             */
+            kind?: string;
+        };
+        /**
+         * @description The owner's contacts, plus the policy vocabulary this deployment offers.
+         *
+         *     `policies` rides along so a contacts screen can render the picker from
+         *     the server's answer instead of hardcoding three strings — a deployment
+         *     that narrowed `STAPEL_PROFILES["CONTACTS"]["POLICIES"]` would otherwise
+         *     show options its own API refuses.
+         */
+        ContactListResponse: {
+            /** @description The caller's own contacts, oldest first */
+            contacts: components["schemas"]["ContactResponse"][];
+            /**
+             * @description Policy values this deployment accepts, in picker order; the first is the default for a new contact
+             * @example [
+             *       "members",
+             *       "verified",
+             *       "nobody"
+             *     ]
+             */
+            policies: string[];
+        };
+        /**
+         * @description One of the OWNER's own contacts, as they see it on their own screen.
+         *
+         *     This shape is never sent to anybody but the owner, which is why it
+         *     carries both the number and its reveal counter. A viewer's answer is
+         *     `RevealedPhone`, which carries neither.
+         */
+        ContactResponse: {
+            /**
+             * @description Contact id
+             * @example 7
+             */
+            id: number;
+            /**
+             * @description What sort of contact this is
+             * @example phone
+             */
+            kind: string;
+            /**
+             * @description The number in E.164
+             * @example +15550100
+             */
+            value: string;
+            /**
+             * @description The owner's own label for it
+             * @example Work
+             */
+            label: string;
+            /**
+             * @description Who may be handed this number (members, verified, nobody)
+             * @example members
+             */
+            policy: string;
+            /**
+             * @description The owner's on/off switch, independent of the policy
+             * @example true
+             */
+            enabled: boolean;
+            /**
+             * @description Whether the SMS code has been confirmed. An unverified number is revealed to nobody
+             * @example true
+             */
+            verified: boolean;
+            /**
+             * @description When the code was confirmed, or null
+             * @example 2026-09-11T09:00:00Z
+             */
+            verified_at: string | null;
+            /**
+             * @description How many times this number has been handed over, ever
+             * @example 12
+             */
+            reveal_count: number;
+            /**
+             * @description When the contact was added
+             * @example 2026-09-11T08:00:00Z
+             */
+            created_at: string;
+        };
+        /** @description Ask for a seller's numbers. */
+        ContactRevealRequest: {
+            /**
+             * Format: uuid
+             * @description User UUID of the person whose numbers are asked for
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            owner_key: string;
+            /**
+             * @description Where the viewer was standing, for the owner's journal. Opaque to this module
+             * @example 91823
+             */
+            listing_id?: string | null;
+        };
+        /**
+         * @description The numbers this viewer was admitted to.
+         *
+         *     An empty list is a normal, successful answer: the seller has no
+         *     published number, or none whose policy admits this viewer. The two cases
+         *     are deliberately indistinguishable — "there is a number you may not
+         *     read" is itself a fact about the seller, and this endpoint does not
+         *     disclose it.
+         *
+         *     Sent with `Cache-Control: no-store`: the answer is per-viewer, budgeted
+         *     and journalled, and a shared cache copy would be a hand-over nobody
+         *     recorded.
+         */
+        ContactRevealResponse: {
+            /** @description The numbers, in the order the owner added them */
+            phones: components["schemas"]["RevealedPhone"][];
+        };
+        /** @description How often one of the OWNER's numbers has been handed over. */
+        ContactRevealSummaryResponse: {
+            /**
+             * @description Which contact this counts
+             * @example 7
+             */
+            contact_id: number;
+            /**
+             * @description Hand-overs ever
+             * @example 128
+             */
+            total: number;
+            /**
+             * @description Hand-overs in the last 24 hours
+             * @example 4
+             */
+            last_24h: number;
+            /**
+             * @description Hand-overs in the last 7 days
+             * @example 19
+             */
+            last_7d: number;
+            /**
+             * @description When it was last handed over, or null
+             * @example 2026-09-11T09:30:00Z
+             */
+            last_reveal_at: string | null;
+        };
+        /** @description Confirm the code that was sent to the number. */
+        ContactVerifyConfirmRequest: {
+            /**
+             * @description The code from the SMS
+             * @example 123456
+             */
+            code: string;
+        };
+        /** @description A verification code was sent to the number. */
+        ContactVerifyRequestResponse: {
+            /**
+             * @description Always true — a refusal is an error envelope, not a false here
+             * @example true
+             */
+            sent: boolean;
+            /**
+             * @description Seconds the code stays good, when the provider says
+             * @example 600
+             */
+            expires_in: number | null;
+        };
         /** @description User's followers list. */
         FollowersResponse: {
             /**
@@ -397,6 +739,27 @@ export interface components {
              * @example /flags/en.svg
              */
             flag: string | null;
+        };
+        /**
+         * @description Change a contact (PATCH, all optional).
+         *
+         *     The number itself is not editable: a different number is a different
+         *     thing to prove, so it is a different contact. Everything else the owner
+         *     may change at will, and none of it touches `verified_at`.
+         */
+        PatchedContactUpdateRequest: {
+            /**
+             * @description The owner's own label for it
+             * @example Mobile
+             */
+            label?: string | null;
+            /**
+             * @description Who may be handed it
+             * @example verified
+             */
+            policy?: string | null;
+            /** @description Switch it off without deleting it or changing its policy */
+            enabled?: boolean | null;
         };
         /** @description Update profile fields (PATCH, all optional). */
         PatchedProfileUpdateRequest: {
@@ -535,6 +898,27 @@ export interface components {
             missing: string[];
         };
         /**
+         * @description What a public profile says about a person's contacts — one bit.
+         *
+         *     True means: there is at least one phone on this profile that is
+         *     switched on, proven by SMS, and not withheld from everyone. It is what a
+         *     storefront draws the "Show phone" button from. It is NOT a promise that
+         *     the caller will get a number: the policy on each number is applied by
+         *     `POST /profiles/api/v1/contacts/reveal`, and the answer there may still
+         *     be an empty list or the registration door.
+         *
+         *     Viewer-independent on purpose: a bit that changed with the viewer would
+         *     leak the policy itself ("the button vanished when I signed out, so that
+         *     number is members-only") and would make a public field uncacheable.
+         */
+        ProfileContactFlags: {
+            /**
+             * @description Whether there is a phone worth asking for
+             * @example true
+             */
+            phone: boolean;
+        };
+        /**
          * @description One active profile field, as the frontend skin needs it to render
          *     itself without hardcoding field names (docs/pending/profile-fields.md,
          *     "Owner Addendum" §1 — data-driven skin, tier 1 of the two-tier
@@ -629,6 +1013,7 @@ export interface components {
             readonly seller_type: string | null;
             /** Format: date-time */
             readonly created_at: string;
+            readonly contacts: components["schemas"]["ProfileContactFlags"];
         };
         /** @description Public profile for viewing other users. */
         ProfilePublicResponse: {
@@ -690,6 +1075,13 @@ export interface components {
              * @example 2025-01-15T12:00:00Z
              */
             created_at: string;
+            /**
+             * @description Which kinds of contact this person has published — the fact only, never the value
+             * @example {
+             *       "phone": true
+             *     }
+             */
+            contacts: components["schemas"]["ProfileContactFlags"];
         };
         /**
          * @description Full user profile (for /me endpoint).
@@ -835,6 +1227,25 @@ export interface components {
              */
             status: string;
         };
+        /**
+         * @description One number a viewer was admitted to.
+         *
+         *     Deliberately minimal: a label and a number. No id, no policy, no
+         *     counters — a viewer has no business knowing how a seller's contacts are
+         *     organised, only how to call them.
+         */
+        RevealedPhone: {
+            /**
+             * @description The owner's own label for it, possibly empty
+             * @example Work
+             */
+            label: string;
+            /**
+             * @description The number in E.164
+             * @example +15550100
+             */
+            value: string;
+        };
         /** @description Structured error returned by all Stapel API endpoints. */
         StapelError: {
             /**
@@ -853,7 +1264,7 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
+            /** @description The language `error` is written in (e.g. 'en', 'ru'), */
             error_language?: string;
         };
         /**
@@ -1155,6 +1566,451 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    list_my_contacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactListResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    add_my_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactCreateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContactCreateRequest"];
+                "multipart/form-data": components["schemas"]["ContactCreateRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    delete_my_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contact id */
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactActionResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    update_my_contact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contact id */
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedContactUpdateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedContactUpdateRequest"];
+                "multipart/form-data": components["schemas"]["PatchedContactUpdateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    get_contact_reveal_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contact id */
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactRevealSummaryResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    confirm_contact_verification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contact id */
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactVerifyConfirmRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContactVerifyConfirmRequest"];
+                "multipart/form-data": components["schemas"]["ContactVerifyConfirmRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    request_contact_verification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Contact id */
+                contact_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactVerifyRequestResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    reveal_contacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactRevealRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContactRevealRequest"];
+                "multipart/form-data": components["schemas"]["ContactRevealRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactRevealResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

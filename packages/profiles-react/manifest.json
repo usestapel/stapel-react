@@ -4,7 +4,7 @@
   "version": "0.23.0",
   "backend": {
     "module": "stapel-profiles",
-    "contract": ">=0.19 <0.20"
+    "contract": ">=0.20 <0.21"
   },
   "layers": [
     "api",
@@ -16,6 +16,13 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "add_my_contact": {
+      "method": "POST",
+      "path": "/profiles/api/v1/contacts",
+      "tag": "Contacts",
+      "request": "ContactCreateRequest",
+      "response": "ContactResponse"
+    },
     "batch_profiles": {
       "method": "POST",
       "path": "/profiles/api/v1/batch",
@@ -30,12 +37,33 @@
       "request": null,
       "response": "RelationshipActionResponse"
     },
+    "confirm_contact_verification": {
+      "method": "POST",
+      "path": "/profiles/api/v1/contacts/{contact_id}/verify/confirm",
+      "tag": "Contacts",
+      "request": "ContactVerifyConfirmRequest",
+      "response": "ContactResponse"
+    },
+    "delete_my_contact": {
+      "method": "DELETE",
+      "path": "/profiles/api/v1/contacts/{contact_id}",
+      "tag": "Contacts",
+      "request": null,
+      "response": "ContactActionResponse"
+    },
     "follow_user": {
       "method": "POST",
       "path": "/profiles/api/v1/{user_id}/follow",
       "tag": "Relationships",
       "request": null,
       "response": "RelationshipActionResponse"
+    },
+    "get_contact_reveal_summary": {
+      "method": "GET",
+      "path": "/profiles/api/v1/contacts/{contact_id}/reveals/summary",
+      "tag": "Contacts",
+      "request": null,
+      "response": "ContactRevealSummaryResponse"
     },
     "get_field_manifest": {
       "method": "GET",
@@ -100,6 +128,27 @@
       "request": null,
       "response": null
     },
+    "list_my_contacts": {
+      "method": "GET",
+      "path": "/profiles/api/v1/contacts",
+      "tag": "Contacts",
+      "request": null,
+      "response": "ContactListResponse"
+    },
+    "request_contact_verification": {
+      "method": "POST",
+      "path": "/profiles/api/v1/contacts/{contact_id}/verify/request",
+      "tag": "Contacts",
+      "request": null,
+      "response": "ContactVerifyRequestResponse"
+    },
+    "reveal_contacts": {
+      "method": "POST",
+      "path": "/profiles/api/v1/contacts/reveal",
+      "tag": "Contacts",
+      "request": "ContactRevealRequest",
+      "response": "ContactRevealResponse"
+    },
     "unblock_user": {
       "method": "POST",
       "path": "/profiles/api/v1/{user_id}/unblock",
@@ -120,6 +169,13 @@
       "tag": "Notifications",
       "request": null,
       "response": null
+    },
+    "update_my_contact": {
+      "method": "PATCH",
+      "path": "/profiles/api/v1/contacts/{contact_id}",
+      "tag": "Contacts",
+      "request": "PatchedContactUpdateRequest",
+      "response": "ContactResponse"
     },
     "update_my_profile": {
       "method": "PATCH",
@@ -268,6 +324,30 @@
       "status": 400,
       "params": [],
       "remediation": "retry"
+    },
+    "error.400.contacts_code_expired": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.contacts_invalid_code": {
+      "status": 400,
+      "params": [
+        "attempts_remaining"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.contacts_invalid_phone": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.contacts_invalid_policy": {
+      "status": 400,
+      "params": [
+        "policies"
+      ],
+      "remediation": "fix_input"
     },
     "error.400.display_name_emoji": {
       "status": 400,
@@ -423,6 +503,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.403.contacts_registration_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.403.forbidden": {
       "status": 403,
       "params": [],
@@ -447,6 +532,11 @@
       "status": 404,
       "params": [],
       "remediation": "retry"
+    },
+    "error.404.contact_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "fix_input"
     },
     "error.404.not_found": {
       "status": 404,
@@ -483,6 +573,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.409.contacts_duplicate": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.410.gone": {
       "status": 410,
       "params": [],
@@ -513,6 +608,20 @@
       "params": [],
       "remediation": "wait_and_retry"
     },
+    "error.429.contacts_code_rate": {
+      "status": 429,
+      "params": [
+        "retry_after"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.contacts_reveal_budget": {
+      "status": 429,
+      "params": [
+        "retry_after"
+      ],
+      "remediation": "wait_and_retry"
+    },
     "error.429.rate_limit": {
       "status": 429,
       "params": [
@@ -529,6 +638,11 @@
       "status": 500,
       "params": [],
       "remediation": "contact_support"
+    },
+    "error.503.contacts_code_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
     },
     "error.503.mandate_unavailable": {
       "status": 503,
@@ -707,6 +821,10 @@
     "error.400.cannot_follow_self",
     "error.400.captcha_invalid",
     "error.400.captcha_required",
+    "error.400.contacts_code_expired",
+    "error.400.contacts_invalid_code",
+    "error.400.contacts_invalid_phone",
+    "error.400.contacts_invalid_policy",
     "error.400.display_name_emoji",
     "error.400.display_name_forbidden_chars",
     "error.400.display_name_invisible_chars",
@@ -732,11 +850,13 @@
     "error.400.verification_invalid_factor",
     "error.401.unauthorized",
     "error.402.payment_required",
+    "error.403.contacts_registration_required",
     "error.403.forbidden",
     "error.403.network_blocked",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
+    "error.404.contact_not_found",
     "error.404.not_found",
     "error.404.profile_not_found",
     "error.404.verification_challenge_not_found",
@@ -744,15 +864,19 @@
     "error.406.not_acceptable",
     "error.408.request_timeout",
     "error.409.conflict",
+    "error.409.contacts_duplicate",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.415.unsupported_media_type",
     "error.422.unprocessable_entity",
     "error.423.locked",
     "error.423.verification_locked",
+    "error.429.contacts_code_rate",
+    "error.429.contacts_reveal_budget",
     "error.429.rate_limit",
     "error.429.too_many_requests",
     "error.500.internal",
+    "error.503.contacts_code_unavailable",
     "error.503.mandate_unavailable",
     "profiles.action.close",
     "profiles.action.retry",
