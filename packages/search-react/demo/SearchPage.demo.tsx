@@ -72,6 +72,8 @@ function Page(props: {
   legacyRhythm?: boolean;
   /** The results toolbar left in flow — see `toolbar-not-pinned`. */
   toolbarStatic?: boolean;
+  /** The filters back on their own raised ground — see `rail-on-a-panel`. */
+  railPanel?: boolean;
 }): ReactElement {
   const search = props.search ?? RESULTS_SEARCH;
   const adapter = useMemoryParams(search);
@@ -102,6 +104,7 @@ function Page(props: {
             ? { blockRhythm: "legacy" as const }
             : {})}
           {...(props.toolbarStatic === true ? { toolbarSticky: false } : {})}
+          {...(props.railPanel === true ? { railSurface: "panel" as const } : {})}
         />
       </DemoFrame>
     </SearchDemoHarness>
@@ -237,6 +240,13 @@ export default defineDemo({
       viewport: "desktop",
       step: "toolbar-not-pinned",
       render: () => <Page toolbarStatic />,
+    },
+    "rail-on-a-panel": {
+      description:
+        "`railSurface=\"panel\"`: the filters back on the raised container ground this page painted until now, beside the `\"flat\"` default every other variant draws. The default changed on a measurement — on the stand's dark theme the rail read as a 270 x 1539 filled slab with no radius and no border, standing on the page ground for the whole height of the feed, which is a card shape with none of a card's edges. Flat draws the controls and the one colour a bare surface does not set (`var(--stapel-text)`); the panel arm is for a page whose own ground is an image, or a layout that genuinely wants the filters on their own sheet.",
+      viewport: "desktop",
+      step: "rail-on-a-panel",
+      render: () => <Page railPanel />,
     },
     "system-scrollbar": {
       description:

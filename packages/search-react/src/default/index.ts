@@ -191,6 +191,7 @@ export type {
   FacetPanelPaneProps,
   CategoryFilterSlotProps,
   GeoFilterSlotProps,
+  SearchRailSurface,
 } from "./FacetPanelPane.js";
 
 export { RankingDisclosurePane, RANKING_MAX_WIDTH } from "./RankingDisclosurePane.js";

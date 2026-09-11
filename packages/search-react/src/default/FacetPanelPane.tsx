@@ -96,7 +96,7 @@ import {
   LoadList,
   SkinTheme,
 } from "@stapel/tokens-antd/skin";
-import { spacing } from "@stapel/tokens";
+import { cssVar, spacing } from "@stapel/tokens";
 import { featureName } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
 import type { SearchGeo } from "../api/types.js";
@@ -226,7 +226,32 @@ export interface GeoFilterSlotProps {
   readonly onChange: (geo: SearchGeo | null) => void;
 }
 
+/**
+ * WHAT THE FILTER PANEL'S OWN BODY PAINTS — see
+ * {@link FacetPanelPaneProps.railSurface}.
+ */
+export type SearchRailSurface = "flat" | "panel";
+
 export interface FacetPanelPaneProps extends ThemeModeProp {
+  /**
+   * WHAT THE PANEL'S OWN BODY PAINTS. Default `"flat"`.
+   *
+   *  - `"flat"` — nothing. The panel is a column of controls standing on the
+   *    page's own ground, and it takes only the text colour it needs
+   *    (`var(--stapel-text)`), which a bare surface does not set;
+   *  - `"panel"` — the raised container ground this pane painted until now.
+   *
+   * The default changed, and the measurement is why: on the stand's dark theme
+   * the rail was a **270 x 1539** filled slab with no radius and no border,
+   * standing on the page ground — a card shape with none of a card's edges,
+   * running the whole height of the feed beside it. The same read produced the
+   * same verdict for `categories-react`'s grid, strip and breadcrumbs, and the
+   * answer there was the same one: draw the controls, not a box around them.
+   *
+   * `"panel"` is the old arm kept whole, for a deployment whose page ground is
+   * an image or whose layout genuinely wants the filters on their own sheet.
+   */
+  readonly railSurface?: SearchRailSurface;
   /** The category's feature schema — the source of option LABELS, of which
    * slugs get a numeric range row, and of which slugs are a filter at all
    * (`isFacetableFeature`: an `imei` is counted and is not one). */
@@ -407,6 +432,9 @@ function RailFooterBar(props: {
   /** `"sticky"` pins it to the scroll port's floor; `"static"` lets it sit
    * after the last group. See {@link FacetPanelPaneProps.footerBar}. */
   readonly position: "sticky" | "static";
+  /** What the panel around it paints, so a pinned bar takes the SAME ground
+   * rather than deciding one of its own. See {@link FacetPanelPaneProps.railSurface}. */
+  readonly railSurface: SearchRailSurface;
 }): ReactElement | null {
   const t = useT();
   const tPlural = useTPlural();
@@ -430,9 +458,25 @@ function RailFooterBar(props: {
       data-testid="facets-footer-bar"
       data-position={props.position}
       style={{
-        ...(props.position === "sticky" ? { position: "sticky", bottom: 0 } : {}),
-        // Opaque, or the options scrolling under the bar read THROUGH it.
-        background: token.colorBgContainer,
+        ...(props.position === "sticky"
+          ? {
+              position: "sticky",
+              bottom: 0,
+              /* THE GROUND IT IS ON, and only where it has to be opaque.
+                 The bar used to paint antd's `colorBgContainer` in BOTH arms:
+                 a second opinion about a colour its parent already decided,
+                 and — since the panel's own body went flat — a lighter strip
+                 standing across the foot of the rail on the stand's dark
+                 theme. It now paints the same token the panel does and only
+                 in the arm that is pinned over its own scroll port, where a
+                 transparent floor lets the options read THROUGH it. The
+                 static arm has nothing scrolling under it and paints
+                 nothing. */
+              background: cssVar(
+                props.railSurface === "panel" ? "surface-raised" : "surface"
+              ),
+            }
+          : {}),
         borderBlockStart: `1px solid ${token.colorSplit}`,
         paddingBlockStart: spacing[2],
         display: "flex",
@@ -633,8 +677,19 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
         ? "none"
         : props.footerBar;
 
+  /* The panel's own ground — see `railSurface`. `"bare"` paints NOTHING, text
+     colour included, so the flat arm states the one property it still needs;
+     the theme's own custom property, so it follows the brand and the dark side
+     rather than freezing whichever mode mounted first. */
+  const railSurface: SearchRailSurface = props.railSurface ?? "flat";
+
   return (
-    <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
+    <SkinTheme
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+      {...(railSurface === "flat"
+        ? { surface: "bare" as const, style: { color: cssVar("text") } }
+        : {})}
+    >
       <FacetPanel
         {...(props.categoryFeatures !== undefined
           ? { categoryFeatures: props.categoryFeatures }
@@ -1155,6 +1210,7 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 activeFilters={bag.activeFilters}
                 clearAll={bag.clearAll}
                 position={footerBar}
+                railSurface={railSurface}
               />
             )}
           </Flex>

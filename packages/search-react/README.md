@@ -489,7 +489,41 @@ its frame wants it: `footerBar="static"` (the default `<SearchPage>` uses in the
 column layout) puts it after the last group, and `"sticky"` / `true` pins it to
 the scroll port's floor, which is right in a sheet whose port IS the sheet. It
 was pinned everywhere, and on the desktop rail an opaque bar over the last two
-groups made them unreachable.
+groups made them unreachable. The bar decides no colour of its own: it paints
+the panel's own token, and only in the pinned arm, which is the one with a
+scroll port under it — the static arm paints nothing and keeps its hairline.
+
+### The filters are controls, not a slab: `railSurface`
+
+```tsx
+<SearchPage adapter={adapter} railSurface="panel" /> // the old ground, opt-in
+```
+
+Default `"flat"`. The panel's body used to paint the raised CONTAINER ground,
+which the owner's tidiness probe read on the stand's dark theme as a
+**270 x 1539** filled slab with no radius and no border, standing on the page
+ground for the whole height of the feed — a card shape with none of a card's
+edges. `"flat"` is the substrate's `bare` surface plus the one property a bare
+surface does not set (`color: var(--stapel-text)`), which is the same answer
+`categories-react` gave for its grid, its strip and its breadcrumbs.
+
+`"panel"` restores the old arm whole, for a page whose own ground is an image
+or a layout that genuinely wants the filters on their own sheet. The prop lives
+on `<FacetPanelPane>` too, and `<SearchPage>` hands it down in the column and
+the phone sheet alike.
+
+### The results-header slot takes a box only when it fills one
+
+`resultsHeader` is a NODE, and a node that renders nothing cannot be told from
+one that renders something until React has run it — so the wrapper is mounted
+on the prop and generates no box of its own (`display: contents`). It used to
+be a real `<div>`, which stood in the block-rhythm column as a `1392 x 0`
+element whenever a host's header had nothing to say; an empty child is charged
+a gap on BOTH sides, so two real blocks measured 64px apart where 32 is
+declared, on every feed page. The `data-testid="search-results-header"` hook
+survives either way, so a consumer stylesheet carrying
+`[data-testid="search-results-header"]:empty { display: none }` as a stand-in
+can delete it.
 
 `<SearchPage footerBar>` overrides that default — including `false`, for a
 surface that draws its own count under the rail. It is a prop because it could

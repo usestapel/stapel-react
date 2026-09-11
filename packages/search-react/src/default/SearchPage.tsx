@@ -82,6 +82,7 @@ import type {
   CategoryFilterSlotProps,
   FacetPanelPaneProps,
   GeoFilterSlotProps,
+  SearchRailSurface,
 } from "./FacetPanelPane.js";
 import { FilterChips } from "./FilterChips.js";
 import { LocationSummaryLine } from "./LocationSummaryLine.js";
@@ -393,6 +394,9 @@ export function railStyle(top: number | string | undefined): CSSProperties {
 /** The results take what is left. `minWidth: 0` so a long word inside a card
  * cannot push the grid wider than its column. */
 const RESULTS_COLUMN: CSSProperties = { flex: "1 1 auto", minWidth: 0 };
+
+/** A wrapper that names a slot without occupying one — see `resultsHeader`. */
+const CONTENTS_BOX: CSSProperties = { display: "contents" };
 
 /* ── THE RHYTHM: ONE GAP BETWEEN BLOCKS, SAID ONCE ─────────────────────────
  *
@@ -786,6 +790,16 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly railScrollbar?: SearchRailScrollbar;
   /**
+   * WHAT THE FILTER PANEL'S OWN BODY PAINTS. Default `"flat"`.
+   *
+   * Handed straight to {@link FacetPanelPaneProps.railSurface}, in the column
+   * and in the phone sheet alike. `"flat"` draws the controls and no box
+   * around them (the stand's dark theme read the old ground as a 270 x 1539
+   * filled slab with no radius and no border, standing on the page ground);
+   * `"panel"` restores the raised container this page painted until now.
+   */
+  readonly railSurface?: SearchRailSurface;
+  /**
    * WHERE the space between this page's blocks comes from. Default `"token"`.
    *
    *  - `"token"` — one gap for every block, read from
@@ -1012,6 +1026,7 @@ interface SearchPageBodyProps {
   readonly filtersLayout?: SearchFiltersLayout;
   readonly railTop?: number | string;
   readonly railScrollbar?: SearchRailScrollbar;
+  readonly railSurface?: SearchRailSurface;
   readonly blockRhythm?: SearchBlockRhythm;
   readonly stickyToolbar?: SearchToolbarPin;
   readonly toolbarSticky?: boolean;
@@ -1201,6 +1216,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
         <FacetPanelPane
           {...(layout === "sheet" ? { heading: null } : {})}
           {...(footerBar !== undefined ? { footerBar } : {})}
+          {...(props.railSurface !== undefined
+            ? { railSurface: props.railSurface }
+            : {})}
           dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "sheet" : "field")}
           // `??` would treat an explicit `null` ("never fold") the same as
           // "not set": `visibleGroups` uses `null` as a real value, unlike
@@ -1394,7 +1412,25 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           the written decision, not an oversight: a page with nothing to say
           about location says nothing rather than reserving a blank row. */}
       {props.resultsHeader !== undefined && (
-        <div data-testid="search-results-header">{props.resultsHeader}</div>
+        /* NO BOX OF ITS OWN (`display: contents`). The slot is a NODE, and a
+           node that renders nothing is indistinguishable from one that renders
+           something until React has run it — so the wrapper was mounted on the
+           prop alone and stood in this column as a 1392 x 0 element whenever
+           the host's header had nothing to say. Inside the block rhythm an
+           empty child is not free: the column's `gap` is charged on BOTH sides
+           of it, so the distance between the two real blocks around it
+           measured 64px where 32 is declared, on every feed page (owner's
+           tidiness probe on the stand).
+
+           `display: contents` generates no box at all: with nothing inside,
+           there is no flex item and no gap; with something inside, the host's
+           own element IS the column's child and takes exactly one gap. The
+           `data-testid` survives either way, and the consumer stylesheet's
+           stand-in (`[data-testid="search-results-header"]:empty{display:none}`)
+           can go. */
+        <div style={CONTENTS_BOX} data-testid="search-results-header">
+          {props.resultsHeader}
+        </div>
       )}
 
       {/* What the search is NARROWED to, above the results, each constraint
@@ -1533,6 +1569,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     filtersLayout,
     railTop,
     railScrollbar,
+    railSurface,
     blockRhythm,
     stickyToolbar,
     toolbarSticky,
@@ -1600,6 +1637,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
           {...(railTop !== undefined ? { railTop } : {})}
           {...(railScrollbar !== undefined ? { railScrollbar } : {})}
+          {...(railSurface !== undefined ? { railSurface } : {})}
           {...(blockRhythm !== undefined ? { blockRhythm } : {})}
           {...(stickyToolbar !== undefined ? { stickyToolbar } : {})}
           {...(toolbarSticky !== undefined ? { toolbarSticky } : {})}

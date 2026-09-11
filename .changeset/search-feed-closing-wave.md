@@ -2,7 +2,8 @@
 "@stapel/search-react": minor
 ---
 
-The feed pins its sort row, and a colour facet shows the colour.
+The feed pins its sort row, a colour facet shows the colour, and the rail stops
+drawing boxes the page had already decided.
 
 Five rows of the closing-wave comparison inventory, all on the results feed
 and the filter rail. Two of them are code; three are verdicts, and two of
@@ -74,3 +75,38 @@ desktop column and the phone sheet — now have a test asserting they print the
 same string for the same answer, that it comes from `search.facets.empty`, and
 that no bundle in en/ru/es carries a second sentence for the case to drift back
 into.
+
+**Three fills, from the owner's tidiness probe on the stand (dark theme).** All
+three are the same mistake in three places — this pair painting something its
+page had already decided.
+
+`<SearchPage railSurface>` / `<FacetPanelPane railSurface>`, default `"flat"`.
+The filter panel's body painted the raised container ground, and the probe read
+it as a **270 x 1539** filled slab with no radius and no border, standing on
+the page ground for the whole height of the feed: a card shape with none of a
+card's edges. `"flat"` is the substrate's `bare` surface plus the one property
+a bare surface does not set (`color: var(--stapel-text)`) — the same answer
+`categories-react` gave for its grid, its strip and its breadcrumbs. `"panel"`
+restores the old arm whole, for a page whose ground is an image or a layout
+that genuinely wants the filters on their own sheet.
+
+**The rail's footer bar chooses no colour.** It painted antd's
+`colorBgContainer` in BOTH arms — a second opinion about a colour its parent
+had already taken, and, once the body went flat, a lighter strip across the
+foot of the rail. It now paints the panel's OWN token (`var(--stapel-surface)`,
+or `--stapel-surface-raised` under `railSurface="panel"`) and only in the
+PINNED arm, which is the one with a scroll port under it; a transparent floor
+there would let the options read through the bar. The static arm paints
+nothing and keeps its hairline — the finding is the fill, not the edge.
+
+**`resultsHeader` takes a box only when it fills one.** The slot is a node, and
+a node that renders nothing cannot be told from one that renders something
+until React has run it — so the wrapper was mounted on the PROP and stood in
+the block-rhythm column as a `1392 x 0` element whenever a host's header had
+nothing to say. An empty child is not free there: the column's gap is charged
+on both sides of it, so two real blocks measured **64px** apart where 32 is
+declared, on every feed page. The wrapper is `display: contents` now — no box
+with nothing inside, exactly one gap with something inside — and the
+`data-testid` survives either way, so a consumer stylesheet carrying
+`[data-testid="search-results-header"]:empty { display: none }` as a stand-in
+can delete it.
