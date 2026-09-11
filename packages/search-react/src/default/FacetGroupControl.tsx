@@ -67,6 +67,7 @@ import type { CSSProperties, ReactElement } from "react";
 import { Button, Checkbox, Flex, Input, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { SkinPickerSheet } from "@stapel/tokens-antd/skin";
+import { SWATCH_SIZE, facetSwatch } from "./swatches.js";
 import type { PickerGroup, PickerOption } from "@stapel/tokens-antd/skin";
 import { controls, cssVar, radii, spacing } from "@stapel/tokens";
 import { featureConfig, featureType } from "@stapel/attributes-react";
@@ -342,6 +343,42 @@ function OptionCount(props: {
 /** The indent one level of a hierarchical facet is drawn with. */
 const NEST_STEP = spacing[5];
 
+/**
+ * The colour a value IS, drawn beside the word for it — see `./swatches.ts`.
+ *
+ * `aria-hidden`, and it never replaces the label: a dot is a second way to
+ * read a row that already reads, so a screen reader and a monochrome display
+ * lose nothing. The hairline is the panel's own border role, because a white
+ * swatch on a white rail is otherwise an empty hole.
+ */
+function Swatch(props: {
+  readonly group: FacetGroup;
+  readonly value: string;
+}): ReactElement | null {
+  const color = facetSwatch(props.group, props.value);
+  if (color === null) return null;
+  return (
+    <span
+      aria-hidden="true"
+      data-testid={`facet-swatch-${props.group.slug}-${props.value}`}
+      data-swatch={color}
+      style={{
+        display: "inline-block",
+        inlineSize: SWATCH_SIZE,
+        blockSize: SWATCH_SIZE,
+        flex: "0 0 auto",
+        borderRadius: radii.full,
+        background: color,
+        border: `1px solid ${cssVar("border")}`,
+        // The dot sits ON the text line rather than on the box's baseline,
+        // which is what keeps a 12px circle centred against a 14px label.
+        verticalAlign: "-0.125em",
+        marginInlineEnd: spacing[1],
+      }}
+    />
+  );
+}
+
 function CheckboxRow(props: {
   readonly group: FacetGroup;
   readonly node: FacetOptionNode;
@@ -369,6 +406,7 @@ function CheckboxRow(props: {
           props.onToggle(group.slug, node.option.value);
         }}
       >
+        <Swatch group={group} value={node.option.value} />
         {node.option.label}
       </Checkbox>
       <OptionCount group={group} option={node.option} />
@@ -406,6 +444,7 @@ function OptionPill(props: {
         props.onToggle(group.slug, option.value);
       }}
     >
+      <Swatch group={group} value={option.value} />
       {option.count === null ? option.label : `${option.label} ${option.count}`}
     </Button>
   );

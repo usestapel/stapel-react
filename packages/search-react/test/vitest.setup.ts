@@ -35,9 +35,20 @@ afterEach(() => {
 if (typeof window !== "undefined") {
   window.matchMedia = ((query: string) => {
     const min = /\(min-width:\s*(\d+)px\)/.exec(query);
+    // A POINTER, too, and derived from the same viewport: the results toolbar
+    // pins under `(pointer: fine)`, and a stub answering `false` to every
+    // query it does not understand would report "coarse" on the desktop
+    // layout — i.e. the default pin could never be exercised at all. A test
+    // that wants the coarse arm sets `setViewport(PHONE_WIDTH)`, which is the
+    // one it would set anyway to get the compact header.
+    const pointer = /\(pointer:\s*(fine|coarse)\)/.exec(query);
     const listeners = new Set<() => void>();
     return {
       get matches() {
+        if (pointer !== null) {
+          const fine = window.innerWidth >= 768;
+          return pointer[1] === "fine" ? fine : !fine;
+        }
         return min === null ? false : window.innerWidth >= Number(min[1]);
       },
       media: query,

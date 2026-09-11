@@ -86,7 +86,12 @@ export {
   RESULTS_COLUMNS_CLASS,
   RESULTS_COLUMNS_STYLE_HREF,
   RESULTS_TOOLBAR_CLASS,
+  RESULTS_TOOLBAR_STICKY_CLASS,
+  RESULTS_TOOLBAR_STYLE_HREF,
+  RESULTS_TOOLBAR_TOP_VAR,
   resultsColumnsCss,
+  toolbarRowMinHeight,
+  toolbarStickyCss,
 } from "./SearchResultsPane.js";
 export type {
   ResultsColumns,
@@ -150,6 +155,9 @@ export type {
   FacetGroupShape,
   FacetOptionNode,
 } from "./FacetGroupControl.js";
+
+export { SWATCH_SIZE, facetSwatch, isColorAxis, swatchColor } from "./swatches.js";
+export type { ColorAxisLike } from "./swatches.js";
 
 // ── the browse surfaces a storefront PLACES (this pair does not lay them
 //    out: where a popular-values block or a partition row belongs on a

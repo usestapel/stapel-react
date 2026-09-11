@@ -70,6 +70,8 @@ function Page(props: {
   systemScrollbar?: boolean;
   /** The flat 16px gap this page used to write inline — see `legacy-rhythm`. */
   legacyRhythm?: boolean;
+  /** The results toolbar left in flow — see `toolbar-not-pinned`. */
+  toolbarStatic?: boolean;
 }): ReactElement {
   const search = props.search ?? RESULTS_SEARCH;
   const adapter = useMemoryParams(search);
@@ -99,6 +101,7 @@ function Page(props: {
           {...(props.legacyRhythm === true
             ? { blockRhythm: "legacy" as const }
             : {})}
+          {...(props.toolbarStatic === true ? { toolbarSticky: false } : {})}
         />
       </DemoFrame>
     </SearchDemoHarness>
@@ -227,6 +230,13 @@ export default defineDemo({
       viewport: "desktop",
       step: "under-a-header",
       render: () => <Page underHeader />,
+    },
+    "toolbar-not-pinned": {
+      description:
+        "`toolbarSticky={false}`: the results toolbar left in flow. Every other variant here draws the default — the count, the view switch, the sort and the page size pin to the top of the window (at `railTop`, the same edge the filter rail clears) once a reader has scrolled into the results, under `@media (pointer: fine)` so a phone's fold is not spent on a bar. The row reserves its own height in BOTH arms, so the page below it does not move when the rule engages. Turn it off for a surface that draws a bar of its own over the page.",
+      viewport: "desktop",
+      step: "toolbar-not-pinned",
+      render: () => <Page toolbarStatic />,
     },
     "system-scrollbar": {
       description:

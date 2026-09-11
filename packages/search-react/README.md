@@ -334,6 +334,31 @@ every other small schemaless group stays checkboxes. There is no
 slug, not a fact read off the wire, and the first thing to replace once the
 plan sends one.
 
+### A colour facet draws the colour
+
+A value on a COLOUR axis gets a filled dot beside its label — a
+`data-testid="facet-swatch-<slug>-<value>"` span, `aria-hidden`, and never in
+place of the word, so a screen reader and a monochrome display lose nothing.
+Two exported predicates decide it, and both fail towards drawing nothing:
+
+- `isColorAxis(group)` — the slug's HEAD segment with the control-type tail
+  stripped (`color_ref_select`, `colour_multi` and `color_fridge` are colour
+  axes; `colorado_region` is a place), the address key beside it, or
+  `axis_role` when a schema ever says so. The canon's role vocabulary is
+  closed and has no colour in it yet, so that arm is written and dead;
+- `swatchColor(code)` — a design-system colour ROLE first (`brand`, `success`
+  …, resolved through its custom property so it follows the brand and the dark
+  side), then CSS's own colour keywords, then a hex code a catalogue spelled
+  out itself. Anything else is `null`, and the row draws no dot: a grey
+  placeholder beside a value nobody named a colour for would say "this one is
+  grey".
+
+A catalogue whose colour values are its own transliterated terms therefore
+gets no dots — the hue is data nobody stated, not a control this pair is
+missing, and the fix is in the vocabulary rather than here. The phone
+dictionary SHEET shows no dots in either case: `PickerOption.label` in
+`@stapel/tokens-antd` is a `string`.
+
 ## The ends of a from/to come from the answer
 
 stapel-search 0.14.7 measures every numeric axis of a page and reports it as
@@ -475,13 +500,14 @@ reads the count and the clear-all off the answer, which usually arrives before
 the category schema, so mounting it during the hold put it in a place the
 settled rail then moved it from (D465).
 
-## Under a host's own header: `railTop` and `stickyToolbar`
+## Under a host's own header: `railTop`, and the toolbar that pins itself
 
 ```tsx
 <SearchPage
   adapter={adapter}
+  // ONE offset for both columns: the rail's sticky top edge and the results
+  // toolbar's are the same edge.
   railTop="var(--stapel-header-height)"
-  stickyToolbar={{ top: "var(--stapel-header-height)" }}
 />
 ```
 
@@ -500,9 +526,28 @@ window whose cap is still `100dvh` ends 64px past the foot of the screen, and
 its last control is then unreachable. `railStyle(top)` is exported for a host
 laying out its own column.
 
-**`stickyToolbar`** pins the results toolbar under the same chrome, and it is a
-prop rather than a host stylesheet because the pane knows which of its two
-header shapes it drew and a sheet has to guess:
+**`toolbarSticky`** (default `true`) pins the results toolbar at `railTop` —
+the same edge, so there is no second number to keep in step. The reference
+classified pins its sort bar once a reader has scrolled into the results
+(REPORT §24, Surface 2), and the explicit `stickyToolbar` prop below shipped a
+release before this one without a single deployment turning it on.
+
+It is a hoisted `@media (pointer: fine)` rule set
+(`toolbarStickyCss()`, class `stapel-search-results-toolbar-sticky`, offset
+published per instance as `--stapel-search-toolbar-top`) rather than an inline
+style, for the one reason a sheet is ever right here: the pin is gated on a
+pointer and a media query cannot be written in a `style` attribute. A phone
+keeps its toolbar in flow — a pinned bar over a 390px viewport spends the fold
+on chrome. The row states its own box from the first frame
+(`toolbarRowMinHeight(token.controlHeight)`), so nothing in the feed moves when
+the rule engages. `toolbarSticky={false}` leaves the row static: no class, no
+custom property, no sheet.
+
+**`stickyToolbar`** is the same pin asked for EXPLICITLY — written inline, at
+its own offset, on every pointer — and it takes the default out of play, so one
+row can never carry two pins. It is a prop rather than a host stylesheet
+because the pane knows which of its two header shapes it drew and a sheet has
+to guess:
 
 | Header shape | What the class `stapel-search-results-toolbar` / `data-testid="search-results-toolbar"` is on | What pins |
 |---|---|---|

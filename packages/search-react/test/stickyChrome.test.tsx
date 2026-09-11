@@ -28,7 +28,17 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { RAIL_CLASS, RESULTS_TOOLBAR_CLASS, SearchPage, railStyle } from "../src/default/index.js";
+import {
+  RAIL_CLASS,
+  RESULTS_TOOLBAR_CLASS,
+  RESULTS_TOOLBAR_STICKY_CLASS,
+  RESULTS_TOOLBAR_STYLE_HREF,
+  RESULTS_TOOLBAR_TOP_VAR,
+  SearchPage,
+  railStyle,
+  toolbarRowMinHeight,
+  toolbarStickyCss,
+} from "../src/default/index.js";
 import type { SearchToolbarPin } from "../src/default/index.js";
 import type { SearchParamsAdapter } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
@@ -64,6 +74,7 @@ function server(count: number | null = 25) {
 function Page(props: {
   readonly railTop?: number | string;
   readonly stickyToolbar?: SearchToolbarPin;
+  readonly toolbarSticky?: boolean;
 }): ReactElement {
   const adapter: SearchParamsAdapter = useTestParams("type=listing");
   return (
@@ -75,7 +86,22 @@ function Page(props: {
       {...(props.stickyToolbar !== undefined
         ? { stickyToolbar: props.stickyToolbar }
         : {})}
+      {...(props.toolbarSticky !== undefined
+        ? { toolbarSticky: props.toolbarSticky }
+        : {})}
     />
+  );
+}
+
+/**
+ * The default pin's hoisted sheet, wherever React put it.
+ *
+ * `data-href`, not `href`: React 19 renames both attributes when it hoists a
+ * `<style href precedence>` into the document.
+ */
+function toolbarSheet(): HTMLStyleElement | null {
+  return document.querySelector<HTMLStyleElement>(
+    `style[data-href="${RESULTS_TOOLBAR_STYLE_HREF}"]`
   );
 }
 
@@ -209,7 +235,12 @@ describe("<SearchPage stickyToolbar> — the row pins where it stands", () => {
     expect(screen.getByTestId("search-results-toolbar").style.top).toBe("0px");
   });
 
-  it("pins nothing at all when nobody asked", async () => {
+  it("writes no INLINE pin when nobody asked — the default one is a rule", async () => {
+    /* The two mechanisms are deliberately different shapes: `stickyToolbar` is
+       the host's instruction and is written inline, the default pin is a
+       media-gated rule (see the `toolbarSticky` suite below). Nothing inline
+       means the D452 sweep below still reads exactly one explicitly pinned
+       element per page. */
     await mount(RAIL_WIDTH);
     expect(screen.getByTestId("search-results-toolbar").style.position).toBe("");
   });
@@ -372,5 +403,120 @@ describe("there is exactly one sort control on a results page", () => {
         .getByTestId("search-results-toolbar")
         .contains(screen.getByTestId("search-sort"))
     ).toBe(true);
+  });
+});
+
+
+/**
+ * THE SORT ROW PINS ITSELF — Surface 2 of the scroll-behaviour inventory.
+ *
+ * The reference pins its sort bar to the top of the window once a reader has
+ * scrolled into the results; ours had the mechanism (`stickyToolbar`) and no
+ * deployment that had turned it on, which is a feature nobody has. `railTop`
+ * already names the edge the rail clears, so the toolbar clears the same one
+ * and the page never asks for the number twice.
+ *
+ * jsdom lays nothing out and evaluates no media query against a real device,
+ * so what is asserted is what the pane DECLARES: the class the row carries,
+ * the offset it publishes, the rule set the class resolves against, and the
+ * height the row holds in both arms.
+ */
+describe("<SearchPage toolbarSticky> — pinned by default, on a fine pointer", () => {
+  it("pins the row at the top of the window when nothing says otherwise", async () => {
+    await mount(RAIL_WIDTH);
+    const toolbar = screen.getByTestId("search-results-toolbar");
+    expect(toolbar.classList.contains(RESULTS_TOOLBAR_STICKY_CLASS)).toBe(true);
+    expect(toolbar.style.getPropertyValue(RESULTS_TOOLBAR_TOP_VAR)).toBe("0px");
+    const sheet = toolbarSheet();
+    expect(sheet, "the default pin's rule set is not in the document").not.toBeNull();
+    const css = sheet?.textContent ?? "";
+    expect(css).toContain("position:sticky");
+    expect(css).toContain(`top:var(${RESULTS_TOOLBAR_TOP_VAR},0px)`);
+  });
+
+  it("clears the host's chrome by the SAME edge the rail does", async () => {
+    // One number for both columns: the offset the rail is given is the offset
+    // the toolbar publishes, whether it is a length or the custom property
+    // `<PublicShell>` puts the header height in.
+    await mount(RAIL_WIDTH, { railTop: 64 });
+    expect(
+      screen.getByTestId("search-results-toolbar").style.getPropertyValue(
+        RESULTS_TOOLBAR_TOP_VAR
+      )
+    ).toBe("64px");
+    expect(rail().style.top).toBe("64px");
+    cleanup();
+
+    await mount(RAIL_WIDTH, { railTop: "var(--stapel-header-height)" });
+    expect(
+      screen.getByTestId("search-results-toolbar").style.getPropertyValue(
+        RESULTS_TOOLBAR_TOP_VAR
+      )
+    ).toBe("var(--stapel-header-height)");
+    expect(rail().style.top).toBe("var(--stapel-header-height)");
+  });
+
+  it("pins under a FINE pointer only — a phone's fold is not spent on chrome", async () => {
+    /* The gate is in the rule set rather than in JavaScript, which is the only
+       way a media query can be stated at all: an inline style has no `@media`.
+       The row still carries the class on a phone — the rule simply does not
+       apply there. */
+    expect(toolbarStickyCss()).toContain("@media (pointer:fine)");
+    await mount(PHONE_WIDTH);
+    // …and nothing was pinned inline on the way, in either shape.
+    expect(screen.getByTestId("search-results-toolbar").style.position).toBe("");
+  });
+
+  it("leaves the row static under toolbarSticky={false}", async () => {
+    await mount(RAIL_WIDTH, { toolbarSticky: false });
+    const toolbar = screen.getByTestId("search-results-toolbar");
+    expect(toolbar.classList.contains(RESULTS_TOOLBAR_CLASS)).toBe(true);
+    expect(toolbar.classList.contains(RESULTS_TOOLBAR_STICKY_CLASS)).toBe(false);
+    expect(toolbar.style.getPropertyValue(RESULTS_TOOLBAR_TOP_VAR)).toBe("");
+    expect(toolbar.style.position).toBe("");
+  });
+
+  it("yields to an explicit stickyToolbar rather than pinning twice", async () => {
+    /* Two pins at two offsets on one row is a bar whose resting place is
+       whichever declaration the cascade resolved last. The host's instruction
+       wins, and it pins on every pointer. */
+    await mount(RAIL_WIDTH, { stickyToolbar: { top: 56 }, railTop: 64 });
+    const toolbar = screen.getByTestId("search-results-toolbar");
+    expect(toolbar.style.position).toBe("sticky");
+    expect(toolbar.style.top).toBe("56px");
+    expect(toolbar.classList.contains(RESULTS_TOOLBAR_STICKY_CLASS)).toBe(false);
+  });
+});
+
+/**
+ * NOTHING MOVES WHEN THE PIN ENGAGES.
+ *
+ * A `position: sticky` box keeps its place in flow, so the only way pinning
+ * can push the feed is by the row's own height changing around the moment it
+ * happens — and the row's contents arrive in two frames (the count lands with
+ * the answer). The row therefore states its box from the first frame, in the
+ * arm that pins and the arm that does not, the way the chip row does.
+ */
+describe("the pinned row holds its own height", () => {
+  it("reserves one control's height in both header shapes", async () => {
+    for (const width of [RAIL_WIDTH, PHONE_WIDTH]) {
+      await mount(width);
+      const row = screen.getByTestId("search-results-toolbar");
+      const reserved = Number.parseInt(
+        getComputedStyle(row).minBlockSize || row.style.minBlockSize,
+        10
+      );
+      /* A number out of the THEME, not a constant: `SkinTheme` raises
+         `controlHeight` to the 44px touch floor below the tablet edge, so a
+         hard-coded reserve is right on one surface and wrong on the other. */
+      expect(reserved).toBe(toolbarRowMinHeight(width < 768 ? 44 : 32));
+      cleanup();
+    }
+  });
+
+  it("reserves it in the STATIC arm too — the height cannot depend on the pin", async () => {
+    await mount(RAIL_WIDTH, { toolbarSticky: false });
+    const row = screen.getByTestId("search-results-toolbar");
+    expect(row.style.minBlockSize).toBe(`${String(toolbarRowMinHeight(32))}px`);
   });
 });

@@ -823,6 +823,28 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly stickyToolbar?: SearchToolbarPin;
   /**
+   * PIN the results toolbar by default, on a fine pointer, at {@link railTop}.
+   * Default `true`.
+   *
+   * {@link stickyToolbar} is the same pin asked for explicitly, and it existed
+   * for a release without a single deployment turning it on — a default nobody
+   * sets is a feature nobody has. The reference pins its sort bar once a reader
+   * has scrolled into the results (REPORT §24, Surface 2) and this page now
+   * does the same without being asked:
+   *
+   *  - it pins at `railTop`, so the two columns clear the host's header by the
+   *    same edge and there is no second number to keep in step;
+   *  - it is a `@media (pointer: fine)` rule, so a phone keeps its toolbar in
+   *    flow — a pinned bar over a 390px viewport spends the fold on chrome;
+   *  - the row reserves its own height whether or not it pins, so nothing in
+   *    the feed moves when the rule engages.
+   *
+   * `stickyToolbar` still wins where it is given (it pins on every pointer, at
+   * its own offset). `false` turns the default off and leaves the row static —
+   * for a surface that draws a bar of its own over the page.
+   */
+  readonly toolbarSticky?: boolean;
+  /**
    * The host's own exits from an empty result — sibling sections with their
    * counts. A SLOT for the same reason `breadcrumb` is one: walking the tree
    * belongs to `categories-react`. Everything the pair can derive on its own
@@ -992,6 +1014,7 @@ interface SearchPageBodyProps {
   readonly railScrollbar?: SearchRailScrollbar;
   readonly blockRhythm?: SearchBlockRhythm;
   readonly stickyToolbar?: SearchToolbarPin;
+  readonly toolbarSticky?: boolean;
   readonly defaultFiltersOpen?: boolean;
   readonly filtersOpen?: boolean;
   readonly onFiltersOpenChange?: (
@@ -1250,6 +1273,10 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
     </Flex>
   );
 
+  /* ONE OFFSET FOR BOTH COLUMNS. The rail's sticky top edge and the toolbar's
+     are the same edge — the foot of whatever chrome the host pinned above this
+     page — so `railTop` feeds both rather than the page asking for the number
+     twice and letting the two halves disagree. */
   const results = (
     <SearchResultsPane
       toolbar={toolbar}
@@ -1258,6 +1285,10 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       {...(props.stickyToolbar !== undefined
         ? { stickyToolbar: props.stickyToolbar }
         : {})}
+      {...(props.toolbarSticky !== undefined
+        ? { toolbarSticky: props.toolbarSticky }
+        : {})}
+      {...(props.railTop !== undefined ? { toolbarTop: props.railTop } : {})}
       headingLevel={props.resultsHeadingLevel ?? 1}
       {...(view.render !== undefined ? { renderResults: view.render } : {})}
       {...(props.wrapResults !== undefined ? { wrapResults: props.wrapResults } : {})}
@@ -1504,6 +1535,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     railScrollbar,
     blockRhythm,
     stickyToolbar,
+    toolbarSticky,
     defaultFiltersOpen,
     filtersOpen,
     onFiltersOpenChange,
@@ -1570,6 +1602,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(railScrollbar !== undefined ? { railScrollbar } : {})}
           {...(blockRhythm !== undefined ? { blockRhythm } : {})}
           {...(stickyToolbar !== undefined ? { stickyToolbar } : {})}
+          {...(toolbarSticky !== undefined ? { toolbarSticky } : {})}
           {...(defaultFiltersOpen !== undefined ? { defaultFiltersOpen } : {})}
           {...(filtersOpen !== undefined ? { filtersOpen } : {})}
           {...(onFiltersOpenChange !== undefined ? { onFiltersOpenChange } : {})}

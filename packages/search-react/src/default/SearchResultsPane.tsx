@@ -25,7 +25,7 @@
  *    when the answer actually has another page in some direction.
  */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Flex, Typography } from "antd";
+import { Flex, Typography, theme as antdTheme } from "antd";
 import { errorCode, useT, useTPlural } from "@stapel/core";
 import {
   EmptyState,
@@ -137,6 +137,76 @@ export const RESULTS_TOOLBAR_CLASS = "stapel-search-results-toolbar";
  */
 export interface SearchToolbarPin {
   readonly top?: number | string;
+}
+
+/**
+ * The class the DEFAULT pin's rules are hung on — the media-gated half of
+ * {@link SearchResultsPaneProps.toolbarSticky}.
+ *
+ * A class and a sheet rather than an inline style, for the one reason a sheet
+ * is ever right here: the pin is `@media (pointer: fine)` and a media query
+ * cannot be said in a `style` attribute. A pinned sort row is a desktop
+ * affordance — a phone's toolbar is already one tap from the top of a short
+ * scroll, and a bar standing over a 390px viewport spends the fold on chrome
+ * the reader did not ask for (REPORT §24, Surface 2: what the reference pins
+ * is the DESKTOP feed's sort row).
+ */
+export const RESULTS_TOOLBAR_STICKY_CLASS = "stapel-search-results-toolbar-sticky";
+
+/** The custom property the default pin reads its offset from. */
+export const RESULTS_TOOLBAR_TOP_VAR = "--stapel-search-toolbar-top";
+
+/** The `href` the hoisted toolbar sheet is deduplicated by. */
+export const RESULTS_TOOLBAR_STYLE_HREF = "stapel-search-toolbar";
+
+/**
+ * The default pin's rule set.
+ *
+ * Everything {@link toolbarPinStyle} writes inline, said once in a sheet and
+ * gated on a fine pointer — the offset arrives per instance through
+ * {@link RESULTS_TOOLBAR_TOP_VAR}, which is how one static rule serves a page
+ * whose header height only the host knows. `0px` is the fallback, which is
+ * where a page with no chrome above it pins.
+ */
+export function toolbarStickyCss(): string {
+  const bar = `.${RESULTS_TOOLBAR_STICKY_CLASS}`;
+  return (
+    `@media (pointer:fine){` +
+    `${bar}{position:sticky;top:var(${RESULTS_TOOLBAR_TOP_VAR},0px);` +
+    // Over the cards, under the page's own chrome — and under antd's popups,
+    // so the sort select still opens over its own bar. Opaque, or the cards
+    // scroll THROUGH the row.
+    `z-index:1;background:${cssVar("surface")}}}`
+  );
+}
+
+/**
+ * The toolbar row's own block-size, reserved from the FIRST frame.
+ *
+ * The same discipline — and the same arithmetic — as `chipRowMinHeight`: a
+ * NUMBER OUT OF THE THEME rather than a constant, because the shared
+ * `SkinTheme` raises `controlHeight` to the 44px touch floor below the tablet
+ * breakpoint and a hard-coded reserve is then right on one surface and wrong
+ * on the other.
+ *
+ * Why a row that is already this tall states it anyway: the row's contents
+ * arrive in two frames — the count lands with the answer, and a sort select
+ * whose options are still loading measures its placeholder — so the box a
+ * pinned bar occupies must not be a consequence of what is inside it. A
+ * reserve makes the height a constant before and after the pin engages, which
+ * is what "no layout shift when it pins" means in a `position: sticky` world:
+ * the sticky box keeps its place in flow, so the only way it can move the feed
+ * is by changing its own height.
+ */
+export function toolbarRowMinHeight(controlHeight: number): number {
+  return controlHeight + spacing[1] * 2;
+}
+
+/** A CSS length from a prop that is a number of pixels or a string as written
+ * (a `var()`, a `calc()`, `"4rem"`) — the rule `railStyle` follows. */
+function toolbarTopLength(top: number | string | undefined): string {
+  if (top === undefined) return "0px";
+  return typeof top === "number" ? `${String(top)}px` : top;
 }
 
 /**
@@ -599,6 +669,36 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    */
   readonly stickyToolbar?: SearchToolbarPin;
   /**
+   * PIN the toolbar row by default, on a fine pointer. Default `true`.
+   *
+   * The same argument as {@link stickyToolbar} and none of the wiring: a
+   * catalogue page is thirty cards long, the control that reorders them is at
+   * the top of it, and by the fourth row the sort is a screenful above the
+   * list it sorts. The reference pins its sort bar once a reader has scrolled
+   * into results (REPORT §24, Surface 2); this pair had the mechanism and made
+   * every host ask for it, so no deployment had it.
+   *
+   * What the default does that the explicit prop cannot: it is a `@media
+   * (pointer: fine)` rule (see {@link toolbarStickyCss}), so a phone — where
+   * a pinned bar costs a fifth of the fold and the feed is a flick long —
+   * keeps its toolbar in flow. `stickyToolbar` stays the host's own
+   * instruction and is honoured on every pointer; passing it takes this
+   * default out of play, so the two can never both be on one row.
+   *
+   * `false` leaves the row exactly where it stood: no class, no sheet, no
+   * custom property.
+   */
+  readonly toolbarSticky?: boolean;
+  /**
+   * WHERE the default pin's top edge is — the results column's half of
+   * `<SearchPage railTop>`, and the same value.
+   *
+   * A number is pixels; a string is taken as written, so
+   * `toolbarTop="var(--stapel-header-height)"` reads the height
+   * `<PublicShell>` publishes rather than restating it. Default `0`.
+   */
+  readonly toolbarTop?: number | string;
+  /**
    * The category's feature schema, used ONLY to name an applied filter in the
    * empty state's exits ("Without Brand" rather than "Without vendor").
    * Absent, an exit falls back to the slug, which is still a removable
@@ -706,6 +806,34 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
   // not, and `headingVisible` overrides either way — see that prop.
   const compactHeadingSeen = props.headingVisible ?? props.heading !== undefined;
   const toolbarPin = toolbarPinStyle(props.stickyToolbar);
+  // The chips' own height, from the theme they are drawn in — see
+  // `toolbarRowMinHeight`.
+  const { token } = antdTheme.useToken();
+  /* The DEFAULT pin, and the host's explicit one takes precedence: a row
+     carrying both would be pinned twice at two offsets, and which one wins
+     would be whichever declaration the cascade happened to resolve last. */
+  const defaultPin = props.stickyToolbar === undefined && props.toolbarSticky !== false;
+  const toolbarClass = defaultPin
+    ? `${RESULTS_TOOLBAR_CLASS} ${RESULTS_TOOLBAR_STICKY_CLASS}`
+    : RESULTS_TOOLBAR_CLASS;
+  /* The reserve is written whether or not the row pins, and that is the
+     point: a height that only exists while pinned is a height that changes
+     when the pin engages. */
+  const toolbarBox: CSSProperties = {
+    minBlockSize: toolbarRowMinHeight(token.controlHeight),
+    ...(defaultPin
+      ? ({ [RESULTS_TOOLBAR_TOP_VAR]: toolbarTopLength(props.toolbarTop) } as CSSProperties)
+      : {}),
+    ...toolbarPin,
+  };
+  /* Hoisted and deduped by `href` (React 19), and not mounted at all when
+     nothing carries the class — a sheet whose only selector is a class no
+     node has is dead weight in the document. */
+  const toolbarSheet = defaultPin ? (
+    <style href={RESULTS_TOOLBAR_STYLE_HREF} precedence="default">
+      {toolbarStickyCss()}
+    </style>
+  ) : null;
   const columnRules =
     props.columns === undefined || props.layout === "list"
       ? null
@@ -739,6 +867,7 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
         ...(maxWidth !== null ? { maxWidth } : {}),
       }}
     >
+      {toolbarSheet}
       <SearchResults {...(props.enabled !== undefined ? { enabled: props.enabled } : {})}>
         {(bag) => (
           <Flex
@@ -773,9 +902,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   {props.heading ?? t(SEARCH_I18N_KEYS.resultsTitle)}
                 </Typography.Title>
                 <div
-                  className={RESULTS_TOOLBAR_CLASS}
+                  className={toolbarClass}
                   data-testid="search-results-toolbar"
-                  style={{ ...COMPACT_TOOLBAR, ...toolbarPin }}
+                  style={{ ...COMPACT_TOOLBAR, ...toolbarBox }}
                 >
                   {props.toolbar}
                 </div>
@@ -800,9 +929,9 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                 <Flex
                   align="center"
                   gap={spacing[3]}
-                  className={RESULTS_TOOLBAR_CLASS}
+                  className={toolbarClass}
                   data-testid="search-results-toolbar"
-                  style={{ ...TOOLBAR_ROW, ...toolbarPin }}
+                  style={{ ...TOOLBAR_ROW, ...toolbarBox }}
                 >
                   {/* The elastic half, present whether or not there is a
                       count in it — see TOOLBAR_LEAD. It is what holds the
