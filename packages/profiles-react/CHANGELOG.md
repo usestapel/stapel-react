@@ -1,5 +1,40 @@
 # @stapel/profiles-react
 
+## 0.25.0
+
+### Minor Changes
+
+- `<RevealPhoneButton>`: the container says how loud it is, and the revealed
+  number keeps one line.
+
+  **`emphasis`** — `"primary"` (the default, so nothing moves for a host that
+  never asks) or `"secondary"`, mapped onto the pair's `GatedButton` as antd's
+  own `type="primary"` against its own `color="default" variant="filled"` pair.
+  This control stands beside "message the seller" on nearly every surface that
+  mounts it, and a row with two filled primaries is one decision drawn twice —
+  but WHICH of the two carries the brand's fill is the container's call, not the
+  pair's. Until now a host had exactly one way to say it: registering a `Button`
+  in `@stapel/tokens-antd`'s component registry around this control alone, which
+  is a skin registration made for a prop that did not exist (a client fleet's
+  storefront carried that workaround and asked for this). The tinted arm is
+  antd's answer at the same control height, radius and brand swap, so it is not
+  a fill of
+  anybody's invention. The pair renders no door of its own — `renderDoor()` is
+  the host's — so a host draws its door in the emphasis it asked this control
+  for.
+
+  **The revealed row is one line.** The number replaces the button IN the
+  button's own box, and that box is routinely a phone's contact dock or a ~300px
+  buy column on a 1440px desktop. A label, a number and a worded copy button do
+  not fit such a box, so the row used to wrap and the dock grew taller the moment
+  the number arrived — the page moving under the person who had just pressed the
+  button. Now: the row never wraps, the copy control is icon-only (the words are
+  its `aria-label`), and the number's LABEL is dropped from the visible line
+  below the new, exported `CONTACT_REVEAL_LABEL_MIN_WIDTH` (416 — 26rem), where
+  it survives on the `tel:` link's `aria-label` and `title`. The width is the
+  ROW's own, measured, never the viewport's: the desktop's buy column is narrower
+  than the phone's dock, which is exactly the case a media query gets wrong.
+
 ## 0.24.0
 
 ### Minor Changes

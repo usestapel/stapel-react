@@ -1,5 +1,20 @@
 # @stapel/shell-react
 
+## 0.18.1
+
+### Patch Changes
+
+- `<PublicShell>`'s scroll sentinel says its negative margin is deliberate.
+
+  The sentinel is `blockSize: H` with `marginBlockEnd: -H` by design: the box has
+  to have height to be reported as intersecting anything, and it gives every
+  pixel of that back to the page, so it occupies no net block space. That is also
+  exactly the shape a tidiness sweep hunts for, and a probe reading a live page
+  cannot tell this from an accidental overhang. It now carries
+  `data-by-design="zero-net-block"` — `byDesign` is the word the fleet's
+  `p52-tidiness` probe already reports its own exemptions under — so a deliberate
+  `-H` stops standing in the list of defects beside the real ones.
+
 ## 0.18.0
 
 ### Minor Changes

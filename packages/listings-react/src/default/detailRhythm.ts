@@ -48,6 +48,7 @@
  * the reset on specificity (`.col > .rule` over `.col > *`) without an
  * `!important`, and a host can out-specify it with one more condition.
  */
+import type { CSSProperties } from "react";
 import { spacing } from "@stapel/tokens";
 
 /** The class the pane's block columns carry. */
@@ -65,6 +66,34 @@ export const DETAIL_RHYTHM_STYLE_HREF = "stapel-listings-detail-rhythm";
  * a container laying out beside the rule measures against the same number.
  */
 export const DETAIL_RULE_SPACE: number = spacing[2];
+
+/**
+ * THE ONE BLOCK THE SHEET CANNOT REACH: A HEADING.
+ *
+ * `${column}>*` is one class and no element — specificity (0,1,0). antd writes
+ * its heading margins as `h2.ant-typography` — one class AND one element,
+ * (0,1,1) — so a `<Typography.Title>` keeps its own `margin-block` no matter
+ * what the column's reset says, and it is the only child of the pane that
+ * does. Measured on the stand with the reset already live: 29px between the
+ * price and the actions at 1440 and 27 at 390 where the buy column declares
+ * 12, and 42.4 / 53.6 where the reading column declares 16. Five distances,
+ * none of them the gap, all of them a heading's margin added to it.
+ *
+ * Raising the sheet's specificity would mean naming antd's class in this
+ * package's stylesheet or doubling the column's own class to out-rank it —
+ * a selector that says nothing about the decision. An INLINE declaration is
+ * beaten by nothing short of `!important`, it travels with the heading it
+ * belongs to, and it says the same thing the sheet says: the container owns
+ * the distance between its blocks.
+ *
+ * Both ends, because both are the same second opinion — a heading after a
+ * paragraph takes antd's `margin-top` as well, which is what made the reading
+ * column's two distances differ from each other.
+ */
+export const DETAIL_TITLE_RESET: CSSProperties = {
+  marginBlockStart: 0,
+  marginBlockEnd: 0,
+};
 
 /** The rhythm's two rules. */
 export function detailRhythmCss(): string {

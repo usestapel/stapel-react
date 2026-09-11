@@ -99,6 +99,7 @@ export {
   DETAIL_RHYTHM_STYLE_HREF,
   DETAIL_RULE_CLASS,
   DETAIL_RULE_SPACE,
+  DETAIL_TITLE_RESET,
   detailRhythmCss,
 } from "./detailRhythm.js";
 // The condensed top bar the pane draws for `actionsPlacement="condensed-top"`

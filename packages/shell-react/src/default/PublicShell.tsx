@@ -403,6 +403,13 @@ export function headerScrollThresholds(
  * Its height is the ON edge (never under {@link SCROLL_SENTINEL_HEIGHT}: a
  * zero-area box is not reliably reported as intersecting anything), and its
  * negative bottom margin gives every pixel of that back to the page.
+ *
+ * The pair — a height and the same number back as `margin-block-end` — is
+ * what makes the box occupy NO net block space, and it is also exactly the
+ * shape a tidiness sweep flags as an overhang. The element therefore carries
+ * `data-by-design="zero-net-block"` at its call site, which is the flag the
+ * fleet's `p52-tidiness` probe reports such an exemption under; without it a
+ * deliberate `-H` reads as the same defect as an accidental one.
  */
 function scrollSentinelStyle(on: number): CSSProperties {
   const height = Math.max(on, SCROLL_SENTINEL_HEIGHT);
@@ -1131,6 +1138,13 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           style={scrollSentinelStyle(flagOn)}
           aria-hidden="true"
           data-testid="public-shell-scroll-sentinel"
+          /* A negative margin exactly as tall as the box is this mechanism's
+             whole point (see `scrollSentinelStyle`), and a tidiness probe
+             sweeping a page for negative margins cannot tell it from the
+             accident it is hunting. So the box says so, in the word the
+             fleet's p52 reports its own exemptions under (`byDesign`):
+             `zero-net-block` — this element occupies no net block space. */
+          data-by-design="zero-net-block"
           /* The edges the box is drawn for, so a stand can read the
              hysteresis off the page rather than off this source. */
           data-scroll-on={String(flagOn)}

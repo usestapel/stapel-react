@@ -570,6 +570,20 @@ describe("D459 — the scroll flag has two edges", () => {
     expect(sentinel.dataset["scrollOff"]).toBe("0");
   });
 
+  it("says the zero-net block is deliberate, in the probe's own word", () => {
+    stub();
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerScrollFlag: { on: 8, off: 0 } }));
+    const sentinel = screen.getByTestId("public-shell-scroll-sentinel");
+    // The box's height and its negative bottom margin are the SAME number by
+    // design — the sentinel occupies no net block space. A tidiness sweep
+    // hunting negative margins sees that shape and cannot tell it from the
+    // accident, so the element says so itself.
+    expect(sentinel.style.blockSize).toBe("8px");
+    expect(sentinel.style.marginBlockEnd).toBe("-8px");
+    expect(sentinel.getAttribute("data-by-design")).toBe("zero-net-block");
+  });
+
   it("gives a host back the single 1px edge with `{ on: 0, off: 0 }`", () => {
     const observer = stub();
     setViewportWidth(DESKTOP);

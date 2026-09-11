@@ -18,9 +18,15 @@
  *   2. EVERY direct child of each column is matched by that reset's selector —
  *      enumerated, not sampled, so a block added later without a margin of the
  *      pane's own is still covered;
- *   3. no child writes an outer margin INLINE, which would beat the sheet;
- *      the one exception is the section rule, whose own class is the more
- *      specific selector and whose spacing is a token.
+ *   3. no child writes an outer margin INLINE, which would beat the sheet.
+ *      Two blocks are exempt, and both are decisions rather than accidents:
+ *      the section rule, whose own class is the more specific selector and
+ *      whose spacing is a token; and a `<Typography.Title>`, whose antd
+ *      selector (`h2.ant-typography`, specificity (0,1,1)) OUTRANKS the
+ *      column's `> *` reset (0,1,0) — the one child the sheet cannot reach,
+ *      and therefore the one child that states the reset inline
+ *      ({@link DETAIL_TITLE_RESET}). The price at 1440 measured 29px over a
+ *      declared 12 for exactly that reason.
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -28,6 +34,7 @@ import {
   DETAIL_RHYTHM_CLASS,
   DETAIL_RULE_CLASS,
   DETAIL_RULE_SPACE,
+  DETAIL_TITLE_RESET,
   ListingDetailPane,
   detailRhythmCss,
 } from "../src/default/index.js";
@@ -45,6 +52,22 @@ function server() {
 /** Is this element covered by the column's own reset? */
 function reset(node: Element): boolean {
   return node.matches(`.${DETAIL_RHYTHM_CLASS} > *`);
+}
+
+/** Is this the heading reset — the ONE inline outer margin the pane writes,
+ * because antd's heading selector outranks the column's sheet? */
+function headingReset(node: Element): boolean {
+  const style = (node as HTMLElement).style;
+  return (
+    /^h[1-5]$/.test(node.tagName.toLowerCase()) &&
+    isZero(style.marginBlockStart) &&
+    isZero(style.marginBlockEnd)
+  );
+}
+
+/** "No margin at all" — React writes a zero length unitless. */
+function isZero(value: string): boolean {
+  return value !== "" && parseFloat(value) === 0;
 }
 
 /** What the element writes INLINE about its own outer margin — the one thing
@@ -98,7 +121,9 @@ describe("the pane's column owns the distance between its blocks", () => {
     const column = screen.getByTestId("listings-detail");
     for (const child of [...column.children]) {
       // An inline declaration is beaten by nothing short of `!important`, so
-      // one here would be a second opinion the sheet could not answer.
+      // one here would be a second opinion the sheet could not answer —
+      // unless it IS the sheet's answer, which is what a heading's reset is.
+      if (headingReset(child)) continue;
       expect(inlineMargin(child), child.tagName).toBe("");
     }
   });
@@ -154,7 +179,37 @@ describe("the pane's column owns the distance between its blocks", () => {
     }
     for (const child of [...screen.getByTestId("listings-detail-buy-column").children]) {
       expect(reset(child)).toBe(true);
+      if (headingReset(child)) continue;
       expect(inlineMargin(child)).toBe("");
+    }
+  });
+
+  it("zeroes the heading margin the column's sheet cannot reach", async () => {
+    render(
+      <TestProviders server={server()} resolveImage>
+        <ListingDetailPane id={7} layout="split" />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-price")).toBeTruthy();
+    });
+    // The price leads the buy column, whose gap is 12 — and the stand
+    // measured 29 there, which is 12 plus a level-2 heading's own margin.
+    const price = screen.getByTestId("listings-detail-price") as HTMLElement;
+    expect(isZero(price.style.marginBlockEnd), price.style.marginBlockEnd).toBe(
+      true
+    );
+    expect(isZero(price.style.marginBlockStart)).toBe(true);
+    expect(DETAIL_TITLE_RESET).toEqual({
+      marginBlockStart: 0,
+      marginBlockEnd: 0,
+    });
+    // …and every other heading in the pane carries the same answer: one
+    // stack, swept, rather than the block somebody complained about.
+    for (const heading of document.querySelectorAll(
+      `.${DETAIL_RHYTHM_CLASS} h1, .${DETAIL_RHYTHM_CLASS} h2, .${DETAIL_RHYTHM_CLASS} h3, .${DETAIL_RHYTHM_CLASS} h4, .${DETAIL_RHYTHM_CLASS} h5`
+    )) {
+      expect(headingReset(heading), heading.textContent ?? "").toBe(true);
     }
   });
 

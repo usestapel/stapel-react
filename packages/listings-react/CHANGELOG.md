@@ -1,5 +1,28 @@
 # @stapel/listings-react
 
+## 0.30.1
+
+### Patch Changes
+
+- `<ListingDetailPane>`: a heading's own margin stops adding to the column's
+  declared gap.
+
+  The pane's block columns already reset every direct child's `margin-block` to
+  zero, and headings were the one child the sheet could not reach: that reset is
+  `.column > *` — one class, specificity (0,1,0) — while antd writes its heading
+  margins as `h2.ant-typography`, one class AND one element, (0,1,1). So a
+  `<Typography.Title>` kept its own margin and it ADDED to the gap. Measured on
+  the stand with the reset live: 29px between the price and the button under it
+  at 1440 and 27 at 390, where the buy column declares 12; 42.4 and 53.6 in the
+  reading column, where it declares 16.
+
+  An inline declaration is the one thing that beats a sheet without an
+  `!important`, so the pane's headings state the reset themselves
+  (`DETAIL_TITLE_RESET`, exported) — the price, the listing's title, and both
+  section headings, swept together, both ends of the block axis because a heading
+  after a paragraph takes antd's `margin-top` as well. The column's declared gap
+  is now the only spacing between its blocks.
+
 ## 0.30.0
 
 ### Minor Changes

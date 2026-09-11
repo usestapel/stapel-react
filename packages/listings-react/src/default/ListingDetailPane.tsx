@@ -156,6 +156,7 @@ import {
   DETAIL_RHYTHM_CLASS,
   DETAIL_RHYTHM_STYLE_HREF,
   DETAIL_RULE_CLASS,
+  DETAIL_TITLE_RESET,
   detailRhythmCss,
 } from "./detailRhythm.js";
 import {
@@ -1253,7 +1254,9 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     level={props.headingLevel ?? 3}
                     ref={titleRef}
                     data-testid="listings-detail-title"
-                    style={{ minWidth: 0, flex: "1 1 auto" }}
+                    /* …and the same reset the price carries: the heading's own
+                       margin is a second opinion about the column's gap. */
+                    style={{ minWidth: 0, flex: "1 1 auto", ...DETAIL_TITLE_RESET }}
                   >
                     {listing.title ?? ""}
                   </Typography.Title>
@@ -1319,6 +1322,11 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               <Typography.Title
                 level={split ? 2 : 4}
                 data-testid="listings-detail-price"
+                /* The column's declared gap, and nothing else, between the
+                   price and the button under it — antd's heading margin
+                   outranks the column's reset, so it is answered here. See
+                   {@link DETAIL_TITLE_RESET}. */
+                style={DETAIL_TITLE_RESET}
               >
                 <ListingPrice
                   amount={listing.price}
@@ -1434,7 +1442,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
 
             const description = (
               <>
-                <Typography.Title level={5}>
+                <Typography.Title level={5} style={DETAIL_TITLE_RESET}>
                   {t(LISTINGS_I18N_KEYS.detailDescription)}
                 </Typography.Title>
                 <Typography.Paragraph data-testid="listings-detail-description">
@@ -1479,7 +1487,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
 
             const specsSection = (
               <>
-                <Typography.Title level={5}>
+                <Typography.Title level={5} style={DETAIL_TITLE_RESET}>
                   {t(LISTINGS_I18N_KEYS.detailSpecs)}
                 </Typography.Title>
                 {specs}
