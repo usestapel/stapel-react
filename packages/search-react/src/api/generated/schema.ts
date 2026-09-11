@@ -235,6 +235,12 @@ export interface components {
             values: {
                 [key: string]: string;
             };
+            /** @description {value: {…}} — what the vocabulary term carries BESIDES its caption, for the codes that carry anything. A colour level's terms carry `hue` (`{"hue": "#1a1a1a"}`), which is how a facet draws the swatch beside «Чёрный»: the code is a transliteration (`chernyy`), so no client can derive the colour from it. Absent entirely when no counted code of this group carries a bag, or when the deployment's vocabulary resolver does not serve them — a client keeps whatever fallback it drew before. Keys inside a bag are the source catalogue's own; read the ones you know and ignore the rest. */
+            extras?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
             /** @description The vocabulary name this group's options come from, when the feature is `ref_select` (or any host type pointing at a vocabulary the same way). `null` for a group with an inline option set — a client that only sees this answer, with no leaf schema of its own (a branch page, a text query), still needs this to draw a vocabulary-backed axis as its picker rather than as a plain checkbox list. */
             vocabulary: string | null;
             /** @description The vocabulary level `vocabulary` resolves against. Present only alongside a non-null `vocabulary`. */
@@ -270,7 +276,7 @@ export interface components {
              *     An axis the reader has already filtered on is never withheld for any reason: that would leave the filter applied with no control to undo it.
              */
             withheld: components["schemas"]["WithheldAxis"][];
-            /** @description `{category, count}` — the categories this answer's candidate set is made of, busiest first, `category` being the same slash-joined id path the `category` filter takes. The evidence the plan was drawn from, and what a panel needs to offer the CATEGORY itself as the first filter on a text search. Empty when the plan is the queried category's own. */
+            /** @description `{category, count}` — the categories this answer's candidate set is made of, busiest first, `category` being the same slash-joined id path the `category` filter takes. The evidence a widened plan was drawn from, and what a panel needs to offer the CATEGORY itself as a filter — a partition chip row above a category page is drawn from exactly this. Reported under EVERY `plan` since 0.16.4, measured over the same candidate set `count` and `facets` are, so the rows sum to the page. Empty only when the candidate set is, when FACET_EVIDENCE_CATEGORIES is 0, or when the engine cannot aggregate categories — and the last is `facet_plan_evidence` in `degraded[]`, because an empty rollup a client cannot tell from a missing one reads as «zero in every category». */
             categories: {
                 [key: string]: unknown;
             }[];
@@ -423,7 +429,7 @@ export interface components {
                     [key: string]: number;
                 };
             };
-            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}, vocabulary, level}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. `vocabulary` names the vocabulary a `ref_select` axis reads its options from and is null for an inline `select` — the only way a client with no leaf schema of its own can tell the two apart. */
+            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}, vocabulary, level}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. `extras` carries what a term holds besides its caption (a colour's `hue`) and is present only for the codes that hold anything. `vocabulary` names the vocabulary a `ref_select` axis reads its options from and is null for an inline `select` — the only way a client with no leaf schema of its own can tell the two apart. */
             facet_labels: {
                 [key: string]: components["schemas"]["FacetLabels"];
             };

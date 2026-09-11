@@ -156,8 +156,14 @@ export type {
   FacetOptionNode,
 } from "./FacetGroupControl.js";
 
-export { SWATCH_SIZE, facetSwatch, isColorAxis, swatchColor } from "./swatches.js";
-export type { ColorAxisLike } from "./swatches.js";
+export {
+  SWATCH_SIZE,
+  facetSwatch,
+  isColorAxis,
+  swatchColor,
+  termHue,
+} from "./swatches.js";
+export type { ColorAxisLike, TermExtra } from "./swatches.js";
 
 // ── the browse surfaces a storefront PLACES (this pair does not lay them
 //    out: where a popular-values block or a partition row belongs on a

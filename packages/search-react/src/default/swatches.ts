@@ -16,26 +16,56 @@
  *     `looksLikeExclusiveAxisSlug` next door: nothing on the wire marks an
  *     axis "colour", and inspecting the VALUES for colour-ish names would put
  *     dots on a paint-brand axis whose makes are called `Bordeaux`;
- *  2. **which colour is this value?** — {@link swatchColor}, and the honest
- *     answer is usually "nobody said". A value code is a catalogue's own term
+ *  2. **which colour is this value?** — {@link termHue} first, then
+ *     {@link swatchColor}.
+ *
+ *     The answer used to be "nobody said", and it was true of every source
+ *     this pair could read: a value code is a catalogue's own term
  *     (`chernyy`, `dark-slate-2`) and neither the answer, the feature schema
- *     nor the vocabulary endpoint carries a hue for it. So the pair paints a
- *     dot only where the code IS a colour by a name it can resolve — the
- *     design system's own colour roles first (§68: one neutral vocabulary of
- *     ROLES, and it deliberately ships no hue ramp), then CSS's own colour
- *     keywords, then a code that spells the hue out in hex — and draws
- *     NOTHING otherwise. An invented mapping from a transliterated Russian
- *     word to a hex value is data this pair does not have.
+ *     nor the vocabulary endpoint carried a hue for it. It is no longer true.
+ *     The CATALOGUE knows — a vocabulary term carries the source's own bag —
+ *     and since stapel-search 0.16.5 the answer ships it as
+ *     `facet_labels[<slug>].extras[<code>]`, so `chernyy` arrives with
+ *     `{hue: "#1a1a1a"}` beside its caption. That is read FIRST and it is the
+ *     only arm that can ever be right about a transliteration.
+ *
+ *     What follows it is unchanged and stays as the fallback, because most
+ *     deployments send no bag at all (an older server, a resolver without the
+ *     wider read, a level whose terms carry nothing): the design system's own
+ *     colour roles (§68: one neutral vocabulary of ROLES, and it deliberately
+ *     ships no hue ramp), then CSS's own colour keywords, then a code that
+ *     spells the hue out in hex — and NOTHING otherwise. An invented mapping
+ *     from a transliterated Russian word to a hex value is still data this
+ *     pair does not have; what changed is that the catalogue can hand it over.
  */
 import { cssVar } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
+
+/** One vocabulary term's own bag, as the answer ships it: the source
+ * catalogue's keys, of which this module reads exactly one. */
+export type TermExtra = Readonly<Record<string, unknown>>;
 
 /** What {@link isColorAxis} needs of a group — the shape `FacetGroup` has. */
 export interface ColorAxisLike {
   readonly slug: string;
   readonly urlKey?: string;
   readonly feature?: FeatureDef | undefined;
+  /**
+   * `facet_labels[<slug>].extras` — `{code: {…}}`, the vocabulary term's own
+   * bag for the codes that carry one (stapel-search 0.16.5+).
+   *
+   * OPTIONAL, and absent far more often than present: an older server, a
+   * deployment whose vocabulary resolver does not serve bags, and a level
+   * whose terms carry nothing all arrive the same way. Every read of it is
+   * optional-chained and falls through to {@link swatchColor}.
+   */
+  readonly extras?: Readonly<Record<string, TermExtra>> | undefined;
 }
+
+/** The key a colour term's bag carries its hue under. One key, read by name:
+ * the rest of the bag is the source catalogue's and none of this pair's
+ * business. */
+const HUE_KEY = "hue";
 
 /**
  * The control-type tails a catalogue hangs on an axis slug when one feature
@@ -97,7 +127,43 @@ function headIsColor(slug: string | undefined): boolean {
 export function isColorAxis(group: ColorAxisLike): boolean {
   const role = group.feature?.["axis_role"];
   if (typeof role === "string" && COLOR_HEADS.has(role.toLowerCase())) return true;
-  return headIsColor(group.slug) || headIsColor(group.urlKey);
+  if (headIsColor(group.slug) || headIsColor(group.urlKey)) return true;
+  // The catalogue SHOWING a hue, which outranks every guess above it — a term
+  // carrying `hue` is a colour whatever the axis is spelled. This is what
+  // reaches an axis the reference calls `tsvet` and publishes under a key
+  // neither spelling matches: the values say what the slug does not.
+  return hasAnyHue(group);
+}
+
+/** Does ANY value of this group carry a hue? */
+function hasAnyHue(group: ColorAxisLike): boolean {
+  const extras = group.extras;
+  if (extras === undefined) return false;
+  for (const code of Object.keys(extras)) {
+    if (hueOf(extras[code]) !== null) return true;
+  }
+  return false;
+}
+
+/** The hue one bag states, validated as a colour this pair would accept from
+ * anywhere else. A catalogue is a data source, not a stylesheet: a bag
+ * carrying `red herring` or a `javascript:` string must not reach a CSS
+ * property, so the same {@link swatchColor} vocabulary gates it. */
+function hueOf(extra: TermExtra | undefined): string | null {
+  const stated = extra?.[HUE_KEY];
+  return typeof stated === "string" ? swatchColor(stated) : null;
+}
+
+/**
+ * The hue the CATALOGUE states for one value, or `null` when it states none.
+ *
+ * The only source that can be right about a transliterated term, and the
+ * reason it exists: `chernyy` is not a CSS keyword and never will be, but the
+ * vocabulary level that defines it carries `{hue: "#1a1a1a"}` and the answer
+ * now ships that beside the caption.
+ */
+export function termHue(group: ColorAxisLike, code: string): string | null {
+  return hueOf(group.extras?.[code]);
 }
 
 /**
@@ -201,11 +267,17 @@ export function swatchColor(code: string): string | null {
 }
 
 /**
- * The dot a value gets when this axis is a colour AND the value names one.
- * `null` everywhere else, which is most of the time — see {@link swatchColor}.
+ * The dot a value gets when this axis is a colour AND something knows the
+ * value's hue — the catalogue's own bag first ({@link termHue}), then the
+ * value code read as a name ({@link swatchColor}). `null` everywhere else,
+ * which is still most of the time.
  */
 export function facetSwatch(group: ColorAxisLike, code: string): string | null {
-  return isColorAxis(group) ? swatchColor(code) : null;
+  if (!isColorAxis(group)) return null;
+  // The catalogue's own answer first — it is the only one that can know what
+  // `chernyy` looks like. The name-resolving arms stay behind it for every
+  // deployment that ships no bag, and for a code the bag skipped.
+  return termHue(group, code) ?? swatchColor(code);
 }
 
 /** The swatch's own size, in CSS pixels: a dot beside a line of text, sized

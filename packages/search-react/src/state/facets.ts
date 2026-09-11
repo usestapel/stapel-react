@@ -258,6 +258,23 @@ export interface FacetGroup {
   /** Which source named the heading. `"none"` is the slug standing in for a
    * name nobody has; a surface marks it so a storefront test can fail on it. */
   readonly labelSource: FacetLabelSource;
+  /**
+   * `facet_labels[<slug>].extras` — `{code: {…}}`, what the vocabulary term
+   * behind a value carries BESIDES its caption, for the codes that carry
+   * anything (stapel-search 0.16.5+).
+   *
+   * The live reader of it is the colour swatch: a catalogue's colour code is
+   * its own transliteration (`chernyy`), which no client can turn into a
+   * hue, and the term has carried `{hue: "#1a1a1a"}` in the catalogue all
+   * along. Carried on the group for the same reason `urlKey` is — the panel,
+   * the chip row and the popular-values block all draw the same value and
+   * must not each re-derive what it looks like.
+   *
+   * `undefined` on an older server, on a deployment whose resolver serves no
+   * bags, and on a group whose counted codes carry none: the three are
+   * indistinguishable and none of them is actionable.
+   */
+  readonly extras?: Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
   /** The category-schema entry behind the slug, when the host supplied one. */
   readonly feature: FeatureDef | undefined;
   /** `false` when the server skipped this slug — counts are `null`. */
@@ -632,6 +649,15 @@ function optionalOrder(order: number | null | undefined): { order?: number } {
   return typeof order === "number" ? { order } : {};
 }
 
+/** The answer's term bags for one slug, when it sent any. An empty map is
+ * dropped with an absent one: neither says anything a surface can draw. */
+function optionalExtras(
+  extras: Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined
+): { extras?: Readonly<Record<string, Readonly<Record<string, unknown>>>> } {
+  if (extras === undefined || Object.keys(extras).length === 0) return {};
+  return { extras };
+}
+
 function resolveVocabulary(
   input: BuildFacetGroupsInput,
   feature: FeatureDef | undefined,
@@ -840,6 +866,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
       slug,
       urlKey: keys.write[slug] ?? slug,
       ...optionalOrder(input.facetLabels?.[slug]?.order),
+      ...optionalExtras(input.facetLabels?.[slug]?.extras),
       ...optionalVocabulary(resolveVocabulary(input, feature, slug)),
       ...resolveGroupLabel(input, feature, slug),
       feature,

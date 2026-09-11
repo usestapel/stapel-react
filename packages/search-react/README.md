@@ -339,24 +339,36 @@ plan sends one.
 A value on a COLOUR axis gets a filled dot beside its label — a
 `data-testid="facet-swatch-<slug>-<value>"` span, `aria-hidden`, and never in
 place of the word, so a screen reader and a monochrome display lose nothing.
-Two exported predicates decide it, and both fail towards drawing nothing:
+Three exported functions decide it, and all of them fail towards drawing
+nothing:
 
 - `isColorAxis(group)` — the slug's HEAD segment with the control-type tail
   stripped (`color_ref_select`, `colour_multi` and `color_fridge` are colour
-  axes; `colorado_region` is a place), the address key beside it, or
-  `axis_role` when a schema ever says so. The canon's role vocabulary is
-  closed and has no colour in it yet, so that arm is written and dead;
-- `swatchColor(code)` — a design-system colour ROLE first (`brand`, `success`
-  …, resolved through its custom property so it follows the brand and the dark
-  side), then CSS's own colour keywords, then a hex code a catalogue spelled
-  out itself. Anything else is `null`, and the row draws no dot: a grey
-  placeholder beside a value nobody named a colour for would say "this one is
-  grey".
+  axes; `colorado_region` is a place), the address key beside it, `axis_role`
+  when a schema ever says so (the canon's role vocabulary is closed and has no
+  colour in it yet, so that arm is written and dead), or — outranking every
+  guess above it — ANY value of the group carrying a hue, which is what
+  recognises an axis a catalogue maps to `tsvet`;
+- `termHue(group, code)` — the hue the CATALOGUE states, from
+  `facet_labels[<slug>].extras[<code>].hue` (stapel-search 0.16.5+, over
+  stapel-vocabularies 0.4.1's `terms_with_extra`). This is the only source
+  that can ever be right about a transliterated term: the leaf answers
+  `chernyy` and the catalogue has always known it is `#1a1a1a`. Read FIRST;
+- `swatchColor(code)` — the fallback, unchanged: a design-system colour ROLE
+  first (`brand`, `success` …, resolved through its custom property so it
+  follows the brand and the dark side), then CSS's own colour keywords, then a
+  hex code a catalogue spelled out itself. Anything else is `null`, and the
+  row draws no dot: a grey placeholder beside a value nobody named a colour
+  for would say "this one is grey".
 
-A catalogue whose colour values are its own transliterated terms therefore
-gets no dots — the hue is data nobody stated, not a control this pair is
-missing, and the fix is in the vocabulary rather than here. The phone
-dictionary SHEET shows no dots in either case: `PickerOption.label` in
+A bag is DATA, not a stylesheet: a stated hue goes through the same
+`swatchColor` vocabulary a value code does before it can reach a CSS property,
+and everything else in the bag is the source catalogue's own and ignored. An
+answer that carries no `extras` at all — an older server, a deployment whose
+vocabulary resolver does not serve bags, a level whose terms carry nothing —
+leaves every arm below it exactly as it was, so a catalogue of transliterated
+colour terms still gets no dots until its vocabulary states the hues. The
+phone dictionary SHEET shows no dots in any case: `PickerOption.label` in
 `@stapel/tokens-antd` is a `string`.
 
 ## The ends of a from/to come from the answer
