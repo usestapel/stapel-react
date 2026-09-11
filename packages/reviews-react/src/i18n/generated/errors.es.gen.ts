@@ -6,19 +6,12 @@
 import type { ReviewsErrorCode } from "./errors.gen.js";
 
 /**
- * `es` texts for the backend error codes this catalog carries.
- *
- * PARTIAL, and deliberately typed to say so: 11 key(s) owned by
- * stapel_reviews are absent, because that owner ships no locale catalog
- * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
- * artifact via the en bundle; the pair layers its own authored `es`
- * strings over this one until upstream ships translations. `Partial` is what
- * makes the gap visible to TypeScript instead of a silent English fallback.
- *
- * Import from the pair's `./i18n/es` subpath, NOT the main entry, so
- * the locale stays out of hosts that don't ship it.
+ * `es` texts for every backend error code — complete over the registry by
+ * construction (the generator fails on a gap; the Record type fails compilation
+ * on drift). Import from the pair's `./i18n/es` subpath, NOT the main
+ * entry, so the locale stays out of hosts that don't ship it.
  */
-export const reviewsErrorBundleEs: Partial<Record<ReviewsErrorCode, string>> = {
+export const reviewsErrorBundleEs: Record<ReviewsErrorCode, string> = {
   "error.400.bad_request": "Solicitud incorrecta",
   "error.400.captcha_invalid": "La verificación del captcha ha fallado. Inténtalo de nuevo.",
   "error.400.captcha_required": "Se requiere el token del captcha.",
@@ -35,6 +28,13 @@ export const reviewsErrorBundleEs: Partial<Record<ReviewsErrorCode, string>> = {
   "error.400.field.required": "{field} es obligatorio",
   "error.400.field.unique": "{field} debe ser único",
   "error.400.invalid_ad_id": "ID de anuncio no válido",
+  "error.400.reviews_ambiguous_addressing": "La lista de reseñas se dirige o bien a un objeto (target_type + target_key) o bien a un propietario (owner_key), nunca a ambos a la vez",
+  "error.400.reviews_duplicate_review": "Ya has dejado una reseña sobre este objeto",
+  "error.400.reviews_invalid_moderation_action": "La acción de moderación debe ser una de: hide, publish",
+  "error.400.reviews_invalid_rating": "La valoración está fuera del rango permitido",
+  "error.400.reviews_response_not_allowed": "Este tipo de objeto no admite respuestas",
+  "error.400.reviews_too_many_owner_keys": "Demasiadas claves de propietario en una sola petición (máximo {max})",
+  "error.400.reviews_unknown_target_type": "Tipo de objeto de reseña desconocido",
   "error.400.validation_error": "Error de validación",
   "error.400.verification_failed": "La verificación ha fallado",
   "error.400.verification_invalid_factor": "Este factor de verificación no está disponible",
@@ -42,15 +42,20 @@ export const reviewsErrorBundleEs: Partial<Record<ReviewsErrorCode, string>> = {
   "error.402.payment_required": "Se requiere pago",
   "error.403.forbidden": "No tienes permiso para realizar esta acción",
   "error.403.network_blocked": "No se permiten solicitudes desde esta red.",
+  "error.403.reviews_anonymous_not_allowed": "Una cuenta de invitado no puede dejar reseñas",
+  "error.403.reviews_cannot_moderate": "No puedes moderar las reseñas de este objeto",
+  "error.403.reviews_cannot_review": "No puedes dejar una reseña sobre este objeto",
   "error.403.verification_enrollment_required": "Es necesario registrar un factor de verificación.",
   "error.403.verification_required": "Se requiere verificación adicional",
   "error.404.ad_not_found": "Anuncio no encontrado",
   "error.404.not_found": "Recurso solicitado no encontrado",
+  "error.404.reviews_review_not_found": "Reseña no encontrada",
   "error.404.verification_challenge_not_found": "Desafío de verificación no encontrado o caducado",
   "error.405.method_not_allowed": "Método no permitido",
   "error.406.not_acceptable": "No aceptable",
   "error.408.request_timeout": "Tiempo de espera de la solicitud agotado",
   "error.409.conflict": "El recurso ya existe",
+  "error.409.reviews_already_responded": "Esta reseña ya tiene una respuesta",
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",
   "error.415.unsupported_media_type": "Tipo de contenido no compatible",

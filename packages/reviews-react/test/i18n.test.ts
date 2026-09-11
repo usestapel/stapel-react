@@ -2,11 +2,21 @@
  * Every error code in the registry must resolve to a SENTENCE in all three
  * locales, and every UI key the pair declares must too.
  *
- * `stapel-reviews` ships no `translations/` directory, so 11 of the 53 registry
- * codes have no upstream catalogue and are authored by this pair; the other 42
- * come from stapel-core's own catalogue through the generated bundle. The
- * split is by OWNER, and this suite is what keeps it that way.
+ * That line used to say the opposite. `stapel-reviews` shipped no
+ * `translations/` directory at all, so 11 of its codes had no upstream
+ * catalogue in any language and this pair authored them beside the generated
+ * bundle. The 0.7.0 pin ships `translations/errors.{ru,es}.json` for all
+ * TWELVE codes the module owns, so every one of the 54 registry codes is now
+ * generated: core's 42 merged UNDER the module's 12.
+ *
+ * The eleven hand-written lines are DELETED rather than kept, and
+ * `authoredErrorKeys` below is the gate that keeps them deleted. A key-set
+ * check would stay green with a duplicate back in place — the key resolves
+ * either way — so the assertion has to be over the FILE, not over the merged
+ * bundle. (The stapel-listings / stapel-categories precedent, 2026-09-08.)
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createI18n } from "@stapel/core";
 import {
@@ -22,6 +32,22 @@ import { registerReviewsI18nEs, reviewsI18nBundleEs } from "../src/i18n/es.js";
 const REVIEWS_OWNED = REVIEWS_ERROR_CODES.filter((code) =>
   code.includes("reviews_")
 );
+
+/**
+ * The `error.*` keys a locale file writes BY HAND. The generated bundle
+ * arrives as a spread, so it contributes no literal key here — which is what
+ * makes this readable as "what did the pair author". Since the 0.7.0 pin the
+ * answer is: nothing.
+ *
+ * Resolved from the package root (`process.cwd()`), where both `vitest` and
+ * `turbo run test` start.
+ */
+function authoredErrorKeys(locale: "ru" | "es"): string[] {
+  const src = readFileSync(resolve(process.cwd(), `src/i18n/${locale}.ts`), "utf8");
+  return [...src.matchAll(/^\s*"(error\.[^"]+)":/gm)]
+    .map((m) => m[1] as string)
+    .sort();
+}
 
 function engineFor(locale: "en" | "ru" | "es") {
   const engine = createI18n({ locale });
@@ -67,12 +93,21 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the ten un-catalogued keys", () => {
-  it("the pair authors its own ten in ru and es", () => {
-    expect(REVIEWS_OWNED).toHaveLength(11);
+describe("ownership of the twelve module-owned keys", () => {
+  it("the module's own catalogue covers all twelve, in ru and es", () => {
+    expect(REVIEWS_OWNED).toHaveLength(12);
     for (const code of REVIEWS_OWNED) {
       expect(reviewsI18nBundleRu[code], code).toBeTruthy();
       expect(reviewsI18nBundleEs[code], code).toBeTruthy();
+    }
+  });
+
+  it("and the pair re-authors none of them", () => {
+    // One string, one source. A re-added hand-written copy would leave the
+    // assertion above green and drift from upstream on the next backend
+    // reword — so this one is over the FILE.
+    for (const locale of ["ru", "es"] as const) {
+      expect(authoredErrorKeys(locale), locale).toEqual([]);
     }
   });
 

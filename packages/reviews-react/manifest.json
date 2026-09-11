@@ -4,7 +4,7 @@
   "version": "0.7.2",
   "backend": {
     "module": "stapel-reviews",
-    "contract": ">=0.6 <0.7"
+    "contract": ">=0.7 <0.8"
   },
   "layers": [
     "api",
@@ -217,6 +217,11 @@
       "remediation": "fix_input"
     },
     "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.reviews_ambiguous_addressing": {
       "status": 400,
       "params": [],
       "remediation": "fix_input"
@@ -438,10 +443,11 @@
     {
       "id": "reviews.list",
       "title": "Review list",
-      "description": "GET /reviews answers core's AnchorPagination envelope, declared as components/ReviewPage since stapel-reviews 0.3.0. Guests read it (IsAuthenticatedOrReadOnly), so an EMPTY list is a reachable state that means what it says — which is why it is a designed empty state and not a spinner that never stops. The 'narrowed scope' variant is the one worth reading twice: include=all is honoured only for a moderator of the target and silently narrowed to published for everyone else, with no error and no marker in the body, so a host that passed the prop to the wrong viewer used to get a quietly incomplete list. The pane now says so.",
+      "description": "GET /reviews answers core's AnchorPagination envelope, declared as components/ReviewPage since stapel-reviews 0.3.0. One endpoint, two addressings since 0.7.0 — the target pair, or an owner key for a seller page's whole tab — and the panel takes exactly one of them, because naming both is error.400.reviews_ambiguous_addressing and a refusal a host can provoke by writing one prop is a refusal the types should forbid. Guests read it (IsAuthenticatedOrReadOnly), so an EMPTY list is a reachable state that means what it says — which is why it is a designed empty state and not a spinner that never stops. The 'narrowed scope' variant is the one worth reading twice: include=all is honoured only for a moderator of the target and silently narrowed to published for everyone else, with no error and no marker in the body, so a host that passed the prop to the wrong viewer used to get a quietly incomplete list. The pane now says so.",
       "component": "ReviewListPanel",
       "covers": [
         "ReviewList",
+        "ReviewOwnerList",
         "ReviewResponseComposer"
       ],
       "tokens": [
@@ -452,7 +458,9 @@
         "end of the run",
         "narrowed scope",
         "empty",
-        "failed"
+        "failed",
+        "a seller's reviews",
+        "a seller nobody has reviewed"
       ],
       "source": "demo/ReviewListPanel.demo.tsx"
     },
@@ -564,6 +572,7 @@
     "error.400.field.required",
     "error.400.field.unique",
     "error.400.invalid_ad_id",
+    "error.400.reviews_ambiguous_addressing",
     "error.400.reviews_duplicate_review",
     "error.400.reviews_invalid_moderation_action",
     "error.400.reviews_invalid_rating",
@@ -616,6 +625,7 @@
     "reviews.form.submit",
     "reviews.list.empty",
     "reviews.list.empty_hint",
+    "reviews.list.empty_owner",
     "reviews.list.heading",
     "reviews.list.load_more",
     "reviews.list.more.blocked.end",
@@ -686,6 +696,7 @@
       "REVIEWS_ELEVATION_ACTIONS",
       "REVIEWS_ERRORS",
       "REVIEWS_ERROR_ALREADY_RESPONDED",
+      "REVIEWS_ERROR_AMBIGUOUS_ADDRESSING",
       "REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED",
       "REVIEWS_ERROR_CANNOT_MODERATE",
       "REVIEWS_ERROR_CANNOT_REVIEW",
@@ -704,6 +715,7 @@
       "ReviewForm",
       "ReviewList",
       "ReviewModeration",
+      "ReviewOwnerList",
       "ReviewResponseForm",
       "ReviewsProvider",
       "ReviewsRuntimeContext",
@@ -713,6 +725,7 @@
       "findOwnReview",
       "formatReviewDate",
       "isAlreadyResponded",
+      "isAmbiguousAddressing",
       "isDuplicateReview",
       "isInvalidModerationAction",
       "isModeratedOut",
@@ -735,6 +748,7 @@
       "toReviewsError",
       "useModerateReview",
       "useOwnerAggregates",
+      "useOwnerReviews",
       "useRespondToReview",
       "useReviewAggregate",
       "useReviewDateFormat",
@@ -762,14 +776,20 @@
       "ReviewCreateRequest",
       "ReviewFormBag",
       "ReviewFormProps",
+      "ReviewListAddressing",
       "ReviewListBag",
       "ReviewListParams",
       "ReviewListProps",
+      "ReviewListQueryResult",
       "ReviewListScope",
       "ReviewModerateRequest",
       "ReviewModerationAction",
       "ReviewModerationBag",
       "ReviewModerationProps",
+      "ReviewOwner",
+      "ReviewOwnerListBag",
+      "ReviewOwnerListParams",
+      "ReviewOwnerListProps",
       "ReviewOwnerResponse",
       "ReviewPage",
       "ReviewRatingBounds",
@@ -778,6 +798,7 @@
       "ReviewResponseFormProps",
       "ReviewStatus",
       "ReviewTarget",
+      "ReviewWindowBag",
       "ReviewsApi",
       "ReviewsErrorCode",
       "ReviewsErrorSpec",
@@ -786,6 +807,7 @@
       "StarBreakdown",
       "SubmitReviewVariables",
       "UseOwnerAggregatesOptions",
+      "UseOwnerReviewsOptions",
       "UseReviewListOptions"
     ]
   }

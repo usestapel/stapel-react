@@ -9,7 +9,7 @@ import { Flex, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { GatedButton, StatusTag } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
-import type { ReviewListBag, ReviewListScope } from "../headless/ReviewList.js";
+import type { ReviewListScope, ReviewWindowBag } from "../headless/ReviewList.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { reviewVisibility } from "../model/list.js";
 
@@ -88,7 +88,7 @@ export function ScopeNotice(props: {
  * "Show more", with the reason it is off when it is off — the end of the run
  * and a page in flight are different facts and get different sentences.
  */
-export function MoreButton(props: { bag: ReviewListBag }): ReactElement | null {
+export function MoreButton(props: { bag: ReviewWindowBag }): ReactElement | null {
   const t = useT();
   // Nothing to page through: "Show more" plus "That is all of them" under an
   // empty list is a disabled control and a caption restating it.

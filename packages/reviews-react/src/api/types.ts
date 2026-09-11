@@ -142,6 +142,28 @@ export interface ReviewTarget {
   readonly targetKey: string;
 }
 
+/**
+ * The OTHER address the list understands, since stapel-reviews 0.7.0: one
+ * opaque OWNER key, standing for every target that owner owns.
+ *
+ * It is as host-owned and as unparsed as {@link ReviewTarget}. The module
+ * still has no concept of a seller: `owner_key` is stamped on each review at
+ * WRITE time by the target type's optional `owner_key_for` resolver, and a
+ * deployment that registers none finds nothing under any owner key — an empty
+ * list, not a refusal, because the module was never told who owns anything.
+ *
+ * `targetType` here NARROWS rather than addresses: "this owner's reviews, but
+ * only of their listings". It is the same field name the target address uses
+ * and deliberately not a second one, because it is the same registry key.
+ */
+export interface ReviewOwner {
+  readonly ownerKey: string;
+  /** Count only this kind of target; omitted, every type the owner appears
+   * under. NOT part of the address — dropping it widens the list, it never
+   * makes it unaddressable. */
+  readonly targetType?: string;
+}
+
 /** The rating roll-up itself, without the target it belongs to.
  *
  * Deliberately the same two field names the composite's projection uses
@@ -172,19 +194,57 @@ export interface RatingAggregate {
 export type ReviewAnchorDirection = NonNullable<ReviewListQuery["direction"]>;
 
 /**
- * Query for `GET /reviews`: the generated parameters, with only the target
- * pair renamed to this package's camelCase {@link ReviewTarget}. Nothing here
- * is hand-typed any more — `include`, `anchor`, `limit` and `direction` are
- * exactly what the contract declares.
+ * The half of `GET /reviews` that is the same whichever way the list is
+ * ADDRESSED: the window (`anchor`, `limit`, `direction`) and the visibility
+ * scope (`include`). Generated, never hand-typed.
+ *
+ * `anchor` is a `created_at` ISO timestamp and exclusive. `include` is typed
+ * `string` because the schema declares no enum for it: the view acts on the
+ * literal `"all"` and treats anything else as published-only, silently —
+ * which is why the hook option that offers it (`UseReviewListOptions.include`)
+ * narrows to the one value the server actually reads.
+ */
+type ReviewWindowQuery = Omit<
+  ReviewListQuery,
+  "target_type" | "target_key" | "owner_key"
+>;
+
+/**
+ * Query for `GET /reviews` addressed BY TARGET: the generated window
+ * parameters plus the pair, renamed to this package's camelCase
+ * {@link ReviewTarget}.
  *
  * `target_type`/`target_key` are required by the view (a missing one is
- * `error.400.reviews_unknown_target_type`, not an empty list). `anchor` is a
- * `created_at` ISO timestamp and exclusive. `include` is typed `string`
- * because the schema declares no enum for it: the view acts on the literal
- * `"all"` and treats anything else as published-only, silently — which is why
- * the hook option that offers it (`UseReviewListOptions.include`) narrows to
- * the one value the server actually reads.
+ * `error.400.reviews_unknown_target_type`, not an empty list).
+ *
+ * `ownerKey?: never` is not decoration. The view takes ONE addressing per
+ * request and answers `error.400.reviews_ambiguous_addressing` when it is
+ * given both, so the pair spells the exclusivity as a type: a params object
+ * carrying an owner key beside the pair does not compile, and the refusal
+ * stays a thing only a hand-built request can provoke.
  */
-export interface ReviewListParams
-  extends ReviewTarget,
-    Omit<ReviewListQuery, "target_type" | "target_key"> {}
+export interface ReviewListParams extends ReviewTarget, ReviewWindowQuery {
+  readonly ownerKey?: never;
+}
+
+/**
+ * Query for `GET /reviews` addressed BY OWNER (stapel-reviews 0.7.0) — every
+ * review of everything one owner owns, newest first, over the same window
+ * parameters and the same rows.
+ *
+ * `targetKey?: never` is the other half of the exclusivity {@link
+ * ReviewListParams} states: `targetType` beside an owner key NARROWS and is
+ * legal, a target KEY beside one is the ambiguous address the view refuses.
+ */
+export interface ReviewOwnerListParams
+  extends ReviewOwner,
+    ReviewWindowQuery {
+  readonly targetKey?: never;
+}
+
+/**
+ * The two addressings of one endpoint, as a union the caller must land in
+ * exactly one arm of. `ReviewsApi.reviews` takes this and branches on it, so
+ * there is one method per endpoint rather than one per query shape.
+ */
+export type ReviewListAddressing = ReviewListParams | ReviewOwnerListParams;

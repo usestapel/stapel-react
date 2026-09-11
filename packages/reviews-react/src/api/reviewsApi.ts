@@ -3,7 +3,7 @@ import type {
   OwnerAggregatesResponse,
   Review,
   ReviewAggregate,
-  ReviewListParams,
+  ReviewListAddressing,
   ReviewModerationAction,
   ReviewPage,
   ReviewTarget,
@@ -28,6 +28,30 @@ function mutating(
 /** The target pair, as the two endpoints that read it spell it. */
 function targetQuery(target: ReviewTarget): Record<string, string> {
   return { target_type: target.targetType, target_key: target.targetKey };
+}
+
+/**
+ * ONE of the list's two addressings, never both.
+ *
+ * The branch is on `ownerKey`, which {@link ReviewListAddressing} types as
+ * `never` on the target arm — so the compiler has already ruled out the
+ * request that would earn `error.400.reviews_ambiguous_addressing`, and this
+ * function only has to decide which query to build, not which one to trust.
+ *
+ * `target_type` is emitted from BOTH arms and means a different thing in
+ * each: on the target arm it is half of the address, on the owner arm it is a
+ * narrowing the server may be given or not.
+ */
+function addressQuery(params: ReviewListAddressing): Record<string, string> {
+  if (params.ownerKey !== undefined) {
+    return {
+      owner_key: params.ownerKey,
+      ...(params.targetType !== undefined
+        ? { target_type: params.targetType }
+        : {}),
+    };
+  }
+  return targetQuery(params);
 }
 
 /**
@@ -81,14 +105,29 @@ export interface ReviewsApi {
   readonly client: StapelClient;
 
   /**
-   * A page of a target's reviews, newest first. Anonymous callers welcome.
+   * A page of reviews, newest first. Anonymous callers welcome.
+   *
+   * ONE endpoint, TWO addressings (stapel-reviews 0.7.0), which is why this
+   * is one method taking a union rather than two:
+   *
+   * - `{targetType, targetKey}` — one target's reviews, the original address;
+   * - `{ownerKey, targetType?}` — every review of everything one OWNER owns,
+   *   the seller-page address, with `targetType` narrowing rather than
+   *   addressing.
+   *
+   * Naming both axes is `error.400.reviews_ambiguous_addressing` and naming
+   * neither is `error.400.reviews_unknown_target_type`; the union rules the
+   * first out at compile time and the second is unreachable from a typed
+   * caller.
    *
    * Answers core's `AnchorPagination` envelope — declared as
    * `components/ReviewPage` since 0.3.0, so the shape is generated rather
-   * than mirrored here. Anchors are `created_at` timestamps.
+   * than mirrored here. Anchors are `created_at` timestamps, and they mean
+   * the same thing on both addressings because both are ordered
+   * `-created_at`.
    */
   reviews(
-    params: ReviewListParams,
+    params: ReviewListAddressing,
     options?: { readonly signal?: AbortSignal }
   ): Promise<ReviewPage>;
 
@@ -217,7 +256,7 @@ export function createReviewsApi(client: StapelClient): ReviewsApi {
     reviews: (params, options) =>
       client.get("/reviews", {
         query: {
-          ...targetQuery(params),
+          ...addressQuery(params),
           ...(params.include !== undefined ? { include: params.include } : {}),
           ...(params.anchor !== undefined ? { anchor: params.anchor } : {}),
           ...(params.direction !== undefined

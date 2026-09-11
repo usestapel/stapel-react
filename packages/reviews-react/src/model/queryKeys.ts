@@ -20,7 +20,7 @@
  * exists precisely so a page with the same sellers on screen twice fires one
  * request, not two.
  */
-import type { ReviewTarget } from "../api/types.js";
+import type { ReviewOwner, ReviewTarget } from "../api/types.js";
 
 const ROOT = "reviews" as const;
 
@@ -55,6 +55,22 @@ export const reviewsQueryKeys: {
     ownerKeys: readonly string[],
     targetType?: string
   ): readonly ["reviews", "ownerAggregates", string, string];
+  /**
+   * Everything cached about ONE owner's reviews — the 0.7.0 addressing.
+   *
+   * Under its own `"ownerReviews"` segment rather than under `target()`,
+   * for the reason `ownerAggregates` is: this is not a key about one
+   * `(target_type, target_key)` pair and must not be invalidated (or
+   * overwritten) by one. The optional `targetType` NARROWING is in the key
+   * because it selects a different set of rows — the same rule `include`
+   * follows on the target list.
+   */
+  owner(owner: ReviewOwner): readonly ["reviews", "ownerReviews", string, string];
+  /** The anchor-paginated window over one owner and one visibility scope. */
+  ownerList(
+    owner: ReviewOwner,
+    include?: "all"
+  ): readonly ["reviews", "ownerReviews", string, string, "list", string];
 } = {
   all: [ROOT],
   target: (target) => [ROOT, target.targetType, target.targetKey],
@@ -71,5 +87,14 @@ export const reviewsQueryKeys: {
     "ownerAggregates",
     targetType ?? "",
     JSON.stringify(normalizedOwnerKeys(ownerKeys)),
+  ],
+  owner: (owner) => [ROOT, "ownerReviews", owner.ownerKey, owner.targetType ?? ""],
+  ownerList: (owner, include) => [
+    ROOT,
+    "ownerReviews",
+    owner.ownerKey,
+    owner.targetType ?? "",
+    "list",
+    include ?? "published",
   ],
 };

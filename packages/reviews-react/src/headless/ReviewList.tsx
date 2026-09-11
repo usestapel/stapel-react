@@ -8,19 +8,28 @@ import {
   loadReady,
 } from "@stapel/core";
 import type { ActionAvailability, LoadState } from "@stapel/core";
-import type { Review, ReviewTarget } from "../api/types.js";
+import type { Review, ReviewOwner, ReviewTarget } from "../api/types.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { isModeratedOut, reviewsFromPages } from "../model/list.js";
-import { useReviewList } from "../model/queries.js";
-import type { UseReviewListOptions } from "../model/queries.js";
+import { useOwnerReviews, useReviewList } from "../model/queries.js";
+import type {
+  ReviewListQueryResult,
+  UseReviewListOptions,
+} from "../model/queries.js";
 
-/** What `<ReviewList>` hands its render prop. */
-export interface ReviewListBag {
-  readonly target: ReviewTarget;
+/**
+ * Everything a review window hands its render prop that does not depend on
+ * HOW the window was addressed — which is everything except the address.
+ *
+ * `<ReviewList>` adds `target`, `<ReviewOwnerList>` adds `owner`, and a skin
+ * that renders rows reads only this, which is why both components share one
+ * row renderer instead of growing two that drift.
+ */
+export interface ReviewWindowBag {
   /**
    * The rows, newest first — `loading` / `ready` / `failed`, never a
    * defaulted empty array. An empty READY list is the only honest way to say
-   * "this target has no reviews".
+   * "nothing here has been reviewed".
    */
   readonly state: LoadState<readonly Review[]>;
   /** Ask for the next (older) page. */
@@ -39,6 +48,16 @@ export interface ReviewListBag {
   readonly include: "all" | undefined;
   /** What was asked for, and what arrived. See {@link ReviewListScope}. */
   readonly scope: ReviewListScope;
+}
+
+/** What `<ReviewList>` hands its render prop: the window, plus the target. */
+export interface ReviewListBag extends ReviewWindowBag {
+  readonly target: ReviewTarget;
+}
+
+/** What `<ReviewOwnerList>` hands its render prop: the window, plus the owner. */
+export interface ReviewOwnerListBag extends ReviewWindowBag {
+  readonly owner: ReviewOwner;
 }
 
 /**
@@ -67,34 +86,47 @@ export interface ReviewListScope {
   readonly narrowed: boolean;
 }
 
-export interface ReviewListProps extends UseReviewListOptions {
-  readonly target: ReviewTarget;
+/** The props both list components share — everything but the address. */
+interface ReviewWindowProps {
   /**
-   * Does the HOST believe this viewer moderates this target? Read ONLY to
-   * decide whether the narrowing sentence is worth showing: a declared
-   * moderator whose target happens to have no hidden rows is not being
+   * Does the HOST believe this viewer sees more than the public does? Read
+   * ONLY to decide whether the narrowing sentence is worth showing: a
+   * declared moderator whose list happens to have no hidden rows is not being
    * narrowed, they are seeing everything there is.
+   *
+   * The server's answer to that question differs by addressing — the target
+   * type's `can_moderate` callback for one target, core's staff predicate for
+   * a whole owner — but the client's half is the same either way, so it is
+   * one prop and not two.
    */
   readonly canModerate?: boolean;
+}
+
+export interface ReviewListProps extends UseReviewListOptions, ReviewWindowProps {
+  readonly target: ReviewTarget;
   readonly children: (bag: ReviewListBag) => ReactNode;
 }
 
+export interface ReviewOwnerListProps
+  extends UseReviewListOptions,
+    ReviewWindowProps {
+  /** The address. `targetType` lives INSIDE it — narrowing is part of the
+   * address's shape, not a separate prop, so the two cannot be given
+   * different values. */
+  readonly owner: ReviewOwner;
+  readonly children: (bag: ReviewOwnerListBag) => ReactNode;
+}
+
 /**
- * The headless review list: anchor-paginated, newest first, over one opaque
- * `(target_type, target_key)`, readable by anyone.
- *
- * There is no `signInRequired` here: since stapel-reviews 0.3.0 the list is
- * `IsAuthenticatedOrReadOnly`, so a guest gets the published rows. An empty
- * READY list therefore means what it says — nobody has reviewed this target —
- * and it is a state a signed-out visitor can legitimately reach.
- *
- * No markup, no strings — a render prop and a bag (frontend-standard §2). The
- * antd rendering of the same bag is `@stapel/reviews-react/default`'s
- * `<ReviewListPanel>`.
+ * The window bag, built from a query result — one implementation for both
+ * addressings, so the cursor, the blocked reasons and the scope split cannot
+ * differ between a target's reviews and an owner's.
  */
-export function ReviewList(props: ReviewListProps): ReactElement {
-  const { target, children, canModerate = false, ...options } = props;
-  const query = useReviewList(target, options);
+function useReviewWindowBag(
+  query: ReviewListQueryResult,
+  include: "all" | undefined,
+  canModerate: boolean
+): ReviewWindowBag {
   const { fetchNextPage, refetch } = query;
 
   const loadMore = useCallback(() => {
@@ -118,34 +150,82 @@ export function ReviewList(props: ReviewListProps): ReactElement {
       : actionAvailable()
     : actionBlocked(REVIEWS_I18N_KEYS.moreBlockedEnd);
 
-  const requested = options.include === "all" ? "all" : "published";
+  const requested = include === "all" ? "all" : "published";
   // A non-published row on screen is PROOF the server granted `include=all`;
   // its absence proves nothing either way (see ReviewListScope).
   const proven = rows !== undefined && rows.some(isModeratedOut);
   const granted: ReviewListScope["granted"] =
     requested === "published" ? "published" : proven ? "all" : "unknown";
-  const scope: ReviewListScope = {
-    requested,
-    granted,
-    narrowed:
-      requested === "all" &&
-      granted !== "all" &&
-      !canModerate &&
-      state.status === "ready",
-  };
 
-  return (
-    <>
-      {children({
-        target,
-        state,
-        loadMore,
-        more,
-        loadingMore: query.isFetchingNextPage,
-        refresh,
-        include: options.include,
-        scope,
-      })}
-    </>
+  return {
+    state,
+    loadMore,
+    more,
+    loadingMore: query.isFetchingNextPage,
+    refresh,
+    include,
+    scope: {
+      requested,
+      granted,
+      narrowed:
+        requested === "all" &&
+        granted !== "all" &&
+        !canModerate &&
+        state.status === "ready",
+    },
+  };
+}
+
+/**
+ * The headless review list: anchor-paginated, newest first, over one opaque
+ * `(target_type, target_key)`, readable by anyone.
+ *
+ * There is no `signInRequired` here: since stapel-reviews 0.3.0 the list is
+ * `IsAuthenticatedOrReadOnly`, so a guest gets the published rows. An empty
+ * READY list therefore means what it says — nobody has reviewed this target —
+ * and it is a state a signed-out visitor can legitimately reach.
+ *
+ * No markup, no strings — a render prop and a bag (frontend-standard §2). The
+ * antd rendering of the same bag is `@stapel/reviews-react/default`'s
+ * `<ReviewListPanel>`.
+ */
+export function ReviewList(props: ReviewListProps): ReactElement {
+  const { target, children, canModerate = false, ...options } = props;
+  const bag = useReviewWindowBag(
+    useReviewList(target, options),
+    options.include,
+    canModerate
   );
+  return <>{children({ target, ...bag })}</>;
+}
+
+/**
+ * The same list, addressed by OWNER (stapel-reviews 0.7.0): every review of
+ * everything one owner owns, over the same window and the same rows.
+ *
+ * Two things a host should not read into this component, because the module
+ * does not claim either:
+ *
+ * - **It is not a seller.** `ownerKey` is an opaque host string, stamped on
+ *   each review by the target type's `owner_key_for` resolver. A deployment
+ *   that registers none gets an empty list here, which is the same thing on
+ *   the wire as an owner nobody has reviewed.
+ * - **The rows are not all about one thing.** Each row carries its OWN
+ *   `target_type`/`target_key`, so a skin that wants to name what was
+ *   reviewed reads the row rather than the address — which is exactly why
+ *   `<ReviewListPanel>` can render both addressings with one row renderer.
+ */
+export function ReviewOwnerList(props: ReviewOwnerListProps): ReactElement {
+  const { owner, children, canModerate = false, ...options } = props;
+  const bag = useReviewWindowBag(
+    useOwnerReviews(owner.ownerKey, {
+      ...options,
+      ...(owner.targetType !== undefined
+        ? { targetType: owner.targetType }
+        : {}),
+    }),
+    options.include,
+    canModerate
+  );
+  return <>{children({ owner, ...bag })}</>;
 }

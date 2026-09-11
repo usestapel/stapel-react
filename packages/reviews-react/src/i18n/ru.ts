@@ -10,37 +10,25 @@ export { reviewsErrorBundleRu } from "./generated/errors.ru.gen.js";
  * entry does not import this module — gated by size-limit and the
  * bundle-purity test).
  *
- * TWO SOURCES, ON PURPOSE. The generated `reviewsErrorBundleRu` covers the 42
- * cross-cutting keys stapel-core owns and localizes. The 11 keys stapel-reviews
- * owns are NOT in it, and cannot be: the module ships no `translations/`
- * directory at all, so the generator emits a `Partial` bundle and says so in
- * its own header (`ERRORS_LOCALE_EXEMPT_OWNERS`, the stapel-forms precedent).
- * They are authored below, beside the UI copy. When upstream ships
- * `translations/errors.ru.json`, these eleven lines are deleted and the
- * generated bundle covers them — the keys and the texts do not move.
+ * ONE SOURCE PER ERROR KEY, as of the 0.7.0 pin. The generated
+ * `reviewsErrorBundleRu` covers all 54 registry codes: the 42 cross-cutting
+ * ones stapel-core owns, merged UNDER the 12 stapel-reviews itself now ships
+ * in `translations/errors.ru.json`. The bundle is a complete `Record` rather
+ * than a `Partial`, and the eleven refusals this file used to author beside it
+ * are DELETED, not kept: with both present the same key resolves twice and
+ * nothing here could say which of the two a screen had shown.
+ * `test/i18n.test.ts` gates that deletion over this FILE, because a key-set
+ * check stays green with a duplicate back in place.
+ *
+ * PROVENANCE, stated rather than implied: both catalogues ship
+ * `origin=seed:authored` and are UNREVIEWED, and so is the UI copy below.
+ * None of it is a claim of review.
  */
 export const reviewsI18nBundleRu: I18nDictionary = {
-  // Backend error codes — generated ru texts for every key core owns.
+  // Backend error codes — generated ru texts for EVERY key in the registry:
+  // core's 42 and, since the 0.7.0 pin, stapel-reviews' own 12. This pair
+  // authors no error text at all any more (see the note above).
   ...reviewsErrorBundleRu,
-
-  // Backend error codes stapel-reviews owns — authored here (see the note
-  // above).
-  "error.400.reviews_duplicate_review": "Вы уже оценили это",
-  "error.400.reviews_invalid_moderation_action":
-    "Действие модерации должно быть одним из: скрыть, опубликовать",
-  "error.400.reviews_invalid_rating": "Оценка вне допустимого диапазона",
-  "error.400.reviews_response_not_allowed":
-    "Для этого типа объекта ответы отключены",
-  "error.400.reviews_too_many_owner_keys":
-    "Слишком много ключей владельцев в одном запросе (максимум {max})",
-  "error.400.reviews_unknown_target_type": "Неизвестный тип объекта отзыва",
-  "error.403.reviews_anonymous_not_allowed":
-    "Гостевая учётная запись не может оставить отзыв",
-  "error.403.reviews_cannot_moderate":
-    "Вы не можете модерировать отзывы об этом объекте",
-  "error.403.reviews_cannot_review": "Вы не можете оставить отзыв об этом объекте",
-  "error.404.reviews_review_not_found": "Отзыв не найден",
-  "error.409.reviews_already_responded": "На этот отзыв уже есть ответ",
 
   // UI copy.
   "reviews.error.unknown": "С отзывами что-то пошло не так",
@@ -48,6 +36,7 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.list.heading": "Отзывы",
   "reviews.list.empty": "Отзывов пока нет",
   "reviews.list.empty_hint": "Расскажите первым, как всё прошло.",
+  "reviews.list.empty_owner": "Здесь пока ничего не оценивали",
   "reviews.list.load_more": "Показать ещё",
   "reviews.list.refresh": "Обновить",
   "reviews.list.more.blocked.end": "Это все отзывы",

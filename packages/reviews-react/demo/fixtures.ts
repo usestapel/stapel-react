@@ -93,6 +93,43 @@ export const DEMO_PAGE_ALL: ReviewPage = {
   count: 6,
 };
 
+/**
+ * The OWNER address (stapel-reviews 0.7.0): one opaque host string standing
+ * for everything this seller owns. Nothing here is a user id or a shop id as
+ * far as the module is concerned — it is whatever the target type's
+ * `owner_key_for` resolver stamped on each review at write time.
+ */
+export const DEMO_OWNER = { ownerKey: "seller-88" } as const;
+
+/**
+ * What `?owner_key=` answers, and the reason the demo exists: rows about
+ * THREE DIFFERENT targets in one list. On the target axis every row is about
+ * the same thing and the panel could have assumed it; here it cannot, which
+ * is why the reply composer under a row is addressed from the ROW.
+ */
+export const DEMO_PAGE_BY_OWNER: ReviewPage = {
+  items: [
+    {
+      ...review("1", 5, "Drill arrived charged and in the original case."),
+      target_key: "42",
+      response: REPLY,
+    },
+    {
+      ...review("2", 4, "Second thing I have bought here. No surprises."),
+      target_key: "77",
+    },
+    {
+      ...review("3", 2, "Bike frame had a dent the photos did not show."),
+      target_key: "103",
+    },
+  ],
+  next_anchor: "2026-08-13T10:00:00Z",
+  prev_anchor: null,
+  has_next: true,
+  has_prev: false,
+  count: 3,
+};
+
 /** Nobody has reviewed this target — a state a GUEST can reach. */
 export const DEMO_PAGE_EMPTY: ReviewPage = {
   items: [],

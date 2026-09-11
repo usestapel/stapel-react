@@ -6,19 +6,12 @@
 import type { ReviewsErrorCode } from "./errors.gen.js";
 
 /**
- * `ru` texts for the backend error codes this catalog carries.
- *
- * PARTIAL, and deliberately typed to say so: 11 key(s) owned by
- * stapel_reviews are absent, because that owner ships no locale catalog
- * (ERRORS_LOCALE_EXEMPT_OWNERS). English for them still comes from the registry
- * artifact via the en bundle; the pair layers its own authored `ru`
- * strings over this one until upstream ships translations. `Partial` is what
- * makes the gap visible to TypeScript instead of a silent English fallback.
- *
- * Import from the pair's `./i18n/ru` subpath, NOT the main entry, so
- * the locale stays out of hosts that don't ship it.
+ * `ru` texts for every backend error code — complete over the registry by
+ * construction (the generator fails on a gap; the Record type fails compilation
+ * on drift). Import from the pair's `./i18n/ru` subpath, NOT the main
+ * entry, so the locale stays out of hosts that don't ship it.
  */
-export const reviewsErrorBundleRu: Partial<Record<ReviewsErrorCode, string>> = {
+export const reviewsErrorBundleRu: Record<ReviewsErrorCode, string> = {
   "error.400.bad_request": "Некорректный запрос",
   "error.400.captcha_invalid": "Проверка капчи не пройдена. Пожалуйста, попробуйте ещё раз.",
   "error.400.captcha_required": "Требуется токен капчи.",
@@ -35,6 +28,13 @@ export const reviewsErrorBundleRu: Partial<Record<ReviewsErrorCode, string>> = {
   "error.400.field.required": "Поле «{field}» обязательно",
   "error.400.field.unique": "Значение поля «{field}» должно быть уникальным",
   "error.400.invalid_ad_id": "Недопустимый идентификатор объявления",
+  "error.400.reviews_ambiguous_addressing": "Список отзывов адресуется либо объектом (target_type + target_key), либо владельцем (owner_key), но не обоими сразу",
+  "error.400.reviews_duplicate_review": "Вы уже оставляли отзыв об этом объекте",
+  "error.400.reviews_invalid_moderation_action": "Действие модерации должно быть одним из: hide, publish",
+  "error.400.reviews_invalid_rating": "Оценка вне допустимого диапазона",
+  "error.400.reviews_response_not_allowed": "Для этого типа объектов ответы не разрешены",
+  "error.400.reviews_too_many_owner_keys": "Слишком много ключей владельцев в одном запросе (не более {max})",
+  "error.400.reviews_unknown_target_type": "Неизвестный тип объекта отзыва",
   "error.400.validation_error": "Ошибка валидации",
   "error.400.verification_failed": "Проверка не пройдена",
   "error.400.verification_invalid_factor": "Этот способ подтверждения недоступен",
@@ -42,15 +42,20 @@ export const reviewsErrorBundleRu: Partial<Record<ReviewsErrorCode, string>> = {
   "error.402.payment_required": "Требуется оплата",
   "error.403.forbidden": "У вас нет прав для выполнения этого действия",
   "error.403.network_blocked": "Запросы из этой сети не разрешены.",
+  "error.403.reviews_anonymous_not_allowed": "Гостевая учётная запись не может оставить отзыв",
+  "error.403.reviews_cannot_moderate": "Вам нельзя модерировать отзывы об этом объекте",
+  "error.403.reviews_cannot_review": "Вам нельзя оставить отзыв об этом объекте",
   "error.403.verification_enrollment_required": "Требуется регистрация фактора подтверждения.",
   "error.403.verification_required": "Требуется дополнительная проверка",
   "error.404.ad_not_found": "Объявление не найдено",
   "error.404.not_found": "Запрошенный ресурс не найден",
+  "error.404.reviews_review_not_found": "Отзыв не найден",
   "error.404.verification_challenge_not_found": "Запрос на подтверждение не найден или истёк",
   "error.405.method_not_allowed": "Метод не разрешён",
   "error.406.not_acceptable": "Недопустимый формат ответа",
   "error.408.request_timeout": "Время ожидания запроса истекло",
   "error.409.conflict": "Ресурс уже существует",
+  "error.409.reviews_already_responded": "На этот отзыв уже есть ответ",
   "error.410.gone": "Ресурс был безвозвратно удалён",
   "error.413.payload_too_large": "Тело запроса слишком большое",
   "error.415.unsupported_media_type": "Неподдерживаемый тип данных",

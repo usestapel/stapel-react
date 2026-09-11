@@ -30,8 +30,9 @@ import { useT } from "@stapel/core";
 import type { SignInCta, SignInCtaProp } from "@stapel/core";
 import { EmptyState, LoadList, SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
-import type { Review, ReviewTarget } from "../api/types.js";
-import { ReviewList } from "../headless/ReviewList.js";
+import type { Review, ReviewOwner, ReviewTarget } from "../api/types.js";
+import { ReviewList, ReviewOwnerList } from "../headless/ReviewList.js";
+import type { ReviewWindowBag } from "../headless/ReviewList.js";
 import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { useReviewsRuntime } from "../model/context.js";
 import { useReviewDateFormat } from "../model/dates.js";
@@ -39,8 +40,33 @@ import { MoreButton, ScopeNotice, VisibilityTag } from "./listParts.js";
 import { ReviewResponseComposer } from "./ReviewResponseComposer.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface ReviewListPanelProps extends ThemeModeProp, SignInCtaProp {
-  readonly target: ReviewTarget;
+/**
+ * EXACTLY ONE ADDRESSING, SPELLED AS A TYPE.
+ *
+ * `GET /reviews` takes the target pair OR an owner key, never both — both is
+ * `error.400.reviews_ambiguous_addressing` since stapel-reviews 0.7.0. A
+ * panel that offered two independent optional props would make that refusal
+ * reachable by writing one line of JSX, so the two arms are a union and the
+ * unused one is typed `never`: `<ReviewListPanel target={…} owner={…}>` does
+ * not compile, and neither does a panel addressed no way at all.
+ */
+export type ReviewListPanelAddress =
+  | {
+      /** One target's reviews. */
+      readonly target: ReviewTarget;
+      readonly owner?: never;
+    }
+  | {
+      /**
+       * Every review of everything one owner owns (stapel-reviews 0.7.0) —
+       * the seller page's reviews tab. `targetType` inside it narrows the
+       * list to one kind of target; it does not address anything.
+       */
+      readonly owner: ReviewOwner;
+      readonly target?: never;
+    };
+
+interface ReviewListPanelBaseProps extends ThemeModeProp, SignInCtaProp {
   /**
    * Ask for pending/hidden rows. Granted only to a moderator of the target and
    * narrowed to published-only for anyone else WITHOUT an error — which is why
@@ -74,13 +100,32 @@ export interface ReviewListPanelProps extends ThemeModeProp, SignInCtaProp {
    *
    * `null` is a real answer here rather than "not passed", so the three cases
    * are distinguished by `undefined` vs `null` vs node — not by truthiness.
+   *
+   * The pair's own default differs by ADDRESSING: a target with no reviews
+   * invites the reader to write the first one, an owner with no reviews
+   * cannot (nobody reviews an owner), so the owner arm says only
+   * `reviews.list.empty_owner` and offers no door.
    */
   readonly emptyState?: ReactNode | null;
 }
 
+export type ReviewListPanelProps = ReviewListPanelBaseProps &
+  ReviewListPanelAddress;
+
+/**
+ * The row's own target — read off the REVIEW, not off the panel's address.
+ *
+ * On the target axis this is the address the list was given, row for row. On
+ * the owner axis there is no single target and every row may name a different
+ * one, which is why the reply composer under a row is addressed from the row.
+ * One renderer, both addressings, no branch.
+ */
+function targetOf(review: Review): ReviewTarget {
+  return { targetType: review.target_type, targetKey: review.target_key };
+}
+
 function ReviewRow(props: {
   review: Review;
-  target: ReviewTarget;
   max: number;
   canRespond: boolean | undefined;
   signIn: SignInCta | undefined;
@@ -110,7 +155,7 @@ function ReviewRow(props: {
           </Typography.Paragraph>
         ) : null}
         <ReviewResponseComposer
-          target={props.target}
+          target={targetOf(review)}
           review={review}
           quiet
           {...(props.canRespond !== undefined
@@ -131,6 +176,7 @@ export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
     mode,
     surface,
     target,
+    owner,
     signIn,
     renderAuthor,
     renderDate,
@@ -150,61 +196,83 @@ export function ReviewListPanel(props: ReviewListPanelProps): ReactElement {
   // `null`) → exactly what the host said. `<LoadList>` folds a nullish `empty`
   // back to the substrate's default, so "nothing" has to reach it as a node
   // that renders nothing.
+  //
+  // The pair's own state is not one sentence: "be the first to say how it
+  // went" is an invitation this pane can only honour when it knows WHAT is
+  // being reviewed, and on the owner axis it does not (see `listEmptyOwner`).
   const empty: ReactNode =
     emptyState === undefined ? (
-      <EmptyState
-        title={t(REVIEWS_I18N_KEYS.listEmpty)}
-        hint={t(REVIEWS_I18N_KEYS.listEmptyHint)}
-        testId="reviews-list-empty"
-      />
+      owner !== undefined ? (
+        <EmptyState
+          title={t(REVIEWS_I18N_KEYS.listEmptyOwner)}
+          testId="reviews-list-empty"
+        />
+      ) : (
+        <EmptyState
+          title={t(REVIEWS_I18N_KEYS.listEmpty)}
+          hint={t(REVIEWS_I18N_KEYS.listEmptyHint)}
+          testId="reviews-list-empty"
+        />
+      )
     ) : (
       (emptyState ?? <></>)
     );
+
+  // ONE renderer for both addressings. Everything it draws comes from the
+  // window bag or from the ROW (`targetOf`), so nothing in here has to know
+  // whether the list was addressed by target or by owner — which is the whole
+  // reason the seller tab is a prop rather than a second panel.
+  const window_ = (bag: ReviewWindowBag): ReactElement => (
+    <Flex vertical gap={spacing[2]} data-testid="reviews-list">
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        {t(REVIEWS_I18N_KEYS.listHeading)}
+      </Typography.Title>
+
+      <ScopeNotice scope={bag.scope} testId="reviews-list-narrowed" />
+
+      <LoadList
+        state={bag.state}
+        onRetry={bag.refresh}
+        testId="reviews-list"
+        empty={empty}
+      >
+        {(reviews) => (
+          <>
+            <List
+              dataSource={[...reviews]}
+              data-testid="reviews-list-rows"
+              renderItem={(review: Review) => (
+                <ReviewRow
+                  review={review}
+                  max={runtime.ratingBounds.max}
+                  canRespond={canRespond}
+                  signIn={signIn}
+                  renderAuthor={renderAuthor}
+                  dateOf={dateOf}
+                />
+              )}
+            />
+            <MoreButton bag={bag} />
+          </>
+        )}
+      </LoadList>
+    </Flex>
+  );
 
   return (
     <SkinTheme
       {...(mode !== undefined ? { mode } : {})}
       surface={surface ?? "raised"}
     >
-      <ReviewList target={target} {...listOptions}>
-        {(bag) => (
-          <Flex vertical gap={spacing[2]} data-testid="reviews-list">
-            <Typography.Title level={5} style={{ margin: 0 }}>
-              {t(REVIEWS_I18N_KEYS.listHeading)}
-            </Typography.Title>
-
-            <ScopeNotice scope={bag.scope} testId="reviews-list-narrowed" />
-
-            <LoadList
-              state={bag.state}
-              onRetry={bag.refresh}
-              testId="reviews-list"
-              empty={empty}
-            >
-              {(reviews) => (
-                <>
-                  <List
-                    dataSource={[...reviews]}
-                    data-testid="reviews-list-rows"
-                    renderItem={(review: Review) => (
-                      <ReviewRow
-                        review={review}
-                        target={target}
-                        max={runtime.ratingBounds.max}
-                        canRespond={canRespond}
-                        signIn={signIn}
-                        renderAuthor={renderAuthor}
-                        dateOf={dateOf}
-                      />
-                    )}
-                  />
-                  <MoreButton bag={bag} />
-                </>
-              )}
-            </LoadList>
-          </Flex>
-        )}
-      </ReviewList>
+      {owner !== undefined ? (
+        <ReviewOwnerList owner={owner} {...listOptions}>
+          {window_}
+        </ReviewOwnerList>
+      ) : (
+        <ReviewList target={target} {...listOptions}>
+          {window_}
+        </ReviewList>
+      )}
     </SkinTheme>
   );
 }

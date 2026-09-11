@@ -55,16 +55,26 @@
  *
  * ── What this pair does NOT do ─────────────────────────────────────────────
  *
- * No N+1 loop to fake a seller-wide roll-up. The product model (spec fork F5)
- * reviews the SELLER for a specific listing, so a seller's rating is a
- * roll-up across their listings, over ONE `(target_type, target_key)` per
- * `useReviewAggregate` call. Two ways to get that roll-up without firing one
- * of those per seller: the shop composite computes it server-side
- * (`shop.listing_review_summary`), or — since stapel-reviews 0.6.0, and only
- * where the deployment registers `owner_key_for` for its target types —
- * `useOwnerAggregates` batch-reads many sellers' roll-ups from this module
- * directly. Either way `<ReviewAggregate aggregate={…}>` renders the two
- * numbers from wherever the host got them; it does not invent the loop.
+ * No N+1 loop to fake a seller-wide view — of the NUMBER or of the ROWS. The
+ * product model (spec fork F5) reviews the SELLER for a specific listing, so
+ * a seller's rating is a roll-up across their listings, over ONE
+ * `(target_type, target_key)` per `useReviewAggregate` call. Two ways to get
+ * that roll-up without firing one of those per seller: the shop composite
+ * computes it server-side (`shop.listing_review_summary`), or — since
+ * stapel-reviews 0.6.0, and only where the deployment registers
+ * `owner_key_for` for its target types — `useOwnerAggregates` batch-reads
+ * many sellers' roll-ups from this module directly. Either way
+ * `<ReviewAggregate aggregate={…}>` renders the two numbers from wherever the
+ * host got them; it does not invent the loop.
+ *
+ * And since stapel-reviews 0.7.0 the same is true of the reviews BEHIND that
+ * number: `useOwnerReviews(ownerKey)` (and `<ReviewListPanel owner={…}>`)
+ * reads `GET /reviews?owner_key=` — one anchor-paginated list across every
+ * target the owner owns. The seller tab is therefore one request per page,
+ * not one per listing. The two addressings are mutually exclusive by TYPE,
+ * because naming both is `error.400.reviews_ambiguous_addressing` and a
+ * refusal a client can provoke by writing one prop is a refusal the client
+ * should not be able to write.
  *
  * No nav manifest: this pair has no route of its own. It renders INSIDE the
  * listing detail page and the public seller profile, both of which belong to
@@ -91,7 +101,10 @@ export type {
   ReviewCreateRequest,
   ReviewListParams,
   ReviewModerateRequest,
+  ReviewListAddressing,
   ReviewModerationAction,
+  ReviewOwner,
+  ReviewOwnerListParams,
   ReviewOwnerResponse,
   ReviewPage,
   ReviewRespondRequest,
@@ -117,11 +130,14 @@ export { normalizedOwnerKeys, reviewsQueryKeys } from "./model/queryKeys.js";
 export {
   REVIEWS_PAGE,
   useOwnerAggregates,
+  useOwnerReviews,
   useReviewAggregate,
   useReviewList,
 } from "./model/queries.js";
 export type {
+  ReviewListQueryResult,
   UseOwnerAggregatesOptions,
+  UseOwnerReviewsOptions,
   UseReviewListOptions,
 } from "./model/queries.js";
 export {
@@ -145,6 +161,7 @@ export {
 } from "./model/list.js";
 export {
   isAlreadyResponded,
+  isAmbiguousAddressing,
   isDuplicateReview,
   isInvalidModerationAction,
   isModerationForbidden,
@@ -155,6 +172,7 @@ export {
   isTooManyOwnerKeys,
   isUnknownTargetType,
   REVIEWS_ERROR_ALREADY_RESPONDED,
+  REVIEWS_ERROR_AMBIGUOUS_ADDRESSING,
   REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED,
   REVIEWS_ERROR_CANNOT_MODERATE,
   REVIEWS_ERROR_CANNOT_REVIEW,
@@ -170,11 +188,14 @@ export {
 
 // ── headless ─────────────────────────────────────────────────────────────────
 export { ReviewsProvider } from "./headless/ReviewsProvider.js";
-export { ReviewList } from "./headless/ReviewList.js";
+export { ReviewList, ReviewOwnerList } from "./headless/ReviewList.js";
 export type {
   ReviewListBag,
   ReviewListProps,
   ReviewListScope,
+  ReviewOwnerListBag,
+  ReviewOwnerListProps,
+  ReviewWindowBag,
 } from "./headless/ReviewList.js";
 export { ReviewModeration } from "./headless/ReviewModeration.js";
 export type {

@@ -53,9 +53,9 @@
   },
   "size-limit": [
     {
-      "name": "index — the headless pair (client + list window + aggregate + submit + moderate + respond): no antd",
+      "name": "index — the headless pair (client + list window, addressed by target OR by owner + aggregate + submit + moderate + respond): no antd",
       "path": "dist/index.js",
-      "limit": "7 KB"
+      "limit": "7.5 KB"
     },
     {
       "name": "default — the antd skin (list, stars, form, moderation queue, reply composer) must stay out of the main bundle",

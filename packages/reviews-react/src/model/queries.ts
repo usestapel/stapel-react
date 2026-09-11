@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type {
   InfiniteData,
+  QueryKey,
   UseInfiniteQueryResult,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import type { StapelApiError } from "@stapel/core";
 import type {
   OwnerAggregatesResponse,
   ReviewAggregate,
+  ReviewOwner,
   ReviewPage,
   ReviewTarget,
 } from "../api/types.js";
@@ -54,46 +56,145 @@ export interface UseReviewListOptions {
   readonly enabled?: boolean;
 }
 
+/** What the two list hooks return — one shape, because it is one endpoint. */
+export type ReviewListQueryResult = UseInfiniteQueryResult<
+  InfiniteData<ReviewPage, string | undefined>,
+  StapelApiError
+>;
+
+/**
+ * The load-more window, shared by both addressings.
+ *
+ * Only the QUERY KEY and the request differ between a target's reviews and an
+ * owner's; the cursor rule is identical and must stay identical, because it
+ * is the rule that keeps the list from looping. `has_next` is the authority
+ * on whether another page exists; a `next_anchor` is only read when it says
+ * yes, because the paginator leaves the anchor `null` on the last page and a
+ * cursor derived from the last row instead would re-request it forever.
+ * Written once so the owner axis cannot drift into its own version of it.
+ */
+function useReviewWindow(
+  queryKey: QueryKey,
+  fetchPage: (
+    anchor: string | undefined,
+    signal: AbortSignal
+  ) => Promise<ReviewPage>,
+  enabled: boolean
+): ReviewListQueryResult {
+  return useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam, signal }) => fetchPage(pageParam, signal),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last: ReviewPage) =>
+      last.has_next ? (last.next_anchor ?? undefined) : undefined,
+    enabled,
+  });
+}
+
 /**
  * A target's reviews as an infinite (load-more) list, newest first.
  *
- * Pages are core's `AnchorPagination` envelope — which the schema does not
- * declare (`api/types.ts`) — and the cursor is the previous page's
- * `next_anchor`, a `created_at` timestamp. `has_next` is the authority on
- * whether another page exists; a `next_anchor` is only read when it says yes,
- * because the paginator leaves the anchor `null` on the last page and a
- * cursor derived from the last row instead would re-request it forever.
+ * Pages are core's `AnchorPagination` envelope (`components/ReviewPage`) and
+ * the cursor is the previous page's `next_anchor`, a `created_at` timestamp —
+ * see {@link useReviewWindow} for the rule both addressings share.
  */
 export function useReviewList(
   target: ReviewTarget,
   options: UseReviewListOptions = {}
-): UseInfiniteQueryResult<
-  InfiniteData<ReviewPage, string | undefined>,
-  StapelApiError
-> {
+): ReviewListQueryResult {
   const api = useReviewsApi();
   const sessionReady = useActiveSessionReady();
   const limit = options.limit ?? REVIEWS_PAGE;
   const addressable =
     target.targetType.length > 0 && target.targetKey.length > 0;
-  return useInfiniteQuery({
-    queryKey: reviewsQueryKeys.list(target, options.include),
-    queryFn: ({ pageParam, signal }) =>
+  return useReviewWindow(
+    reviewsQueryKeys.list(target, options.include),
+    (anchor, signal) =>
       api.reviews(
         {
           ...target,
           ...(options.include !== undefined ? { include: options.include } : {}),
           direction: "next",
           limit,
-          ...(pageParam !== undefined ? { anchor: pageParam } : {}),
+          ...(anchor !== undefined ? { anchor } : {}),
         },
         { signal }
       ),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (last) =>
-      last.has_next ? (last.next_anchor ?? undefined) : undefined,
-    enabled: sessionReady && addressable && (options.enabled ?? true),
-  });
+    sessionReady && addressable && (options.enabled ?? true)
+  );
+}
+
+export interface UseOwnerReviewsOptions extends UseReviewListOptions {
+  /**
+   * Narrow the owner's reviews to one kind of target. NOT part of the
+   * address — it is the same registry key `ReviewTarget.targetType` carries,
+   * and dropping it widens the list rather than breaking it. Part of the
+   * query key, because it selects a different set of rows.
+   */
+  readonly targetType?: string;
+}
+
+/**
+ * Every review of everything ONE OWNER owns, newest first (stapel-reviews
+ * 0.7.0, `GET /reviews?owner_key=`) — the seller page's reviews tab.
+ *
+ * This is the list behind the number {@link useOwnerAggregates} already gave
+ * a page. Until 0.7.0 a seller-wide rating could be READ and the reviews it
+ * was computed from could not, so the only way to show them was one
+ * target-addressed list per listing — an N+1 the pair refused to ship. The
+ * module answers the whole owner in one anchor-paginated read now, so the
+ * loop never has to exist.
+ *
+ * Three rules worth stating, all of them the module's rather than this hook's:
+ *
+ * 1. **The request carries `owner_key` and NEVER the target pair.** Both axes
+ *    in one request is `error.400.reviews_ambiguous_addressing`, and
+ *    {@link ReviewOwnerListParams} makes that a compile error rather than a
+ *    round trip. `targetType` beside the owner key narrows and is legal.
+ * 2. **An empty owner key makes no request** — the discipline
+ *    {@link useReviewList} applies to an unaddressable target, and the same
+ *    reason: a list of "every review in the deployment" is not what an
+ *    unresolved seller id should ask for.
+ * 3. **`include=all` is a different grant here.** On the target axis the
+ *    server consults the type's `can_moderate` callback; on the owner axis it
+ *    consults core's STAFF predicate, because `can_moderate` answers about
+ *    ONE target and this list spans every target an owner owns. Either way
+ *    the narrowing is silent, so `<ReviewOwnerList>` reports the same
+ *    requested/granted split `<ReviewList>` does and promises nothing.
+ *
+ * An owner nobody has reviewed answers an empty page, not a refusal — and so
+ * does an owner on a deployment that registers no `owner_key_for` resolver at
+ * all. The two are indistinguishable on the wire, which is why the empty
+ * state says what is on screen ("nothing here has been reviewed yet") and not
+ * why.
+ */
+export function useOwnerReviews(
+  ownerKey: string,
+  options: UseOwnerReviewsOptions = {}
+): ReviewListQueryResult {
+  const api = useReviewsApi();
+  const sessionReady = useActiveSessionReady();
+  const limit = options.limit ?? REVIEWS_PAGE;
+  const targetType = options.targetType;
+  const owner: ReviewOwner = {
+    ownerKey,
+    ...(targetType !== undefined ? { targetType } : {}),
+  };
+  return useReviewWindow(
+    reviewsQueryKeys.ownerList(owner, options.include),
+    (anchor, signal) =>
+      api.reviews(
+        {
+          ...owner,
+          ...(options.include !== undefined ? { include: options.include } : {}),
+          direction: "next",
+          limit,
+          ...(anchor !== undefined ? { anchor } : {}),
+        },
+        { signal }
+      ),
+    sessionReady && ownerKey.length > 0 && (options.enabled ?? true)
+  );
 }
 
 /**

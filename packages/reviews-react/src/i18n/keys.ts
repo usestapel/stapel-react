@@ -15,6 +15,18 @@ export const REVIEWS_I18N_KEYS = {
   listHeading: "reviews.list.heading",
   listEmpty: "reviews.list.empty",
   listEmptyHint: "reviews.list.empty_hint",
+  /**
+   * The empty state of the OWNER-addressed list (stapel-reviews 0.7.0), which
+   * is a different sentence rather than the same one reworded.
+   *
+   * `reviews.list.empty_hint` — "be the first to say how it went" — is an
+   * invitation to write the review this list is missing. On the owner axis
+   * there is nothing to accept it with: nobody reviews an owner, they review
+   * one of the owner's targets, and this pane does not know which. So the
+   * owner arm says only what is true of the screen and offers no door; that
+   * is why it is one key and not a title/hint pair.
+   */
+  listEmptyOwner: "reviews.list.empty_owner",
   listLoadMore: "reviews.list.load_more",
   listRefresh: "reviews.list.refresh",
   moreBlockedEnd: "reviews.list.more.blocked.end",
@@ -131,12 +143,14 @@ export const REVIEWS_I18N_KEYS = {
   respondBlockedSignIn: "reviews.respond.blocked.sign_in",
   respondBlockedGone: "reviews.respond.blocked.gone",
 
-  // Backend error keys the pair OWNS the localization of. stapel-reviews ships
-  // English only (no `translations/` directory at all), so its 10 keys are
-  // absent from the generated ru/es bundles and are authored in `./i18n/<lang>`
-  // instead — the stapel-forms/`stapel_attributes` precedent, applied before
-  // this by forms, chat, cdn and categories. Listed here so `i18n-key-exists`
-  // knows them and `test/i18n.test.ts` can prove all three locales carry them.
+  // The backend error keys stapel-reviews OWNS. They used to be localized
+  // here, because the module shipped English only and its keys were absent
+  // from the generated ru/es bundles. stapel-reviews 0.7.0 ships
+  // `translations/errors.ru.json` and `errors.es.json` for all twelve, so
+  // every one of them now arrives GENERATED, in all three locales, and this
+  // pair authors none of them. They stay listed so `i18n-key-exists` knows
+  // them and `test/i18n.test.ts` can prove the three bundles resolve them.
+  errorAmbiguousAddressing: "error.400.reviews_ambiguous_addressing",
   errorDuplicateReview: "error.400.reviews_duplicate_review",
   errorInvalidModerationAction: "error.400.reviews_invalid_moderation_action",
   errorInvalidRating: "error.400.reviews_invalid_rating",
@@ -147,6 +161,7 @@ export const REVIEWS_I18N_KEYS = {
   errorCannotReview: "error.403.reviews_cannot_review",
   errorReviewNotFound: "error.404.reviews_review_not_found",
   errorAlreadyResponded: "error.409.reviews_already_responded",
+  errorTooManyOwnerKeys: "error.400.reviews_too_many_owner_keys",
 } as const;
 
 /**
@@ -180,6 +195,7 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.list.heading": "Reviews",
   "reviews.list.empty": "No reviews yet",
   "reviews.list.empty_hint": "Be the first to say how it went.",
+  "reviews.list.empty_owner": "Nothing here has been reviewed yet",
   "reviews.list.load_more": "Show more",
   "reviews.list.refresh": "Refresh",
   "reviews.list.more.blocked.end": "That is all of them",

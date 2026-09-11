@@ -1,6 +1,6 @@
 # @stapel/reviews-react 0.7.2
 
-Headless React flow pair for stapel-reviews (contract >=0.6 <0.7) — business + state, zero visual opinion.
+Headless React flow pair for stapel-reviews (contract >=0.7 <0.8) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -36,7 +36,7 @@ Paths are relative to `/reviews/api/v1/`.
 - useSubmitReview (mutation) → createReview
 
 ## Errors (render t(code, params); UX from remediation)
-53 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 17 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
+54 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 17 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -73,7 +73,7 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - reviews.form → <ReviewFormCard> [idle|already rated|a 1..10 deployment]  demo/ReviewFormCard.demo.tsx
-- reviews.list → <ReviewListPanel> [published|end of the run|narrowed scope|empty|failed]  demo/ReviewListPanel.demo.tsx
+- reviews.list → <ReviewListPanel> [published|end of the run|narrowed scope|empty|failed|a seller's reviews|a seller nobody has reviewed]  demo/ReviewListPanel.demo.tsx
 - reviews.moderation → <ReviewModerationPanel> [granted, six rows|not a moderator|nothing written yet]  demo/ReviewModerationPanel.demo.tsx
 - reviews.panel → <ReviewsPanel> [a buyer|nothing rated yet|the seller, moderating]  demo/ReviewsPanel.demo.tsx
 - reviews.rating → <RatingBadge> [rated|one review|never rated|seller roll-up (supplied)]  demo/RatingBadge.demo.tsx

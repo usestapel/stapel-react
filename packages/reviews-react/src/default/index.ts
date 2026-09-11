@@ -28,7 +28,10 @@
 export { ReviewsPanel } from "./ReviewsPanel.js";
 export type { ReviewsPanelProps } from "./ReviewsPanel.js";
 export { ReviewListPanel } from "./ReviewListPanel.js";
-export type { ReviewListPanelProps } from "./ReviewListPanel.js";
+export type {
+  ReviewListPanelAddress,
+  ReviewListPanelProps,
+} from "./ReviewListPanel.js";
 export { ReviewFormCard } from "./ReviewFormCard.js";
 export type { ReviewFormCardProps } from "./ReviewFormCard.js";
 export { RatingBadge } from "./RatingBadge.js";

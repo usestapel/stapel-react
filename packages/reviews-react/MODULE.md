@@ -147,8 +147,19 @@ compute it; the composite does, as `shop.listing_review_summary`, whose
 owner's field names on purpose*.
 
 `<ReviewAggregate target={…} aggregate={…}>` renders those two numbers with no
-request. Known gap: no HTTP route publishes the roll-up today, so the host's
-own backend must serve it.
+request. That gap is closed from two directions now, where the deployment
+registers an `owner_key_for` resolver for its target types:
+`POST /reviews/aggregates/by-owner` (0.6.0, `useOwnerAggregates`) batch-reads
+the NUMBER for up to 100 owners, and `GET /reviews?owner_key=` (0.7.0,
+`useOwnerReviews` / `<ReviewListPanel owner={…}>`) reads the ROWS behind it —
+one anchor-paginated list across every target the owner owns, never one list
+per listing. The composite's roll-up still answers for a deployment that
+registers no resolver; neither supersedes the other.
+
+The two addressings of `GET /reviews` are mutually exclusive: naming both is
+`error.400.reviews_ambiguous_addressing`, and this pair makes that a compile
+error (`ReviewListParams.ownerKey` and `ReviewOwnerListParams.targetKey` are
+`never`) rather than a round trip.
 
 ## Not on the surface
 

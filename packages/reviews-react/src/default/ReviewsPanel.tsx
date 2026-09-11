@@ -27,17 +27,17 @@ import { Flex } from "antd";
 import type { SignInCtaProp } from "@stapel/core";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import { spacing } from "@stapel/tokens";
-import type { Review, ReviewTarget } from "../api/types.js";
+import type { Review, ReviewOwner, ReviewTarget } from "../api/types.js";
 import { ReviewList } from "../headless/ReviewList.js";
 import { findOwnReview } from "../model/list.js";
 import { RatingBadge } from "./RatingBadge.js";
 import { ReviewFormCard } from "./ReviewFormCard.js";
 import { ReviewListPanel } from "./ReviewListPanel.js";
+import type { ReviewListPanelAddress } from "./ReviewListPanel.js";
 import { ReviewModerationPanel } from "./ReviewModerationPanel.js";
 import type { ThemeModeProp } from "./types.js";
 
-export interface ReviewsPanelProps extends ThemeModeProp, SignInCtaProp {
-  readonly target: ReviewTarget;
+interface ReviewsPanelBaseProps extends ThemeModeProp, SignInCtaProp {
   /**
    * The reader's user id — the value the backend puts in `author_id`, NOT a
    * profile id. Absent means no pre-check: the form is offered and the server
@@ -73,7 +73,56 @@ export interface ReviewsPanelProps extends ThemeModeProp, SignInCtaProp {
   readonly emptyState?: ReactNode | null;
 }
 
-export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
+/**
+ * Exactly one addressing, the same union `<ReviewListPanel>` takes and for the
+ * same reason — see {@link ReviewListPanelAddress}.
+ */
+export type ReviewsPanelProps = ReviewsPanelBaseProps & ReviewListPanelAddress;
+
+/**
+ * The owner axis: the list, and only the list.
+ *
+ * Kept as its own component rather than as a branch inside one, because the
+ * union's two arms can only tell each other apart while `props` is still one
+ * object — destructure first and `target` is `ReviewTarget | undefined` on a
+ * path where the type already guaranteed it.
+ */
+function OwnerReviewsPanel(
+  props: ReviewsPanelBaseProps & { readonly owner: ReviewOwner }
+): ReactElement {
+  // `viewerId`, `canReview` and `canModerate` are peeled off and dropped on
+  // purpose: they steer the form, the pre-check and the queue, none of which
+  // this axis draws (see the header). Letting them ride in `rows` would hand
+  // `<ReviewListPanel>` props it does not take.
+  const {
+    mode,
+    surface,
+    owner,
+    signIn,
+    viewerId: _viewerId,
+    canReview: _canReview,
+    canModerate: _canModerate,
+    ...rows
+  } = props;
+  const pinned = mode !== undefined ? { mode } : {};
+  return (
+    <SkinTheme {...pinned} surface={surface ?? "base"}>
+      <Flex vertical gap={spacing[4]} data-testid="reviews-panel">
+        <ReviewListPanel
+          owner={owner}
+          {...pinned}
+          surface="bare"
+          {...(signIn !== undefined ? { signIn } : {})}
+          {...rows}
+        />
+      </Flex>
+    </SkinTheme>
+  );
+}
+
+function TargetReviewsPanel(
+  props: ReviewsPanelBaseProps & { readonly target: ReviewTarget }
+): ReactElement {
   const {
     mode,
     surface,
@@ -138,5 +187,13 @@ export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
         ) : null}
       </Flex>
     </SkinTheme>
+  );
+}
+
+export function ReviewsPanel(props: ReviewsPanelProps): ReactElement {
+  return props.owner !== undefined ? (
+    <OwnerReviewsPanel {...props} />
+  ) : (
+    <TargetReviewsPanel {...props} />
   );
 }

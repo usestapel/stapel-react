@@ -207,6 +207,51 @@ path the batch read exists to give.
 </ReviewAggregate>
 ```
 
+## A seller's reviews, not only their number
+
+stapel-reviews 0.7.0 gives `GET /reviews` a SECOND addressing: `owner_key`
+instead of the `(target_type, target_key)` pair. Same rows, same
+`-created_at` anchor pagination, one request per page across every target the
+owner owns — so the reviews tab of a seller page is no longer an N+1 of one
+list per listing, and the number `useOwnerAggregates` returns finally has the
+reviews behind it on the same screen.
+
+```tsx
+const reviews = useOwnerReviews(sellerId, { targetType: "listing" });
+
+<ReviewListPanel owner={{ ownerKey: sellerId }} />
+<ReviewsPanel owner={{ ownerKey: sellerId }} />
+```
+
+Four things worth knowing before you wire it:
+
+- **Exactly one addressing, and the types enforce it.** Naming both axes is
+  `error.400.reviews_ambiguous_addressing`, so `owner` and `target` are a
+  union on `<ReviewListPanel>`/`<ReviewsPanel>` and the unused arm is typed
+  `never`: passing both does not compile. `targetType` INSIDE `owner`
+  narrows the list to one kind of target — it is not a second address.
+- **The rows are about different things.** Each row carries its own
+  `target_type`/`target_key`, which is why the reply composer under a row is
+  addressed from the ROW and one renderer draws both addressings. A host that
+  wants to name what was reviewed reads the row, not the pane.
+- **`<ReviewsPanel owner>` is the list and nothing else** — no rating line
+  (that endpoint takes one target; use `useOwnerAggregates` and render
+  `<ReviewAggregate aggregate={…}>` in your own header), no write form (a
+  review is written about a target, and this address names none), no
+  moderation queue (`can_moderate` answers about one target).
+- **An empty list does not say why.** An owner nobody has reviewed and a
+  deployment that registers no `owner_key_for` resolver are the same empty
+  page on the wire, so the pair's empty state says what is on screen —
+  "Nothing here has been reviewed yet" — and claims nothing about the cause.
+  It is deliberately not the target arm's sentence: "be the first to say how
+  it went" is an invitation nobody can accept here.
+
+`include=all` works on this axis too and is granted differently: the server
+consults core's STAFF predicate rather than the type's `can_moderate`
+callback, because that callback answers about one target and this list spans
+every target an owner owns. The narrowing is silent either way, so the bag
+reports the same requested/granted split and the pane says so.
+
 ## What is deliberately not here
 
 - **Moderation and the owner's reply.** `POST {id}/moderate` and
@@ -251,7 +296,7 @@ and nothing else moves.
 | Layer | Exports |
 |---|---|
 | api | `createReviewsApi`, `ReviewsApi`, `Review`, `ReviewPage`, `ReviewTarget`, `RatingAggregate`, `ReviewStatus`, … |
-| model | `createReviewsRuntime`, `reviewsQueryKeys`, `useReviewList`, `useReviewAggregate`, `useOwnerAggregates`, `useSubmitReview`, `ratingSummary`, `starBreakdown`, `reviewsFromPages`, `findOwnReview`, `reviewVisibility`, `isDuplicateReview`, `isSignInRequired`, … |
+| model | `createReviewsRuntime`, `reviewsQueryKeys`, `useReviewList`, `useOwnerReviews`, `useReviewAggregate`, `useOwnerAggregates`, `useSubmitReview`, `ratingSummary`, `starBreakdown`, `reviewsFromPages`, `findOwnReview`, `reviewVisibility`, `isDuplicateReview`, `isSignInRequired`, … |
 | headless | `ReviewsProvider`, `ReviewList`, `ReviewAggregate`, `ReviewForm` |
 | default | `ReviewsPanel`, `ReviewListPanel`, `ReviewFormCard`, `RatingBadge`, `ReviewsSkinTheme` |
 | i18n | `REVIEWS_I18N_KEYS`, `registerReviewsI18n`, `REVIEWS_ERRORS`, `explainReviewsError` |

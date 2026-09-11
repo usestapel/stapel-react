@@ -42,6 +42,19 @@ export const REVIEWS_ERROR_DUPLICATE = "error.400.reviews_duplicate_review";
 /** `target_type` is not in the host's registry — or one of the pair was missing. */
 export const REVIEWS_ERROR_UNKNOWN_TARGET_TYPE =
   "error.400.reviews_unknown_target_type";
+/**
+ * `GET /reviews` was given BOTH addressings at once — the target pair and an
+ * `owner_key` (stapel-reviews 0.7.0). A wiring fault in the caller, not a
+ * state a reader can reach.
+ *
+ * Named because the pair's own types make it unreachable and that claim is
+ * worth being able to test: `ReviewListParams` declares `ownerKey?: never`
+ * and `ReviewOwnerListParams` declares `targetKey?: never`, so a request
+ * carrying both does not compile. Only a caller that builds the query string
+ * itself can provoke this.
+ */
+export const REVIEWS_ERROR_AMBIGUOUS_ADDRESSING =
+  "error.400.reviews_ambiguous_addressing";
 /** The rating fell outside `[RATING_MIN, RATING_MAX]`. */
 export const REVIEWS_ERROR_INVALID_RATING = "error.400.reviews_invalid_rating";
 /** The moderation verdict was not one of `hide` / `publish`. */
@@ -213,6 +226,22 @@ export function isReviewGone(error: unknown): boolean {
  */
 export function isUnknownTargetType(error: unknown): boolean {
   return isErrorCode(toReviewsError(error), REVIEWS_ERROR_UNKNOWN_TARGET_TYPE);
+}
+
+/**
+ * The list was addressed twice over — by target AND by owner.
+ *
+ * The mirror of {@link isUnknownTargetType}, which is what the same view
+ * answers for the opposite mistake (addressed NEITHER way). Both are host
+ * wiring faults, so the skin shows them as errors rather than as empty
+ * states; this one is additionally something a TYPED caller of this pair
+ * cannot produce.
+ */
+export function isAmbiguousAddressing(error: unknown): boolean {
+  return isErrorCode(
+    toReviewsError(error),
+    REVIEWS_ERROR_AMBIGUOUS_ADDRESSING
+  );
 }
 
 /**

@@ -284,7 +284,7 @@ export type $defs = Record<string, never>;
 export interface operations {
     reviews_api_v1_reviews_retrieve: {
         parameters: {
-            query: {
+            query?: {
                 /** @description Opaque cursor: a `next_anchor`/`prev_anchor` from a previous page (the review's `created_at`). Omit for the first page. */
                 anchor?: string;
                 /** @description Which side of `anchor` to page toward. Default `next`. */
@@ -293,10 +293,12 @@ export interface operations {
                 include?: string;
                 /** @description Page size, default 20, max 100. */
                 limit?: number;
-                /** @description Opaque host-owned target identifier. */
-                target_key: string;
-                /** @description Host-registered target-type key (registry.py). */
-                target_type: string;
+                /** @description Opaque host-owned OWNER key — every review of everything that owner owns, newest first (a seller page's reviews tab). The link is the review's stamped `owner_key` (the target type's `owner_key_for` resolver), so a deployment that registers no resolver finds nothing here. Used INSTEAD of the target pair; `target_type` may narrow it. */
+                owner_key?: string;
+                /** @description Opaque host-owned target identifier. Address one target's reviews with `target_type` + `target_key`, or a whole owner's with `owner_key` — naming both axes is a 400 (`error.400.reviews_ambiguous_addressing`), naming neither is a 400 (`error.400.reviews_unknown_target_type`). */
+                target_key?: string;
+                /** @description Host-registered target-type key (registry.py). Required with `target_key` to address one target's reviews; optional beside `owner_key`, where it narrows the owner's reviews to one kind of target. */
+                target_type?: string;
             };
             header?: never;
             path?: never;
