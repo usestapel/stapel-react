@@ -6,7 +6,7 @@ import { defineDemo } from "@stapel/showcase";
 import { ListingDetailPane } from "../src/default/index.js";
 import { ListingsDemoHarness } from "./_harness.js";
 import type { DemoHandlers } from "./_harness.js";
-import { DEMO_DETAIL, DEMO_STATUS } from "./fixtures.js";
+import { DEMO_CARD, DEMO_DETAIL, DEMO_STATUS } from "./fixtures.js";
 
 const HANDLERS: DemoHandlers = {
   "/listings/7/status/": DEMO_STATUS,
@@ -63,6 +63,32 @@ function Owner(): ReactElement {
   );
 }
 
+/** The reference classified's phone page, as this pane draws it: a snapping
+ * photo strip that says where it is, the condensed bar once the title has
+ * gone, the four canned questions above the chat door, a folded spec list and
+ * the two "find more" strips at the end. */
+function Phone(): ReactElement {
+  return (
+    <ListingsDemoHarness handlers={HANDLERS}>
+      <ListingDetailPane
+        id={7}
+        contactSlot={<ContactSeller />}
+        galleryLayout="strip"
+        headingLevel={1}
+        actionsPlacement={["header", "condensed-top"]}
+        onBack={() => undefined}
+        onQuickQuestion={() => undefined}
+        characteristicsLimit={1}
+        similar={[DEMO_CARD, { ...DEMO_CARD, id: 8, title: "Makita HR2470" }]}
+        fromSeller={[{ ...DEMO_CARD, id: 9, title: "Bosch PSB 500 RE" }]}
+        similarHref="/s?category=tools%2Fpower"
+        fromSellerHref="/s?owner=1f5b2b3c"
+        listingHref={(id) => `/l/${String(id)}`}
+      />
+    </ListingsDemoHarness>
+  );
+}
+
 function NotFound(): ReactElement {
   return (
     <ListingsDemoHarness handlers={MISSING}>
@@ -98,6 +124,13 @@ export default defineDemo({
       step: "owner_live_edit_under_review",
       description: "The owner: Edit, Take down, and the review the buyer never sees.",
       render: () => <Owner />,
+    },
+    phone: {
+      viewport: "phone",
+      step: "phone_full_page",
+      description:
+        "The phone page the reference draws: strip gallery with its own counter, the four canned questions above the chat door, a folded spec list, and the similar / from-this-seller strips. The condensed top bar arrives once the title scrolls out of the fold.",
+      render: () => <Phone />,
     },
     "not-found": {
       viewport: "desktop",

@@ -66,6 +66,7 @@ export type { FeedGridProps } from "./FeedGrid.js";
 export {
   ListingDetailPane,
   DETAIL_MEASURE,
+  QUICK_QUESTIONS_MAX,
   // The split layout's two geometry constants, for a container laying out
   // against the same tracks (and for a test that measures them).
   DETAIL_SPLIT_MEASURE,
@@ -82,11 +83,36 @@ export type {
 // inline `display`.
 export {
   LISTINGS_GALLERY_CLASS,
+  LISTINGS_GALLERY_COUNTER_CLASS,
+  LISTINGS_GALLERY_FRAME_CLASS,
   LISTINGS_GALLERY_STYLE_HREF,
   LISTINGS_GALLERY_STRIP_BASIS,
   detailGalleryCss,
+  nearestPhotoIndex,
+  useGalleryPosition,
 } from "./detailGallery.js";
-export type { ListingGalleryLayout } from "./detailGallery.js";
+export type { GalleryPosition, ListingGalleryLayout } from "./detailGallery.js";
+// The condensed top bar the pane draws for `actionsPlacement="condensed-top"`
+// — its classes and sheet, so a container retunes the geometry with a selector
+// rather than `!important` over a pair's own.
+export {
+  CONDENSED_BAR_CLASS,
+  CONDENSED_BAR_STYLE_HREF,
+  CONDENSED_TITLE_CLASS,
+  condensedBarCss,
+} from "./condensedBar.js";
+// The two "find more" strips, for a host composing them itself.
+export {
+  ListingRelatedStrip,
+  RELATED_CARD_BASIS,
+  RELATED_STRIP_CLASS,
+  RELATED_STYLE_HREF,
+  relatedStripCss,
+} from "./ListingRelated.js";
+export type {
+  ListingRelatedContext,
+  ListingRelatedStripProps,
+} from "./ListingRelated.js";
 export {
   ListingComposerPage,
   COMPOSER_DETAILS_PLACEMENT,
@@ -123,6 +149,7 @@ export type { ListingPhotoProps } from "./ListingPhoto.js";
 export {
   ListingSpecColumns,
   ListingSpecList,
+  SPEC_FOLD_MIN_HIDDEN,
   specListCss,
 } from "./ListingSpecList.js";
 export type { ListingSpecListProps } from "./ListingSpecList.js";

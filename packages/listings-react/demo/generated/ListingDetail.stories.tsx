@@ -15,6 +15,9 @@ ContactUnwired.parameters = { stapel: {"viewport":"phone","step":"buyer_slot_unf
 export const Owner = (): ReactElement => renderDemoVariant(demo, "owner");
 Owner.storyName = "owner";
 Owner.parameters = { stapel: {"viewport":"phone","step":"owner_live_edit_under_review"} };
+export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
+Phone.storyName = "phone";
+Phone.parameters = { stapel: {"viewport":"phone","step":"phone_full_page"} };
 export const NotFound = (): ReactElement => renderDemoVariant(demo, "not-found");
 NotFound.storyName = "not-found";
 NotFound.parameters = { stapel: {"viewport":"desktop","step":"not_found"} };

@@ -141,3 +141,35 @@ export function PriceTrendIcon(props: {
     </svg>
   );
 }
+
+/**
+ * The condensed bar's back arrow.
+ *
+ * `aria-hidden`, like the heart and the share glyph: the control around it
+ * carries "Back" as its accessible name, and a glyph announced beside its own
+ * label reads the action twice.
+ *
+ * Drawn with the logical writing direction in mind only as far as a library
+ * honestly can: the shape points at the INLINE START, and a right-to-left host
+ * flips it with one `transform` against this package's own class rather than
+ * getting a mirrored copy nobody can name.
+ */
+export function BackIcon(): ReactElement {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}

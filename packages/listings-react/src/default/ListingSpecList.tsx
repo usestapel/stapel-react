@@ -32,6 +32,7 @@
  * digits grouped by the reader's locale. `model/featureText.ts` says where
  * the unit comes from and why there is no `unit` key to read it from.
  */
+import { useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { Typography, theme as antdTheme } from "antd";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
@@ -46,6 +47,7 @@ import {
   isValueVerified,
 } from "@stapel/attributes-react";
 import type { FeatureDef, FeatureValueDto } from "@stapel/attributes-react";
+import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { formatSpecValue } from "../model/featureText.js";
 
 /** The class one spec row carries. */
@@ -85,8 +87,33 @@ export interface ListingSpecListProps {
   /** The surface's own test id, so a split page holding two columns of these
    * does not hand a test two elements under one name. */
   readonly testId?: string;
+  /**
+   * HOW MANY ROWS STAND BEFORE THE FOLD. Default: all of them.
+   *
+   * This is a PRESENTATION limit and nothing else — it hides no field from
+   * anybody, because the control under the list opens the rest in place and
+   * every row is in the accessibility tree once it is open. The reference
+   * classified folds at about eighteen and calls the control "all
+   * characteristics"; the argument is the same one the description has, that
+   * a forty-row list under a photograph on a 390px phone is four screens
+   * between the price and the seller.
+   *
+   * It is a PROP and not a default, because the fold is a decision about a
+   * VIEWPORT and this package does not read viewports (see the pane's
+   * `layout` / `galleryLayout`): a desktop split column with two columns of
+   * rows wants none of it.
+   *
+   * The stated limit is honoured only when it actually saves something: a
+   * list of eleven with a limit of ten draws all eleven rather than a fold
+   * that hides one row behind a button as tall as the row.
+   */
+  readonly limit?: number;
   readonly style?: CSSProperties;
 }
+
+/** How many rows a fold has to hide before it is worth one. See
+ * {@link ListingSpecListProps.limit}. */
+export const SPEC_FOLD_MIN_HIDDEN = 2;
 
 /**
  * A withheld value's row: what the system OBSERVED, and nothing more — the
@@ -104,9 +131,21 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
   const { locale } = useI18n();
   const { token } = antdTheme.useToken();
 
+  const [open, setOpen] = useState(false);
+
   // A `header` is a section caption in a FORM, not a value: it has none, and
   // a spec table that printed one would print "not specified" under it.
   const rows = props.features.filter((feature) => featureType(feature) !== "header");
+
+  /* THE FOLD, and it folds nothing it cannot save two rows by folding. The
+     limit is counted over the rows that are actually DRAWN, not over the
+     features handed in — a category whose declaration ends in three form
+     headers would otherwise fold a list that is already short. */
+  const limit = props.limit ?? Number.POSITIVE_INFINITY;
+  const folded =
+    !open && rows.length - limit >= SPEC_FOLD_MIN_HIDDEN
+      ? rows.slice(0, limit)
+      : rows;
 
   return (
     <SkinTheme surface="bare">
@@ -124,7 +163,7 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
           ...props.style,
         }}
       >
-        {rows.map((feature) => {
+        {folded.map((feature) => {
           const dto = props.values[feature.slug];
           const redacted = isRedactedValue(dto);
           const text = redacted
@@ -152,6 +191,25 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
             </p>
           );
         })}
+        {/* `aria-expanded` rather than a second sentence: the control IS the
+            state, and a person using a screen reader is told the list opened
+            without the list announcing itself. It disappears once open —
+            there is no "show less", because a reader who opened forty rows
+            scrolls past them and does not scroll back up to close them. */}
+        {folded.length === rows.length ? null : (
+          <Typography.Link
+            role="button"
+            aria-expanded={false}
+            data-testid={`${props.testId ?? "listings-spec-list"}-show-all`}
+            data-analytics="none"
+            data-analytics-reason="a look, not an outcome — unfolding a list changes no record"
+            onClick={() => {
+              setOpen(true);
+            }}
+          >
+            {t(LISTINGS_I18N_KEYS.detailShowAll)}
+          </Typography.Link>
+        )}
       </div>
     </SkinTheme>
   );
@@ -165,6 +223,11 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
  * The cut is here rather than inside the list because a CSS `columns` rule
  * would break a wrapped paragraph across the column boundary, which is
  * exactly the defect the paragraph shape was adopted to avoid.
+ *
+ * `limit` is accepted (one props type) and deliberately NOT forwarded: a fold
+ * applied to each half would hide the same count twice and leave two "show
+ * all" controls that open different halves of one list. The two-column arm is
+ * the wide screen, which is the arm the fold exists to spare.
  */
 export function ListingSpecColumns(props: ListingSpecListProps): ReactElement {
   const half = Math.ceil(props.features.length / 2);

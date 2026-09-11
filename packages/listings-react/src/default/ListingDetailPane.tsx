@@ -75,8 +75,43 @@
  * `<h1>` through its published test id and a `MutationObserver`, for a
  * boolean the pane already knows. It is an `IntersectionObserver` on the
  * title, never a scroll listener.
+ *
+ * `actionsPlacement="condensed-top"` is the round after that: the pane draws
+ * the bar ITSELF — back, the title on one line, the travelling cluster — for
+ * the four things every container was writing identically around the render
+ * prop. See `condensedBar.ts`; the render prop is untouched and still wins.
+ *
+ * ── What else the reference has on this page, and now so does this ────────
+ *
+ * Three absences the closing-wave comparison measured against the reference
+ * classified, each closed as a SEAM rather than as a feature this pair
+ * invented data for:
+ *
+ *   the strip did not say where it was
+ *       `galleryLayout="strip"` is a native scroll container and the page had
+ *       no position indicator at all (REPORT §20b). `useGalleryPosition` reads
+ *       the strip's own scroll — never a tap, because the gesture that changes
+ *       the photograph is not one.
+ *
+ *   nothing on the page started a sentence
+ *       The reference puts four canned questions above its contact control on
+ *       every listing (§16). `quickQuestions` draws them and
+ *       `onQuickQuestion` reports the press, because chat-react's door takes
+ *       no initial message and a pane that claimed to prefill one would be
+ *       inventing a seam the other pair does not have.
+ *
+ *   the page ended
+ *       `similar` / `fromSeller` (rows) and `renderSimilar` /
+ *       `renderFromSeller` (slots) are the reference's two distinct "find
+ *       more" mechanisms (§16 comparison 4). The rows come from the HOST's
+ *       search, because this pair does not read search.
+ *
+ * And one that was NOT a defect in this component: the characteristics table
+ * draws every stored row it can key and counts the ones it cannot. Measured
+ * against a live answer, the shortfall the comparison saw was in the DATA —
+ * `characteristicsLimit` adds the reference's FOLD, not rows.
  */
-import { isValidElement, useCallback, useEffect, useRef } from "react";
+import { isValidElement, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Descriptions, Divider, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
@@ -94,7 +129,7 @@ import {
   useI18n,
   useT,
 } from "@stapel/core";
-import type { SignInCta } from "@stapel/core";
+import type { LinkComponent, SignInCta } from "@stapel/core";
 import { cssVar, spacing } from "@stapel/tokens";
 import { isRedactedValue } from "@stapel/attributes-react";
 import { useListingDetail } from "../headless/ListingDetail.js";
@@ -109,18 +144,30 @@ import type { ListingActionsConfig } from "./ListingActions.js";
 import { LISTING_ACTION_CLASS } from "./actionRow.js";
 import {
   LISTINGS_GALLERY_CLASS,
+  LISTINGS_GALLERY_COUNTER_CLASS,
+  LISTINGS_GALLERY_FRAME_CLASS,
   LISTINGS_GALLERY_STYLE_HREF,
   detailGalleryCss,
+  useGalleryPosition,
 } from "./detailGallery.js";
 import type { ListingGalleryLayout } from "./detailGallery.js";
 import { useMovableCluster } from "./movableCluster.js";
+import {
+  CONDENSED_BAR_CLASS,
+  CONDENSED_BAR_STYLE_HREF,
+  CONDENSED_TITLE_CLASS,
+  condensedBarCss,
+} from "./condensedBar.js";
+import { ListingRelatedStrip } from "./ListingRelated.js";
+import type { ListingRelatedContext } from "./ListingRelated.js";
 import { useNotice } from "./notice.js";
 import { ListingSpecColumns, ListingSpecList } from "./ListingSpecList.js";
 import { SignInLink } from "./SignInLink.js";
-import { HeartIcon } from "./icons.js";
+import { BackIcon, HeartIcon } from "./icons.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import { ListingStatusBlock } from "./StatusTags.js";
+import type { ListingCard as ListingCardData } from "../api/types.js";
 import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
 /** The reading measure of the page body. A detail page is prose plus a spec
@@ -304,13 +351,21 @@ export interface ListingDetailPaneProps
    *  - `"bar"` — the condensed top bar the host draws through
    *    {@link renderActionsBar}. Only meaningful in a LIST beside one of the
    *    three above, and only with that render prop: it names a second place
-   *    the one cluster may travel to, never a home of its own.
+   *    the one cluster may travel to, never a home of its own;
+   *  - `"condensed-top"` — the same second place, drawn by the PANE: a fixed
+   *    strip carrying {@link onBack}, the title on one line and the cluster,
+   *    on screen exactly while the title is off it. Also a loan and never a
+   *    home. See `condensedBar.ts` for what it is and why the pane draws it
+   *    rather than leaving every container to write the same four things.
    *
-   * A LIST is how a host says "both": `["header", "bar"]` keeps the cluster
-   * beside the title and lends it to the bar for as long as the bar is on
-   * screen. Exactly one home placement is honoured — the first non-`"bar"`
-   * entry — because two homes would need two instances, which is the defect
-   * this closes rather than the feature it adds.
+   * A LIST is how a host says "both": `["header", "condensed-top"]` keeps the
+   * cluster beside the title and lends it to the bar for as long as the bar is
+   * on screen. Exactly one home placement is honoured — the first entry that
+   * is neither loan — because two homes would need two instances, which is the
+   * defect this closes rather than the feature it adds.
+   *
+   * Asking for BOTH loans is a host that said something specific and a pair
+   * that has a default: `renderActionsBar` wins, and the pane draws nothing.
    */
   readonly actionsPlacement?:
     | ListingActionsPlacement
@@ -345,6 +400,94 @@ export interface ListingDetailPaneProps
    * pane's own single are all what this prop exists to end.
    */
   readonly renderActionsBar?: (cluster: ReactNode) => ReactNode;
+  /**
+   * LEAVE THIS PAGE — the back arrow of the pane's own condensed bar.
+   *
+   * A callback and not an `href`, for the reason the cards' open arm states:
+   * "back" is the HISTORY's, not an address, and a pair that called
+   * `history.back()` itself would move a router it does not own. Absent, the
+   * bar draws no arrow at all — a listing opened in a new tab has nowhere to
+   * go back to, and an arrow that reloads the home page is worse than none.
+   *
+   * Only read with `"condensed-top"` in {@link actionsPlacement}.
+   */
+  readonly onBack?: () => void;
+  /**
+   * THE FOUR QUESTIONS EVERY BUYER ASKS, as chips above the contact control.
+   *
+   * The reference classified puts a "ask the seller" block on every listing —
+   * four canned questions and a free-text box — and it is the one thing on
+   * that page that turns a reader into a conversation (§16, all four
+   * comparisons). This pair ships the four in its own three locales; a host
+   * with a category that wants different ones passes its own, and `[]`
+   * switches the block off.
+   *
+   * At most four are drawn. A fifth is not a longer row, it is a wrapped
+   * second row of chips above the primary action.
+   *
+   * Requires {@link onQuickQuestion} — see there for why the pair cannot wire
+   * the press itself.
+   */
+  readonly quickQuestions?: readonly string[];
+  /**
+   * WHAT A PRESSED CHIP DOES, and why it is the host's.
+   *
+   * The chip's whole job is to put its text in the composer of the thread with
+   * this seller, and neither half of that is this pair's: the thread belongs to
+   * `@stapel/chat-react` (it arrives here as `contactSlot`, because L2 pairs do
+   * not import each other), and as of chat-react 0.12.1 its own door takes no
+   * initial message — `<StartDirectChat>` takes `sellerId` and a subject,
+   * `useStartDirectChat` posts `{userId, subject}`, and `<MessageComposer>`
+   * opens on an empty string with no seed. So there is nothing for this pane to
+   * hand a text to.
+   *
+   * The honest seam is therefore the callback: the pane draws the chips and
+   * reports the press, the container opens the thread and seeds the composer
+   * the way it already navigates to one. Without this prop the block is not
+   * drawn — a chip that does nothing is worse than no chip.
+   */
+  readonly onQuickQuestion?: (text: string) => void;
+  /**
+   * MORE LIKE THIS ONE — rows the host fetched from search
+   * (`category=` plus the main axes), drawn as a strip under the description.
+   *
+   * Empty or absent: no section at all. See `<ListingRelatedStrip>` for why
+   * the rows arrive rather than being read here.
+   */
+  readonly similar?: readonly ListingCardData[];
+  /** More from the same seller — the `owner=` search, same contract as
+   * {@link similar}. */
+  readonly fromSeller?: readonly ListingCardData[];
+  /** Where the "show all" link of each strip goes — the search the strip is a
+   * sample of. Absent: the strip has no link. */
+  readonly similarHref?: string;
+  readonly fromSellerHref?: string;
+  /**
+   * The whole "more like this" section, built by the host — handed everything
+   * the pane knows about this listing. Overrides {@link similar}: a host with
+   * a renderer has already decided what the section is.
+   */
+  readonly renderSimilar?: (context: ListingRelatedContext) => ReactNode;
+  /** The same, for the seller's other listings. Overrides {@link fromSeller}. */
+  readonly renderFromSeller?: (context: ListingRelatedContext) => ReactNode;
+  /** Where one card of either strip leads. Absent, the cards are inert. */
+  readonly listingHref?: (id: number) => string;
+  /** The host's `<Link>`, for those cards and the two "show all" links. */
+  readonly linkComponent?: LinkComponent;
+  /**
+   * HOW MANY SPEC ROWS STAND BEFORE THE FOLD — handed to
+   * `<ListingSpecList limit>`, which is where the argument for a fold and the
+   * rule about when it is worth one are written.
+   *
+   * Default: no fold, which is every existing mount unchanged. `10` is the
+   * phone answer.
+   *
+   * It does NOT change which rows exist. A live read was measured against the
+   * reference here (§16 comparison 1) and the shortfall was in the DATA, not
+   * in this component: the pane draws every stored row the build can key, and
+   * says how many it could not (`listings-detail-unreadable`).
+   */
+  readonly characteristicsLimit?: number;
   /**
    * IS THE TITLE STILL IN THE FOLD?
    *
@@ -474,36 +617,56 @@ export type ListingActionsPlacement =
   | "header"
   | "gallery"
   | "buy-box"
-  | "bar";
+  | "bar"
+  | "condensed-top";
 
-/** The cluster's HOME: the first entry that is not the borrowed bar. */
+/** The two LOANS: places the one cluster may travel to, neither of them a
+ * home. See {@link ListingDetailPaneProps.actionsPlacement}. */
+const LOANS: readonly ListingActionsPlacement[] = ["bar", "condensed-top"];
+
+/** The cluster's HOME: the first entry that is not one of the two loans. */
 function homePlacement(
   placement: ListingDetailPaneProps["actionsPlacement"]
-): Exclude<ListingActionsPlacement, "bar"> {
-  if (placement === undefined) return "header";
-  if (typeof placement === "string") {
-    // `"bar"` alone names no home — the cluster still has to live somewhere
+): Exclude<ListingActionsPlacement, "bar" | "condensed-top"> {
+  const all =
+    placement === undefined
+      ? []
+      : typeof placement === "string"
+        ? [placement]
+        : placement;
+  for (const one of all) {
+    // A loan alone names no home — the cluster still has to live somewhere
     // while the bar is off screen, and that somewhere is the default.
-    return placement === "bar" ? "header" : placement;
-  }
-  for (const one of placement) {
-    if (one !== "bar") return one;
+    if (!LOANS.includes(one)) {
+      return one as Exclude<ListingActionsPlacement, "bar" | "condensed-top">;
+    }
   }
   return "header";
 }
 
-/** Did the host ask for the borrowed placement at all? */
-function wantsBar(
-  placement: ListingDetailPaneProps["actionsPlacement"]
+/** Did the host ask for this borrowed placement at all? */
+function wants(
+  placement: ListingDetailPaneProps["actionsPlacement"],
+  one: ListingActionsPlacement
 ): boolean {
   if (placement === undefined) return false;
-  if (typeof placement === "string") return placement === "bar";
-  return placement.includes("bar");
+  if (typeof placement === "string") return placement === one;
+  return placement.includes(one);
 }
 
 /** Priorities for the two mount points: the bar wins while it is on screen. */
 const CLUSTER_HOME = 0;
 const CLUSTER_BAR = 1;
+
+/**
+ * How many canned questions the page draws, whoever supplies them.
+ *
+ * Four is the reference's own count and it is not arbitrary: the chips stand
+ * between the price and the one primary action on the page, and a fifth does
+ * not lengthen the row on a 390px phone — it wraps, and pushes "message the
+ * seller" a line further down.
+ */
+export const QUICK_QUESTIONS_MAX = 4;
 
 /**
  * The pane's own title, watched — see
@@ -522,23 +685,55 @@ function useTitleVisibility(
     latest.current = onTitleVisible;
   });
   const wanted = onTitleVisible !== undefined;
+  /**
+   * THE ONE LIVE OBSERVER, held by the node it watches.
+   *
+   * React 19's ref cleanup is the normal way this is disconnected, and it is
+   * not the only caller: `<Typography.Title ref>` is antd's, which merges refs
+   * and invokes them itself — a callback's RETURN VALUE means nothing to a
+   * caller that is not React, so the cleanup was simply dropped and a fresh
+   * `IntersectionObserver` was attached to the same `<h1>` on every render of
+   * a page that re-renders on every query settle. Measured: three live
+   * observers on one heading after two crossings, each firing the host's
+   * callback again, so a subscriber counting crossings counted three where
+   * there were two.
+   *
+   * Holding the pair here makes the hook idempotent for the node it is already
+   * watching, whoever calls it and however many times, and disconnecting from
+   * an effect closes the case a dropped cleanup leaves open.
+   */
+  const held = useRef<{ node: Element; observer: IntersectionObserver } | null>(
+    null
+  );
+  const stop = useCallback((): void => {
+    held.current?.observer.disconnect();
+    held.current = null;
+  }, []);
+  // The belt, for the caller that discards the cleanup above.
+  useEffect(() => stop, [stop]);
   return useCallback(
     (node: HTMLElement | null): (() => void) | undefined => {
-      if (node === null || !wanted) return undefined;
+      if (node === null || !wanted) {
+        stop();
+        return undefined;
+      }
       // No observer, no answer. A fabricated `true` would wedge a host's bar
       // open on an arm that has no scrolling to close it with.
       if (typeof IntersectionObserver === "undefined") return undefined;
+      // Already watching this very element: a second observer on it would
+      // report every crossing twice.
+      if (held.current?.node === node) return stop;
+      stop();
       const observer = new IntersectionObserver((entries) => {
         const entry = entries[entries.length - 1];
         if (entry === undefined) return;
         latest.current?.(entry.isIntersecting);
       });
       observer.observe(node);
-      return () => {
-        observer.disconnect();
-      };
+      held.current = { node, observer };
+      return stop;
     },
-    [wanted]
+    [wanted, stop]
   );
 }
 
@@ -587,10 +782,53 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
      rendered inline where it always was, no portal and no slot divs. */
   const galleryLayout: ListingGalleryLayout = props.galleryLayout ?? "grid";
   const renderBar = props.renderActionsBar;
-  const barred = wantsBar(props.actionsPlacement) && renderBar !== undefined;
+  /* TWO LOANS, ONE WINNER. The host's own render prop is the specific answer
+     and the pane's condensed bar is the default one, so a page that asked for
+     both gets the host's — and never two bars competing for the top of one
+     viewport, each holding half a cluster. */
+  const hostBar = wants(props.actionsPlacement, "bar") && renderBar !== undefined;
+  const ownBar = !hostBar && wants(props.actionsPlacement, "condensed-top");
+  const barred = hostBar || ownBar;
   const movable = useMovableCluster(barred);
   const moving = barred && movable.portable;
-  const titleRef = useTitleVisibility(props.onTitleVisible);
+  /* IS THE TITLE ON SCREEN — the pane's own copy of the answer it already
+     publishes. `false` to start, because the page opens AT the title and a bar
+     that flashed on the first frame is the defect the observer exists to
+     avoid. */
+  const [titleGone, setTitleGone] = useState(false);
+  const onTitleVisible = props.onTitleVisible;
+  /* One observer for both readers. The hook holds the latest callback in a
+     ref, so this inline arrow costs no re-observation — and where the host
+     asked for neither, `undefined` keeps the whole thing unarmed. */
+  const titleRef = useTitleVisibility(
+    onTitleVisible === undefined && !ownBar
+      ? undefined
+      : (visible: boolean): void => {
+          // Only the arm that draws a bar keeps state. A host that merely
+          // subscribed does not get a re-render of this page per crossing.
+          if (ownBar) setTitleGone(!visible);
+          onTitleVisible?.(visible);
+        }
+  );
+  /* WHERE THE STRIP IS. Armed only for the arm that scrolls and only for a
+     listing with something to scroll THROUGH — see `useGalleryPosition`. */
+  const strip = galleryLayout === "strip" && bag.images.length > 1;
+  const photo = useGalleryPosition(strip);
+  /* THE FOUR QUESTIONS. Defaults from this pair's own catalogue, a host's own
+     list when it has one, and NOTHING at all when nobody can act on a press —
+     see `onQuickQuestion`. Capped at four: a fifth is a second row of chips
+     standing between a reader and the one primary action on the page. */
+  const quickQuestions: readonly string[] =
+    props.onQuickQuestion === undefined
+      ? []
+      : (
+          props.quickQuestions ?? [
+            t(LISTINGS_I18N_KEYS.detailQuestionAvailable),
+            t(LISTINGS_I18N_KEYS.detailQuestionPrice),
+            t(LISTINGS_I18N_KEYS.detailQuestionViewing),
+            t(LISTINGS_I18N_KEYS.detailQuestionDelivery),
+          ]
+        ).slice(0, QUICK_QUESTIONS_MAX);
   // The two arms of `actions` — see `isActionsConfig`.
   const actionsConfig: ListingActionsConfig | undefined = isActionsConfig(
     props.actions
@@ -844,25 +1082,74 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                portal has no position of its own (its content is wherever the
                winning slot is), and a bar is `position: fixed` chrome whose
                place in the document order is not its place on the screen. */
-            const clusterLayer =
-              !moving || renderBar === undefined ? null : (
-                <>
-                  {movable.render(readerActions)}
-                  {/* NOT a slot with a silent absence: `renderBar` is the only
-                      thing that makes `moving` true, so this arm is
-                      unreachable without one and the host's own `null` (the
-                      bar off screen) is the answer that sends the cluster
-                      home. There is no hole to place a `<SlotPlaceholder>` in
-                      — the cluster is at its primary placement instead. */}
-                  {renderBar(movable.slot(CLUSTER_BAR, "bar"))}
-                </>
+            /* THE PANE'S OWN CONDENSED BAR (`"condensed-top"`).
+
+               Mounted only while the title is off screen, which is what makes
+               the cluster travel at all: the slot inside it is the higher
+               priority, so appearing borrows the cluster and disappearing
+               hands it straight back to the heading — the same DOM node, the
+               same optimistic favourite, no second `useFavoriteToggle`.
+
+               The back arrow is absent when the host gave no `onBack`: a
+               listing opened in a new tab has nothing to go back to. */
+            const condensedBar =
+              !moving || !ownBar || !titleGone ? null : (
+                <div
+                  className={CONDENSED_BAR_CLASS}
+                  data-testid="listings-detail-condensed-bar"
+                >
+                  <style href={CONDENSED_BAR_STYLE_HREF} precedence="default">
+                    {condensedBarCss()}
+                  </style>
+                  {props.onBack === undefined ? null : (
+                    <Button
+                      type="text"
+                      shape="circle"
+                      className={LISTING_ACTION_CLASS}
+                      aria-label={t(LISTINGS_I18N_KEYS.detailBack)}
+                      icon={<BackIcon />}
+                      data-testid="listings-detail-back"
+                      data-analytics="none"
+                      data-analytics-reason="navigation — the host owns its own history"
+                      onClick={props.onBack}
+                    />
+                  )}
+                  {/* NOT a heading: the page already has exactly one, and a
+                      second copy of the same words at a heading level would
+                      put the listing into the document outline twice. */}
+                  <span
+                    className={CONDENSED_TITLE_CLASS}
+                    data-testid="listings-detail-condensed-title"
+                  >
+                    {listing.title ?? ""}
+                  </span>
+                  {movable.slot(CLUSTER_BAR, "condensed-top")}
+                </div>
               );
+
+            const clusterLayer = !moving ? null : (
+              <>
+                {movable.render(readerActions)}
+                {/* NOT a slot with a silent absence: one of the two arms is
+                    the only thing that makes `moving` true, so this is
+                    unreachable without one, and an absent bar (the host's own
+                    `null`, or the title back on screen) is the answer that
+                    sends the cluster home. There is no hole to place a
+                    `<SlotPlaceholder>` in — the cluster is at its primary
+                    placement instead. */}
+                {hostBar && renderBar !== undefined
+                  ? renderBar(movable.slot(CLUSTER_BAR, "bar"))
+                  : condensedBar}
+              </>
+            );
 
             /* Element-width tiles: the grid decides how many fit, the
                photos fill them. */
-            const gallery = (
+            const galleryBox = (
               <div
+                ref={photo.ref}
                 data-testid="listings-detail-gallery"
+                data-gallery-active={String(photo.active)}
                 className={LISTINGS_GALLERY_CLASS}
                 // The layout is a CLASS and an attribute, not an inline
                 // `display`: a host with a shape neither arm offers can then
@@ -900,6 +1187,36 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   ))
                 )}
                 {placement === "gallery" ? homeActions : null}
+              </div>
+            );
+
+            /* "3 of 16" OVER THE STRIP, and it moves with the strip.
+               `aria-live="polite"` because it changes with no gesture a screen
+               reader would otherwise report — a finger scrolls the strip
+               natively and this line is the only announcement of the move.
+               The grid arm gets none of it: every photograph is on screen at
+               once there, and "1 of 3" over a grid of three is a control
+               panel for a picture that needs none.
+
+               It is a SIBLING of the strip inside a frame, never a child: in
+               this arm the strip is the scroll container, and an absolutely
+               positioned child of a scroller scrolls away with the content it
+               is supposed to be counting. See `detailGallery.ts`. */
+            const gallery = !strip ? (
+              galleryBox
+            ) : (
+              <div className={LISTINGS_GALLERY_FRAME_CLASS}>
+                {galleryBox}
+                <span
+                  className={LISTINGS_GALLERY_COUNTER_CLASS}
+                  data-testid="listings-detail-photo-counter"
+                  aria-live="polite"
+                >
+                  {t(LISTINGS_I18N_KEYS.cardPhotoCounter, {
+                    index: photo.active + 1,
+                    total: bag.images.length,
+                  })}
+                </span>
               </div>
             );
 
@@ -1029,9 +1346,42 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     </GatedButton>
                   </>
                 ) : (
-                  <div data-testid="listings-detail-contact">
-                    {props.contactSlot ?? <SlotPlaceholder name="contactSlot" />}
-                  </div>
+                  <Flex vertical gap={spacing[2]} style={{ minWidth: 0 }}>
+                    {/* ASK THE SELLER — above the door into the conversation,
+                        because that is what a pressed chip opens. Never on the
+                        owner's own page: the owner is the person being asked.
+
+                        See `onQuickQuestion` for why the press leaves this
+                        pair: chat-react's door takes no initial message, so a
+                        pane that "prefilled" one would be inventing a seam
+                        that does not exist on the other side. */}
+                    {quickQuestions.length === 0 ? null : (
+                      <Flex vertical gap={spacing[1]} data-testid="listings-detail-questions">
+                        <Typography.Text type="secondary">
+                          {t(LISTINGS_I18N_KEYS.detailAskSeller)}
+                        </Typography.Text>
+                        <Flex wrap gap={spacing[2]}>
+                          {quickQuestions.map((question) => (
+                            <Button
+                              key={question}
+                              size="small"
+                              data-testid="listings-detail-question"
+                              data-analytics="none"
+                              data-analytics-reason="business action — host app wraps with its own tracked()"
+                              onClick={() => {
+                                props.onQuickQuestion?.(question);
+                              }}
+                            >
+                              {question}
+                            </Button>
+                          ))}
+                        </Flex>
+                      </Flex>
+                    )}
+                    <div data-testid="listings-detail-contact">
+                      {props.contactSlot ?? <SlotPlaceholder name="contactSlot" />}
+                    </div>
+                  </Flex>
                 )}
 
                 {/* The reader's two actions live in the cluster now (see
@@ -1100,7 +1450,13 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               ) : split ? (
                 <ListingSpecColumns features={specFeatures} values={specValues} />
               ) : (
-                <ListingSpecList features={specFeatures} values={specValues} />
+                <ListingSpecList
+                  features={specFeatures}
+                  values={specValues}
+                  {...(props.characteristicsLimit !== undefined
+                    ? { limit: props.characteristicsLimit }
+                    : {})}
+                />
               );
 
             const specsSection = (
@@ -1162,6 +1518,62 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                 <div data-testid="listings-detail-aside">{props.aside}</div>
               ) : null;
 
+            /* THE TWO "FIND MORE" SECTIONS — see `<ListingRelatedStrip>` for
+               why the rows arrive from the host and are not read here.
+
+               The render prop wins over the rows for each strip separately: a
+               host may have a catalogue-link widget for "similar" and a plain
+               list of the seller's other listings, which is exactly the pair
+               the reference draws. Neither is rendered empty. */
+            const related: ListingRelatedContext = {
+              listingId: props.id,
+              ...(listing.category_id !== undefined && listing.category_id !== null
+                ? { categoryId: listing.category_id }
+                : { categoryId: undefined }),
+              ownerKey: listing.owner,
+              axes: bag.titleFeatures,
+            };
+            const strips = (
+              <>
+                {props.renderSimilar !== undefined ? (
+                  props.renderSimilar(related)
+                ) : (
+                  <ListingRelatedStrip
+                    heading={t(LISTINGS_I18N_KEYS.detailSimilar)}
+                    items={props.similar ?? []}
+                    testId="listings-detail-similar"
+                    {...(props.similarHref !== undefined
+                      ? { showAllHref: props.similarHref }
+                      : {})}
+                    {...(props.listingHref !== undefined
+                      ? { listingHref: props.listingHref }
+                      : {})}
+                    {...(props.linkComponent !== undefined
+                      ? { linkComponent: props.linkComponent }
+                      : {})}
+                  />
+                )}
+                {props.renderFromSeller !== undefined ? (
+                  props.renderFromSeller(related)
+                ) : (
+                  <ListingRelatedStrip
+                    heading={t(LISTINGS_I18N_KEYS.detailFromSeller)}
+                    items={props.fromSeller ?? []}
+                    testId="listings-detail-from-seller"
+                    {...(props.fromSellerHref !== undefined
+                      ? { showAllHref: props.fromSellerHref }
+                      : {})}
+                    {...(props.listingHref !== undefined
+                      ? { listingHref: props.listingHref }
+                      : {})}
+                    {...(props.linkComponent !== undefined
+                      ? { linkComponent: props.linkComponent }
+                      : {})}
+                  />
+                )}
+              </>
+            );
+
             if (!split) {
               // The single column. `"end"` is the order it has always read —
               // the host's aside joins where the footer's flow already is;
@@ -1182,6 +1594,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   {description}
                   {specsSection}
                   {meta}
+                  {strips}
                   {asideAfterActions ? null : aside}
                   {props.footer}
                   {clusterLayer}
@@ -1212,6 +1625,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     {description}
                     {specsSection}
                     {meta}
+                    {strips}
                     {props.footer}
                   </Flex>
                   {/* Sticky, so the actions ride along a page whose left

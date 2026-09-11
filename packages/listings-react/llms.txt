@@ -118,13 +118,14 @@ const { tracked } = useTracked();
 - listings.actions → <ListingActions> [default|blocked]  demo/ListingActions.demo.tsx
 - listings.card → <ListingCard> [default|saved|visitor|grid cell|list row|no-photo]  demo/ListingCard.demo.tsx
 - listings.composer → <ListingComposerPage> [default|unwired|photos-in-flight|unsupported-type]  demo/ListingComposer.demo.tsx
-- listings.detail → <ListingDetailPane> [default|contact-unwired|owner|not-found]  demo/ListingDetail.demo.tsx
+- listings.detail → <ListingDetailPane> [default|contact-unwired|owner|phone|not-found]  demo/ListingDetail.demo.tsx
 - listings.engagement-scope → <ListingEngagementScope> [default|unscoped|visitor|failed]  demo/ListingEngagementScope.demo.tsx
 - listings.favorites → <FavoritesPane> [default|paged|empty|failed|visitor]  demo/Favorites.demo.tsx
 - listings.feed-card → <ListingFeedCard> [default|tile|visitor|wide]  demo/ListingFeedCard.demo.tsx
 - listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|archived|failed]  demo/MyListings.demo.tsx
 - listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
 - listings.photo-strip → <ListingPhotoStrip> [default|single|no photos]  demo/ListingPhotoStrip.demo.tsx
+- listings.related → <ListingRelatedStrip> [default|no-link-out]  demo/ListingRelated.demo.tsx
 - listings.serp-card → <ListingSerpCard> [default|trend|visitor|desktop row|bare]  demo/ListingSerpCard.demo.tsx
 - listings.share → <ShareAction> [default|menu]  demo/Share.demo.tsx
 - listings.spec-parts → <CardBadges> [contract|legacy|specs|specs-split]  demo/ListingSpecParts.demo.tsx

@@ -157,6 +157,29 @@ export const LISTINGS_I18N_KEYS = {
   /** The owner's two primaries on their own listing page. */
   detailEdit: "listings.detail.edit",
   detailTakeDown: "listings.detail.take_down",
+  /** The condensed bar's back control. Icon-only, so this string IS the whole
+   * announcement — the bar has a glyph, the title and the two verbs, and a
+   * nameless arrow is the one of the four nothing can read. */
+  detailBack: "listings.detail.back",
+  /**
+   * "Ask the seller" — the caption over the canned questions.
+   *
+   * The chips underneath are DEFAULTS, not content: four questions every
+   * classified's buyers ask, in the pair's own three locales, which a host
+   * replaces wholesale through `quickQuestions`. A pair that shipped none
+   * would leave every deployment writing the same four sentences.
+   */
+  detailAskSeller: "listings.detail.ask_seller",
+  detailQuestionAvailable: "listings.detail.question_available",
+  detailQuestionPrice: "listings.detail.question_price",
+  detailQuestionViewing: "listings.detail.question_viewing",
+  detailQuestionDelivery: "listings.detail.question_delivery",
+  /** The two "find more" strips' captions — see `<ListingRelatedStrip>`. */
+  detailSimilar: "listings.detail.similar",
+  detailFromSeller: "listings.detail.from_seller",
+  /** One verb for three folds: the spec table past its limit, and either
+   * strip's link into the search that holds the rest of it. */
+  detailShowAll: "listings.detail.show_all",
 
   // ── composer ─────────────────────────────────────────────────────────────
   composeNewTitle: "listings.compose.new_title",
@@ -407,6 +430,15 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.views": "Views",
   "listings.detail.edit": "Edit listing",
   "listings.detail.take_down": "Take it down",
+  "listings.detail.back": "Back",
+  "listings.detail.ask_seller": "Ask the seller",
+  "listings.detail.question_available": "Is it still available?",
+  "listings.detail.question_price": "Is the price negotiable?",
+  "listings.detail.question_viewing": "Can I come and see it?",
+  "listings.detail.question_delivery": "Do you deliver?",
+  "listings.detail.similar": "Similar listings",
+  "listings.detail.from_seller": "More from this seller",
+  "listings.detail.show_all": "Show all",
 
   "listings.compose.new_title": "New listing",
   "listings.compose.edit_title": "Edit listing",

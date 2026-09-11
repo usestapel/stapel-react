@@ -158,6 +158,12 @@
           "step": "owner_live_edit_under_review"
         },
         {
+          "id": "phone",
+          "description": "The phone page the reference draws: strip gallery with its own counter, the four canned questions above the chat door, a folded spec list, and the similar / from-this-seller strips. The condensed top bar arrives once the title scrolls out of the fold.",
+          "viewport": "phone",
+          "step": "phone_full_page"
+        },
+        {
           "id": "not-found",
           "description": "No listing ever had this id — a different sentence from 'it was removed' and from 'we could not ask'.",
           "viewport": "desktop",
@@ -166,7 +172,7 @@
       ],
       "source": {
         "file": "demo/ListingDetail.demo.tsx",
-        "line": 74
+        "line": 100
       }
     },
     {
@@ -442,6 +448,36 @@
       "source": {
         "file": "demo/ListingPhotoStrip.demo.tsx",
         "line": 36
+      }
+    },
+    {
+      "id": "listings.related",
+      "title": "Find more",
+      "description": "The two sections a listing page ends with. They are separate because they answer different questions — 'what else is like this' and 'what else does this person sell' — and the reference classified draws both. Each strip is drawn only when it has rows: a heading over nothing reads as a section that failed to load, which is worse than no section.",
+      "component": "ListingRelatedStrip",
+      "covers": [
+        "ListingRelatedStrip"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Both sections on a phone: one and a half cards wide, so the next one peeks and the row says it scrolls, each with a link into the search it samples.",
+          "viewport": "phone",
+          "step": "both_strips"
+        },
+        {
+          "id": "no-link-out",
+          "description": "A host that named no search: the strip stands on its own rather than offering a 'show all' that goes nowhere.",
+          "viewport": "phone",
+          "step": "strip_without_show_all"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingRelated.demo.tsx",
+        "line": 69
       }
     },
     {
