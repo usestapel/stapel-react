@@ -535,7 +535,13 @@ describe("<PublicShell/> — phoneChrome=\"dock\"", () => {
 
     await waitFor(() => expect(screen.getByTestId("public-shell-browse")).toBeDefined());
     expect(screen.getByTestId("public-shell-brand")).toBeDefined();
-    expect(screen.getByTestId("public-shell-header").style.position).toBe("");
+    // Pinned — every header is, by default — but wearing NO phone chrome: the
+    // attribute the sheet's phone rung is hung on is absent above the
+    // breakpoint, which is the half of this claim the prop is about.
+    expect(screen.getByTestId("public-shell-header").style.position).toBe("sticky");
+    expect(
+      screen.getByTestId("public-shell-header").getAttribute("data-phone-chrome")
+    ).toBeNull();
     expect(screen.getByTestId("shell-theme-control")).toBeDefined();
     expect(screen.queryByTestId("nav-dock")).toBeNull();
   });
@@ -545,8 +551,14 @@ describe("<PublicShell/> — phoneChrome=\"dock\"", () => {
     render(wrap("/s", { searchSlot: <input aria-label="q" />, categorySlot: <span>Cars</span> }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Open menu" })).toBeDefined());
+    // The drawer chrome's own shape: two rows, the search field on the second.
+    // It is pinned like every other header now, which is a default and not a
+    // chrome — see `headerSticky`.
     expect(screen.getByTestId("public-shell-header").style.flexDirection).toBe("column");
-    expect(screen.getByTestId("public-shell-header").style.position).toBe("");
+    expect(screen.getByTestId("public-shell-header").style.position).toBe("sticky");
+    expect(
+      screen.getByTestId("public-shell-header").getAttribute("data-phone-chrome")
+    ).toBe("drawer");
     setViewportWidth(1440);
   });
 });

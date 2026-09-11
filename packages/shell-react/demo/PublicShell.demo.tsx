@@ -33,6 +33,8 @@ function Storefront(props: {
    * the page has moved. */
   headerSticky?: boolean | "desktop" | "phone";
   scrollFlag?: boolean;
+  /** The strip that appears under the header once the page has moved. */
+  chipRow?: boolean;
 }): ReactElement {
   return (
     <ShellFrame
@@ -55,6 +57,7 @@ function Storefront(props: {
             ? { headerSticky: props.headerSticky }
             : {})}
           {...(props.scrollFlag === true ? { headerScrollFlag: true } : {})}
+          {...(props.chipRow === true ? { scrolledChipRow: <CategoryStrip /> } : {})}
           footer={<StorefrontFooter />}
         />
       }
@@ -121,6 +124,13 @@ export default defineDemo({
       viewport: "desktop",
       step: "sticky-flagged",
       render: () => <Storefront headerSticky scrollFlag withAccount />,
+    },
+    "scrolled-chip-row": {
+      description:
+        "scrolledChipRow — the strip the reference classified keeps pinned under its phone search bar once a reader scrolls, and which this storefront had nowhere to put. On a phone the browse bar lives in a drawer or in the dock, so a thumb halfway down a feed could not change category without scrolling back to the top first: exactly the move a pinned header exists to spare it. Two conditions, and BOTH are the shell's: the page has moved past the same two-edge threshold headerScrollFlag publishes (passing this slot turns that observer on by itself), and the pointer is COARSE — a desk already carries these destinations in the browse bar above, permanently, and a second row of them appearing on scroll is chrome competing with chrome. So on the machine this catalogue is read on the strip is collapsed and correct; it is drawn open on a touch device, pinned under the header wherever the shell publishes --stapel-header-height. Which chips, and where they lead, stay the host's — the shell owns when the row is on screen and where it sits, never what is in it.",
+      viewport: "phone",
+      step: "chip-row",
+      render: () => <Storefront docked phoneChrome="dock" chipRow />,
     },
     badges: {
       description:

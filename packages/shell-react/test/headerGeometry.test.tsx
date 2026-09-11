@@ -31,6 +31,7 @@ import {
   HEADER_HEIGHT_DESKTOP,
   HEADER_HEIGHT_PHONE,
   HEADER_HEIGHT_VAR,
+  PUBLIC_CHIPS_CLASS,
   PUBLIC_HEADER_CLASS,
   PUBLIC_SHELL_CLASS,
   PublicShell,
@@ -169,7 +170,11 @@ describe("D449 — which rung wins is decided by order, not by an attribute", ()
     const css = publicShellCss();
     const out: { selector: string; inMedia: boolean }[] = [];
     for (const line of css.split("\n")) {
-      if (!line.includes(HEADER_HEIGHT_VAR)) continue;
+      // DECLARATIONS of the property, not readers of it: the chip row pins
+      // itself at `var(--stapel-header-height)` and takes no part in this
+      // cascade — a scan that counted `var(…)` uses would grow a failure here
+      // every time something else learned to pin under the header.
+      if (!line.includes(`${HEADER_HEIGHT_VAR}:`)) continue;
       const media = line.startsWith("@media");
       const body = media ? line.slice(line.indexOf("{") + 1) : line;
       const selector = body.slice(0, body.indexOf("{"));
@@ -247,17 +252,42 @@ describe("headerSticky", () => {
     return screen.getByTestId("public-shell-header").style.position;
   }
 
-  it("defaults to exactly what the shell did before it existed", () => {
+  it("pins BOTH sides by default, in either phone chrome", () => {
+    // The gap this default closes: a storefront pinned on a phone and
+    // `static` on a desktop, measured against a reference that pins both. The
+    // header IS the search field, so a desktop header that scrolls away turns
+    // "search again" into "scroll back to the top first".
     setViewportWidth(DESKTOP);
     render(wrap());
-    expect(headerPosition()).toBe("");
+    expect(headerPosition()).toBe("sticky");
+    expect(screen.getByTestId("public-shell-header").style.top).toBe("0px");
     cleanup();
     setViewportWidth(PHONE);
     render(wrap({ phoneChrome: "dock" }));
     expect(headerPosition()).toBe("sticky");
     cleanup();
     render(wrap());
-    expect(headerPosition()).toBe("");
+    expect(headerPosition()).toBe("sticky");
+  });
+
+  it("pins nothing in flow: the header still occupies its own row", () => {
+    // Why this is a default change and not a layout change. `position: sticky`
+    // leaves the box in flow — unlike `fixed`, which would take the header's
+    // height out of the page and pull every row up under it — so the height
+    // the header is drawn at is the height it still reserves.
+    setViewportWidth(DESKTOP);
+    render(wrap({ headerSticky: false }));
+    const loose = screen.getByTestId("public-shell-header").style.height;
+    cleanup();
+    render(wrap());
+    const pinned = screen.getByTestId("public-shell-header");
+    expect(pinned.style.height).toBe(loose);
+    expect(pinned.style.position).toBe("sticky");
+    // And the number both pinning pairs read is still published on the root,
+    // by the sheet, unchanged by this default.
+    expect(publicShellCss()).toContain(
+      `${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px`
+    );
   });
 
   it('pins the DESKTOP header with "desktop", and only there', () => {
@@ -663,5 +693,137 @@ describe("D458 — the sticky header's seam", () => {
     // Unpinned: no seam to paint, so the rules do not apply.
     render(wrap({ headerSticky: false }));
     expect(screen.getByTestId("public-shell-header").dataset["sticky"]).toBe("false");
+  });
+});
+
+/**
+ * THE SCROLLED CHIP ROW (§24, Surface 3).
+ *
+ * The reference classified's phone home keeps a horizontal category row pinned
+ * under its search bar once a reader scrolls; ours had none. On a storefront
+ * whose phone chrome is one row that is not decoration — the browse bar lives
+ * in a drawer or in the dock, so a thumb halfway down a feed had no way to
+ * change category without scrolling back to the top first.
+ *
+ * What the shell owns is WHEN the strip is on screen and WHERE it sits; which
+ * chips are in it is the host's. Those two facts are what is asserted here,
+ * plus the three properties that keep the row from being a liability: it never
+ * enters the header (two pairs pin against the header's published height), it
+ * is hidden from the keyboard while collapsed, and it is drawn for coarse
+ * pointers only.
+ */
+describe("scrolledChipRow", () => {
+  const chips = <span data-testid="host-chips">Cars · Phones · Flats</span>;
+
+  it("draws nothing at all when no host filled it", () => {
+    setViewportWidth(PHONE);
+    render(wrap());
+    expect(screen.queryByTestId("public-shell-chip-row")).toBeNull();
+    // And no observer either: the sentinel is a position in the page, and a
+    // page should not grow one for a strip nobody asked for.
+    expect(screen.queryByTestId("public-shell-scroll-sentinel")).toBeNull();
+  });
+
+  it("asking for the row turns the scroll observer on by itself", () => {
+    // A slot that silently needed `headerScrollFlag` switched on too would be
+    // a strip that never appears with nothing on screen saying why.
+    setViewportWidth(PHONE);
+    render(wrap({ scrolledChipRow: chips }));
+    const sentinel = screen.getByTestId("public-shell-scroll-sentinel");
+    expect(sentinel.dataset["scrollOn"]).toBe(
+      String(DEFAULT_HEADER_SCROLL_THRESHOLDS.on)
+    );
+    expect(sentinel.dataset["scrollOff"]).toBe(
+      String(DEFAULT_HEADER_SCROLL_THRESHOLDS.off)
+    );
+  });
+
+  it("keeps the host's own edges when it named them, for both readers", () => {
+    setViewportWidth(PHONE);
+    render(wrap({ scrolledChipRow: chips, headerScrollFlag: { on: 200, off: 40 } }));
+    const sentinel = screen.getByTestId("public-shell-scroll-sentinel");
+    expect(sentinel.dataset["scrollOn"]).toBe("200");
+    expect(sentinel.dataset["scrollOff"]).toBe("40");
+  });
+
+  it("starts collapsed, and says so where the sheet can see it", () => {
+    setViewportWidth(PHONE);
+    render(wrap({ scrolledChipRow: chips }));
+    const row = screen.getByTestId("public-shell-chip-row");
+    // Rendered — it collapses rather than unmounting, so the reveal has
+    // something to transition — and marked as not-yet-scrolled.
+    expect(row.dataset["scrolled"]).toBe("false");
+    expect(row.classList.contains(PUBLIC_CHIPS_CLASS)).toBe(true);
+    expect(screen.getByTestId("host-chips")).toBeDefined();
+  });
+
+  it("is never inside the header — the published height must stay the header's", () => {
+    setViewportWidth(PHONE);
+    render(wrap({ scrolledChipRow: chips, phoneChrome: "dock" }));
+    const header = screen.getByTestId("public-shell-header");
+    const row = screen.getByTestId("public-shell-chip-row");
+    expect(header.contains(row)).toBe(false);
+    // A strip inside the header would make `--stapel-header-height` a lie for
+    // `<SearchPage railTop>` and `<SearchResultsPane stickyToolbar>`, which
+    // both pin against it.
+    expect(row.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_PRECEDING).toBe(
+      Node.DOCUMENT_POSITION_PRECEDING
+    );
+  });
+
+  it("pins under the header only where the header itself is pinned", () => {
+    setViewportWidth(PHONE);
+    render(wrap({ scrolledChipRow: chips }));
+    expect(screen.getByTestId("public-shell-chip-row").dataset["sticky"]).toBe("true");
+    cleanup();
+    // An unpinned header has nothing for the row to pin under, so the sheet's
+    // rule is gated on the same fact the header's own seam rules are.
+    render(wrap({ scrolledChipRow: chips, headerSticky: false }));
+    expect(screen.getByTestId("public-shell-chip-row").dataset["sticky"]).toBe("false");
+  });
+
+  it("collapses to a grid row and hides itself from the keyboard while it is shut", () => {
+    const css = publicShellCss();
+    const row = `.${PUBLIC_CHIPS_CLASS}`;
+    // `0fr -> 1fr` is the collapse that animates to the content's OWN height:
+    // nobody knows how tall a host's chips are, and `max-height: 999px` spends
+    // most of the transition doing nothing visible.
+    expect(css).toContain(`${row}{display:grid;grid-template-rows:0fr;`);
+    expect(css).toContain(`${row}[data-scrolled="true"]{grid-template-rows:1fr;`);
+    // A `0fr` row with `overflow: hidden` is still focusable content at zero
+    // height — which is how a keyboard walk ends up inside a strip nobody can
+    // see. `visibility` is what actually takes it out.
+    expect(css).toContain("visibility:hidden");
+    expect(css).toContain("visibility:visible");
+    expect(css).toContain(
+      `@media (prefers-reduced-motion:reduce){${row}{transition:none}}`
+    );
+  });
+
+  it("is a coarse-pointer surface, decided by pointer and not by width", () => {
+    // A desktop carries the same destinations in the browse bar, permanently;
+    // a second row of them appearing on scroll is chrome competing with
+    // chrome. And the device this is for is "a thumb" — a 1280px tablet is
+    // one — so a width test would be the wrong question.
+    expect(publicShellCss()).toContain(
+      `@media (pointer:fine){.${PUBLIC_CHIPS_CLASS}{display:none}}`
+    );
+  });
+
+  it("pins at the published header height, wherever that number exists", () => {
+    const css = publicShellCss();
+    const row = `.${PUBLIC_CHIPS_CLASS}[data-sticky="true"]`;
+    // The same two rungs that DECLARE the height, in the same order — the
+    // desktop one last, so a desk width wins over the dock rung exactly the
+    // way the height itself does (D449).
+    expect(css).toContain(
+      `.${PUBLIC_SHELL_CLASS}:where([data-phone-chrome="dock"]) ${row}` +
+        `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}`
+    );
+    expect(css).toContain(
+      `@media (min-width:${String(breakpoints.desktop)}px){` +
+        `.${PUBLIC_SHELL_CLASS} ${row}` +
+        `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}}`
+    );
   });
 });

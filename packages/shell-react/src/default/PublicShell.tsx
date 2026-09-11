@@ -152,6 +152,18 @@ export const PUBLIC_SHELL_CLASS = "stapel-public-shell";
  */
 export const PUBLIC_HEADER_CLASS = "stapel-public-shell-header";
 
+/**
+ * The class the SCROLLED CHIP ROW carries — see
+ * {@link PublicShellProps.scrolledChipRow}.
+ *
+ * Everything about that row that cannot be written inline is written against
+ * this class: the collapse (a grid row that goes from `0fr` to `1fr`, which is
+ * the one way to transition to a height nobody has measured), the transition
+ * itself, the media query that keeps it to coarse pointers, and the pin under
+ * the header wherever {@link HEADER_HEIGHT_VAR} is declared.
+ */
+export const PUBLIC_CHIPS_CLASS = "stapel-public-shell-chips";
+
 /** The `href` the hoisted shell sheet is deduplicated by (React 19). */
 export const PUBLIC_SHELL_STYLE_HREF = "stapel-public-shell";
 
@@ -255,10 +267,49 @@ export const HEADER_HEIGHT_VAR = "--stapel-header-height";
 export function publicShellCss(): string {
   const shell = `.${PUBLIC_SHELL_CLASS}`;
   const header = `.${PUBLIC_HEADER_CLASS}[data-sticky="true"]`;
+  const chips = `.${PUBLIC_CHIPS_CLASS}`;
   return [
     `${shell}:where([data-phone-chrome="dock"]){${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_PHONE)}px}`,
     `@media (min-width:${String(breakpoints.desktop)}px){` +
       `${shell}{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px}}`,
+    // ── The scrolled chip row ────────────────────────────────────────────────
+    //
+    // A GRID ROW, not a height. The row holds a host's chips and nobody knows
+    // how tall they are — `max-height: 999px` is the trick that makes a
+    // collapse take 400ms of nothing first — so the collapse is
+    // `grid-template-rows: 0fr -> 1fr`, which animates to the content's OWN
+    // height with no number in it. The child needs `min-block-size: 0` or the
+    // grid refuses to shrink it below its content.
+    //
+    // Hidden means HIDDEN. `visibility` (transitioned as a discrete property,
+    // so it flips at the end of the collapse and at the start of the reveal)
+    // is what keeps a collapsed row out of the tab order and off a screen
+    // reader — a `0fr` row with `overflow: hidden` is still focusable content
+    // at zero height, which is how a keyboard walk ends up inside a strip
+    // nobody can see.
+    `${chips}{display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;` +
+      `transition:grid-template-rows 160ms ease-out,opacity 160ms ease-out,` +
+      `visibility 160ms}`,
+    `${chips}>*{min-block-size:0;overflow:hidden}`,
+    `${chips}[data-scrolled="true"]{grid-template-rows:1fr;opacity:1;` +
+      `visibility:visible}`,
+    // COARSE POINTERS ONLY, and the rule is a media query rather than a
+    // render: the row exists because a thumb has no browse bar to go back to,
+    // and a desktop already carries the categories in one. A width test would
+    // be the wrong question — a 1280px tablet is the device this is for.
+    `@media (pointer:fine){${chips}{display:none}}`,
+    // Pinned under the header exactly where the header's height is a number —
+    // the same two rungs that declare it above, in the same order, so a desk
+    // width wins over the dock rung the way the height itself does. Where the
+    // property is undeclared (a phone in `"drawer"`, whose header wraps to a
+    // second line and is `height: auto`) the row scrolls with the page rather
+    // than pinning at an offset nobody computed.
+    `${shell}:where([data-phone-chrome="dock"]) ${chips}[data-sticky="true"]` +
+      `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}`,
+    `@media (min-width:${String(breakpoints.desktop)}px){` +
+      `${shell} ${chips}[data-sticky="true"]` +
+      `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}}`,
+    `@media (prefers-reduced-motion:reduce){${chips}{transition:none}}`,
     `${header}{transition:box-shadow 120ms ease-out}`,
     `${header}::before{content:"";position:absolute;inset-inline:0;` +
       `inset-block-start:-1px;block-size:1px;background:inherit;` +
@@ -484,17 +535,32 @@ export interface PublicShellProps {
   /**
    * Does the header STAY at the top of the window while the page scrolls?
    *
-   * Omitted, the answer is the one this shell has always given: sticky in
-   * `phoneChrome="dock"` and nowhere else. That is an inconsistency inside one
-   * app before it is a gap against anything else — a storefront pinned on a
-   * phone and `static` on a desktop — and the only way a host could settle it
-   * was a sheet rule over `[data-testid="public-shell-header"]`, i.e. a
-   * geometry decision taken outside the component that owns the geometry.
+   * DEFAULT `true` — both sides — and the default is the fix.
+   *
+   * It used to be "sticky in `phoneChrome="dock"` and nowhere else", which was
+   * an inconsistency inside one app before it was a gap against anything else:
+   * the same storefront pinned on a phone and `static` on a desktop. Measured
+   * against the reference classified (§24, Surface 3, ranked first), whose
+   * header is pinned on both, and the consequence is not cosmetic — the header
+   * IS the search field, so a desktop header that scrolls away turns "search
+   * again" into "scroll back to the top first" from anywhere down a feed. The
+   * only way a host could settle it was a sheet rule over
+   * `[data-testid="public-shell-header"]`, i.e. a geometry decision taken
+   * outside the component that owns the geometry. Default skins are the
+   * product (§83): a storefront should not have to opt into the behaviour
+   * every storefront has.
+   *
+   * NOTHING MOVES WHEN IT PINS. `position: sticky` leaves the box in flow, so
+   * the header still occupies the row it occupied and no content shifts under
+   * it — which is why this is a default change and not a layout change. The
+   * height that row is worth is published as {@link HEADER_HEIGHT_VAR} for the
+   * two pairs that pin against it.
    *
    *  - `"desktop"` — sticky at and above `breakpoints.desktop`, and NOT below.
    *  - `"phone"` — sticky below it (what `"dock"` already did), and not on a
    *    desktop.
-   *  - `true` — both. `false` — neither, including the dock chrome's.
+   *  - `true` — both (the default). `false` — neither, including the dock
+   *    chrome's, for a host whose own chrome owns the top edge.
    *
    * Sticky brings its own two declarations with it: the header's `background`
    * is the theme's container token (content passing under it is covered on
@@ -570,6 +636,55 @@ export interface PublicShellProps {
    * silently never fires.
    */
   readonly headerScrollFlag?: boolean | HeaderScrollThresholds;
+  /**
+   * A strip that appears UNDER THE HEADER once the page has moved — the
+   * host's category chips, on a phone.
+   *
+   * ── The gap ───────────────────────────────────────────────────────────────
+   *
+   * The reference classified's phone home keeps a horizontal category row
+   * pinned under its search bar from the moment a reader scrolls (§24, Surface
+   * 3); ours had none at all. That is not decoration on a storefront whose
+   * phone chrome is one row: the browse bar lives in a drawer or in the dock,
+   * so a thumb halfway down a feed has no way to change category without
+   * scrolling back to the top first — exactly the move a pinned header exists
+   * to spare it.
+   *
+   * ── What the shell owns, and what it does not ─────────────────────────────
+   *
+   * WHICH chips, in what order, and where they lead is product knowledge, so
+   * this is a slot and not a built-in strip — the same rule `categorySlot`
+   * follows one bar up. What the shell owns is WHEN it is on screen and WHERE
+   * it sits:
+   *
+   *  - WHEN: the same scroll fact `headerScrollFlag` publishes, from the same
+   *    single `IntersectionObserver` sentinel — never a `scroll` listener,
+   *    which runs on every frame of a feed of photographs. Passing this slot
+   *    turns the observer on by itself, with
+   *    {@link DEFAULT_HEADER_SCROLL_THRESHOLDS}'s two edges, so a rubber-band
+   *    at the top of the page cannot make the strip flicker; a host that also
+   *    passes `headerScrollFlag` keeps its own edges for both.
+   *  - WHERE: below the header, pinned under it wherever the shell publishes
+   *    {@link HEADER_HEIGHT_VAR} (a desktop width, or a phone in
+   *    `phoneChrome="dock"`). It is never inside the header, which would make
+   *    the published height a lie the two pairs pinning against it would
+   *    inherit.
+   *
+   * ── Coarse pointers only ──────────────────────────────────────────────────
+   *
+   * A desktop carries the same destinations in the browse bar under the
+   * header, permanently; a second row of them appearing on scroll would be
+   * chrome competing with chrome. The rule is `@media (pointer: fine)` in the
+   * shell's own sheet rather than a width test, because the device this is for
+   * is "a thumb", and a 1280px tablet is one.
+   *
+   * It collapses rather than unmounting — a grid row from `0fr` to the
+   * content's own height, 160ms, none at all under
+   * `prefers-reduced-motion: reduce` — and a collapsed strip is
+   * `visibility: hidden`, so it is out of the tab order and off a screen
+   * reader instead of being focusable content at zero height.
+   */
+  readonly scrolledChipRow?: ReactNode;
   /**
    * Draw the header's HOME affordance in `phoneChrome="dock"`. Default `true`.
    *
@@ -698,13 +813,13 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   /*
    * ── Is the header pinned? ─────────────────────────────────────────────────
    *
-   * The default arm is the shell's own history, kept byte-identical: sticky in
-   * the dock chrome and nowhere else. Everything below it is the host saying
-   * so, per side of the desktop edge.
+   * BOTH SIDES unless a host says otherwise — see `headerSticky`, where the
+   * measurement behind the default is. Everything below the first arm is the
+   * host naming a side of the desktop edge.
    */
   const stickyHeader =
     props.headerSticky === undefined
-      ? dockChrome
+      ? true
       : props.headerSticky === "desktop"
         ? isDesktop
         : props.headerSticky === "phone"
@@ -718,7 +833,26 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // every parent render, and re-fire the flag with them.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const thresholds = headerScrollThresholds(props.headerScrollFlag);
+  /*
+   * TWO READERS OF ONE FACT, and only one of them is a prop.
+   *
+   * `headerScrollFlag` asks for the ATTRIBUTE — `data-scrolled` on the header,
+   * a hook a brand hangs a hairline on — and `flagAsked` is that request. The
+   * chip row reads the same fact to know whether it is on screen, so asking
+   * for a chip row asks for the OBSERVER: a slot that silently needed a second
+   * prop switched on would be a strip that never appears with nothing on
+   * screen saying why.
+   *
+   * A host that named its own edges keeps them for both — there is one fact
+   * here, and two sets of thresholds for it would be two answers to "has the
+   * page moved". A host that said `headerScrollFlag={false}` and passed a chip
+   * row gets the row and no attribute, which is exactly what it asked for.
+   */
+  const flagAsked = headerScrollThresholds(props.headerScrollFlag);
+  const chipRow = props.scrolledChipRow;
+  const thresholds =
+    flagAsked ??
+    (chipRow !== undefined ? DEFAULT_HEADER_SCROLL_THRESHOLDS : null);
   const scrollFlag = thresholds !== null;
   const flagOn = thresholds?.on ?? 0;
   const flagOff = thresholds?.off ?? 0;
@@ -1014,7 +1148,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         /* The compositing layer is OPT-IN — see `headerLayer`. Absent rather
            than `"false"`: nothing may match on it by accident. */
         data-layer={props.headerLayer === true ? "true" : undefined}
-        data-scrolled={scrollFlag ? (scrolled ? "true" : "false") : undefined}
+        data-scrolled={flagAsked !== null ? (scrolled ? "true" : "false") : undefined}
         style={{
           display: "flex",
           alignItems: isDesktop || dockChrome ? "center" : "stretch",
@@ -1033,7 +1167,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
               ? HEADER_HEIGHT_PHONE
               : "auto",
           lineHeight: 1,
-          // Sticky in dock mode by default, and wherever `headerSticky` says.
+          // Pinned on both sides by default, and wherever `headerSticky` says.
           // With the sheet gone the header is the only way back to search from
           // halfway down a feed, and a header that scrolls away turns "search
           // again" into "scroll to the top first". The background is the
@@ -1074,6 +1208,36 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           </>
         )}
       </Layout.Header>
+
+      {/* THE SCROLLED CHIP ROW — below the header and never inside it, so the
+          published header height stays the height of the header (two pairs pin
+          against that number). Everything about how it appears is in the sheet
+          — see `publicShellCss` and `scrolledChipRow`: the collapse, the
+          coarse-pointer rule, and the pin under the header wherever the height
+          is a number. Here there are only the two facts: whether the page has
+          moved, and whether the header above it is pinned at all — an unpinned
+          header has nothing for this row to pin under. */}
+      {chipRow !== undefined && (
+        <div
+          className={PUBLIC_CHIPS_CLASS}
+          data-testid="public-shell-chip-row"
+          data-scrolled={scrolled ? "true" : "false"}
+          data-sticky={stickyHeader ? "true" : "false"}
+          style={{
+            background: token.colorBgContainer,
+            borderBottom: `1px solid ${token.colorSplit}`,
+            // Under the header, over the page that slides beneath it. The
+            // header keeps `zIndexPopupBase` and is earlier in the DOM, so one
+            // step down is what keeps the two in the order they are drawn in
+            // while still clearing the content that comes after.
+            zIndex: token.zIndexPopupBase - 1,
+          }}
+        >
+          <div style={{ padding: `${String(spacing[2])}px ${PAGE_GUTTER_CSS}` }}>
+            {chipRow}
+          </div>
+        </div>
+      )}
 
       {isDesktop && hasBrowse && (
         <Flex
