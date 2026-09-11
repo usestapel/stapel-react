@@ -74,21 +74,58 @@ describe("the timer is the server's", () => {
 });
 
 describe("the controls", () => {
+  /**
+   * `aria-pressed` FLIPS AFTER THE ROOM ANSWERS, AND EVERY READ OF IT — OR OF
+   * `micOn` THROUGH IT — HAS TO WAIT FOR THAT ANSWER, NOT JUST FOR THE CALL.
+   *
+   * `toggleMic` awaits `setMicrophoneEnabled`, THEN calls `setMicOn` outside
+   * `act`, so the pressed state lands one tick behind the call itself. Two
+   * places in this test read that state early:
+   *
+   * - The old wait before the click watched the MOCK CALL from the mount's
+   *   auto-publish, which happens synchronously inside the effect, before
+   *   its own await ever yields — it says nothing about whether `micOn` has
+   *   actually flipped to `true` yet. Click before it has, and `toggleMic`
+   *   computes `next` off the STALE `micOn`, calling the room with `true`
+   *   again instead of `false`.
+   * - The final assert then read `aria-pressed` the same way, racing the
+   *   click's own resolution.
+   *
+   * Both reads now wait for the VALUE they actually depend on — the mount's
+   * committed pressed state before clicking, the click's committed pressed
+   * state after — exactly as strict as before. And the double resolves off
+   * a task of its own, the way a real room's device negotiation does, so
+   * the race is observable locally instead of only on a slow CI runner.
+   */
   it("mutes and unmutes through the room", async () => {
-    const media = room();
+    const media = room({
+      localParticipant: {
+        setMicrophoneEnabled: vi.fn(
+          () => new Promise<void>((resolve) => setTimeout(resolve, 0))
+        ),
+        setCameraEnabled: vi.fn().mockResolvedValue(undefined),
+      },
+    });
     draw({ room: media });
     // The panel publishes the microphone on mount — see `autoPublish`. The
     // toggle is what MUTES it afterwards, which is the gesture this asserts.
+    // Waiting for the PRESSED STATE (not just the mock call) is what proves
+    // the mount's `setMicOn(true)` has actually committed before the click
+    // reads `micOn` to decide its own `next`.
     await waitFor(() => {
-      expect(media.localParticipant?.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+      expect(screen.getByTestId("video-call-mic").getAttribute("aria-pressed")).toBe(
+        "false"
+      );
     });
     fireEvent.click(screen.getByTestId("video-call-mic"));
     await waitFor(() => {
       expect(media.localParticipant?.setMicrophoneEnabled).toHaveBeenCalledWith(false);
     });
-    expect(screen.getByTestId("video-call-mic").getAttribute("aria-pressed")).toBe(
-      "true"
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId("video-call-mic").getAttribute("aria-pressed")).toBe(
+        "true"
+      );
+    });
   });
 
   it("does not fire twice on a double tap", async () => {
