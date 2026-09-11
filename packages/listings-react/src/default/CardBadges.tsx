@@ -49,6 +49,46 @@ export interface CardBadgesProps {
 /** The separator of a spec line — the one every classified uses. */
 const LINE_SEPARATOR = " · ";
 
+/** The class the spec line's own box carries. */
+export const CARD_SPEC_LINE_CLASS = "stapel-listing-spec-line";
+/** The class the spec line's TEXT carries — see {@link cardSpecLineCss}. */
+export const CARD_SPEC_TEXT_CLASS = "stapel-listing-spec-line-text";
+/** The `href` the hoisted spec-line stylesheet is deduplicated by. */
+export const CARD_SPEC_STYLE_HREF = "stapel-listings-card-spec-line";
+
+/**
+ * THE SPEC LINE TRUNCATES, AND THE THING THAT TRUNCATES IS THE THING THAT
+ * HOLDS THE TEXT.
+ *
+ * `<Typography.Text ellipsis>` writes `overflow:hidden`, `white-space:nowrap`
+ * and `text-overflow:ellipsis` on ITSELF, and the text inside it is a separate
+ * `<span>` — the badge row's own element. An inline span lays out at its
+ * natural width regardless of what its parent clips, so the line was drawn
+ * correctly (the overflow is hidden) over a box that is wrong: the stand's
+ * tidiness probe measured `listings-card-specs-text` 57px wider than the
+ * element it sits in. A box that reports a width nothing on screen has is a
+ * defect whether or not a pixel of it is visible — it is what a container
+ * measuring the card, a sticky-header calculation or the next layout rule
+ * reads.
+ *
+ * So the truncation moves ONTO the span. The line becomes a flex container
+ * and the span a flex child with `min-inline-size: 0`, which is the
+ * declaration that lets a flex child shrink below its content at all — without
+ * it `min-width:auto` keeps the box at the text's natural width and every
+ * other rule here is decoration.
+ *
+ * A sheet rather than inline styles because the span is rendered by
+ * `<CardBadges>` and the box by antd, and an inline style cannot reach a
+ * child.
+ */
+export function cardSpecLineCss(): string {
+  return [
+    `.${CARD_SPEC_LINE_CLASS}{display:flex;min-inline-size:0}`,
+    `.${CARD_SPEC_TEXT_CLASS}{flex:1 1 auto;min-inline-size:0;` +
+      `overflow:hidden;white-space:nowrap;text-overflow:ellipsis}`,
+  ].join("");
+}
+
 export function CardBadges(props: CardBadgesProps): ReactElement | null {
   const { locale } = useI18n();
   const rows = props.rows as readonly CardBadgeRow[];
@@ -62,7 +102,10 @@ export function CardBadges(props: CardBadgesProps): ReactElement | null {
     if (printed.length === 0) return null;
     if (props.variant === "line") {
       return (
-        <span data-testid={props.testId ?? "listings-card-badges"}>
+        <span
+          className={CARD_SPEC_TEXT_CLASS}
+          data-testid={props.testId ?? "listings-card-badges"}
+        >
           {printed.map((one) => one.text).join(LINE_SEPARATOR)}
         </span>
       );
@@ -100,8 +143,26 @@ export function CardSpecLine(props: {
 }): ReactElement | null {
   if (props.rows.length === 0) return null;
   return (
-    <Typography.Text type="secondary" ellipsis data-testid={props.testId}>
-      <CardBadges rows={props.rows} copy={props.copy} variant="line" testId={`${props.testId}-text`} />
-    </Typography.Text>
+    <>
+      <style href={CARD_SPEC_STYLE_HREF} precedence="default">
+        {cardSpecLineCss()}
+      </style>
+      {/* `ellipsis` stays: it is what antd's own secondary text looks like
+          when it truncates, and the sheet above moves the clipping onto the
+          span that actually holds the words. */}
+      <Typography.Text
+        type="secondary"
+        ellipsis
+        className={CARD_SPEC_LINE_CLASS}
+        data-testid={props.testId}
+      >
+        <CardBadges
+          rows={props.rows}
+          copy={props.copy}
+          variant="line"
+          testId={`${props.testId}-text`}
+        />
+      </Typography.Text>
+    </>
   );
 }

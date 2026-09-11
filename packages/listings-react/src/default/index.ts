@@ -92,6 +92,15 @@ export {
   useGalleryPosition,
 } from "./detailGallery.js";
 export type { GalleryPosition, ListingGalleryLayout } from "./detailGallery.js";
+// The listing page's block rhythm: the reset that keeps a child's own margin
+// out of the column's gap, and the section rule's own token spacing.
+export {
+  DETAIL_RHYTHM_CLASS,
+  DETAIL_RHYTHM_STYLE_HREF,
+  DETAIL_RULE_CLASS,
+  DETAIL_RULE_SPACE,
+  detailRhythmCss,
+} from "./detailRhythm.js";
 // The condensed top bar the pane draws for `actionsPlacement="condensed-top"`
 // — its classes and sheet, so a container retunes the geometry with a selector
 // rather than `!important` over a pair's own.
@@ -153,7 +162,14 @@ export {
   specListCss,
 } from "./ListingSpecList.js";
 export type { ListingSpecListProps } from "./ListingSpecList.js";
-export { CardBadges, CardSpecLine } from "./CardBadges.js";
+export {
+  CardBadges,
+  CardSpecLine,
+  CARD_SPEC_LINE_CLASS,
+  CARD_SPEC_STYLE_HREF,
+  CARD_SPEC_TEXT_CLASS,
+  cardSpecLineCss,
+} from "./CardBadges.js";
 export type { CardBadgesProps } from "./CardBadges.js";
 
 // ── the card gallery's two gestures ─────────────────────────────────────────

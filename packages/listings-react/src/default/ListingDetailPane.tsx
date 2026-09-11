@@ -153,6 +153,12 @@ import {
 import type { ListingGalleryLayout } from "./detailGallery.js";
 import { useMovableCluster } from "./movableCluster.js";
 import {
+  DETAIL_RHYTHM_CLASS,
+  DETAIL_RHYTHM_STYLE_HREF,
+  DETAIL_RULE_CLASS,
+  detailRhythmCss,
+} from "./detailRhythm.js";
+import {
   CONDENSED_BAR_CLASS,
   CONDENSED_BAR_STYLE_HREF,
   CONDENSED_TITLE_CLASS,
@@ -888,7 +894,19 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
       }}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
-      <Flex vertical gap={spacing[4]} data-testid="listings-detail">
+      {/* THE PAGE'S RHYTHM IS THE COLUMN'S — see `detailRhythm.ts`. Half the
+          children here are antd components carrying outer margins of their
+          own, and a margin and a gap ADD: the stand measured 111, 53, 42, 29
+          and 27 pixels inside a column that declares 16. */}
+      <style href={DETAIL_RHYTHM_STYLE_HREF} precedence="default">
+        {detailRhythmCss()}
+      </style>
+      <Flex
+        vertical
+        gap={spacing[4]}
+        className={DETAIL_RHYTHM_CLASS}
+        data-testid="listings-detail"
+      >
         {bag.removed ? (
           <ErrorAlert
             testId="listings-detail-removed"
@@ -1590,7 +1608,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   {buyBox}
                   {actionError}
                   {asideAfterActions ? aside : null}
-                  <Divider />
+                  <Divider className={DETAIL_RULE_CLASS} />
                   {description}
                   {specsSection}
                   {meta}
@@ -1618,10 +1636,15 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     alignItems: "start",
                   }}
                 >
-                  <Flex vertical gap={spacing[4]}>
+                  <Flex
+                    vertical
+                    gap={spacing[4]}
+                    className={DETAIL_RHYTHM_CLASS}
+                    data-testid="listings-detail-reading-column"
+                  >
                     {gallery}
                     {heading}
-                    <Divider />
+                    <Divider className={DETAIL_RULE_CLASS} />
                     {description}
                     {specsSection}
                     {meta}
@@ -1636,6 +1659,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   <Flex
                     vertical
                     gap={spacing[3]}
+                    className={DETAIL_RHYTHM_CLASS}
                     data-testid="listings-detail-buy-column"
                     style={{
                       position: "sticky",

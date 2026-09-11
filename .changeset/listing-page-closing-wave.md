@@ -75,3 +75,44 @@ crossings.
 
 The `/default` size budget is raised 31 → 33 KB (measured 31.84) — the note in
 `package.json` says what was bought and what was measured against what.
+
+**And the page's own rhythm, which was the sum of two systems.** The stand's
+tidiness probe measured the gaps INSIDE `<ListingDetailPane>`'s column at 1440
+and 390: 111.05, 53.59, 42.39, 29 and 27 pixels, in a container that declares
+16 (12 in the buy column). Five distances, none of them chosen. A flex `gap`
+governs only the space a container puts BETWEEN its children, and half the
+children here are antd components carrying an outer margin of their own —
+`<Divider>` 24 above and 24 below, `<Typography.Title>` its level's
+margin-block-start, `<Typography.Paragraph>` about a line — and a margin and a
+gap add.
+
+`detailRhythm.ts` is the answer, and it is deliberately the same three-line
+answer `@stapel/categories-react`'s `blockRhythm.ts` gives a catalogue page:
+`margin-block: 0` on every direct child of each of the pane's three block
+columns (the page column, and the split layout's reading and buy columns). The
+section rule is the one exception, because a horizontal rule is a BREAK and
+not a block: `DETAIL_RULE_CLASS` gives it one token step on each side
+(`DETAIL_RULE_SPACE`, `spacing[2]`), so the break lands at `gap + step` and the
+number is a decision rather than whatever antd's 24 summed to. Specificity, not
+`!important`: `.column > .rule` beats `.column > *`, and a host can still
+out-specify both.
+
+**The card's spec line was a correct picture over a wrong box.**
+`listings-card-specs-text` measured 57px wider than the element it sits in.
+`<Typography.Text ellipsis>` clips on ITSELF and the badge row's `<span>` is a
+separate inline box that lays out at its natural width regardless — so the
+overflow was hidden and the geometry was still wrong, which is what a container
+measuring the card reads. The line is a flex container now and the span a flex
+child with `min-inline-size: 0` — the declaration without which a flex item
+stays pinned at `min-width: auto` and every other rule is decoration — with the
+`overflow`/`white-space`/`text-overflow` moved onto the span that holds the
+words.
+
+`test/detailRhythm.tsx` enumerates every direct child of each column and
+asserts the reset's selector matches it (jsdom resolves no `margin-block` from
+a sheet, so the claim is the scope plus the absence of any inline margin that
+would beat it), and `test/cardSpecLineBox.tsx` asserts the flex child and its
+`min-inline-size`. Both were red before: four of the eight assertions fail with
+the classes removed.
+
+No budget change: `/default` measures 31.98 of 33.
