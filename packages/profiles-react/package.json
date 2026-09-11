@@ -61,19 +61,19 @@
       "limit": "12 KB"
     },
     {
-      "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + full ru UI incl. plural families)",
+      "name": "i18n/ru subpath (opt-in locale: en floor + generated ru + full ru UI incl. plural families). 5.5 -> 7.5 KB with the contacts wave (0.24): a seller's contacts screen and the Show-phone button are ~60 pair-owned keys with two plural families, and the en floor rides under every locale by the merge-priority convention, so each locale pays for the keys twice by design",
       "path": "dist/i18n/ru.js",
-      "limit": "5.5 KB"
+      "limit": "7.5 KB"
     },
     {
-      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors + full es UI)",
+      "name": "i18n/es subpath (opt-in locale: en floor + generated es errors + full es UI). 4.5 -> 6.2 KB for the same contacts keys as ru; Spanish is smaller than Russian at the same coverage because its plural families carry two categories where Russian carries four",
       "path": "dist/i18n/es.js",
-      "limit": "4.5 KB"
+      "limit": "6.2 KB"
     },
     {
-      "name": "default — the whole skin (settings + the social half), antd, out of the main bundle",
+      "name": "default — the whole skin (settings + the social half + the contacts half), antd, out of the main bundle. 16 -> 17.5 KB with <ContactsManager/> and <RevealPhoneButton/> (0.24): two screens, one of them a full CRUD list with a verify flow inside it",
       "path": "dist/default/index.js",
-      "limit": "16 KB"
+      "limit": "17.5 KB"
     }
   ],
   "peerDependencies": {

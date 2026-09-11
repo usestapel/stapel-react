@@ -16,6 +16,9 @@
  *    `<ProfileSettings/>` by default, so a host picks: one page with three
  *    sections (leave these submenu entries hidden, or pass
  *    `showLanguage={false}` / `showNotifications={false}` and use them).
+ *  - `profiles.contacts` — the seller's own phone numbers: the one screen of
+ *    this pair that `<ProfileSettings/>` does NOT compose, so it carries its
+ *    own visible submenu entry.
  *  - `profiles.connections` — the caller's own followers / following /
  *    blocked lists. Nine backend operations reached no control before it.
  *  - `profiles.public` — `/u/:userId`, the "look at somebody" screen. Not a
@@ -69,6 +72,23 @@ export const navEntries: readonly NavEntry[] = [
     menuVisibleDefault: false,
     requiresAuth: true,
     order: 30,
+  },
+  {
+    id: "profiles.contacts",
+    labelKey: "profiles.nav.contacts",
+    // Wants PhoneOutlined — not in `@stapel/shell-react`'s registry either, so
+    // it borrows the same registered neighbour the note above describes.
+    icon: "MessageOutlined",
+    route: { path: "contacts" },
+    component: { export: "ContactsManager", subpath: "default" },
+    placement: { level: "submenu", parentId: "profiles.settings" },
+    // Visible by default, UNLIKE its two neighbours: `<ProfileSettings/>` does
+    // not compose this screen (a seller's phone numbers are not a preference
+    // among preferences — they are published data with a policy on each row),
+    // so with the entry hidden the manager would have no door at all.
+    menuVisibleDefault: true,
+    requiresAuth: true,
+    order: 40,
   },
   {
     id: "profiles.connections",

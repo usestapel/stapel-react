@@ -43,6 +43,62 @@
       }
     },
     {
+      "id": "profiles.contacts-skin",
+      "title": "Seller contacts (skin)",
+      "description": "The owner's contacts screen and the viewer's Show-phone button. A number is masked to its last two digits until its owner asks to see it, an unverified number says out loud that it reaches nobody, the policy picker is built from the vocabulary the server sent, and the hand-over counters are counts with no names in them. On the viewer's side a 200 replaces the button with tel: links in place (never cached, never stored), a 403 states that an account is required and renders the host's registration door, and a 429 says how many minutes to wait.",
+      "component": "ContactsManager",
+      "covers": [
+        "RevealPhoneButton"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "manager",
+          "description": "Two numbers: one confirmed and handed over 128 times, one still unverified with its verify flow beside it.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "manager-empty",
+          "description": "No numbers yet — the empty state says what adding one is for, and the add form is the only control on the screen.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "reveal",
+          "description": "The viewer's button before the ask. Pressing it replaces the button with the seller's numbers as tel: links with a copy control each.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
+          "id": "registration",
+          "description": "A guest or a signed-out visitor: the ask answers 403, the sentence says an account is needed, and the host's registration door stands beside it.",
+          "viewport": "phone",
+          "step": "registration"
+        },
+        {
+          "id": "budget",
+          "description": "Over the hourly budget: the wire says retry_after in seconds and the sentence says minutes.",
+          "viewport": "phone",
+          "step": "budget"
+        },
+        {
+          "id": "no-phone",
+          "description": "The seller's public profile says there is no number to ask for: the control is switched off WITH its reason beside it, not greyed out in silence.",
+          "viewport": "phone",
+          "step": "unavailable"
+        }
+      ],
+      "source": {
+        "file": "demo/ContactsSkin.demo.tsx",
+        "line": 117
+      }
+    },
+    {
       "id": "profiles.initial-setup-skin",
       "title": "First run (skin)",
       "description": "The first-run prompt: display name, theme and app language in the same row canon the settings screen uses, committed in ONE PATCH carrying initial_setup_passed. Save states why it is off, as text beside it, because a disabled button fires no pointer events and a tooltip there is a reason nobody can read.",

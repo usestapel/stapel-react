@@ -16,9 +16,13 @@ export type { Schemas } from "./api/types.js";
 // The avatar descriptor, narrowed to what `<Image>` consumes — the one repair
 // of the wire's three under-descriptions, so no host writes the cast again.
 export { profileAvatarImage } from "./api/extensions.js";
+// The one bit a storefront draws the "Show phone" button from, plus the mask
+// the owner's own contacts screen shows until they ask to see a number.
+export { hasPhone, maskPhoneNumber } from "./api/extensions.js";
 export type {
   ProfileAvatarImage,
   ProfileWithAvatarImage,
+  ProfileWithContactFlags,
 } from "./api/extensions.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────
@@ -111,6 +115,18 @@ export type {
   Language,
   ProfileFieldManifestEntry,
   ProfileFieldKind,
+  Contact,
+  ContactList,
+  ContactCreate,
+  ContactUpdate,
+  ContactAction,
+  ContactVerifyRequest,
+  ContactVerifyConfirm,
+  ContactRevealSummary,
+  ContactRevealRequest,
+  ContactReveal,
+  RevealedPhone,
+  ProfileContactFlags,
 } from "./api/types.js";
 
 // ── headless (renderless components) ─────────────────────────────────────────
@@ -143,6 +159,15 @@ export type {
   InitialSetupField,
   InitialSetupFieldName,
 } from "./headless/InitialSetupPrompt.js";
+// The seller's phone numbers: the owner's screen, and the viewer's one ask.
+// The revealed numbers never reach the query cache — see `headless/Contacts.ts`.
+export { useContacts, useRevealContacts } from "./headless/Contacts.js";
+export type {
+  ContactsBag,
+  ContactUpdateVars,
+  ContactConfirmVars,
+  RevealVars,
+} from "./headless/Contacts.js";
 export { useInitialSetupGate } from "./headless/useInitialSetupGate.js";
 export type {
   InitialSetupGate,

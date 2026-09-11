@@ -79,6 +79,50 @@ profile" sentence as its accessible name; when it lands, the name — or, for th
 empty-but-renderable profile stapel-profiles 0.15.0 provisions at registration,
 the pair's word for a nameless one. `data-state` publishes which is on screen.
 
+## The seller's phone number
+
+A number is never on a listing, a search result or a profile body. The only
+thing a public profile carries is one bit — is there a number worth asking for
+— and the only way to a number is one POST that is journalled for its owner and
+budgeted for the viewer.
+
+```tsx
+import { hasPhone } from "@stapel/profiles-react";
+import { RevealPhoneButton } from "@stapel/profiles-react/default";
+
+const seller = useProfile(sellerId);
+
+// The button renders at all only because the profile said there is a number.
+<RevealPhoneButton
+  ownerKey={sellerId}
+  listingId={listing.id}
+  available={hasPhone(seller.data)}
+  renderDoor={() => <AuthPanel mode="register" />}
+/>;
+```
+
+On a 200 the button is replaced, in place, by the numbers as `tel:` links. The
+answer is held on the mutation object and nowhere else — no query key, no
+persistence, no storage, no URL — because every hand-over is a recorded event
+and a cached copy is a hand-over nobody recorded. A viewer with no account
+(signed out **or** a guest) gets 403 `contacts_registration_required`, which is
+why `renderDoor` is full registration rather than a sign-in link; over the
+hourly budget the sentence says how many minutes to wait.
+
+The owner's side is one screen:
+
+```tsx
+import { ContactsManager } from "@stapel/profiles-react/default";
+
+<ContactsManager />; // add, confirm by SMS, policy, on/off, hand-over counters
+```
+
+A number is masked to its last two digits until its owner asks to see it, an
+unverified number says out loud that it reaches nobody, and the policy picker
+is built from the vocabulary `GET /contacts` sent rather than from three
+hardcoded strings. Composing your own screen instead: `useContacts()` and
+`useRevealContacts()` carry the whole surface, headless.
+
 ## Layers
 
 ```

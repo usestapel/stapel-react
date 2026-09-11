@@ -63,6 +63,69 @@ function source(raw: string): StapelImage["source"] {
 }
 
 /**
+ * Anything a public profile answer says about a person's contacts. Typed
+ * loosely on purpose: a host reads this off a profile it may have taken from
+ * a search result, a batch answer or its own cache, and a profile shape that
+ * predates stapel-profiles 0.20 has no `contacts` block at all.
+ */
+export interface ProfileWithContactFlags {
+  readonly contacts?: { readonly phone?: boolean } | null;
+}
+
+/**
+ * Is there a phone number on this profile worth asking for?
+ *
+ * The ONE bit a storefront draws the "Show phone" button from. True means:
+ * at least one number that is switched on, proven by SMS, and not withheld
+ * from everyone. It is NOT a promise that the caller will be handed a number
+ * — the policy on each number is applied by the reveal endpoint, and the
+ * answer there may still be an empty list or the registration door.
+ *
+ * Viewer-INDEPENDENT, by the backend's design: a bit that changed with the
+ * viewer would leak the policy itself ("the button vanished when I signed
+ * out, so that number is members-only").
+ *
+ * Anything else — no profile yet, an older profile shape, a `contacts` block
+ * the serializer did not send — reads `false`: no button is the right answer
+ * when nobody said there is a number.
+ */
+export function hasPhone(
+  profile: ProfileWithContactFlags | null | undefined
+): boolean {
+  return profile?.contacts?.phone === true;
+}
+
+/**
+ * One of the OWNER's own numbers, with everything but the last two digits
+ * replaced — what their contacts screen shows until they ask to see it.
+ *
+ * A phone number on screen is readable by whoever is standing behind the
+ * person holding the phone, and a contacts screen is long-lived (it is where
+ * you go to change a policy, not to read your own number). The last two
+ * digits are enough to tell two of your own numbers apart, which is the only
+ * question this list has to answer at rest.
+ *
+ * Digits are masked; the leading `+` and any separators the owner typed stay,
+ * so the shape of the number is still recognisable. A value with two digits
+ * or fewer is returned untouched — there is nothing to hide behind.
+ */
+export function maskPhoneNumber(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 2) return value;
+  let remaining = digits.length - 2;
+  let out = "";
+  for (const char of value) {
+    if (/\d/.test(char) && remaining > 0) {
+      out += "•";
+      remaining -= 1;
+    } else {
+      out += char;
+    }
+  }
+  return out;
+}
+
+/**
  * A profile's avatar as the descriptor `<Image>` consumes, or `null` when the
  * profile has none (which every profile is allowed to be — a monogram is the
  * answer, never a broken `<img>`).

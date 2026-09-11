@@ -1,6 +1,16 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import type {
   Blocked,
+  Contact,
+  ContactAction,
+  ContactCreate,
+  ContactList,
+  ContactReveal,
+  ContactRevealRequest,
+  ContactRevealSummary,
+  ContactUpdate,
+  ContactVerifyConfirm,
+  ContactVerifyRequest,
   Followers,
   Following,
   Language,
@@ -102,6 +112,38 @@ export interface ProfilesApi {
    * skin needs it before login too), like {@link listLanguages}.
    */
   getFieldManifest(): Promise<readonly ProfileFieldManifestEntry[]>;
+
+  // ── contacts (stapel-profiles ≥0.20.0) ─────────────────────────────────────
+
+  /** The caller's own contacts + the policy vocabulary this deployment offers. */
+  listContacts(): Promise<ContactList>;
+  /** Store a number for the caller. It starts UNVERIFIED — and an unverified
+   * number is revealed to nobody until `verify/confirm` has run. */
+  addContact(body: ContactCreate): Promise<Contact>;
+  /** Change a contact's label, policy or on/off switch. Somebody else's
+   * contact answers 404 — a contact is not a public object. */
+  updateContact(contactId: number, patch: ContactUpdate): Promise<Contact>;
+  /** Delete a contact and its journal. */
+  removeContact(contactId: number): Promise<ContactAction>;
+  /** Ask the OTP provider to send a code to this number. */
+  requestContactCode(contactId: number): Promise<ContactVerifyRequest>;
+  /** Confirm the code — the moment the number becomes revealable. */
+  confirmContactCode(contactId: number, code: string): Promise<Contact>;
+  /** Hand-over counters for ONE of the caller's own numbers. Counts only:
+   * WHO asked is the viewers' data, and this endpoint does not trade it. */
+  getContactRevealSummary(contactId: number): Promise<ContactRevealSummary>;
+  /**
+   * Ask for a seller's numbers — the ONE endpoint that hands a number over,
+   * per the policy on each number, journalled and budgeted.
+   *
+   * POST is the transport AND the semantics: every call is a hand-over the
+   * owner is entitled to see. A caller without an account (signed out OR a
+   * guest session) gets 403 `error.403.contacts_registration_required`; over
+   * the hourly budget, 429 `error.429.contacts_reveal_budget` with
+   * `retry_after`. The answer carries `Cache-Control: no-store`, and this
+   * pair keeps it out of the query cache to match (see `useRevealContacts`).
+   */
+  revealContacts(body: ContactRevealRequest): Promise<ContactReveal>;
 }
 
 export function createProfilesApi(client: StapelClient): ProfilesApi {
@@ -145,5 +187,36 @@ export function createProfilesApi(client: StapelClient): ProfilesApi {
     listLanguages: () => client.get("/languages/"),
 
     getFieldManifest: () => client.get("/field-manifest"),
+
+    listContacts: () => client.get("/contacts"),
+
+    addContact: (body) =>
+      client.post("/contacts", body satisfies ContactCreate, mutating()),
+
+    updateContact: (contactId, patch) =>
+      client.patch(
+        `/contacts/${contactId}`,
+        patch satisfies ContactUpdate,
+        mutating()
+      ),
+
+    removeContact: (contactId) =>
+      client.delete(`/contacts/${contactId}`, mutating()),
+
+    requestContactCode: (contactId) =>
+      client.post(`/contacts/${contactId}/verify/request`, undefined, mutating()),
+
+    confirmContactCode: (contactId, code) =>
+      client.post(
+        `/contacts/${contactId}/verify/confirm`,
+        { code } satisfies ContactVerifyConfirm,
+        mutating()
+      ),
+
+    getContactRevealSummary: (contactId) =>
+      client.get(`/contacts/${contactId}/reveals/summary`),
+
+    revealContacts: (body) =>
+      client.post("/contacts/reveal", body satisfies ContactRevealRequest, mutating()),
   };
 }

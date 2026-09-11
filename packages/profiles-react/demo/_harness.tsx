@@ -74,6 +74,7 @@ export function mockFetch(handlers: DemoHandlers): typeof globalThis.fetch {
  * i18n-key-exists lint treats it as app-local and never false-positives. */
 export const demoBundleEn: Record<string, string> = {
   "demo.connections.list_caption": "The list, embedded on its own",
+  "demo.contacts.door": "Register",
   "demo.connections.row_caption":
     "One row, on its own — the answer for an id with no profile behind it",
 };

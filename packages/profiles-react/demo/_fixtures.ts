@@ -171,3 +171,56 @@ export const LANGUAGES = [
   { code: "ru", name: "Русский", flag: "🇷🇺" },
   { code: "es", name: "Español", flag: "🇪🇸" },
 ];
+
+/**
+ * `GET /contacts` for a seller with two numbers: one proved by SMS and busy,
+ * one still unverified — which is the row the screen has to explain, because
+ * an unverified number reaches nobody and nothing else on the row says so.
+ *
+ * `policies` rides along exactly as the wire sends it: the picker is built
+ * from the deployment's own vocabulary, never from three hardcoded strings.
+ */
+export const CONTACTS = {
+  contacts: [
+    {
+      id: 7,
+      kind: "phone",
+      value: "+15550100",
+      label: "Work",
+      policy: "members",
+      enabled: true,
+      verified: true,
+      verified_at: "2026-09-01T09:00:00Z",
+      reveal_count: 128,
+      created_at: "2026-08-30T08:00:00Z",
+    },
+    {
+      id: 8,
+      kind: "phone",
+      value: "+15550199",
+      label: "Mobile",
+      policy: "verified",
+      enabled: true,
+      verified: false,
+      verified_at: null,
+      reveal_count: 0,
+      created_at: "2026-09-10T08:00:00Z",
+    },
+  ],
+  policies: ["members", "verified", "nobody"],
+};
+
+/** A seller who has published nothing yet. */
+export const CONTACTS_EMPTY = {
+  contacts: [],
+  policies: ["members", "verified", "nobody"],
+};
+
+/** `GET /contacts/{id}/reveals/summary` — counts, never who asked. */
+export const REVEAL_SUMMARY = {
+  contact_id: 7,
+  total: 128,
+  last_24h: 4,
+  last_7d: 19,
+  last_reveal_at: "2026-09-11T09:30:00Z",
+};

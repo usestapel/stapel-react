@@ -22,6 +22,13 @@ export const profilesQueryKeys: {
   blocked(): readonly ["profiles", "blocked"];
   languages(): readonly ["profiles", "languages"];
   fieldManifest(): readonly ["profiles", "fieldManifest"];
+  contacts(): readonly ["profiles", "contacts"];
+  contactRevealSummary(contactId: number): readonly [
+    "profiles",
+    "contacts",
+    "revealSummary",
+    number,
+  ];
 } = {
   all: [ROOT],
   me: () => [ROOT, "me"],
@@ -36,4 +43,18 @@ export const profilesQueryKeys: {
   blocked: () => [ROOT, "blocked"],
   languages: () => [ROOT, "languages"],
   fieldManifest: () => [ROOT, "fieldManifest"],
+  // The owner's OWN contacts. There is deliberately no key for a REVEAL: that
+  // answer is per-viewer, budgeted and journalled, the wire sends it with
+  // `Cache-Control: no-store`, and a query entry would be a second copy of a
+  // stranger's phone number living past the screen that asked for it (see
+  // `useRevealContacts`).
+  contacts: () => [ROOT, "contacts"],
+  // Under the contacts root on purpose: invalidating `contacts()` takes the
+  // counters with it, which is what a delete or a fresh hand-over means.
+  contactRevealSummary: (contactId) => [
+    ROOT,
+    "contacts",
+    "revealSummary",
+    contactId,
+  ],
 };

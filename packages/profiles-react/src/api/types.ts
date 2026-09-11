@@ -69,6 +69,54 @@ export type ProfileFieldManifestEntry = Omit<
   "kind"
 > & { kind: ProfileFieldKind };
 
+// ── contacts (stapel-profiles ≥0.20.0 — the seller's phone numbers) ───────────
+
+/**
+ * One of the OWNER's own contacts, with its number and its reveal counter.
+ * This shape reaches nobody but the owner; what a VIEWER is handed is
+ * {@link RevealedPhone}, which carries neither an id nor a policy.
+ */
+export type Contact = Schemas["ContactResponse"];
+/**
+ * GET /contacts 200 body — the owner's contacts plus the policy vocabulary
+ * THIS deployment accepts. The vocabulary rides along so a picker renders
+ * from the server's answer: a deployment that narrowed
+ * `STAPEL_PROFILES["CONTACTS"]["POLICIES"]` would otherwise offer options its
+ * own API refuses.
+ */
+export type ContactList = Schemas["ContactListResponse"];
+/** POST /contacts request body — an international number (leading `+`), an
+ * owner's label, and optionally the policy and the kind. */
+export type ContactCreate = Schemas["ContactCreateRequest"];
+/** PATCH /contacts/{contact_id} request body — label, policy and the on/off
+ * switch. The NUMBER is not editable: a different number is a different thing
+ * to prove, so it is a different contact. */
+export type ContactUpdate = Schemas["PatchedContactUpdateRequest"];
+/** 200 body of a contact action that returns no contact (DELETE). */
+export type ContactAction = Schemas["ContactActionResponse"];
+/** POST /contacts/{contact_id}/verify/request 200 body — the code went out,
+ * and (when the provider says) how long it stays good. */
+export type ContactVerifyRequest = Schemas["ContactVerifyRequestResponse"];
+/** POST /contacts/{contact_id}/verify/confirm request body — the SMS code. */
+export type ContactVerifyConfirm = Schemas["ContactVerifyConfirmRequest"];
+/** GET /contacts/{contact_id}/reveals/summary 200 body — how often ONE of the
+ * owner's numbers was handed over. Counts only, never who. */
+export type ContactRevealSummary = Schemas["ContactRevealSummaryResponse"];
+/** POST /contacts/reveal request body — whose numbers, and where the viewer
+ * was standing (for the owner's journal). */
+export type ContactRevealRequest = Schemas["ContactRevealRequest"];
+/**
+ * POST /contacts/reveal 200 body. An EMPTY list is a normal, successful
+ * answer — the seller has no published number, or none whose policy admits
+ * this viewer, and the two are deliberately indistinguishable.
+ */
+export type ContactReveal = Schemas["ContactRevealResponse"];
+/** One number a viewer was admitted to: a label and a number, nothing else. */
+export type RevealedPhone = Schemas["RevealedPhone"];
+/** What a public profile says about a person's contacts — one bit. See
+ * {@link "./extensions.js".hasPhone}. */
+export type ProfileContactFlags = Schemas["ProfileContactFlags"];
+
 // ── documented corrections (drf-spectacular under-describes) ──────────────────
 
 /**

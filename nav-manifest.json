@@ -783,6 +783,25 @@
           "order": 30
         },
         {
+          "id": "profiles.contacts",
+          "labelKey": "profiles.nav.contacts",
+          "icon": "MessageOutlined",
+          "route": {
+            "path": "contacts"
+          },
+          "component": {
+            "export": "ContactsManager",
+            "subpath": "default"
+          },
+          "placement": {
+            "level": "submenu",
+            "parentId": "profiles.settings"
+          },
+          "menuVisibleDefault": true,
+          "requiresAuth": true,
+          "order": 40
+        },
+        {
           "id": "profiles.connections",
           "labelKey": "profiles.nav.connections",
           "icon": "HeartOutlined",

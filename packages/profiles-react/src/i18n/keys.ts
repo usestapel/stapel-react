@@ -188,11 +188,87 @@ export const PROFILES_I18N_KEYS = {
    * cell announces "switch, off" with no subject unless it carries the row
    * AND the column itself. `{category}` × `{channel}`. */
   notifToggleLabel: "profiles.notif_prefs.toggle_label",
+  // Contacts — the seller's phone numbers (stapel-profiles ≥0.20.0).
+  // The OWNER's screen (<ContactsManager/>) and the VIEWER's button
+  // (<RevealPhoneButton/>) are two different audiences: one is managing
+  // their own numbers, the other is asking for somebody else's.
+  contactsTitle: "profiles.contacts.title",
+  contactsSubtitle: "profiles.contacts.subtitle",
+  contactsEmpty: "profiles.contacts.empty",
+  contactsEmptyHint: "profiles.contacts.empty_hint",
+  /** The owner's own number is masked at rest; this reveals it to the person
+   * whose number it is, on their own screen, on demand. */
+  contactsShowNumber: "profiles.contacts.show_number",
+  contactsHideNumber: "profiles.contacts.hide_number",
+  contactsVerified: "profiles.contacts.verified",
+  contactsUnverified: "profiles.contacts.unverified",
+  /** Why an unverified number is not a published number — the state, stated,
+   * rather than a number that silently reaches nobody. */
+  contactsUnverifiedHint: "profiles.contacts.unverified_hint",
+  contactsPolicyLabel: "profiles.contacts.policy_label",
+  /**
+   * The policy vocabulary, keyed BY POLICY ID: the server sends the ids it
+   * accepts (`policies`) and the picker looks each one up here. A deployment
+   * that registers a policy this pair has no word for shows the raw id, which
+   * is the honest bottom of every label ladder in this fleet.
+   */
+  contactsPolicyMembers: "profiles.contacts.policy.members",
+  contactsPolicyVerified: "profiles.contacts.policy.verified",
+  contactsPolicyNobody: "profiles.contacts.policy.nobody",
+  contactsEnabledLabel: "profiles.contacts.enabled_label",
+  contactsLabelField: "profiles.contacts.label_field",
+  contactsLabelPlaceholder: "profiles.contacts.label_placeholder",
+  contactsNumberField: "profiles.contacts.number_field",
+  contactsNumberPlaceholder: "profiles.contacts.number_placeholder",
+  contactsAdd: "profiles.contacts.add",
+  contactsAdding: "profiles.contacts.adding",
+  contactsDelete: "profiles.contacts.delete",
+  contactsDeleteConfirmTitle: "profiles.contacts.confirm_delete.title",
+  contactsDeleteConfirmBody: "profiles.contacts.confirm_delete.body",
+  /** The hand-over counters, one line: this number, this often. */
+  contactsRevealsTotal: "profiles.contacts.reveals.total",
+  contactsReveals24h: "profiles.contacts.reveals.last_24h",
+  contactsReveals7d: "profiles.contacts.reveals.last_7d",
+  // Verification (request → code → confirm), the owner's half.
+  contactsVerify: "profiles.contacts.verify",
+  contactsVerifySending: "profiles.contacts.verify.sending",
+  contactsVerifySent: "profiles.contacts.verify.sent",
+  /** How long the code stays good, when the provider says. `{seconds}`. */
+  contactsVerifyExpires: "profiles.contacts.verify.expires_in",
+  contactsCodeField: "profiles.contacts.verify.code_field",
+  contactsCodePlaceholder: "profiles.contacts.verify.code_placeholder",
+  contactsCodeConfirm: "profiles.contacts.verify.confirm",
+  contactsCodeConfirming: "profiles.contacts.verify.confirming",
+  contactsCodeResend: "profiles.contacts.verify.resend",
+  contactsCodeCancel: "profiles.contacts.verify.cancel",
+  /** How many tries are left after a wrong code — the backend says, and the
+   * screen repeats it rather than letting the person find out by running out.
+   * `{count}` (a plural family). */
+  contactsAttemptsLeft: "profiles.contacts.verify.attempts_left",
+  // The VIEWER's button (<RevealPhoneButton/>).
+  contactsRevealShow: "profiles.contacts.reveal.show",
+  contactsRevealLoading: "profiles.contacts.reveal.loading",
+  /** The seller's answer was an empty list — they have no number this viewer
+   * may be handed, and the wire deliberately does not say which of the two
+   * reasons it is. */
+  contactsRevealNone: "profiles.contacts.reveal.none",
+  /** Over the hourly budget. `{count}` MINUTES (a plural family) — the wire
+   * says seconds and a person reads minutes. */
+  contactsRevealBudget: "profiles.contacts.reveal.budget",
+  /** No account (signed out OR a guest): the sentence beside the door the
+   * host renders. */
+  contactsRevealRegister: "profiles.contacts.reveal.register",
+  contactsRevealCopy: "profiles.contacts.reveal.copy",
+  contactsRevealCopied: "profiles.contacts.reveal.copied",
+  /** The accessible name of a revealed number's `tel:` link — "Call {label}"
+   * reads better in a screen reader than the digits twice. */
+  contactsRevealCall: "profiles.contacts.reveal.call",
   // Nav-manifest labels (`../nav/manifest.ts`) — read by a shell (e.g.
   // `@stapel/shell-react`'s `AppShell`) via `t(entry.labelKey)`.
   navSettings: "profiles.nav.settings",
   navLanguage: "profiles.nav.language",
   navNotifications: "profiles.nav.notifications",
+  navContacts: "profiles.nav.contacts",
   navConnections: "profiles.nav.connections",
   navPublicProfile: "profiles.nav.public_profile",
 } as const;
@@ -305,9 +381,64 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.notif_prefs.channel.email": "Email",
   "profiles.notif_prefs.channel.push": "Push",
   "profiles.notif_prefs.toggle_label": "{category} notifications via {channel}",
+  "profiles.contacts.title": "Phone numbers",
+  "profiles.contacts.subtitle":
+    "Numbers buyers can ask for. You decide who may be handed each one, and you can see how often it happened.",
+  "profiles.contacts.empty": "You have not added a number yet",
+  "profiles.contacts.empty_hint":
+    "Add a number and confirm it by SMS — until it is confirmed, nobody is handed it.",
+  "profiles.contacts.show_number": "Show the number",
+  "profiles.contacts.hide_number": "Hide the number",
+  "profiles.contacts.verified": "Confirmed",
+  "profiles.contacts.unverified": "Not confirmed",
+  "profiles.contacts.unverified_hint":
+    "Confirm this number by SMS — until then it is handed to nobody.",
+  "profiles.contacts.policy_label": "Who may be handed it",
+  "profiles.contacts.policy.members": "Anybody with an account",
+  "profiles.contacts.policy.verified": "Confirmed accounts only",
+  "profiles.contacts.policy.nobody": "Nobody",
+  "profiles.contacts.enabled_label": "Switched on",
+  "profiles.contacts.label_field": "Label",
+  "profiles.contacts.label_placeholder": "Work",
+  "profiles.contacts.number_field": "Phone number",
+  "profiles.contacts.number_placeholder": "+15550100",
+  "profiles.contacts.add": "Add number",
+  "profiles.contacts.adding": "Adding…",
+  "profiles.contacts.delete": "Delete",
+  "profiles.contacts.confirm_delete.title": "Delete this number?",
+  "profiles.contacts.confirm_delete.body":
+    "It stops being handed to anybody, and the record of who asked for it goes with it.",
+  "profiles.contacts.reveals.total": "Handed over {count} times in total",
+  "profiles.contacts.reveals.last_24h": "{count} in the last 24 hours",
+  "profiles.contacts.reveals.last_7d": "{count} in the last 7 days",
+  "profiles.contacts.verify": "Confirm by SMS",
+  "profiles.contacts.verify.sending": "Sending…",
+  "profiles.contacts.verify.sent": "We sent a code to this number.",
+  "profiles.contacts.verify.expires_in": "The code is good for {seconds} seconds.",
+  "profiles.contacts.verify.code_field": "Code from the SMS",
+  "profiles.contacts.verify.code_placeholder": "123456",
+  "profiles.contacts.verify.confirm": "Confirm",
+  "profiles.contacts.verify.confirming": "Confirming…",
+  "profiles.contacts.verify.resend": "Send the code again",
+  "profiles.contacts.verify.cancel": "Not now",
+  "profiles.contacts.verify.attempts_left.one": "{count} attempt left.",
+  "profiles.contacts.verify.attempts_left.other": "{count} attempts left.",
+  "profiles.contacts.reveal.show": "Show phone number",
+  "profiles.contacts.reveal.loading": "Asking…",
+  "profiles.contacts.reveal.none": "This seller has no phone number to show.",
+  "profiles.contacts.reveal.budget.one":
+    "Too many phone lookups. Try again in {count} minute.",
+  "profiles.contacts.reveal.budget.other":
+    "Too many phone lookups. Try again in {count} minutes.",
+  "profiles.contacts.reveal.register":
+    "Register an account to see a seller's phone number.",
+  "profiles.contacts.reveal.copy": "Copy",
+  "profiles.contacts.reveal.copied": "Copied",
+  "profiles.contacts.reveal.call": "Call {label}",
   "profiles.nav.settings": "Settings",
   "profiles.nav.language": "Language",
   "profiles.nav.notifications": "Notifications",
+  "profiles.nav.contacts": "Phone numbers",
   "profiles.nav.connections": "Connections",
   "profiles.nav.public_profile": "Public profile",
 };

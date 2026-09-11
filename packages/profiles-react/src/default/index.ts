@@ -73,5 +73,9 @@ export {
   sellerTypeLabelKey,
 } from "./PublicProfilePage.js";
 export type { PublicProfilePageProps } from "./PublicProfilePage.js";
+export { ContactsManager, CONTACT_POLICY_MIN_WIDTH } from "./ContactsManager.js";
+export type { ContactsManagerProps } from "./ContactsManager.js";
+export { RevealPhoneButton, retryAfterMinutes } from "./RevealPhoneButton.js";
+export type { RevealPhoneButtonProps } from "./RevealPhoneButton.js";
 export { SellerPage } from "./SellerPage.js";
 export type { SellerPageProps, SellerPageTab } from "./SellerPage.js";
