@@ -3,11 +3,11 @@
  * needs and a skin does not.
  *
  * A public seller page is three documents about one person: who they are,
- * what they are selling, and what buyers said. The composition walk
- * (`avito-vs-ours-2026-09-04` §30(a)) read ours as "functionally a
- * pre-filtered search scoped to one seller" — one flat list, with no way to
- * reach the other two. This module names the three sections once, so the
- * router and the skin cannot disagree about what `/u/<id>/reviews` means.
+ * what they are selling, and what buyers said. A closing-wave comparison
+ * against a reference classified read ours as "functionally a pre-filtered
+ * search scoped to one seller" — one flat list, with no way to reach the
+ * other two. This module names the three sections once, so the router and the
+ * skin cannot disagree about what `/u/<id>/reviews` means.
  *
  * ── Why it is not in `/default` ───────────────────────────────────────────
  *
