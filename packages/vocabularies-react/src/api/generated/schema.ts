@@ -121,6 +121,10 @@ export interface components {
              *     * `all` - all
              */
             band: components["schemas"]["BandEnum"];
+            /** @description Free-form attributes the SOURCE CATALOGUE owns for this term — `{"hue": "#1a1a1a"}` on a colour, which is what lets a facet draw a swatch. Absent when the term carries none, which is most terms of most levels; never part of identity, and never a second place to look for the label. */
+            extra?: {
+                [key: string]: unknown;
+            };
             /** @description Present (value `vector`) only on rows the similarity net appended under a thin deterministic answer — a 'did you mean' row. Absent on every literal match. */
             match?: string;
         };
