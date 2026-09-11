@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "backend": {
     "module": "stapel-auth",
     "contract": ">=0.37 <0.38"
