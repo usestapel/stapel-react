@@ -1592,16 +1592,6 @@ export interface operations {
                     "application/json": components["schemas"]["ContactListResponse"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1643,16 +1633,6 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1689,16 +1669,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContactActionResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             403: {
@@ -1753,16 +1723,6 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1799,16 +1759,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContactRevealSummaryResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             403: {
@@ -1863,16 +1813,6 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1925,16 +1865,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContactVerifyRequestResponse"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             403: {
