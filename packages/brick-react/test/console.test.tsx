@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider, createI18n } from "@stapel/core";
 import { BrickConsole } from "../src/default/index.js";
 import { createNullHighScoreStore, registerBrickI18n } from "../src/index.js";
@@ -494,21 +494,48 @@ describe("<BrickConsole/> game chips", () => {
     expect(frame.dataset["game"]).toBe("tetris");
   });
 
+  /**
+   * THE BEST ARRIVES AFTER THE FIRST PAINT, AND THE ASSERT HAS TO WAIT FOR IT.
+   *
+   * `brick-best` is on screen from the first frame, reading "0": the console
+   * renders, THEN asks the store, and the answer lands in a `setBest` outside
+   * `act`. So `findByTestId` proves nothing here — it waits for the element,
+   * which was never missing, and a `textContent` read taken once at that
+   * moment is a snapshot of whichever render happened to have landed.
+   *
+   * That is the flake this test carried (`expected '0' to be '1200'`, a rerun
+   * on most trains): whether the snapshot saw the store's number depended on
+   * React's scheduler winning a race against testing-library's one incidental
+   * task drain, which it loses on a loaded CI box. Both asserts wait for the
+   * VALUE now, exactly as strict as before.
+   *
+   * And the double answers off a task of its own, the way the real store does
+   * — `createHighScoreStore` reads through core's `createRepository`, whose
+   * `get` awaits a storage backend. A double resolving in a microtask made the
+   * first paint's "0" unobservable on a fast machine and left the race to be
+   * discovered on CI.
+   */
   it("each game keeps its own best", async () => {
     matchMediaFor();
     const bests: Record<string, number> = { tetris: 1200, snake: 80 };
     const perGame: HighScoreStore = {
-      get: (game) => Promise.resolve(bests[game] ?? 0),
+      get: async (game) => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return bests[game] ?? 0;
+      },
       record: () => Promise.resolve(false),
       clear: () => Promise.resolve(),
     };
     render(<BrickConsole games={["tetris", "snake"]} seed={1} highScores={perGame} />);
-    expect((await screen.findByTestId("brick-best")).textContent).toBe("1200");
-    await act(async () => {
-      screen.getByTestId("brick-menu-snake").click();
-      await Promise.resolve();
+    await waitFor(() => {
+      expect(screen.getByTestId("brick-best").textContent).toBe("1200");
     });
-    expect((await screen.findByTestId("brick-best")).textContent).toBe("80");
+    act(() => {
+      screen.getByTestId("brick-menu-snake").click();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("brick-best").textContent).toBe("80");
+    });
   });
 });
 
