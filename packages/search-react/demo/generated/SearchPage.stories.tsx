@@ -18,6 +18,12 @@ CatalogueLeaf.parameters = { stapel: {"viewport":"desktop","step":"catalogue-lea
 export const UnderAHeader = (): ReactElement => renderDemoVariant(demo, "under-a-header");
 UnderAHeader.storyName = "under-a-header";
 UnderAHeader.parameters = { stapel: {"viewport":"desktop","step":"under-a-header"} };
+export const ToolbarNotPinned = (): ReactElement => renderDemoVariant(demo, "toolbar-not-pinned");
+ToolbarNotPinned.storyName = "toolbar-not-pinned";
+ToolbarNotPinned.parameters = { stapel: {"viewport":"desktop","step":"toolbar-not-pinned"} };
+export const RailOnAPanel = (): ReactElement => renderDemoVariant(demo, "rail-on-a-panel");
+RailOnAPanel.storyName = "rail-on-a-panel";
+RailOnAPanel.parameters = { stapel: {"viewport":"desktop","step":"rail-on-a-panel"} };
 export const SystemScrollbar = (): ReactElement => renderDemoVariant(demo, "system-scrollbar");
 SystemScrollbar.storyName = "system-scrollbar";
 SystemScrollbar.parameters = { stapel: {"viewport":"desktop","step":"system-scrollbar"} };

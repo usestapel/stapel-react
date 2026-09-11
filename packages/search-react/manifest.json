@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/search-react",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "backend": {
     "module": "stapel-search",
     "contract": ">=0.16 <0.17"
@@ -582,6 +582,8 @@
         "phone",
         "catalogue-leaf",
         "under-a-header",
+        "toolbar-not-pinned",
+        "rail-on-a-panel",
         "system-scrollbar",
         "legacy-rhythm",
         "filters-header-navigates",

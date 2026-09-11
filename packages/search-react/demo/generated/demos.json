@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/search-react",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "demos": [
     {
       "id": "search.box",
@@ -352,6 +352,18 @@
           "step": "under-a-header"
         },
         {
+          "id": "toolbar-not-pinned",
+          "description": "`toolbarSticky={false}`: the results toolbar left in flow. Every other variant here draws the default — the count, the view switch, the sort and the page size pin to the top of the window (at `railTop`, the same edge the filter rail clears) once a reader has scrolled into the results, under `@media (pointer: fine)` so a phone's fold is not spent on a bar. The row reserves its own height in BOTH arms, so the page below it does not move when the rule engages. Turn it off for a surface that draws a bar of its own over the page.",
+          "viewport": "desktop",
+          "step": "toolbar-not-pinned"
+        },
+        {
+          "id": "rail-on-a-panel",
+          "description": "`railSurface=\"panel\"`: the filters back on the raised container ground this page painted until now, beside the `\"flat\"` default every other variant draws. The default changed on a measurement — on the stand's dark theme the rail read as a 270 x 1539 filled slab with no radius and no border, standing on the page ground for the whole height of the feed, which is a card shape with none of a card's edges. Flat draws the controls and the one colour a bare surface does not set (`var(--stapel-text)`); the panel arm is for a page whose own ground is an image, or a layout that genuinely wants the filters on their own sheet.",
+          "viewport": "desktop",
+          "step": "rail-on-a-panel"
+        },
+        {
           "id": "system-scrollbar",
           "description": "The rail keeps its own scroll — filters that stay put while the results move under them are the point of it — and `railScrollbar` says whose BAR draws in the gutter. `\"styled\"` (the default, in every other variant here) is the skin's: a 6px track with no arrows and no track fill, and a thumb that is transparent at rest and arrives from the tokens on hover or focus-within, in both themes. `\"system\"`, shown here, hands the port back to the platform, for a host whose own stylesheet already dresses every scroller on the page.",
           "viewport": "desktop",
@@ -379,7 +391,7 @@
       ],
       "source": {
         "file": "demo/SearchPage.demo.tsx",
-        "line": 195
+        "line": 201
       }
     },
     {
