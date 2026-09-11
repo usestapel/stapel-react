@@ -265,6 +265,23 @@ export type AuthMethodInfo = Omit<
 export type OtpMeta = Schemas["OtpMeta"];
 
 /**
+ * What kind of installation the host is talking to, as the DEPLOYMENT declares
+ * it (stapel-auth ≥0.36.0, carrying stapel-core 0.64.0's posture stage — core
+ * exposes no endpoint of its own, so auth's capabilities body is the only way
+ * the declaration reaches a pair).
+ *
+ * The companion of `email_mock`/`phone_mock`: those say a channel is stubbed,
+ * this says whether that is MEANT. A stand can be production — public host,
+ * real TLS, real data — and not yet advertised, and declares that as
+ * `stage: "prototype"`. Both fields are `null` when no posture is declared.
+ *
+ * READ-ONLY PASS-THROUGH: nothing in this pair branches on it and it gates
+ * nothing. It is here so a host's monitor/banner can tell a prototype from
+ * prod without a second read.
+ */
+export type PostureInfo = Schemas["PostureInfo"];
+
+/**
  * `methods`/`otp` are REQUIRED on this (0.6.0+) generated shape — this
  * backend version always sends them. Alpha-canon (owner directive): there is
  * no supported older backend — every real deployment is kept upgraded to the
@@ -272,6 +289,9 @@ export type OtpMeta = Schemas["OtpMeta"];
  * missing/empty `methods[]` as a configuration error rather than a signal to
  * fall back to a fixed placement table. `methods` is re-typed to correction
  * (4)'s `AuthMethodInfo`, not the generated one.
+ *
+ * `posture` (stapel-auth ≥0.36.0) rides through untouched — see
+ * {@link PostureInfo}.
  */
 export type Capabilities = Omit<Schemas["AuthCapabilities"], "methods"> & {
   readonly methods: readonly AuthMethodInfo[];

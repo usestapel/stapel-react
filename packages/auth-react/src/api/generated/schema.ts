@@ -160,7 +160,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_email_change_delayed_cancel_create"];
         delete?: never;
@@ -181,7 +181,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_email_change_delayed_initiate_create"];
         delete?: never;
@@ -200,7 +200,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         get: operations["auth_api_v1_email_change_delayed_status_retrieve"];
         put?: never;
@@ -223,7 +223,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_email_change_instant_request_new_create"];
         delete?: never;
@@ -244,7 +244,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_email_change_instant_request_old_create"];
         delete?: never;
@@ -265,7 +265,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_email_change_instant_verify_new_create"];
         delete?: never;
@@ -286,7 +286,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_email_change_instant_verify_old_create"];
         delete?: never;
@@ -395,7 +395,12 @@ export interface paths {
          * Get erasure status
          * @description State, receipts, obligations and `fully_erased_by` for one erasure.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Guests reach this on purpose: a guest session can close its own account
+         *     and must be able to watch that erasure. What bounds them is not the gate
+         *     but ``erasure_visible`` — the row must be theirs, or their authority must
+         *     be one that could have opened it.
+         *
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         get: operations["auth_api_v1_erasures_retrieve"];
         put?: never;
@@ -442,6 +447,8 @@ export interface paths {
         /**
          * Exchange a login grant token for a JWT session
          * @description Consumes a single-use login grant (minted service-side via the auth.issue_login_grant comm function — the workspaces invitation claim flow) and issues a full JWT session. When the grant was minted with create_if_missing and no account exists for its email, a verified email account is created (status=REGISTERED instead of LOGGED_IN).
+         *
+         *     What an address that ALREADY has a full account gets is the deployment's AUTH_LOGIN_GRANT_EXISTING_ACCOUNTS policy: 'login' (the default, a session), 'refuse' (403 error.403.grant_existing_account) or 'step_up' (TOTPChallengeResponse, status=TOTP_REQUIRED — pass challenge_token to POST /totp/challenge/verify/).
          *
          *     **Permissions:** `AllowAny`
          */
@@ -606,7 +613,11 @@ export interface paths {
          * List my erasure requests
          * @description The caller's own erasures — the "pending deletion" list a UI shows.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Guests reach this on purpose, and a guest's list is their own: the rows
+         *     come from ``own_erasures``, which is keyed on the caller's pk and has no
+         *     parameter an id could be walked through.
+         *
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         get: operations["auth_api_v1_me_erasures_list"];
         put?: never;
@@ -1270,7 +1281,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_phone_change_delayed_cancel_create"];
         delete?: never;
@@ -1291,7 +1302,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_phone_change_delayed_initiate_create"];
         delete?: never;
@@ -1310,7 +1321,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         get: operations["auth_api_v1_phone_change_delayed_status_retrieve"];
         put?: never;
@@ -1333,7 +1344,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_phone_change_instant_request_new_create"];
         delete?: never;
@@ -1354,7 +1365,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_phone_change_instant_request_old_create"];
         delete?: never;
@@ -1375,7 +1386,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_phone_change_instant_verify_new_create"];
         delete?: never;
@@ -1396,7 +1407,7 @@ export interface paths {
         /**
          * @description ViewSet for authenticator (phone/email) change flows.
          *
-         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly`
+         *     **Permissions:** `IsAuthenticated, DenyEnrollOnly, IsNotAnonymousUser`
          */
         post: operations["auth_api_v1_phone_change_instant_verify_old_create"];
         delete?: never;
@@ -2376,13 +2387,7 @@ export interface paths {
         };
         /**
          * Get data export status
-         * @description Base view exposing serializer seams.
-         *
-         *     Every concrete view declares ``request_serializer_class`` /
-         *     ``response_serializer_class`` (``None`` when that direction carries no
-         *     serialized payload). Subclasses may swap either class attribute — or
-         *     override the getters — to customize the request/response envelopes
-         *     without rewriting the method bodies.
+         * @description The caller's own latest export — guests included, same as opening one.
          *
          *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
@@ -2577,6 +2582,8 @@ export interface components {
             methods: components["schemas"]["AuthMethodInfo"][];
             /** @description Server-authoritative OTP parameters (code lengths, ttl, resend */
             otp: components["schemas"]["OtpMeta"];
+            /** @description The declared deployment posture and its stage (PostureInfo) */
+            posture: components["schemas"]["PostureInfo"];
         };
         /**
          * @description Per-method display descriptor for the sign-in panel (owner directive:
@@ -3681,6 +3688,22 @@ export interface components {
             code: string;
             /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
+        };
+        /**
+         * @description What kind of installation this is, as the deployment declares it.
+         *
+         *     The companion of email_mock/phone_mock: those say a channel is stubbed,
+         *     this says whether that is meant. A stand can be production — public host,
+         *     real TLS, real data — and not yet advertised, and it declares that as
+         *     ``stage="prototype"`` on its posture
+         *     (``stapel_core.django.presets``). Read-only transparency: nothing here
+         *     gates anything, and a monitor uses it to tell a prototype from prod.
+         */
+        PostureInfo: {
+            /** @description Declared deployment posture, or null when there is none */
+            preset?: string | null;
+            /** @description "live" or "prototype", or null when no posture is declared */
+            stage?: string | null;
         };
         /**
          * @description * `saml` - SAML 2.0

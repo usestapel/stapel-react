@@ -611,6 +611,13 @@
     "en": "You are not allowed to request erasure of this item."
   },
   {
+    "code": "error.403.grant_existing_account",
+    "status": 403,
+    "params": [],
+    "remediation": "reauthenticate",
+    "en": "This address already has an account. Sign in with it instead of using this link."
+  },
+  {
     "code": "error.403.mfa_enrollment_required",
     "status": 403,
     "params": [],

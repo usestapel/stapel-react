@@ -95,6 +95,7 @@ export const authErrorBundleEs: Record<AuthErrorCode, string> = {
   "error.403.gdpr.account_closed": "Esta cuenta se está eliminando y ya no se puede utilizar.",
   "error.403.gdpr.closure_token_scope": "Este enlace de cierre pertenece a un cierre anterior de esta cuenta.",
   "error.403.gdpr.erasure_forbidden": "No tienes permiso para solicitar la eliminación de este elemento.",
+  "error.403.grant_existing_account": "Esta dirección ya tiene una cuenta. Inicia sesión con ella en lugar de usar este enlace.",
   "error.403.mfa_enrollment_required": "Es necesario registrar la autenticación de dos factores antes de poder usar esta cuenta. Configura primero una aplicación de autenticación o una llave de acceso.",
   "error.403.mock_otp_admin": "La autenticación por OTP está deshabilitada para cuentas de administrador en modo mock.",
   "error.403.network_blocked": "No se permiten solicitudes desde esta red.",

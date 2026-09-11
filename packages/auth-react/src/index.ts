@@ -47,6 +47,7 @@ export type {
   ChannelInteraction,
   AuthMethodInfo,
   OtpMeta,
+  PostureInfo,
   Capabilities,
   PasswordChangeMethod,
   PasswordMethodEntry,

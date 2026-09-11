@@ -4,7 +4,7 @@
   "version": "0.22.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.35 <0.36"
+    "contract": ">=0.37 <0.38"
   },
   "layers": [
     "api",
@@ -1984,6 +1984,11 @@
       "params": [],
       "remediation": "contact_support"
     },
+    "error.403.grant_existing_account": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
     "error.403.mfa_enrollment_required": {
       "status": 403,
       "params": [],
@@ -3058,6 +3063,7 @@
     "error.403.gdpr.account_closed",
     "error.403.gdpr.closure_token_scope",
     "error.403.gdpr.erasure_forbidden",
+    "error.403.grant_existing_account",
     "error.403.mfa_enrollment_required",
     "error.403.mock_otp_admin",
     "error.403.network_blocked",
@@ -3364,6 +3370,7 @@
       "PasswordResetState",
       "PasswordlessLoginBag",
       "PhoneCountryDefault",
+      "PostureInfo",
       "QrGenerateResponse",
       "QrLoginBag",
       "QrLoginFlow",
