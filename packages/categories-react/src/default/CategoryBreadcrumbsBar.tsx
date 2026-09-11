@@ -8,7 +8,7 @@
  * the stored string for an untranslatable category twice-wrapped, and one that
  * never called it would show `category.electronics` at a visitor.
  */
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Breadcrumb, Skeleton, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { renderCategoryLabel } from "../catalog/labels.js";
@@ -63,6 +63,12 @@ export interface CategoryBreadcrumbsBarProps
   readonly keepPrevious?: boolean;
 }
 
+/**
+ * The one declaration a bare trail keeps: the theme's text colour, live.
+ * See the block comment on the `<SkinTheme>` below.
+ */
+const BARE_TRAIL_STYLE: CSSProperties = { color: "var(--stapel-text)" };
+
 export function CategoryBreadcrumbsBar(
   props: CategoryBreadcrumbsBarProps
 ): ReactElement {
@@ -92,7 +98,29 @@ export function CategoryBreadcrumbsBar(
   );
 
   return (
+    /* A TRAIL IS NOT A PANEL — `surface="bare"`, so this bar paints nothing
+       and takes the ground it stands on.
+     *
+     * `<SkinTheme>` defaults to `surface="raised"`, which puts
+     * `colorBgContainer` on its own root. On a light theme that is the same
+     * colour as the page and nobody ever saw it; on a dark one it is a
+     * lighter band, and it was measured on a live storefront as a 1392x24 ribbon
+     * across the top of every `/c/:slug` and every listing page — a panel
+     * behind one line of links, with no radius, no border and nothing inside
+     * it that belongs on a surface of its own.
+     *
+     * `bare` is the same choice `SkinDialog` makes for the same reason: this
+     * wrapper exists to give antd its theme (the `ConfigProvider` below it is
+     * the whole point), not to paint.
+     *
+     * `bare` also drops the text colour `raised` would have written, so the
+     * colour is stated back as the CUSTOM PROPERTY — the same trade the flat
+     * tile grid made one release ago, and strictly better than what it
+     * replaces: `--stapel-text` resolves per theme at paint time, where
+     * `SkinTheme` froze the value of whichever side mounted first. */
     <SkinTheme
+      surface="bare"
+      style={BARE_TRAIL_STYLE}
       {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
       <CategoryBreadcrumbs
