@@ -225,6 +225,44 @@
       }
     },
     {
+      "id": "profiles.seller-page-skin",
+      "title": "Seller page (skin)",
+      "description": "The public /u/:id page as three sections over one identity: overview, listings and reviews. The bodies belong to whichever pairs a storefront composes — search or listings for the inventory, reviews-react for the reviews — so this owns the skeleton: the identity block that never moves, the section bar, and the section the host's URL names. Opens on the inventory, because somebody who arrives from a listing came to see the rest of what this person sells.",
+      "component": "SellerPage",
+      "covers": [
+        "PublicProfilePage"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "page",
+          "description": "The bare /u/<id>: the inventory section, under a name, a face and a tenure that no section changes.",
+          "viewport": "desktop",
+          "step": "listings"
+        },
+        {
+          "id": "reviews",
+          "description": "/u/<id>/reviews on a phone — the address chose the section, and the person is still at the top of it.",
+          "viewport": "phone",
+          "step": "reviews"
+        },
+        {
+          "id": "two-sections",
+          "description": "A deployment with no reviews section, asked for one anyway: a stale link resolves to a section this page really has instead of leaving the frame empty.",
+          "viewport": "desktop",
+          "step": "fallback"
+        }
+      ],
+      "source": {
+        "file": "demo/SellerPageSkin.demo.tsx",
+        "line": 99
+      }
+    },
+    {
       "id": "profiles.settings-skin",
       "title": "Profile settings (skin)",
       "description": "The default skin the nav manifest mounts at profiles.settings: a data-driven profile card whose rows come from GET /field-manifest, with the language picker and the notification matrix composed underneath — the same composition auth-react's SecuritySettings uses. Every field commits on its own (no batched Save); a rejected pick snaps back, because the PATCH is optimistic with rollback.",

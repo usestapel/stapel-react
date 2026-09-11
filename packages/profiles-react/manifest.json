@@ -653,6 +653,26 @@
       "source": "demo/PublicProfileSkin.demo.tsx"
     },
     {
+      "id": "profiles.seller-page-skin",
+      "title": "Seller page (skin)",
+      "description": "The public /u/:id page as three sections over one identity: overview, listings and reviews. The bodies belong to whichever pairs a storefront composes — search or listings for the inventory, reviews-react for the reviews — so this owns the skeleton: the identity block that never moves, the section bar, and the section the host's URL names. Opens on the inventory, because somebody who arrives from a listing came to see the rest of what this person sells.",
+      "component": "SellerPage",
+      "covers": [
+        "PublicProfilePage"
+      ],
+      "tokens": [
+        "surface-raised",
+        "text",
+        "text-muted"
+      ],
+      "variants": [
+        "page",
+        "reviews",
+        "two-sections"
+      ],
+      "source": "demo/SellerPageSkin.demo.tsx"
+    },
+    {
       "id": "profiles.settings-skin",
       "title": "Profile settings (skin)",
       "description": "The default skin the nav manifest mounts at profiles.settings: a data-driven profile card whose rows come from GET /field-manifest, with the language picker and the notification matrix composed underneath — the same composition auth-react's SecuritySettings uses. Every field commits on its own (no batched Save); a rejected pick snaps back, because the PATCH is optimistic with rollback.",
@@ -815,6 +835,9 @@
     "profiles.relationship.self",
     "profiles.relationship.unblock",
     "profiles.relationship.unfollow",
+    "profiles.seller.tab.listings",
+    "profiles.seller.tab.overview",
+    "profiles.seller.tab.reviews",
     "profiles.seller_type.business",
     "profiles.seller_type.private",
     "profiles.settings.avatar.change",
@@ -843,6 +866,9 @@
       "ProfilesProvider",
       "ProfilesRuntimeContext",
       "Relationship",
+      "SELLER_DEFAULT_TAB",
+      "SELLER_TAB",
+      "SELLER_TABS",
       "createFlowMachine",
       "createProfilesApi",
       "createProfilesRuntime",
@@ -856,6 +882,8 @@
       "profilesI18nBundleEn",
       "profilesQueryKeys",
       "registerProfilesI18n",
+      "resolveSellerTab",
+      "sellerTabPath",
       "toFlowError",
       "useAvatarUpload",
       "useBlock",
@@ -927,6 +955,7 @@
       "RelationshipStatus",
       "Remediation",
       "Schemas",
+      "SellerTab",
       "SetAvatarBag"
     ]
   }

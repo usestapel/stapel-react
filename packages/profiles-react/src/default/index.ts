@@ -73,3 +73,5 @@ export {
   sellerTypeLabelKey,
 } from "./PublicProfilePage.js";
 export type { PublicProfilePageProps } from "./PublicProfilePage.js";
+export { SellerPage } from "./SellerPage.js";
+export type { SellerPageProps, SellerPageTab } from "./SellerPage.js";

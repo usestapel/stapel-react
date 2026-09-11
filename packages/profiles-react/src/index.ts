@@ -74,6 +74,18 @@ export {
 } from "./model/profileBatch.js";
 export type { ProfileBatchEntry } from "./model/profileBatch.js";
 
+// ── model (the seller page's sections — the router's half of <SellerPage>) ───
+// Plain strings and two pure functions, in the MAIN entry: a host's route file
+// decides what `/u/<id>/reviews` means without importing antd to do it.
+export {
+  SELLER_TAB,
+  SELLER_TABS,
+  SELLER_DEFAULT_TAB,
+  resolveSellerTab,
+  sellerTabPath,
+} from "./model/sellerTabs.js";
+export type { SellerTab } from "./model/sellerTabs.js";
+
 // ── model (write hooks) ──────────────────────────────────────────────────────
 export {
   useUpdateMyProfile,

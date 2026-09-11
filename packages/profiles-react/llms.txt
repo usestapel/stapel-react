@@ -94,6 +94,7 @@ const { tracked } = useTracked();
 - profiles.person-avatar-skin → <PersonAvatar> [sides|monogram|heading|compact]  demo/PersonAvatarSkin.demo.tsx
 - profiles.profile-name-heading-skin → <ProfileNameHeading> [loading|ready|unnamed]  demo/ProfileNameHeadingSkin.demo.tsx
 - profiles.public-profile-skin → <PublicProfilePage> [profile|control|unwritten]  demo/PublicProfileSkin.demo.tsx
+- profiles.seller-page-skin → <SellerPage> [page|reviews|two-sections]  demo/SellerPageSkin.demo.tsx
 - profiles.settings-skin → <ProfileSettings> [settings|sections|manifest-failed]  demo/ProfileSettingsSkin.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 

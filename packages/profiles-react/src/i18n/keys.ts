@@ -124,6 +124,20 @@ export const PROFILES_I18N_KEYS = {
    */
   sellerTypePrivate: "profiles.seller_type.private",
   sellerTypeBusiness: "profiles.seller_type.business",
+  // Seller page sections (SellerPage default skin + model/sellerTabs)
+  /**
+   * The three sections of a public seller page. They are SECTION names, not
+   * sentences: each sits on a tab a phone has to fit three of, so the words
+   * stay one each in every locale.
+   *
+   * `overview` is the introduction. The Russian word for it is the reference's
+   * — "the main one", not "the home page" — while English says "Overview" and
+   * Spanish "Resumen", because "Home" inside somebody's profile reads as the
+   * site's own home in both.
+   */
+  sellerTabOverview: "profiles.seller.tab.overview",
+  sellerTabListings: "profiles.seller.tab.listings",
+  sellerTabReviews: "profiles.seller.tab.reviews",
   // Profile settings (default skin — ProfileSettings)
   settingsTitle: "profiles.settings.title",
   settingsSubtitle: "profiles.settings.subtitle",
@@ -256,6 +270,9 @@ export const profilesI18nBundleEn: I18nDictionary = {
   "profiles.public.count.following.other": "Follows {count} people",
   "profiles.seller_type.private": "Private individual",
   "profiles.seller_type.business": "Company",
+  "profiles.seller.tab.overview": "Overview",
+  "profiles.seller.tab.listings": "Listings",
+  "profiles.seller.tab.reviews": "Reviews",
   "profiles.settings.title": "Profile",
   "profiles.settings.subtitle": "Your name, avatar, and general preferences.",
   "profiles.settings.avatar.change": "Change avatar",
