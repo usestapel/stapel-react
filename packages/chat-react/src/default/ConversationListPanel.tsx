@@ -34,6 +34,12 @@
  * standing in their messages wants to make had to be made by searching for
  * the listing again.
  *
+ * That strip is also the one thing on a row a host can REPLACE — see
+ * `renderSubject`. The default reads the conventional card the subject
+ * provider inlines; a deployment whose card is shaped differently, or whose
+ * envelope carries only the opaque `(type, key)`, draws its own line there
+ * instead of getting an empty one.
+ *
  * ── Finding one of them ───────────────────────────────────────────────────
  *
  * The pane heading carries a toolbar: a search box over the three things a
@@ -73,7 +79,7 @@
 import { spacing } from "@stapel/tokens-antd";
 import { ListRow, SkinDialog } from "@stapel/tokens-antd/skin";
 import { useCallback, useState } from "react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   Badge,
   Button,
@@ -169,6 +175,43 @@ export interface ConversationListPanelProps {
    * correct, just a full page load.
    */
   linkComponent?: LinkComponent;
+  /**
+   * DRAW THE SUBJECT LINE YOURSELF — the whole strip under a row, for one
+   * conversation, replacing this pair's own.
+   *
+   * ── What the default already does, and where it stops ─────────────────────
+   *
+   * A row says WHO and WHAT, and the WHAT is the listing: the default strip
+   * draws the subject card's thumbnail, its title (a link to the thing, D420)
+   * and its price, read off `conversation.subject.card` — the opaque object
+   * stapel-chat inlines in the list response by asking the subject type's own
+   * registered `card_function`. That covers every deployment whose provider
+   * serves the conventional fields (`classified.subject_cards` does: `title`,
+   * `price`, `currency`, `image`, `url`, `state`).
+   *
+   * It stops where the card does. A deployment whose subject provider answers
+   * a DIFFERENT shape — or answers nothing at all, leaving the envelope with
+   * an opaque `(type, key)` and no card — got an empty strip and no way in:
+   * `slots.subjectCard` is the thread's PINNED card and has never reached the
+   * inbox row. This is the row's half of that seam, and it is a render-prop
+   * rather than a slot because a row is drawn for a conversation, not for a
+   * subject: a host resolving `subject_key` against a catalogue of its own
+   * needs the key, and a host that wants no strip at all needs to say so.
+   *
+   * ── The contract ──────────────────────────────────────────────────────────
+   *
+   * Called for EVERY row, including the ones with no subject — a host that
+   * resolves keys itself is exactly the host that can draw a line where this
+   * pair can draw none. Its answer WINS, `null` included: returning `null`
+   * draws no strip, and never a quiet fall back to the card, because "this
+   * conversation has nothing to show" is an answer and not an omission.
+   *
+   * The indent is still this pane's — whatever comes back is placed in the
+   * row's text column, beneath the row control and as its SIBLING, which is
+   * the one thing about the strip that is layout rather than content (a link
+   * inside the row control would be a control inside a control).
+   */
+  renderSubject?: (conversation: Conversation) => ReactNode;
   /**
    * A row was LEFT from its own menu (stapel-chat 0.8.5) and the `204` has
    * landed — the row is already out of every cached narrowing of this list.
@@ -352,6 +395,7 @@ function ConversationRow(props: {
   readonly onOpen: ((conversationId: string) => void) | undefined;
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
+  readonly renderSubject: ((conversation: Conversation) => ReactNode) | undefined;
   readonly onLeft: ((conversationId: string) => void) | undefined;
   readonly onRejoined: ((conversationId: string) => void) | undefined;
   readonly view: ChatInboxView;
@@ -361,7 +405,13 @@ function ConversationRow(props: {
   const isLeftRow = props.view === "left";
   const label = useCounterpartyLabel(row, viewerId, directory);
   const subject = row.subject ?? null;
-  const subjectView = subject === null ? null : readSubjectCard(subject, props.locale);
+  // Not read at all where a host draws the line itself: `readSubjectCard`
+  // builds an `Intl.NumberFormat` for the price, and doing that per row per
+  // render for a card nobody is going to paint is work with no reader.
+  const subjectView =
+    subject === null || props.renderSubject !== undefined
+      ? null
+      : readSubjectCard(subject, props.locale);
   // A card with nothing renderable (no title, price or photo) is the same as
   // no subject at all for this line — the row draws nothing rather than an
   // empty flex gap.
@@ -463,8 +513,26 @@ function ConversationRow(props: {
   // and a link inside a `role="button"` is a control inside a control. So the
   // strip moves out from under the row control and sits beneath it, indented
   // to the text column so the row still reads as one row.
+  //
+  // A HOST'S OWN LINE WINS, and it wins for every row: `renderSubject` is
+  // asked about the conversation (not about a subject the pair could resolve),
+  // so a deployment whose provider serves a different card — or no card at all
+  // — can draw one from the opaque `(type, key)` the envelope always carries.
+  // `null` from it is an answer: no strip, and no quiet fall back to a card
+  // the host has just declined to use.
+  const hostStrip =
+    props.renderSubject === undefined ? undefined : props.renderSubject(row);
   const strip =
-    hasSubjectSummary && subject !== null ? (
+    hostStrip !== undefined ? (
+      hostStrip === null ? null : (
+        <div
+          style={{ paddingInlineStart: SUBJECT_INDENT, minWidth: 0 }}
+          data-chat-row-subject-slot="host"
+        >
+          {hostStrip}
+        </div>
+      )
+    ) : hasSubjectSummary && subject !== null ? (
       <div
         style={{ paddingInlineStart: SUBJECT_INDENT, minWidth: 0 }}
         data-chat-row-subject-slot=""
@@ -684,6 +752,7 @@ function InboxRows(props: {
   readonly onOpen: ((conversationId: string) => void) | undefined;
   readonly subjectHref: ((subject: Subject) => string | undefined) | undefined;
   readonly linkComponent: LinkComponent | undefined;
+  readonly renderSubject: ((conversation: Conversation) => ReactNode) | undefined;
   readonly selectedId: string | null;
   readonly onLeft: ((conversationId: string) => void) | undefined;
   readonly onRejoined: ((conversationId: string) => void) | undefined;
@@ -723,6 +792,7 @@ function InboxRows(props: {
                 onOpen={props.onOpen}
                 subjectHref={props.subjectHref}
                 linkComponent={props.linkComponent}
+                renderSubject={props.renderSubject}
                 onLeft={props.onLeft}
                 onRejoined={props.onRejoined}
                 view={props.view}
@@ -1029,6 +1099,7 @@ export function ConversationListPanel(
                   onOpen={onOpen}
                   subjectHref={props.subjectHref}
                   linkComponent={props.linkComponent}
+                  renderSubject={props.renderSubject}
                   selectedId={selectedId}
                   onLeft={props.onLeft}
                   onRejoined={props.onRejoined}

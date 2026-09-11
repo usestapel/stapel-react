@@ -37,7 +37,7 @@ import type { ReactElement, ReactNode } from "react";
 import { Empty, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
-import type { ChatMessage, Subject } from "../api/types.js";
+import type { ChatMessage, Conversation, Subject } from "../api/types.js";
 import type { ChatInboxView } from "../model/inboxQuery.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
@@ -65,6 +65,16 @@ export interface ConversationSplitPanelProps {
   /** The router's link for the subject title — forwarded to the list. */
   linkComponent?: LinkComponent;
   /**
+   * Draw a row's SUBJECT line — forwarded verbatim to
+   * `<ConversationListPanel renderSubject>`, where the reasoning is.
+   *
+   * Here for the reason every other slot on this interface is: the
+   * arrangement mounts the list panel ITSELF, so a host that replaced the
+   * subject line on its phone inbox could not reach it on the desktop split,
+   * and one deployment would draw two different rows for the same thread.
+   */
+  renderSubject?: (conversation: Conversation) => ReactNode;
+  /**
    * The list pane's toolbar — search text, the unread chip and whether the
    * controls are drawn at all. Forwarded verbatim to
    * `<ConversationListPanel/>`, which documents each one.
@@ -87,6 +97,16 @@ export interface ConversationSplitPanelProps {
   limit?: number;
   /** Composer cap — forwarded to `<ConversationThreadPanel/>`. */
   maxLength?: number;
+  /**
+   * What the OPEN thread's composer already says — forwarded to
+   * `<ConversationThreadPanel initialText>`, where the two rules are.
+   *
+   * The thread pane is keyed by conversation here, so a seed arrives with the
+   * thread it was chosen for and does not follow the reader into the next
+   * one: switching rows remounts the composer and the box is empty again
+   * unless the host seeds that thread too.
+   */
+  initialText?: string;
   /** Browser-notification offer — forwarded to `<ConversationThreadPanel/>`. */
   notifications?: boolean;
   /**
@@ -204,6 +224,9 @@ function toolbarProps(
       : {}),
     ...(props.leftView !== undefined ? { leftView: props.leftView } : {}),
     ...(props.onRejoined !== undefined ? { onRejoined: props.onRejoined } : {}),
+    ...(props.renderSubject !== undefined
+      ? { renderSubject: props.renderSubject }
+      : {}),
   };
 }
 
@@ -298,6 +321,9 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
               : {})}
             {...(props.renderSystemMessage !== undefined
               ? { renderSystemMessage: props.renderSystemMessage }
+              : {})}
+            {...(props.initialText !== undefined
+              ? { initialText: props.initialText }
               : {})}
           />
         ) : (

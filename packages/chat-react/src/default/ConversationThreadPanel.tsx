@@ -102,6 +102,22 @@ export interface ConversationThreadPanelProps {
    * right pane shows and closes it on its own.
    */
   onLeft?: (conversationId: string) => void;
+  /**
+   * WHAT THE COMPOSER ALREADY SAYS on the first paint of this thread — the
+   * question somebody chose on the way here.
+   *
+   * `@stapel/listings-react` 0.30.0 put four canned questions above the
+   * contact control («Is it still available?»), and the press carried its text
+   * in the router's own state because there was nowhere on this side to put
+   * it: the thread opened on an empty box and the person retyped the sentence
+   * they had just picked. This is the landing place.
+   *
+   * Seeded ONCE, at mount, and never an interaction — see
+   * `<MessageComposer initialValue>`, which states both rules and is what this
+   * forwards to. Nothing is sent: the person still reads it, edits it and
+   * presses send.
+   */
+  initialText?: string;
 }
 
 /** What the header-actions slot is told. */
@@ -293,6 +309,7 @@ function MessageRow(props: {
 function Composer(props: {
   conversationId: string;
   maxLength: number | undefined;
+  initialText: string | undefined;
 }): ReactElement {
   const t = useT();
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
@@ -300,6 +317,9 @@ function Composer(props: {
     <MessageComposer
       conversationId={props.conversationId}
       {...(props.maxLength !== undefined ? { maxLength: props.maxLength } : {})}
+      {...(props.initialText !== undefined
+        ? { initialValue: props.initialText }
+        : {})}
     >
       {(bag) => (
         <ComposerBody
@@ -586,6 +606,7 @@ export function ConversationThreadPanel(
             <Composer
               conversationId={props.conversationId}
               maxLength={props.maxLength}
+              initialText={props.initialText}
             />
           </div>
           </Card>

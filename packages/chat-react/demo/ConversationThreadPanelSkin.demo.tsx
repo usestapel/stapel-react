@@ -94,6 +94,8 @@ const EMPTY = threadDemo([]);
 function Panel(props: {
   demo: { seed: DemoSeed; handlers: DemoHandlers };
   socket?: "live" | "off";
+  /** What the composer already says on first paint — see the seeded variant. */
+  initialText?: string;
 }): ReactElement {
   return (
     <ChatDemoHarness
@@ -101,7 +103,13 @@ function Panel(props: {
       handlers={props.demo.handlers}
       {...(props.socket !== undefined ? { socket: props.socket } : {})}
     >
-      <ConversationThreadPanel conversationId={DEMO_THREAD_ID} viewerId={VIEWER} />
+      <ConversationThreadPanel
+        conversationId={DEMO_THREAD_ID}
+        viewerId={VIEWER}
+        {...(props.initialText !== undefined
+          ? { initialText: props.initialText }
+          : {})}
+      />
     </ChatDemoHarness>
   );
 }
@@ -190,6 +198,13 @@ export default defineDemo({
       viewport: "phone",
       step: "no_socket",
       render: () => <Panel demo={READY} socket="off" />,
+    },
+    "seeded-question": {
+      description:
+        "The composer opened with a sentence already in it — `initialText`, forwarded to `<MessageComposer initialValue>`. A listing page's canned questions («Is it still available?») carried their text in router state and had nowhere to land: the thread opened empty and the person retyped the sentence they had just chosen. Note what the box is NOT: it is not a sent message and it is not an interaction — pristine, with no refusal printed under it, because the words on screen are the product's and not yet the reader's. The seed is read once, at mount, so a parent that re-renders can never overwrite what has been typed since.",
+      viewport: "phone",
+      step: "seeded",
+      render: () => <Panel demo={READY} initialText="Is it still available?" />,
     },
     "subject-gone": {
       description:

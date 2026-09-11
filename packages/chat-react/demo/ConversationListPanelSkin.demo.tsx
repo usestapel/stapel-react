@@ -10,7 +10,7 @@
  * named for rather than a spinner — a viewer's shot of `<Spin/>` proves
  * nothing, and four spinners under four names is worse than one honest demo.
  */
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { spacing } from "@stapel/tokens";
 import { ConversationListPanel } from "../src/default/ConversationListPanel.js";
@@ -88,6 +88,7 @@ const LEFT: { seed: DemoSeed; handlers: DemoHandlers } = {
 function Panel(props: {
   demo: { seed: DemoSeed; handlers: DemoHandlers };
   view?: "inbox" | "left";
+  renderSubject?: (conversation: Conversation) => ReactNode;
 }): ReactElement {
   return (
     <ChatDemoHarness seed={props.demo.seed} handlers={props.demo.handlers}>
@@ -98,8 +99,43 @@ function Panel(props: {
         viewerId={DEMO_VIEWER}
         openHref={href}
         {...(props.view !== undefined ? { defaultView: props.view } : {})}
+        {...(props.renderSubject !== undefined
+          ? { renderSubject: props.renderSubject }
+          : {})}
       />
     </ChatDemoHarness>
+  );
+}
+
+/**
+ * THE ROW A DEPLOYMENT WITHOUT A SUBJECT CARD GETS, and what it can do about
+ * it.
+ *
+ * Every row of the inbox above is seeded with a card, because the provider in
+ * these fixtures answers one. A deployment whose `card_function` is not
+ * registered (or whose provider answered `missing`) sends the envelope's
+ * opaque `(type, key)` and NOTHING else, and the strip is then absent — there
+ * is no title to print and no url to link to. The host, which holds that
+ * catalogue, can print one; this is the line it draws.
+ *
+ * Deliberately not a prettier card: what is being documented is that the slot
+ * is handed the CONVERSATION, so the key on the wire is what reaches it.
+ */
+const NO_CARD: readonly Conversation[] = DEMO_INBOX.map((row) =>
+  row.subject == null
+    ? row
+    : { ...row, subject: { ...row.subject, card: null, meta_status: "missing" } }
+);
+
+const KEYED = inboxDemo(NO_CARD);
+
+function HostSubjectLine(props: { readonly row: Conversation }): ReactElement | null {
+  const key = props.row.subject?.key;
+  if (key === undefined || key === "") return null;
+  return (
+    <a href={`/l/${key}`} data-testid="demo-host-subject">
+      {`Listing #${key} — resolved by the host`}
+    </a>
   );
 }
 
@@ -183,6 +219,18 @@ export default defineDemo({
       viewport: "phone",
       step: "left",
       render: () => <Panel demo={LEFT} view="left" />,
+    },
+    "host-subject-line": {
+      description:
+        "`renderSubject` — the row's own seam, drawn over an inbox whose subject provider answered NO card at all. The default strip reads the conventional card stapel-chat inlines (title, price, photo, url); with no card there is nothing to read and the row went back to saying only who it is with, even though the envelope still carries the opaque `(subject_type, subject_key)` the thread was keyed by. A host holds that catalogue, so it is the one that can turn the key into a line — and the slot is asked about the CONVERSATION, not about a subject this pair could resolve, which is what puts the key within reach. Its answer replaces the default one, `null` included: `null` is «this thread has nothing to show», not an omission to paper over.",
+      viewport: "phone",
+      step: "host-subject",
+      render: () => (
+        <Panel
+          demo={KEYED}
+          renderSubject={(row) => <HostSubjectLine row={row} />}
+        />
+      ),
     },
     "row-identity": {
       description:

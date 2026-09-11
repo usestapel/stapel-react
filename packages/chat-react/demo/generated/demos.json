@@ -43,6 +43,12 @@
           "step": "left"
         },
         {
+          "id": "host-subject-line",
+          "description": "`renderSubject` — the row's own seam, drawn over an inbox whose subject provider answered NO card at all. The default strip reads the conventional card stapel-chat inlines (title, price, photo, url); with no card there is nothing to read and the row went back to saying only who it is with, even though the envelope still carries the opaque `(subject_type, subject_key)` the thread was keyed by. A host holds that catalogue, so it is the one that can turn the key into a line — and the slot is asked about the CONVERSATION, not about a subject this pair could resolve, which is what puts the key within reach. Its answer replaces the default one, `null` included: `null` is «this thread has nothing to show», not an omission to paper over.",
+          "viewport": "phone",
+          "step": "host-subject"
+        },
+        {
           "id": "row-identity",
           "description": "The row's identity glyph in all three answers the people seam can give: a resolved name (their initial), a resolved picture (the picture), and a directory that could not name this person (a neutral outline — never an initial invented from a user id, which is how a hole in a list gets mistaken for a design).",
           "viewport": "phone",
@@ -51,7 +57,7 @@
       ],
       "source": {
         "file": "demo/ConversationListPanelSkin.demo.tsx",
-        "line": 150
+        "line": 186
       }
     },
     {
@@ -102,6 +108,12 @@
           "step": "no_socket"
         },
         {
+          "id": "seeded-question",
+          "description": "The composer opened with a sentence already in it — `initialText`, forwarded to `<MessageComposer initialValue>`. A listing page's canned questions («Is it still available?») carried their text in router state and had nowhere to land: the thread opened empty and the person retyped the sentence they had just chosen. Note what the box is NOT: it is not a sent message and it is not an interaction — pristine, with no refusal printed under it, because the words on screen are the product's and not yet the reader's. The seed is read once, at mount, so a parent that re-renders can never overwrite what has been typed since.",
+          "viewport": "phone",
+          "step": "seeded"
+        },
+        {
           "id": "subject-gone",
           "description": "The two loose surfaces above the messages, on a deployment that wired NEITHER report nor block: there is no overflow control at all, because a menu that opens onto nothing promises an action this product does not have. The listing behind the thread has been removed, which the card says in its own sentence — the conversation about a deleted thing is the state a person is most confused by, so it is drawn rather than blanked.",
           "viewport": "phone",
@@ -117,7 +129,7 @@
       ],
       "source": {
         "file": "demo/ConversationThreadPanelSkin.demo.tsx",
-        "line": 141
+        "line": 149
       }
     },
     {

@@ -100,11 +100,38 @@ export interface MessageComposerBag {
 export function MessageComposer(props: {
   conversationId: string;
   maxLength?: number;
+  /**
+   * WHAT THE BOX ALREADY SAYS when it is first drawn — a question somebody
+   * pressed on the way here, not a draft of their own.
+   *
+   * A listing page's canned questions («Is it still available?») carry their
+   * text in router state and had nowhere to put it: the thread opened on an
+   * empty composer and the person retyped the sentence they had just chosen.
+   * This is where it lands.
+   *
+   * TWO THINGS IT IS NOT.
+   *
+   * It is not a controlled value: it seeds the state ONCE, at mount, and a
+   * later change to it is ignored. A prop that kept writing into the box
+   * would overwrite whatever the person had typed since — at the exact moment
+   * a parent re-rendered for an unrelated reason, which is the worst kind of
+   * data loss because nothing on screen caused it.
+   *
+   * And it is not an INTERACTION. `pristine` stays true and `interacted`
+   * stays false, so a seeded composer is treated exactly like an empty one
+   * that nobody has addressed: no refusal is printed under it, and the first
+   * thing the person does with the sentence — editing it or pressing send —
+   * is still the first thing they have done. Seeding a box is the product
+   * speaking, not the reader.
+   */
+  initialValue?: string;
   /** Called with the persisted message after a successful send. */
   onSent?: (seq: number) => void;
   children: (bag: MessageComposerBag) => ReactNode;
 }): ReactNode {
-  const [value, setValue] = useState("");
+  // ONCE. `useState`'s initial argument is read on the first render and never
+  // again, which is the whole of the rule stated in `initialValue` above.
+  const [value, setValue] = useState(props.initialValue ?? "");
   // Typed in, or pressed send — either is a person addressing this field.
   const [interacted, setInteracted] = useState(false);
   const send = useSendMessage(props.conversationId);

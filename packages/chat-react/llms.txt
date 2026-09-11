@@ -83,8 +83,8 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- chat.conversation-list-panel → <ConversationListPanel> [default|more-to-load|empty|left|row-identity]  demo/ConversationListPanelSkin.demo.tsx
-- chat.conversation-thread-panel → <ConversationThreadPanel> [default|earlier-history|no-messages-yet|dark|no-live-socket|subject-gone|thread-menu-open]  demo/ConversationThreadPanelSkin.demo.tsx
+- chat.conversation-list-panel → <ConversationListPanel> [default|more-to-load|empty|left|host-subject-line|row-identity]  demo/ConversationListPanelSkin.demo.tsx
+- chat.conversation-thread-panel → <ConversationThreadPanel> [default|earlier-history|no-messages-yet|dark|no-live-socket|seeded-question|subject-gone|thread-menu-open]  demo/ConversationThreadPanelSkin.demo.tsx
 - chat.conversations → <ConversationList> [default]  demo/ConversationList.demo.tsx
 - chat.leave → <LeaveConversationDialog> [default|in-the-menu]  demo/LeaveConversation.demo.tsx
 - chat.presence → <PresenceLine> [default|last-seen|never-seen|my-connection-is-the-problem|notifications-ask]  demo/PresenceSkin.demo.tsx
