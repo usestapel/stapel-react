@@ -1,5 +1,24 @@
 # @stapel/listings-react
 
+## 0.30.2
+
+### Patch Changes
+
+- Changing category no longer carries an answer the new category will not take.
+
+  Retention asked only whether the new schema DECLARED a slug, so two leaves
+  that both declare `color` — with different options behind it — kept a value
+  the new one refuses. Measured on a live stand: an analysis answered the colour
+  `zolotoy` on a wristwatch leaf, the category was corrected to laptops (gold is
+  `zolotistyy` there), and the publish gate then shut on a field the catalogue
+  marks optional and the server publishes without.
+
+  `retainKnownFeatureValues` and `droppedFeatureSlugs` now judge the VALUE with
+  `mirrorValidate` — the same function the publish gate reads, so a kept value
+  can never be one the gate refuses — and a dropped answer is named rather than
+  lost. The judge runs only when the schema actually changes, so a half-typed
+  answer inside one category is still the person's to fix.
+
 ## 0.30.1
 
 ### Patch Changes

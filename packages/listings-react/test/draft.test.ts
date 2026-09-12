@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { FeatureDef } from "@stapel/attributes-react";
 import { toFeaturesDto } from "@stapel/attributes-react";
 import {
   DEFAULT_DRAFT_LIMITS,
@@ -120,6 +121,67 @@ describe("changing category keeps what still applies", () => {
     // would turn a category change into a publish refusal about a field the
     // composer no longer draws.
     expect(droppedFeatureSlugs(answered, FEATURES)).toEqual(["mileage"]);
+  });
+
+  /* ── D455: a shared slug is not a shared answer ──────────────────────────
+   *
+   * Measured on ruberi.ru, 2026-09-12 (probe p54, flow 5). The analysis read
+   * the photo as the wristwatch leaf and answered the colour with `zolotoy`;
+   * the category was corrected to the laptop leaf, which declares `color` as
+   * well — and therefore kept the value — but spells gold `zolotistyy`. The
+   * control drew the raw code `zolotoy`, the mirror refused it
+   * `not_in_options`, and the publish gate shut on the colour field over a
+   * row the catalogue marks OPTIONAL and the server publishes without.
+   * Retention by slug alone is what carried it across.
+   */
+  const WATCH_GOLD = { brand: ["bosch"], color: ["zolotoy"] };
+  const LAPTOP: readonly FeatureDef[] = [
+    ...FEATURES,
+    {
+      slug: "color",
+      name: "Цвет",
+      mandatory: false,
+      config: {
+        type: "select",
+        options: [
+          { value: "zolotistyy", label: "Золотистый" },
+          { value: "seryy", label: "Серый" },
+        ],
+        maxSelected: 1,
+        minSelected: 0,
+      },
+    } as unknown as FeatureDef,
+  ];
+
+  it("drops an answer whose slug survives but whose VALUE this category refuses", () => {
+    expect(retainKnownFeatureValues(WATCH_GOLD, LAPTOP)).toEqual({
+      brand: ["bosch"],
+    });
+  });
+
+  it("names that answer too — it did not apply, it was not lost silently", () => {
+    expect(droppedFeatureSlugs(WATCH_GOLD, LAPTOP)).toEqual(["color"]);
+  });
+
+  it("keeps an answer the new schema DOES offer", () => {
+    const kept = retainKnownFeatureValues(
+      { brand: ["bosch"], color: ["seryy"] },
+      LAPTOP
+    );
+    expect(kept).toEqual({ brand: ["bosch"], color: ["seryy"] });
+    expect(droppedFeatureSlugs({ brand: ["bosch"], color: ["seryy"] }, LAPTOP)).toEqual([]);
+  });
+
+  it("never names a BLANK field as dropped — a demand is not a verdict", () => {
+    // `brand` is mandatory and unanswered here: the mirror says
+    // `mandatory_missing`, which asks for an answer rather than refusing one.
+    // Reporting it as "did not apply" would tell a person their answer was
+    // discarded when they never gave one.
+    expect(droppedFeatureSlugs({ brand: [], color: ["seryy"] }, LAPTOP)).toEqual([]);
+    expect(retainKnownFeatureValues({ brand: [], color: ["seryy"] }, LAPTOP)).toEqual({
+      brand: [],
+      color: ["seryy"],
+    });
   });
 });
 

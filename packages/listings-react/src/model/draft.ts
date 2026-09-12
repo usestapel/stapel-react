@@ -13,7 +13,11 @@
  * assert the BODY a save sends rather than the fact that it sent one.
  */
 import type { FeatureDef, FeaturesDto } from "@stapel/attributes-react";
-import { fromFeaturesDto, toFeaturesDto } from "@stapel/attributes-react";
+import {
+  fromFeaturesDto,
+  mirrorValidate,
+  toFeaturesDto,
+} from "@stapel/attributes-react";
 import type {
   ListingDetail,
   ListingDraft,
@@ -350,8 +354,80 @@ export function createDraftBody(categoryId?: string): ListingDraftPatch {
 }
 
 /**
- * Switching category: keep the answers whose slug the new schema also
- * declares, drop the rest.
+ * A SHARED SLUG IS NOT A SHARED ANSWER (D455).
+ *
+ * Retention used to ask one question — "does the new schema declare this
+ * slug?" — and a slug is the cheapest half of the answer. Measured on the
+ * live stand, 2026-09-12: the analysis read a photo as the wristwatch leaf
+ * and answered the colour with `zolotoy`, which that leaf offers; the
+ * category was then corrected to the laptop leaf, which declares `color` too
+ * and therefore KEPT the value — but its sixteen options spell gold
+ * `zolotistyy`, not `zolotoy`. The control drew the raw code, the mirror
+ * refused it `not_in_options`, and the publish gate shut on the colour field
+ * over a row the catalogue marks OPTIONAL and the server publishes without
+ * (`validate-draft` -> `valid: true`). The seller cannot read the demand and
+ * the gate cannot be cleared by answering what it names.
+ *
+ * So the question is asked of the VALUE: a retained answer must be one the
+ * new schema would accept. The judge is `mirrorValidate` — the very function
+ * the publish gate reads — so a value kept here can never be one the gate
+ * refuses, and the two cannot drift. Same invariant `acceptableAiWrites`
+ * states for the analysis's writes, now held for the person's own.
+ *
+ * Only a value that is BOTH present and non-blank can be dropped this way.
+ * A blank one has nothing to lose, and its `mandatory_missing` row is a
+ * demand for an answer rather than a verdict on one — naming it as "dropped"
+ * would tell a person their answer did not apply when they never gave one.
+ * A rule set the mirror cannot parse fails the batch on `_root` and drops
+ * nothing: the schema is broken, not the draft.
+ */
+function judgeRetention(
+  values: Readonly<Record<string, unknown>>,
+  features: readonly FeatureDef[]
+): { readonly kept: Record<string, unknown>; readonly dropped: string[] } {
+  const known = new Set(features.map((feature) => feature.slug));
+  const kept: Record<string, unknown> = {};
+  const dropped: string[] = [];
+  for (const [slug, value] of Object.entries(values)) {
+    if (known.has(slug)) kept[slug] = value;
+    else dropped.push(slug);
+  }
+
+  let refused: ReadonlySet<string>;
+  try {
+    const batch = mirrorValidate(features, toFeaturesDto(features, kept));
+    refused = new Set(
+      batch.results
+        .filter((result) => result.status !== "ok")
+        .map((result) => result.slug)
+    );
+  } catch {
+    // A schema this build cannot judge is not a reason to delete answers.
+    return { kept, dropped: dropped.sort() };
+  }
+
+  const survived: Record<string, unknown> = {};
+  for (const [slug, value] of Object.entries(kept)) {
+    if (refused.has(slug) && answeredFeatureValue(value)) dropped.push(slug);
+    else survived[slug] = value;
+  }
+  return { kept: survived, dropped: dropped.sort() };
+}
+
+/**
+ * Does this value count as an answer? An empty list is what clearing the last
+ * chip leaves behind — an unanswered field, not an answer of `[]`.
+ */
+function answeredFeatureValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "string") return value.trim().length > 0;
+  return true;
+}
+
+/**
+ * Switching category: keep the answers the new schema also asks for AND would
+ * accept, drop the rest.
  *
  * Spec §4.1 asks for exactly this, and the reason is the same one the forms
  * spec gives for `error.409.forms_version_superseded`: a person who picked
@@ -359,30 +435,25 @@ export function createDraftBody(categoryId?: string): ListingDraftPatch {
  * phones" should not retype what both categories ask for. A value whose slug
  * is gone IS dropped, because 0.6.0 rejects an unknown slug per feature —
  * carrying it would turn a category change into a publish refusal about a
- * field the composer no longer draws.
+ * field the composer no longer draws. Since 0.30.2 a value whose slug SURVIVES
+ * but which the new schema refuses is dropped for the same reason, which is
+ * the harm rather than the mechanism — see {@link judgeRetention}.
  */
 export function retainKnownFeatureValues(
   values: Readonly<Record<string, unknown>>,
   features: readonly FeatureDef[]
 ): Readonly<Record<string, unknown>> {
-  const known = new Set(features.map((feature) => feature.slug));
-  const out: Record<string, unknown> = {};
-  for (const [slug, value] of Object.entries(values)) {
-    if (known.has(slug)) out[slug] = value;
-  }
-  return out;
+  return judgeRetention(values, features).kept;
 }
 
-/** Slugs that were answered and are NOT in the new schema — what
- * {@link retainKnownFeatureValues} just dropped. A composer tells the person
- * ("2 answers do not apply to this category") instead of losing them
- * silently. */
+/** Slugs that were answered and the new schema will not carry — what
+ * {@link retainKnownFeatureValues} just dropped, whether because the slug is
+ * gone or because the answer is not one this category offers. A composer
+ * tells the person ("2 answers do not apply to this category") instead of
+ * losing them silently. */
 export function droppedFeatureSlugs(
   values: Readonly<Record<string, unknown>>,
   features: readonly FeatureDef[]
 ): readonly string[] {
-  const known = new Set(features.map((feature) => feature.slug));
-  return Object.keys(values)
-    .filter((slug) => !known.has(slug))
-    .sort();
+  return judgeRetention(values, features).dropped;
 }

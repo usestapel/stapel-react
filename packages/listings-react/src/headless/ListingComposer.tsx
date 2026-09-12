@@ -39,7 +39,6 @@ import {
   draftValuesFromWire,
   droppedFeatureSlugs,
   emptyDraftValues,
-  retainKnownFeatureValues,
 } from "../model/draft.js";
 import type { ListingDraftValues, ListingLocation } from "../model/draft.js";
 import { asFeatureDaoList } from "../model/features.js";
@@ -383,12 +382,53 @@ export function useListingComposer(
   const schemaSettled =
     options.featuresLoading !== true && options.featuresError === undefined;
   const { features } = options;
+  /**
+   * WHICH SCHEMA THIS IS, by its content and not by its identity (D455).
+   *
+   * Hosts hand `features` as a fresh array on most renders — the storefront's
+   * comes out of a query mapper — so array identity says "a render happened",
+   * never "the questions changed". The value judge below may only run on the
+   * second, and this is how the two are told apart.
+   */
+  const schemaKey = useMemo(
+    () =>
+      features
+        .map((feature) => `${feature.slug}:${JSON.stringify(feature.config ?? null)}`)
+        .join("|"),
+    [features]
+  );
+  /** The schema the values were last judged against — `null` until the first
+   * one settles. */
+  const judgedSchema = useRef<string | null>(null);
   useEffect(() => {
     if (!schemaSettled || features.length === 0) return;
+    /* A DIFFERENT SCHEMA, not merely a different render.
+     *
+     * `false` on the very first settle, which is a REOPEN and not a switch:
+     * the answers came back from the server that stored them, and re-judging
+     * them against the catalogue as it stands today would silently delete a
+     * draft's contents on the way in. */
+    const switched = judgedSchema.current !== null && judgedSchema.current !== schemaKey;
+    judgedSchema.current = schemaKey;
     setValues((current) => {
-      const gone = droppedFeatureSlugs(current.features, features);
+      /* On a SWITCH, `gone` is "what this schema will not carry": since
+         0.30.2 that includes an answer whose slug survives but whose VALUE
+         this category refuses — two leaves both declaring `color` differ in
+         the options behind it (D455). Otherwise it stays the older, narrower
+         question — "which slugs is this schema not asking about?" — because
+         within ONE category a value the mirror refuses is a person typing,
+         and deleting that is the composer editing them mid-sentence. */
+      const gone = switched
+        ? droppedFeatureSlugs(current.features, features)
+        : Object.keys(current.features)
+            .filter((slug) => !features.some((feature) => feature.slug === slug))
+            .sort();
       const kept =
-        gone.length === 0 ? current.features : retainKnownFeatureValues(current.features, features);
+        gone.length === 0
+          ? current.features
+          : Object.fromEntries(
+              Object.entries(current.features).filter(([slug]) => !gone.includes(slug))
+            );
       // `FeatureDef.default` (and the type's own default) is what the CATALOGUE
       // says a blank form opens with — a `select` option flagged `default`, a
       // preset date. It is applied ONLY where the draft has no answer: a
@@ -412,7 +452,7 @@ export function useListingComposer(
       }
       return { ...current, features: { ...kept, ...seeded } };
     });
-  }, [schemaSettled, features]);
+  }, [schemaSettled, features, schemaKey]);
 
   // The gallery is the upload bag's, whenever there is one: two sources of
   // truth for the same list is how a publish sends photos the person removed.
