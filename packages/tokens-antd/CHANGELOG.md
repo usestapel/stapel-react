@@ -1,5 +1,26 @@
 # @stapel/tokens-antd
 
+## 0.18.1
+
+### Patch Changes
+
+- A rating nobody can tick is not a touch target.
+
+  The phone touch floor gives `Rate` a 32px glyph on a 44px pitch, so a thumb can
+  find a star it is meant to press. It was applying that to every `Rate` under a
+  phone skin root, including the `disabled` ones that are only ever read.
+  Measured on a client storefront at 390 CSS px: the five-star row wanted 220px
+  inside a feed card's 105px text column, wrapped into three rows, and the rating
+  badge stood 196px tall. At 320px the column is 44px, the stars stacked into a
+  vertical column of five, and the block was 356px — taller than the photo above
+  it.
+
+  `phoneTouchFloorCss` now scopes the 44px star rule to
+  `:not(.ant-rate-disabled)` and gives the read-only arm the scale's own icon
+  step and gap: `READ_ONLY_RATE_STAR_SIZE` (16px, `fontSize.md`) and
+  `READ_ONLY_RATE_STAR_GAP` (4px), both exported. An interactive `Rate` keeps its
+  pitch exactly as before.
+
 ## 0.18.0
 
 ### Minor Changes

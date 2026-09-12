@@ -1,5 +1,45 @@
 # @stapel/search-react
 
+## 0.42.1
+
+### Patch Changes
+
+- The dictionary facet's values box is a scroll port, and it now looks like one.
+
+  Three things an owner read as broken on a client storefront's cars leaf:
+
+  - **The bar was painted over the count.** The values list («418 makes») caps
+    its height and scrolls, and it was getting the platform's scrollbar — on the
+    live page the thumb stood on top of the row's last column, so a row counted 5
+    and showed a grey strip. The rail's own scrollbar rule set moves to
+    `./scrollbar.ts` (same class, same `href`, same CSS text, re-exported from
+    `<SearchPage>` unchanged) and the values box mounts it too:
+    `scrollbar-gutter: stable` plus the 6px token hairline. The row's count
+    carries the gutter's own width as `padding-inline-end` as well, for the
+    engines that ignore `scrollbar-gutter` and overlay the thumb anyway. The list
+    also opens one step of the scale below the box that filters it, where its
+    first value used to read as clipped by the input.
+  - **The fold control kept a red ring after a mouse click.** New
+    `./focusRing.ts`: a facet control stamps `data-pointer-focus` on itself on a
+    pointer press and clears it on the first key it sees or on blur; one hoisted
+    rule turns the ring off while that stamp is on. `:focus-visible` was already
+    the only thing drawing the ring — it is a heuristic, not a statement about the
+    input device, and it fires for a click on a control whose own list has just
+    changed under it, which is what a disclosure toggle does. Tab to the control
+    and the ring is there; click it and it is not.
+  - **`<PopularValues>` spread its columns across the whole pane.** Multi-column
+    layout divides the container, so three columns of a block handed a 1100px
+    results pane printed a make, 300px of nothing, and the next make. The columns
+    box is now `inline-size: fit-content` (capped at `100%`), the column gap is a
+    step of the scale, and `columns` is clamped at
+    `POPULAR_VALUES_MAX_COLUMNS` (4) — the ladder's own ceiling, now stated for
+    the numeric arm too.
+
+  New exports: `RAIL_SCROLLBAR_WIDTH`, `SCROLL_GUTTER_INLINE_END`,
+  `SCROLL_LIST_INSET_BLOCK_START`, `POINTER_FOCUS`, `POINTER_FOCUS_ATTR`,
+  `POINTER_FOCUS_CLASS`, `POINTER_FOCUS_NO_RING`, `POINTER_FOCUS_STYLE_HREF`,
+  `pointerFocus`, `pointerFocusCss`, `POPULAR_VALUES_MAX_COLUMNS`.
+
 ## 0.42.0
 
 ### Minor Changes

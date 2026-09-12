@@ -1,5 +1,29 @@
 # @stapel/reviews-react
 
+## 0.8.1
+
+### Patch Changes
+
+- `<RatingBadge>` is one line, and the stars are not what gives way.
+
+  The badge was a `wrap`ping row of three equal children, which is a layout with
+  no opinion: whatever ran out of room first broke. On a client storefront's feed
+  card at 390 CSS px that was the stars — the row folded into three rows of
+  glyphs with the score and the count on lines of their own, and one rating stood
+  196px tall; at 320px it was 356px.
+
+  The row now states its priority. The stars never shrink and never wrap
+  (`flex: 0 0 auto`), and they are drawn at the dictionary's icon step
+  (`fontSize.md`, 16px) rather than at whatever the phone theme's touch pitch
+  gives a control nobody can tick. The score («4 of 5») is rigid too. The review
+  count is the only item that gives way — `flex: 0 1 auto`, `min-inline-size: 0`
+  and an ellipsis — and a middot separates it from the score so the three facts
+  read as one sentence. The row and its wrapper can be narrower than their
+  content, so the badge can no longer push a card open.
+
+  New test ids on the drawn arm: `reviews-rating-line`, `reviews-rating-score`,
+  `reviews-rating-dot`, `reviews-rating-count`.
+
 ## 0.8.0
 
 ### Minor Changes
