@@ -100,8 +100,11 @@ export interface paths {
          *     from a public /privacy form — the form is the channel a regulator
          *     expects to exist, and it cannot require a login. The anonymous variant
          *     goes through the core's tiered captcha policy
-         *     (``@captcha_protected``); an unconfigured captcha backend leaves the
-         *     form open exactly as before, which is a host's decision to make.
+         *     (``@captcha_protected``); an unconfigured captcha backend leaves that
+         *     decorator doing nothing, which is why the door also carries a rolling
+         *     hourly budget per caller (``stapel_gdpr.throttling``,
+         *     ``INTAKE_RATE_LIMIT_PER_HOUR``) — spent before anything is recorded or
+         *     mailed, so a refused knock leaves no row and sends no acknowledgement.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -4710,6 +4713,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
         };
     };
     auth_api_v1_dsar_retrieve: {
@@ -7921,6 +7932,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -8044,6 +8063,14 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
