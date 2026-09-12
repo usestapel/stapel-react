@@ -1,5 +1,38 @@
 # @stapel/search-react
 
+## 0.41.2
+
+### Patch Changes
+
+- chat-react: an inbox row's clock says what distinguishes it, not a full stamp
+
+  The row's clock was `dateStyle: "short", timeStyle: "short"` — seventeen
+  characters in Russian — and the cell it lives in is `flex: 0 0 auto`, so every
+  one of them came off the counterparty's name beside it. On a 300px row a
+  three-word trading name rendered as two letters and an ellipsis, to say a year
+  the reader already knows.
+
+  It is now the conventional inbox clock: today → the time alone, this year →
+  day and short month, older → the short date. Each arm is still `Intl`, so it is
+  the host locale's own order, separators and month names. `formatTime` on
+  `<ConversationListPanel>` (forwarded by `<ConversationSplitPanel>`) hands a
+  deployment the stamp, the locale and the moment, for an inbox that wants
+  "2 hours ago" instead; `inboxClock` is exported so a host can build on the
+  default rather than replace it.
+
+  search-react: the phone toolbar's view switch is glyphs, and the pair folds as
+  one unit
+
+  At 390px the switch shared a line with the sort select, which holds a floor
+  (the width of its own longest label) — so the switch was what gave, and its
+  trailing option was cut mid-word behind the select's leading edge, with nothing
+  on screen to say a control had been cut. Below the pane's phone breakpoint each
+  option is now its glyph, named through `aria-label` from the same i18n keys the
+  wide form prints; the compact sort select states its floor as a floor
+  (`flex: 0 0 auto`, `min-inline-size: max-content`) instead of shrinking into
+  its neighbour; and the two controls wrap as one group, so a short line breaks
+  between them rather than through one of them.
+
 ## 0.41.1
 
 ### Patch Changes

@@ -1270,14 +1270,30 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
    */
   const phoneToolbar = layout === "sheet";
   const toolbar = phoneToolbar ? (
+    /* `wrap` at BOTH levels, and it is the whole fix for what a 360px row did
+       to this pair of controls. The view switch and the sort select are one
+       unit — "how they are arranged, in what order" — and each holds the width
+       it needs (the switch its glyphs, the select its longest label). A line
+       too short for the pair therefore breaks BETWEEN the unit and the
+       surface's action, and, failing that, between the two controls — rather
+       than cutting the trailing one mid-word, which is what a shrinking
+       segmented control did: "Grid" arrived as "Gri" behind the select's
+       leading edge, with nothing on screen to say a control had been cut. */
     <Flex
       align="center"
       justify="space-between"
       gap={spacing[2]}
+      wrap
       style={{ width: "100%" }}
     >
-      <Flex align="center" gap={spacing[2]} style={{ minWidth: 0 }}>
-        <ViewSwitch views={views} value={view.id} onChange={changeView} />
+      <Flex
+        align="center"
+        gap={spacing[2]}
+        wrap
+        style={{ minWidth: 0, flex: "0 1 auto" }}
+        data-testid="search-toolbar-arrangement"
+      >
+        <ViewSwitch views={views} value={view.id} onChange={changeView} compact />
         <SortSelect compact />
       </Flex>
       {props.resultsAction}

@@ -16,8 +16,12 @@ export {
   ConversationListPanel,
   ROW_OPEN_CLASS,
   conversationRowCss,
+  inboxClock,
 } from "./ConversationListPanel.js";
-export type { ConversationListPanelProps } from "./ConversationListPanel.js";
+export type {
+  ChatRowTimeFormat,
+  ConversationListPanelProps,
+} from "./ConversationListPanel.js";
 export { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 export type {
   ConversationThreadPanelProps,

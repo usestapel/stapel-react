@@ -66,7 +66,15 @@ export const SORT_SELECT_CHROME = 40;
  */
 const COMPACT_WRAP: CSSProperties = {
   display: "inline-grid",
-  flex: "0 1 auto",
+  // `0 0 auto`, not `0 1 auto`: the cell is already the width of the longest
+  // label, and letting it SHRINK below that is how a sort select ends up
+  // narrower than its own longest option — and, on a two-control phone
+  // toolbar, how it takes that width off the control beside it instead. The
+  // group wraps as a unit when the line is too short for both; it does not
+  // squeeze. `max-content` states the same floor for a consumer stylesheet
+  // that resets `flex`.
+  flex: "0 0 auto",
+  minInlineSize: "max-content",
 };
 
 const COMPACT_SIZER: CSSProperties = {

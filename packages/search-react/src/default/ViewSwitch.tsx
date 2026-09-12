@@ -122,6 +122,42 @@ export interface ViewSwitchProps {
   readonly views: readonly SearchView[];
   readonly value: string;
   readonly onChange: (id: string) => void;
+  /**
+   * THE GLYPHS ALONE — the phone form, and it is a different control rather
+   * than the same one at a smaller type step.
+   *
+   * Named + glyph is two labels wide, and on a 390px toolbar it shares a line
+   * with the sort select. The select has a floor (the width of its own longest
+   * option — see `SortSelect`), so the switch is what gave: it was CUT by the
+   * select's leading edge mid-word, and the last arrangement on offer read as
+   * a truncated word with no indication there was a control there at all. A
+   * segmented control cut in half is worse than one with no words: the first
+   * looks broken, the second looks deliberate.
+   *
+   * So below the pane's phone breakpoint each option is its glyph and nothing
+   * else, and the NAME moves to where a name belongs — `aria-label`, off the
+   * same i18n key the wide form prints, so nothing is lost to a screen reader
+   * or to a locale. A view with no `icon` keeps its name: an option drawn as
+   * an empty box is not a smaller control, it is an unreachable one.
+   */
+  readonly compact?: boolean;
+}
+
+/**
+ * One option's face. Compact, that is the glyph carrying the view's NAME:
+ * `role="img"` is what makes an `aria-label` computable here — the glyph
+ * inside is `aria-hidden`, and a bare `<span>` has no role for a name to
+ * attach to, so the radio the browser builds around it would be nameless.
+ */
+function ViewOptionLabel(props: {
+  readonly name: string;
+  readonly icon: ReactNode;
+}): ReactElement {
+  return (
+    <span role="img" aria-label={props.name} data-testid="search-view-option-icon">
+      {props.icon}
+    </span>
+  );
 }
 
 /**
@@ -131,17 +167,29 @@ export interface ViewSwitchProps {
 export function ViewSwitch(props: ViewSwitchProps): ReactElement | null {
   const t = useT();
   if (props.views.length < 2) return null;
+  const compact = props.compact === true;
   return (
     <Segmented<string>
       aria-label={t(SEARCH_I18N_KEYS.viewLabel)}
       value={props.value}
       data-testid="search-view-switch"
+      data-view-switch={compact ? "compact" : "named"}
       onChange={props.onChange}
-      options={props.views.map((view) => ({
-        value: view.id,
-        label: t(view.labelKey),
-        ...(view.icon !== undefined ? { icon: view.icon } : {}),
-      }))}
+      // It keeps the width its glyphs need and no more: the group it sits in
+      // wraps as a unit when the line is short, and a switch that shrank
+      // instead would be the cut control this form exists to end.
+      style={{ flex: "0 0 auto" }}
+      options={props.views.map((view) => {
+        const name = t(view.labelKey);
+        if (compact && view.icon !== undefined) {
+          return { value: view.id, label: <ViewOptionLabel name={name} icon={view.icon} /> };
+        }
+        return {
+          value: view.id,
+          label: name,
+          ...(view.icon !== undefined ? { icon: view.icon } : {}),
+        };
+      })}
     />
   );
 }

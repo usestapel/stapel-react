@@ -300,6 +300,23 @@ export interface ConversationListPanelProps {
    * built-in one off.
    */
   filters?: boolean;
+  /**
+   * WHAT A ROW'S CLOCK SAYS. Default {@link inboxClock} — today's rows show a
+   * time, this year's a day and month, older ones a short date.
+   *
+   * It is a seam and not a format string because "how recent is recent" is a
+   * product decision this pair cannot take for every deployment: a support
+   * desk wants "2 hours ago", a marketplace wants the day, and a locale the
+   * default renders awkwardly wants its own order. The callback is handed the
+   * raw ISO stamp, the active locale and the moment the row is being drawn,
+   * so a host can answer any of those without re-deriving the first two.
+   *
+   * The cell it fills does not grow: the clock is `flex: 0 0 auto` in the row
+   * and every pixel it takes comes off the counterparty's name, so a
+   * formatter that returns a sentence will eat the row the way the full
+   * timestamp used to.
+   */
+  formatTime?: ChatRowTimeFormat;
 }
 
 function relativeTime(locale: string, iso: string): string {
@@ -312,6 +329,55 @@ function relativeTime(locale: string, iso: string): string {
     timeStyle: "short",
   }).format(parsed);
 }
+
+/**
+ * THE CLOCK ON AN INBOX ROW, AND WHY IT IS NOT A FULL TIMESTAMP.
+ *
+ * The row is a fixed-width cell (`ListRow`'s `trailing` is `flex: none`) and
+ * everything to its left — the name, the preview — is what shrinks by its
+ * width. A `dateStyle: "short", timeStyle: "short"` stamp is "11.09.2026,
+ * 22:52" in Russian: 17 characters of a 300px row, which left a workshop's
+ * three-word trading name rendering as its first two letters and an ellipsis.
+ * The full stamp was costing the row the one field a person scans it by, to
+ * say a year they can read off the calendar.
+ *
+ * So the clock says only what distinguishes this row from the ones around it,
+ * which is the convention every inbox on a phone already follows:
+ *
+ *  - TODAY  → the time alone ("22:52"), because the day is now;
+ *  - THIS YEAR → day and short month ("11 Sep"), because the year is this
+ *    one;
+ *  - EARLIER → the short date ("11.09.25"), where the year is the fact.
+ *
+ * Each arm is still `Intl`, so it is the host locale's own order, separators
+ * and month names — no key, nothing to go stale in a catalogue.
+ *
+ * `now` is an ARGUMENT rather than a `new Date()` inside: the three arms are
+ * a function of the pair (stamp, now), and a test that cannot hold `now`
+ * still cannot tell "today" from "this year" — which is the whole of what
+ * this function decides.
+ */
+export function inboxClock(iso: string, locale: string, now: Date): string {
+  const parsed = Date.parse(iso);
+  if (Number.isNaN(parsed)) return "";
+  const when = new Date(parsed);
+  const sameYear = when.getFullYear() === now.getFullYear();
+  const sameDay =
+    sameYear &&
+    when.getMonth() === now.getMonth() &&
+    when.getDate() === now.getDate();
+  if (sameDay) return new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(when);
+  if (sameYear) {
+    return new Intl.DateTimeFormat(locale, {
+      day: "numeric",
+      month: "short",
+    }).format(when);
+  }
+  return new Intl.DateTimeFormat(locale, { dateStyle: "short" }).format(when);
+}
+
+/** What a row's clock cell shows: the host's formatter if it brought one. */
+export type ChatRowTimeFormat = (iso: string, locale: string, now: Date) => string;
 
 /**
  * A ROW'S OWN MENU — one entry, and it is the way out (stapel-chat 0.8.5).
@@ -399,6 +465,7 @@ function ConversationRow(props: {
   readonly onLeft: ((conversationId: string) => void) | undefined;
   readonly onRejoined: ((conversationId: string) => void) | undefined;
   readonly view: ChatInboxView;
+  readonly formatTime: ChatRowTimeFormat | undefined;
 }): ReactElement {
   const t = useT();
   const { row, viewerId, directory, openHref, onOpen } = props;
@@ -498,7 +565,7 @@ function ConversationRow(props: {
           style={{ whiteSpace: "nowrap" }}
           data-chat-row-clock=""
         >
-          {relativeTime(props.locale, row.updated_at)}
+          {(props.formatTime ?? inboxClock)(row.updated_at, props.locale, new Date())}
         </Typography.Text>
       }
     />
@@ -757,6 +824,7 @@ function InboxRows(props: {
   readonly onLeft: ((conversationId: string) => void) | undefined;
   readonly onRejoined: ((conversationId: string) => void) | undefined;
   readonly view: ChatInboxView;
+  readonly formatTime: ChatRowTimeFormat | undefined;
 }): ReactElement {
   const { rows, viewerId, selectedId } = props;
   // The selected-item background comes from the token bag, never a literal:
@@ -796,6 +864,7 @@ function InboxRows(props: {
                 onLeft={props.onLeft}
                 onRejoined={props.onRejoined}
                 view={props.view}
+                formatTime={props.formatTime}
               />
             </List.Item>
           )}
@@ -1104,6 +1173,7 @@ export function ConversationListPanel(
                   onLeft={props.onLeft}
                   onRejoined={props.onRejoined}
                   view={view}
+                  formatTime={props.formatTime}
                 />
                 {hasNextPage ? (
                   <Button

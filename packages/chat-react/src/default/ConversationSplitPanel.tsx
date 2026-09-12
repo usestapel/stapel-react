@@ -41,7 +41,10 @@ import type { ChatMessage, Conversation, Subject } from "../api/types.js";
 import type { ChatInboxView } from "../model/inboxQuery.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 import { ConversationListPanel } from "./ConversationListPanel.js";
-import type { ConversationListPanelProps } from "./ConversationListPanel.js";
+import type {
+  ChatRowTimeFormat,
+  ConversationListPanelProps,
+} from "./ConversationListPanel.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 import type { ThreadHeaderActionsContext } from "./ConversationThreadPanel.js";
 import { ChatSkinTheme } from "./theme.js";
@@ -109,6 +112,17 @@ export interface ConversationSplitPanelProps {
   defaultUnreadOnly?: boolean;
   onUnreadOnlyChange?: (unreadOnly: boolean) => void;
   filters?: boolean;
+  /**
+   * What a row's CLOCK says — forwarded verbatim to
+   * `<ConversationListPanel formatTime>`, where the default and the reasoning
+   * are.
+   *
+   * Here for the reason `renderSubject` is: this arrangement mounts the list
+   * panel ITSELF, so a host that gave its phone inbox a clock of its own
+   * could not reach the one on the desktop split, and the same deployment
+   * would stamp the same thread two different ways.
+   */
+  formatTime?: ChatRowTimeFormat;
   /** Thread page size — forwarded to `<ConversationThreadPanel/>`. */
   limit?: number;
   /** Composer cap — forwarded to `<ConversationThreadPanel/>`. */
@@ -267,6 +281,7 @@ function toolbarProps(
     ...(props.renderSubject !== undefined
       ? { renderSubject: props.renderSubject }
       : {}),
+    ...(props.formatTime !== undefined ? { formatTime: props.formatTime } : {}),
   };
 }
 
