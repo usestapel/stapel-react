@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/reviews-react",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "backend": {
     "module": "stapel-reviews",
     "contract": ">=0.7 <0.8"
@@ -661,9 +661,13 @@
     "reviews.rating.count",
     "reviews.rating.count.one",
     "reviews.rating.count.other",
+    "reviews.rating.count_short",
+    "reviews.rating.count_short.one",
+    "reviews.rating.count_short.other",
     "reviews.rating.none",
     "reviews.rating.star_label",
     "reviews.rating.value",
+    "reviews.rating.value_bare",
     "reviews.respond.blocked.already",
     "reviews.respond.blocked.empty",
     "reviews.respond.blocked.forbidden",
