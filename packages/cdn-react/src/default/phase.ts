@@ -77,8 +77,19 @@ export const PREVIEW_BOX: CSSProperties = {
  * shape: the frame is the grid's, the crop is the picture's.
  */
 export const PREVIEW_CELL_BOX: CSSProperties = {
-  width: "100%",
-  height: "100%",
+  /* PINNED, not sized. `@stapel/image`'s container carries the metadata's own
+     `aspect-ratio` for layout-shift protection, and a caller's `height: 100%`
+     does not beat it: against a parent whose height is itself an
+     `aspect-ratio`, the percentage is indefinite and the metadata ratio wins.
+     A portrait photograph then drew a tall narrow strip inside a square cell
+     — which is exactly what the first grid build shipped. `inset: 0` on a
+     positioned cell is a DEFINITE box in both axes, and `aspectRatio: auto`
+     cancels the reservation that box makes unnecessary. */
+  position: "absolute",
+  inset: 0,
+  aspectRatio: "auto",
+  inlineSize: "100%",
+  blockSize: "100%",
   objectFit: "cover",
   borderRadius: PREVIEW_TILE_RADIUS_PX,
   display: "block",

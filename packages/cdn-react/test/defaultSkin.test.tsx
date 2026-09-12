@@ -465,6 +465,26 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     expect(screen.getByTestId("cdn-gallery-add").contains(wrapper)).toBe(true);
   });
 
+  it("makes the picture FILL its square, whatever shape the photograph is", () => {
+    render(
+      <TestHarness server={storing()}>
+        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+      </TestHarness>
+    );
+    const cell = screen.getByTestId("cdn-gallery-tile");
+    const picture = cell.querySelector<HTMLElement>('[data-testid^="cdn-tile-thumbnail"]');
+    expect(picture).not.toBeNull();
+    /* `@stapel/image` puts the metadata's aspect-ratio on the box it hands
+       this style to, and that ratio beats a percentage height. So the box is
+       PINNED to the cell and the reservation is cancelled — without both,
+       a portrait photo draws a tall strip inside a square cell. */
+    expect(picture?.style.position).toBe("absolute");
+    expect(picture?.style.inset).toBe("0");
+    expect(picture?.style.aspectRatio).toBe("auto");
+    expect(picture?.style.objectFit).toBe("cover");
+    expect(cell.style.position).toBe("relative");
+  });
+
   it("draws no move arrows on a gallery with one photo — there is no order", () => {
     render(
       <TestHarness server={storing()}>
