@@ -45,8 +45,11 @@ export const reviewsI18nBundleEs: I18nDictionary = {
 
   "reviews.rating.none": "Todavía no hay valoración",
   "reviews.rating.value": "{avg} de {max}",
+  "reviews.rating.value_bare": "{avg}",
   "reviews.rating.count.one": "{count} reseña",
   "reviews.rating.count.other": "{count} reseñas",
+  "reviews.rating.count_short.one": "{count} res.",
+  "reviews.rating.count_short.other": "{count} res.",
   "reviews.rating.star_label": "{index} de {max}",
 
   "reviews.form.heading": "Valora esto",

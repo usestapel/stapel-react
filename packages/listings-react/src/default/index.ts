@@ -176,9 +176,13 @@ export type { CardBadgesProps } from "./CardBadges.js";
 // ── the card gallery's two gestures ─────────────────────────────────────────
 export {
   SWIPE_AXIS_RATIO,
+  SWIPE_COMMIT_FRACTION,
+  SWIPE_FLICK_VELOCITY,
   SWIPE_MIN_PX,
+  SWIPE_VELOCITY_WINDOW_MS,
   cardGalleryCss,
   hasFinePointer,
+  measureSlideWidth,
   segmentIndex,
   swipeStep,
   useCardGallery,

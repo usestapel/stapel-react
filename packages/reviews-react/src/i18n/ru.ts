@@ -52,6 +52,7 @@ export const reviewsI18nBundleRu: I18nDictionary = {
 
   "reviews.rating.none": "Оценок пока нет",
   "reviews.rating.value": "{avg} из {max}",
+  "reviews.rating.value_bare": "{avg}",
   // Russian has a paucal, so this family needs four forms where English and
   // Spanish need two. `few`/`many` existing here and not in `en`/`es` is a
   // fact about the language, not a key someone forgot — see `keys.ts`.
@@ -59,6 +60,14 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.rating.count.few": "{count} отзыва",
   "reviews.rating.count.many": "{count} отзывов",
   "reviews.rating.count.other": "{count} отзыва",
+  // The abbreviation is invariant in Russian: one short form stands for all
+  // three inflections of the word, which is the whole point of abbreviating
+  // it. All four categories are still spelled out, because the engine asks
+  // for a category and a missing one falls back to the KEY, not to a sibling.
+  "reviews.rating.count_short.one": "{count} отз.",
+  "reviews.rating.count_short.few": "{count} отз.",
+  "reviews.rating.count_short.many": "{count} отз.",
+  "reviews.rating.count_short.other": "{count} отз.",
   "reviews.rating.star_label": "{index} из {max}",
 
   "reviews.form.heading": "Оцените",

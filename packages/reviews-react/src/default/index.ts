@@ -36,6 +36,24 @@ export { ReviewFormCard } from "./ReviewFormCard.js";
 export type { ReviewFormCardProps } from "./ReviewFormCard.js";
 export { RatingBadge } from "./RatingBadge.js";
 export type { RatingBadgeProps } from "./RatingBadge.js";
+/**
+ * The badge's order of sacrifice, exported so a host that composes its own
+ * rating line degrades it the same way — and so the ladder is assertable as a
+ * pure function instead of only through a render.
+ */
+export {
+  estimateRatingWidth,
+  pickRatingFit,
+  ratingFitShape,
+  RATING_FIT_LADDER,
+  RATING_FIT_METRICS,
+} from "./ratingFit.js";
+export type {
+  RatingFitMetrics,
+  RatingFitParts,
+  RatingFitShape,
+  RatingFitStep,
+} from "./ratingFit.js";
 export { ReviewModerationPanel } from "./ReviewModerationPanel.js";
 export type {
   ModerationFilter,

@@ -177,20 +177,24 @@ describe("the two gates", () => {
 });
 
 describe("swipe, on a finger", () => {
-  it("advances one photo per threshold and rewinds the same way", () => {
+  it("advances one photo per GESTURE, and rewinds the same way", () => {
     pointerEnvironment(false);
     render(providers(<ListingCard listing={MANY} href="/l/7" />));
     const box = galleryBox();
     fireEvent.pointerDown(box, { clientX: 300, clientY: 100, pointerType: "touch" });
     fireEvent.pointerMove(box, { clientX: 200, clientY: 102, pointerType: "touch" });
     expect(active(box)).toBe("1");
-    // The origin travels with the commit, so a long drag walks the strip.
+    // ONE PER GESTURE. The origin used to travel with each commit, so this
+    // second 100px of the SAME drag took a second photograph — and a fling
+    // across the card took as many as it crossed. See
+    // `gallerySwipeThreshold.test.tsx` for the rule in full.
     fireEvent.pointerMove(box, { clientX: 100, clientY: 104, pointerType: "touch" });
-    expect(active(box)).toBe("2");
+    expect(active(box)).toBe("1");
+    // A second photograph costs a second press.
     fireEvent.pointerUp(box, { pointerType: "touch" });
     fireEvent.pointerDown(box, { clientX: 100, clientY: 100, pointerType: "touch" });
     fireEvent.pointerMove(box, { clientX: 220, clientY: 100, pointerType: "touch" });
-    expect(active(box)).toBe("1");
+    expect(active(box)).toBe("0");
   });
 
   it("changes nothing on a VERTICAL drag", () => {

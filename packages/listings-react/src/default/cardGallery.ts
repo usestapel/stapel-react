@@ -34,6 +34,31 @@
  * {@link SWIPE_AXIS_RATIO}. A diagonal thumb scrolling the feed changes no
  * photograph.
  *
+ * ── HOW FAR IS FAR ENOUGH, and how many photographs that buys ────────────
+ *
+ * Intent is not a commit. A drag that has declared itself horizontal still
+ * has to EARN the photograph, and the price is a fraction of the photograph
+ * itself — {@link SWIPE_COMMIT_FRACTION} of the SLIDE's own measured width,
+ * never a pixel constant. The constant was the defect, and measurably so: a
+ * one-column search card on a 390px phone is a ~351px slide (the well less
+ * the carousel's 8% peek), so a fixed 32px priced a photograph at 9% of
+ * itself; the same 32px on the two-column home feed is 19% of a ~170px slide.
+ * One number, two different gestures, and the cheap one is the one the owner
+ * met — "it feels like 10%", and the middle photograph flying past.
+ *
+ * Two further rules, and both are about a gesture being ONE decision:
+ *
+ *  - A flick is a choice too. Under the distance, a drag thrown faster than
+ *    {@link SWIPE_FLICK_VELOCITY} still advances — the speed says the intent
+ *    the distance did not.
+ *  - ONE photograph per gesture, and one only. The old handler moved its own
+ *    origin on each commit, so a drag across three slide widths advanced
+ *    three photographs (and a fling across the card advanced ten). A gesture
+ *    now commits at most once, and a second photograph costs a second press.
+ *
+ * Below the threshold the strip goes back to the picture it was showing —
+ * a refused gesture must leave the strip where it found it, not halfway.
+ *
  * ── What neither gesture touches ─────────────────────────────────────────
  *
  * The keyboard, and the card's single link target. The strip underneath is
@@ -59,13 +84,55 @@ export const CARD_GALLERY_STYLE_HREF = "stapel-listings-card-gallery";
 export const SCRUB_MEDIA = "(hover: hover) and (pointer: fine)";
 
 /**
- * How far a finger travels before it has said "photo", in CSS pixels.
+ * How far a finger travels before it is a GESTURE at all, in CSS pixels.
  *
  * Under this, a drag is a tap that wobbled — and a tap on a card is a
  * navigation, so a low threshold does not change a photograph, it changes one
  * and then leaves the listing.
+ *
+ * This is the floor, not the price: what actually buys a photograph is
+ * {@link SWIPE_COMMIT_FRACTION} of the slide, or a flick above
+ * {@link SWIPE_FLICK_VELOCITY}. A pixel count cannot be the price, because
+ * the same 32px is a third of a card in a four-column desktop grid and a
+ * twelfth of one on a phone.
  */
 export const SWIPE_MIN_PX = 32;
+
+/**
+ * How much of ONE PHOTOGRAPH a slow drag must cover to turn it, as a fraction
+ * of that photograph's own measured width.
+ *
+ * The owner's ruling, third pass: "maybe not 75, maybe 30 — right now it
+ * feels like 10%". 10% is what the old fixed 32px came to on a phone slide of
+ * ~350px, and it is why a middle photograph flew past on a gesture aimed at
+ * the feed. 0.3 is far enough that the drag is unmistakably a drag and short
+ * enough that a thumb can make it without crossing the whole card.
+ */
+export const SWIPE_COMMIT_FRACTION = 0.3;
+
+/**
+ * The speed, in CSS pixels per millisecond, at which a SHORT drag still turns
+ * the photograph.
+ *
+ * 0.5 px/ms — 500 px/s — is the owner's number and sits in the empty band
+ * between the two gestures it has to tell apart: a deliberate slow drag runs
+ * at 100–300 px/s (a thumb crossing a 350px card in one to three seconds),
+ * and a flick people expect to throw the strip runs at 800–2000 px/s. Nothing
+ * a person means as a careful drag arrives here, and nothing they mean as a
+ * flick falls under it.
+ */
+export const SWIPE_FLICK_VELOCITY = 0.5;
+
+/**
+ * The window the speed is measured over, in milliseconds.
+ *
+ * A flick is what the finger was doing AS IT LEFT, not the average of the
+ * whole gesture: a drag that crawls for a second and is then thrown would
+ * average out to a crawl, and the throw is the part the person meant. One
+ * moving window of roughly six frames is long enough to survive a single
+ * jittery sample and short enough to still be about the end of the gesture.
+ */
+export const SWIPE_VELOCITY_WINDOW_MS = 100;
 
 /**
  * How much more horizontal than vertical a drag must be to count.
@@ -90,16 +157,58 @@ export function segmentIndex(offsetX: number, width: number, count: number): num
 
 /**
  * A drag → the number of photographs it asks for: `1` forward, `-1` back, `0`
- * for a drag that has not declared horizontal intent.
+ * for a drag that has not earned one.
  *
  * Dragging LEFT advances, the direction the content moves under the finger —
- * the same mapping the native scroller has.
+ * the same mapping the native scroller has. The answer is never outside
+ * `-1…1`: a gesture is worth one photograph however far it travelled, which
+ * is what stops a fling crossing the whole strip.
+ *
+ * @param dx         Horizontal travel from the press, signed, in CSS pixels.
+ * @param dy         Vertical travel from the press, signed.
+ * @param slideWidth The measured width of ONE slide. `0` means it could not
+ *   be measured (an unlaid-out strip, a server render) — and an unknown width
+ *   has no fraction, so the decision falls back to {@link SWIPE_MIN_PX}
+ *   alone rather than to an invented number.
+ * @param velocity   The finger's recent speed in CSS pixels per millisecond.
  */
-export function swipeStep(dx: number, dy: number): -1 | 0 | 1 {
+export function swipeStep(
+  dx: number,
+  dy: number,
+  slideWidth = 0,
+  velocity = 0
+): -1 | 0 | 1 {
   const across = Math.abs(dx);
+  // Is this a gesture at all — past the tap wobble, and across rather than
+  // down the page.
   if (across < SWIPE_MIN_PX) return 0;
   if (across <= Math.abs(dy) * SWIPE_AXIS_RATIO) return 0;
+  // Has it earned a photograph: the distance rule, measured against THIS
+  // strip's slide, or the speed rule when the distance is short.
+  const far = slideWidth > 0 ? across >= slideWidth * SWIPE_COMMIT_FRACTION : true;
+  if (!far && velocity < SWIPE_FLICK_VELOCITY) return 0;
   return dx < 0 ? 1 : -1;
+}
+
+/**
+ * The width of ONE slide inside this gallery's strip, in CSS pixels.
+ *
+ * Read off the SLIDE, which is the house rule (§83: geometry from the
+ * element's width, never the viewport's) and here also the only correct
+ * answer: a slide is the well less the carousel's peek, so the well's width
+ * is 8% too generous and a viewport-derived number is not about this card at
+ * all — the same card is full-bleed on a phone and a quarter of a row on a
+ * desktop grid.
+ *
+ * `0` when nothing can be measured. That is a refusal to guess, not a
+ * measurement: {@link swipeStep} falls back to the pixel floor for it.
+ */
+export function measureSlideWidth(box: HTMLElement): number {
+  const strip = box.querySelector<HTMLElement>("[data-stapel-carousel-strip]");
+  if (strip === null) return 0;
+  const slide = strip.children.item(0);
+  const width = slide === null ? 0 : slide.getBoundingClientRect().width;
+  return width > 0 ? width : 0;
 }
 
 /** Does this environment have a real pointer? `false` where there is no
@@ -198,6 +307,63 @@ function showSlide(box: HTMLElement, index: number, instant: boolean): void {
   }
 }
 
+/** One position of the finger, in time — the raw material of a flick. */
+interface Sample {
+  readonly x: number;
+  readonly t: number;
+}
+
+/** The drag in progress. Everything a release has to decide on. */
+interface Drag {
+  /** Where the finger went down. */
+  readonly x: number;
+  readonly y: number;
+  /** One slide's width, measured ONCE at the press: a strip whose geometry
+   * changed mid-gesture would move the goalposts under the finger. */
+  readonly width: number;
+  /** The recent trail, newest last — see {@link SWIPE_VELOCITY_WINDOW_MS}. */
+  samples: Sample[];
+  /** Has this gesture already spent its one photograph. */
+  committed: boolean;
+  /** Has it declared horizontal intent — the only kind of refused gesture
+   * that is worth snapping back from. */
+  crossed: boolean;
+}
+
+/** When this event happened, on whatever clock the environment has. A UA
+ * stamps every input event; the fallback is for a synthesised one. */
+function stampOf(event: { timeStamp: number }): number {
+  const stamp = event.timeStamp;
+  if (Number.isFinite(stamp) && stamp > 0) return stamp;
+  return typeof performance === "object" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
+
+/** Record a position, and forget the ones the speed window has passed. */
+function sample(drag: Drag, x: number, t: number): void {
+  drag.samples.push({ x, t });
+  // Drop the oldest only while the NEXT one is still inside the window, so
+  // the trail always spans at least one interval to divide by.
+  while (drag.samples.length > 2) {
+    const second = drag.samples[1];
+    if (second === undefined || t - second.t <= SWIPE_VELOCITY_WINDOW_MS) break;
+    drag.samples.shift();
+  }
+}
+
+/** The finger's speed over the trail, in CSS pixels per millisecond. `0`
+ * where the environment gave no usable clock — an unknown speed is not a
+ * flick. */
+function velocityOf(drag: Drag): number {
+  const first = drag.samples[0];
+  const last = drag.samples[drag.samples.length - 1];
+  if (first === undefined || last === undefined) return 0;
+  const elapsed = last.t - first.t;
+  if (elapsed <= 0) return 0;
+  return Math.abs(last.x - first.x) / elapsed;
+}
+
 /**
  * The gallery gestures for a media well holding `count` photographs.
  *
@@ -208,9 +374,9 @@ export function useCardGallery(count: number): CardGallery {
   const ref = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
-  // The origin of the drag in progress, or `null`. A ref rather than state:
-  // it changes on every move and no render depends on it.
-  const origin = useRef<{ x: number; y: number } | null>(null);
+  // The drag in progress, or `null`. A ref rather than state: it changes on
+  // every move and no render depends on it.
+  const drag = useRef<Drag | null>(null);
   /**
    * THE INDEX THIS HOOK ASKED FOR, and the whole of the fix.
    *
@@ -276,15 +442,23 @@ export function useCardGallery(count: number): CardGallery {
         request(segmentIndex(event.clientX - rect.left, rect.width, count));
         return;
       }
-      const from = origin.current;
-      if (from === null) return;
-      const step = swipeStep(event.clientX - from.x, event.clientY - from.y);
+      const current = drag.current;
+      if (current === null) return;
+      sample(current, event.clientX, stampOf(event));
+      // ONE PHOTOGRAPH PER GESTURE. The trail keeps being recorded — a
+      // release still wants to know how the finger was moving — but the
+      // decision below is made once and the rest of the drag is scenery.
+      if (current.committed) return;
+      const dx = event.clientX - current.x;
+      const dy = event.clientY - current.y;
+      if (Math.abs(dx) >= SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy) * SWIPE_AXIS_RATIO) {
+        current.crossed = true;
+      }
+      const step = swipeStep(dx, dy, current.width, velocityOf(current));
       if (step === 0) return;
-      // The origin moves with the commit, so a long drag walks the strip one
-      // photograph per threshold rather than one per gesture.
-      origin.current = { x: event.clientX, y: event.clientY };
+      current.committed = true;
       setScrubbing(false);
-      request((current) => Math.min(count - 1, Math.max(0, current + step)));
+      request((at) => Math.min(count - 1, Math.max(0, at + step)));
     },
     [count, fine, many, request]
   );
@@ -292,18 +466,48 @@ export function useCardGallery(count: number): CardGallery {
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>): void => {
       if (!many || event.pointerType === "mouse") return;
-      origin.current = { x: event.clientX, y: event.clientY };
+      const box = ref.current;
+      drag.current = {
+        x: event.clientX,
+        y: event.clientY,
+        // Measured here, from the slide itself, and held for the gesture.
+        width: box === null ? 0 : measureSlideWidth(box),
+        samples: [{ x: event.clientX, t: stampOf(event) }],
+        committed: false,
+        crossed: false,
+      };
     },
     [many]
   );
 
+  /**
+   * The finger leaves.
+   *
+   * A gesture that earned its photograph already took it, mid-drag, the
+   * moment it crossed the threshold. What is left here is the REFUSED one: a
+   * drag that went sideways far enough to be read as a swipe and then stopped
+   * short. The strip goes back to the photograph it was showing, because a
+   * refused gesture that leaves the strip halfway is the defect wearing the
+   * other face.
+   *
+   * A release with no drag behind it touches nothing at all — that is the
+   * guard probe p23 bought: `pointerup` also arrives after a NATIVE scroll
+   * this hook never started, and scrolling "back" there means undoing the
+   * person's own swipe.
+   */
   const endDrag = useCallback((): void => {
-    origin.current = null;
-  }, []);
+    const current = drag.current;
+    drag.current = null;
+    if (current === null || !many) return;
+    if (current.committed || !current.crossed) return;
+    const box = ref.current;
+    if (box === null) return;
+    showSlide(box, active, false);
+  }, [active, many]);
 
   const onPointerLeave = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>): void => {
-      origin.current = null;
+      drag.current = null;
       if (!many) return;
       // THE REWIND IS A HOVER RULE, AND ONLY A HOVER RULE.
       //

@@ -56,6 +56,14 @@ export const REVIEWS_I18N_KEYS = {
   // The rating
   ratingNone: "reviews.rating.none",
   ratingValue: "reviews.rating.value",
+  /**
+   * The score with the scale left off — "4.3", not "4.3 out of 5".
+   *
+   * It is a KEY and not a bare interpolation because the decimal mark is a
+   * locale's business: Russian writes «4,3» where English writes "4.3", and a
+   * host that wants that only has to translate one string.
+   */
+  ratingValueBare: "reviews.rating.value_bare",
   ratingStarLabel: "reviews.rating.star_label",
 
   // The form. `formSignInRequired` is the ONLY sign-in key left: since
@@ -180,6 +188,17 @@ export const REVIEWS_I18N_KEYS = {
  */
 export const REVIEWS_I18N_PLURALS = {
   ratingCount: "reviews.rating.count",
+  /**
+   * The same count, abbreviated the way a person abbreviates it — "6 rev.".
+   * The badge reaches for this when the column is too narrow for the whole
+   * word, INSTEAD of putting an ellipsis inside one: "6 revi…" reads as a
+   * rendering failure, "6 rev." reads as something somebody wrote.
+   *
+   * It is a plural like its long form even though most locales abbreviate to
+   * one invariant form — that is the locale's answer to give, not a shape we
+   * decide for every language by making this a flat key.
+   */
+  ratingCountShort: "reviews.rating.count_short",
 } as const;
 
 /**
@@ -213,8 +232,11 @@ export const reviewsI18nBundleEn: I18nDictionary = {
 
   "reviews.rating.none": "No rating yet",
   "reviews.rating.value": "{avg} out of {max}",
+  "reviews.rating.value_bare": "{avg}",
   "reviews.rating.count.one": "{count} review",
   "reviews.rating.count.other": "{count} reviews",
+  "reviews.rating.count_short.one": "{count} rev.",
+  "reviews.rating.count_short.other": "{count} rev.",
   "reviews.rating.star_label": "{index} out of {max}",
 
   "reviews.form.heading": "Rate this",

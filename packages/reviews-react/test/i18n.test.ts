@@ -57,6 +57,25 @@ function engineFor(locale: "en" | "ru" | "es") {
   return engine;
 }
 
+/**
+ * Families whose forms are the SAME in every category on purpose, and the
+ * reason each one is here.
+ *
+ * The guard below exists to catch "1 reviews" — a family declared as a plural
+ * and then filled with one string for every category, which is the shape a
+ * flat key should have had. An ABBREVIATION is the legitimate exception:
+ * "rev." stands for review and reviews alike, and the Russian short form
+ * stands for all three of that word's inflections, because standing in for
+ * every form is what abbreviating a word is for. It stays declared as a plural
+ * family so a locale that DOES inflect its abbreviations has somewhere to say
+ * so — the invariance is this locale's answer, not a shape imposed on every
+ * language.
+ *
+ * Anything added here needs that second sentence. A family that is invariant
+ * because nobody wrote the other forms belongs in the bundle, not in this set.
+ */
+const INVARIANT_PLURALS = new Set<string>([REVIEWS_I18N_PLURALS.ratingCountShort]);
+
 describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   const engine = engineFor(locale);
 
@@ -85,6 +104,7 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
         expect(text, `${family} @${count}`).not.toBe(family);
         expect(text, `${family} @${count}`).toContain(String(count));
       }
+      if (INVARIANT_PLURALS.has(family)) continue;
       expect(
         engine.tPlural(family, { count: 1 }),
         `${family} singular differs from plural`

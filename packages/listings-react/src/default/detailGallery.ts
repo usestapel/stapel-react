@@ -215,6 +215,15 @@ export function detailGalleryCss(): string {
 .${LISTINGS_GALLERY_CLASS}[data-gallery-layout="strip"] > * {
   flex: 0 0 ${LISTINGS_GALLERY_STRIP_BASIS};
   scroll-snap-align: start;
+  /* EVERY PHOTOGRAPH IS A DESTINATION, not a waypoint. A mandatory snap type
+     alone only promises the strip will COME TO REST on a snap point — a fling
+     with any momentum behind it still crosses two or three photographs on its
+     way there, which is the owner's "the middle photo flies past" in its
+     native form. "always" makes the scroller stop at the first snap point it
+     reaches, so one gesture is one photograph here for the same reason the
+     card's gesture layer clamps its own step to one. The same declaration
+     SkinCarousel already carries on its slides. */
+  scroll-snap-stop: always;
 }
 .${LISTINGS_GALLERY_FRAME_CLASS} {
   position: relative;

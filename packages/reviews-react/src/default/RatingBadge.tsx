@@ -42,17 +42,38 @@
  * screen reader reads the three texts in order and a dot between them is
  * noise.
  *
+ * ── AND NOTHING IS CUT MID-WORD (0.8.2) ───────────────────────────────────
+ *
+ * Giving the count an ellipsis fixed the height and produced a new defect:
+ * on a tile card the live storefront drew "4.3 out of 5 · 6 revi…", a word
+ * broken in the middle. So the count no longer carries an ellipsis at all.
+ * Instead the badge measures its own box and drops whole FACTS in a stated order —
+ * the scale, then four of the five stars, then the count's long form, then
+ * the count — each step a form somebody would write by hand. `ratingFit.ts`
+ * holds that ladder and the reasoning behind it.
+ *
+ * Every fact the ladder takes off the screen stays in the accessibility tree
+ * in a `visuallyHidden` span: the column got narrower, the rating did not
+ * lose a number.
+ *
  * The glyph size is stated here as well as in the skin: `@stapel/tokens-antd`
  * excludes a READ-ONLY `<Rate>` from the phone touch floor (a rating nobody
  * can tick is not a touch target), and this component pins the same icon step
  * inline so the badge is the right size under a host's own `ConfigProvider`
  * too — including one that never mounts the skin's phone sheet.
  */
+import { useRef } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { Flex, Rate, Typography } from "antd";
 import { useTPlural, useT } from "@stapel/core";
-import { LoadBoundary, SkinTheme } from "@stapel/tokens-antd/skin";
+import {
+  LoadBoundary,
+  SkinTheme,
+  useElementWidth,
+  visuallyHidden,
+} from "@stapel/tokens-antd/skin";
 import { fontSize, spacing } from "@stapel/tokens";
+import { pickRatingFit, ratingFitShape } from "./ratingFit.js";
 import { ReviewAggregate } from "../headless/ReviewAggregate.js";
 import type { ReviewAggregateProps } from "../headless/ReviewAggregate.js";
 import { REVIEWS_I18N_KEYS, REVIEWS_I18N_PLURALS } from "../i18n/keys.js";
@@ -91,14 +112,17 @@ const STARS: CSSProperties = {
 /** "4 of 5" — five characters, and the number a person reads. */
 const SCORE: CSSProperties = { flex: "0 0 auto", whiteSpace: "nowrap" };
 
-/** "4 reviews" — the fact that gives way first, and the only one that can. */
-const COUNT: CSSProperties = {
-  flex: "0 1 auto",
-  minInlineSize: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-};
+/**
+ * "4 reviews" — the fact the ladder gives up first, and the only one that
+ * disappears entirely.
+ *
+ * It does NOT shrink and does NOT carry an ellipsis. Both were here in 0.8.1
+ * and both were the defect: a flex item that may shrink below its content
+ * with `text-overflow: ellipsis` is exactly the machinery that produced
+ * a word cut in the middle. The fit is decided before the paint now, so by the
+ * time this renders there is room for whichever form of the word was chosen.
+ */
+const COUNT: CSSProperties = { flex: "0 0 auto", whiteSpace: "nowrap" };
 
 /** Between the score and the count, for the eye only. */
 const DOT: CSSProperties = { flex: "0 0 auto" };
@@ -111,6 +135,12 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
   const tPlural = useTPlural();
   const { mode, surface, ...aggregateProps } = props;
 
+  // The box the host actually granted this badge — never the viewport. In a
+  // card's seller line that is a flex item, so the number read here is the
+  // width AFTER the line shrank it, which is the width the ladder has to fit.
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const { width } = useElementWidth(boxRef);
+
   return (
     <SkinTheme
       {...(mode !== undefined ? { mode } : {})}
@@ -119,6 +149,7 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
       <ReviewAggregate {...aggregateProps}>
         {(bag) => (
           <Flex
+            ref={boxRef}
             align="center"
             gap={spacing[2]}
             // The badge is only ever as wide as the column it was given: a
@@ -134,43 +165,90 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
             >
               {(summary) =>
                 summary.rated ? (
-                  <div style={BADGE_ROW} data-testid="reviews-rating-line">
-                    <Rate
-                      disabled
-                      allowHalf
-                      count={bag.max}
-                      value={summary.rounded}
-                      style={STARS}
-                      data-testid="reviews-rating-stars"
-                    />
-                    <Typography.Text
-                      strong
-                      style={SCORE}
-                      data-testid="reviews-rating-score"
-                    >
-                      {t(REVIEWS_I18N_KEYS.ratingValue, {
-                        avg: summary.rounded,
-                        max: bag.max,
-                      })}
-                    </Typography.Text>
-                    <Typography.Text
-                      type="secondary"
-                      aria-hidden="true"
-                      style={DOT}
-                      data-testid="reviews-rating-dot"
-                    >
-                      ·
-                    </Typography.Text>
-                    <Typography.Text
-                      type="secondary"
-                      style={COUNT}
-                      data-testid="reviews-rating-count"
-                    >
-                      {tPlural(REVIEWS_I18N_PLURALS.ratingCount, {
-                        count: summary.count,
-                      })}
-                    </Typography.Text>
-                  </div>
+                  (() => {
+                    const score = t(REVIEWS_I18N_KEYS.ratingValue, {
+                      avg: summary.rounded,
+                      max: bag.max,
+                    });
+                    const scoreBare = t(REVIEWS_I18N_KEYS.ratingValueBare, {
+                      avg: summary.rounded,
+                    });
+                    const count = tPlural(REVIEWS_I18N_PLURALS.ratingCount, {
+                      count: summary.count,
+                    });
+                    const countShort = tPlural(
+                      REVIEWS_I18N_PLURALS.ratingCountShort,
+                      { count: summary.count }
+                    );
+                    const shape = ratingFitShape(
+                      pickRatingFit(width, {
+                        score,
+                        scoreBare,
+                        count,
+                        countShort,
+                        stars: bag.max,
+                      })
+                    );
+                    return (
+                      <div
+                        style={BADGE_ROW}
+                        data-testid="reviews-rating-line"
+                        data-fit={shape.allStars ? "wide" : "compact"}
+                      >
+                        {/*
+                          Everything visible is `aria-hidden`, and the whole
+                          rating is spoken once from the span at the end. The
+                          alternative — letting a reader assemble the visible
+                          parts — would have it announce a different rating at
+                          every rung of the ladder, and announce "1 star" from
+                          the collapsed single glyph, which is a lie.
+                        */}
+                        <Rate
+                          disabled
+                          allowHalf
+                          aria-hidden="true"
+                          count={shape.allStars ? bag.max : 1}
+                          value={shape.allStars ? summary.rounded : 1}
+                          style={STARS}
+                          data-testid="reviews-rating-stars"
+                        />
+                        <Typography.Text
+                          strong
+                          aria-hidden="true"
+                          style={SCORE}
+                          data-testid="reviews-rating-score"
+                        >
+                          {shape.withScale ? score : scoreBare}
+                        </Typography.Text>
+                        {shape.withCount ? (
+                          <>
+                            <Typography.Text
+                              type="secondary"
+                              aria-hidden="true"
+                              style={DOT}
+                              data-testid="reviews-rating-dot"
+                            >
+                              ·
+                            </Typography.Text>
+                            <Typography.Text
+                              type="secondary"
+                              aria-hidden="true"
+                              style={COUNT}
+                              data-testid="reviews-rating-count"
+                            >
+                              {shape.shortCount ? countShort : count}
+                            </Typography.Text>
+                          </>
+                        ) : null}
+                        <span
+                          style={visuallyHidden}
+                          data-testid="reviews-rating-full"
+                        >
+                          {`${score}, ${count}`}
+                        </span>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <Typography.Text
                     type="secondary"
