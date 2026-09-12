@@ -453,6 +453,32 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
       expect(cell.style.inlineSize).toBe("100%");
       expect(cell.style.minInlineSize).toBe("96px");
     }
+    /* …and the picker actually FILLS its square. The gate puts a wrapper
+       between the cell and the button, and a wrapper with no height leaves
+       the button at its content size — a wide, 28px-tall strip where a
+       square was declared, which is what the first build of this grid
+       shipped. */
+    const pick = screen.getByTestId("cdn-gallery-drop-pick");
+    expect(pick.style.blockSize).toBe("100%");
+    const wrapper = screen.getByTestId("cdn-gallery-drop-pick-gate");
+    expect(wrapper.style.blockSize).toBe("100%");
+    expect(screen.getByTestId("cdn-gallery-add").contains(wrapper)).toBe(true);
+  });
+
+  it("draws no move arrows on a gallery with one photo — there is no order", () => {
+    render(
+      <TestHarness server={storing()}>
+        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+      </TestHarness>
+    );
+    expect(screen.getAllByTestId("cdn-gallery-tile")).toHaveLength(1);
+    // Two permanently dimmed arrows over the only picture on the composer's
+    // first screen are two dead controls, not an affordance.
+    expect(screen.queryByTestId("cdn-tile-earlier")).toBeNull();
+    expect(screen.queryByTestId("cdn-tile-later")).toBeNull();
+    // Remove and the cover mark are still there: those mean something at one.
+    expect(screen.getByTestId("cdn-tile-remove")).toBeTruthy();
+    expect(screen.getByTestId("cdn-tile-cover")).toBeTruthy();
   });
 
   it("overlays every badge and control INSIDE the picture, one per corner", () => {

@@ -30,6 +30,9 @@ import {
 
 const HASH = "a".repeat(64);
 const IMAGE_REF = `product/${HASH}`;
+/** A second reference, for the rules that only exist once a gallery has an
+ * ORDER — the move arrows are drawn from two tiles up. */
+const SECOND_IMAGE_REF = `product/${"c".repeat(64)}`;
 const VIDEO_REF = `video/${HASH}`;
 const FILE_REF = `file/${HASH}`;
 const GONE = `product/${"c".repeat(64)}`;
@@ -402,13 +405,17 @@ describe("the gallery counts in words that agree with the number", () => {
   it("keeps the tile controls at the skin's own size, not `small`", () => {
     render(
       <TestHarness server={mockServer({ "/file/exists/": { body: MISS } })}>
-        <MediaGalleryField max={10} initialRefs={[IMAGE_REF]} />
+        {/* TWO photos: the move arrows are drawn only where there is an
+            order to change, so a one-photo gallery has nothing to size. */}
+        <MediaGalleryField max={10} initialRefs={[IMAGE_REF, SECOND_IMAGE_REF]} />
       </TestHarness>
     );
     // `size="small"` opted every tile control out of the 44px phone rule
-    // `SkinTheme` exists to apply, on the surface that rule is for.
+    // `SkinTheme` exists to apply, on the surface that rule is for. They are
+    // icon circles overlaid on the picture now and the rule is unchanged:
+    // a target a thumb misses is not made acceptable by sitting on a photo.
     for (const id of ["cdn-tile-remove", "cdn-tile-earlier", "cdn-tile-later"]) {
-      expect(screen.getByTestId(id).className).not.toContain("ant-btn-sm");
+      expect(screen.getAllByTestId(id)[0]?.className).not.toContain("ant-btn-sm");
     }
   });
 });

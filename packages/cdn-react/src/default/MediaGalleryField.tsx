@@ -268,7 +268,15 @@ function TileIconButton(props: {
       {...(props.disabledReason !== undefined
         ? { "data-disabled-reason": props.disabledReason }
         : {})}
+      /* A CIRCLE, not a filled rectangle. These sit ON a photograph, and a
+         white square button over a picture reads as a hole punched in it.
+         The raised surface is the token for "chrome standing above the
+         content", so the glyph keeps its contrast over a dark photo without
+         this file inventing a scrim colour. */
+      shape="circle"
+      type="text"
       style={{
+        background: cssVar("surface-raised"),
         /* A switched-off arrow is SHOWN, dimmed, rather than removed: the
            pair of arrows is how a person reads "this tile can move", and a
            row whose controls come and go as tiles are reordered is a target
@@ -363,6 +371,14 @@ function Tile(props: {
           data-analytics-reason="business action — host app wraps with its own tracked()"
         />
       </span>
+      {/* ORDERING EXISTS ONLY WHERE THERE IS SOMETHING TO ORDER. One photo
+          has no earlier and no later, so both arrows would be permanently
+          dimmed — two dead controls covering a third of the only picture on
+          the screen, which is the composer's own first screen. From two
+          tiles up they are always both there, and the one that cannot move
+          is dimmed rather than taken away (the pair must not shift under a
+          finger as tiles are reordered). */}
+      {bag.items.length > 1 ? (
       <span style={CORNER[MOVE_CORNER]} data-corner={MOVE_CORNER}>
         <TileIconButton
           glyph={GLYPH.earlier}
@@ -385,6 +401,7 @@ function Tile(props: {
           data-analytics-reason="business action — host app wraps with its own tracked()"
         />
       </span>
+      ) : null}
       <span
         style={CORNER[PHASE_CORNER]}
         data-corner={PHASE_CORNER}
@@ -454,7 +471,11 @@ function AddTile(props: { readonly bag: UploadQueueBag }): ReactElement {
         aria-label={label}
         onClick={() => input.current?.click()}
         testId="cdn-gallery-drop-pick"
-        wrapperStyle={{ inlineSize: "100%" }}
+        /* The cell states the square; the gate's own wrapper stands between
+           it and the button, so it has to pass the height through or the
+           button collapses to its content — which is what a cell with an
+           `aspect-ratio` and a 0-height child looks like. */
+        wrapperStyle={{ inlineSize: "100%", blockSize: "100%", display: "flex" }}
         style={{
           inlineSize: "100%",
           blockSize: "100%",
