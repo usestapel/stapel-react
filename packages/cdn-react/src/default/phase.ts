@@ -62,3 +62,24 @@ export const PREVIEW_BOX: CSSProperties = {
   borderRadius: PREVIEW_TILE_RADIUS_PX,
   display: "block",
 };
+
+/**
+ * The GALLERY's box, which is the cell rather than a constant.
+ *
+ * A single-slot field (`<ImageUploadField/>`) has one preview and it is 96px
+ * — {@link PREVIEW_BOX} above. A gallery is a GRID, and a grid whose pictures
+ * are 96px stamps floating in whatever room the column actually has is what
+ * the demo showed: one small thumbnail alone in a full-width dashed box. So
+ * the gallery's picture fills its cell and stays square by its own ratio, and
+ * {@link PREVIEW_TILE_PX} becomes the cell's FLOOR instead of its size.
+ *
+ * `object-fit: cover` is what makes the square honest for a photograph of any
+ * shape: the frame is the grid's, the crop is the picture's.
+ */
+export const PREVIEW_CELL_BOX: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  borderRadius: PREVIEW_TILE_RADIUS_PX,
+  display: "block",
+};

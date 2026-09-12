@@ -12,19 +12,38 @@
  * `Listing.images_draft` is stored in this order and the first reference is
  * what a search result card shows.
  *
+ * ── IT IS A GRID, AND THE TILE IS THE CELL ────────────────────────────────
+ *
+ * What shipped before this was a 96px thumbnail floating in a full-width
+ * dashed rectangle with three stacked word buttons under it — a gallery that
+ * read as an empty region containing one photograph. The shape is now the one
+ * the ruling states and the one every photo grid a seller has ever used has:
+ *
+ *  - SQUARE CELLS filling their columns (`object-fit: cover`), with
+ *    {@link PREVIEW_TILE_PX} as the floor rather than the size;
+ *  - the column count from the CONTAINER's width through the fleet's one
+ *    element-width primitive — three, four or six, see
+ *    {@link galleryColumns} — because this gallery is mounted in a page
+ *    column and in a dialog on the same desktop;
+ *  - the picker as ONE MORE CELL of the same size ({@link AddTile}), which
+ *    is the only thing carrying a dashed border; the drop target is the whole
+ *    grid, which outlines on a drag;
+ *  - every badge and control OVERLAID on the picture, one per corner (see
+ *    {@link CORNER}), icon-only, always visible — a phone has no hover, so a
+ *    control that appears on one does not exist there.
+ *
  * ── A tile carries badges; the grid carries sentences ──────────────────────
  *
- * A tile is 96px wide. Three `Typography.Text` blocks stacked inside one
- * printed as a single run-on column on a phone — "ReadyCover photoAlready
- * uploaded — nothing was sent again", with no separator anywhere, wrapped
- * into a 96px column — because a status, a role and an outcome are three
- * different KINDS of thing and only the first two are badges. So: the
- * phase is a small {@link StatusTag} in one
- * corner of the picture, the cover badge is the primary one in the opposite
- * corner, and every outcome that is a sentence (the dedupe note, the
- * variants ladder) moved OUT of the tile into the grid's notice line, next
- * to the slot `settled` already owns. The tile holds no free text at all
- * now — only the two badges, the per-item error alert, and its controls.
+ * A tile is at least 96px wide and nothing else fits in it. Three
+ * `Typography.Text` blocks stacked inside one printed as a single run-on
+ * column on a phone — "ReadyCover photoAlready uploaded — nothing was sent
+ * again", with no separator anywhere — because a status, a role and an
+ * outcome are three different KINDS of thing and only the first two are
+ * badges. So the phase is a small {@link StatusTag} in one corner and the
+ * cover mark is the primary badge in the opposite one, while every outcome
+ * that is a SENTENCE — the dedupe note, the variants ladder, an item's own
+ * refusal — lives under the grid, beside the slot `settled` already owns.
+ * The tile holds no free text at all.
  *
  * ── Whose queue is it ──────────────────────────────────────────────────────
  *
@@ -37,18 +56,28 @@
  *
  * The count is a PLURAL FAMILY now (`tPlural`, agreeing with the capacity), so
  * a one-photo gallery no longer says "1 of 1 photos" in three languages. The
- * tile's five controls lost `size="small"`: on a phone `SkinTheme` makes a
+ * tile's controls lost `size="small"`: on a phone `SkinTheme` makes a
  * control 44px, and `small` opted every one of them out of the rule on the
- * surface it exists for. And the empty gallery is an `EmptyState` inside the
- * drop target rather than two lines of grey text.
+ * surface it exists for — which is why the icon buttons overlaid on the tile
+ * did not take it back. And the empty gallery is an `EmptyState`, now beside
+ * the grid rather than instead of it: the add tile is the control that
+ * sentence is about, so replacing the grid would take it away.
  */
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { Button, Flex, Typography } from "antd";
 import { useActionGate, useT, useTPlural } from "@stapel/core";
-import { EmptyState, ErrorAlert, SkinTheme, StatusTag } from "@stapel/tokens-antd/skin";
+import {
+  EmptyState,
+  ErrorAlert,
+  GatedButton,
+  SkinTheme,
+  StatusTag,
+  useElementWidth,
+  visuallyHidden,
+} from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { spacing } from "@stapel/tokens";
+import { cssVar, radii, spacing } from "@stapel/tokens";
 import { MediaUploader } from "../headless/MediaUploader.js";
 import { imageRowOf } from "../headless/useUploadQueue.js";
 import type { UploadItem, UploadQueueBag } from "../headless/useUploadQueue.js";
@@ -56,8 +85,13 @@ import { useUploadPreview } from "../headless/useUploadPreview.js";
 import type { CdnRef } from "../api/types.js";
 import type { CdnUploadTarget } from "../model/upload.js";
 import { CDN_I18N_KEYS } from "../i18n/keys.js";
-import { DropZone } from "./DropZone.js";
-import { PHASE_FAMILY, PHASE_KEYS, PREVIEW_BOX, PREVIEW_TILE_PX } from "./phase.js";
+import {
+  PHASE_FAMILY,
+  PHASE_KEYS,
+  PREVIEW_CELL_BOX,
+  PREVIEW_TILE_PX,
+  PREVIEW_TILE_RADIUS_PX,
+} from "./phase.js";
 import { CdnThumbnail } from "./CdnThumbnail.js";
 
 /**
@@ -106,31 +140,158 @@ export type MediaGalleryFieldProps =
   | MediaGalleryFieldOwnProps;
 
 /**
- * The two badges sit in OPPOSITE corners of the picture so neither can be
- * read as a continuation of the other: the cover badge is the primary one
- * (top-start, where the eye lands), the phase badge is the small one
- * (bottom-end). Stamped `data-corner` so a test can assert the placement
- * without measuring pixels in jsdom, which measures nothing.
+ * WHERE EACH THING SITS ON THE PICTURE.
+ *
+ * Four corners, one job each, stamped `data-corner` so a test can assert the
+ * placement without measuring pixels — jsdom lays nothing out, so the
+ * assertion that means anything is "this is absolutely positioned, at this
+ * inset, inside the picture's own box".
+ *
+ *   top-start     the cover badge — the primary mark, where the eye lands
+ *   top-end       remove, the one destructive control, furthest from it
+ *   bottom-start  the two move arrows, reading left-to-right as order does
+ *   bottom-end    what the upload is DOING: retry/cancel, then the phase tag
  */
 export const COVER_CORNER = "top-start";
+export const REMOVE_CORNER = "top-end";
+export const MOVE_CORNER = "bottom-start";
 export const PHASE_CORNER = "bottom-end";
 
-const BADGE_INSET_PX = 2;
+/** The overlay's breathing room off the picture's edge — one step of the
+ * fleet's scale, not a number picked for a screenshot. */
+const OVERLAY_INSET = spacing[1];
 
-const BADGE_CORNER: Readonly<Record<"coverCorner" | "phaseCorner", CSSProperties>> = {
-  coverCorner: {
+function corner(
+  block: "start" | "end",
+  inline: "start" | "end"
+): CSSProperties {
+  return {
     position: "absolute",
-    insetBlockStart: BADGE_INSET_PX,
-    insetInlineStart: BADGE_INSET_PX,
-    maxWidth: `calc(100% - ${BADGE_INSET_PX * 2}px)`,
-  },
-  phaseCorner: {
-    position: "absolute",
-    insetBlockEnd: BADGE_INSET_PX,
-    insetInlineEnd: BADGE_INSET_PX,
-    maxWidth: `calc(100% - ${BADGE_INSET_PX * 2}px)`,
-  },
+    ...(block === "start"
+      ? { insetBlockStart: OVERLAY_INSET }
+      : { insetBlockEnd: OVERLAY_INSET }),
+    ...(inline === "start"
+      ? { insetInlineStart: OVERLAY_INSET }
+      : { insetInlineEnd: OVERLAY_INSET }),
+    display: "flex",
+    alignItems: "center",
+    gap: OVERLAY_INSET,
+    maxInlineSize: `calc(100% - ${String(OVERLAY_INSET * 2)}px)`,
+  };
+}
+
+const CORNER: Readonly<Record<string, CSSProperties>> = {
+  [COVER_CORNER]: corner("start", "start"),
+  [REMOVE_CORNER]: corner("start", "end"),
+  [MOVE_CORNER]: corner("end", "start"),
+  [PHASE_CORNER]: corner("end", "end"),
 };
+
+/**
+ * HOW MANY COLUMNS, AND FROM WHICH WIDTH.
+ *
+ * The CONTAINER's, through `useElementWidth` — the fleet's one element-width
+ * measurement — and never the viewport's. This gallery is mounted inside a
+ * composer step that is a 1080px page column on a desktop and a full-bleed
+ * phone screen, and it is also mounted inside a 560px dialog on that same
+ * desktop: a viewport media query would draw the six-column arm into the
+ * dialog and the three-column arm nowhere.
+ *
+ * The steps are the ruling's: three across a phone, four across a tablet or a
+ * narrow pane, six across a desktop column.
+ */
+export const GALLERY_COLUMN_STEPS = { four: 480, six: 768 } as const;
+
+/**
+ * The column count for a measured width.
+ *
+ * `undefined` — before the first observation, or with no `ResizeObserver` at
+ * all — answers with the NARROW arm. `useElementWidth` refuses to guess for
+ * its callers and this is this caller's answer: three columns is the arm that
+ * fits everywhere, and a grid that starts wide and snaps narrow is a reflow
+ * on the first frame of the composer's first screen.
+ */
+export function galleryColumns(width: number | undefined): number {
+  if (width === undefined || width < GALLERY_COLUMN_STEPS.four) return 3;
+  if (width < GALLERY_COLUMN_STEPS.six) return 4;
+  return 6;
+}
+
+/** One step of the fleet's scale between cells. */
+const GALLERY_GAP = spacing[2];
+
+/**
+ * The cell: square, filling its column, never narrower than the tile floor.
+ * `aspect-ratio` rather than a height, so the row's height follows the
+ * column width the grid actually resolved to.
+ */
+const CELL: CSSProperties = {
+  position: "relative",
+  inlineSize: "100%",
+  aspectRatio: "1 / 1",
+  minInlineSize: PREVIEW_TILE_PX,
+};
+
+/**
+ * An icon control on the picture.
+ *
+ * ICON-ONLY and ALWAYS VISIBLE. Not hover-only: this grid's first surface is
+ * a phone, where there is no hover at all, and a control that appears on
+ * hover is a control that does not exist to a thumb. The label is the
+ * `aria-label` — the same i18n key the worded button used — so nothing is
+ * lost to a screen reader.
+ *
+ * No `size="small"`: on a phone `SkinTheme` makes a control 44px, and that is
+ * the touch floor these four controls exist inside. A denser tile is not
+ * worth a target a thumb misses.
+ */
+function TileIconButton(props: {
+  readonly glyph: string;
+  readonly label: string;
+  readonly testId: string;
+  readonly onClick: () => void;
+  readonly disabled?: boolean;
+  readonly disabledReason?: string;
+  /** The outcome, declared at the CALL SITE — `stapel/clickable-needs-event`
+   * asks the place that knows what the click means, not the widget. */
+  readonly "data-analytics": string;
+  readonly "data-analytics-reason": string;
+}): ReactElement {
+  return (
+    <Button
+      aria-label={props.label}
+      onClick={props.onClick}
+      data-testid={props.testId}
+      data-analytics={props["data-analytics"]}
+      data-analytics-reason={props["data-analytics-reason"]}
+      {...(props.disabled === true ? { disabled: true } : {})}
+      {...(props.disabledReason !== undefined
+        ? { "data-disabled-reason": props.disabledReason }
+        : {})}
+      style={{
+        /* A switched-off arrow is SHOWN, dimmed, rather than removed: the
+           pair of arrows is how a person reads "this tile can move", and a
+           row whose controls come and go as tiles are reordered is a target
+           that moves under the finger. */
+        ...(props.disabled === true ? { opacity: 0.45 } : {}),
+      }}
+    >
+      <span aria-hidden="true">{props.glyph}</span>
+    </Button>
+  );
+}
+
+/** The glyphs. Text rather than an icon package: this pair has no icon peer
+ * dependency, and `CdnThumbnail`'s broken-image mark is already a glyph. */
+const GLYPH = {
+  cover: "\u2605",
+  remove: "\u2715",
+  earlier: "\u2039",
+  later: "\u203a",
+  retry: "\u21bb",
+  cancel: "\u25a0",
+  add: "+",
+} as const;
 
 function Tile(props: {
   item: UploadItem;
@@ -156,106 +317,187 @@ function Tile(props: {
       onDrop={() => props.onDrop(index)}
       data-testid="cdn-gallery-tile"
       data-phase={item.phase}
-      style={{ width: PREVIEW_TILE_PX }}
+      style={CELL}
     >
-      {/* The picture and the two badges share ONE positioned box: a badge
-          belongs to the photograph, not to the column under it. Anything
-          that is a SENTENCE — the dedupe outcome, the variants ladder —
-          is the grid's notice line, not a paragraph squeezed into 96px. */}
-      <div style={{ position: "relative", width: PREVIEW_TILE_PX, height: PREVIEW_TILE_PX }}>
-        {/* The tier comes from THIS tile's box at the live device pixel ratio,
-            not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. A restored
-            item (`file === null`) still resolving its row draws a skeleton;
-            one that resolved to nothing draws the broken-image fallback —
-            `useUploadQueue`'s `restoredLookup` is what tells the two apart
-            from a plain in-flight tile, which has a `file` and never sets it. */}
-        <CdnThumbnail
-          localUrl={preview.localUrl}
-          image={imageRowOf(item)}
-          box={PREVIEW_BOX}
-          alt={t(CDN_I18N_KEYS.itemAlt)}
-          resolving={item.file === null && item.restoredLookup === "pending"}
-          broken={item.file === null && item.restoredLookup === "done" && item.row === null}
-          data-testid="cdn-tile-thumbnail"
-        />
-        {index === 0 ? (
-          <span style={BADGE_CORNER.coverCorner} data-corner={COVER_CORNER}>
-            <StatusTag status="info" bordered={false} testId="cdn-tile-cover">
-              {t(CDN_I18N_KEYS.itemCover)}
-            </StatusTag>
-          </span>
-        ) : null}
-        <span
-          style={BADGE_CORNER.phaseCorner}
-          data-corner={PHASE_CORNER}
-          aria-live="polite"
-        >
+      {/* The tier comes from THIS tile's box at the live device pixel ratio,
+          not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. A restored
+          item (`file === null`) still resolving its row draws a skeleton;
+          one that resolved to nothing draws the broken-image fallback —
+          `useUploadQueue`'s `restoredLookup` is what tells the two apart
+          from a plain in-flight tile, which has a `file` and never sets it. */}
+      <CdnThumbnail
+        localUrl={preview.localUrl}
+        image={imageRowOf(item)}
+        box={PREVIEW_CELL_BOX}
+        alt={t(CDN_I18N_KEYS.itemAlt)}
+        resolving={item.file === null && item.restoredLookup === "pending"}
+        broken={item.file === null && item.restoredLookup === "done" && item.row === null}
+        data-testid="cdn-tile-thumbnail"
+      />
+      {index === 0 ? (
+        <span style={CORNER[COVER_CORNER]} data-corner={COVER_CORNER}>
+          {/* THE MARK, NOT THE SENTENCE. At the floor width the cell is 96px
+              and the overlay has 88 of them; the Russian cover label is 12
+              characters and does not fit with the tag's own padding, and
+              a cover badge that ellipsises is a worse badge than a star. The
+              words are still there for anything that reads rather than looks:
+              `visuallyHidden` puts them in the accessibility tree, which is
+              what the ruling's icon-only arm asks for. */}
           <StatusTag
-            status={PHASE_FAMILY[item.phase]}
+            status="info"
             bordered={false}
-            testId="cdn-tile-phase"
+            icon={<span aria-hidden="true">{GLYPH.cover}</span>}
+            testId="cdn-tile-cover"
           >
-            {t(PHASE_KEYS[item.phase])}
+            <span style={visuallyHidden}>{t(CDN_I18N_KEYS.itemCover)}</span>
           </StatusTag>
         </span>
-      </div>
-      <ErrorAlert
-        {...(item.error === null ? {} : { thrown: item.error })}
-        testId="cdn-tile-error"
-      />
-      <Flex gap={spacing[2]} wrap>
+      ) : null}
+      <span style={CORNER[REMOVE_CORNER]} data-corner={REMOVE_CORNER}>
+        <TileIconButton
+          glyph={GLYPH.remove}
+          label={t(CDN_I18N_KEYS.itemRemove)}
+          testId="cdn-tile-remove"
+          onClick={() => bag.remove(item.id)}
+          data-analytics="none"
+          data-analytics-reason="business action — host app wraps with its own tracked()"
+        />
+      </span>
+      <span style={CORNER[MOVE_CORNER]} data-corner={MOVE_CORNER}>
+        <TileIconButton
+          glyph={GLYPH.earlier}
+          label={t(CDN_I18N_KEYS.itemMoveEarlier)}
+          testId="cdn-tile-earlier"
+          disabled={index === 0}
+          disabledReason="this is the first tile — the cover badge beside it says so, and there is nothing earlier to move it before"
+          onClick={() => bag.reorder(index, index - 1)}
+          data-analytics="none"
+          data-analytics-reason="business action — host app wraps with its own tracked()"
+        />
+        <TileIconButton
+          glyph={GLYPH.later}
+          label={t(CDN_I18N_KEYS.itemMoveLater)}
+          testId="cdn-tile-later"
+          disabled={index === bag.items.length - 1}
+          disabledReason="this is the last tile — its position in the visible row is the reason, and there is nothing later to move it after"
+          onClick={() => bag.reorder(index, index + 1)}
+          data-analytics="none"
+          data-analytics-reason="business action — host app wraps with its own tracked()"
+        />
+      </span>
+      <span
+        style={CORNER[PHASE_CORNER]}
+        data-corner={PHASE_CORNER}
+        aria-live="polite"
+      >
         {busy ? (
-          <Button
+          <TileIconButton
+            glyph={GLYPH.cancel}
+            label={t(CDN_I18N_KEYS.itemCancel)}
+            testId="cdn-tile-cancel"
             onClick={() => bag.cancel(item.id)}
-            data-testid="cdn-tile-cancel"
             data-analytics="none"
             data-analytics-reason="business action — host app wraps with its own tracked()"
-          >
-            {t(CDN_I18N_KEYS.itemCancel)}
-          </Button>
+          />
         ) : null}
         {item.phase === "failed" || item.phase === "canceled" ? (
-          <Button
+          <TileIconButton
+            glyph={GLYPH.retry}
+            label={t(CDN_I18N_KEYS.itemRetry)}
+            testId="cdn-tile-retry"
             onClick={() => bag.retry(item.id)}
-            data-testid="cdn-tile-retry"
             data-analytics="none"
             data-analytics-reason="business action — host app wraps with its own tracked()"
-          >
-            {t(CDN_I18N_KEYS.itemRetry)}
-          </Button>
+          />
         ) : null}
-        <Button
-          onClick={() => bag.remove(item.id)}
-          data-testid="cdn-tile-remove"
-          data-analytics="none"
-          data-analytics-reason="business action — host app wraps with its own tracked()"
+        <StatusTag
+          status={PHASE_FAMILY[item.phase]}
+          bordered={false}
+          testId="cdn-tile-phase"
         >
-          {t(CDN_I18N_KEYS.itemRemove)}
-        </Button>
-        <Button
-          disabled={index === 0}
-          data-disabled-reason="this is the first tile — the cover label beside it says so, and there is nothing earlier to move it before"
-          onClick={() => bag.reorder(index, index - 1)}
-          data-testid="cdn-tile-earlier"
-          data-analytics="none"
-          data-analytics-reason="business action — host app wraps with its own tracked()"
-        >
-          {t(CDN_I18N_KEYS.itemMoveEarlier)}
-        </Button>
-        <Button
-          disabled={index === bag.items.length - 1}
-          data-disabled-reason="this is the last tile — its position in the visible row is the reason, and there is nothing later to move it after"
-          onClick={() => bag.reorder(index, index + 1)}
-          data-testid="cdn-tile-later"
-          data-analytics="none"
-          data-analytics-reason="business action — host app wraps with its own tracked()"
-        >
-          {t(CDN_I18N_KEYS.itemMoveLater)}
-        </Button>
-      </Flex>
+          {t(PHASE_KEYS[item.phase])}
+        </StatusTag>
+      </span>
     </div>
   );
 }
+
+/**
+ * THE ADD TILE — the picker, as one more cell of the grid.
+ *
+ * What it replaces is the shape the demo showed: a 96px thumbnail alone in a
+ * full-width dashed rectangle with a button under it, which reads as an empty
+ * region that happens to contain a photograph rather than as a grid of
+ * photographs with a way to add one more.
+ *
+ * It is a real `<button>` and not a `<label>`. `./DropZone.tsx` argues the
+ * point at length: a label is not focusable, so a label-driven picker is
+ * unreachable by keyboard, and the hidden input is out of the tab order. The
+ * dashed border is HERE and nowhere else — it is the affordance of the empty
+ * cell, not a frame around the whole gallery.
+ *
+ * The gate travels with it: full, or uploads still in flight, is a sentence
+ * `GatedButton` renders beside the control rather than a button that is
+ * merely off. The drop half lives on the grid, so a file dropped on any cell
+ * lands.
+ */
+function AddTile(props: { readonly bag: UploadQueueBag }): ReactElement {
+  const t = useT();
+  const inputId = useId();
+  const input = useRef<HTMLInputElement | null>(null);
+  const { bag } = props;
+  const label = t(CDN_I18N_KEYS.pickImages);
+  return (
+    <div style={CELL} data-testid="cdn-gallery-add">
+      <GatedButton
+        gate={bag.canAdd}
+        aria-label={label}
+        onClick={() => input.current?.click()}
+        testId="cdn-gallery-drop-pick"
+        wrapperStyle={{ inlineSize: "100%" }}
+        style={{
+          inlineSize: "100%",
+          blockSize: "100%",
+          border: `1px dashed ${cssVar("border-subtle")}`,
+          borderRadius: PREVIEW_TILE_RADIUS_PX,
+          background: "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+        }}
+        data-analytics="none"
+        data-analytics-reason="business action — host app wraps with its own tracked()"
+      >
+        <span aria-hidden="true" style={{ fontSize: ADD_GLYPH_PX, lineHeight: 1 }}>
+          {GLYPH.add}
+        </span>
+      </GatedButton>
+      <input
+        id={inputId}
+        ref={input}
+        type="file"
+        accept={bag.accept.attribute}
+        multiple
+        onChange={(event) => {
+          const list = event.target.files;
+          const files = list === null ? [] : Array.from(list);
+          /* Reset BEFORE handing the files on, so picking the same file again
+             still fires `change` — the classic reason a retry after a failure
+             appears to do nothing (`./DropZone.tsx` makes the same move). */
+          event.target.value = "";
+          if (files.length > 0) bag.add(files);
+        }}
+        style={{ display: "none" }}
+        data-testid="cdn-gallery-drop-input"
+      />
+    </div>
+  );
+}
+
+/** The plus, at a size that reads as an affordance in a 96px cell rather
+ * than as a stray character. */
+const ADD_GLYPH_PX = 24;
 
 function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
   const t = useT();
@@ -263,6 +505,13 @@ function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
   const { bag } = props;
   const settledGate = useActionGate(bag.settled);
   const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState(false);
+  /* THE COLUMN COUNT COMES FROM THIS GRID'S OWN WIDTH — see
+     `galleryColumns`. The ref is on the grid and not on the field, because
+     the grid is the box the columns are laid into. */
+  const grid = useRef<HTMLDivElement | null>(null);
+  const { width } = useElementWidth(grid);
+  const columns = galleryColumns(width);
 
   // One line for the whole grid, whatever the count: the note is about the
   // queue's outcome, not about a tile's corner. Order is fixed so the line
@@ -296,36 +545,68 @@ function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
           max: bag.capacity.max,
         })}
       </Typography.Text>
-      <DropZone
-        accept={bag.accept.attribute}
-        multiple
-        buttonLabel={t(CDN_I18N_KEYS.pickImages)}
-        gate={bag.canAdd}
-        onFiles={(files) => bag.add(files)}
-        testId="cdn-gallery-drop"
+      {/* THE GRID, AND IT IS THE DROP TARGET.
+          Dropping anywhere on the grid adds, which is what a person aims at;
+          the dashed edge belongs to the ADD TILE alone, and the drag-over
+          state outlines the whole grid so the target reads as the target. */}
+      <div
+        ref={grid}
+        data-testid="cdn-gallery-grid"
+        data-columns={String(columns)}
+        data-dragging={over ? "true" : "false"}
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${String(columns)}, minmax(${String(PREVIEW_TILE_PX)}px, 1fr))`,
+          gap: GALLERY_GAP,
+          alignItems: "start",
+          borderRadius: radii.lg,
+          outline: over ? `2px solid ${cssVar("border-subtle")}` : "none",
+          outlineOffset: OVERLAY_INSET,
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          if (bag.canAdd.available) setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDropCapture={(event) => {
+          /* A file dropped from the desktop and a TILE dragged within the
+             grid arrive at the same handler. Only the first carries files;
+             the second is the reorder the tiles handle themselves. */
+          setOver(false);
+          const files = Array.from(event.dataTransfer.files);
+          if (files.length === 0 || !bag.canAdd.available) return;
+          event.preventDefault();
+          bag.add(files);
+        }}
       >
-        {bag.items.length === 0 ? (
-          <EmptyState
-            compact
-            title={t(CDN_I18N_KEYS.galleryEmpty)}
-            hint={t(CDN_I18N_KEYS.galleryEmptyHint)}
-            testId="cdn-gallery-empty"
+        {bag.items.map((item, index) => (
+          <Tile
+            key={item.id}
+            item={item}
+            index={index}
+            bag={bag}
+            onDragStart={setDragging}
+            onDrop={onDrop}
           />
-        ) : (
-          <Flex wrap align="flex-start" gap={spacing[3]}>
-            {bag.items.map((item, index) => (
-              <Tile
-                key={item.id}
-                item={item}
-                index={index}
-                bag={bag}
-                onDragStart={setDragging}
-                onDrop={onDrop}
-              />
-            ))}
-          </Flex>
-        )}
-      </DropZone>
+        ))}
+        {/* ONE MORE CELL, LAST — the add tile. Last rather than first because
+            the grid reads in upload order and the first cell is the cover:
+            a picker standing where the cover belongs is a cover nobody can
+            find. */}
+        <AddTile bag={bag} />
+      </div>
+      {/* The empty gallery still SAYS it is empty, under the grid rather than
+          instead of it: the add tile is on screen either way, so replacing
+          the whole grid with a placeholder would take away the one control
+          the sentence is about. */}
+      {bag.items.length === 0 ? (
+        <EmptyState
+          compact
+          title={t(CDN_I18N_KEYS.galleryEmpty)}
+          hint={t(CDN_I18N_KEYS.galleryEmptyHint)}
+          testId="cdn-gallery-empty"
+        />
+      ) : null}
       {/* The grid's NOTICE slot, beside the one `settled` already owns. An
           outcome is a sentence about the queue, and a sentence does not fit
           in a 96px tile: shipped inside one, the phase word + the cover
@@ -340,6 +621,17 @@ function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
         >
           {notices.map((key) => t(key)).join(" · ")}
         </Typography.Text>
+      )}
+      {/* A REFUSAL IS A SENTENCE TOO, and it left the tile for the same
+          reason the dedupe note did: an alert inside a square picture is
+          either clipped or it is not a square picture. The tile says which
+          one failed — its phase tag is the error family and its retry is
+          right there; the words are here, where there is a line to put them
+          on. */}
+      {bag.items.map((item) =>
+        item.error === null ? null : (
+          <ErrorAlert key={item.id} thrown={item.error} testId="cdn-gallery-error" />
+        )
       )}
       {settledGate.reason === undefined ? null : (
         <Typography.Text type="secondary" data-testid="cdn-gallery-unsettled">
