@@ -12,6 +12,20 @@
  * `Listing.images_draft` is stored in this order and the first reference is
  * what a search result card shows.
  *
+ * ── A tile carries badges; the grid carries sentences ──────────────────────
+ *
+ * A tile is 96px wide. Three `Typography.Text` blocks stacked inside one
+ * printed as a single run-on column on a phone — "ReadyCover photoAlready
+ * uploaded — nothing was sent again", with no separator anywhere, wrapped
+ * into a 96px column — because a status, a role and an outcome are three
+ * different KINDS of thing and only the first two are badges. So: the
+ * phase is a small {@link StatusTag} in one
+ * corner of the picture, the cover badge is the primary one in the opposite
+ * corner, and every outcome that is a sentence (the dedupe note, the
+ * variants ladder) moved OUT of the tile into the grid's notice line, next
+ * to the slot `settled` already owns. The tile holds no free text at all
+ * now — only the two badges, the per-item error alert, and its controls.
+ *
  * ── Whose queue is it ──────────────────────────────────────────────────────
  *
  * Either the caller's (`bag`) or this field's (`max`). A composer consumes
@@ -29,10 +43,10 @@
  * drop target rather than two lines of grey text.
  */
 import { useState } from "react";
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { Button, Flex, Typography } from "antd";
 import { useActionGate, useT, useTPlural } from "@stapel/core";
-import { EmptyState, ErrorAlert, SkinTheme } from "@stapel/tokens-antd/skin";
+import { EmptyState, ErrorAlert, SkinTheme, StatusTag } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { spacing } from "@stapel/tokens";
 import { MediaUploader } from "../headless/MediaUploader.js";
@@ -43,7 +57,7 @@ import type { CdnRef } from "../api/types.js";
 import type { CdnUploadTarget } from "../model/upload.js";
 import { CDN_I18N_KEYS } from "../i18n/keys.js";
 import { DropZone } from "./DropZone.js";
-import { PHASE_KEYS, PREVIEW_BOX, PREVIEW_TILE_PX } from "./phase.js";
+import { PHASE_FAMILY, PHASE_KEYS, PREVIEW_BOX, PREVIEW_TILE_PX } from "./phase.js";
 import { CdnThumbnail } from "./CdnThumbnail.js";
 
 /**
@@ -91,6 +105,33 @@ export type MediaGalleryFieldProps =
   | MediaGalleryFieldBagProps
   | MediaGalleryFieldOwnProps;
 
+/**
+ * The two badges sit in OPPOSITE corners of the picture so neither can be
+ * read as a continuation of the other: the cover badge is the primary one
+ * (top-start, where the eye lands), the phase badge is the small one
+ * (bottom-end). Stamped `data-corner` so a test can assert the placement
+ * without measuring pixels in jsdom, which measures nothing.
+ */
+export const COVER_CORNER = "top-start";
+export const PHASE_CORNER = "bottom-end";
+
+const BADGE_INSET_PX = 2;
+
+const BADGE_CORNER: Readonly<Record<"coverCorner" | "phaseCorner", CSSProperties>> = {
+  coverCorner: {
+    position: "absolute",
+    insetBlockStart: BADGE_INSET_PX,
+    insetInlineStart: BADGE_INSET_PX,
+    maxWidth: `calc(100% - ${BADGE_INSET_PX * 2}px)`,
+  },
+  phaseCorner: {
+    position: "absolute",
+    insetBlockEnd: BADGE_INSET_PX,
+    insetInlineEnd: BADGE_INSET_PX,
+    maxWidth: `calc(100% - ${BADGE_INSET_PX * 2}px)`,
+  },
+};
+
 function Tile(props: {
   item: UploadItem;
   index: number;
@@ -117,46 +158,47 @@ function Tile(props: {
       data-phase={item.phase}
       style={{ width: PREVIEW_TILE_PX }}
     >
-      {/* The tier comes from THIS tile's box at the live device pixel ratio,
-          not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. A restored
-          item (`file === null`) still resolving its row draws a skeleton;
-          one that resolved to nothing draws the broken-image fallback —
-          `useUploadQueue`'s `restoredLookup` is what tells the two apart
-          from a plain in-flight tile, which has a `file` and never sets it. */}
-      <CdnThumbnail
-        localUrl={preview.localUrl}
-        image={imageRowOf(item)}
-        box={PREVIEW_BOX}
-        alt={t(CDN_I18N_KEYS.itemAlt)}
-        resolving={item.file === null && item.restoredLookup === "pending"}
-        broken={item.file === null && item.restoredLookup === "done" && item.row === null}
-        data-testid="cdn-tile-thumbnail"
-      />
-      <Typography.Text
-        type="secondary"
-        aria-live="polite"
-        data-testid="cdn-tile-phase"
-      >
-        {t(PHASE_KEYS[item.phase])}
-      </Typography.Text>
-      {index === 0 ? (
-        <Typography.Text type="secondary" data-testid="cdn-tile-cover">
-          {t(CDN_I18N_KEYS.itemCover)}
-        </Typography.Text>
-      ) : null}
-      {item.deduped ? (
-        <Typography.Text type="secondary" data-testid="cdn-tile-deduped">
-          {t(CDN_I18N_KEYS.deduped)}
-        </Typography.Text>
-      ) : null}
-      {/* The row's own word for its ladder, not an inference off
-          `is_processed`: while it reads `pending` the variant URLs in the
-          payload are a prediction and this tile is showing the original. */}
-      {item.variantsStatus === "pending" ? (
-        <Typography.Text type="secondary" data-testid="cdn-tile-variants-pending">
-          {t(CDN_I18N_KEYS.variantsPending)}
-        </Typography.Text>
-      ) : null}
+      {/* The picture and the two badges share ONE positioned box: a badge
+          belongs to the photograph, not to the column under it. Anything
+          that is a SENTENCE — the dedupe outcome, the variants ladder —
+          is the grid's notice line, not a paragraph squeezed into 96px. */}
+      <div style={{ position: "relative", width: PREVIEW_TILE_PX, height: PREVIEW_TILE_PX }}>
+        {/* The tier comes from THIS tile's box at the live device pixel ratio,
+            not from `smallestVariantUrl` — see `./CdnThumbnail.tsx`. A restored
+            item (`file === null`) still resolving its row draws a skeleton;
+            one that resolved to nothing draws the broken-image fallback —
+            `useUploadQueue`'s `restoredLookup` is what tells the two apart
+            from a plain in-flight tile, which has a `file` and never sets it. */}
+        <CdnThumbnail
+          localUrl={preview.localUrl}
+          image={imageRowOf(item)}
+          box={PREVIEW_BOX}
+          alt={t(CDN_I18N_KEYS.itemAlt)}
+          resolving={item.file === null && item.restoredLookup === "pending"}
+          broken={item.file === null && item.restoredLookup === "done" && item.row === null}
+          data-testid="cdn-tile-thumbnail"
+        />
+        {index === 0 ? (
+          <span style={BADGE_CORNER.coverCorner} data-corner={COVER_CORNER}>
+            <StatusTag status="info" bordered={false} testId="cdn-tile-cover">
+              {t(CDN_I18N_KEYS.itemCover)}
+            </StatusTag>
+          </span>
+        ) : null}
+        <span
+          style={BADGE_CORNER.phaseCorner}
+          data-corner={PHASE_CORNER}
+          aria-live="polite"
+        >
+          <StatusTag
+            status={PHASE_FAMILY[item.phase]}
+            bordered={false}
+            testId="cdn-tile-phase"
+          >
+            {t(PHASE_KEYS[item.phase])}
+          </StatusTag>
+        </span>
+      </div>
       <ErrorAlert
         {...(item.error === null ? {} : { thrown: item.error })}
         testId="cdn-tile-error"
@@ -222,6 +264,20 @@ function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
   const settledGate = useActionGate(bag.settled);
   const [dragging, setDragging] = useState<number | null>(null);
 
+  // One line for the whole grid, whatever the count: the note is about the
+  // queue's outcome, not about a tile's corner. Order is fixed so the line
+  // does not reshuffle as items settle.
+  const notices: string[] = [];
+  if (bag.items.some((item) => item.deduped)) {
+    notices.push(CDN_I18N_KEYS.deduped);
+  }
+  // The row's own word for its ladder, not an inference off `is_processed`:
+  // while it reads `pending` the variant URLs in the payload are a prediction
+  // and the tiles are showing the originals.
+  if (bag.items.some((item) => item.variantsStatus === "pending")) {
+    notices.push(CDN_I18N_KEYS.variantsPending);
+  }
+
   const onDrop = (index: number): void => {
     if (dragging === null) return;
     bag.reorder(dragging, index);
@@ -270,6 +326,21 @@ function GalleryBody(props: { bag: UploadQueueBag }): ReactElement {
           </Flex>
         )}
       </DropZone>
+      {/* The grid's NOTICE slot, beside the one `settled` already owns. An
+          outcome is a sentence about the queue, and a sentence does not fit
+          in a 96px tile: shipped inside one, the phase word + the cover
+          label + the dedupe note wrapped into a single run-on column
+          nobody could read. One line, under the grid, announced — and the
+          tile keeps only its two badges. */}
+      {notices.length === 0 ? null : (
+        <Typography.Text
+          type="secondary"
+          aria-live="polite"
+          data-testid="cdn-gallery-notice"
+        >
+          {notices.map((key) => t(key)).join(" · ")}
+        </Typography.Text>
+      )}
       {settledGate.reason === undefined ? null : (
         <Typography.Text type="secondary" data-testid="cdn-gallery-unsettled">
           {settledGate.reason}

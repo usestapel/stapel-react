@@ -5,6 +5,7 @@
  * compile).
  */
 import type { CSSProperties } from "react";
+import type { StatusFamily } from "@stapel/tokens-antd/skin";
 import type { UploadPhase } from "../model/upload.js";
 import { CDN_I18N_KEYS } from "../i18n/keys.js";
 
@@ -17,6 +18,24 @@ export const PHASE_KEYS: Record<UploadPhase, string> = {
   done: CDN_I18N_KEYS.phaseDone,
   canceled: CDN_I18N_KEYS.phaseCanceled,
   failed: CDN_I18N_KEYS.phaseFailed,
+};
+
+/**
+ * The phase → status FAMILY table. A phase badge names the family the step
+ * belongs to and lets `StatusTag` pick the colour from the theme's status
+ * roles; picking a colour per word here is the fleet-wide defect that
+ * component exists to end. Exhaustive over `UploadPhase` for the same reason
+ * as {@link PHASE_KEYS} — a new phase cannot arrive without a family.
+ */
+export const PHASE_FAMILY: Record<UploadPhase, StatusFamily> = {
+  idle: "neutral",
+  hashing: "info",
+  checking: "info",
+  uploading: "info",
+  processing: "info",
+  done: "success",
+  canceled: "neutral",
+  failed: "error",
 };
 
 /**
