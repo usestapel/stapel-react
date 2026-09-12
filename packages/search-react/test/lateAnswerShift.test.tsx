@@ -172,12 +172,17 @@ describe("D466 — the toolbar control does not travel when the count lands", ()
     });
 
     const [lead, end] = toolbarChildren();
-    // The leading box grows into whatever is left; the trailing group neither
-    // grows nor shrinks, so its trailing edge is the row's, in every frame and
-    // at every count length.
-    expect(lead?.style.flex).toBe("1 1 auto");
+    // The leading box grows into whatever is left, from a ZERO basis: the row
+    // wraps now, and a wrapping row breaks its line by each item's OWN width,
+    // so a basis of `auto` here would move the controls to a second line the
+    // moment a number arrived — the same travel this suite exists for, in the
+    // other axis.
+    expect(lead?.style.flex).toBe("1 1 0px");
     expect(lead?.style.minInlineSize).toBe("0");
-    expect(end?.style.flex).toBe("0 0 auto");
+    // The trailing group keeps its measure (it never GROWS) and takes the
+    // trailing edge of whichever line it lands on.
+    expect(end?.style.flex).toBe("0 1 auto");
+    expect(end?.style.marginInlineStart).toBe("auto");
     // And the row does not space its children apart, which is what made the
     // control's position depend on HOW MANY children there were.
     expect(

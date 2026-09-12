@@ -439,7 +439,11 @@ describe("tile density (the owner's ruling on tile size)", () => {
     );
     await waitFor(() => expect(tileList()).toBeTruthy());
     const columns = tileList().style.gridAutoColumns;
-    expect(columns).toContain("min(");
+    // A floor, the fraction, a cap — in that order. The floor is the column a
+    // twelve-letter root name needs at the caption's 12px; below it the grid
+    // gives up a column rather than breaking a word in half.
+    expect(columns).toContain("clamp(");
+    expect(columns).toContain("96px");
     expect(columns).toContain("/ 4.4");
     expect(columns).toContain("128px");
   });
@@ -831,7 +835,10 @@ describe("the label's clamp: labelLines", () => {
     expect(label.style.fontSize).toBe("13px");
     expect(label.style.textAlign).toBe("start");
     expect(label.style.hyphens).toBe("manual");
-    expect(label.style.overflowWrap).toBe("anywhere");
+    // Between words, never inside one — and an ellipsis where even that
+    // cannot fit.
+    expect(label.style.overflowWrap).toBe("normal");
+    expect(label.style.textOverflow).toBe("ellipsis");
   });
 });
 

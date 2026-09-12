@@ -338,10 +338,14 @@ describe("D452 — the pinned block is the toolbar, never the heading", () => {
 describe("the pinned row cannot change height when the count lands", () => {
   /**
    * The count arrives WITH the answer, one render after the toolbar is already
-   * on screen. A row that can wrap grows a second line at that moment, and a
-   * bar that grows while it is pinned pushes the first cards of the feed down
-   * under the reader's eye. `nowrap` makes the height a constant; the overflow
-   * becomes the scroll strip every phone sort row already is.
+   * on screen, and a bar that grows while it is pinned pushes the first cards
+   * of the feed down under the reader's eye.
+   *
+   * `nowrap` used to be how that was held — at the price of a sort select that
+   * left a 360px screen mid-word. The row wraps now, and the height is still a
+   * constant for the reason below: the LEAD asks for zero width, so the
+   * arriving count cannot break the line. Only the controls group can, and it
+   * is on the glass from the first frame.
    */
   function controlsRow(): HTMLElement {
     // One answer in BOTH shapes since D452: the row that pins is the controls'
@@ -352,15 +356,16 @@ describe("the pinned row cannot change height when the count lands", () => {
     return toolbar;
   }
 
-  it("declares one line in the WIDE shape, with and without a count", async () => {
+  it("wraps rather than running off the screen, in the WIDE shape", async () => {
     await mount(RAIL_WIDTH, {}, 25);
     expect(screen.getByTestId("search-count")).toBeTruthy();
     const withCount = getComputedStyle(controlsRow());
-    expect(withCount.flexWrap).toBe("nowrap");
+    expect(withCount.flexWrap).toBe("wrap");
+    // The scroll port stays as the LAST resort, for a controls group too wide
+    // to fold: the alternative is still a control cut by the edge of the
+    // screen. Thin, and only when there is something to scroll to.
     expect(withCount.overflowX).toBe("auto");
     expect(withCount.minInlineSize).toBe("0");
-    // Thin and only when there is something to scroll to: an invisible scroll
-    // port is indistinguishable from a row that ends where it was cut.
     expect(withCount.scrollbarWidth).toBe("thin");
     cleanup();
 
@@ -374,10 +379,43 @@ describe("the pinned row cannot change height when the count lands", () => {
     expect(without.minInlineSize).toBe(withCount.minInlineSize);
   });
 
-  it("declares one line in the COMPACT shape too", async () => {
+  it("holds the height with a ZERO-basis lead, which is what a wrap costs", async () => {
+    await mount(RAIL_WIDTH, {}, 25);
+    // The leading half is what the count lands in. A wrapping row breaks its
+    // line by each item's OWN width, so an `auto` basis here would put the
+    // controls on a second line the moment a number arrived — the height
+    // change the old `nowrap` existed to prevent. `0` asks for nothing.
+    const lead = getComputedStyle(screen.getByTestId("search-results-toolbar-lead"));
+    expect(lead.flexGrow).toBe("1");
+    expect(lead.flexShrink).toBe("1");
+    expect(lead.flexBasis).toBe("0px");
+    expect(lead.minInlineSize).toBe("0");
+    // And the count itself is one line: in a narrow lead it ends in an
+    // ellipsis, never in one glyph per line (measured at 768).
+    const count = getComputedStyle(screen.getByTestId("search-count"));
+    expect(count.whiteSpace).toBe("nowrap");
+    expect(count.textOverflow).toBe("ellipsis");
+    expect(count.overflow).toBe("hidden");
+  });
+
+  it("gives the controls the trailing edge, on whichever line they land", async () => {
+    await mount(RAIL_WIDTH, {}, 25);
+    const end = getComputedStyle(screen.getByTestId("search-results-toolbar-end"));
+    // Beside the count while there is room; against the trailing edge of the
+    // line below it when there is not — one declaration does both.
+    expect(end.marginInlineStart).toBe("auto");
+    // It keeps its measure while the line has room (grow 0) and folds its own
+    // controls rather than being cut when it does not (shrink 1, floor 0).
+    expect(end.flexGrow).toBe("0");
+    expect(end.flexShrink).toBe("1");
+    expect(end.minInlineSize).toBe("0");
+    expect(end.flexWrap).toBe("wrap");
+  });
+
+  it("wraps in the COMPACT shape too — the 360px phone row", async () => {
     await mount(PHONE_WIDTH, {}, 25);
     const row = getComputedStyle(controlsRow());
-    expect(row.flexWrap).toBe("nowrap");
+    expect(row.flexWrap).toBe("wrap");
     expect(row.overflowX).toBe("auto");
     expect(row.minInlineSize).toBe("0");
   });

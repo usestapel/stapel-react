@@ -63,7 +63,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Flex, Input, List, Skeleton } from "antd";
-import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
+import { cssVar, fontSize, fontWeight, radii, spacing } from "@stapel/tokens-antd";
 import { STAPEL_UI_KEYS, useI18n, useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import type { Category } from "../api/types.js";
@@ -114,6 +114,23 @@ const VISIBLE_COLUMNS = 2.5;
  */
 const COMPACT_VISIBLE_COLUMNS = 4.4;
 const COMPACT_MAX_COLUMN_PX = 128;
+
+/**
+ * THE NARROWEST A COMPACT COLUMN MAY BE, and it is an arithmetic rather than
+ * a taste.
+ *
+ * The fraction alone gave a 390px phone a 63px caption column, and the
+ * catalogue's longest root name — a twelve-letter single word — measures
+ * ~83px at the caption's 12px (the stand's own reading: nine letters, 62px).
+ * 83 into 63 does not go, so the caption broke inside the word.
+ *
+ * So the column has a FLOOR: the longest name's measure plus the tile's
+ * inline padding, rounded up a step for the next long name. Below it the
+ * grid gives up a column rather than a word — three tiles and a peek on a
+ * 390px phone instead of four and a peek. The fraction and the 128px cap are
+ * untouched above it, so every wider container is exactly what it was.
+ */
+const COMPACT_MIN_COLUMN_PX = 96;
 
 /** The two tile geometries a host can ask for. `cozy` is the reference
  * two-row scroller; `compact` is the dense strip — see the constants above. */
@@ -283,7 +300,10 @@ function scrollerStyle(
 ): CSSProperties {
   const columns =
     density === "compact"
-      ? `min(calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${gap}px), ${COMPACT_MAX_COLUMN_PX}px)`
+      ? // A floor, the fraction, a cap — see `COMPACT_MIN_COLUMN_PX`. `clamp`
+        // rather than a nested `min`/`max` pair so the three numbers read in
+        // the order they act in.
+        `clamp(${COMPACT_MIN_COLUMN_PX}px, calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${gap}px), ${COMPACT_MAX_COLUMN_PX}px)`
       : // `100%` is the SCROLL PORT's content box, so the tile is a fraction
         // of the box it was mounted in — see this file's header.
         `calc(100% / ${VISIBLE_COLUMNS} - ${gap}px)`;
@@ -391,7 +411,11 @@ const tileBase: CSSProperties = {
 const tileCompact: CSSProperties = {
   ...tileBase,
   aspectRatio: "1 / 1",
-  padding: spacing[2],
+  // The INLINE padding is the caption's column, one step tighter than the
+  // block padding: on a ~96px tile those 8px are a letter and a half of the
+  // longest root name, and the art is centred so it loses nothing by them.
+  paddingBlock: spacing[2],
+  paddingInline: spacing[1],
   justifyContent: "center",
   alignItems: "center",
   gap: spacing[1],
@@ -601,9 +625,16 @@ function tileAspectRatio(density: TileDensity, size: TileSize): string {
   return typeof shape === "string" ? shape : TILE_ASPECT_RATIO;
 }
 
-/** Compact label: the same clamp at the skin's small size — an ~80px tile
- * cannot spend body-size lines and still show its art corner. */
-const COMPACT_LABEL_FONT_SIZE = 12;
+/**
+ * Compact label: the same clamp one step down the TYPE SCALE — `xs`, the
+ * smallest step the design system has, because a ~96px tile cannot spend
+ * body-size lines and still show its art.
+ *
+ * Read from the scale rather than written as a number: the step below it does
+ * not exist, which is exactly why {@link COMPACT_MIN_COLUMN_PX} and not a
+ * smaller type is what makes the longest root name fit.
+ */
+const COMPACT_LABEL_FONT_SIZE = fontSize.xs.fontSize;
 
 const labelStyle: CSSProperties = {
   fontWeight: fontWeight.semibold,
@@ -630,15 +661,21 @@ const labelStyle: CSSProperties = {
   // `manual` still honours a soft hyphen a catalogue author writes into the
   // name on purpose; it just stops the browser inventing its own.
   hyphens: "manual",
-  // `anywhere` STAYS, and it is what makes `hyphens: manual` an improvement
-  // rather than a trade. Without it a caption too wide for the column stops
-  // breaking at all and the clamp ellipsizes it on its first line — measured
-  // on the 128px compact tile, which turned the longest root name into nine
-  // letters and a dot. `overflow-wrap` breaks the same word in the same place
-  // hyphenation would have, and prints no character that was never in the
-  // name: the whole caption is readable, and nothing in it can be mistaken
-  // for punctuation the catalogue author wrote.
-  overflowWrap: "anywhere",
+  // A CAPTION BREAKS BETWEEN WORDS, NEVER INSIDE ONE.
+  //
+  // `anywhere` was the defence against a column too narrow for the longest
+  // root name, and it paid for it on the phone landing: the catalogue's two
+  // longest root names were set over two lines with the break INSIDE the word
+  // and nothing marking it, which a reader has to reassemble before deciding
+  // whether to tap it. The column is what was wrong, and the column is fixed:
+  // {@link COMPACT_MIN_COLUMN_PX} is derived from the longest name the tile
+  // has to carry, so `normal` now has room to be right.
+  //
+  // The clamp plus `text-overflow` is the floor under the case no column can
+  // answer (a 20-letter name, a host's narrower tile): the caption ends in an
+  // ellipsis on its last line rather than splitting a word.
+  overflowWrap: "normal",
+  textOverflow: "ellipsis",
 };
 
 const labelCompact: CSSProperties = {
@@ -870,9 +907,10 @@ function firstLetter(label: string): string {
  * WHETHER THE BROWSER MAY HYPHENATE A CAPTION IT CANNOT FIT.
  *
  * `"manual"` is the default and the skin's own long-standing answer (D90): a
- * caption too wide for its column breaks at {@link labelStyle}'s
- * `overflow-wrap: anywhere` — the whole word stays readable and no character
- * appears that the catalogue author did not write.
+ * caption breaks between words and no character appears that the catalogue
+ * author did not write. A name too wide even for the column
+ * {@link COMPACT_MIN_COLUMN_PX} guarantees ends in an ellipsis rather than
+ * being split.
  *
  * `"auto"` is the OTHER reading of the same break, and a deployment whose
  * catalogue disagrees with D90 needs it: a walk of a 390px phone measured

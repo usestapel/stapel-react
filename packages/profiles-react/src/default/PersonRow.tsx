@@ -329,9 +329,29 @@ export function PersonRow(props: PersonRowProps): ReactElement {
       <PersonNameHeading level={props.headingLevel}>{linkedName}</PersonNameHeading>
     );
 
+  /**
+   * The qualifier slot MAY SHRINK, and that is the whole rule.
+   *
+   * `flex-shrink: 0` here made the slot rigid, so whatever a host put in it
+   * kept its widest measure and the ROW grew instead: a rating badge that
+   * wraps its own stars/score/count (`reviews-react`'s `<RatingBadge>`) never
+   * reached a width narrow enough to wrap, and a 258–334px block dragged
+   * every feed card past a phone viewport.
+   *
+   * `flex: 0 1 auto` plus `min-inline-size: 0` says the opposite: the slot
+   * asks for its content's width and gives it back under pressure, down to
+   * zero if the line demands it. What happens inside is the trailing node's
+   * own business — wrap, ellipsis or clip — and it can only choose once it is
+   * told how much room there is. The lead beside it keeps its own
+   * `min-inline-size: 0` (see the bodies below) so neither end is the rigid
+   * one.
+   */
   const trailingNode: ReactNode =
     props.trailing !== undefined && props.trailing !== null ? (
-      <span style={{ flexShrink: 0 }} data-stapel-person-trailing>
+      <span
+        style={{ flex: "0 1 auto", minInlineSize: 0 }}
+        data-stapel-person-trailing
+      >
         {props.trailing}
       </span>
     ) : null;

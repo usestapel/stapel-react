@@ -11,19 +11,24 @@
  *
  * A ONE-WORD label on two lines is a break inside the word, and the skin
  * printed no hyphen at it — "Nedvizhim / ost". The arithmetic behind it is
- * this file's first constant block and it is not escapable by any line count:
- * the compact tile's caption column is ~63px at that width (the scroller's
- * `min(100% / 4.4 − 8px, 128px)` column, less `spacing[2]` of padding on each
- * side), a nine-letter root name measures 62px at the compact label's 12px,
- * and a twelve-letter one therefore measures ~83px. 83 into 63 does not go, so
- * SOME break is forced; the only question the skin gets to answer is whether
- * it is marked.
+ * this file's first constant block: the compact tile's caption column was
+ * ~63px at that width (the scroller's old `min(100% / 4.4 − 8px, 128px)`
+ * column, less `spacing[2]` of padding on each side), a nine-letter root name
+ * measures 62px at the compact label's 12px, and a twelve-letter one therefore
+ * measures ~83px. 83 into 63 does not go, so the break was forced by the
+ * COLUMN and no style could answer it.
  *
- * `labelHyphens` is that answer, as a PROP. D90 measured a catalogue that read
- * worse hyphenated and its ruling is still the default; this catalogue
- * measured the opposite and asks for `"auto"` by name. The assertions below
- * are therefore two-sided — the default has to stay exactly what it was, or
- * the prop is a behaviour change wearing a prop's clothes.
+ * So the column is what changed: `COMPACT_MIN_COLUMN_PX` (96px) is a floor
+ * under the fraction, and the tile spends one step less inline padding, which
+ * gives the caption 88px — room for the longest root name on one line. The
+ * break rules follow it: captions break between words (`overflow-wrap:
+ * normal`) and a caption too long even for that column ends in an ellipsis
+ * rather than splitting a word.
+ *
+ * `labelHyphens` stays what it was: a PROP, defaulting to D90's `"manual"`.
+ * With the column wide enough there is nothing left for the browser to
+ * hyphenate on this catalogue, and a deployment with longer names than these
+ * can still ask for `"auto"` by name.
  *
  * ── The "All" tile, and WHERE the reading has to be taken ──────────────────
  *
@@ -45,6 +50,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { CategoryTileGrid } from "../src/default/index.js";
 import type { CarouselEntry } from "../src/default/index.js";
 import { categoryLabel } from "../src/index.js";
+import { fontSize } from "@stapel/tokens";
 import {
   PHONE_WIDTH,
   TestProviders,
@@ -62,9 +68,12 @@ import { FULL_PAGE, categoryRow } from "./fixtures.js";
  */
 const STAND = {
   viewport: 390,
-  /** `min(100% / 4.4 − 8px, 128px)` over the landing's ~382px port, less the
-   * tile's `spacing[2]` padding on each side. */
+  /** What the caption column WAS: `min(100% / 4.4 − 8px, 128px)` over the
+   * landing's ~382px port, less the tile's `spacing[2]` padding on each side. */
   captionColumnPx: 63,
+  /** What it is now: the 96px floor, less the tile's `spacing[1]` inline
+   * padding on each side. */
+  captionColumnNowPx: 96 - 4 * 2,
   /** "Transport" — nine letters, ONE line, the widest caption that fits. */
   shortestOverflowingLabel: { letters: 9, px: 62, lines: 1 },
   /** "Nedvizhimost" — twelve letters, two lines, broken mid-word. */
@@ -137,6 +146,10 @@ describe("a caption too wide for the compact tile's column", () => {
     expect(STAND.longestLabel.lines).toBeGreaterThan(
       STAND.shortestOverflowingLabel.lines
     );
+    /* THE FIX, in the same arithmetic: the column the floor buys holds the
+       same name on one line, which is what makes `overflow-wrap: normal`
+       below a readable rule rather than a clipped one. */
+    expect(STAND.captionColumnNowPx).toBeGreaterThan(longestPx);
   });
 
   it("keeps D90's unmarked break when no host asks otherwise", async () => {
@@ -151,10 +164,12 @@ describe("a caption too wide for the compact tile's column", () => {
       /* And no language is stamped: `lang` here would be this pair claiming
          to know something the host's own document already says. */
       expect(caption.hasAttribute("lang")).toBe(false);
-      /* The break rule D90 chose instead is untouched — a caption that could
-         not break at all would be ellipsized on its first line, which is the
-         defect `overflow-wrap` was added to prevent. */
-      expect(caption.style.overflowWrap).toBe("anywhere");
+      /* And the break itself is between WORDS: the column now fits the
+         longest name, so `anywhere` — which is what set one twelve-letter
+         root name over two lines with nothing marking the break — is gone.
+         The clamp's ellipsis is the floor under a name no column can hold. */
+      expect(caption.style.overflowWrap).toBe("normal");
+      expect(caption.style.textOverflow).toBe("ellipsis");
     }
   });
 
@@ -178,9 +193,11 @@ describe("a caption too wide for the compact tile's column", () => {
          the same one every label on this tile was resolved through, so the
          two cannot disagree. */
       expect(caption.getAttribute("lang")).toBe("en");
-      /* `anywhere` STAYS under `auto`: a name with no hyphenation point in
-         it (an SKU, a foreign word) still has to break rather than clip. */
-      expect(caption.style.overflowWrap).toBe("anywhere");
+      /* The break rule is the SAME under `auto`: a name with no hyphenation
+         point in it (an SKU, a foreign word) is not split mid-word either —
+         it takes the ellipsis. */
+      expect(caption.style.overflowWrap).toBe("normal");
+      expect(caption.style.textOverflow).toBe("ellipsis");
     }
   });
 });
@@ -218,6 +235,76 @@ describe("the «All» tile's art", () => {
         tile.querySelector('[data-stapel-tile-art="monogram"]')
       ).not.toBeNull();
       expect(tile.querySelector('[data-stapel-tile-art="all"]')).toBeNull();
+    }
+  });
+});
+
+/**
+ * THE SAME TILES WITH THE NAMES THE CATALOGUE ACTUALLY CARRIES.
+ *
+ * The readings above were taken off a transliterated catalogue; the storefront
+ * that showed the two split captions is Russian, and the two hardest cases in
+ * its root list are a twelve-letter single word and a four-word name. Both
+ * have to come out of the same tile: the word on one line, the phrase broken
+ * only at its spaces.
+ */
+const RU_NAMES = [
+  "Недвижимость",
+  "Электроника",
+  "Для дома и дачи",
+  "Личные вещи",
+] as const;
+
+const RU_ROOTS: readonly CarouselEntry[] = RU_NAMES.map((name, index) => ({
+  // A LITERAL label: these are the catalogue's own names, already in the
+  // language the storefront reads, and nothing translates them further.
+  category: categoryRow(200 + index, `ru-${String(index)}`, name, null, "", ""),
+  label: { kind: "literal", value: name },
+  icon: null,
+  href: `/c/ru-${String(index)}`,
+}));
+
+describe("the Russian root names, on the phone landing's compact tile", () => {
+  it("breaks between words and never inside one", async () => {
+    await mount(<CategoryTileGrid density="compact" entries={RU_ROOTS} />);
+    const captions = tiles().map(captionIn);
+    // The All tile plus one per root.
+    expect(captions.length).toBe(RU_ROOTS.length + 1);
+    for (const caption of captions) {
+      expect(caption.style.overflowWrap).toBe("normal");
+      expect(caption.style.hyphens).toBe("manual");
+      // The last resort, and it is an ellipsis rather than a split word.
+      expect(caption.style.textOverflow).toBe("ellipsis");
+      expect(caption.style.overflow).toBe("hidden");
+    }
+    // Every name is still on the glass whole — the caption is the name, not a
+    // prefix of it.
+    for (const name of RU_NAMES) {
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+  });
+
+  it("gives the tile a column wide enough for the longest of them", async () => {
+    await mount(<CategoryTileGrid density="compact" entries={RU_ROOTS} />);
+    const columns = screen.getByTestId("categories-tile-grid-list").style
+      .gridAutoColumns;
+    // The floor is what makes the rule above readable rather than clipped:
+    // the longest name is ~83px at the caption's 12px and the column is 88px.
+    expect(columns).toContain("clamp(96px,");
+    expect(STAND.captionColumnNowPx).toBe(88);
+    // The fraction and the cap above the floor are untouched — a wider
+    // container is exactly the geometry it was.
+    expect(columns).toContain("/ 4.4");
+    expect(columns).toContain("128px");
+  });
+
+  it("keeps the caption on the type scale's smallest step, not below it", async () => {
+    await mount(<CategoryTileGrid density="compact" entries={RU_ROOTS} />);
+    for (const caption of tiles().map(captionIn)) {
+      // `xs`. There is no step under it, which is why the COLUMN carries the
+      // fit and the type does not shrink to buy it.
+      expect(caption.style.fontSize).toBe(`${String(fontSize.xs.fontSize)}px`);
+      expect(caption.style.webkitLineClamp).toBe("2");
     }
   });
 });

@@ -210,17 +210,28 @@ function toolbarTopLength(top: number | string | undefined): string {
 }
 
 /**
- * The controls' own line: it may not become two.
+ * The controls' own line: it takes a SECOND one rather than leaving the
+ * viewport.
  *
- * A wrapping row changes height when the count lands — the count arrives with
- * the answer, one render after the toolbar was already on screen — and a bar
- * that grows while it is pinned pushes the first cards of the feed down under
- * the reader's eye. `nowrap` makes the height a constant; `min-inline-size: 0`
- * plus `overflow-x: auto` is what a row that cannot wrap does with the overflow
- * instead, which on a phone is the scroll strip every sort row already is.
+ * `nowrap` was chosen to keep a pinned bar's height constant while the count
+ * lands, and the scroll port was what it did with the overflow. Measured on a
+ * 360px phone, the scroll port is not an affordance: the sort select simply
+ * ran off the right edge of the screen mid-word, with nothing on screen to say
+ * there was anything to the right of it.
+ *
+ * So the row wraps, and the height stays a constant anyway, because the
+ * arriving count is not what breaks the line: the leading half has a ZERO
+ * basis ({@link TOOLBAR_LEAD}), so the only item whose own width can push the
+ * line over is the controls group — which is on the glass from the first
+ * frame and does not change when the answer comes back.
+ *
+ * `overflow-x: auto` stays as the last resort under a group too wide to wrap
+ * (one enormous select on a 320px phone), where the alternative is still a
+ * control cut by the edge of the screen.
  */
 const TOOLBAR_ROW: CSSProperties = {
-  flexWrap: "nowrap",
+  flexWrap: "wrap",
+  rowGap: spacing[2],
   minInlineSize: 0,
   overflowX: "auto",
   // Thin, and only when there is something to scroll to — the same reason the
@@ -284,7 +295,17 @@ const WIDE_HEADING: CSSProperties = { margin: 0, minInlineSize: 0 };
  * they need. Both ends shrinking is how a sort select ends up narrower than
  * its own longest option.
  */
-const TOOLBAR_END: CSSProperties = { flex: "0 0 auto" };
+const TOOLBAR_END: CSSProperties = {
+  // It keeps the width it needs while the line has room for it, and when it
+  // does not it takes the next line whole, against the trailing edge — which
+  // is where `margin-inline-start: auto` puts it once the count is no longer
+  // beside it. Shrinking is allowed BELOW that: a controls group wider than a
+  // 360px phone has to give something back, and its own items (see the
+  // `wrap` on the group) are what fold.
+  flex: "0 1 auto",
+  minInlineSize: 0,
+  marginInlineStart: "auto",
+};
 
 /**
  * The wide row's LEADING half, and it is always in the row (D466).
@@ -302,7 +323,16 @@ const TOOLBAR_END: CSSProperties = { flex: "0 0 auto" };
  * lets a long count shrink into the space that is left rather than push the
  * controls, which the row's own `overflow-x` then scrolls.
  */
-const TOOLBAR_LEAD: CSSProperties = { flex: "1 1 auto", minInlineSize: 0 };
+const TOOLBAR_LEAD: CSSProperties = {
+  // A ZERO basis, not `auto`: on a wrapping row the browser breaks the line by
+  // each item's OWN width, so an `auto` basis would let a long count push the
+  // controls onto a second line the moment the answer landed — the height
+  // change `nowrap` used to exist to prevent. With `0` the leading half asks
+  // for nothing and grows into what is left, so the line breaks only when the
+  // controls themselves do not fit.
+  flex: "1 1 0",
+  minInlineSize: 0,
+};
 
 /** The compact shape's toolbar box — the row the pin acts on. */
 const COMPACT_TOOLBAR: CSSProperties = {
@@ -751,6 +781,12 @@ function Count(props: { bag: SearchResultsBag }): ReactElement | null {
       type="secondary"
       data-testid="search-count"
       data-count-kind={page.countKind}
+      // ONE LINE, ALWAYS. The count sits in the elastic half of the toolbar,
+      // so it is handed whatever width the controls left — which at 768 was
+      // narrower than one word of it, and the sentence printed one GLYPH per
+      // line. It is a short phrase, not prose: it holds its line and ends in an
+      // ellipsis if the line is shorter than it is.
+      style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
     >
       {page.countKind === "at_least"
         ? tPlural(SEARCH_I18N_KEYS.resultsCountAtLeast, { count: page.count })
@@ -940,7 +976,16 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   <div style={TOOLBAR_LEAD} data-testid="search-results-toolbar-lead">
                     <Count bag={bag} />
                   </div>
-                  <Flex align="center" gap={spacing[3]} style={TOOLBAR_END}>
+                  {/* `wrap`: when the group itself is wider than the line it
+                      was given, its own controls fold onto another one rather
+                      than the last of them being cut by the edge. */}
+                  <Flex
+                    align="center"
+                    gap={spacing[3]}
+                    wrap
+                    style={TOOLBAR_END}
+                    data-testid="search-results-toolbar-end"
+                  >
                     {props.toolbar}
                   </Flex>
                 </Flex>

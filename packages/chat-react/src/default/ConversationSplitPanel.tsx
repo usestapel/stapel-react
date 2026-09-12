@@ -56,6 +56,22 @@ export interface ConversationSplitPanelProps {
    * URL land on the same open thread.
    */
   selectedId?: string | null;
+  /**
+   * HOW WIDE THE LIST RAIL IS. Default {@link DEFAULT_LIST_WIDTH} —
+   * `clamp(360px, 32%, 480px)`.
+   *
+   * A number is pixels, a string is a CSS length as written (`"28rem"`, a
+   * `var()`, a `minmax()`-free `clamp()`), which is the rule every other
+   * length prop in the fleet follows.
+   *
+   * It exists because a FIXED rail is a rail that is wrong at one end of the
+   * range: at 1440 a 360px list left 1040px of empty thread pane beside names
+   * clipped to their first five letters, and the same 360px on a narrow
+   * laptop is the whole window. A proportion with a floor and a ceiling is
+   * one rail that is right across the range — and a deployment whose names
+   * are longer or shorter than that says so with this prop.
+   */
+  listWidth?: number | string;
   /** Where a row leads, as an href — forwarded to the list. */
   openHref?: (conversationId: string) => string;
   /** Where a row leads, in a SPA — forwarded to the list. */
@@ -177,6 +193,30 @@ export interface ConversationSplitPanelProps {
  */
 const THREAD_MEASURE = "48rem";
 
+/**
+ * The list rail's own measure — a PROPORTION with a floor and a ceiling.
+ *
+ * 360px flat was the rail, and a fixed rail is wrong at one end of the range
+ * it has to cover. Measured on a 1440 desktop: 360px of list beside 1040px of
+ * empty pane, and inside the list a 49px avatar, a 130px absolute clock and a
+ * row menu left ~70px for the name — a 22-character shop name arrived as its
+ * first five letters. 32% of that window is 460px, which is the same row with
+ * 220px for the name.
+ *
+ * The floor keeps the reference rail on a narrow laptop; the ceiling stops a
+ * 2560px screen from spending a third of itself on previews. Both are lengths
+ * a host can replace wholesale — see
+ * {@link ConversationSplitPanelProps.listWidth}.
+ */
+const DEFAULT_LIST_WIDTH = "clamp(360px, 32%, 480px)";
+
+/** A CSS length from a prop that is a number of pixels or a string as
+ * written — the same rule every other length prop in the fleet follows. */
+function listTrack(listWidth: number | string | undefined): string {
+  if (listWidth === undefined) return DEFAULT_LIST_WIDTH;
+  return typeof listWidth === "number" ? `${String(listWidth)}px` : listWidth;
+}
+
 export function ConversationSplitPanel(
   props: ConversationSplitPanelProps = {}
 ): ReactElement {
@@ -260,10 +300,10 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
       data-testid="chat-split"
       style={{
         display: "grid",
-        // The list is a fixed rail, the thread takes the rest — and the
+        // The list takes its own measure, the thread takes the rest — and the
         // `minmax(0, 1fr)` is load-bearing: a bare `1fr` is `minmax(auto,
         // 1fr)`, so one long unbroken preview would widen the whole grid.
-        gridTemplateColumns: "360px minmax(0, 1fr)",
+        gridTemplateColumns: `${listTrack(props.listWidth)} minmax(0, 1fr)`,
         columnGap: spacing[4],
         // Top-aligned, both: a short list beside a long thread (or the other
         // way round) must not stretch its neighbour's card to match.
