@@ -61,7 +61,7 @@
  * nothing in it, and a layout that reflowed underneath a person mid-load would
  * be worse than the hole.
  */
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex } from "antd";
 import { SkinDialog, SkinTheme, useDialogSurface } from "@stapel/tokens-antd/skin";
@@ -77,6 +77,7 @@ import type { ParseSearchStateOptions } from "../state/urlState.js";
 import type { SearchGeo } from "../api/types.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
+import { useRailFits } from "./railFit.js";
 import { FacetPanelPane } from "./FacetPanelPane.js";
 import type {
   CategoryFilterSlotProps,
@@ -279,6 +280,10 @@ export const RAIL_STYLE_HREF = "stapel-search-rail";
  * {@link SearchPageProps.railScrollbar}. */
 export type SearchRailScrollbar = "styled" | "system";
 
+/** WHAT SCROLLS when the filters are longer than the window — see
+ * {@link SearchPageProps.railScroll}. */
+export type SearchRailScroll = "internal" | "page";
+
 /**
  * The scrollbar's track width, in CSS pixels.
  *
@@ -374,18 +379,58 @@ const RAIL: CSSProperties = {
 };
 
 /**
+ * The rail that is NOT a scroll port — `railScroll="page"`.
+ *
+ * The column, and nothing that makes it a container: no `overflow-y`, no
+ * height cap, no scroll gutter, no `overscroll-behavior`. What decides
+ * `position` is not written here but MEASURED — see {@link railStyle} and
+ * `useRailFits`.
+ */
+const RAIL_IN_PAGE: CSSProperties = {
+  flex: `0 0 ${String(FILTERS_RAIL_WIDTH)}px`,
+  minWidth: FILTERS_RAIL_WIDTH,
+  maxWidth: FILTERS_RAIL_WIDTH,
+  // Load-bearing in both arms: a flex child stretches to the row's height by
+  // default, and a stretched box has nothing to stick to.
+  alignSelf: "flex-start",
+  paddingBlockEnd: spacing[2],
+};
+
+/**
  * The rail with a host's own offset under it.
  *
- * `top` and the height cap move TOGETHER, and that is the whole reason this is
- * a function rather than one property: a rail pushed 64px down the window whose
- * cap is still `100dvh` ends 64px past the foot of the screen, so its last
- * control is unreachable — the internal scroll has scrolled past the window.
+ * Under the default `"internal"` arm, `top` and the height cap move TOGETHER,
+ * and that is the whole reason this is a function rather than one property: a
+ * rail pushed 64px down the window whose cap is still `100dvh` ends 64px past
+ * the foot of the screen, so its last control is unreachable — the internal
+ * scroll has scrolled past the window.
+ *
+ * Under `"page"` there is no cap and no port. The rail is sticky WHILE IT
+ * FITS (`fits`, measured by `useRailFits`) and static when it does not, since
+ * a stuck box taller than the window is cut off at the foot of the screen with
+ * no scroll of its own to reveal the rest. The offset is written twice on
+ * purpose: as `top`, which is what sticky uses, and as `scroll-margin-top`,
+ * which is the one property that MEANS "this much of the top of the scrollport
+ * is covered" and which the engine resolves to pixels for the fit test to read
+ * back.
  *
  * A number is pixels; a string is taken as written, so
  * `railTop="var(--stapel-header-height)"` reads the height `<PublicShell>`
  * publishes instead of restating it.
  */
-export function railStyle(top: number | string | undefined): CSSProperties {
+export function railStyle(
+  top: number | string | undefined,
+  scroll: SearchRailScroll = "internal",
+  fits = false
+): CSSProperties {
+  if (scroll === "page") {
+    const offset = top ?? 0;
+    return {
+      ...RAIL_IN_PAGE,
+      scrollMarginTop: offset,
+      ...(fits ? { position: "sticky", top: offset } : { position: "static" }),
+    };
+  }
   if (top === undefined) return RAIL;
   const offset = typeof top === "number" ? `${String(top)}px` : top;
   return { ...RAIL, top, maxHeight: `calc(100dvh - ${offset})` };
@@ -787,8 +832,40 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    * The default is the NEW behaviour, deliberately: the system bar was never a
    * design decision here — it was the absence of one, and it is the thing the
    * page was measured on.
+   *
+   * Read under `railScroll="page"` by nothing: a rail that is not a scroll
+   * port has no bar to dress, so neither the class nor the rule set is
+   * mounted there.
    */
   readonly railScrollbar?: SearchRailScrollbar;
+  /**
+   * WHAT SCROLLS when the filters are longer than the window.
+   * Default `"internal"` — no host changes behaviour by upgrading.
+   *
+   *  - `"internal"` — the rail is its own scroll container: it stays put at
+   *    {@link railTop} and the filters scroll INSIDE it, capped at the height
+   *    of the window. A person who has scrolled the filters and ticked one
+   *    does not find the page has moved under them;
+   *  - `"page"` — the rail is a column of the page and the PAGE is the only
+   *    thing that scrolls. No `overflow-y`, no height cap, no gutter, no
+   *    `overscroll-behavior`, and no scrollbar of its own to dress.
+   *
+   * `"page"` is not "sticky off". A rail SHORTER than the room under the
+   * host's chrome still pins at {@link railTop}, exactly as it does in the
+   * other arm — it is only the rail TALLER than the window that goes static,
+   * because a stuck box that tall is cut off at the foot of the screen and the
+   * page scroll, which is now the only scroll, cannot reach its last controls.
+   * Which of the two a leaf gets is measured (the rail's own height against
+   * `window.innerHeight` minus the offset), not guessed from a breakpoint: the
+   * same catalogue draws four facet groups on one section and twenty on the
+   * next.
+   *
+   * For the surface whose owner reads a second scrollbar standing beside the
+   * results as a second page — a storefront's whole filter column in one
+   * gesture with the feed — and for any host whose own chrome already gives
+   * the window one scroll and wants no other.
+   */
+  readonly railScroll?: SearchRailScroll;
   /**
    * WHAT THE FILTER PANEL'S OWN BODY PAINTS. Default `"flat"`.
    *
@@ -1026,6 +1103,7 @@ interface SearchPageBodyProps {
   readonly filtersLayout?: SearchFiltersLayout;
   readonly railTop?: number | string;
   readonly railScrollbar?: SearchRailScrollbar;
+  readonly railScroll?: SearchRailScroll;
   readonly railSurface?: SearchRailSurface;
   readonly blockRhythm?: SearchBlockRhythm;
   readonly stickyToolbar?: SearchToolbarPin;
@@ -1082,6 +1160,22 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
    */
   const footerBar: FacetPanelPaneProps["footerBar"] =
     props.footerBar ?? (layout === "sheet" ? undefined : "static");
+  /*
+   * THE RAIL'S OWN GEOMETRY, under `railScroll` — one element, one ref, and a
+   * measurement that only runs in the arm that needs it.
+   *
+   * The ref is on the rail for the whole life of the page: the fit answer must
+   * not arrive by REMOUNTING the column. Ticking a facet re-renders the panel
+   * inside this box; if the box itself were replaced, the browser would put
+   * the new one at the top of its flow and a person three screens down the
+   * results would be thrown back up the page — which is the very thing this
+   * arm exists to prevent.
+   */
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const railFits = useRailFits(railRef, props.railScroll === "page");
+  /* The skin's bar dresses a scroll port, and under `"page"` there is none. */
+  const railStyled =
+    props.railScroll !== "page" && props.railScrollbar !== "system";
   // Controlled or not, decided by the PRESENCE of `filtersOpen` and read once
   // per render — the state the page keeps is only ever the uncontrolled half,
   // and a controlled host's value is never copied into it (copying it is how
@@ -1519,18 +1613,25 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
       ) : showFilters ? (
         <Flex align="flex-start" gap={spacing[5]} data-testid="search-page-columns">
           <div
-            className={
-              props.railScrollbar === "system"
-                ? RAIL_CLASS
-                : `${RAIL_CLASS} ${RAIL_SCROLLBAR_CLASS}`
-            }
-            style={railStyle(props.railTop)}
+            ref={railRef}
+            className={railStyled ? `${RAIL_CLASS} ${RAIL_SCROLLBAR_CLASS}` : RAIL_CLASS}
+            style={railStyle(props.railTop, props.railScroll, railFits)}
+            {...(props.railScroll === "page"
+              ? {
+                  /* What the column IS doing, on the element that is doing it:
+                     a stand reads the arm and the measured answer instead of
+                     inferring both from a computed style. */
+                  "data-rail-scroll": "page",
+                  "data-rail-sticky": String(railFits),
+                }
+              : {})}
           >
             {/* The rail's scrollbar, in the gutter and in the token palette —
                 see `railScrollbarCss`. Hoisted, deduped by `href`. Not mounted
-                at all under `"system"`: a sheet whose only selector is a class
-                nothing carries is dead weight in the document. */}
-            {props.railScrollbar !== "system" && (
+                at all under `"system"` — nor under `railScroll="page"`, where
+                there is no scroll port to dress: a sheet whose only selector is
+                a class nothing carries is dead weight in the document. */}
+            {railStyled && (
               <style href={RAIL_STYLE_HREF} precedence="default">
                 {railScrollbarCss()}
               </style>
@@ -1585,6 +1686,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     filtersLayout,
     railTop,
     railScrollbar,
+    railScroll,
     railSurface,
     blockRhythm,
     stickyToolbar,
@@ -1653,6 +1755,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(filtersLayout !== undefined ? { filtersLayout } : {})}
           {...(railTop !== undefined ? { railTop } : {})}
           {...(railScrollbar !== undefined ? { railScrollbar } : {})}
+          {...(railScroll !== undefined ? { railScroll } : {})}
           {...(railSurface !== undefined ? { railSurface } : {})}
           {...(blockRhythm !== undefined ? { blockRhythm } : {})}
           {...(stickyToolbar !== undefined ? { stickyToolbar } : {})}

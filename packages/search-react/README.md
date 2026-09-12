@@ -496,6 +496,19 @@ real width and every colour a `--stapel-*` custom property, so it is the
 panel's own hairline in both themes. `railScrollbarCss()` and `RAIL_CLASS` are
 exported for a host that lays out its own column.
 
+`railScroll="page"` is the other answer, for a surface whose owner reads a
+second scrollbar standing beside the results as a second page: the rail keeps
+no port of its own (no `overflow-y`, no height cap, no gutter, no
+`overscroll-behavior`, no bar) and the whole filter column travels with the
+feed in one gesture. It is not "sticky off" — a rail SHORTER than the room
+under the host's chrome still pins at `railTop`, and only a rail taller than
+the window stands in flow, because a stuck box that tall is cut off at the foot
+of the screen with no scroll of its own to reach the rest. Which of the two a
+leaf gets is measured, not read off a breakpoint: `useRailFits` compares the
+rail's own height against `window.innerHeight` minus the offset the rail
+carries as `scroll-margin-top`, on an element observer and a window listener.
+The default is `"internal"`, so no deployment changes behaviour by upgrading.
+
 The panel's footer — the live count, and the clear-all beside it — sits where
 its frame wants it: `footerBar="static"` (the default `<SearchPage>` uses in the
 column layout) puts it after the last group, and `"sticky"` / `true` pins it to

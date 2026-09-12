@@ -53,6 +53,7 @@ export {
   railScrollbarCss,
   railStyle,
 } from "./SearchPage.js";
+export { RAIL_OFFSET_PROPERTY, useRailFits } from "./railFit.js";
 export type {
   SearchPageProps,
   SearchFiltersLayout,
@@ -61,6 +62,7 @@ export type {
   SearchFiltersOpenReason,
   SearchBlockRhythm,
   SearchRailFrom,
+  SearchRailScroll,
   SearchRailScrollbar,
 } from "./SearchPage.js";
 
