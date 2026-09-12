@@ -30,6 +30,11 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex, Typography } from "antd";
 import { useT } from "@stapel/core";
 import { breakpoints, spacing } from "@stapel/tokens";
+import {
+  POINTER_FOCUS,
+  POINTER_FOCUS_STYLE_HREF,
+  pointerFocusCss,
+} from "./focusRing.js";
 import type { FacetGroup, FacetOption } from "../state/facets.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 
@@ -39,6 +44,16 @@ export const POPULAR_VALUES_LIMIT = 12;
 /** How many columns the list flows into. Three fills a desktop content column
  * without turning a make into a two-line wrap. */
 export const POPULAR_VALUES_COLUMNS = 3;
+
+/**
+ * The ceiling on columns, whatever a host or the ladder asks for.
+ *
+ * Past four the block stops being a table of contents and becomes a grid of
+ * two-word cells: each column is one make and one number, and a fifth column
+ * on a 1100px results pane puts 60px of air between «Toyota 4» and the next
+ * make. Four is where the density still reads as a list.
+ */
+export const POPULAR_VALUES_MAX_COLUMNS = 4;
 
 /**
  * The width one column of this block needs: a make and its count, on one line,
@@ -117,6 +132,38 @@ export function popularOptions(
     .slice(0, limit);
 }
 
+/**
+ * The columns box: as wide as its WORDS, and no wider.
+ *
+ * Multi-column layout divides the container, so three columns of a block that
+ * is handed the whole results pane are three ~360px columns holding «Chery 5»
+ * — which on the storefront printed a make, then 300px of nothing, then the
+ * next make. The owner read it as broken, and it is: nothing about this block
+ * wants the pane's width, it wants its own.
+ *
+ * `inline-size: fit-content` is the whole fix. A multi-column box's max-content
+ * size is `columns × (the widest item) + gaps` — exactly the block's natural
+ * measure — and `fit-content` takes that unless the available space is
+ * smaller, in which case the columns shrink instead of overflowing. The box
+ * stays a block, so it stays flush with the pane's leading edge; the ladder in
+ * the sheet still decides HOW MANY columns, and each one is now sized by the
+ * longest make in it.
+ *
+ * The gap is one step up the scale from the row's own: at content width the
+ * columns sit close enough that the old 16px read as a wrapped line rather
+ * than as a new column.
+ */
+function COLUMNS(count: number | undefined): CSSProperties {
+  return {
+    // The rungs live in the sheet; an inline `column-count` would win against
+    // every one of them, so the responsive arm states none.
+    ...(count === undefined ? {} : { columnCount: count }),
+    columnGap: spacing[6],
+    inlineSize: "fit-content",
+    maxInlineSize: "100%",
+  };
+}
+
 const ROW: CSSProperties = {
   // `break-inside` keeps a value and its count on one line when the browser
   // decides where the column ends.
@@ -171,6 +218,10 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
       data-label-source={group.labelSource}
       data-columns={responsive ? "responsive" : String(props.columns ?? POPULAR_VALUES_COLUMNS)}
     >
+      {/* The ring the keyboard gets and the mouse does not. */}
+      <style href={POINTER_FOCUS_STYLE_HREF} precedence="default">
+        {pointerFocusCss()}
+      </style>
       {/* The ladder, hoisted and deduped by `href`: a container query has no
           inline form. Only where it is asked for — a block with a fixed
           column count needs no sheet at all. */}
@@ -184,20 +235,22 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
       )}
       <div
         {...(responsive ? { "data-popular-columns": "" } : {})}
-        style={{
-          // The rungs live in the sheet above; an inline `column-count` here
-          // would win against every one of them.
-          ...(responsive
-            ? {}
-            : { columnCount: props.columns ?? POPULAR_VALUES_COLUMNS }),
-          columnGap: spacing[4],
-        }}
+        data-testid={`popular-columns-${group.slug}`}
+        style={COLUMNS(
+          responsive
+            ? undefined
+            : Math.min(
+                props.columns ?? POPULAR_VALUES_COLUMNS,
+                POPULAR_VALUES_MAX_COLUMNS
+              )
+        )}
       >
         {options.map((option) => (
           <div key={option.value} style={ROW}>
             <Button
               type="link"
               size="small"
+              {...POINTER_FOCUS}
               style={{ paddingInline: 0, height: "auto" }}
               data-testid={`popular-value-${group.slug}-${option.value}`}
               data-analytics="none"
@@ -221,6 +274,7 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
         <Button
           type="link"
           size="small"
+          {...POINTER_FOCUS}
           style={{ alignSelf: "flex-start", paddingInline: 0 }}
           data-testid={`popular-all-${group.slug}`}
           data-analytics="none"

@@ -72,6 +72,18 @@ import type { PickerGroup, PickerOption } from "@stapel/tokens-antd/skin";
 import { controls, cssVar, radii, spacing } from "@stapel/tokens";
 import { featureConfig, featureType } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
+import {
+  POINTER_FOCUS,
+  POINTER_FOCUS_STYLE_HREF,
+  pointerFocusCss,
+} from "./focusRing.js";
+import {
+  RAIL_SCROLLBAR_CLASS,
+  RAIL_STYLE_HREF,
+  SCROLL_GUTTER_INLINE_END,
+  SCROLL_LIST_INSET_BLOCK_START,
+  railScrollbarCss,
+} from "./scrollbar.js";
 import { facetGroupIsVocabularyBacked } from "../state/facets.js";
 import type { FacetGroup, FacetOption } from "../state/facets.js";
 import { translitPrefixMatch } from "../state/translit.js";
@@ -331,6 +343,9 @@ function OptionCount(props: {
   return (
     <Typography.Text
       type="secondary"
+      // The last column of a row that may live inside a scroll port, so it
+      // keeps the port's gutter clear of itself — see `SCROLL_GUTTER_INLINE_END`.
+      style={SCROLL_GUTTER_INLINE_END}
       data-testid={`facet-count-${props.group.slug}-${props.option.value}`}
     >
       {props.option.count === null
@@ -436,6 +451,7 @@ function OptionPill(props: {
       shape="round"
       type={option.selected ? "primary" : "default"}
       aria-pressed={option.selected}
+      {...POINTER_FOCUS}
       style={style}
       data-testid={`facet-option-${group.slug}-${option.value}`}
       data-analytics="none"
@@ -505,12 +521,28 @@ function ChevronGlyph(props: { readonly open: boolean }): ReactElement {
  * The list a dictionary scrolls in. A vocabulary level is 418 makes: without
  * a ceiling the group alone is longer than the rail, and the box that filters
  * it scrolls off the top of the panel while you type into it.
+ *
+ * It is a scroll port, so it takes the panel's two scroll-port rules — see
+ * `./scrollbar.ts`. The bar it used to draw was the PLATFORM's, painted over
+ * the row's last column: on the live storefront «Chery 5» read as «Chery»
+ * with the 5 under a grey strip. `scrollbar-gutter: stable` (in the sheet)
+ * subtracts that space from the content box instead, the row's count carries
+ * the same measure as padding for the engines that ignore the gutter, and the
+ * thumb itself is the skin's hairline rather than chrome.
+ *
+ * The top inset is the other half of the same complaint: the first value was
+ * drawn flush under the box that filters the list and read as clipped BY it.
  */
 const DICTIONARY_LIST: CSSProperties = {
   maxBlockSize: 320,
   overflowY: "auto",
   // The scroll must not clip a focus ring against the panel's edge.
   paddingInlineEnd: spacing[1],
+  paddingBlockStart: SCROLL_LIST_INSET_BLOCK_START,
+  // Stated inline as well as in the sheet: the sheet is what dresses the
+  // thumb, and this is the one property that must hold even if a host never
+  // mounts it.
+  scrollbarGutter: "stable",
 };
 
 /**
@@ -605,7 +637,18 @@ function DictionaryBody(props: {
           {t(SEARCH_I18N_KEYS.facetsDictionaryEmpty)}
         </Typography.Text>
       ) : (
-        <Flex vertical gap={spacing[1]} style={DICTIONARY_LIST}>
+        <Flex
+          vertical
+          gap={spacing[1]}
+          className={RAIL_SCROLLBAR_CLASS}
+          style={DICTIONARY_LIST}
+          data-testid={`facet-dictionary-list-${group.slug}`}
+        >
+          {/* The skin's bar for this port, hoisted and deduped by `href` with
+              the rail's own: a pseudo-element has no inline form. */}
+          <style href={RAIL_STYLE_HREF} precedence="default">
+            {railScrollbarCss()}
+          </style>
           {shown.map((option) => (
             <CheckboxRow
               key={option.value}
@@ -620,6 +663,7 @@ function DictionaryBody(props: {
         <Button
           type="link"
           size="small"
+          {...POINTER_FOCUS}
           style={{ alignSelf: "flex-start", paddingInline: 0 }}
           data-testid={`facet-more-${group.slug}`}
           data-analytics="none"
@@ -703,12 +747,18 @@ function DictionaryField(props: {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={group.label}
+        className={POINTER_FOCUS.className}
+        onPointerDown={POINTER_FOCUS.onPointerDown}
+        onBlur={POINTER_FOCUS.onBlur}
         style={DICTIONARY_FIELD}
         data-testid={`facet-dictionary-field-${group.slug}`}
         data-chosen={chosen.length}
         data-analytics="none"
         data-analytics-reason="opening a filter group is a read, not a flow step"
         onKeyDown={(event) => {
+          // This control owns its own keyboard, so it clears the pointer
+          // stamp itself rather than spreading POINTER_FOCUS whole.
+          POINTER_FOCUS.onKeyDown(event);
           if (event.key === "Escape" && open) {
             event.preventDefault();
             setOpen(false);
@@ -1264,10 +1314,16 @@ export function FacetGroupControl(
       // MARKED, so a storefront's own test can refuse to ship it.
       data-label-source={group.labelSource}
     >
+      {/* The ring the keyboard gets and the mouse does not — one hoisted
+          element for the whole document, deduped by `href`. */}
+      <style href={POINTER_FOCUS_STYLE_HREF} precedence="default">
+        {pointerFocusCss()}
+      </style>
       {props.heading !== false &&
         (disclosure ? (
           <button
             type="button"
+            {...POINTER_FOCUS}
             style={DISCLOSURE_HEADER}
             aria-expanded={open}
             data-testid={`facet-toggle-${group.slug}`}
@@ -1338,6 +1394,7 @@ export function FacetGroupControl(
             <Button
               type="link"
               size="small"
+              {...POINTER_FOCUS}
               style={{ alignSelf: "flex-start", paddingInline: 0 }}
               data-testid={`facet-more-${group.slug}`}
               data-analytics="none"

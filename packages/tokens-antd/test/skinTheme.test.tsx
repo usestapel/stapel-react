@@ -14,6 +14,8 @@ import {
   PHONE_CONTROL_HEIGHT,
   PHONE_TOUCH_FLOOR,
   PHONE_TOUCH_FLOOR_STYLE_HREF,
+  READ_ONLY_RATE_STAR_GAP,
+  READ_ONLY_RATE_STAR_SIZE,
   SkinTheme,
   phoneTouchFloorCss,
 } from "../src/skin.js";
@@ -273,6 +275,48 @@ describe("SkinTheme — the phone touch floor beyond controlHeight (NC-TAP44)", 
     for (const rule of css.split("\n")) {
       expect(rule.startsWith("[data-stapel-skin-root][data-stapel-skin-phone]")).toBe(true);
     }
+  });
+
+  it("leaves a READ-ONLY rating out of the touch floor entirely", () => {
+    // A `disabled` <Rate> is five glyphs saying what other people scored;
+    // there is nothing for a thumb to hit, so the 44px pitch buys nothing and
+    // costs a great deal. Measured on the live storefront at 390px
+    // (2026-09-13): starSize 32 + marginXS 12 made the five-star row 220px
+    // wide inside a feed card's 105px text column, it wrapped into three rows,
+    // and the badge stood 196px tall. At 320px it was 356px — taller than the
+    // photo above it.
+    const css = phoneTouchFloorCss("ant");
+    // The pitch rule now EXCLUDES the disabled rate rather than covering it.
+    expect(css).toContain(
+      `.ant-rate:not(.ant-rate-disabled) .ant-rate-star{display:inline-flex;align-items:center;min-height:${String(PHONE_CONTROL_HEIGHT)}px}`
+    );
+    expect(css).not.toContain(`.ant-rate .ant-rate-star{`);
+    // …and the read-only arm is the scale's icon step with the scale's gap.
+    expect(css).toContain(`.ant-rate-disabled{font-size:${String(READ_ONLY_RATE_STAR_SIZE)}px}`);
+    expect(css).toContain(`min-height:0;font-size:${String(READ_ONLY_RATE_STAR_SIZE)}px}`);
+    expect(css).toContain(
+      `.ant-rate-disabled .ant-rate-star:not(:last-child){margin-inline-end:${String(READ_ONLY_RATE_STAR_GAP)}px}`
+    );
+    // The glyph a person reads beside 14px body text, not a touch target.
+    const floorRate = PHONE_TOUCH_FLOOR.components["Rate"] as { starSize: number };
+    expect(READ_ONLY_RATE_STAR_SIZE).toBeLessThan(floorRate.starSize);
+    expect(READ_ONLY_RATE_STAR_SIZE).toBeGreaterThanOrEqual(14);
+    expect(READ_ONLY_RATE_STAR_SIZE).toBeLessThanOrEqual(16);
+  });
+
+  it("a rate a person CAN tick keeps its 44px pitch", () => {
+    setViewport(390);
+    render(
+      <SkinTheme>
+        <Rate data-testid="live" />
+      </SkinTheme>
+    );
+    const rate = PHONE_TOUCH_FLOOR.components["Rate"] as { starSize: number };
+    const rule = headCss().match(/--ant-rate-star-size:(\d+)px/);
+    expect(rule?.[1]).toBe(String(rate.starSize));
+    // The interactive rate carries no `-disabled` class, so the read-only
+    // rules above cannot reach it.
+    expect(document.querySelector(".ant-rate-disabled")).toBeNull();
   });
 
   it("stamps no phone root at tablet width and above, so the hoisted rules match nothing", () => {

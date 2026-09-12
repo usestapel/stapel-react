@@ -34,7 +34,7 @@ import { createContext, useContext, useMemo } from "react";
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { ConfigProvider } from "antd";
 import type { ThemeConfig } from "antd";
-import { controls, spacing } from "@stapel/tokens";
+import { controls, fontSize, spacing } from "@stapel/tokens";
 import {
   hostBrandFingerprint,
   hostBrandScope,
@@ -102,6 +102,21 @@ export const PHONE_TOUCH_FLOOR: {
 } = phoneTouchFloorFor(PHONE_CONTROL_HEIGHT);
 
 /**
+ * The glyph a READ-ONLY rating is drawn at — the scale's icon step, not the
+ * touch floor's 32px pitch.
+ *
+ * `fontSize.md` is this design system's icon measure: the step a 16px glyph
+ * sits on beside 14px body text, which is what every other inline mark in the
+ * fleet (the chevron, the camera, the swatch) is drawn at. A star that is not
+ * a control belongs there and nowhere else.
+ */
+export const READ_ONLY_RATE_STAR_SIZE: number = fontSize.md.fontSize;
+
+/** The gap between two read-only stars: one step of the spacing scale, where
+ * the touch floor's was `44 − 32` — the leftover of a pitch. */
+export const READ_ONLY_RATE_STAR_GAP: number = spacing[1];
+
+/**
  * The rows and glyph boxes no antd token reaches, as a stylesheet scoped
  * under a phone skin root: the hit area of a rate star, a checkbox/radio row,
  * a clickable tag, a list/menu row. Selector prefixes are antd's default
@@ -117,8 +132,26 @@ export function phoneTouchFloorCss(
 ): string {
   const h = `${String(height)}px`;
   const root = `[data-stapel-skin-root][data-stapel-skin-phone]`;
+  const glyph = `${String(READ_ONLY_RATE_STAR_SIZE)}px`;
+  const gap = `${String(READ_ONLY_RATE_STAR_GAP)}px`;
   return [
-    `${root} .${prefix}-rate .${prefix}-rate-star{display:inline-flex;align-items:center;min-height:${h}}`,
+    `${root} .${prefix}-rate:not(.${prefix}-rate-disabled) .${prefix}-rate-star{display:inline-flex;align-items:center;min-height:${h}}`,
+    // ── A RATING NOBODY CAN TICK IS NOT A TOUCH TARGET ─────────────────────
+    // The floor above is about the thumb, and a `disabled` <Rate> has nothing
+    // for a thumb to hit: it is five glyphs saying what other people scored.
+    // Measured on the live storefront at 390px (2026-09-13): the floor's own
+    // `starSize: 32` + `marginXS: 12` gave the five-star row a natural width
+    // of 220px inside a feed card's 105px text column, so it wrapped into
+    // three rows and the badge stood 196px tall — 16 lines for one rating.
+    // At 320px the column is 44px, the row wrapped into five, and the block
+    // was 356px tall: taller than the photo above it.
+    // So the read-only arm takes the ICON size off the type scale and the
+    // scale's own gap, and gives up the pitch it never needed.
+    `${root} .${prefix}-rate-disabled{font-size:${glyph}}`,
+    `${root} .${prefix}-rate-disabled .${prefix}-rate-star{` +
+      `display:inline-flex;align-items:center;min-height:0;font-size:${glyph}}`,
+    `${root} .${prefix}-rate-disabled .${prefix}-rate-star:not(:last-child)` +
+      `{margin-inline-end:${gap}}`,
     `${root} .${prefix}-checkbox-wrapper,${root} .${prefix}-radio-wrapper{min-height:${h};align-items:center}`,
     `${root} .${prefix}-tag-checkable,${root} .${prefix}-tag[role="button"],${root} a.${prefix}-tag,${root} button.${prefix}-tag{display:inline-flex;align-items:center;min-height:${h}}`,
     `${root} .${prefix}-list-item,${root} .${prefix}-menu-item,${root} .${prefix}-dropdown-menu-item{min-height:${h}}`,

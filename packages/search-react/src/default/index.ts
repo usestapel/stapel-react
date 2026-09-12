@@ -54,6 +54,21 @@ export {
   railStyle,
 } from "./SearchPage.js";
 export { RAIL_OFFSET_PROPERTY, useRailFits } from "./railFit.js";
+export {
+  RAIL_SCROLLBAR_WIDTH,
+  SCROLL_GUTTER_INLINE_END,
+  SCROLL_LIST_INSET_BLOCK_START,
+} from "./scrollbar.js";
+export {
+  POINTER_FOCUS,
+  POINTER_FOCUS_ATTR,
+  POINTER_FOCUS_CLASS,
+  POINTER_FOCUS_NO_RING,
+  POINTER_FOCUS_STYLE_HREF,
+  pointerFocus,
+  pointerFocusCss,
+} from "./focusRing.js";
+export type { PointerFocusProps } from "./focusRing.js";
 export type {
   SearchPageProps,
   SearchFiltersLayout,
@@ -178,6 +193,7 @@ export {
   POPULAR_VALUES_COLUMNS,
   POPULAR_VALUES_LADDER,
   POPULAR_VALUES_LIMIT,
+  POPULAR_VALUES_MAX_COLUMNS,
   POPULAR_VALUES_STYLE_HREF,
   POPULAR_VALUE_COLUMN_WIDTH,
 } from "./PopularValues.js";

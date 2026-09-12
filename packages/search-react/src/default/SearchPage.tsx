@@ -66,7 +66,7 @@ import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex } from "antd";
 import { SkinDialog, SkinTheme, useDialogSurface } from "@stapel/tokens-antd/skin";
 import { useT, useTPlural } from "@stapel/core";
-import { breakpoints, cssVar, spacing } from "@stapel/tokens";
+import { breakpoints, spacing } from "@stapel/tokens";
 import type { FeatureDef } from "@stapel/attributes-react";
 import { SearchStateProvider, useSearchState } from "../headless/SearchStateProvider.js";
 import type { SearchParamsAdapter } from "../headless/SearchStateProvider.js";
@@ -78,6 +78,11 @@ import type { SearchGeo } from "../api/types.js";
 import { buildRangeGroups } from "../state/ranges.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 import { useRailFits } from "./railFit.js";
+import {
+  RAIL_SCROLLBAR_CLASS,
+  RAIL_STYLE_HREF,
+  railScrollbarCss,
+} from "./scrollbar.js";
 import { FacetPanelPane } from "./FacetPanelPane.js";
 import type {
   CategoryFilterSlotProps,
@@ -267,14 +272,19 @@ export const FILTERS_RAIL_WIDTH = 280;
 export const RAIL_CLASS = "stapel-search-rail";
 
 /**
- * The class that carries the SKIN's scrollbar — present under
- * `railScrollbar: "styled"` and absent under `"system"`, so the two arms are
- * one class apart and a stand can read which one is on screen.
+ * The skin's scrollbar, which is no longer only the RAIL's — the dictionary
+ * facet inside the panel is a scroll port too, and it kept the platform's bar
+ * painted over its count column. The rule set, the class, the `href` and the
+ * track's width now live in `./scrollbar.ts` so both ports mount one hoisted
+ * sheet; they are re-exported here unchanged because they are this package's
+ * published surface.
  */
-export const RAIL_SCROLLBAR_CLASS = "stapel-search-rail-scrollbar";
-
-/** The `href` the hoisted rail sheet is deduplicated by. */
-export const RAIL_STYLE_HREF = "stapel-search-rail";
+export {
+  RAIL_SCROLLBAR_CLASS,
+  RAIL_SCROLLBAR_WIDTH,
+  RAIL_STYLE_HREF,
+  railScrollbarCss,
+} from "./scrollbar.js";
 
 /** Whose scrollbar the rail's own scroll port draws — see
  * {@link SearchPageProps.railScrollbar}. */
@@ -283,75 +293,6 @@ export type SearchRailScrollbar = "styled" | "system";
 /** WHAT SCROLLS when the filters are longer than the window — see
  * {@link SearchPageProps.railScroll}. */
 export type SearchRailScroll = "internal" | "page";
-
-/**
- * The scrollbar's track width, in CSS pixels.
- *
- * Not on the spacing scale on purpose, and not a spacing decision: this is the
- * thickness of a hairline instrument, the size every platform's own overlay
- * bar lands within, and the number the storefront's owner named. Six is thin
- * enough to read as part of the panel and thick enough to grab.
- */
-const RAIL_SCROLLBAR_WIDTH = 6;
-
-/**
- * The rail scrolls, and the bar that says so is the SKIN's, not the platform's.
- *
- * The system bar was never a decision — it is what an `overflow-y: auto` box
- * gets when nobody says otherwise, and on the storefront it landed as a grey
- * chrome-coloured strip standing next to the filters in a dark theme. What it
- * is replaced with:
- *
- *  - a 6px track with no arrows and no track fill — the rail's own hairline,
- *    not a widget;
- *  - a thumb that is TRANSPARENT at rest and appears on `:hover` of the rail
- *    (which is what a pointer scrolling inside it is doing) and on
- *    `:focus-within` (which is what a keyboard is doing). A coarse pointer
- *    fires neither, so under `(pointer: coarse)` the thumb stands — a touch
- *    surface with an invisible scrollbar is a rail with no sign it has a tail;
- *  - `scrollbar-gutter: stable`, so the panel's right edge does not move when
- *    the thumb arrives.
- *
- * Both vendor forms, because they are not alternatives: Firefox reads
- * `scrollbar-width`/`scrollbar-color` and nothing else, WebKit and Chromium
- * read the `::-webkit-scrollbar` pseudo-elements and (in Chromium) the
- * standard properties too.
- *
- * The colours are `--stapel-*` custom properties, which resolve per theme at
- * paint time — an inline colour or a `useToken()` value would freeze whichever
- * theme was mounted first. This design system's neutral vocabulary has no
- * `colorFill*` ramp of its own: `border` IS its tertiary-fill role (the
- * hairline every pane is separated by) and `text-subtle` is that role one step
- * stronger, which is what the thumb takes when a pointer is on the thumb
- * itself.
- *
- * Emitted as one hoisted `<style>` (React 19 dedupes by `href`), because a
- * pseudo-element is unreachable from an inline style — the same reason
- * `<LocationSummaryLine>` hoists one.
- */
-export function railScrollbarCss(): string {
-  const bar = `.${RAIL_SCROLLBAR_CLASS}`;
-  const size = `${String(RAIL_SCROLLBAR_WIDTH)}px`;
-  const thumb = cssVar("border");
-  const awake = `${bar}:hover,${bar}:focus-within`;
-  return [
-    // ── Firefox ────────────────────────────────────────────────────────────
-    `${bar}{scrollbar-width:thin;scrollbar-gutter:stable;` +
-      `scrollbar-color:transparent transparent}`,
-    `${awake}{scrollbar-color:${thumb} transparent}`,
-    // ── WebKit / Chromium ──────────────────────────────────────────────────
-    `${bar}::-webkit-scrollbar{inline-size:${size};block-size:${size}}`,
-    `${bar}::-webkit-scrollbar-track{background:transparent}`,
-    `${bar}::-webkit-scrollbar-thumb{background:transparent;` +
-      `border-radius:${cssVar("radius-full")}}`,
-    `${bar}:hover::-webkit-scrollbar-thumb,` +
-      `${bar}:focus-within::-webkit-scrollbar-thumb{background:${thumb}}`,
-    `${bar}::-webkit-scrollbar-thumb:hover{background:${cssVar("text-subtle")}}`,
-    // ── A surface with no hover at all ─────────────────────────────────────
-    `@media (pointer:coarse){${bar}{scrollbar-color:${thumb} transparent}` +
-      `${bar}::-webkit-scrollbar-thumb{background:${thumb}}}`,
-  ].join("\n");
-}
 
 const RAIL: CSSProperties = {
   flex: `0 0 ${String(FILTERS_RAIL_WIDTH)}px`,

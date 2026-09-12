@@ -122,6 +122,8 @@ export {
   PHONE_CONTROL_HEIGHT,
   PHONE_TOUCH_FLOOR,
   PHONE_TOUCH_FLOOR_STYLE_HREF,
+  READ_ONLY_RATE_STAR_GAP,
+  READ_ONLY_RATE_STAR_SIZE,
   phoneTouchFloorCss,
 } from "./skin/theme.js";
 export type { SkinThemeProps, SkinSurface } from "./skin/theme.js";
