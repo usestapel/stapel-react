@@ -1,9 +1,9 @@
 /**
  * D455 — A SHARED SLUG IS NOT A SHARED ANSWER.
  *
- * Measured on ruberi.ru, 2026-09-12 (fleet probe p54, flow 5, desktop). The
- * analysis read the photo as the wristwatch leaf and answered the colour with
- * `zolotoy`, which that leaf offers. The category was then corrected to the
+ * Measured on a client fleet's stand, 2026-09-12 (walk probe, publish flow,
+ * desktop). The analysis read the photo as the wristwatch leaf and answered
+ * the colour with `zolotoy`, which that leaf offers. The category was then corrected to the
  * laptop leaf — which declares `color` too, so retention by SLUG kept the
  * answer — but whose sixteen options spell gold `zolotistyy`. The control
  * drew the raw code, the mirror refused the value `not_in_options`, and the

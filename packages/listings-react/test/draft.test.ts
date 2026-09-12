@@ -125,8 +125,9 @@ describe("changing category keeps what still applies", () => {
 
   /* ── D455: a shared slug is not a shared answer ──────────────────────────
    *
-   * Measured on ruberi.ru, 2026-09-12 (probe p54, flow 5). The analysis read
-   * the photo as the wristwatch leaf and answered the colour with `zolotoy`;
+   * Measured on a client fleet's stand, 2026-09-12 (walk probe, publish
+   * flow). The analysis read the photo as the wristwatch leaf and answered
+   * the colour with `zolotoy`;
    * the category was corrected to the laptop leaf, which declares `color` as
    * well — and therefore kept the value — but spells gold `zolotistyy`. The
    * control drew the raw code `zolotoy`, the mirror refused it
