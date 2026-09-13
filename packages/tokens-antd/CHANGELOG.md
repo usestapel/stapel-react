@@ -1,5 +1,41 @@
 # @stapel/tokens-antd
 
+## 0.19.0
+
+### Minor Changes
+
+- A sheet has a visible way out, and the page behind a dialog stops moving
+
+  Three defects, all read on a live classified's filters dialog and all in the
+  substrate rather than in the pair that mounts it.
+
+  **A bottom sheet had no close control.** Its header was a 40x4 grab handle and
+  a title. The handle IS a button carrying the caller's dismiss copy — which is
+  why every test in the fleet passed — but nobody can see a 4px bar as a way out:
+  the exits were Esc, a swipe, and applying the filter. The sheet now draws a ✕
+  on the trailing edge of its title line, at the 44px phone touch floor
+  (`SHEET_CLOSE_HIT`), named with the same `dismissLabel` and drawn with the
+  package's own glyph (no icon set is pulled in). A `dismissible={false}` sheet
+  still draws neither handle nor close. The modal surface keeps antd's own ✕ — one
+  exit per surface, never two.
+
+  **The page behind a dialog scrolled.** antd locks it by injecting
+  `html body { overflow-y: hidden }`, which reaches the viewport only while the
+  ROOT element's overflow is `visible`. A host that writes `html { overflow-x:
+clip }` — the standard cure for a phone page that drifts sideways — takes that
+  propagation away, and the lock silently becomes inert: measured at 768, reaching
+  a modal's apply button scrolled the feed underneath it instead. `SkinDialog` now
+  locks the element the browser actually scrolls, inline (so no host stylesheet
+  can outrank it), reference counted for nested dialogs, and restoring the root's
+  previous inline value exactly. antd's scrollbar-width compensation is untouched.
+
+  **A modal could grow taller than the screen and take its own footer with it.**
+  The body is now a scroll port capped against the viewport
+  (`MODAL_BODY_MAX_HEIGHT`, `100dvh` minus the room antd's `top` and the dialog's
+  chrome need) with `overscroll-behavior: contain` and a bottom padding, so the
+  last row of a long panel clears the footer's edge instead of ending on it, and
+  the apply button stays on screen.
+
 ## 0.18.1
 
 ### Patch Changes

@@ -104,8 +104,11 @@ export type {
 export {
   SkinDialog,
   SHEET_MAX_HEIGHT,
+  SHEET_CLOSE_HIT,
   SHEET_WRAPPER_CLASS,
   SHEET_STYLE_HREF,
+  MODAL_BODY_MAX_HEIGHT,
+  MODAL_VIEWPORT_ALLOWANCE,
   sheetSizingCss,
 } from "./skin/dialog.js";
 export type { SkinDialogProps } from "./skin/dialog.js";

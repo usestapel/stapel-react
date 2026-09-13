@@ -1,5 +1,34 @@
 # @stapel/search-react
 
+## 0.42.2
+
+### Patch Changes
+
+- The pinned results toolbar paints OVER the cards that scroll under it
+
+  Measured on a live classified stand at 1440, on a category page scrolled 900px:
+  the toolbar (`[data-testid="search-results-toolbar"]`, `position: sticky`,
+  `top: 64`, opaque) stood at `z-index: 1`, while a feed card's favourite overlay
+  is `z-index: 2` and its photo counter is `z-index: 1`. So the card's heart
+  painted on top of the pinned bar and the counter pill tied with it and won on
+  document order — reviewers read the same thing at 390, 768 and 1440 in both
+  themes, with the card underneath sliced mid-price and, at 390, a word of the
+  bar covered mid-glyph.
+
+  The card's own layers are right relative to their card and belong to
+  `@stapel/listings-react`; what was wrong is the band. A sticky piece of CHROME
+  has to outrank the content that scrolls beneath it, so both pins — the host's
+  inline `stickyToolbar` and the default `toolbarSticky` rule set — now read one
+  published number, `RESULTS_TOOLBAR_Z_INDEX` (20), the layer
+  `@stapel/listings-react` already pins its condensed bar at: above a page's own
+  content and well below the range a modal layer uses. The bar still passes UNDER
+  the host's header (`<PublicShell>`: 1000) and under antd's popups, so the sort
+  select keeps opening over its own row.
+
+  `@stapel/tokens` carries no z-index vocabulary — colour roles, spacing, radii,
+  breakpoints and type, and no layering scale — so the number is published from
+  this package rather than written twice as a literal.
+
 ## 0.42.1
 
 ### Patch Changes

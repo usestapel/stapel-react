@@ -106,6 +106,7 @@ export {
   RESULTS_TOOLBAR_STICKY_CLASS,
   RESULTS_TOOLBAR_STYLE_HREF,
   RESULTS_TOOLBAR_TOP_VAR,
+  RESULTS_TOOLBAR_Z_INDEX,
   resultsColumnsCss,
   toolbarRowMinHeight,
   toolbarStickyCss,

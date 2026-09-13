@@ -160,6 +160,35 @@ export const RESULTS_TOOLBAR_TOP_VAR = "--stapel-search-toolbar-top";
 export const RESULTS_TOOLBAR_STYLE_HREF = "stapel-search-toolbar";
 
 /**
+ * THE LAYER A STICKY CHROME BAND PAINTS ON (D473).
+ *
+ * The row used to say `z-index: 1`, which is not a layer above the feed — it
+ * is a layer IN it. Measured on a live stand at 1440, scrolled 900px: a feed
+ * card's favourite overlay is `position: absolute; z-index: 2` and its photo
+ * counter is `z-index: 1`, so the heart painted over the pinned bar and the
+ * counter tied with it and won on document order. Reviewers read the same
+ * thing at 390, 768 and 1440 in both themes — a card's heart and its "1 of N"
+ * badge over the "105 listings / List / Sort" row, with the card underneath
+ * sliced mid-price.
+ *
+ * `20` is the fleet's existing number for exactly this shape: `listings-react`
+ * pins its condensed listing bar at `z-index: 20`, "above a page's own content
+ * and deliberately below the range a modal layer uses". `@stapel/tokens` ships
+ * NO z-index vocabulary (it carries colour roles, spacing, radii, breakpoints
+ * and type — no layering scale), so there is no role to read this from; the
+ * number is published here rather than written twice as a literal, and the two
+ * pins (the host's inline one and the default rule set) both read it, or they
+ * would drift into a bar that is over the feed on one arm and under it on the
+ * other.
+ *
+ * The ceiling is as load-bearing as the floor: `<PublicShell>`'s header is
+ * `z-index: 1000` and antd's popups start at `zIndexPopupBase` (1000), so the
+ * band has to stay well below both — a sort select must still open OVER its
+ * own bar, and the bar must still pass UNDER the header it is pinned beneath.
+ */
+export const RESULTS_TOOLBAR_Z_INDEX = 20;
+
+/**
  * The default pin's rule set.
  *
  * Everything {@link toolbarPinStyle} writes inline, said once in a sheet and
@@ -175,8 +204,9 @@ export function toolbarStickyCss(): string {
     `${bar}{position:sticky;top:var(${RESULTS_TOOLBAR_TOP_VAR},0px);` +
     // Over the cards, under the page's own chrome — and under antd's popups,
     // so the sort select still opens over its own bar. Opaque, or the cards
-    // scroll THROUGH the row.
-    `z-index:1;background:${cssVar("surface")}}}`
+    // scroll THROUGH the row. See {@link RESULTS_TOOLBAR_Z_INDEX} for why the
+    // layer is what it is.
+    `z-index:${String(RESULTS_TOOLBAR_Z_INDEX)};background:${cssVar("surface")}}}`
   );
 }
 
@@ -356,8 +386,9 @@ function toolbarPinStyle(pin: SearchToolbarPin | undefined): CSSProperties | und
     position: "sticky",
     top: pin.top ?? 0,
     // Over the cards, under the page's own chrome — and under antd's popups,
-    // so the sort select still opens over its own bar.
-    zIndex: 1,
+    // so the sort select still opens over its own bar. The SAME layer the
+    // default rule set uses — see {@link RESULTS_TOOLBAR_Z_INDEX}.
+    zIndex: RESULTS_TOOLBAR_Z_INDEX,
     // Opaque, or the cards scroll THROUGH the bar. The theme's own surface
     // role, resolved at paint time, so it follows the brand and the dark side
     // without a second colour being written here.

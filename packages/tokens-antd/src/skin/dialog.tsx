@@ -103,6 +103,47 @@ const CONTENTS_STYLE: CSSProperties = { display: "contents" };
 /** The tallest a sheet gets: the rest of the page must stay visible behind it. */
 export const SHEET_MAX_HEIGHT: string = "90dvh";
 
+/**
+ * The sheet's close button, edge to edge (D474).
+ *
+ * 44px is the phone touch floor `SkinTheme` raises every control to, and the
+ * number is here because the control it describes is the one a reviewer could
+ * not find: the grab handle is 40x4, which is a drag affordance and reads as
+ * decoration. A sheet's exits were Esc, a swipe and the apply button.
+ */
+export const SHEET_CLOSE_HIT = 44;
+
+/** The close control's handle, so the drag gesture can tell a press on it from
+ * a press on the header it lives in. */
+const SHEET_CLOSE_TESTID = "stapel-sheet-close";
+
+/**
+ * THE ROOM A MODAL LEAVES AROUND ITSELF, and why the body is capped at all.
+ *
+ * Measured on a live stand at 768: the filters dialog was a centred modal
+ * TALLER than the viewport, so its own footer — the apply button — stood below
+ * the bottom edge of the screen, partly under the host's fixed dock, and the
+ * only way towards it scrolled the page behind the dialog.
+ *
+ * antd puts the panel at `top: 100px` with a `padding-bottom: 24px` of its
+ * own and caps nothing: a modal is as tall as what is in it. So the BODY (the
+ * one part that can be long) becomes a scroll port measured against the
+ * viewport, and the header, the close and the footer keep their boxes — which
+ * is the same arrangement `sheetSizingCss` gives the sheet.
+ *
+ * The allowance is deliberately generous rather than exact: it covers antd's
+ * own offset plus a header and a footer, and being a few pixels short of the
+ * screen costs nothing, while being over it is the defect. `dvh`, not `vh`,
+ * for the same reason the sheet uses it — on mobile Safari `vh` is the
+ * tallest the viewport ever gets, so a `vh` cap hides its own footer under the
+ * browser chrome.
+ */
+export const MODAL_VIEWPORT_ALLOWANCE = 220;
+
+/** The modal body's cap: the viewport, minus the room antd's own geometry and
+ * the dialog's chrome take. See {@link MODAL_VIEWPORT_ALLOWANCE}. */
+export const MODAL_BODY_MAX_HEIGHT: string = `calc(100dvh - ${String(MODAL_VIEWPORT_ALLOWANCE)}px)`;
+
 /** The class the sheet's panel wrapper carries, for {@link sheetSizingCss}. */
 export const SHEET_WRAPPER_CLASS: string = "stapel-sheet-wrapper";
 
@@ -133,6 +174,82 @@ export function sheetSizingCss(prefix: string): string {
     `${wrapper} .${prefix}-drawer-footer{flex-shrink:0}`,
   ].join("\n");
 }
+
+/**
+ * THE PAGE BEHIND A DIALOG DOES NOT SCROLL — and antd's own lock cannot be
+ * relied on to say so (D474).
+ *
+ * rc-util locks the page by injecting `html body { overflow-y: hidden }`. That
+ * reaches the VIEWPORT only through overflow propagation, whose rule is: the
+ * viewport takes the ROOT element's overflow, and only when that is `visible`
+ * does it take body's instead. A host that writes `html { overflow-x: clip }`
+ * — the standard cure for a phone page that drifts sideways, and what the
+ * storefront this was measured on writes — makes the root's overflow no longer
+ * `visible`, and antd's rule stops reaching the viewport. Measured at 768: a
+ * modal taller than the screen, and the feed scrolling behind it.
+ *
+ * So the substrate locks the element the browser actually scrolls, and it does
+ * it by an INLINE style, which beats any stylesheet the host wrote. Reference
+ * counted because dialogs nest (a picker sheet opens from inside a filters
+ * sheet, and closing the inner one must not hand the page back while the outer
+ * one is standing), and the root's previous inline value is restored exactly —
+ * a host that had written one of its own gets it back.
+ *
+ * No scrollbar compensation here: antd's locker already narrows `body` by the
+ * scrollbar's width whenever it locks, which is the half of its work that was
+ * never broken.
+ */
+let pageScrollLocks = 0;
+let unlockedOverflow: string | null = null;
+
+function lockPageScroll(): () => void {
+  if (typeof document === "undefined") return () => undefined;
+  const root = document.documentElement;
+  pageScrollLocks += 1;
+  if (pageScrollLocks === 1) {
+    unlockedOverflow = root.style.overflow;
+    root.style.overflow = "hidden";
+  }
+  return () => {
+    pageScrollLocks -= 1;
+    if (pageScrollLocks > 0) return;
+    if (unlockedOverflow === null || unlockedOverflow === "") {
+      root.style.removeProperty("overflow");
+    } else {
+      root.style.overflow = unlockedOverflow;
+    }
+    unlockedOverflow = null;
+  };
+}
+
+/** The sheet's title line: the caller's heading, and the close on the trailing
+ * edge of it. */
+const SHEET_TITLE_ROW: CSSProperties = {
+  marginTop: 12,
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+/** The heading itself — it shrinks rather than pushing the close off the row. */
+const SHEET_TITLE_BOX: CSSProperties = { flex: "1 1 auto", minInlineSize: 0 };
+
+/** The close control's own box: a thumb-sized target with a 16px glyph in it,
+ * and no chrome of its own — see {@link SHEET_CLOSE_HIT}. */
+const SHEET_CLOSE: CSSProperties = {
+  flex: "0 0 auto",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  inlineSize: SHEET_CLOSE_HIT,
+  blockSize: SHEET_CLOSE_HIT,
+  marginInlineEnd: -8,
+  padding: 0,
+  border: "none",
+  borderRadius: "50%",
+  background: "transparent",
+  cursor: "pointer",
+};
 
 /** How far the sheet must be dragged down before letting go dismisses it. */
 const DISMISS_DISTANCE_PX = 88;
@@ -210,6 +327,10 @@ export interface SkinDialogProps {
  */
 export function SkinDialog(props: SkinDialogProps): ReactElement {
   const auto = useDialogSurface();
+  // Spacing only, and read at the declaration site on purpose: the body's end
+  // padding is the same measure the sheet's body uses, and a length does not
+  // change with the light/dark algorithm the portal is painted under.
+  const { token } = antdTheme.useToken();
   const surface = props.surface ?? auto;
   const Override = useSkinComponents().Dialog;
   const {
@@ -228,6 +349,13 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
   // children) and inside an element with a dialog role. Checked on a delay so
   // a replacement's mount animation is not a false report; dev builds only.
   const stampRef = useRef<HTMLDivElement>(null);
+  // The page behind stays where it is for as long as this dialog is open —
+  // see `lockPageScroll`. Every surface, including a registered replacement:
+  // a host's own dialog anatomy does not change what the page under it does.
+  useEffect(() => {
+    if (!open) return undefined;
+    return lockPageScroll();
+  }, [open]);
   useEffect(() => {
     if (Override === undefined || !open || !isDevBuild()) return undefined;
     const id = setTimeout(() => {
@@ -299,6 +427,24 @@ export function SkinDialog(props: SkinDialogProps): ReactElement {
         footer={footer ?? null}
         closable={dismissible ? { "aria-label": dismissLabel } : false}
         keyboard={dismissible}
+        /* The panel cannot outgrow the screen and take its footer with it:
+           the body is the part that is long, so the body is the scroll port,
+           capped against the viewport — see `MODAL_BODY_MAX_HEIGHT`. Inline,
+           not a rule, because there is nothing for it to win against and
+           nothing that may quietly win over it. `contain` keeps a flick at
+           the end of the list out of the page behind, the way the sheet's
+           body already does. */
+        styles={{
+          body: {
+            maxHeight: MODAL_BODY_MAX_HEIGHT,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            // The scroll port ends ABOVE the footer rather than against it:
+            // scrolled to the end, the last row of a long panel used to sit
+            // flush on the apply bar's hairline and read as cut in half.
+            paddingBottom: token.paddingLG,
+          },
+        }}
         {...(dismissible ? {} : { maskClosable: false })}
         {...(props.maskClosable !== undefined ? { maskClosable: props.maskClosable } : {})}
         {...(title !== undefined ? { title } : {})}
@@ -394,6 +540,15 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
     // events carry no `isPrimary` (jsdom, some webviews) would otherwise have
     // every gesture refused, which is a dead sheet, not a safe default.
     if (event.isPrimary === false) return;
+    // Not on the close: the drag captures the pointer, and a captured pointer
+    // delivers its `click` to the capturing element — a press on the ✕ would
+    // travel zero pixels, commit nothing, and never reach the button.
+    if (
+      event.target instanceof Element &&
+      event.target.closest(`[data-testid="${SHEET_CLOSE_TESTID}"]`) !== null
+    ) {
+      return;
+    }
     gesture.current = { startY: event.clientY, startedAt: event.timeStamp };
     setDragging(true);
     // Guarded: jsdom (and a couple of older webviews) ship pointer events
@@ -453,6 +608,8 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
     cursor: "grab",
   };
 
+  const closeColor = token.colorIcon;
+
   const header = (
     <div
       style={dismissible ? { ...grabArea, userSelect: "none" } : { userSelect: "none" }}
@@ -484,8 +641,48 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
         }}
       />
       )}
-      {props.title !== undefined && (
-        <div style={{ marginTop: 12 }}>{props.title}</div>
+      {/* THE VISIBLE WAY OUT (D474). The handle above is 4px tall and reads as
+          decoration: reviewers walking a live sheet at 390 reported it had no
+          close control at all, and the exits were Esc, a swipe, or applying
+          the filter. The modal surface has drawn antd's ✕ since the first
+          release; this is the sheet's own, at the phone touch floor, on the
+          trailing edge of the title line where a reader looks for it.
+
+          The row is drawn whenever there is a title OR a close, so a
+          chrome-less sheet is not given an empty band. */}
+      {(props.title !== undefined || dismissible) && (
+        <div style={SHEET_TITLE_ROW}>
+          <div style={SHEET_TITLE_BOX}>{props.title}</div>
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={props.dismissLabel}
+              data-testid={SHEET_CLOSE_TESTID}
+              data-analytics="none"
+              data-analytics-reason="local-ui-dismiss-sheet"
+              style={{ ...SHEET_CLOSE, color: closeColor }}
+            >
+              {/* Drawn here: this package ships no icon set, and pulling one
+                  in for two strokes would put an icon font in every skin. */}
+              <svg
+                viewBox="0 0 16 16"
+                width={16}
+                height={16}
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M3 3 L13 13 M13 3 L3 13"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
