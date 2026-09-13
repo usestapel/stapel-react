@@ -112,14 +112,38 @@ describe("<CategoryTileGrid tileSurface> — flat is the default", () => {
   });
 });
 
-describe('<CategoryTileGrid tileSurface="card"> — today\'s tile, unchanged', () => {
-  it("keeps the inline fill and takes no hover rule", async () => {
+/**
+ * THE CARD TILE IS TINTED, NOT SUNKEN (owner, 2026-09-13).
+ *
+ * `surface-sunken` is the neutral step BELOW the page: on the walked
+ * storefront a grid of them read as a packed list with dividers rather than as
+ * the reference's illustrated cards — at #f4f5f7 against a #ffffff page the
+ * box is a hairline, so what a reader sees is the gaps between the tiles and
+ * not the tiles.
+ *
+ * `brand-subtle` is this vocabulary's own TINT role (brand.100 in light,
+ * brand.900 in dark — see `@stapel/tokens`). It is a colour and not a shade of
+ * grey, which is the whole difference between "a row in a list" and "a card
+ * with a picture on it", and it is a declared role rather than a value picked
+ * here: a deployment that regenerates its palette moves this tile with it.
+ *
+ * The FLAT tile's hover fill is deliberately NOT moved with it — see the next
+ * block.
+ */
+describe('<CategoryTileGrid tileSurface="card"> — a tinted card', () => {
+  it("fills the card tile from the tint role, not from the sunken grey", async () => {
     const tile = await mount("card");
     expect(screen.getByTestId("categories-tile-grid").dataset["tileSurface"]).toBe(
       "card"
     );
     expect(tile.classList.contains(CATEGORY_TILE_FLAT_CLASS)).toBe(false);
-    expect(tile.style.background).toBe("var(--stapel-surface-sunken)");
+    expect(tile.style.background).toBe("var(--stapel-brand-subtle)");
+    // A var, not a resolved colour: the two themes answer it at paint time,
+    // and a value frozen here would be whichever side mounted first.
+    expect(tile.style.background).not.toContain("#");
+    // The radius the grid reserved is unchanged — this is a fill, not a new
+    // shape, so every track height and every skeleton still fits.
+    expect(tile.style.borderRadius).toBe("12px");
   });
 });
 
@@ -344,8 +368,10 @@ describe("size=compact + tileSurface=card — the 2026-09-04 anatomy, exactly", 
     expect(tile.style.justifyContent).toBe("space-between");
     expect(tile.style.flexDirection).toBe("row");
     expect(tile.style.aspectRatio).toBe("8 / 3");
-    // And it still has the fill that made those opposite ends read as one.
-    expect(tile.style.background).toBe("var(--stapel-surface-sunken)");
+    // And it still has the fill that made those opposite ends read as one —
+    // now the tint role rather than the sunken grey, the same move the regular
+    // card tile makes.
+    expect(tile.style.background).toBe("var(--stapel-brand-subtle)");
   });
 });
 

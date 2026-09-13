@@ -92,6 +92,20 @@ export {
   useGalleryPosition,
 } from "./detailGallery.js";
 export type { GalleryPosition, ListingGalleryLayout } from "./detailGallery.js";
+// The desktop's third shape and its own geometry — a host laying out beside
+// the hero measures against the same numbers instead of guessing them back
+// out of a screenshot.
+export {
+  DETAIL_THUMB_SIZE,
+  LIGHTBOX_MAX_HEIGHT,
+  LISTINGS_FILMSTRIP_CLASS,
+  LISTINGS_HERO_CLASS,
+  LISTINGS_LIGHTBOX_CLASS,
+  LISTINGS_LIGHTBOX_STAGE_CLASS,
+  LISTINGS_THUMB_CLASS,
+} from "./detailGallery.js";
+export { ListingHeroGallery } from "./ListingHeroGallery.js";
+export type { ListingHeroGalleryProps } from "./ListingHeroGallery.js";
 // The listing page's block rhythm: the reset that keeps a child's own margin
 // out of the column's gap, and the section rule's own token spacing.
 export {

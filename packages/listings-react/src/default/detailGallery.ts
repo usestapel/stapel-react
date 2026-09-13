@@ -59,7 +59,7 @@
  * arithmetic version has to know the gap, the peek and the writing direction.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fontSize, radii, spacing } from "@stapel/tokens";
+import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 
 /**
  * The narrowest a gallery tile may get before the grid drops a column. A
@@ -74,8 +74,16 @@ import { fontSize, radii, spacing } from "@stapel/tokens";
  */
 export const DETAIL_PHOTO_MIN = "14rem";
 
-/** Which shape the photographs take. See the file header. */
-export type ListingGalleryLayout = "grid" | "strip";
+/**
+ * Which shape the photographs take. See the file header, and
+ * {@link ListingHeroGallery} for the third.
+ *
+ *  - `"grid"` — the element-width grid this pane has always drawn;
+ *  - `"strip"` — the phone's snap-scrolling row;
+ *  - `"hero"` — the DESKTOP's anatomy: one large photograph, a filmstrip of
+ *    thumbnails under it, and a lightbox behind a click on the large one.
+ */
+export type ListingGalleryLayout = "grid" | "strip" | "hero";
 
 /** The class the gallery box carries. */
 export const LISTINGS_GALLERY_CLASS = "stapel-listings-detail-gallery";
@@ -97,6 +105,56 @@ export const LISTINGS_GALLERY_COUNTER_CLASS = "stapel-listings-detail-count";
  * sibling of the strip inside a box that does not scroll.
  */
 export const LISTINGS_GALLERY_FRAME_CLASS = "stapel-listings-detail-gallery-frame";
+
+/* ── THE HERO ARM ──────────────────────────────────────────────────────────
+ *
+ * A desktop reads photographs the way the reference classified draws them:
+ * ONE large picture with a row of thumbnails under it, and the whole set
+ * behind a click on the large one. The grid arm answered none of that — every
+ * photograph at the same size, nothing to click, and no way to see one bigger
+ * than a third of the reading column (walk of 2026-09-12).
+ *
+ * These four classes are the arm's geometry, hoisted for the same reason the
+ * strip's is: a thumbnail's flex basis and the lightbox's `:focus-visible`
+ * cannot be said in a style attribute, and a host that wants a fifth shape
+ * needs a selector rather than an `!important` over inline geometry.
+ */
+
+/** The class on the button holding the large photograph. */
+export const LISTINGS_HERO_CLASS = "stapel-listings-detail-hero";
+
+/** The class on the row of thumbnails under the hero. */
+export const LISTINGS_FILMSTRIP_CLASS = "stapel-listings-detail-filmstrip";
+
+/** The class one thumbnail button carries. */
+export const LISTINGS_THUMB_CLASS = "stapel-listings-detail-thumb";
+
+/** The class on the lightbox's own row: arrow, stage, arrow. */
+export const LISTINGS_LIGHTBOX_CLASS = "stapel-listings-lightbox";
+
+/** The class on the box the lightbox's photograph stands in — the element a
+ * swipe is measured against. */
+export const LISTINGS_LIGHTBOX_STAGE_CLASS = "stapel-listings-lightbox-stage";
+
+/**
+ * How wide ONE thumbnail is.
+ *
+ * A measure and not a pixel count, the same rule {@link DETAIL_PHOTO_MIN}
+ * follows: the filmstrip scrolls when the set is longer than the row, so the
+ * number decides how many thumbnails a reader sees at once and nothing else.
+ * At 5rem a 1440px page shows about a dozen before the strip scrolls, which
+ * is more photographs than a classified listing usually has.
+ */
+export const DETAIL_THUMB_SIZE = "5rem";
+
+/**
+ * The tallest the lightbox's photograph gets.
+ *
+ * `dvh` and not `vh`, for the reason the sheet's own maximum gives: on mobile
+ * Safari `vh` is the tallest the viewport ever gets, so a picture sized
+ * against it hides its own controls under the browser chrome.
+ */
+export const LIGHTBOX_MAX_HEIGHT = "78dvh";
 
 /**
  * How much of the strip's width ONE photograph takes.
@@ -224,6 +282,69 @@ export function detailGalleryCss(): string {
      card's gesture layer clamps its own step to one. The same declaration
      SkinCarousel already carries on its slides. */
   scroll-snap-stop: always;
+}
+.${LISTINGS_GALLERY_CLASS}[data-gallery-layout="hero"] {
+  display: flex;
+  flex-direction: column;
+}
+/* A button, so the enlargement is reachable by keyboard and announced as a
+   control — and stripped of every platform mark a button brings, because the
+   photograph is the whole surface. The zoom cursor is the one affordance
+   kept: it is what says the picture opens rather than navigates. */
+.${LISTINGS_HERO_CLASS} {
+  display: block;
+  inline-size: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  border-radius: ${String(radii.md)}px;
+  overflow: hidden;
+}
+.${LISTINGS_FILMSTRIP_CLASS} {
+  display: flex;
+  gap: ${String(spacing[2])}px;
+  overflow-x: auto;
+  /* The thumbnails scroll sideways; the page's own vertical scroll stays the
+     browser's, exactly as it does under the phone strip. */
+  overscroll-behavior-x: contain;
+}
+.${LISTINGS_THUMB_CLASS} {
+  flex: 0 0 ${DETAIL_THUMB_SIZE};
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: ${String(radii.sm)}px;
+  overflow: hidden;
+  /* Dimmed at rest so the CHOSEN one is the one that reads — see the
+     aria-current rule below, which is the same state the screen reader is
+     told about and not a second, silent one. */
+  opacity: 0.55;
+  transition: opacity 120ms ease-out;
+}
+.${LISTINGS_THUMB_CLASS}:hover {
+  opacity: 0.8;
+}
+.${LISTINGS_THUMB_CLASS}[aria-current="true"] {
+  opacity: 1;
+  outline: 2px solid ${cssVar("brand")};
+  outline-offset: -2px;
+}
+.${LISTINGS_LIGHTBOX_CLASS} {
+  display: flex;
+  align-items: center;
+  gap: ${String(spacing[3])}px;
+  /* The box the counter is pinned inside. The container itself takes no
+     offsets, so it moves no pixel of what is already in it. */
+  position: relative;
+}
+.${LISTINGS_LIGHTBOX_STAGE_CLASS} {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  /* The horizontal gesture is this component's; the vertical one is the
+     page's. Without this a swipe on a touch screen scrolls instead. */
+  touch-action: pan-y;
 }
 .${LISTINGS_GALLERY_FRAME_CLASS} {
   position: relative;

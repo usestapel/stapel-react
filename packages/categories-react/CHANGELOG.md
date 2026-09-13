@@ -1,5 +1,34 @@
 # @stapel/categories-react
 
+## 0.31.4
+
+### Patch Changes
+
+- The card tile is tinted, not sunken
+
+  `tileSurface="card"` drew `surface-sunken` — the neutral step BELOW the page.
+  At #f4f5f7 against a #ffffff page that box is a hairline, so a grid of them read
+  as a packed list with dividers rather than as the reference's illustrated cards:
+  what a person saw was the gaps between the tiles and not the tiles.
+
+  The fill is `brand-subtle` now — this vocabulary's own TINT role (brand.100 in
+  light, brand.900 in dark). A colour rather than a shade of grey is the whole
+  difference between "a row in a list" and "a card with a picture on it", and it
+  is a declared ROLE and not a value picked in a leaf: a deployment that
+  regenerates its palette moves this tile with it. `text` stays legible on both
+  sides of it (gray.900 on brand.100, gray.100 on brand.900).
+
+  The `size="compact"` card row takes the same tint, for the same reason it had a
+  fill at all — the box is what makes two marks at opposite ends read as one
+  thing.
+
+  The FLAT tile's hover fill deliberately stays `surface-sunken`. A hover is a
+  pointer's answer — "this is the one you are about to open" — drawn under the
+  cursor and gone when it leaves; the page's accent colour there would read as a
+  selection rather than as a hover, on whichever tile a mouse happens to rest.
+  Nothing about the geometry moves: same radius, same ratio, same tracks, so every
+  reservation and every measured stage is unchanged.
+
 ## 0.31.3
 
 ### Patch Changes

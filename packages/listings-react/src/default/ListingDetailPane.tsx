@@ -165,6 +165,7 @@ import {
   CONDENSED_TITLE_CLASS,
   condensedBarCss,
 } from "./condensedBar.js";
+import { ListingHeroGallery } from "./ListingHeroGallery.js";
 import { ListingRelatedStrip } from "./ListingRelated.js";
 import type { ListingRelatedContext } from "./ListingRelated.js";
 import { useNotice } from "./notice.js";
@@ -277,6 +278,11 @@ export interface ListingDetailPaneProps
    *    directly above `footer`.
    *  - `"after-actions"` — directly under the actions, before the description
    *    and the spec table.
+   *  - `"before-actions"` — directly ABOVE them, under the price. This is the
+   *    reference classified's own order on a phone: price, who is selling it,
+   *    then the two verbs. A seller block UNDER the verbs is a fact a person
+   *    reads after they have already been asked to act on it, and the two
+   *    other placements could only put it there or further down.
    *
    * The phone is the whole argument. `"column"` IS the phone rendering of
    * this page, and there the seller block sat below a description, a spec
@@ -286,7 +292,7 @@ export interface ListingDetailPaneProps
    * The split layout already reads the other way round (price, actions,
    * seller), and this is that reading order for the column.
    */
-  readonly asidePlacement?: "end" | "after-actions";
+  readonly asidePlacement?: "end" | "after-actions" | "before-actions";
   /**
    * THE primary action for a buyer: "message the seller", filled by the
    * container from `@stapel/chat-react`. Rendered first, before favouriting,
@@ -530,7 +536,14 @@ export interface ListingDetailPaneProps
    *    with the next peeking. On a 390px phone the grid resolves to one
    *    column, so a listing with three pictures pushes its own title and price
    *    nearly three screens down — the first thing a person sees after tapping
-   *    a search result is a photograph with nothing beside it.
+   *    a search result is a photograph with nothing beside it;
+   *  - `"hero"` — one LARGE photograph, a filmstrip of thumbnails under it
+   *    that changes which one that is, and a lightbox behind a click on the
+   *    large one (arrows, the two arrow keys, a swipe, Escape). The
+   *    reference classified's desktop anatomy, and the answer to the three
+   *    absences the 2026-09-12 walk measured against it: a grid of equal
+   *    tiles, no arrows, and no way to enlarge a photograph at all. See
+   *    `<ListingHeroGallery>`.
    *
    * The HOST names it, the same rule as {@link layout} and for the same
    * reason: the side that knows the viewport it granted decides, and no media
@@ -538,6 +551,14 @@ export interface ListingDetailPaneProps
    * `display: flex !important` against this pane's inline `display: grid` to
    * say exactly this; that declaration is a class now, so even a host wanting
    * a third shape needs a selector rather than an `!important`.
+   *
+   * THE DEFAULT DEPENDS ON {@link layout}, and that is the one place this pane
+   * infers a gallery shape rather than being told one: `"hero"` under
+   * `layout="split"`, `"grid"` otherwise. `layout="split"` is the host stating
+   * it granted a desktop — it is the only thing that prop means — and the
+   * desktop's gallery is the hero. A split host that wants the old grid says
+   * `galleryLayout="grid"` and gets exactly it; every one-column mount is
+   * unchanged.
    */
   readonly galleryLayout?: ListingGalleryLayout;
   /**
@@ -787,7 +808,11 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
      `renderActionsBar` is the only thing that can put it anywhere. With
      neither — every existing mount — nothing below changes: one cluster,
      rendered inline where it always was, no portal and no slot divs. */
-  const galleryLayout: ListingGalleryLayout = props.galleryLayout ?? "grid";
+  /* The gallery's shape, and the one inference this pane makes: a host that
+     said `layout="split"` said "this is a desktop", and the desktop's gallery
+     is the hero. See `galleryLayout`. */
+  const galleryLayout: ListingGalleryLayout =
+    props.galleryLayout ?? (split ? "hero" : "grid");
   const renderBar = props.renderActionsBar;
   /* TWO LOANS, ONE WINNER. The host's own render prop is the specific answer
      and the pane's condensed bar is the default one, so a page that asked for
@@ -1221,7 +1246,19 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                this arm the strip is the scroll container, and an absolutely
                positioned child of a scroller scrolls away with the content it
                is supposed to be counting. See `detailGallery.ts`. */
-            const gallery = !strip ? (
+            /* THE DESKTOP'S GALLERY IS ITS OWN COMPONENT, because it holds
+               state the two flat arms do not have: which photograph is the
+               hero, and whether the lightbox is open. See
+               `<ListingHeroGallery>` — the grid and the strip are laid out by
+               a stylesheet and hold nothing. */
+            const gallery = galleryLayout === "hero" ? (
+              <ListingHeroGallery
+                images={bag.images}
+                title={listing.title ?? String(listing.id)}
+                gap={DETAIL_GALLERY_GUTTER}
+                {...(placement === "gallery" ? { overlay: homeActions } : {})}
+              />
+            ) : !strip ? (
               galleryBox
             ) : (
               <div className={LISTINGS_GALLERY_FRAME_CLASS}>
@@ -1373,7 +1410,21 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   </>
                 ) : (
                   <Flex vertical gap={spacing[2]} style={{ minWidth: 0 }}>
-                    {/* ASK THE SELLER — above the door into the conversation,
+                    {/* THE TWO VERBS COME FIRST (2026-09-13).
+                        They spent a release UNDER the canned questions, and on
+                        a 390px phone four wrapping chips are a whole row and a
+                        half between the price and the only two controls a
+                        buyer came for — measured on the live storefront, the
+                        contact row needed a scroll on every listing. The
+                        reference puts the chips after the verbs, which is also
+                        the honest reading order: a chip is a shortcut INTO the
+                        conversation the button opens, so it cannot usefully
+                        stand before the door. */}
+                    <div data-testid="listings-detail-contact">
+                      {props.contactSlot ?? <SlotPlaceholder name="contactSlot" />}
+                    </div>
+
+                    {/* ASK THE SELLER — under the door into the conversation,
                         because that is what a pressed chip opens. Never on the
                         owner's own page: the owner is the person being asked.
 
@@ -1404,9 +1455,6 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                         </Flex>
                       </Flex>
                     )}
-                    <div data-testid="listings-detail-contact">
-                      {props.contactSlot ?? <SlotPlaceholder name="contactSlot" />}
-                    </div>
                   </Flex>
                 )}
 
@@ -1604,15 +1652,21 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
               // The single column. `"end"` is the order it has always read —
               // the host's aside joins where the footer's flow already is;
               // `"after-actions"` puts the seller beside the decision to
-              // contact them, which is where the split layout already has it.
+              // contact them, which is where the split layout already has it;
+              // `"before-actions"` puts it directly above them, which is the
+              // reference's own phone order (price, who is selling, the two
+              // verbs). Exactly one of the three is drawn.
               const asideAfterActions =
                 props.asidePlacement === "after-actions";
+              const asideBeforeActions =
+                props.asidePlacement === "before-actions";
               return (
                 <>
                   {statusBlocks}
                   {gallery}
                   {heading}
                   {price}
+                  {asideBeforeActions ? aside : null}
                   {buyBox}
                   {actionError}
                   {asideAfterActions ? aside : null}
@@ -1621,7 +1675,7 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                   {specsSection}
                   {meta}
                   {strips}
-                  {asideAfterActions ? null : aside}
+                  {asideAfterActions || asideBeforeActions ? null : aside}
                   {props.footer}
                   {clusterLayer}
                 </>
@@ -1631,6 +1685,17 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
             return (
               <>
                 {statusBlocks}
+                {/* THE TITLE IS THE PAGE'S, NOT THE LEFT COLUMN'S (2026-09-13).
+                    It stood INSIDE the reading column, under the gallery — so
+                    the one line that says what this page is about arrived
+                    after a 4/3 photograph, and on a 1440x900 screen it was
+                    below the fold on a listing with a tall picture. The
+                    reference reads breadcrumb, title, then the two columns;
+                    the breadcrumb is the host's (it owns the route), and this
+                    is the rest of that order. The heading carries the view
+                    count with it, because a fact about the page belongs with
+                    the page's name and not inside one of its columns. */}
+                {heading}
                 <div
                   data-testid="listings-detail-split"
                   style={{
@@ -1651,7 +1716,6 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     data-testid="listings-detail-reading-column"
                   >
                     {gallery}
-                    {heading}
                     <Divider className={DETAIL_RULE_CLASS} />
                     {description}
                     {specsSection}

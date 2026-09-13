@@ -422,7 +422,25 @@ const tileBase: CSSProperties = {
   aspectRatio: TILE_ASPECT_RATIO,
   padding: spacing[3],
   borderRadius: radii.lg,
-  background: cssVar("surface-sunken"),
+  /* THE CARD TILE IS TINTED (owner, 2026-09-13).
+   *
+   * It drew `surface-sunken` — the neutral step BELOW the page — and on the
+   * walked storefront a grid of them read as a packed list with dividers
+   * rather than as the reference's illustrated cards: at #f4f5f7 against a
+   * #ffffff page the box is a hairline, so what a reader sees is the gaps
+   * between the tiles and not the tiles themselves.
+   *
+   * `brand-subtle` is this vocabulary's own TINT role (brand.100 light /
+   * brand.900 dark). A colour rather than a shade of grey is the whole
+   * difference between "a row in a list" and "a card with a picture on it",
+   * and it is a declared ROLE rather than a value chosen here — a deployment
+   * that regenerates its palette moves this tile with it, which a hex would
+   * not. The text role above it is unchanged and stays legible on both sides:
+   * `text` is gray.900 on brand.100 and gray.100 on brand.900.
+   *
+   * The FLAT tile's hover fill stays `surface-sunken` deliberately — see
+   * `categoryTileCss`. */
+  background: cssVar("brand-subtle"),
   // A tile is a link, and a link that inherits the anchor colour reads as a
   // sentence rather than as a surface.
   color: cssVar("text"),
@@ -474,7 +492,10 @@ const tileSizeCompact: CSSProperties = {
   aspectRatio: COMPACT_SIZE_ASPECT_RATIO,
   padding: spacing[2],
   borderRadius: radii.lg,
-  background: cssVar("surface-sunken"),
+  // The same tint the regular card tile takes, and for the same reason: the
+  // filled box is what makes two marks at opposite ends of a row read as one
+  // thing, and a box nobody can see does not.
+  background: cssVar("brand-subtle"),
   color: cssVar("text"),
   scrollSnapAlign: "start",
   overflow: "hidden",
@@ -545,10 +566,17 @@ export const CATEGORY_TILE_STYLE_HREF = "stapel-category-tile";
  *
  * A sheet rather than inline styles because `:hover` and `:focus-visible`
  * cannot be said in a style attribute, and the colours are `--stapel-*`
- * custom properties so both themes resolve at paint time. `surface-sunken` is
- * this design system's tertiary-fill role — literally the fill the card tile
- * wears at rest, which is what makes the hover state read as the same tile
- * rather than as a new colour.
+ * custom properties so both themes resolve at paint time.
+ *
+ * `surface-sunken` — this design system's neutral tertiary fill — is the hover
+ * colour, and it deliberately did NOT follow the card tile to `brand-subtle`
+ * when that tile was tinted (2026-09-13). A hover is a POINTER's answer: "this
+ * is the one you are about to open", drawn under the reader's own cursor and
+ * gone the moment it leaves. A brand tint there would put the page's accent
+ * colour on whichever tile a mouse happens to be resting over, which is a
+ * stronger statement than the state deserves — and on a grid of twelve it
+ * would read as a selection rather than as a hover. The card tile's fill is
+ * about the TILE; this one is about the pointer.
  */
 export function categoryTileCss(): string {
   const flat = `.${CATEGORY_TILE_FLAT_CLASS}`;

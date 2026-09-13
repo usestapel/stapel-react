@@ -174,6 +174,20 @@ export const LISTINGS_I18N_KEYS = {
   detailQuestionPrice: "listings.detail.question_price",
   detailQuestionViewing: "listings.detail.question_viewing",
   detailQuestionDelivery: "listings.detail.question_delivery",
+  /**
+   * THE DESKTOP GALLERY'S FOUR CONTROLS — see `<ListingHeroGallery>`.
+   *
+   * All four are icon-only or picture-only, so each of these strings IS the
+   * whole announcement: a hero photograph that opens a lightbox, the two
+   * arrows inside it and the way out. The lightbox's own accessible NAME is
+   * `cardPhotos` rather than a fifth key — it is already "the photographs of
+   * this listing" in all three locales, and a second sentence for one thing
+   * is the drift this file's header argues against.
+   */
+  detailGalleryOpen: "listings.detail.gallery_open",
+  detailGalleryPrev: "listings.detail.gallery_prev",
+  detailGalleryNext: "listings.detail.gallery_next",
+  detailGalleryClose: "listings.detail.gallery_close",
   /** The two "find more" strips' captions — see `<ListingRelatedStrip>`. */
   detailSimilar: "listings.detail.similar",
   detailFromSeller: "listings.detail.from_seller",
@@ -436,6 +450,10 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.question_price": "Is the price negotiable?",
   "listings.detail.question_viewing": "Can I come and see it?",
   "listings.detail.question_delivery": "Do you deliver?",
+  "listings.detail.gallery_open": "See all photos full size",
+  "listings.detail.gallery_prev": "Previous photo",
+  "listings.detail.gallery_next": "Next photo",
+  "listings.detail.gallery_close": "Close photos",
   "listings.detail.similar": "Similar listings",
   "listings.detail.from_seller": "More from this seller",
   "listings.detail.show_all": "Show all",

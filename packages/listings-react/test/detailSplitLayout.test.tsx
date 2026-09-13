@@ -221,6 +221,9 @@ describe("the split layout is the reference design's two columns", () => {
   });
 
   it("keeps the reading matter — gallery, description, specs, footer — in the left column", async () => {
+    // The TITLE is deliberately not on this list any more: since 2026-09-13 it
+    // stands ABOVE the two columns, where the reference puts it. That order is
+    // asserted in `detailDesktopOrder.test.tsx`.
     render(
       pane(
         <ListingDetailPane
@@ -236,7 +239,6 @@ describe("the split layout is the reference design's two columns", () => {
     const buy = screen.getByTestId("listings-detail-buy-column");
     for (const testId of [
       "listings-detail-gallery",
-      "listings-detail-title",
       "listings-detail-description",
       "host-footer",
     ]) {

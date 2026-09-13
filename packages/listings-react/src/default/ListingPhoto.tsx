@@ -283,7 +283,24 @@ export function ListingPhotoStrip(props: {
       <SkinCarousel
         label={t(LISTINGS_I18N_KEYS.cardPhotos)}
         aspectRatio={LISTING_PHOTO_ASPECT}
-        peek={many}
+        /* NO PEEK ON A CARD — measured on the stand at 390 and at 1024, and
+           confirmed by two reviewers: the strip's port was 267 CSS pixels and
+           one slide 245, so the second photograph began at x=253 and fourteen
+           pixels of it were painted between the picture and the card's
+           trailing edge, with the counter and the heart standing on top of
+           that sliver. A feed read as a column of torn images.
+
+           The sliver is not a bug in `<SkinCarousel>`; its header argues the
+           case and the argument is right where it was made — on a full-width
+           phone GALLERY the peek is the only thing saying there is more, and
+           it is what a thumb swipes at. A CARD is the other case: it already
+           draws dots and a "1 of N" counter, so the same fact is stated twice
+           and only one of the two statements cuts a photograph in half. So the
+           card says it with the counter, and gives the picture the whole port.
+
+           `false` and not `many`: a one-photo strip already had no peek, and
+           spelling the answer out means the two arms cannot drift. */
+        peek={false}
         dots={many}
         // WHERE THE STRIP ACTUALLY IS, back into the gallery. A finger scrolls
         // this element natively; without this the hook's `active` was stale

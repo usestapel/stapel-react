@@ -1,6 +1,6 @@
 {
   "package": "@stapel/listings-react",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "entries": [
     {
       "id": "listings.detail",

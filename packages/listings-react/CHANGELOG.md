@@ -1,5 +1,61 @@
 # @stapel/listings-react
 
+## 0.33.0
+
+### Minor Changes
+
+- The listing page reads like the reference: a title above two columns, a gallery a person can actually open, and the two verbs above the fold
+
+  Four things the owner's comparison against the reference classified filed against this page, all measured rather than preferred.
+
+  **The desktop's reading order.** The title stood INSIDE the reading column,
+  under the gallery, so the one line that says what the page is about arrived
+  after a 4/3 photograph — below the fold at 1440×900 on a listing with a tall
+  picture. `layout="split"` now draws the reference's order: the title (carrying
+  the view count with it) full width, and the two columns under it — photographs
+  left, price + actions + seller right. The breadcrumb above it is the host's; it
+  owns the route. The one-column arm is untouched.
+
+  **`galleryLayout="hero"` — the desktop gallery.** The walk of 2026-09-12 found
+  three absences at once: a grid of equal tiles, no arrows anywhere, and no way to
+  enlarge a photograph at all. On a listing with seven pictures a person could see
+  seven thumbnails of a phone and never one phone. The hero arm is the reference's
+  own anatomy — one large photograph, a filmstrip whose thumbnails change it
+  (`aria-current`, so the mark a reader sees and the one a screen reader hears are
+  one fact), and a lightbox behind a click on the large one: two arrow controls,
+  the two arrow keys, a swipe, and Escape. Focus moves into the lightbox as it
+  opens, Tab is trapped across the whole dialog, and every way out returns focus
+  to the hero that opened it — none of which the dialog underneath does for
+  itself. It is a `<SkinDialog>`, so the theming, the mask and the portal are the
+  substrate's. **The default now depends on `layout`**: `"hero"` under
+  `layout="split"`, `"grid"` otherwise. `layout="split"` is the host stating it
+  granted a desktop, and the desktop's gallery is the hero; a split host that
+  wants the old grid says `galleryLayout="grid"`. The phone's `"strip"` is
+  untouched.
+
+  **The two verbs above the fold.** The canned questions were drawn ABOVE the
+  contact slot, and on a 390px phone four wrapping chips are a row and a half
+  standing between the price and the only two controls a buyer came for — the
+  contact row needed a scroll on every listing. The chips now follow the verbs,
+  which is also the honest order: a chip is a shortcut INTO the conversation the
+  button opens.
+
+  **`asidePlacement="before-actions"`.** The reference's phone order is price,
+  who is selling it, then the two verbs. The two existing placements could only
+  put the seller block under the verbs or a screen further down.
+
+  **And the card photo strip no longer peeks.** Measured on the stand at 390 and
+  at 1024, confirmed by two reviewers: the strip's port was 267 CSS pixels and one
+  slide 245, so the second photograph began at x=253 and fourteen pixels of it
+  were painted between the picture and the card's trailing edge — with the "1 of
+  N" counter and the heart standing on top of that sliver. A feed read as a column
+  of torn images. The peek is a real affordance where `<SkinCarousel>` argues for
+  it (a full-width phone gallery, where the sliver is the only thing saying there
+  is more), and a card is the other case: it already draws dots and a counter, so
+  the same fact was stated twice and only one of the two statements cut a
+  photograph in half. `<ListingPhotoStrip>` passes `peek={false}`; the dots and the
+  counter are unchanged, and the listing page's own gallery is untouched.
+
 ## 0.32.0
 
 ### Minor Changes

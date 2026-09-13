@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "backend": {
     "module": "stapel-listings",
     "contract": ">=0.22 <0.23"
@@ -1153,6 +1153,10 @@
     "listings.detail.edit",
     "listings.detail.expires_at",
     "listings.detail.from_seller",
+    "listings.detail.gallery_close",
+    "listings.detail.gallery_next",
+    "listings.detail.gallery_open",
+    "listings.detail.gallery_prev",
     "listings.detail.load_failed",
     "listings.detail.loading",
     "listings.detail.no_specs",

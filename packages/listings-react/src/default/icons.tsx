@@ -173,3 +173,56 @@ export function BackIcon(): ReactElement {
     </svg>
   );
 }
+
+/**
+ * The lightbox's two arrows — see `<ListingHeroGallery>`.
+ *
+ * A chevron and not an arrow with a shaft: at 16px the shaft is two pixels of
+ * grey and the head is the whole readable shape, which is why every gallery in
+ * the reference set draws one. Both carry `aria-hidden`, because the button
+ * around them states the verb (`listings.detail.gallery_prev` / `_next`) and a
+ * named glyph inside a named control reads the action twice.
+ *
+ * Two components and not one with a `direction` prop: the pair is drawn at two
+ * call sites that never choose between them at runtime, and a boolean would
+ * only move the choice one line further away from the label it has to agree
+ * with.
+ */
+export function GalleryPrevIcon(): ReactElement {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <path d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+/** The forward chevron — see {@link GalleryPrevIcon}. */
+export function GalleryNextIcon(): ReactElement {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-hidden="true"
+    >
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}

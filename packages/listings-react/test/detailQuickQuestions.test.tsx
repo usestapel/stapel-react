@@ -53,13 +53,17 @@ describe("the four questions a buyer starts with", () => {
       "Can I come and see it?",
       "Do you deliver?",
     ]);
-    // Above the door into the conversation, which is what a pressed chip
-    // opens — never under it.
+    // UNDER the door into the conversation, which is what a pressed chip
+    // opens (2026-09-13). They spent a release above it, and on a 390px phone
+    // four wrapping chips are a row and a half standing between the price and
+    // the only two controls a buyer came for — the contact row then needed a
+    // scroll on every listing. A chip is a shortcut INTO the conversation the
+    // button opens, so it cannot usefully stand before the door.
     const contact = screen.getByTestId("listings-detail-contact");
     expect(
-      screen
-        .getByTestId("listings-detail-questions")
-        .compareDocumentPosition(contact) & Node.DOCUMENT_POSITION_FOLLOWING
+      contact.compareDocumentPosition(
+        screen.getByTestId("listings-detail-questions")
+      ) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
     fireEvent.click(chips[1] as HTMLElement);

@@ -63,11 +63,16 @@ describe("the desktop card has the phone card's gallery", () => {
     expect(strip.querySelectorAll("[data-stapel-carousel-slide]")).toHaveLength(3);
   });
 
-  it("peeks and draws dots for more than one photo", () => {
+  it("draws dots for more than one photo, and NO sliver of the next one", () => {
     render(providers(<ListingCard listing={THREE_PHOTOS} href="/l/7" />));
     const strip = screen.getByTestId("listings-card-photos");
     expect(strip.querySelectorAll("[data-stapel-carousel-dot]")).toHaveLength(3);
-    expect(strip.getAttribute("data-stapel-carousel-peek")).not.toBe("0px");
+    // The peek went (2026-09-13): on a card it painted 14-30px of the NEXT
+    // photograph inside the port, under the counter and the heart, and the
+    // card already says "there is more" with the dots and the counter. The
+    // geometry that defect is measured in is `cardPhotoPeek.test.tsx`; this
+    // line is the neighbouring claim, that the dots did not go with it.
+    expect(strip.getAttribute("data-stapel-carousel-peek")).toBe("0px");
   });
 
   it("drops both for a single photo — a sliver of nothing is not an affordance", () => {
