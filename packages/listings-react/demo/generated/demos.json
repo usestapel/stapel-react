@@ -471,13 +471,13 @@
       "variants": [
         {
           "id": "default",
-          "description": "Three photos: the next one peeks at the trailing edge and the dots say how many there are. The peek is the only thing on screen that says there is more, and it is what people swipe at.",
+          "description": "Three photos: the picture fills the strip's whole port and the dots and the counter say how many there are. No sliver of the next slide — on a card that tore the photograph rather than inviting a swipe.",
           "viewport": "phone",
           "step": "three_photos"
         },
         {
           "id": "single",
-          "description": "One photo: no peek and no dots. A sliver of a next slide that does not exist is a strip of dead space, and one dot is not a position.",
+          "description": "One photo: no dots and no counter. One dot is not a position, and a count of one is not news.",
           "viewport": "phone",
           "step": "one_photo"
         },
@@ -490,7 +490,7 @@
       ],
       "source": {
         "file": "demo/ListingPhotoStrip.demo.tsx",
-        "line": 36
+        "line": 42
       }
     },
     {
