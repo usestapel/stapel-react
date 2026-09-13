@@ -12,6 +12,9 @@ Desktop.parameters = { stapel: {"viewport":"desktop","step":"popular-desktop"} }
 export const Responsive = (): ReactElement => renderDemoVariant(demo, "responsive");
 Responsive.storyName = "responsive";
 Responsive.parameters = { stapel: {"viewport":"desktop","step":"popular-responsive"} };
+export const Tabs = (): ReactElement => renderDemoVariant(demo, "tabs");
+Tabs.storyName = "tabs";
+Tabs.parameters = { stapel: {"viewport":"desktop","step":"popular-tabs"} };
 export const NarrowColumn = (): ReactElement => renderDemoVariant(demo, "narrow-column");
 NarrowColumn.storyName = "narrow-column";
 NarrowColumn.parameters = { stapel: {"viewport":"phone","step":"popular-narrow"} };

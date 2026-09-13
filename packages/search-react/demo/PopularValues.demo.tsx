@@ -11,10 +11,12 @@
  * makes neither of them: how many values there is room for, and whether there
  * is a link into the whole control at all.
  */
+import { useState } from "react";
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
 import { useT } from "@stapel/core";
-import { PopularValues } from "../src/default/PopularValues.js";
+import { PopularValues, PopularValuesTabs } from "../src/default/PopularValues.js";
+import type { PopularValuesTab } from "../src/default/PopularValues.js";
 import type { FacetGroup } from "../src/index.js";
 import { SearchSkinHarness } from "./_harness.js";
 import { DEMO_TYPE } from "./fixtures.js";
@@ -71,12 +73,57 @@ function Block(props: {
   );
 }
 
+/**
+ * The band with its heading as a pair of TABS, switching for real.
+ *
+ * The `all` arm is drawn HERE with the same list unfolded, because in a live
+ * deployment the expanded list is frequently the host's own block — which is
+ * the whole reason `<PopularValuesTabs>` is exported separately. The label of
+ * the first tab arrives from the host too: the catalogue declares no plural.
+ */
+function TabbedBlock(): ReactElement {
+  const t = useT();
+  const [active, setActive] = useState<PopularValuesTab>("popular");
+  if (active === "all") {
+    // The host's arm: its own heading is the SAME control, standing over its
+    // own full list, so the way back is on screen there too.
+    return (
+      <>
+        <PopularValuesTabs
+          popularLabel={t("demo.popular.cars")}
+          active="all"
+          onSelect={setActive}
+        />
+        <PopularValues
+          group={makesGroup(t)}
+          onApply={() => undefined}
+          columns="responsive"
+          heading={null}
+        />
+      </>
+    );
+  }
+  return (
+    <PopularValues
+      group={makesGroup(t)}
+      onApply={() => undefined}
+      columns="responsive"
+      limit={6}
+      popularLabel={t("demo.popular.cars")}
+      onShowAll={() => {
+        setActive("all");
+      }}
+    />
+  );
+}
+
 export default defineDemo({
   id: "search.popular-values",
   title: "Popular values",
   description:
     "The head of one facet as a multi-column list of value + count, each line applying that filter. The numbers are the answer's own drill-down counts — the same ones the checkbox rows carry — so a value cannot read 802 here and 93 in the panel. Values with no evidence behind them are dropped rather than printed with a blank where the number belongs: the block IS the numbers. Whether a phone has room for it is the page's decision and arrives as the `hidden` prop, never as a media query inside.",
   component: PopularValues,
+  covers: ["PopularValuesTabs"],
   tokens: ["text-muted"],
   variants: {
     desktop: {
@@ -98,6 +145,17 @@ export default defineDemo({
       render: () => (
         <SearchSkinHarness search={`type=${DEMO_TYPE}`}>
           <Block columns="responsive" showAll />
+        </SearchSkinHarness>
+      ),
+    },
+    tabs: {
+      description:
+        "The heading as a segmented control: the section's own name beside «all», both always on screen, the selected one in the text colour and the other in the brand's. It is a real tablist — one tab stop, arrows between the tabs, `aria-selected` as the state — because two buttons that recolour each other are, to a screen reader, two unrelated buttons. Press either.",
+      viewport: "desktop",
+      step: "popular-tabs",
+      render: () => (
+        <SearchSkinHarness search={`type=${DEMO_TYPE}`}>
+          <TabbedBlock />
         </SearchSkinHarness>
       ),
     },

@@ -465,7 +465,9 @@
       "title": "Popular values",
       "description": "The head of one facet as a multi-column list of value + count, each line applying that filter. The numbers are the answer's own drill-down counts — the same ones the checkbox rows carry — so a value cannot read 802 here and 93 in the panel. Values with no evidence behind them are dropped rather than printed with a blank where the number belongs: the block IS the numbers. Whether a phone has room for it is the page's decision and arrives as the `hidden` prop, never as a media query inside.",
       "component": "PopularValues",
-      "covers": [],
+      "covers": [
+        "PopularValuesTabs"
+      ],
       "tokens": [
         "text-muted"
       ],
@@ -483,6 +485,12 @@
           "step": "popular-responsive"
         },
         {
+          "id": "tabs",
+          "description": "The heading as a segmented control: the section's own name beside «all», both always on screen, the selected one in the text colour and the other in the brand's. It is a real tablist — one tab stop, arrows between the tabs, `aria-selected` as the state — because two buttons that recolour each other are, to a screen reader, two unrelated buttons. Press either.",
+          "viewport": "desktop",
+          "step": "popular-tabs"
+        },
+        {
           "id": "narrow-column",
           "description": "A page with less room says so: six values in two columns and no link, because a link that goes nowhere is worse than a block that stops.",
           "viewport": "phone",
@@ -491,7 +499,7 @@
       ],
       "source": {
         "file": "demo/PopularValues.demo.tsx",
-        "line": 74
+        "line": 120
       }
     },
     {

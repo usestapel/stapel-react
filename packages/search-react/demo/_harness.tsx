@@ -145,6 +145,11 @@ const demoBundleEn: Record<string, string> = {
   // `translatable: true` for this fixture, which is the arm a dictionary
   // facet takes on a real deployment.
   "demo.feature.vendor": "Make",
+  // The first tab of the band's heading — the SECTION named in the form the
+  // sentence needs. It is a host string on a real deployment for the reason
+  // `PopularValuesTabsProps.popularLabel` argues: the catalogue declares a
+  // category name and no plural, no case and no gender.
+  "demo.popular.cars": "Popular passenger cars",
   "demo.make.toyota": "Toyota",
   "demo.make.bmw": "BMW",
   "demo.make.honda": "Honda",
