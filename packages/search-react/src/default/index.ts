@@ -189,13 +189,10 @@ export type { ColorAxisLike, TermExtra } from "./swatches.js";
 export {
   PopularValues,
   popularOptions,
-  popularValuesLadderCss,
-  POPULAR_VALUES_CLASS,
   POPULAR_VALUES_COLUMNS,
-  POPULAR_VALUES_LADDER,
+  POPULAR_VALUES_COLUMN_GAP,
   POPULAR_VALUES_LIMIT,
   POPULAR_VALUES_MAX_COLUMNS,
-  POPULAR_VALUES_STYLE_HREF,
   POPULAR_VALUE_COLUMN_WIDTH,
 } from "./PopularValues.js";
 export type { PopularValuesProps } from "./PopularValues.js";

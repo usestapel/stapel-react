@@ -28,7 +28,7 @@ import {
   SearchPage,
   SortSelect,
   chipRowMinHeight,
-  popularValuesLadderCss,
+  POPULAR_VALUE_COLUMN_WIDTH,
 } from "../src/default/index.js";
 import type { FacetGroup, SearchParamsAdapter } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
@@ -186,7 +186,7 @@ describe("<PopularValues columns=\"responsive\">", () => {
     expect(block.className).not.toContain("stapel-popular-values");
   });
 
-  it("climbs a 1/2/3/4 ladder by the width of the BLOCK, not of the window", () => {
+  it("asks the ELEMENT how many columns fit, not a ladder of window widths", () => {
     render(
       <TestHarness server={serverWithFacets()}>
         <PopularValues group={MAKES} columns="responsive" onApply={() => undefined} />
@@ -194,27 +194,20 @@ describe("<PopularValues columns=\"responsive\">", () => {
     );
     const block = screen.getByTestId("popular-values-make");
     expect(block.getAttribute("data-columns")).toBe("responsive");
-    expect(block.className).toContain("stapel-popular-values");
 
-    const css = popularValuesLadderCss();
-    // The container is what decides: this block sits in the results column,
-    // which on a 1440px desktop is the window minus a 280px rail. A media
-    // query would give it four columns at a width it never has.
-    expect(css).toContain("container-type:inline-size");
-    expect(css).toContain("column-count:1");
-    for (const columns of [2, 3, 4]) {
-      expect(css).toContain(`column-count:${String(columns)}`);
-    }
-    // Ascending, so the widest matching rung wins by ordinary cascade order.
-    const rungs = [...css.matchAll(/min-width: (\d+)px/g)].map((m) =>
-      Number(m[1])
-    );
-    expect(rungs).toEqual([...rungs].sort((a, b) => a - b));
-    // …and no inline `column-count`, which would beat every rung.
-    expect(
-      (block.querySelector("[data-popular-columns]") as HTMLElement | null)?.style
-        .columnCount
-    ).toBeFalsy();
+    // The container is what decides, and native multicol asks it directly. The
+    // ladder this replaced asked the token WINDOW breakpoints — and this block
+    // is the window less a 280px rail less the gap, so its top rung (1200px)
+    // could not fire in a 1088px results column at 1440.
+    const box = screen.getByTestId("popular-columns-make");
+    expect(box.style.columnWidth).toBe(`${String(POPULAR_VALUE_COLUMN_WIDTH)}px`);
+    expect(box.style.columnCount).toBeFalsy();
+    // Sized to the pane, not to its words: `fit-content` is what left 711px of
+    // white beside a 377px box on the live storefront.
+    expect(box.style.inlineSize).toBeFalsy();
+    // No sheet and no container-query hook left behind.
+    expect(document.querySelector("style[href='stapel-popular-values']")).toBeNull();
+    expect(block.className).not.toContain("stapel-popular-values");
   });
 });
 

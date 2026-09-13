@@ -29,7 +29,7 @@
 import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Flex, Typography } from "antd";
 import { useT } from "@stapel/core";
-import { breakpoints, spacing } from "@stapel/tokens";
+import { spacing } from "@stapel/tokens";
 import {
   POINTER_FOCUS,
   POINTER_FOCUS_STYLE_HREF,
@@ -41,79 +41,63 @@ import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
 /** How many values the block prints before the link into the full control. */
 export const POPULAR_VALUES_LIMIT = 12;
 
-/** How many columns the list flows into. Three fills a desktop content column
- * without turning a make into a two-line wrap. */
+/** How many columns the list flows into when a host names a number. Three
+ * fills a desktop content column without turning a make into a two-line wrap. */
 export const POPULAR_VALUES_COLUMNS = 3;
 
 /**
- * The ceiling on columns, whatever a host or the ladder asks for.
+ * The ceiling on columns a HOST may ask for.
  *
- * Past four the block stops being a table of contents and becomes a grid of
- * two-word cells: each column is one make and one number, and a fifth column
- * on a 1100px results pane puts 60px of air between «Toyota 4» and the next
- * make. Four is where the density still reads as a list.
+ * Past four a block whose width is fixed by its words stops being a table of
+ * contents and becomes a grid of two-word cells: each column is one make and
+ * one number, and a fifth column puts 60px of air between «Toyota 4» and the
+ * next make. Four is where that density still reads as a list.
+ *
+ * It governs the numeric arm ONLY, and since 0.45 that is the whole of its
+ * job. The responsive arm has no count to cap and needs none — see
+ * {@link POPULAR_VALUE_COLUMN_WIDTH}: there the MEASURE is the ceiling, so a
+ * column can never be narrower than a value and its count however many of them
+ * the pane holds.
  */
 export const POPULAR_VALUES_MAX_COLUMNS = 4;
 
 /**
- * The width one column of this block needs: a make and its count, on one line,
- * at the default type step. «Ford 1 204» is the measure; below it a value
- * wraps under its own number and the block stops being scannable.
+ * The minimum measure one column of this block needs, and the whole of the
+ * responsive arm's layout input.
+ *
+ * `column-width` is a MINIMUM, not a width: the browser fits as many columns
+ * of at least this measure as the element's own width allows and then widens
+ * them to fill it. That is what makes the number a ceiling on density as well
+ * as a floor on legibility — no pane, however wide, can produce a column
+ * narrower than this.
+ *
+ * ── 150, and it is measured rather than reasoned ──────────────────────────
+ *
+ * It was 200, declared as the measure «Ford 1 204» needs. Swept in a real
+ * browser over the live twelve makes and over a worst case of the longest make
+ * on the stand with a four-digit count, at this gap:
+ *
+ *   200 → 4 columns in the storefront's 1088px pane, 3 rows
+ *   170 → 4 columns, 3 rows
+ *   160 → 4 columns, 3 rows
+ *   150 → 6 columns, 2 rows
+ *
+ * 150 is the knee, and nothing wraps at it: because the browser widens the
+ * columns to fill, the USED column is 155px in that pane and never below 152px
+ * at any width swept. The old claim that a value wraps under its own number
+ * below 200 does not hold at the default type step.
  */
-export const POPULAR_VALUE_COLUMN_WIDTH = 200;
-
-/** The class the container query is hung on. */
-export const POPULAR_VALUES_CLASS = "stapel-popular-values";
-
-/** The `href` the hoisted ladder sheet is deduplicated by (React 19). */
-export const POPULAR_VALUES_STYLE_HREF = "stapel-popular-values";
+export const POPULAR_VALUE_COLUMN_WIDTH = 150;
 
 /**
- * The ladder `columns="responsive"` climbs — one rung per column, by the width
- * of the BLOCK rather than of the window.
+ * The gutter between columns — one step up the scale from the row's own, so a
+ * new column reads as a column rather than as a wrapped line.
  *
- * The container is what decides, and it has to be: this block sits in the
- * results column, which on a 1440px desktop is the window minus a 280px rail
- * minus the gap. A media query would give it four columns at a width it never
- * has, and one column inside a narrow host container that happens to sit on a
- * wide screen. `container-type: inline-size` plus `@container` asks the only
- * question that has an answer here — how wide is this block.
- *
- * The rungs: one column while the block is narrower than two of
- * {@link POPULAR_VALUE_COLUMN_WIDTH}, then the two token breakpoints for the
- * third and fourth. `tablet` and `desktop` are `@stapel/tokens`' own numbers,
- * and using them here is the same statement they make everywhere else — this
- * is where a layout of this density gains a column.
+ * Exported because it is half of the arithmetic that decides how many columns
+ * a pane produces (`floor((available + gap) / (width + gap))`), and a host
+ * sizing a reservation for this block should not have to re-measure it.
  */
-export const POPULAR_VALUES_LADDER: readonly {
-  readonly minInlineSize: number;
-  readonly columns: number;
-}[] = [
-  { minInlineSize: POPULAR_VALUE_COLUMN_WIDTH * 2, columns: 2 },
-  { minInlineSize: breakpoints.tablet, columns: 3 },
-  { minInlineSize: breakpoints.desktop, columns: 4 },
-];
-
-/**
- * The ladder as CSS. One `@container` rule per rung, ascending, so the widest
- * matching rung is the one that wins by ordinary cascade order.
- *
- * Emitted as a hoisted `<style>` rather than an inline style because a
- * container query is unreachable from one — the same reason `<SearchPage>`
- * hoists its rail sheet.
- */
-export function popularValuesLadderCss(): string {
-  const block = `.${POPULAR_VALUES_CLASS}`;
-  return [
-    `${block}{container-type:inline-size}`,
-    `${block}>[data-popular-columns]{column-count:1}`,
-    ...POPULAR_VALUES_LADDER.map(
-      (rung) =>
-        `@container (min-width: ${String(rung.minInlineSize)}px)` +
-        `{${block}>[data-popular-columns]{column-count:${String(rung.columns)}}}`
-    ),
-  ].join("\n");
-}
+export const POPULAR_VALUES_COLUMN_GAP: number = spacing[6];
 
 /** A value with no evidence behind it is not a popular value. Uncounted
  * options carry `count: null` and are dropped here rather than printed with a
@@ -133,32 +117,55 @@ export function popularOptions(
 }
 
 /**
- * The columns box: as wide as its WORDS, and no wider.
+ * The columns box, in its two arms.
  *
- * Multi-column layout divides the container, so three columns of a block that
- * is handed the whole results pane are three ~360px columns holding «Chery 5»
- * — which on the storefront printed a make, then 300px of nothing, then the
- * next make. The owner read it as broken, and it is: nothing about this block
- * wants the pane's width, it wants its own.
+ * ── The responsive arm: a block, and a MEASURE ────────────────────────────
  *
- * `inline-size: fit-content` is the whole fix. A multi-column box's max-content
- * size is `columns × (the widest item) + gaps` — exactly the block's natural
- * measure — and `fit-content` takes that unless the available space is
- * smaller, in which case the columns shrink instead of overflowing. The box
- * stays a block, so it stays flush with the pane's leading edge; the ladder in
- * the sheet still decides HOW MANY columns, and each one is now sized by the
- * longest make in it.
+ * `column-width` asks the element's own width how many columns fit. That is
+ * the whole mechanism — no container query, no rungs, no hoisted sheet, and no
+ * number that has to be kept in step with a layout this component cannot see.
+ * It is also what the expanded band next door already does, so the two arms of
+ * one control stop answering "how many columns" two different ways.
  *
- * The gap is one step up the scale from the row's own: at content width the
- * columns sit close enough that the old 16px read as a wrapped line rather
- * than as a new column.
+ * What it replaced was a container-query ladder whose rungs were the token
+ * WINDOW breakpoints — and this block is the window less a 280px rail less the
+ * gap, so at 1440 it is 1088px wide and the rung that grants a fourth column
+ * (1200px) could never fire. The ladder's own doc argued that a media query
+ * would be wrong here for precisely that reason, and then used the window's
+ * numbers to measure the container.
+ *
+ * `inline-size: fit-content` is deliberately NOT here, and its absence is
+ * load-bearing twice over. It sized the box to its words — 377px of a 1088px
+ * pane on the live storefront, 711px of white beside twelve values stacked
+ * four deep — and it is measurably incompatible with a column measure: set
+ * together, the box collapses to a single column. The defect `fit-content` was
+ * added for (three ~360px columns each holding «Chery 5») cannot arise here,
+ * because a column is never wider than the pane divided by however many
+ * {@link POPULAR_VALUE_COLUMN_WIDTH} fit in it.
+ *
+ * `column-fill: balance` spreads the rows evenly over the columns the width
+ * produces, rather than filling the first column to the box's block-size.
+ *
+ * ── The numeric arm: unchanged, words-wide ────────────────────────────────
+ *
+ * A host that names a number has decided its own layout, and a count divides
+ * the container — so three columns of a box handed the whole results pane are
+ * three ~360px columns holding «Chery 5», a make and then 300px of nothing.
+ * `fit-content` is the cure there and stays: the box takes its natural measure
+ * (`columns × widest item + gaps`) unless the space is smaller, in which case
+ * the columns shrink rather than overflow.
  */
 function COLUMNS(count: number | undefined): CSSProperties {
+  if (count === undefined) {
+    return {
+      columnWidth: POPULAR_VALUE_COLUMN_WIDTH,
+      columnGap: POPULAR_VALUES_COLUMN_GAP,
+      columnFill: "balance",
+    };
+  }
   return {
-    // The rungs live in the sheet; an inline `column-count` would win against
-    // every one of them, so the responsive arm states none.
-    ...(count === undefined ? {} : { columnCount: count }),
-    columnGap: spacing[6],
+    columnCount: count,
+    columnGap: POPULAR_VALUES_COLUMN_GAP,
     inlineSize: "fit-content",
     maxInlineSize: "100%",
   };
@@ -186,10 +193,12 @@ export interface PopularValuesProps {
   /**
    * How many columns. Default {@link POPULAR_VALUES_COLUMNS}.
    *
-   * `"responsive"` climbs {@link POPULAR_VALUES_LADDER} by the width of the
-   * BLOCK — 1, 2, 3, 4 — instead of taking one number for every surface. The
-   * numeric form stays, and stays the default: a host that has already decided
-   * its layout should not have that decision taken back by a query.
+   * `"responsive"` hands the question to the ELEMENT: native multicol over
+   * {@link POPULAR_VALUE_COLUMN_WIDTH} fits as many columns as this block's own
+   * width allows, at every width, with no rungs to keep in step with a layout
+   * this component cannot see. The numeric form stays, and stays the default:
+   * a host that has already decided its layout should not have that decision
+   * taken back.
    */
   readonly columns?: number | "responsive";
   /** The block's heading. Defaults to the group's own label; `null` draws
@@ -213,7 +222,6 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
     <Flex
       vertical
       gap={spacing[2]}
-      {...(responsive ? { className: POPULAR_VALUES_CLASS } : {})}
       data-testid={`popular-values-${group.slug}`}
       data-label-source={group.labelSource}
       data-columns={responsive ? "responsive" : String(props.columns ?? POPULAR_VALUES_COLUMNS)}
@@ -222,19 +230,10 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
       <style href={POINTER_FOCUS_STYLE_HREF} precedence="default">
         {pointerFocusCss()}
       </style>
-      {/* The ladder, hoisted and deduped by `href`: a container query has no
-          inline form. Only where it is asked for — a block with a fixed
-          column count needs no sheet at all. */}
-      {responsive && (
-        <style href={POPULAR_VALUES_STYLE_HREF} precedence="default">
-          {popularValuesLadderCss()}
-        </style>
-      )}
       {props.heading !== null && (
         <Typography.Text strong>{props.heading ?? group.label}</Typography.Text>
       )}
       <div
-        {...(responsive ? { "data-popular-columns": "" } : {})}
         data-testid={`popular-columns-${group.slug}`}
         style={COLUMNS(
           responsive

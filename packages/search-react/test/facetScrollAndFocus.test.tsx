@@ -28,7 +28,7 @@ import {
   FacetGroupControl,
   POINTER_FOCUS_ATTR,
   POINTER_FOCUS_CLASS,
-  POPULAR_VALUES_LADDER,
+  POPULAR_VALUE_COLUMN_WIDTH,
   POPULAR_VALUES_MAX_COLUMNS,
   PopularValues,
   RAIL_SCROLLBAR_CLASS,
@@ -244,7 +244,7 @@ describe("the popular-values block is as wide as its words", () => {
     expect(count.textContent).toBe("6");
   });
 
-  it("lets the ladder decide the responsive arm, and it tops out at four too", () => {
+  it("lets the ELEMENT decide the responsive arm, and caps it by measure", () => {
     mount(
       <PopularValues
         group={vendorGroup()}
@@ -252,11 +252,14 @@ describe("the popular-values block is as wide as its words", () => {
         columns="responsive"
       />
     );
-    // No inline `column-count`: an inline one would beat every rung in the
-    // sheet. The box is still content-sized.
+    // No count and no content sizing: the block fills its pane and the measure
+    // decides how many columns that buys. The ceiling here is
+    // `POPULAR_VALUE_COLUMN_WIDTH`, not a number of columns — however wide the
+    // pane, a column cannot be narrower than a value and its count.
     expect(styleOf("popular-columns-vendor")).not.toContain("column-count");
-    expect(styleOf("popular-columns-vendor")).toContain("inline-size: fit-content");
-    const top = POPULAR_VALUES_LADDER[POPULAR_VALUES_LADDER.length - 1];
-    expect(top?.columns).toBe(POPULAR_VALUES_MAX_COLUMNS);
+    expect(styleOf("popular-columns-vendor")).not.toContain("fit-content");
+    expect(styleOf("popular-columns-vendor")).toContain(
+      `column-width: ${String(POPULAR_VALUE_COLUMN_WIDTH)}px`
+    );
   });
 });
