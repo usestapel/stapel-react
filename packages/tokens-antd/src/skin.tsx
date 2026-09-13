@@ -143,6 +143,15 @@ export {
 } from "./skin/carousel.js";
 export type { SkinCarouselProps } from "./skin/carousel.js";
 export { visuallyHidden } from "./skin/visuallyHidden.js";
+export {
+  IDENTITY_TINT_DISC_SHADE,
+  IDENTITY_TINT_FAMILIES,
+  IDENTITY_TINT_INK_SHADE,
+  identityTint,
+  identityTintFamily,
+  useIdentityTint,
+} from "./skin/identityTint.js";
+export type { IdentityTint, IdentityTintFamily } from "./skin/identityTint.js";
 export { useElementWidth } from "./skin/elementWidth.js";
 export type { ElementWidthOptions, ElementWidthReading } from "./skin/elementWidth.js";
 export { ErrorAlert, EmptyState, LoadBoundary, LoadList, ACTION_STACK_BELOW } from "./skin/states.js";
