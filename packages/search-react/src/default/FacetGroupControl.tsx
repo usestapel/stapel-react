@@ -1148,13 +1148,34 @@ export function facetGroupReservedHeight(input: {
   readonly open: boolean;
   /** Is the "Show all (N)" button drawn under the rows? */
   readonly folded: boolean;
+  /**
+   * WHICH FACE a dictionary is wearing. Meaningless for the other shapes.
+   *
+   * The sentence above — "a dictionary's closed face is one field however many
+   * values the vocabulary holds" — stopped being true of the desktop rail in
+   * 0.47, where the default became the OPEN body: the box that finds a value,
+   * the rows under it and the fold. A reservation still stating one field's
+   * height was a floor ~280px under the real box on every category leaf, which
+   * is not a hole (a low floor is a no-op) but is no protection either, and
+   * protecting the first mount is the only reason this function exists.
+   *
+   * Omitted reads as the closed face, which is what every caller before 0.47
+   * meant and what `"field"` and `"sheet"` still draw.
+   */
+  readonly dictionaryMode?: "field" | "inline" | "sheet";
 }): number {
   const gap = input.shape === "segmented" ? spacing[2] : spacing[1];
   const parts: number[] = [];
   if (input.heading) parts.push(FACET_HEADING_HEIGHT);
   if (input.open) {
     if (input.shape === "dictionary") {
+      // The box, in either face. The inline face adds what stands under it.
       parts.push(controls.height);
+      if (input.dictionaryMode === "inline") {
+        for (let row = 0; row < input.rows; row += 1) {
+          parts.push(FACET_OPTION_ROW_HEIGHT);
+        }
+      }
     } else if (input.shape === "segmented") {
       parts.push(
         Math.ceil(Math.max(input.rows, 1) / FACET_PILLS_PER_ROW) *
@@ -1165,7 +1186,14 @@ export function facetGroupReservedHeight(input: {
         parts.push(FACET_OPTION_ROW_HEIGHT);
       }
     }
-    if (input.folded) parts.push(FACET_HEADING_HEIGHT);
+    // The fold's own link. A closed dictionary face has none — whatever is
+    // hidden is hidden behind the field, not behind a button.
+    if (
+      input.folded &&
+      (input.shape !== "dictionary" || input.dictionaryMode === "inline")
+    ) {
+      parts.push(FACET_HEADING_HEIGHT);
+    }
   }
   if (parts.length === 0) return 0;
   const gaps = (parts.length - 1) * gap;
@@ -1306,12 +1334,21 @@ export function FacetGroupControl(
      the MEASURED one — this box, on this deployment, at this width — is added
      on top of it while an answer is in flight, and released with the answer.
      Zero is not a reservation and is never written. */
+  /* A DICTIONARY'S ROWS ARE THE BODY'S, NOT THIS COMPONENT'S. The outer fold
+     (`shown`/`folded` above) governs the checkbox and pill shapes; the inline
+     dictionary body keeps its own list and its own "Show all", capped at the
+     same `visible` number, so the reservation has to read that and not the
+     outer slice — which for a dictionary is every option there is. */
+  const dictionaryVisible = Math.min(limit ?? FACET_VISIBLE_OPTIONS, nodes.length);
   const declared = facetGroupReservedHeight({
     shape,
-    rows: shown.length,
+    rows: shape === "dictionary" ? dictionaryVisible : shown.length,
     heading: props.heading !== false,
     open,
-    folded,
+    folded: shape === "dictionary" ? nodes.length > dictionaryVisible : folded,
+    ...(props.dictionaryMode !== undefined
+      ? { dictionaryMode: props.dictionaryMode }
+      : {}),
   });
   const measured = settledHeight.current;
   /* The declared box stands ALWAYS — it is the rows this group is drawing, so

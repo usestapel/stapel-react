@@ -28,7 +28,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { FeatureDef } from "@stapel/attributes-react";
-import { SearchPage } from "../src/default/index.js";
+import { SearchPage, facetGroupReservedHeight } from "../src/default/index.js";
 import type { SearchParamsAdapter } from "../src/index.js";
 import { searchResponse } from "./fixtures.js";
 import {
@@ -156,5 +156,53 @@ describe("the desktop rail's dictionary axis", () => {
     // live behind the sheet there, and the dictionary keeps the picker the
     // composer uses for the same vocabulary.
     expect(screen.queryByTestId("facet-dictionary-search-vendor")).toBeNull();
+  });
+});
+
+/**
+ * THE BOX THE OPEN AXIS DECLARES BEFORE ANYTHING HAS BEEN MEASURED (p41).
+ *
+ * `facetGroupReservedHeight` is the floor a group stands on from the frame it
+ * mounts in, and it stated ONE FIELD's height for every dictionary — true of
+ * the closed face and ~280px under the open one. A floor that low is not a
+ * hole, but it is no protection either, and protecting the first mount is the
+ * only reason the function exists.
+ *
+ * WHAT THIS ASSERTS: the arithmetic, against a number measured in headless
+ * Chromium on the real component in a 280px column — 310px for a heading, the
+ * box, eight rows and the fold. jsdom lays nothing out, so the 310 is NOT a
+ * jsdom measurement and this test does not pretend otherwise: it pins the
+ * declaration to the browser fact, and a rewrite that drifted from either
+ * would have to change this line.
+ */
+describe("the box an inline dictionary declares", () => {
+  it("covers the box, the rows and the fold — not just the field", () => {
+    const declared = facetGroupReservedHeight({
+      shape: "dictionary",
+      rows: 8,
+      heading: true,
+      open: true,
+      folded: true,
+      dictionaryMode: "inline",
+    });
+    // Measured in Chromium at a 280px rail: 310. The declaration is a FLOOR,
+    // so it must land at or a shade under the real box and never over it.
+    expect(declared).toBeLessThanOrEqual(310);
+    expect(declared).toBeGreaterThan(280);
+  });
+
+  it("still states one field for the closed faces", () => {
+    for (const mode of ["field", "sheet", undefined] as const) {
+      expect(
+        facetGroupReservedHeight({
+          shape: "dictionary",
+          rows: 8,
+          heading: true,
+          open: true,
+          folded: true,
+          ...(mode !== undefined ? { dictionaryMode: mode } : {}),
+        })
+      ).toBeLessThan(80);
+    }
   });
 });
