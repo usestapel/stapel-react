@@ -176,6 +176,39 @@ export const FACETABLE_FEATURE_TYPES: readonly string[] = [
 ];
 
 /**
+ * `config.facet: false` — the catalogue's own buyer-facet OPT-OUT (D74).
+ *
+ * A category's feature list is two documents at once: the seller's form and
+ * the buyer's filter panel. Most fields are honestly both. A few are neither —
+ * the parcel's weight, length, height and width, the wholesale block, the
+ * packing quantity — because they are commerce metadata the seller states
+ * about the SALE rather than axes anybody shops along. No library can infer
+ * that from the type: the very same `int` is a real axis one category over.
+ * So the catalogue says it, in one key, and `stapel-search` reads it
+ * (`_is_facetable`) off the FeatureDef and then off its `config`, defaulting
+ * to TRUE so a catalogue that says nothing keeps today's behaviour.
+ *
+ * This is that reader, spelled the same way and in the same order, because
+ * the client cannot always wait for the server to apply it. The discrete half
+ * is built from the ANSWER, which the engine has already filtered; the range
+ * half is built from the CATEGORY SCHEMA, which nobody has. On a live laptops
+ * leaf that difference was six from/to rows of shipping and wholesale
+ * paperwork over thirteen second-hand laptops, every one of the six carrying
+ * `facet: false` in the catalogue the page was rendering.
+ *
+ * Read through `config` as well as off the feature: the canon leaves `config`
+ * opaque and the boundary serving it may lift the key later, so both spellings
+ * answer today and the same code answers afterwards.
+ */
+export function featureAllowsFaceting(feature: FeatureDef | undefined): boolean {
+  if (feature === undefined) return true;
+  for (const flag of [feature["facet"], featureConfig(feature)["facet"]]) {
+    if (flag !== undefined && flag !== null) return Boolean(flag);
+  }
+  return true;
+}
+
+/**
  * Can a person filter by the slug this feature def describes?
  *
  * **A missing feature def is not a "no".** `categoryFeatures` is an OPTIONAL
@@ -188,9 +221,17 @@ export const FACETABLE_FEATURE_TYPES: readonly string[] = [
  *
  * The same reasoning covers a def with no `config.type` at all: an untyped
  * feature is a def that says nothing, and nothing is not a verdict.
+ *
+ * `facet: false` is the one thing here that is not a type rule — it is the
+ * catalogue naming an axis and disowning it, which is exactly the shape this
+ * predicate already honours. The engine applies it before the buckets are
+ * sent, so on a current server this changes nothing; it is what answers a
+ * stale index or an older engine. An APPLIED filter still outranks it, in
+ * `buildFacetGroups`, the same way it outranks the type table.
  */
 export function isFacetableFeature(feature: FeatureDef | undefined): boolean {
   if (feature === undefined) return true;
+  if (!featureAllowsFaceting(feature)) return false;
   const type = featureType(feature);
   if (type === undefined) return true;
   return FACETABLE_FEATURE_TYPES.includes(type);

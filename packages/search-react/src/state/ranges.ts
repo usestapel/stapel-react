@@ -68,6 +68,7 @@ import type {
   SearchRange,
 } from "../api/types.js";
 import { withheldSlugs } from "../api/types.js";
+import { featureAllowsFaceting } from "./facets.js";
 
 /**
  * Value types a numeric range row is drawn for (`config.type`, the
@@ -370,6 +371,12 @@ export function isRangeFeature(feature: FeatureDef): boolean {
  * seven numeric attributes a phone category happens to declare are all
  * shipping and wholesale inputs; the one number a phone buyer narrows by is
  * the price, and it belongs above them.
+ *
+ * That sentence stood here for several releases as an observation, and it was
+ * a BUG REPORT: those inputs are not the buyer's to see at all, and the
+ * catalogue had said so all along. `facet: false` is the opt-out and the loop
+ * below now reads it (`featureAllowsFaceting`) — see the note at the push.
+ * Ordering was the wrong cure for a row that should not be drawn.
  */
 export function buildRangeGroups(
   input: BuildRangeGroupsInput
@@ -393,6 +400,18 @@ export function buildRangeGroups(
     // server does with it (`index_schema.CORE_RANGE_FIELDS` reserves the
     // slug), so drawing both would put two controls over one filter.
     if (core.has(feature.slug)) continue;
+    // THE CATALOGUE'S OWN OPT-OUT, on the one path that never asked for it
+    // (D74). `facet: false` says the seller states this about the SALE — the
+    // parcel's weight, the minimum order — and on a live laptops leaf the six
+    // features carrying it were six of the seven from/to rows a buyer of
+    // second-hand laptops was offered. The discrete half is built from the
+    // ANSWER, which the engine has already filtered by this flag; this half is
+    // built from the raw schema, so it applies the flag itself. A slug this
+    // answer MEASURED is exempt — the server publishing bounds for it is the
+    // server saying it counted it — and a slug the URL constrains gets its row
+    // from the state loop below, so a stale link keeps the control that
+    // clears it.
+    if (!reported.has(feature.slug) && !featureAllowsFaceting(feature)) continue;
     // The schema's own numeric types, PLUS anything this answer measured: a
     // vocabulary-backed `year` is a choice in the catalogue and a from/to on
     // the page, and the server measuring it is the fact that settles it.

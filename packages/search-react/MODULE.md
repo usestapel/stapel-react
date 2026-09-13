@@ -248,6 +248,28 @@ vocabulary-backed one, whose control is a field over a dictionary.
 The rule is the OPTION LIST's. Count-bearing controls a host composes itself —
 partition chips, a vocabulary band — print whatever the host rules they print.
 
+### And an axis the catalogue disowns is not drawn at all
+
+`config.facet: false` is the catalogue's own buyer-facet opt-out (D74): the
+parcel's weight, length, height and width, the wholesale block, the packing
+quantity — commerce metadata the seller states about the SALE rather than an
+axis anybody shops along. No library can infer it from the type, because the
+very same `int` is `mileage` one category over, so the catalogue says it in one
+key and `stapel-search` reads it (`_is_facetable`) off the feature and then off
+its config, defaulting to true.
+
+Since 0.44 this pair reads it the same way, in `featureAllowsFaceting`. The
+discrete half never needed it — those groups are built from the ANSWER, which
+the engine has already filtered — but the RANGE half is built from the raw
+category schema, and it pushed every numeric feature as a from/to row without
+ever asking. On the live laptops leaf that was six of the seven rows a buyer of
+second-hand laptops was offered, and on the committed catalogue it is 15,121
+seller-only numeric occurrences across 2,642 leaves. Two exemptions: a slug
+THIS ANSWER measured (`facet_meta.ranges` — the server publishing bounds is the
+server saying it counted it), and a slug the URL constrains, which keeps the
+row that clears it. The flag is honoured on the discrete half too, where it is
+the belt against a stale index rather than the fix.
+
 ## The chip row's order is the row's product
 
 At 390px about four chips fit before the fold. On a live phone category the
@@ -255,9 +277,8 @@ first seven were battery health, four parcel dimensions and two wholesale
 counts — numeric attributes the category happens to declare, drawn ahead of the
 price, the condition and the vendor.
 
-That is an ordering defect and it is fixed as one. Nothing in a feature def
-separates `akb` from `weight_for_delivery`, and the next category's `int`
-attribute is `mileage`, so `orderChipFilters` re-ranks and deletes nothing:
+That is an ordering defect in the part that survives, and it is fixed as one —
+`orderChipFilters` re-ranks and deletes nothing:
 
 1. the category chip, then the location chip — the two host-slot filters;
 2. everything APPLIED, in band order — a constraint you set must be reachable

@@ -137,6 +137,7 @@ export {
   facetGroupOfferableOptions,
   facetOptionIsOfferable,
   facetOptionLabel,
+  featureAllowsFaceting,
   isFacetableFeature,
   orderFacetGroupsBySchema,
 } from "./state/facets.js";
