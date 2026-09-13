@@ -93,10 +93,17 @@ import type { ThemeModeProp } from "./types.js";
  *
  * These three names stay as aliases because this file's tests and a reader
  * looking for "the feed card's clamp" both expect them here.
+ *
+ * They are re-export bindings rather than `const` copies: under
+ * `--isolatedDeclarations` the declaration emitter types each export from that
+ * export alone, and `const FEED_TITLE_CLASS = TITLE_CLAMP_CLASS` gives it
+ * nothing to go on. An aliased re-export carries the original's type with it.
  */
-export const FEED_TITLE_CLASS = TITLE_CLAMP_CLASS;
-export const FEED_CARD_STYLE_HREF = TITLE_CLAMP_STYLE_HREF;
-export const feedCardCss = titleClampCss;
+export {
+  TITLE_CLAMP_CLASS as FEED_TITLE_CLASS,
+  TITLE_CLAMP_STYLE_HREF as FEED_CARD_STYLE_HREF,
+  titleClampCss as feedCardCss,
+} from "./titleClamp.js";
 
 /** The tile. `position: relative` is what the heart and the badge overlay are
  * pinned to; `minWidth: 0` keeps a long word inside its grid track. */
@@ -166,8 +173,8 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
       <style href={CARD_TARGET_STYLE_HREF} precedence="default">
         {cardTargetCss()}
       </style>
-      <style href={FEED_CARD_STYLE_HREF} precedence="default">
-        {feedCardCss()}
+      <style href={TITLE_CLAMP_STYLE_HREF} precedence="default">
+        {titleClampCss()}
       </style>
       <div
         style={TILE}
@@ -200,7 +207,7 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
             {/* Title before price: on a feed a person is browsing, not
                 comparing — the ref's order, and the reverse of the SERP's. */}
             <Typography.Text
-              className={FEED_TITLE_CLASS}
+              className={TITLE_CLAMP_CLASS}
               data-testid="listings-feed-title"
             >
               {title}
