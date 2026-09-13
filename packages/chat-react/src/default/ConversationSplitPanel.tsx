@@ -45,6 +45,7 @@ import type {
   ChatRowTimeFormat,
   ConversationListPanelProps,
 } from "./ConversationListPanel.js";
+import type { AttachmentUpload } from "../headless/useAttachmentDraft.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 import type { ThreadHeaderActionsContext } from "./ConversationThreadPanel.js";
 import { ChatSkinTheme } from "./theme.js";
@@ -127,6 +128,13 @@ export interface ConversationSplitPanelProps {
   limit?: number;
   /** Composer cap — forwarded to `<ConversationThreadPanel/>`. */
   maxLength?: number;
+  /**
+   * The attachment upload seam — forwarded to `<ConversationThreadPanel
+   * upload>`, where the reasoning is. Absent, the thread is text-only.
+   */
+  upload?: AttachmentUpload;
+  /** `MAX_ATTACHMENTS` — forwarded to `<ConversationThreadPanel/>`. */
+  maxAttachments?: number;
   /**
    * What the OPEN thread's composer already says — forwarded to
    * `<ConversationThreadPanel initialText>`, where the two rules are.
@@ -388,6 +396,10 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
             }}
             {...(props.limit !== undefined ? { limit: props.limit } : {})}
             {...(props.maxLength !== undefined ? { maxLength: props.maxLength } : {})}
+            {...(props.upload !== undefined ? { upload: props.upload } : {})}
+            {...(props.maxAttachments !== undefined
+              ? { maxAttachments: props.maxAttachments }
+              : {})}
             {...(props.notifications !== undefined
               ? { notifications: props.notifications }
               : {})}

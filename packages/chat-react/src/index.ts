@@ -335,3 +335,32 @@ export type {
   ChatErrorSpec,
   Remediation,
 } from "./i18n/errorsMap.js";
+
+// ── attachments ──────────────────────────────────────────────────────────────
+export {
+  attachmentExtension,
+  attachmentMedium,
+  attachmentToImage,
+  attachmentUrl,
+  isAnimated,
+  isAttachmentOnly,
+  readAttachments,
+  reservedAspect,
+} from "./model/attachments.js";
+export type { AttachmentMedium } from "./model/attachments.js";
+export { CHAT_DEFAULT_MAX_ATTACHMENTS } from "./model/limits.js";
+export { inboxPreviewGlyph } from "./model/previews.js";
+export {
+  attachmentTypeForFile,
+  useAttachmentDraft,
+} from "./headless/useAttachmentDraft.js";
+export type {
+  AttachmentAddOptions,
+  AttachmentDraftBag,
+  AttachmentDraftItem,
+  AttachmentDraftPhase,
+  AttachmentUpload,
+  AttachmentUploadRequest,
+  AttachmentUploadResult,
+  UseAttachmentDraftOptions,
+} from "./headless/useAttachmentDraft.js";

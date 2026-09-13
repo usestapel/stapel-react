@@ -51,6 +51,17 @@ export interface SendMessageVariables {
   readonly body: string;
   /** Quoted message id; must belong to this conversation. */
   readonly replyTo?: string;
+  /**
+   * Stored attachments, as `{key, type}` — the key being the OPAQUE CDN ref
+   * the bytes already live under. This pair never uploads from here: by the
+   * time a send happens the bytes are stored and all that travels is the
+   * reference (`headless/useAttachmentDraft.ts` owns the waiting).
+   *
+   * A message may carry attachments and NO body — that is the
+   * attachment-only case the server spells as an empty `body`, and it is why
+   * the composer's emptiness gate asks the draft as well as the text box.
+   */
+  readonly attachments?: readonly { readonly key: string; readonly type: string }[];
 }
 
 /**
@@ -59,10 +70,12 @@ export interface SendMessageVariables {
  * without waiting for a poll — and the socket's fan-out copy of the same row
  * is then a duplicate that `mergeMessage` drops.
  *
- * Attachments are NOT wired in this version (spec §4.5): the field exists on
- * the wire, but shipping it would mean shipping CDN upload rights into chat,
- * and a control that is visible but does nothing is worse than one that is
- * absent.
+ * Attachments travel as `{key, type}` and nothing else: the bytes are already
+ * in the CDN under an opaque reference by the time this runs, and stapel-chat
+ * resolves every key's render metadata itself through `cdn.describe_many`, so
+ * the row that comes back carries the geometry the bubble paints with. That is
+ * why the optimistic fold below is the whole optimism this hook needs — the
+ * persisted row is authoritative about the attachments as well as the `seq`.
  */
 export function useSendMessage(
   conversationId: string
@@ -78,6 +91,14 @@ export function useSendMessage(
       api.sendMessage(conversationId, {
         body: vars.body,
         ...(vars.replyTo !== undefined ? { reply_to: vars.replyTo } : {}),
+        // Sent only when there are any. An empty array is a DIFFERENT request
+        // from no field at all on a deployment with `ATTACHMENTS: False` —
+        // the gate reads "a non-empty attachments list", and spending a key on
+        // an empty one would be this pair asking a question it has no answer
+        // to use.
+        ...(vars.attachments !== undefined && vars.attachments.length > 0
+          ? { attachments: [...vars.attachments] }
+          : {}),
       }),
     onSuccess: (message) => {
       absorbMessage(queryClient, conversationId, message);

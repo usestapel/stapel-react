@@ -106,7 +106,7 @@ import {
 import type { LinkComponent } from "@stapel/core";
 import type { Conversation, Subject } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
-import { inboxPreviewLine } from "../model/previews.js";
+import { inboxPreviewGlyph, inboxPreviewLine } from "../model/previews.js";
 import { inboxFilterActive } from "../model/inboxQuery.js";
 import type { ChatInboxView } from "../model/inboxQuery.js";
 import { conversationLeftAt } from "../model/membership.js";
@@ -504,6 +504,7 @@ function ConversationRow(props: {
   // server cannot know, and for the one long unbroken word a cap does not
   // help with.
   const previewText = inboxPreviewLine(props.row.last_message, viewerId, t);
+  const previewGlyph = inboxPreviewGlyph(props.row.last_message);
 
   const meta =
     previewText === "" ? undefined : (
@@ -516,6 +517,14 @@ function ConversationRow(props: {
         }}
         data-testid="chat-row-preview"
       >
+        {previewGlyph === null ? null : (
+          /* `aria-hidden`: the sentence beside it already says the same thing,
+             and a screen reader announcing "paperclip Attachment" says it
+             twice. */
+          <span aria-hidden data-testid="chat-row-preview-glyph">
+            {`${previewGlyph} `}
+          </span>
+        )}
         {previewText}
       </span>
     );

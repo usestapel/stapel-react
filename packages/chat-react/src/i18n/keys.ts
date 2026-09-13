@@ -204,6 +204,41 @@ export const CHAT_I18N_KEYS = {
    */
   splitEmpty: "chat.split.empty",
 
+  // Attachments — the compose side. Every one of these is either a control's
+  // accessible name or the `code` of an ActionAvailability, so a switched-off
+  // control always has a sentence and never a bare grey square.
+  attachAdd: "chat.attach.add",
+  attachPhoto: "chat.attach.photo",
+  attachFile: "chat.attach.file",
+  attachRemove: "chat.attach.remove",
+  attachRetry: "chat.attach.retry",
+  attachUploading: "chat.attach.uploading",
+  attachFailed: "chat.attach.failed",
+  attachPending: "chat.attach.pending",
+  attachBlockedFull: "chat.attach.blocked.full",
+  attachBlockedPending: "chat.attach.blocked.pending",
+  attachBlockedFailed: "chat.attach.blocked.failed",
+  attachBlockedDisabled: "chat.attach.blocked.disabled",
+  attachVoice: "chat.attach.voice",
+
+  // Attachments — the read side. The alt texts are what a reader who gets no
+  // pixels is told a bubble contains, so they name the MEDIUM; the CDN has no
+  // description of the content and inventing one would be worse than naming
+  // the kind.
+  attachmentImageAlt: "chat.attachment.image_alt",
+  attachmentGifAlt: "chat.attachment.gif_alt",
+  attachmentVideoAlt: "chat.attachment.video_alt",
+  attachmentAudioAlt: "chat.attachment.audio_alt",
+  attachmentDocument: "chat.attachment.document",
+  attachmentOpen: "chat.attachment.open",
+  attachmentDownload: "chat.attachment.download",
+  attachmentNoLink: "chat.attachment.no_link",
+  attachmentPlay: "chat.attachment.play",
+  attachmentPause: "chat.attachment.pause",
+  attachmentDurationUnmeasured: "chat.attachment.duration_unmeasured",
+  attachmentMetaPartial: "chat.attachment.meta_partial",
+  attachmentMetaMissing: "chat.attachment.meta_missing",
+
   // Composer
   composerPlaceholder: "chat.composer.placeholder",
   composerSend: "chat.composer.send",
@@ -404,6 +439,35 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.list.preview_deleted": "Message deleted",
   "chat.list.preview_system": "System message",
   "chat.list.preview_attachment": "Attachment",
+
+  "chat.attach.add": "Attach",
+  "chat.attach.photo": "Photo or video",
+  "chat.attach.file": "Document",
+  "chat.attach.remove": "Remove this attachment",
+  "chat.attach.retry": "Try this one again",
+  "chat.attach.uploading": "Uploading…",
+  "chat.attach.failed": "This one did not upload",
+  "chat.attach.pending": "Waiting for the attachments",
+  "chat.attach.blocked.full": "You can attach at most {max} to one message",
+  "chat.attach.blocked.pending": "Wait for the attachments to finish uploading",
+  "chat.attach.blocked.failed": "Remove or retry the attachments that failed",
+  "chat.attach.blocked.disabled": "Attachments are switched off in this chat",
+  "chat.attach.voice": "Voice message",
+
+  "chat.attachment.image_alt": "Attached photo",
+  "chat.attachment.gif_alt": "Attached animation",
+  "chat.attachment.video_alt": "Attached video",
+  "chat.attachment.audio_alt": "Voice message",
+  "chat.attachment.document": "Document",
+  "chat.attachment.open": "Open",
+  "chat.attachment.download": "Download",
+  "chat.attachment.no_link": "This file has no link to open",
+  "chat.attachment.play": "Play",
+  "chat.attachment.pause": "Pause",
+  "chat.attachment.duration_unmeasured": "Length was not measured",
+  "chat.attachment.meta_partial": "Some details of this file could not be read",
+  "chat.attachment.meta_missing": "None of this file's details could be read",
+
 
   "chat.subject.label": "What this conversation is about",
   "chat.subject.open": "Open",

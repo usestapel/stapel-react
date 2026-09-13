@@ -58,3 +58,21 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect(): void {}
   } as unknown as typeof ResizeObserver;
 }
+
+// jsdom implements neither half of the object-URL API. The composer's pending
+// chips show a picked photo through it before any server has seen the bytes,
+// so without a stand-in the attachment suite would be testing a gap in the
+// test environment rather than the code. Same category as the `matchMedia` /
+// `ResizeObserver` polyfills above: a jsdom omission, filled minimally — and
+// deliberately dumb, because a test that cares about the lifetime replaces
+// both with spies of its own.
+let objectUrlSeq = 0;
+if (typeof URL.createObjectURL !== "function") {
+  URL.createObjectURL = (): string => {
+    objectUrlSeq += 1;
+    return `blob:jsdom/${String(objectUrlSeq)}`;
+  };
+}
+if (typeof URL.revokeObjectURL !== "function") {
+  URL.revokeObjectURL = (): void => {};
+}

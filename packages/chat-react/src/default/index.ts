@@ -108,3 +108,16 @@ export type { ChatSkinThemeProps } from "./theme.js";
 // host that shows a conversation and never calls anybody.
 export { StartCallButton } from "./StartCallButton.js";
 export type { StartCallButtonProps } from "./StartCallButton.js";
+export {
+  ATTACHMENT_MAX_WIDTH_PX,
+  MessageAttachments,
+} from "./MessageAttachments.js";
+export type { MessageAttachmentsProps } from "./MessageAttachments.js";
+export {
+  AttachButton,
+  AttachmentChips,
+  renderMetaToAttachment,
+  STORABLE_ATTACHMENT_TYPES,
+  useCdnAttachmentUpload,
+} from "./ComposeAttachments.js";
+export type { AttachButtonProps } from "./ComposeAttachments.js";

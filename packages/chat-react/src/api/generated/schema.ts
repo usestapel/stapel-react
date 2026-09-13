@@ -103,6 +103,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chat/api/v1/conversations/{conversation_id}/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Clear your own history of a thread — ``POST /conversations/{id}/clear``
+         *     -> ``204``.
+         *
+         *     The standard messenger affordance, and standard in what it does NOT do.
+         *     The caller's participant row is stamped ``cleared_at`` and **no message is
+         *     deleted, edited or touched in any way**: everything created at or before
+         *     that instant simply stops being served to this caller — it leaves their
+         *     message list, their ``unread_count``, their ``last_message`` preview and
+         *     their ``?search=``. The other participant's thread does not change by a
+         *     field. This is why it exists as a mark rather than a delete: a thread is
+         *     the record of a deal between two people, a participant may erase only the
+         *     words they wrote themselves (``error.403.chat_not_author``), and nobody at
+         *     all may erase the system lines — a "clear history" that removed rows would
+         *     hand either party exactly the power the rest of this module refuses them.
+         *
+         *     The thread stays on the list, live and writable. The mark is a floor on
+         *     ``created_at``, never a state on a message, so the next line either side
+         *     writes is after it and is listed, counted and previewed normally — which
+         *     is the difference between this and leaving (``DELETE`` on the same URL,
+         *     which takes the thread off the list and leaves the history alone: the
+         *     exact opposite half).
+         *
+         *     **Not idempotent, on purpose.** Clearing again moves the mark to now, and
+         *     a client that lost the response and retried has cleared a thread it had
+         *     just cleared — which changes nothing it can see unless something arrived
+         *     in between, in which case moving the mark is what the person asked for.
+         *     ``204`` every time, because there is nothing to say: the new mark is on
+         *     the conversation (``cleared_at``) and on the caller's own inbox stream
+         *     (``chat.conversation.cleared``), which is where a second tab learns of it.
+         *
+         *     A caller who is not a party gets ``403`` with the module's one membership
+         *     key, the same answer ``GET`` on this conversation gives them.
+         *
+         *     **Permissions:** `IsAuthenticated`
+         */
+        post: operations["chat_api_v1_conversations_clear_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chat/api/v1/conversations/{conversation_id}/messages": {
         parameters: {
             query?: never;
@@ -432,6 +484,11 @@ export interface components {
              * @description When the REQUESTING user left this thread — ``null`` while
              */
             left_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Where the REQUESTING user's history of this thread starts
+             */
+            cleared_at?: string | null;
         };
         /** @description Create a conversation. */
         CreateConversationRequest: {
@@ -601,7 +658,7 @@ export interface components {
             body?: string;
             attachments?: (({
                 key: string;
-                /** @description Attachment type from the OPEN registry — image / gif / video / voice / file out of the box, plus whatever STAPEL_CHAT['ATTACHMENT_TYPES'] adds. */
+                /** @description Attachment type from the OPEN registry — image / gif / video / audio / file out of the box, plus whatever STAPEL_CHAT['ATTACHMENT_TYPES'] adds. */
                 type: string;
             } & {
                 [key: string]: unknown;
@@ -759,6 +816,26 @@ export interface operations {
         responses: {
             /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chat_api_v1_conversations_clear_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

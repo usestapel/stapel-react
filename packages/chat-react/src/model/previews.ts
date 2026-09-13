@@ -117,3 +117,38 @@ export function inboxPreviewLine(
     ? t(CHAT_I18N_KEYS.listPreviewOwn, { text: preview })
     : preview;
 }
+
+/**
+ * The GLYPH an inbox row draws in place of the wordless line's first word.
+ *
+ * A row whose last message was a photo used to read "Attachment", which is the
+ * one word that is true of every attachment and descriptive of none. A mark
+ * before the sentence is read at a glance, in every language, at the size an
+ * inbox row actually gives it.
+ *
+ * ── WHY IT IS ONE MARK AND NOT ONE PER TYPE ──────────────────────────────
+ *
+ * Because the projection does not say which type it was.
+ * `LastMessageResponse` is deliberately "enough to PAINT the row and
+ * deliberately not enough to stand in for the thread" — it carries `seq`,
+ * `kind`, `sender_id`, `created_at`, `body_preview` and `preview_reason`, and
+ * **no attachments**, by an explicit upstream decision. So "a picture" and "a
+ * voice message" are indistinguishable here, and a table of five icons would
+ * be this pair guessing which one to draw. One honest mark, and the type
+ * recorded upstream as the thing that would make five possible.
+ *
+ * The glyph accompanies the sentence rather than replacing it: a reader who
+ * gets no pixels still needs the word, and a mark alone is not a label.
+ */
+export function inboxPreviewGlyph(
+  last: LastMessage | null | undefined
+): string | null {
+  switch (previewReason(last)) {
+    case "attachment":
+      return "\u{1F4CE}";
+    case "deleted":
+      return "\u{1F6AB}";
+    default:
+      return null;
+  }
+}

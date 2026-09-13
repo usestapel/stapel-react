@@ -26,7 +26,14 @@ import { useChatNotifications } from "../model/notifications.js";
 import { useConversation } from "../model/queries.js";
 import { systemLineText } from "../model/systemLines.js";
 import type { ChatPeopleDirectory } from "../model/slots.js";
+import type {
+  AttachmentDraftBag,
+  AttachmentUpload,
+} from "../headless/useAttachmentDraft.js";
+import { readAttachments } from "../model/attachments.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
+import { AttachButton, AttachmentChips } from "./ComposeAttachments.js";
+import { MessageAttachments } from "./MessageAttachments.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
 import { ChatSkinTheme } from "./theme.js";
@@ -118,6 +125,20 @@ export interface ConversationThreadPanelProps {
    * presses send.
    */
   initialText?: string;
+  /**
+   * ATTACHMENTS, wired. Absent, this thread is text-only and no attach control
+   * is drawn at all — see `MessageComposerBag.attachments` for why the absence
+   * is a `null` bag rather than a switched-off paperclip.
+   *
+   * The ordinary value is `useCdnAttachmentUpload()` from this same subpath,
+   * called by the HOST inside a `<CdnProvider>`. It is a prop and not a hook
+   * this panel calls itself because a component cannot conditionally read a
+   * runtime that may not be mounted: a deployment that does not carry
+   * stapel-cdn has to be able to render this panel unchanged.
+   */
+  upload?: AttachmentUpload;
+  /** The deployment's `STAPEL_CHAT["MAX_ATTACHMENTS"]`. Default 10. */
+  maxAttachments?: number;
 }
 
 /** What the header-actions slot is told. */
@@ -277,6 +298,7 @@ function MessageRow(props: {
       : undefined);
   const isOwn =
     !isSystem && viewerId != null && message.sender_id === viewerId;
+  const attachments = readAttachments(message);
   const bubble: CSSProperties = {
     alignSelf: isOwn ? "flex-end" : "flex-start",
     maxWidth: "42rem",
@@ -293,12 +315,24 @@ function MessageRow(props: {
           {t(CHAT_I18N_KEYS.threadSystem)}
         </Typography.Text>
       ) : null}
-      <Typography.Paragraph
-        style={{ marginBottom: 0 }}
-        {...(isSystem ? { "data-testid": "chat-system-body" } : {})}
-      >
-        {said ?? message.body}
-      </Typography.Paragraph>
+      {/* NO empty paragraph for an attachment-only message. The server's shape
+          for "a photo, with nothing said" is an empty `body` beside a
+          non-empty `attachments`, and a bubble that printed a blank line above
+          the picture would be drawing the absence of words as if it were
+          words. A TOMBSTONE keeps its paragraph: its emptiness is the point. */}
+      {said === undefined && message.body === "" && attachments.length > 0 ? null : (
+        <Typography.Paragraph
+          style={{ marginBottom: 0 }}
+          {...(isSystem ? { "data-testid": "chat-system-body" } : {})}
+        >
+          {said ?? message.body}
+        </Typography.Paragraph>
+      )}
+      {attachments.length === 0 ? null : (
+        <div style={{ marginTop: spacing[2] }}>
+          <MessageAttachments message={message} />
+        </div>
+      )}
       <Typography.Text type="secondary" style={{ fontSize: fontSize.xs.fontSize }}>
         {stamp}
       </Typography.Text>
@@ -310,6 +344,8 @@ function Composer(props: {
   conversationId: string;
   maxLength: number | undefined;
   initialText: string | undefined;
+  upload: AttachmentUpload | undefined;
+  maxAttachments: number | undefined;
 }): ReactElement {
   const t = useT();
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
@@ -317,6 +353,10 @@ function Composer(props: {
     <MessageComposer
       conversationId={props.conversationId}
       {...(props.maxLength !== undefined ? { maxLength: props.maxLength } : {})}
+      {...(props.upload !== undefined ? { upload: props.upload } : {})}
+      {...(props.maxAttachments !== undefined
+        ? { maxAttachments: props.maxAttachments }
+        : {})}
       {...(props.initialText !== undefined
         ? { initialValue: props.initialText }
         : {})}
@@ -333,6 +373,7 @@ function Composer(props: {
           visibleAvailability={bag.visibleAvailability}
           pristine={bag.pristine}
           signInHint={bag.signInHint}
+          attachments={bag.attachments}
           errorNode={<ErrorAlert error={errorDisplay(bag.error)} />}
           t={t}
         />
@@ -353,6 +394,7 @@ function ComposerBody(props: {
   visibleAvailability: Parameters<typeof useActionGate>[0];
   pristine: boolean;
   signInHint: string | null;
+  attachments: AttachmentDraftBag | null;
   errorNode: ReactElement | null;
   t: (key: string, params?: Readonly<Record<string, unknown>>) => string;
 }): ReactElement {
@@ -366,6 +408,13 @@ function ComposerBody(props: {
   return (
     <Space orientation="vertical" style={{ width: "100%" }}>
       {props.errorNode}
+      {/* ABOVE the field, not below it. A chip that appeared under the send
+          row would push the button somebody is reaching for down the screen
+          on every pick — the layout jump this whole wave is about, on the
+          compose side. */}
+      {props.attachments === null ? null : (
+        <AttachmentChips draft={props.attachments} />
+      )}
       <Input.TextArea
         value={props.value}
         onChange={(event) => props.setValue(event.target.value)}
@@ -398,6 +447,12 @@ function ComposerBody(props: {
         data-analytics-reason="business action — host app wraps with its own tracked()"
       />
       <Flex align="center" gap={spacing[3]} wrap="wrap">
+        {props.attachments === null ? null : (
+          <>
+            <AttachButton draft={props.attachments} kind="media" />
+            <AttachButton draft={props.attachments} kind="file" />
+          </>
+        )}
         <Button
           type="primary"
           disabled={gate.disabled}
@@ -607,6 +662,8 @@ export function ConversationThreadPanel(
               conversationId={props.conversationId}
               maxLength={props.maxLength}
               initialText={props.initialText}
+              upload={props.upload}
+              maxAttachments={props.maxAttachments}
             />
           </div>
           </Card>

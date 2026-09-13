@@ -467,9 +467,15 @@ importers:
       '@size-limit/preset-small-lib':
         specifier: ^11.2.0
         version: 11.2.0(size-limit@11.2.0)
+      '@stapel/cdn-react':
+        specifier: workspace:^
+        version: link:../cdn-react
       '@stapel/core':
         specifier: workspace:^
         version: link:../core
+      '@stapel/image':
+        specifier: workspace:^
+        version: link:../image
       '@stapel/realtime':
         specifier: workspace:^
         version: link:../realtime

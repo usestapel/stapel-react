@@ -281,7 +281,21 @@ describe("the inbox names the person, not the kind", () => {
       .map((node) => node.textContent);
     // The first is the sentence this pair has carried the copy for since it
     // had an inbox and could not reach until now.
-    expect(drawn).toEqual(["Message deleted", "Attachment", "System message"]);
+    //
+    // THE MARK IS IN FRONT OF TWO OF THE THREE, and the sentence is still
+    // there behind it: the glyph is read at a glance in every language, the
+    // words are what a reader who gets no pixels is told, and neither
+    // replaces the other. The system line gets none — a marker this
+    // deployment gave no label to is not a KIND of thing, it is an absence.
+    expect(drawn).toEqual([
+      "\u{1F6AB} Message deleted",
+      "\u{1F4CE} Attachment",
+      "System message",
+    ]);
+    // Hidden from the accessibility tree: "paperclip Attachment" says it twice.
+    for (const glyph of screen.getAllByTestId("chat-row-preview-glyph")) {
+      expect(glyph.getAttribute("aria-hidden")).toBe("true");
+    }
   });
 
   it("draws the WORDS when there is no reason to give — the fourth case", async () => {

@@ -11,6 +11,11 @@ import type { ActionAvailability } from "@stapel/core";
 import { useSendMessage } from "../model/mutations.js";
 import { CHAT_DEFAULT_MAX_BODY_LENGTH } from "../model/limits.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
+import { useAttachmentDraft } from "./useAttachmentDraft.js";
+import type {
+  AttachmentDraftBag,
+  AttachmentUpload,
+} from "./useAttachmentDraft.js";
 
 /** Render-prop bag for {@link MessageComposer}. */
 export interface MessageComposerBag {
@@ -69,6 +74,16 @@ export interface MessageComposerBag {
   /** The thrown value from the last failed send, for the error dialect. */
   readonly error: unknown;
   /**
+   * The pending attachments, or `null` when this composer has no upload seam.
+   *
+   * `null` is what tells a skin to draw NO attach control at all, and it is
+   * deliberately not an empty bag: a paperclip that opens a picker whose files
+   * can never be stored is the "visible but does nothing" shape this pair
+   * refused attachments over in the first place. A host wires the seam by
+   * passing `upload`, and only then does the control exist.
+   */
+  readonly attachments: AttachmentDraftBag | null;
+  /**
    * Send the current value; clears it on success and returns the composer to
    * pristine. While blocked it sends nothing — but the press is an
    * interaction, so the reason becomes visible.
@@ -125,6 +140,21 @@ export function MessageComposer(props: {
    * speaking, not the reader.
    */
   initialValue?: string;
+  /**
+   * HOW BYTES BECOME A KEY — the seam that turns this composer into one that
+   * can attach things.
+   *
+   * Absent, the composer is text-only and `bag.attachments` is `null`. Given,
+   * the draft list is live and `send()` posts `{key, type}` beside the body.
+   * It is a function rather than an import because uploading needs a CDN
+   * runtime and upload rights, which are the HOST's wiring — and because the
+   * headless entry of this pair must not pull another pair's client into a
+   * bundle that only wanted to read a thread. `/default` supplies
+   * `useCdnAttachmentUpload()` for the ordinary case.
+   */
+  upload?: AttachmentUpload;
+  /** The deployment's `STAPEL_CHAT["MAX_ATTACHMENTS"]`. Default 10. */
+  maxAttachments?: number;
   /** Called with the persisted message after a successful send. */
   onSent?: (seq: number) => void;
   children: (bag: MessageComposerBag) => ReactNode;
@@ -136,6 +166,20 @@ export function MessageComposer(props: {
   const [interacted, setInteracted] = useState(false);
   const send = useSendMessage(props.conversationId);
   const maxLength = props.maxLength ?? CHAT_DEFAULT_MAX_BODY_LENGTH;
+  /**
+   * Called UNCONDITIONALLY — a hook behind an `if (props.upload)` is the rule
+   * of hooks broken by a prop a parent may change. What the absent seam
+   * changes is what is HANDED OUT (`attachments: null` below), not whether the
+   * hook runs; the refusal below is never reached, because nothing can feed a
+   * draft whose bag was never published.
+   */
+  const draft = useAttachmentDraft({
+    upload:
+      props.upload ??
+      (() => Promise.reject(new Error("no upload seam is wired on this composer"))),
+    ...(props.maxAttachments !== undefined ? { max: props.maxAttachments } : {}),
+  });
+  const attachments = props.upload === undefined ? null : draft;
   const length = [...value].length;
   const trimmed = value.trim();
 
@@ -174,12 +218,20 @@ export function MessageComposer(props: {
 
   const availability: ActionAvailability = firstBlock(
     mandateGate,
-    trimmed.length === 0
+    // AN ATTACHMENT IS A MESSAGE. The server's own shape for one is an empty
+    // `body` with a non-empty `attachments` — so "there is nothing to send" is
+    // false the moment a picture is attached, and a gate that only looked at
+    // the text box would refuse the commonest photo message there is.
+    trimmed.length === 0 && !(attachments?.hasAttachments ?? false)
       ? actionBlocked(CHAT_I18N_KEYS.composerBlockedEmpty)
       : actionAvailable(),
     length > maxLength
       ? actionBlocked(CHAT_I18N_KEYS.composerBlockedTooLong, { max: maxLength })
-      : actionAvailable()
+      : actionAvailable(),
+    // The draft's own two waits — "the bytes are still going" and "one of them
+    // failed" — reach the SAME control the text gates do, so there is exactly
+    // one verdict about whether this message may go.
+    attachments?.settled ?? actionAvailable()
   );
 
   const edit = useCallback((next: string): void => {
@@ -197,11 +249,18 @@ export function MessageComposer(props: {
       return;
     }
     if (isPending) return;
+    const keys = attachments?.payload ?? [];
     mutate(
-      { body: trimmed },
+      {
+        body: trimmed,
+        ...(keys.length > 0 ? { attachments: keys } : {}),
+      },
       {
         onSuccess: (message) => {
           setValue("");
+          // The keys are on a persisted message now; keeping the chips would
+          // offer to send the same three photos again.
+          attachments?.clear();
           // Back to pristine, not to "empty and therefore invalid": the
           // message went, nothing failed, and the next one has not been
           // written yet.
@@ -210,7 +269,7 @@ export function MessageComposer(props: {
         },
       }
     );
-  }, [availability.available, isPending, mutate, trimmed, onSent]);
+  }, [availability.available, isPending, mutate, trimmed, onSent, attachments]);
 
   return props.children({
     value,
@@ -225,6 +284,7 @@ export function MessageComposer(props: {
     signInHint,
     isSending: isPending,
     error,
+    attachments,
     send: doSend,
     maxLength,
     length,

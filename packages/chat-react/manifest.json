@@ -4,7 +4,7 @@
   "version": "0.18.1",
   "backend": {
     "module": "stapel-chat",
-    "contract": ">=0.8 <0.9"
+    "contract": ">=0.9 <0.10"
   },
   "layers": [
     "api",
@@ -21,6 +21,13 @@
       "path": "/chat/api/v1/conversations/{conversation_id}/activity",
       "tag": "Chat",
       "request": "ActivityRequest",
+      "response": null
+    },
+    "chat_api_v1_conversations_clear_create": {
+      "method": "POST",
+      "path": "/chat/api/v1/conversations/{conversation_id}/clear",
+      "tag": "Chat",
+      "request": null,
       "response": null
     },
     "chat_api_v1_conversations_create": {
@@ -573,6 +580,43 @@
   },
   "demos": [
     {
+      "id": "chat.attachments",
+      "title": "Message attachments",
+      "description": "One message's attachments, each drawn by its registry TYPE — which is the CDN's own kind name, never a sniff of the mime. A photo picks its tier from this element over the 16px preview; a clip shows the poster the CDN made and loads nothing until somebody presses play; a voice message is the rendered waveform, its length and one control, because there is no still to fall back to; a document has no pixels at all and none are invented. Every box is reserved before anything loads, from the measured aspect when there is one and from what preview_kind implies when there is not.",
+      "component": "MessageAttachments",
+      "tokens": [
+        "surface-sunken",
+        "text-muted"
+      ],
+      "variants": [
+        "photo",
+        "clip",
+        "voice",
+        "document",
+        "still-generating"
+      ],
+      "source": "demo/MessageAttachments.demo.tsx"
+    },
+    {
+      "id": "chat.compose-attachments",
+      "title": "Attaching to a message",
+      "description": "The two pickers and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
+      "component": "AttachmentChips",
+      "covers": [
+        "AttachButton"
+      ],
+      "tokens": [
+        "surface-sunken",
+        "text-muted"
+      ],
+      "variants": [
+        "empty",
+        "uploading",
+        "failed"
+      ],
+      "source": "demo/ComposeAttachments.demo.tsx"
+    },
+    {
       "id": "chat.conversation-list-panel",
       "title": "Inbox (default skin)",
       "description": "The shipped inbox: threads newest-first, an unread count that carries its own accessible sentence rather than a hover, and a load-more control that becomes a stated end. A row with a subject carries TWO destinations and two hit areas — the row itself opens the thread, the subject title is a link to the listing, and neither contains the other because an anchor inside an anchor is not a document. The failed arm owns the failure on its own — an outage can never render here as `No conversations yet`.",
@@ -794,6 +838,32 @@
     }
   ],
   "i18nKeys": [
+    "chat.attach.add",
+    "chat.attach.blocked.disabled",
+    "chat.attach.blocked.failed",
+    "chat.attach.blocked.full",
+    "chat.attach.blocked.pending",
+    "chat.attach.failed",
+    "chat.attach.file",
+    "chat.attach.pending",
+    "chat.attach.photo",
+    "chat.attach.remove",
+    "chat.attach.retry",
+    "chat.attach.uploading",
+    "chat.attach.voice",
+    "chat.attachment.audio_alt",
+    "chat.attachment.document",
+    "chat.attachment.download",
+    "chat.attachment.duration_unmeasured",
+    "chat.attachment.gif_alt",
+    "chat.attachment.image_alt",
+    "chat.attachment.meta_missing",
+    "chat.attachment.meta_partial",
+    "chat.attachment.no_link",
+    "chat.attachment.open",
+    "chat.attachment.pause",
+    "chat.attachment.play",
+    "chat.attachment.video_alt",
     "chat.call.blocked.busy",
     "chat.call.blocked.mandate_unknown",
     "chat.call.blocked.no_thread",
@@ -959,6 +1029,7 @@
   "exports": {
     "runtime": [
       "CHAT_ACTIVITY_STATES",
+      "CHAT_DEFAULT_MAX_ATTACHMENTS",
       "CHAT_DEFAULT_MAX_BODY_LENGTH",
       "CHAT_ELEVATION_ACTIONS",
       "CHAT_ERRORS",
@@ -998,6 +1069,11 @@
       "UNRESOLVED_PEOPLE",
       "applyConversationPresence",
       "applyRevision",
+      "attachmentExtension",
+      "attachmentMedium",
+      "attachmentToImage",
+      "attachmentTypeForFile",
+      "attachmentUrl",
       "chatClientMessageId",
       "chatConversationSocketPath",
       "chatConversationStream",
@@ -1020,7 +1096,10 @@
       "explainChatError",
       "flowEndpoints",
       "inboxFilterActive",
+      "inboxPreviewGlyph",
       "inboxPreviewLine",
+      "isAnimated",
+      "isAttachmentOnly",
       "isChatMessageFrame",
       "isErrorCode",
       "mergeMessage",
@@ -1036,6 +1115,7 @@
       "presenceExpired",
       "presenceExpiryDelay",
       "previewReason",
+      "readAttachments",
       "readChatActivityFrame",
       "readChatInboxFrame",
       "readChatMarkerFrame",
@@ -1044,6 +1124,7 @@
       "readChatPresenceFrame",
       "readSystemMarker",
       "registerChatI18n",
+      "reservedAspect",
       "so",
       "systemLineText",
       "threadFirstSeq",
@@ -1052,6 +1133,7 @@
       "threadLastSeq",
       "threadWindowFromPage",
       "toFlowError",
+      "useAttachmentDraft",
       "useChatAnalytics",
       "useChatApi",
       "useChatFreshness",
@@ -1068,6 +1150,14 @@
     "types": [
       "AnchorDirection",
       "Attachment",
+      "AttachmentAddOptions",
+      "AttachmentDraftBag",
+      "AttachmentDraftItem",
+      "AttachmentDraftPhase",
+      "AttachmentMedium",
+      "AttachmentUpload",
+      "AttachmentUploadRequest",
+      "AttachmentUploadResult",
       "ChatActivityFramePayload",
       "ChatActivityPayload",
       "ChatActivityState",
@@ -1152,6 +1242,7 @@
       "SubjectRef",
       "SupportStatus",
       "ThreadMergeResult",
+      "UseAttachmentDraftOptions",
       "UseChatNotificationsOptions",
       "so"
     ]

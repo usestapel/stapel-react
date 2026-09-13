@@ -1,6 +1,6 @@
 # @stapel/chat-react 0.18.1
 
-Headless React flow pair for stapel-chat (contract >=0.8 <0.9) — business + state, zero visual opinion.
+Headless React flow pair for stapel-chat (contract >=0.9 <0.10) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -22,6 +22,7 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/chat/api/v1/`.
 - chat_api_v1_conversations_activity_create: POST /conversations/{conversation_id}/activity
+- chat_api_v1_conversations_clear_create: POST /conversations/{conversation_id}/clear
 - chat_api_v1_conversations_create: POST /conversations
 - chat_api_v1_conversations_destroy: DELETE /conversations/{conversation_id}
 - chat_api_v1_conversations_list: GET /conversations
@@ -83,6 +84,8 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- chat.attachments → <MessageAttachments> [photo|clip|voice|document|still-generating]  demo/MessageAttachments.demo.tsx
+- chat.compose-attachments → <AttachmentChips> [empty|uploading|failed]  demo/ComposeAttachments.demo.tsx
 - chat.conversation-list-panel → <ConversationListPanel> [default|more-to-load|empty|left|host-subject-line|row-identity]  demo/ConversationListPanelSkin.demo.tsx
 - chat.conversation-thread-panel → <ConversationThreadPanel> [default|earlier-history|no-messages-yet|dark|no-live-socket|seeded-question|subject-gone|thread-menu-open]  demo/ConversationThreadPanelSkin.demo.tsx
 - chat.conversations → <ConversationList> [default]  demo/ConversationList.demo.tsx
