@@ -191,6 +191,23 @@ describe("a person without a photograph wears a deterministic disc", () => {
     });
   }
 
+  it("draws the disc an edge, without changing its size", () => {
+    mount(<PersonAvatar profile={profileOf()} fallbackName="Alice Nguyen" side={40} />);
+    const { node } = disc();
+    // A hairline in the family's own palette: the disc is 1.04:1 against a
+    // pale page at its worst, and two letters on an invisible ground read as
+    // letters floating beside a name rather than as an avatar.
+    expect(node.style.borderColor).not.toBe("");
+    expect(node.style.borderStyle).toBe("solid");
+    expect(node.style.borderWidth).toBe("1px");
+    // …and it is NOT the disc's own colour, or there is no edge.
+    expect(node.style.borderColor).not.toBe(node.style.backgroundColor);
+    // antd already reserves `border: 1px solid transparent` and sizes itself
+    // border-box, so colouring it moves nothing. (That the BOX is still 40px
+    // is a browser fact and is measured there, not here.)
+    expect(node.style.width).toBe("40px");
+  });
+
   it("gives one person one colour, whatever order the list is in", () => {
     const first = (() => {
       const { unmount } = mount(

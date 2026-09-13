@@ -145,6 +145,7 @@ export type { SkinCarouselProps } from "./skin/carousel.js";
 export { visuallyHidden } from "./skin/visuallyHidden.js";
 export {
   IDENTITY_TINT_DISC_SHADE,
+  IDENTITY_TINT_EDGE_SHADE,
   IDENTITY_TINT_FAMILIES,
   IDENTITY_TINT_INK_SHADE,
   identityTint,

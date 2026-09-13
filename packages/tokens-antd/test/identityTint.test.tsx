@@ -30,7 +30,10 @@ import { describe, expect, it } from "vitest";
 import { theme as antdTheme } from "antd";
 import type { GlobalToken } from "antd";
 import {
+  IDENTITY_TINT_DISC_SHADE,
+  IDENTITY_TINT_EDGE_SHADE,
   IDENTITY_TINT_FAMILIES,
+  IDENTITY_TINT_INK_SHADE,
   identityTint,
   identityTintFamily,
 } from "../src/skin.js";
@@ -128,6 +131,36 @@ describe("initials are legible on their own disc", () => {
     expect(light.family).toBe(dark.family);
     expect(light.background).not.toBe(dark.background);
     expect(light.color).not.toBe(dark.color);
+  });
+});
+
+describe("the disc has an edge, so it reads as a disc", () => {
+  it("gives every family a hairline out of its OWN palette", () => {
+    for (const [themeName, token] of Object.entries(THEMES)) {
+      for (const family of IDENTITY_TINT_FAMILIES) {
+        const tint = identityTint(keyFor(family), token);
+        expect(tint.border, `${themeName}/${family}`).toMatch(/^#[0-9a-f]{6}$/i);
+        // An edge the same colour as the disc is not an edge.
+        expect(tint.border, `${themeName}/${family}`).not.toBe(tint.background);
+        // …and it must not compete with the initials for the darkest role.
+        expect(tint.border).not.toBe(tint.color);
+      }
+    }
+  });
+
+  it("keeps the edge between the disc and the ink, never outside them", () => {
+    // Shade 4 sits between the disc (2) and the ink (10): a border darker
+    // than the letters would read as a ring somebody drew on purpose, and one
+    // lighter than the disc would be invisible by construction.
+    const token = THEMES.light as GlobalToken;
+    const tint = identityTint(keyFor("blue"), token);
+    const shade = (n: number): string =>
+      String((token as unknown as Record<string, unknown>)[`blue${String(n)}`]);
+    expect(tint.background).toBe(shade(IDENTITY_TINT_DISC_SHADE));
+    expect(tint.border).toBe(shade(IDENTITY_TINT_EDGE_SHADE));
+    expect(tint.color).toBe(shade(IDENTITY_TINT_INK_SHADE));
+    expect(IDENTITY_TINT_DISC_SHADE).toBeLessThan(IDENTITY_TINT_EDGE_SHADE);
+    expect(IDENTITY_TINT_EDGE_SHADE).toBeLessThan(IDENTITY_TINT_INK_SHADE);
   });
 });
 

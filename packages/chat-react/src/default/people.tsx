@@ -202,7 +202,13 @@ export function CounterpartyAvatar(props: {
            Its fill is translucent, so it has no fixed ratio to claim, and
            nothing here claims one. */
         ...(named && url === null
-          ? { background: tint.background, color: tint.color }
+          ? {
+              background: tint.background,
+              color: tint.color,
+              // The edge, so a pale disc on a pale row is a disc. antd
+              // reserves this 1px as transparent already, so nothing moves.
+              border: `1px solid ${tint.border}`,
+            }
           : { background: token.colorFillQuaternary, color: token.colorTextSecondary }),
         flex: "0 0 auto",
       }}

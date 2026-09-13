@@ -67,10 +67,15 @@
  * carried by the INITIALS, which clear 8.4:1; the disc is a hue, and hue is
  * not luminance. This is no worse than the flat `colorFillQuaternary` both
  * packages drew before — that is a 4% fill, invisible by the same measure —
- * and it is strictly better for the letters on top of it. A visible boundary
- * would be a hairline in the family's own shade 4; it is not drawn here
- * because nobody asked for a ring around every face, and it is one
- * declaration if somebody does.
+ * and it is strictly better for the letters on top of it.
+ *
+ * What answers it instead is the EDGE: the disc carries a hairline in its own
+ * family's {@link IDENTITY_TINT_EDGE_SHADE}, because two letters on an
+ * almost-invisible ground read as letters floating beside a name rather than
+ * as an avatar. The identity is still carried by the initials; the boundary is
+ * what makes the thing a disc. See that constant for the measurement, and for
+ * why a 3:1 boundary is not available in this vocabulary — nor held by the
+ * design system's own hairlines.
  */
 import { theme as antdTheme } from "antd";
 import type { GlobalToken } from "antd";
@@ -105,6 +110,39 @@ export type IdentityTintFamily = (typeof IDENTITY_TINT_FAMILIES)[number];
 export const IDENTITY_TINT_DISC_SHADE = 2;
 /** The shade the INITIALS are painted in — the same family's far end. */
 export const IDENTITY_TINT_INK_SHADE = 10;
+/**
+ * The shade the disc's own EDGE is drawn in.
+ *
+ * Between the disc and the ink, deliberately: a border darker than the
+ * letters reads as a ring somebody drew on purpose, and one lighter than the
+ * disc is invisible by construction.
+ *
+ * ── What a hairline can and cannot buy here ───────────────────────────────
+ *
+ * The edge exists because the disc alone is 1.04:1 against a pale page (see
+ * the header), and two letters on an almost-invisible ground read as letters
+ * floating beside a name rather than as an avatar. Measured against the page,
+ * worst family of thirteen, both algorithms:
+ *
+ *   shade 4   1.13:1 light / 1.42:1 dark     ← this one
+ *   shade 5   1.21 / 1.76
+ *   shade 6   1.38 / 2.23
+ *   shade 7   2.08 / 3.46
+ *
+ * None of them is a 3:1 boundary, and that is not this module failing a bar —
+ * it is the bar being the wrong one. The design system's OWN hairlines measure
+ * 1.14:1 light and 1.40:1 dark (`colorBorderSecondary`) and 1.41 / 1.83
+ * (`colorBorder`) against the same ground. Shade 4 is therefore exactly the
+ * weight of a normal border in this system, which is what was asked for: an
+ * edge, not a ring. Shade 7 would clear 3:1 in the dark algorithm only, and it
+ * draws an outlined badge rather than an avatar.
+ *
+ * It costs no geometry. antd's `<Avatar>` already reserves
+ * `border: 1px solid transparent` and sizes itself `box-sizing: border-box`,
+ * so colouring that border moves nothing: the disc is the same 40px or 72px it
+ * was, measured in a browser before and after.
+ */
+export const IDENTITY_TINT_EDGE_SHADE = 4;
 
 /** A disc and the ink that goes on it. Never one without the other. */
 export interface IdentityTint {
@@ -114,6 +152,8 @@ export interface IdentityTint {
   readonly background: string;
   /** The initials, on that disc. */
   readonly color: string;
+  /** The disc's own edge — see {@link IDENTITY_TINT_EDGE_SHADE}. */
+  readonly border: string;
 }
 
 /**
@@ -167,6 +207,7 @@ export function identityTint(key: string, token: GlobalToken): IdentityTint {
     family,
     background: shade(IDENTITY_TINT_DISC_SHADE),
     color: shade(IDENTITY_TINT_INK_SHADE),
+    border: shade(IDENTITY_TINT_EDGE_SHADE),
   };
 }
 

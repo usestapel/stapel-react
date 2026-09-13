@@ -248,6 +248,11 @@ export function PersonAvatar(props: PersonAvatarProps): ReactElement {
         flexShrink: 0,
         background: tint.background,
         color: tint.color,
+        // THE EDGE. antd already reserves `border: 1px solid transparent` and
+        // sizes itself border-box, so colouring it moves no geometry — and
+        // without it a pale disc on a pale card is two letters floating
+        // beside a name. See `IDENTITY_TINT_EDGE_SHADE` for the measurement.
+        border: `1px solid ${tint.border}`,
       }}
     >
       {personMonogram(props.fallbackName)}
