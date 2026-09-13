@@ -188,6 +188,7 @@ export type { ColorAxisLike, TermExtra } from "./swatches.js";
 //    category page is the page's decision) ──────────────────────────────────
 export {
   PopularValues,
+  PopularValuesTabs,
   popularOptions,
   POPULAR_VALUES_COLUMNS,
   POPULAR_VALUES_COLUMN_GAP,
@@ -195,7 +196,11 @@ export {
   POPULAR_VALUES_MAX_COLUMNS,
   POPULAR_VALUE_COLUMN_WIDTH,
 } from "./PopularValues.js";
-export type { PopularValuesProps } from "./PopularValues.js";
+export type {
+  PopularValuesProps,
+  PopularValuesTab,
+  PopularValuesTabsProps,
+} from "./PopularValues.js";
 export { PartitionChips } from "./PartitionChips.js";
 export type {
   PartitionChild,

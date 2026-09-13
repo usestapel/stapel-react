@@ -26,8 +26,9 @@
  * knows what else is on screen — and would still render the DOM, which is
  * what `display: none` costs a screen reader.
  */
-import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { Button, Flex, Typography } from "antd";
+import type { CSSProperties, KeyboardEvent, ReactElement, ReactNode } from "react";
+import { useId, useRef } from "react";
+import { Button, Flex, Typography, theme as antdTheme } from "antd";
 import { useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
 import {
@@ -182,6 +183,156 @@ function COLUMNS(count: number | undefined): CSSProperties {
  */
 const SHOW_ALL: CSSProperties = { paddingInline: 0, height: "auto" };
 
+/** Which half of the band is on screen. */
+export type PopularValuesTab = "popular" | "all";
+
+/** The two tabs, in the order they are drawn and arrowed through. */
+const TAB_ORDER: readonly PopularValuesTab[] = ["popular", "all"];
+
+export interface PopularValuesTabsProps {
+  /**
+   * The first tab's whole label — the reference's "Popular passenger cars".
+   *
+   * A PROP, and that is a boundary rather than a preference. The sentence
+   * needs the section noun in a grammatical form nothing in the catalogue
+   * declares: a category carries a `name` and no plural, no case and no
+   * gender, and on this fleet's own tree those names include bare imperatives
+   * ("I will buy", "I will rent") and bare adjectives ("front-loading") with
+   * no noun at all — a pair that glued a word in front of them would be
+   * writing another language's grammar in TypeScript. The host routed the
+   * visitor to this leaf and knows what it is called.
+   */
+  readonly popularLabel: ReactNode;
+  /** Which tab is selected. The HOST's state, because the host owns what is
+   * drawn under it. */
+  readonly active: PopularValuesTab;
+  /** Move to a tab. Called only for a tab that is not already selected. */
+  onSelect(tab: PopularValuesTab): void;
+  /** The panel these tabs control, when there is one element that IS it. */
+  readonly panelId?: string;
+  /** The id the selected tab carries, so a host's own panel can name it. */
+  readonly selectedTabId?: string;
+  readonly testId?: string;
+}
+
+/**
+ * THE BAND'S HEADING, AS A SEGMENTED CONTROL WHOSE HALVES BOTH STAY.
+ *
+ * What it replaced: a caption and an «all of it» link, where pressing the link
+ * swapped the block AND took the caption and the link away with it — so there
+ * was no way back to the busiest dozen at all. Measured on the live site
+ * against the reference classified, which draws two tabs on one line and
+ * leaves both of them there.
+ *
+ * ── Roles, and why they are not decoration ────────────────────────────────
+ *
+ * Two buttons that recolour each other are, to a screen reader, two unrelated
+ * buttons: nothing says they are alternatives, nothing says which one is in
+ * force, and the colour that says it to everybody else says nothing at all.
+ * So this is a real `tablist` — one tab stop, a roving `tabIndex`, arrows
+ * between the tabs with selection following focus, and `aria-selected` as the
+ * state.
+ *
+ * ── Colour ────────────────────────────────────────────────────────────────
+ *
+ * The SELECTED tab is the page's own text colour and the other is the brand:
+ * the unselected half is the one a person can press, which is what a brand
+ * colour means everywhere else on the page, and the selected half is a
+ * heading. Both come from the design system's roles (`colorText`,
+ * `colorPrimary`) so a retuned theme moves them together.
+ *
+ * `<span>` and not `<div>`: a host may hand this control to a component that
+ * renders its heading inside a `<Typography.Text>`, and a block element inside
+ * a `<span>` is a DOM a browser rearranges.
+ */
+export function PopularValuesTabs(props: PopularValuesTabsProps): ReactElement {
+  const t = useT();
+  const { token } = antdTheme.useToken();
+  const base = useId();
+  const list = useRef<HTMLSpanElement>(null);
+
+  const labels: readonly ReactNode[] = [
+    props.popularLabel,
+    t(SEARCH_I18N_KEYS.facetsPopularAll),
+  ];
+  const testId = props.testId ?? "popular-tabs";
+
+  /* Arrows move from the tab the key was pressed on — not from the selected
+     one, which is a different tab whenever focus and selection have been
+     allowed to part. Wraps at both ends, which is a tablist's own behaviour. */
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
+    const last = TAB_ORDER.length - 1;
+    let next: number;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = index === last ? 0 : index + 1;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = index === 0 ? last : index - 1;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = last;
+    else return;
+    event.preventDefault();
+    const target = TAB_ORDER[next];
+    if (target === undefined) return;
+    const nodes = list.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    nodes?.[next]?.focus();
+    if (target !== props.active) props.onSelect(target);
+  };
+
+  return (
+    <span
+      ref={list}
+      role="tablist"
+      style={{ display: "inline-flex", alignItems: "baseline", gap: spacing[3] }}
+      data-testid={testId}
+    >
+      {/* The ring the keyboard gets and the mouse does not. */}
+      <style href={POINTER_FOCUS_STYLE_HREF} precedence="default">
+        {pointerFocusCss()}
+      </style>
+      {TAB_ORDER.map((tab, index) => {
+        const selected = tab === props.active;
+        return (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            id={props.selectedTabId !== undefined && selected ? props.selectedTabId : `${base}-${tab}`}
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            {...(props.panelId !== undefined ? { "aria-controls": props.panelId } : {})}
+            {...POINTER_FOCUS}
+            data-testid={`${testId}-${tab}`}
+            data-analytics="none"
+            data-analytics-reason="switching between a band and its whole list is a read, not a flow step"
+            style={{
+              // A word on a line of type, not a control: an antd Button would
+              // reserve a control's height and inset, and this sits on the
+              // heading's own baseline.
+              appearance: "none",
+              background: "none",
+              border: 0,
+              padding: 0,
+              margin: 0,
+              cursor: selected ? "default" : "pointer",
+              font: "inherit",
+              fontSize: token.fontSizeLG,
+              fontWeight: token.fontWeightStrong,
+              textDecoration: "none",
+              color: selected ? token.colorText : token.colorPrimary,
+            }}
+            onKeyDown={(event) => {
+              onKeyDown(event, index);
+            }}
+            onClick={() => {
+              if (!selected) props.onSelect(tab);
+            }}
+          >
+            {labels[index]}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
+
 const ROW: CSSProperties = {
   // `break-inside` keeps a value and its count on one line when the browser
   // decides where the column ends.
@@ -216,12 +367,43 @@ export interface PopularValuesProps {
    * none, for a surface that has already named the axis. */
   readonly heading?: ReactNode;
   /** Open the full control. Absent draws no link — a link that goes nowhere
-   * is worse than a block that stops. */
+   * is worse than a block that stops. With {@link popularLabel} it is the
+   * the second TAB's press rather than a link's. */
   readonly onShowAll?: () => void;
+  /**
+   * NAME THE SECTION, and the heading becomes a pair of tabs.
+   *
+   * Given, the caption-and-link row is replaced by
+   * {@link PopularValuesTabs}: "popular <section>" and "all", both always on
+   * screen. Omitted, this component is byte-identical to what it was — a
+   * host that has not been handed a section noun must not have one invented
+   * for it (see {@link PopularValuesTabsProps.popularLabel}).
+   *
+   * It does not replace {@link heading}: that names the AXIS (the facet's own name, "Make") and is
+   * still what a surface without tabs draws.
+   */
+  readonly popularLabel?: ReactNode;
+  /**
+   * Which tab is selected. Default `"popular"`.
+   *
+   * `"all"` is for the arm where THIS component draws the whole list itself
+   * (the host raised its `limit` to everything): the tabs have to say so, and
+   * the way back has to stay pressable. A host that swaps this block for a
+   * list of its own draws {@link PopularValuesTabs} over that list instead,
+   * with the same two labels.
+   */
+  readonly activeTab?: PopularValuesTab;
+  /** Go back to the busiest dozen — the first tab's press. */
+  readonly onShowPopular?: () => void;
 }
 
 export function PopularValues(props: PopularValuesProps): ReactElement | null {
   const t = useT();
+  // Named before the early returns: a hook may not be called conditionally,
+  // and both ids are inert on the arms that draw no tabs.
+  const base = useId();
+  const panelId = `${base}-panel`;
+  const selectedTabId = `${base}-tab`;
   const { group } = props;
   if (props.hidden === true) return null;
   /* THE CHAIN REACHES THIS BLOCK TOO. An axis scoped by a sibling
@@ -298,16 +480,33 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
           `align="baseline"`: the caption is bold body text and the link is
           not, so aligning the BOXES leaves the two words sitting on different
           lines by a pixel or two. */}
-      {(props.heading !== null || showAll !== null) && (
-        <Flex align="baseline" gap={spacing[3]} wrap>
-          {props.heading !== null && (
-            <Typography.Text strong>{props.heading ?? group.label}</Typography.Text>
-          )}
-          {showAll}
-        </Flex>
+      {props.popularLabel !== undefined ? (
+        <PopularValuesTabs
+          popularLabel={props.popularLabel}
+          active={props.activeTab ?? "popular"}
+          panelId={panelId}
+          selectedTabId={selectedTabId}
+          testId={`popular-tabs-${group.slug}`}
+          onSelect={(tab) => {
+            if (tab === "all") props.onShowAll?.();
+            else props.onShowPopular?.();
+          }}
+        />
+      ) : (
+        (props.heading !== null || showAll !== null) && (
+          <Flex align="baseline" gap={spacing[3]} wrap>
+            {props.heading !== null && (
+              <Typography.Text strong>{props.heading ?? group.label}</Typography.Text>
+            )}
+            {showAll}
+          </Flex>
+        )
       )}
       <div
         data-testid={`popular-columns-${group.slug}`}
+        {...(props.popularLabel !== undefined
+          ? { role: "tabpanel", id: panelId, "aria-labelledby": selectedTabId }
+          : {})}
         style={COLUMNS(
           responsive
             ? undefined
