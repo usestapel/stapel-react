@@ -147,6 +147,25 @@ export interface ListingSerpCardBaseProps
    * right thing before the host wires anything).
    */
   readonly specsLine?: string;
+  /**
+   * A SHORT PLAIN-TEXT OPENING OF THE DESCRIPTION, under the title.
+   *
+   * The reference's list card fills its text column; ours held a price, a
+   * title, a spec line and a place, so a 1088px card at 1440 was half empty
+   * with the actions rail pinned to its far edge. This is the line that fills
+   * it.
+   *
+   * The HOST's string, like {@link specsLine}, and already cut: the search
+   * projection carries `description_snippet` (stapel-classified 0.11.0) —
+   * plain text, ~160 characters, ended on a whole word. This card does not cut
+   * it, because a card that re-cut a snippet would cut it twice and the second
+   * cut would land mid-word.
+   *
+   * The server appends NOTHING — no ellipsis — so the truncation is marked by
+   * typography here: the shared two-line clamp, which draws the browser's own
+   * ellipsis if even the snippet overruns its column.
+   */
+  readonly descriptionSnippet?: string;
   /** See the file header — a seam over data the projection does not carry. */
   readonly priceTrend?: ListingPriceTrend;
   /** The seller's name and rating. See the file header for the per-card fetch
@@ -436,6 +455,21 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                         testId="listings-serp-specs"
                       />
                     )}
+
+                    {props.descriptionSnippet !== undefined &&
+                    props.descriptionSnippet.length > 0 ? (
+                      /* Two lines, and the SAME clamp the title uses — one
+                         module answers "how does this card cut text" for every
+                         string on it, which is the rule `titleClamp.ts` exists
+                         to keep. */
+                      <Typography.Text
+                        type="secondary"
+                        className={TITLE_CLAMP_CLASS}
+                        data-testid="listings-serp-description"
+                      >
+                        {props.descriptionSnippet}
+                      </Typography.Text>
+                    ) : null}
 
                     <CardBadges rows={badgeDaos} copy={copy} variant="badges" />
                   </CardTarget>

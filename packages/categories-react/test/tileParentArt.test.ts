@@ -20,7 +20,17 @@ import {
   categoryChildTileEntries,
   categoryTileEntry,
 } from "../src/headless/CategoryCarousel.js";
+import type { CategoryTileEntry } from "../src/headless/CategoryCarousel.js";
 import type { Category } from "../src/index.js";
+
+/** A level entry is a union — a real row or a virtual child — and only the row
+ * arm carries an icon. These fixtures are all rows, so this narrows rather
+ * than casts, and a virtual entry sneaking in fails loudly here. */
+function iconOf(entry: CategoryTileEntry | undefined): string | null {
+  if (entry === undefined) throw new Error("no entry at that position");
+  if (!("category" in entry)) throw new Error("expected a row entry");
+  return entry.icon;
+}
 
 function row(
   id: number,
@@ -77,15 +87,15 @@ describe("a level of children", () => {
       undefined,
       PARENT
     );
-    expect(entries[0]?.icon).toBe("product/parent-art");
-    expect(entries[1]?.icon).toBe("product/own-art");
+    expect(iconOf(entries[0])).toBe("product/parent-art");
+    expect(iconOf(entries[1])).toBe("product/own-art");
   });
 
   it("changes nothing for a caller that names no parent", () => {
     // The whole fleet's existing call sites are this one, so it is the arm
     // that must not move.
     const entries = categoryChildTileEntries([ARTLESS, OWN_ART] as never, "/c");
-    expect(entries[0]?.icon).toBeNull();
-    expect(entries[1]?.icon).toBe("product/own-art");
+    expect(iconOf(entries[0])).toBeNull();
+    expect(iconOf(entries[1])).toBe("product/own-art");
   });
 });
