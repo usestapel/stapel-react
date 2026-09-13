@@ -134,6 +134,8 @@ export {
   facetGroupHasEvidence,
   facetGroupIsDrawable,
   facetGroupIsVocabularyBacked,
+  facetGroupOfferableOptions,
+  facetOptionIsOfferable,
   facetOptionLabel,
   isFacetableFeature,
   orderFacetGroupsBySchema,

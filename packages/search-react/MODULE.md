@@ -231,6 +231,23 @@ production, where the guard now asks "is this a dev build" rather than "is this
 not production", because a browser bundle with no `process` shim answered the
 second one wrong and shipped the warning to buyers.
 
+### And a dead VALUE inside a live axis is dropped too
+
+Since 0.43 the same reasoning reaches one level down. A facet option counted at
+zero is not rendered: reviewers walking a live stand at 1024 and 1440 found a
+colour axis offering six values at `0` and a condition axis offering its "new"
+bucket at `0`, each a pressable control whose only outcome is an empty feed.
+`facetOptionIsOfferable` is the predicate and it keeps exactly two things — a
+value the reader has already chosen (a filter must keep the control that
+removes it, and a chosen value the counter never returned is built at `0`), and
+a `null`, which says nobody counted rather than none exist, so a deployment
+that publishes no counts keeps its whole list. A group left with nothing
+offerable draws no heading either (`facetGroupIsEmptyHeading`), except the
+vocabulary-backed one, whose control is a field over a dictionary.
+
+The rule is the OPTION LIST's. Count-bearing controls a host composes itself —
+partition chips, a vocabulary band — print whatever the host rules they print.
+
 ## The chip row's order is the row's product
 
 At 390px about four chips fit before the fold. On a live phone category the

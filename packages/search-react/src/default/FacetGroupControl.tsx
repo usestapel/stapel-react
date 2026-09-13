@@ -84,7 +84,10 @@ import {
   SCROLL_LIST_INSET_BLOCK_START,
   railScrollbarCss,
 } from "./scrollbar.js";
-import { facetGroupIsVocabularyBacked } from "../state/facets.js";
+import {
+  facetGroupIsVocabularyBacked,
+  facetGroupOfferableOptions,
+} from "../state/facets.js";
 import type { FacetGroup, FacetOption } from "../state/facets.js";
 import { translitPrefixMatch } from "../state/translit.js";
 import { SEARCH_I18N_KEYS } from "../i18n/keys.js";
@@ -1176,16 +1179,35 @@ export function facetGroupReservedHeight(input: {
  * FIELD over a vocabulary the answer never enumerated, so it works with no
  * buckets at all — that is the whole reason the shape exists, and a make
  * picker on a leaf holding three cars must not vanish for having three.
+ *
+ * "No buckets" is asked of the OFFERABLE ones — see
+ * {@link facetGroupOfferableOptions}. A group whose every value is counted at
+ * zero has nothing a person can press, so it must not leave a titled, openable
+ * accordion behind either: that is the same empty control this pass deletes,
+ * one level up. Most such groups never reach a surface (`facetGroupIsDrawable`
+ * and `keepsAnAxisOpen` drop a counted axis with no coverage at all); this
+ * covers the ones that do — a host's own list, a fixture, a slug a link
+ * constrains.
  */
 export function facetGroupIsEmptyHeading(group: FacetGroup): boolean {
-  return group.options.length === 0 && facetGroupShape(group) !== "dictionary";
+  return (
+    facetGroupOfferableOptions(group).options.length === 0 &&
+    facetGroupShape(group) !== "dictionary"
+  );
 }
 
 export function FacetGroupControl(
   props: FacetGroupControlProps
 ): ReactElement | null {
   const t = useT();
-  const { group } = props;
+  /* THE OPTIONS A PERSON CAN ACTUALLY PRESS, and the only view of the group
+     anything below this line sees. Derived once, at the top, because the four
+     shapes each read `group.options` for themselves — the checkbox list, the
+     pills, the desktop field and the phone sheet — and a rule applied in three
+     of them is a rule the fourth disagrees with. See
+     `facetGroupOfferableOptions`: a counted zero is dropped, a chosen value
+     and an uncounted `null` are kept. */
+  const group = facetGroupOfferableOptions(props.group);
   const [expanded, setExpanded] = useState(false);
   const [openState, setOpenState] = useState(props.defaultOpen !== false);
   const shape = facetGroupShape(group);

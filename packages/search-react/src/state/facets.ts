@@ -345,6 +345,51 @@ export function facetGroupHasEvidence(group: FacetGroup): boolean {
 }
 
 /**
+ * Can a person press this option and get anything back?
+ *
+ * Reviewers walking the live stand at 1024 and 1440 found rails offering
+ * values with a zero beside them — six of the colour axis on a text search,
+ * the "new" bucket of the condition axis on a laptops leaf. Each one is a
+ * pressable control whose only outcome is an empty feed. The drill-down facet
+ * is telling the truth about what swapping to that value would get you, and
+ * the shape it says it in is an offer. The owner's ruling: a counted zero is
+ * not offered.
+ *
+ * TWO THINGS THIS MUST NOT DROP, and they are the whole of the predicate:
+ *
+ *  - a value the reader has ALREADY CHOSEN, whatever its count. Counts come
+ *    back with the slug's own filter removed, so a chosen value normally
+ *    carries its own evidence — but a chosen value the counter never returned
+ *    is built at `0` right here in {@link buildFacetGroups}, and hiding it
+ *    would strand a person inside a constraint with no control to clear it.
+ *    Same clause as `facetGroupIsDrawable`'s, one level down;
+ *  - `null`, which is not `0`. "Nobody counted this" and "there are none" are
+ *    different sentences: an uncounted group carries `null` on every row, and
+ *    reading that as zero would empty the rail of every deployment that
+ *    publishes no counts.
+ *
+ * Scope: this governs the FACET OPTION list. Other count-bearing controls —
+ * a host's partition chips, a host's vocabulary band — are the container's
+ * own and print their zeros by their own rulings.
+ */
+export function facetOptionIsOfferable(option: FacetOption): boolean {
+  return option.selected || option.count !== 0;
+}
+
+/**
+ * The same group with the options nobody can reach taken out — and the SAME
+ * OBJECT when there is nothing to take out.
+ *
+ * Identity matters here: the group is a `useMemo` dependency in the sheet, a
+ * render key in the panel and the input to a height reservation, so a fresh
+ * copy per render would re-run all three for nothing.
+ */
+export function facetGroupOfferableOptions(group: FacetGroup): FacetGroup {
+  if (group.options.every(facetOptionIsOfferable)) return group;
+  return { ...group, options: group.options.filter(facetOptionIsOfferable) };
+}
+
+/**
  * Is this axis one a person can SEARCH even with no evidence behind it — an
  * axis whose values live in a VOCABULARY?
  *
@@ -918,9 +963,9 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
  *  - a group the reader has ALREADY filtered on, whatever its counts say —
  *    the same clause that outranks the type rule. Withholding that group
  *    leaves a constraint applied with no control to undo it.
- *  - a group with any non-zero option. A zero option beside a live one is
- *    drill-down working as designed: it reports what swapping to that value
- *    would get you, and the answer being "nothing" is information.
+ *  - a group with any non-zero option. The AXIS is alive; its dead values are
+ *    dropped one level down, where they are a control rather than a heading —
+ *    see {@link facetOptionIsOfferable}.
  */
 function keepsAnAxisOpen(group: FacetGroup): boolean {
   if (!group.counted) return true;

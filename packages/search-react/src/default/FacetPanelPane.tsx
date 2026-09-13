@@ -13,6 +13,10 @@
  *    Facets are counted with their own filter removed, so those numbers are
  *    "what you would get by switching to this instead" — a sibling that shows
  *    a stale or zeroed count has converted a drill-down facet into a naive one.
+ *    An option whose count IS zero is not drawn at all: "what you would get"
+ *    being nothing makes it a control with one outcome, and the panel offers
+ *    no such control — see `facetOptionIsOfferable`. A chosen value and an
+ *    uncounted one both stay.
  *  - `approximate` — said in words, from the first day, because the counts
  *    genuinely are a sample above the backend's candidate cap.
  *  - `skipped` — the slugs the server did not count at all. Their options show
@@ -108,6 +112,7 @@ import { useAppliedCount } from "../headless/useAppliedCount.js";
 import {
   facetCoverage,
   facetGroupIsDrawable,
+  facetGroupOfferableOptions,
   orderFacetGroupsBySchema,
 } from "../state/facets.js";
 import type { FacetGroup } from "../state/facets.js";
@@ -1045,9 +1050,12 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 const needle = searchable
                   ? filterQuery.trim().toLowerCase()
                   : "";
+                // Over the options the group will actually DRAW: a hit on a
+                // value the rail hides is a group opened on a row that is not
+                // there.
                 const matches = (group: FacetGroup): boolean =>
                   group.label.toLowerCase().includes(needle) ||
-                  group.options.some((option) =>
+                  facetGroupOfferableOptions(group).options.some((option) =>
                     option.label.toLowerCase().includes(needle)
                   );
                 const listed =
