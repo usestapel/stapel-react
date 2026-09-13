@@ -122,6 +122,7 @@ const { tracked } = useTracked();
 - listings.engagement-scope → <ListingEngagementScope> [default|unscoped|visitor|failed]  demo/ListingEngagementScope.demo.tsx
 - listings.favorites → <FavoritesPane> [default|paged|empty|failed|visitor]  demo/Favorites.demo.tsx
 - listings.feed-card → <ListingFeedCard> [default|tile|visitor|wide]  demo/ListingFeedCard.demo.tsx
+- listings.hero-gallery → <ListingHeroGallery> [default|single|no photos|lightbox]  demo/ListingHeroGallery.demo.tsx
 - listings.mine → <MyListingsPane> [default|no-editor|taken-down|visitor|archived|failed]  demo/MyListings.demo.tsx
 - listings.parts → <ListingStatusBlock> [default|tags|notes|media|door]  demo/ListingParts.demo.tsx
 - listings.photo-strip → <ListingPhotoStrip> [default|single|no photos]  demo/ListingPhotoStrip.demo.tsx
