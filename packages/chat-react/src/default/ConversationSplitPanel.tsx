@@ -224,6 +224,17 @@ const THREAD_MEASURE = "48rem";
  */
 const DEFAULT_LIST_WIDTH = "clamp(360px, 32%, 480px)";
 
+/**
+ * The floor under the EMPTY pane.
+ *
+ * The pane takes the grid row's height, which is the list's — and a list with
+ * two conversations in it is short. Below this the invitation stops being in
+ * the middle of anything, so the pane keeps a screenful's worth of room even
+ * when the list beside it does not fill one. A viewport fraction rather than
+ * a pixel count: what "a screenful" is belongs to the screen.
+ */
+const EMPTY_PANE_MIN_HEIGHT = "50vh";
+
 /** A CSS length from a prop that is a number of pixels or a string as
  * written — the same rule every other length prop in the fleet follows. */
 function listTrack(listWidth: number | string | undefined): string {
@@ -353,6 +364,15 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
           maxWidth: THREAD_MEASURE,
           borderInlineStart: `1px solid ${token.colorSplit}`,
           paddingInlineStart: spacing[4],
+          /* THE DIVIDER IS AS LONG AS THE SCREEN IT DIVIDES.
+             The grid is `align-items: start` and stays that way — that is
+             what stops a short list from stretching a long thread's card.
+             But the rule between the panes is this element's own border, so
+             with nothing selected the pane was as tall as one `<Empty>` and
+             the line stopped in mid-air: measured at 1440, a 130px stub
+             beside a list running about 330px further down. Only this pane
+             takes the row's height; the list beside it is untouched. */
+          alignSelf: "stretch",
         }}
       >
         {openId !== null ? (
@@ -382,14 +402,34 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
               : {})}
           />
         ) : (
-          (props.empty ?? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              data-testid="chat-split-empty"
-              description={t(CHAT_I18N_KEYS.splitEmpty)}
-              style={{ marginTop: spacing[6] }}
-            />
-          ))
+          /* THE EMPTY STATE STANDS IN THE MIDDLE OF THE PANE.
+             It carried a top margin and nothing else, which in a pane 700px
+             tall reads as a caption floating near the top of a void. The box
+             centres on both axes over the pane's WHOLE height — which is the
+             row's, from the `alignSelf` above — and it wraps a host's own
+             node too: where the right pane's one piece of content sits is a
+             decision about this arrangement's layout, and this file is the
+             one that makes those. */
+          <div
+            data-testid="chat-split-empty-frame"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              blockSize: "100%",
+              // A floor, so the invitation is still in the middle of
+              // something on a short page where the list is shorter than it.
+              minBlockSize: EMPTY_PANE_MIN_HEIGHT,
+            }}
+          >
+            {props.empty ?? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                data-testid="chat-split-empty"
+                description={t(CHAT_I18N_KEYS.splitEmpty)}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

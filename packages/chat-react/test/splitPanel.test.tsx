@@ -11,6 +11,7 @@
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { ReactElement } from "react";
 import { ConversationSplitPanel } from "../src/default/index.js";
 import { TestHarness, mockServer } from "./harness.js";
 import {
@@ -282,5 +283,104 @@ describe("a conversation row's name and its clock", () => {
     expect(title).not.toBeNull();
     expect((title as HTMLElement).style.textOverflow).toBe("ellipsis");
     expect((title as HTMLElement).style.minWidth).toBe("0");
+  });
+});
+
+/**
+ * THE RIGHT PANE WITH NOTHING IN IT, AND THE DIVIDER THAT STOPPED IN MID-AIR.
+ *
+ * Measured by the reviewers at 1440: the thread pane is roughly 950 by 700 of
+ * nothing with a caption floating near its top, and the rule between the two
+ * panes is a 130px stub while the list beside it runs about 330px further
+ * down. Both come from one declaration each.
+ *
+ *  - the grid is `align-items: start`, correctly — a short list must not
+ *    stretch a long thread's card — so the pane that DRAWS the divider is as
+ *    tall as its own content, and its content while nothing is selected is one
+ *    antd `<Empty>`. The rule is therefore as long as the empty state, not as
+ *    long as the screen it divides. The pane, and only the pane, now stretches
+ *    to the row.
+ *  - the empty state carried `margin-top: <spacing 6>` and nothing else, which
+ *    in a pane 700px tall is "near the top". It now stands in a box that
+ *    centres it on both axes over the pane's whole height.
+ *
+ * WHAT THIS CANNOT SEE: jsdom lays nothing out, so "the divider runs the full
+ * height", "the icon and the line are in the middle of the pane" and the 130
+ * versus 330 pixels are BROWSER facts. What is asserted here is the mechanism
+ * for each: the pane's own alignment, the centring box's declarations, the
+ * removal of the top margin, and the fact that the centring box exists ONLY
+ * while there is no thread.
+ */
+describe("the empty right pane is a pane, and the divider is full height", () => {
+  async function empty(node?: ReactElement) {
+    const server = mockServer({
+      "GET /conversations": { body: conversationPage([conversation()]) },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationSplitPanel
+          viewerId={BUYER}
+          {...(node !== undefined ? { empty: node } : {})}
+        />
+      </TestHarness>
+    );
+    await waitFor(() =>
+      expect(screen.getAllByTestId("chat-conversation-row")).toHaveLength(1)
+    );
+    return {
+      pane: screen.getByTestId("chat-split-thread-pane"),
+      frame: screen.queryByTestId("chat-split-empty-frame"),
+    };
+  }
+
+  it("stretches the pane that draws the divider to the row's height", async () => {
+    const { pane } = await empty();
+    // The grid stays top-aligned for the LIST; only the divider's own pane
+    // takes the whole row, which is what makes the rule reach the foot.
+    expect(pane.style.alignSelf).toBe("stretch");
+    expect(pane.style.borderInlineStart).toContain("1px solid");
+  });
+
+  it("centres the empty state on both axes instead of floating it at the top", async () => {
+    const { frame } = await empty();
+    expect(frame).not.toBeNull();
+    const box = frame as HTMLElement;
+    expect(box.style.display).toBe("flex");
+    expect(box.style.alignItems).toBe("center");
+    expect(box.style.justifyContent).toBe("center");
+    // Over the PANE's height, not over the empty state's own.
+    expect(box.style.blockSize).toBe("100%");
+
+    const state = screen.getByTestId("chat-split-empty");
+    expect(box.contains(state)).toBe(true);
+    // The old pin is gone — a margin and a centring box would fight.
+    expect(state.style.marginTop).toBe("");
+    // An icon AND the line, which is what makes it an invitation rather than
+    // a stray caption: antd's simple presentation draws the picture as SVG.
+    expect(state.querySelector("svg")).toBeTruthy();
+    expect(state.textContent).toContain("Pick a conversation");
+  });
+
+  it("centres a host's own empty node by the same box", async () => {
+    const { frame } = await empty(<p data-testid="host-empty">Nothing here</p>);
+    expect(frame).not.toBeNull();
+    expect((frame as HTMLElement).contains(screen.getByTestId("host-empty"))).toBe(true);
+  });
+
+  it("does not centre a THREAD", async () => {
+    const server = mockServer({
+      "GET /messages": { body: messagePage([2, 1]) },
+      "POST /read": { body: {} },
+      "GET /conversations": { body: conversationPage([conversation()]) },
+    });
+    render(
+      <TestHarness server={server} realtime={{ socketUrl: null }}>
+        <ConversationSplitPanel viewerId={BUYER} selectedId={CONVERSATION_ID} />
+      </TestHarness>
+    );
+    await waitFor(() => expect(screen.getAllByTestId("chat-message")).toHaveLength(2));
+    expect(screen.queryByTestId("chat-split-empty-frame")).toBeNull();
+    // …and the divider still runs the full height beside it.
+    expect(screen.getByTestId("chat-split-thread-pane").style.alignSelf).toBe("stretch");
   });
 });
