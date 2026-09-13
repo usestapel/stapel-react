@@ -364,6 +364,27 @@ const TOOLBAR_LEAD: CSSProperties = {
   minInlineSize: 0,
 };
 
+/**
+ * The row's HOST lead — a node the surface puts at the start of the toolbar,
+ * ahead of the pair's own count and controls (see
+ * {@link SearchResultsPaneProps.toolbarLead}).
+ *
+ * Sized like {@link TOOLBAR_END} and for the same reason: it keeps the width
+ * it needs while the line has room, and gives some back below that rather than
+ * forcing the row wider than its column. `min-inline-size: 0` is what lets the
+ * host's own node decide HOW it gives it back — an ellipsis, a shorter label —
+ * instead of being cut by the row's edge.
+ *
+ * It deliberately does NOT take the elastic basis {@link TOOLBAR_LEAD} has.
+ * That half is the count's reservation and its zero basis is load-bearing
+ * (D466); a second elastic item beside it would split the slack between them
+ * and the controls would travel again the moment a number arrived.
+ */
+const TOOLBAR_HOST_LEAD: CSSProperties = {
+  flex: "0 1 auto",
+  minInlineSize: 0,
+};
+
 /** The compact shape's toolbar box — the row the pin acts on. */
 const COMPACT_TOOLBAR: CSSProperties = {
   display: "flex",
@@ -558,6 +579,37 @@ export interface SearchResultsPaneProps extends ThemeModeProp {
    * toolbar in here instead of printing a second caption above the pane.
    */
   readonly toolbar?: ReactNode;
+  /**
+   * The START of the toolbar row, ahead of the count and of {@link toolbar} —
+   * for a host control that belongs IN that row rather than above it.
+   *
+   * The case it exists for is a "where am I searching" control: it is of the
+   * same kind as the row's other items (it states and changes what the list
+   * is), and every other way of placing it costs a row of its own plus the
+   * column's gap — about 50px of a page head.
+   *
+   * WHY NOT ONE OF THE SLOTS THAT ALREADY EXIST, because a slot duplicating
+   * one of those is worse than none:
+   *
+   *  - {@link lead} is inside the results column, which is close, but it is
+   *    ABOVE the heading row and this row — a block of its own, and a row of
+   *    its own;
+   *  - `<SearchPage resultsHeader>` is further still: it spans BOTH columns,
+   *    so it would stand the control over the filter rail as well;
+   *  - {@link toolbar} itself is the wrong seam from `<SearchPage>`, which
+   *    BUILDS that value — the view switch, the sort, the page size and the
+   *    surface's action, in two shapes. A host handed it would be replacing
+   *    the pair's controls rather than adding to them, and would have to
+   *    re-implement the row (and its phone/desktop split) to add one item;
+   *  - `<SearchPage resultsAction>` is this slot's mirror at the TRAILING end,
+   *    and it stays exactly that.
+   *
+   * Drawn in both shapes of the header: in `"banner"` it is the first item of
+   * the controls row, before the count's own half; in `"compact"` it is the
+   * first item of the toolbar row that sits between the heading and the count.
+   * Nothing is rendered when the host passes nothing — no box, no gap.
+   */
+  readonly toolbarLead?: ReactNode;
   /**
    * The very top of the pane, ABOVE the heading row and its toolbar.
    *
@@ -973,6 +1025,11 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   data-testid="search-results-toolbar"
                   style={{ ...COMPACT_TOOLBAR, ...toolbarBox }}
                 >
+                  {props.toolbarLead !== undefined && (
+                    <div style={TOOLBAR_HOST_LEAD} data-testid="search-toolbar-lead">
+                      {props.toolbarLead}
+                    </div>
+                  )}
                   {props.toolbar}
                 </div>
                 <Count bag={bag} />
@@ -1000,6 +1057,16 @@ export function SearchResultsPane(props: SearchResultsPaneProps): ReactElement {
                   data-testid="search-results-toolbar"
                   style={{ ...TOOLBAR_ROW, ...toolbarBox }}
                 >
+                  {/* The surface's own item, at the head of the row. Ahead of
+                      the count's half rather than inside it: that half is a
+                      reservation with a zero basis, and a host node sharing it
+                      would be sharing the slack the reservation exists to
+                      absorb. See `TOOLBAR_HOST_LEAD`. */}
+                  {props.toolbarLead !== undefined && (
+                    <div style={TOOLBAR_HOST_LEAD} data-testid="search-toolbar-lead">
+                      {props.toolbarLead}
+                    </div>
+                  )}
                   {/* The elastic half, present whether or not there is a
                       count in it — see TOOLBAR_LEAD. It is what holds the
                       controls against the trailing edge in the frame before

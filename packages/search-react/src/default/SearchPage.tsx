@@ -975,6 +975,32 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    */
   readonly resultsAction?: ReactNode;
   /**
+   * The LEADING end of that same row, before the pair's own count and
+   * controls — the mirror of {@link resultsAction}.
+   *
+   * For a host control that belongs IN the toolbar rather than above it: the
+   * case it was added for is "where am I searching", which states and changes
+   * what the list is, exactly as the sort and the view switch beside it do.
+   *
+   * The three slots that already exist were each checked first, and each costs
+   * a row of its own plus the column's gap — about 50px of a page head:
+   *
+   *  - {@link resultsHeader} spans BOTH columns by contract, so it would stand
+   *    the control over the filter rail as well as over the list;
+   *  - {@link resultsLead} is inside the results column, which is closer, but
+   *    it renders ABOVE the heading row and the toolbar;
+   *  - the pane's own `toolbar` is not forwardable from here at all, because
+   *    THIS COMPONENT BUILDS IT — the view switch, the sort select, the page
+   *    size and `resultsAction`, in two shapes for phone and desktop. A host
+   *    given that prop would be replacing the pair's controls rather than
+   *    adding to them: it would have to re-implement the row to add one item
+   *    to it, and would lose the shape split on the way. That is the trap this
+   *    slot exists to avoid, which is why it is a LEAD and not a passthrough.
+   *
+   * Rendered in the toolbar row in BOTH layouts.
+   */
+  readonly toolbarLead?: ReactNode;
+  /**
    * Heading level for the results caption. Default `1` — on a results SCREEN
    * the list's name is the page's heading. A container that already prints its
    * own `<h1>` above this page passes a lower level.
@@ -1062,6 +1088,7 @@ interface SearchPageBodyProps {
   readonly defaultView?: string;
   readonly onViewChange?: (id: string) => void;
   readonly resultsAction?: ReactNode;
+  readonly toolbarLead?: ReactNode;
   readonly resultsHeadingLevel?: 1 | 2 | 3 | 4 | 5;
 }
 
@@ -1349,6 +1376,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
   const results = (
     <SearchResultsPane
       toolbar={toolbar}
+      {...(props.toolbarLead !== undefined
+        ? { toolbarLead: props.toolbarLead }
+        : {})}
       {...(props.resultsLead !== undefined ? { lead: props.resultsLead } : {})}
       {...(phoneToolbar ? { header: "compact" as const } : {})}
       {...(props.stickyToolbar !== undefined
@@ -1642,6 +1672,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     defaultView,
     onViewChange,
     resultsAction,
+    toolbarLead,
     resultsHeadingLevel,
     resultsColumns,
     resultsReserve,
@@ -1711,6 +1742,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(defaultView !== undefined ? { defaultView } : {})}
           {...(onViewChange !== undefined ? { onViewChange } : {})}
           {...(resultsAction !== undefined ? { resultsAction } : {})}
+          {...(toolbarLead !== undefined ? { toolbarLead } : {})}
           {...(resultsHeadingLevel !== undefined ? { resultsHeadingLevel } : {})}
         />
       </SearchStateProvider>
