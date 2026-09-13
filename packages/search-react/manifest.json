@@ -623,12 +623,16 @@
       "title": "Popular values",
       "description": "The head of one facet as a multi-column list of value + count, each line applying that filter. The numbers are the answer's own drill-down counts — the same ones the checkbox rows carry — so a value cannot read 802 here and 93 in the panel. Values with no evidence behind them are dropped rather than printed with a blank where the number belongs: the block IS the numbers. Whether a phone has room for it is the page's decision and arrives as the `hidden` prop, never as a media query inside.",
       "component": "PopularValues",
+      "covers": [
+        "PopularValuesTabs"
+      ],
       "tokens": [
         "text-muted"
       ],
       "variants": [
         "desktop",
         "responsive",
+        "tabs",
         "narrow-column"
       ],
       "source": "demo/PopularValues.demo.tsx"
