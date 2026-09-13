@@ -236,7 +236,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.31.1",
+      "version": "0.31.2",
       "entries": [
         {
           "id": "categories.catalog",
