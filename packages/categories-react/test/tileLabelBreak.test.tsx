@@ -47,7 +47,11 @@
  */
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { CategoryTileGrid } from "../src/default/index.js";
+import {
+  CATEGORY_TILE_ART_CLASS,
+  CategoryTileGrid,
+  categoryTileCss,
+} from "../src/default/index.js";
 import type { CarouselEntry } from "../src/default/index.js";
 import { categoryLabel } from "../src/index.js";
 import { fontSize } from "@stapel/tokens";
@@ -306,5 +310,77 @@ describe("the Russian root names, on the phone landing's compact tile", () => {
       expect(caption.style.fontSize).toBe(`${String(fontSize.xs.fontSize)}px`);
       expect(caption.style.webkitLineClamp).toBe("2");
     }
+  });
+});
+
+/**
+ * THE COMPACT SIZE ON A NARROW SCROLLER — the row, not the square.
+ *
+ * The square above solved the break by widening its COLUMN
+ * (`COMPACT_MIN_COLUMN_PX`). The compact SIZE is a different anatomy with the
+ * same failure one axis over: it is a horizontal row, `[caption][art]`, and
+ * the art took a flat 32% of it. A storefront running this size at the
+ * scroller's default 2.5 columns on a 390px phone left ~90px of caption, and
+ * these same two names ended in an ellipsis INSIDE the word — the defect this
+ * file exists for, arriving from the other direction.
+ *
+ * Two answers, and they are independent on purpose: the host may say how many
+ * columns are in view (`visibleColumns`), and the tile gives its picture up to
+ * its name once it is narrow enough (a CONTAINER query, so it is the tile's
+ * width that decides and not the window's).
+ *
+ * ── WHAT THIS FILE CAN AND CANNOT SEE ─────────────────────────────────────
+ *
+ * jsdom does not lay text out and does not evaluate `@container` at all, so
+ * "the name prints whole at 374px" is NOT observable here — it is a browser
+ * fact, and it is measured on the stand. What is observable is every input to
+ * it: the column the host asked for, the caption's licence to take the row,
+ * and the query itself being in the sheet. Asserting those is worth doing and
+ * is not the same as asserting the outcome, which is why the outcome is
+ * measured where it can be.
+ */
+describe("the compact SIZE's caption on a narrow scroller", () => {
+  it("takes the column count the host asked for", async () => {
+    await mount(
+      <CategoryTileGrid size="compact" visibleColumns={2} entries={RU_ROOTS} />
+    );
+    const list = screen.getByTestId("categories-tile-grid-list");
+    /* The scroller's column is a fraction of the PORT, so the number the host
+       gave has to be the divisor — a default left in place here is exactly the
+       ~90px caption this describe block exists for. */
+    expect(list.style.gridAutoColumns).toContain("/ 2 ");
+  });
+
+  it("leaves the default alone for every host that says nothing", async () => {
+    await mount(<CategoryTileGrid size="compact" entries={RU_ROOTS} />);
+    const list = screen.getByTestId("categories-tile-grid-list");
+    expect(list.style.gridAutoColumns).toContain("/ 2.5 ");
+  });
+
+  it("lets the caption take the row, so the art is what yields", async () => {
+    await mount(
+      <CategoryTileGrid size="compact" visibleColumns={2} entries={RU_ROOTS} />
+    );
+    const caption = captionIn(tiles()[1] as HTMLElement);
+    /* `min-width: 0` is the load-bearing half: without it a flex item may not
+       be narrower than its own longest word, so the art's fixed share is
+       subtracted first and the name lives in the remainder. */
+    expect(caption.style.flex).toBe("1 1 auto");
+    expect(caption.style.minWidth).toBe("0");
+    /* And the break stays between words at two lines — the clamp is the floor
+       under a name no column can answer, not the first resort. */
+    expect(caption.style.overflowWrap).toBe("normal");
+    expect(caption.style.webkitLineClamp).toBe("2");
+  });
+
+  it("hands the picture back to the name on a narrow tile, by container query", () => {
+    /* The rule is in the hoisted sheet because a condition cannot be carried
+       by an inline style. A MEDIA query here would read the window, which is
+       the one measurement that says nothing about how wide this tile ended
+       up — the same mount is a wide sidebar in one host and a phone strip in
+       another. */
+    const css = categoryTileCss();
+    expect(css).toContain("@container stapel-category-tile (max-width:199px)");
+    expect(css).toContain(`.${CATEGORY_TILE_ART_CLASS}{width:24px`);
   });
 });

@@ -50,6 +50,7 @@ export {
 export type { BlockRhythm } from "./blockRhythm.js";
 export {
   CategoryTileGrid,
+  CATEGORY_TILE_ART_CLASS,
   CATEGORY_TILE_CLASS,
   CATEGORY_TILE_FLAT_CLASS,
   CATEGORY_TILE_LABEL_TESTID,

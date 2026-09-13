@@ -174,6 +174,31 @@ const COMPACT_SIZE_LABEL_FONT_SIZE = 13;
  * of the row, capped so a wide row does not inflate it into a second tile. */
 const COMPACT_SIZE_ART_WIDTH = "32%";
 const COMPACT_SIZE_ART_MAX_PX = 56;
+
+/**
+ * WHERE THE COMPACT ROW'S PICTURE BECOMES A CORNER GLYPH, measured on the
+ * TILE and not on the window.
+ *
+ * The row is `[caption][art]`, and the art took a flat 32% of it. On a narrow
+ * scroller that is the caption's width being spent on decoration: a storefront
+ * running this size at 2.5 columns on a 390px phone left ~90px of caption, and
+ * its two longest single-word root names — twelve and eleven letters — ended
+ * in an ellipsis INSIDE the word. The name is the only part of a tile that
+ * says where the tap goes, so it is the part that may not be sacrificed.
+ *
+ * Below this width the picture drops to {@link COMPACT_SIZE_ART_GLYPH_PX} and
+ * the caption takes everything it gives up. The threshold is a CONTAINER
+ * query on the tile, so a host that mounts the same size in a wide sidebar and
+ * a narrow phone strip gets the right answer in both without telling the pair
+ * which is which.
+ */
+const COMPACT_SIZE_ART_TIGHT_PX = 200;
+const COMPACT_SIZE_ART_GLYPH_PX = 24;
+/** The container this tile establishes, so the query above cannot be
+ * answered by somebody else's box. */
+const COMPACT_SIZE_CONTAINER = "stapel-category-tile";
+/** The class the compact row's art carries, so the sheet can reach it. */
+export const CATEGORY_TILE_ART_CLASS = "stapel-category-tile-art";
 /** Tighter gap between tiles at this density, and between the label and the
  * picture inside one row. */
 const COMPACT_SIZE_GAP = spacing[1];
@@ -260,6 +285,9 @@ function ReservedTiles(props: {
   /** How many tiles are coming. One skeleton each, in the grid they will land
    * in, so the reserved height is the rows they will take and no more. */
   readonly count: number;
+  /** The scroller's column count, so the box held before the answer is the
+   * box the answer lands in. */
+  readonly visibleColumns?: number;
 }): ReactElement {
   const slots = Array.from({ length: Math.max(0, props.count) }, (_, i) => i);
   return (
@@ -269,7 +297,8 @@ function ReservedTiles(props: {
         props.density,
         props.minTileWidth,
         props.size,
-        props.count
+        props.count,
+        props.visibleColumns
       )}
       data-testid="categories-tile-grid-reserved-list"
       data-reserved-tiles={String(slots.length)}
@@ -296,7 +325,8 @@ function ReservedTiles(props: {
 function scrollerStyle(
   density: TileDensity,
   gap: number,
-  count: number
+  count: number,
+  visibleColumns: number = VISIBLE_COLUMNS
 ): CSSProperties {
   const columns =
     density === "compact"
@@ -306,7 +336,7 @@ function scrollerStyle(
         `clamp(${COMPACT_MIN_COLUMN_PX}px, calc(100% / ${COMPACT_VISIBLE_COLUMNS} - ${gap}px), ${COMPACT_MAX_COLUMN_PX}px)`
       : // `100%` is the SCROLL PORT's content box, so the tile is a fraction
         // of the box it was mounted in — see this file's header.
-        `calc(100% / ${VISIBLE_COLUMNS} - ${gap}px)`;
+        `calc(100% / ${String(visibleColumns)} - ${gap}px)`;
   // Two rows is the shape, not a floor. `grid-auto-flow: column` fills a
   // declared row whether or not a tile lands in it, so a stage with one tile
   // used to declare a second, empty row and pay its gap — an empty band under
@@ -372,7 +402,8 @@ function listStyle(
   density: TileDensity,
   minTileWidth: number,
   size: TileSize,
-  count: number
+  count: number,
+  visibleColumns?: number
 ): CSSProperties {
   const gap = size === "compact" ? COMPACT_SIZE_GAP : DEFAULT_GAP;
   // `wrap` needs no row count of its own: the tiles are the grid's items, so
@@ -381,7 +412,7 @@ function listStyle(
   // rather than a fixed four.
   return layout === "wrap"
     ? wrapStyle(minTileWidth, gap)
-    : scrollerStyle(density, gap, count);
+    : scrollerStyle(density, gap, count, visibleColumns);
 }
 
 const tileBase: CSSProperties = {
@@ -436,6 +467,10 @@ const tileSizeCompact: CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: spacing[2],
+  // The box the art's own query is measured against — see
+  // `COMPACT_SIZE_ART_TIGHT_PX`.
+  containerType: "inline-size",
+  containerName: COMPACT_SIZE_CONTAINER,
   aspectRatio: COMPACT_SIZE_ASPECT_RATIO,
   padding: spacing[2],
   borderRadius: radii.lg,
@@ -517,11 +552,27 @@ export const CATEGORY_TILE_STYLE_HREF = "stapel-category-tile";
  */
 export function categoryTileCss(): string {
   const flat = `.${CATEGORY_TILE_FLAT_CLASS}`;
+  const art = `.${CATEGORY_TILE_ART_CLASS}`;
   return [
     // A `<button>` brings a platform fill of its own; a link does not.
     `${flat}{background-color:transparent;border:none}`,
     `${flat}:hover,${flat}:focus-visible{` +
       `background-color:${cssVar("surface-sunken")}}`,
+    // THE NARROW COMPACT ROW GIVES ITS PICTURE UP TO ITS NAME.
+    //
+    // A container query and not a media query: the tile states its own width
+    // (`container-type: inline-size` in `tileSizeCompact`), so the same size
+    // mounted in a wide sidebar and in a narrow phone scroller each get the
+    // right answer without the host declaring which it is. A media query here
+    // would read the WINDOW, which is the one measurement that says nothing
+    // about how wide this particular tile ended up.
+    //
+    // It has to be a sheet rule rather than an inline style for the same
+    // reason any query does: an inline `style` cannot carry a condition.
+    `@container ${COMPACT_SIZE_CONTAINER} ` +
+      `(max-width:${String(COMPACT_SIZE_ART_TIGHT_PX - 1)}px){` +
+      `${art}{width:${String(COMPACT_SIZE_ART_GLYPH_PX)}px;` +
+      `max-width:${String(COMPACT_SIZE_ART_GLYPH_PX)}px}}`,
   ].join("\n");
 }
 
@@ -725,6 +776,14 @@ const labelSizeCompact: CSSProperties = {
   lineHeight: 1.25,
   textAlign: "start",
   WebkitLineClamp: 2,
+  // THE CAPTION TAKES THE ROW, the art takes what is left — not the other way
+  // round. Without this the label is `flex: 0 1 auto` with `min-width: auto`,
+  // so the art's fixed 32% is subtracted first and the name lives in the
+  // remainder; on a narrow scroller that remainder is too small for a long
+  // single word and the clamp ends it in an ellipsis mid-word. `min-width: 0`
+  // is what lets a flex item be narrower than its longest word at all.
+  flex: "1 1 auto",
+  minWidth: 0,
 };
 
 /** `size: "compact"`'s small picture — a fixed fraction of the row, capped so
@@ -1036,7 +1095,9 @@ function tileBody(props: {
     return (
       <>
         {label}
-        <span style={artSizeCompact}>{props.art}</span>
+        <span className={CATEGORY_TILE_ART_CLASS} style={artSizeCompact}>
+          {props.art}
+        </span>
       </>
     );
   }
@@ -1045,7 +1106,9 @@ function tileBody(props: {
   if (isFlatRow(props.size, props.surface)) {
     return (
       <>
-        <span style={artSizeCompact}>{props.art}</span>
+        <span className={CATEGORY_TILE_ART_CLASS} style={artSizeCompact}>
+          {props.art}
+        </span>
         {label}
       </>
     );
@@ -1361,6 +1424,23 @@ export interface CategoryTileGridProps extends ThemeModeProp, LinkComponentProp 
    */
   readonly minTileWidth?: number;
   /**
+   * HOW MANY COLUMNS OF THE SCROLLER ARE IN VIEW — the fraction, so the half
+   * column that peeks is what says "there is more to the right".
+   *
+   * Default 2.5, the reference phone row, and `layout="wrap"` ignores it (its
+   * columns come from {@link CategoryTileGridProps.minTileWidth}). It is also
+   * ignored by `density="compact"`, whose column is a floor/fraction/cap of
+   * its own.
+   *
+   * A PROP because the right number depends on the longest NAME in the
+   * catalogue, which is a fact about the deployment and not about the pair. A
+   * storefront running `size="compact"` at the default 2.5 on a 390px phone
+   * left ~90px of caption, and its two longest single-word roots ended in an
+   * ellipsis inside the word; at 2 they print whole. A catalogue of short
+   * names has no reason to give up the column.
+   */
+  readonly visibleColumns?: number;
+  /**
    * How many of the leading tiles (by `entries` order, the "All" tile not
    * counted — it never carries an image) load their picture EAGERLY, with
    * `fetchPriority="high"`, instead of `loading="lazy"`. Default 8.
@@ -1611,6 +1691,8 @@ function TileRow(props: {
   readonly eagerCount: number;
   readonly maxVisible?: number;
   readonly overflow: TileOverflow;
+  /** See {@link CategoryTileGridProps.visibleColumns}. */
+  readonly visibleColumns?: number;
 }): ReactElement {
   const t = useT();
   /* The locale the captions are hyphenated BY — see `TileLabelHyphens`. Read
@@ -1639,7 +1721,8 @@ function TileRow(props: {
           props.density,
           props.minTileWidth,
           props.size,
-          visible.length + (props.allTile !== false ? 1 : 0) + (capped ? 1 : 0)
+          visible.length + (props.allTile !== false ? 1 : 0) + (capped ? 1 : 0),
+          props.visibleColumns
         )}
         data-stapel-tile-layout={props.layout}
         data-testid="categories-tile-grid-list"
@@ -1774,6 +1857,9 @@ export function CategoryTileGrid(
     minTileWidth,
     eagerCount,
     overflow,
+    ...(props.visibleColumns !== undefined
+      ? { visibleColumns: props.visibleColumns }
+      : {}),
     ...(props.maxVisible !== undefined ? { maxVisible: props.maxVisible } : {}),
     ...(props.allTile !== undefined ? { allTile: props.allTile } : {}),
     ...(props.linkComponent !== undefined
@@ -1854,6 +1940,9 @@ export function CategoryTileGrid(
               layout={layout}
               density={density}
               minTileWidth={minTileWidth}
+              {...(props.visibleColumns !== undefined
+                ? { visibleColumns: props.visibleColumns }
+                : {})}
               size={size}
               count={reserveCount}
             />
@@ -1881,6 +1970,9 @@ export function CategoryTileGrid(
                     layout={layout}
                     density={density}
                     minTileWidth={minTileWidth}
+                    {...(props.visibleColumns !== undefined
+                      ? { visibleColumns: props.visibleColumns }
+                      : {})}
                     size={size}
                     count={reserveCount}
                   />
