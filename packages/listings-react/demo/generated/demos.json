@@ -311,6 +311,49 @@
       }
     },
     {
+      "id": "listings.hero-gallery",
+      "title": "Listing hero gallery",
+      "description": "The desktop listing page's photographs: one large picture, a filmstrip of thumbnails that changes which one that is, and a lightbox behind a click on the large one — two arrow controls, the two arrow keys, a swipe and Escape, with focus held inside the dialog while it is open and handed back to the hero when it closes. It is <ListingDetailPane galleryLayout=\"hero\">, and the default whenever the host says layout=\"split\"; the phone keeps its snap-scrolling strip.",
+      "component": "ListingHeroGallery",
+      "covers": [],
+      "tokens": [
+        "brand",
+        "surface-overlay",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Four photographs: one hero and a filmstrip under it. The chosen thumbnail is undimmed and outlined, and carries aria-current — the mark a reader sees and the fact a screen reader is told are one attribute, never a class that means something only to the eye.",
+          "viewport": "desktop",
+          "step": "four_photos"
+        },
+        {
+          "id": "single",
+          "description": "One photograph: no filmstrip at all. A strip of one is a row of controls for a choice nobody has, and the hero still opens the lightbox.",
+          "viewport": "desktop",
+          "step": "one_photo"
+        },
+        {
+          "id": "no photos",
+          "description": "A listing the seller uploaded nothing for: the designed placeholder in the hero's own box, so the column's height is the same as it will be once a photograph lands.",
+          "viewport": "desktop",
+          "step": "no_media"
+        },
+        {
+          "id": "lightbox",
+          "description": "The lightbox, opened by pressing the hero. The photograph is drawn whole rather than cropped — that is what a person opened it for — with an arrow on each side, a counter saying where in the set this is, and a way out that is a word and not only the dialog's corner glyph.",
+          "viewport": "desktop",
+          "step": "lightbox_open",
+          "play": true
+        }
+      ],
+      "source": {
+        "file": "demo/ListingHeroGallery.demo.tsx",
+        "line": 42
+      }
+    },
+    {
       "id": "listings.mine",
       "title": "My listings",
       "description": "stapel-listings 0.7.0 gave the owner's own listings a route (GET my/listings/, every status, ?status= for a tab's set), so the rows here are the contract's own. Four things the pane refuses to smooth over: both axes on every row (a LIVE listing whose edit is under review says so — status alone cannot); a moderation takedown, which my/counters counts in no tab at all, gets a fourth tab and a count of its own, announced by a line above the tab strip (D407); every switched-off action prints its reason beside itself instead of hiding it in a hover a phone cannot open; and Delete asks first, through a bottom sheet — and is drawn only on the rows that HAVE a delete route, never as a switched-off button on a listing that is on sale. The row is a thumbnail plus a min-width:0 column, so four actions wrap at 390px instead of clipping.",

@@ -8,9 +8,15 @@
  * card's own link, so a swipe at it opened the listing.
  *
  * The three variants are the three facts the strip has to state differently:
- * several photos (peek + dots), one photo (neither — a sliver of nothing is
- * not an affordance), and none at all (still one slide, so a row's height does
- * not depend on whether a seller uploaded anything).
+ * several photos (dots and a counter), one photo (neither — one dot is not a
+ * position), and none at all (still one slide, so a row's height does not
+ * depend on whether a seller uploaded anything).
+ *
+ * There is no PEEK in any of them, and that is deliberate (2026-09-13). The
+ * sliver of a next slide is a real affordance on a full-width phone gallery;
+ * on a card it painted 14-30px of the next photograph inside the port, under
+ * the counter and the heart, and a feed read as a column of torn images. The
+ * card says "there is more" with its dots and its counter instead.
  */
 import type { ReactElement } from "react";
 import { defineDemo } from "@stapel/showcase";
@@ -45,7 +51,7 @@ export default defineDemo({
       viewport: "phone",
       step: "three_photos",
       description:
-        "Three photos: the next one peeks at the trailing edge and the dots say how many there are. The peek is the only thing on screen that says there is more, and it is what people swipe at.",
+        "Three photos: the picture fills the strip's whole port and the dots and the counter say how many there are. No sliver of the next slide — on a card that tore the photograph rather than inviting a swipe.",
       render: () => (
         <Strip images={["image/9f2c1a", "image/71b0dd", "image/33cc10"]} />
       ),
@@ -54,7 +60,7 @@ export default defineDemo({
       viewport: "phone",
       step: "one_photo",
       description:
-        "One photo: no peek and no dots. A sliver of a next slide that does not exist is a strip of dead space, and one dot is not a position.",
+        "One photo: no dots and no counter. One dot is not a position, and a count of one is not news.",
       render: () => <Strip images={["image/9f2c1a"]} />,
     },
     "no photos": {
