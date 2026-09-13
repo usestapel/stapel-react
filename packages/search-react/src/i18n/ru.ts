@@ -116,6 +116,7 @@ export const searchI18nBundleRu: I18nDictionary = {
   "search.facets.search_empty": "Среди фильтров такого нет",
   "search.facets.dictionary_search": "Найти значение",
   "search.facets.dictionary_empty": "Такого значения здесь нет",
+  "search.facets.parent_first": "Сначала выберите: {parent}",
   "search.facets.dictionary_chosen": "Выбрано",
   "search.facets.dictionary_any": "Любая",
   "search.facets.dictionary_recommended": "Рекомендуемые",

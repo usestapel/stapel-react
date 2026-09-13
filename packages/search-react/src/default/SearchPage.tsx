@@ -531,18 +531,25 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
    *
    * Defaulted PER LAYOUT rather than left to the panel's own default, because
    * the two frames want opposite shapes and only this component knows which
-   * one it is drawing: the desktop rail gets `"field"` (a select-style "Any"
-   * that opens the searchable list — a 418-value vocabulary held open in a
-   * 280px column is the whole column), the phone sheet gets `"sheet"` — the
-   * same trigger row, opening a nested picker with a search box, a
-   * recommended band and the rest.
+   * one it is drawing: the desktop rail gets `"inline"` — the box that finds
+   * a value with the values under it — and the phone sheet gets `"sheet"`, a
+   * trigger row opening a nested picker with a search box, a recommended band
+   * and the rest.
    *
-   * The phone default was `"inline"`, which drew the axis as a wall of
-   * checkboxes with a "Find a value" box over it while the COMPOSER's picker
-   * for the very same vocabulary was a trigger and a sheet. One dictionary,
-   * two gestures, depending on which half of the product you were in. Set it
-   * to override both; `"inline"` is still there for a surface that is
-   * already devoted to one group.
+   * THE RAIL'S DEFAULT WAS `"field"` and is not any more. A select-shaped
+   * field reading "Any" that has to be pressed before anything can be typed
+   * puts one press between a reader and every dictionary axis on the page,
+   * and the reference classified puts none there: its make axis is a box
+   * captioned "enter a name" with the popular values listed under it, open
+   * from the first frame (founder's read of the live site, 2026-09-13). The
+   * argument the old default was written under — that a 418-value vocabulary
+   * held open is the whole column — is answered by the fold the inline body
+   * already has: it shows `visibleOptions` values and then "Show all (N)".
+   *
+   * The phone default was `"inline"` before it was `"sheet"`, which drew the
+   * axis as a wall of checkboxes while the COMPOSER's picker for the very
+   * same vocabulary was a trigger and a sheet. Set it to override both;
+   * `"field"` is still there for a host that wants the old closed face.
    */
   readonly dictionaryMode?: "field" | "inline" | "sheet";
   /**
@@ -1281,7 +1288,7 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
           {...(props.railSurface !== undefined
             ? { railSurface: props.railSurface }
             : {})}
-          dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "sheet" : "field")}
+          dictionaryMode={props.dictionaryMode ?? (layout === "sheet" ? "sheet" : "inline")}
           // `??` would treat an explicit `null` ("never fold") the same as
           // "not set": `visibleGroups` uses `null` as a real value, unlike
           // `dictionaryMode` above, so only `undefined` falls through.

@@ -323,6 +323,88 @@ export interface FacetGroup {
   readonly options: readonly FacetOption[];
   /** The values currently chosen for this slug (URL state, not the response). */
   readonly selected: readonly string[];
+  /**
+   * The axis ABOVE this one in the catalogue's own chain, while it is still
+   * unanswered — see {@link FacetParentGate} and {@link resolveFacetParents}.
+   *
+   * `undefined` is the ordinary case: this axis has no parent, or its parent
+   * is answered, and either way the group is offered normally.
+   */
+  readonly awaitingParent?: FacetParentGate | undefined;
+}
+
+/**
+ * The parent axis a dependent facet is waiting on — its address key and the
+ * name to print.
+ *
+ * The label is carried rather than looked up per surface for the same reason
+ * {@link FacetGroup.urlKey} is: the rail, the phone sheet and the
+ * popular-values band all have to say the same sentence, and a second place
+ * that resolves a heading is a second place that can disagree with the first.
+ */
+export interface FacetParentGate {
+  /** The parent's own slug, as the groups are keyed. */
+  readonly slug: string;
+  /** What that parent is CALLED — the parent group's own heading. */
+  readonly label: string;
+}
+
+/**
+ * The sibling axis this group's values are scoped by, or `undefined`.
+ *
+ * Read off the catalogue's own pointer (`config.optionsRef.parentFeature`),
+ * which is the same field `@stapel/attributes-react`'s composer gates its
+ * dependent editors on. Nothing here knows what a make or a model is: a
+ * catalogue that chains four levels gets four rungs, and one that chains none
+ * gets none.
+ */
+export function facetParentSlug(group: FacetGroup): string | undefined {
+  const feature = group.feature;
+  if (feature === undefined) return undefined;
+  return optionsRefOf(featureConfig(feature))?.parentFeature;
+}
+
+/**
+ * THE CHAIN IS STRICTLY SEQUENTIAL, and the rule is stated once for every
+ * surface that draws a facet.
+ *
+ * A catalogue's `ref_select` may point at a vocabulary level THROUGH a
+ * sibling: a model axis enumerates the models of the make named by its
+ * parent, and with no make chosen the level is every model of every make in
+ * the catalogue. The composer
+ * already refuses to draw such a field until its parent holds a value
+ * (`@stapel/attributes-react`'s `dependencyParentOf` / `undisclosedSlugs`);
+ * the SEARCH side drew all of them at once, so a buyer could pick a model
+ * that belongs to a make they had not chosen and get an empty feed.
+ *
+ * The difference on this side is what a gated axis looks like. The composer
+ * UNMOUNTS the row — a form asks its questions in order and an unasked
+ * question is not a fact. A filter rail is a map of the axes a category has,
+ * and an axis that vanishes and reappears as you choose is a rail that moves
+ * under the reader. So the group stays, its control is switched off, and it
+ * NAMES the axis that has to be answered first — the same answer
+ * `editorsNumber` gives for a vocabulary-backed integer whose parent is blank.
+ *
+ * Two deliberate asymmetries, both inherited from the composer's predicate:
+ *
+ *  - a `parentFeature` naming a slug that is NOT one of the groups on this
+ *    page gates nothing. A gate on an axis nobody can answer is an axis
+ *    switched off forever;
+ *  - "answered" is the URL's own notion — the parent has at least one value
+ *    selected. Not "the parent has options", not "an answer arrived".
+ */
+export function resolveFacetParents(
+  groups: readonly FacetGroup[]
+): readonly FacetGroup[] {
+  const bySlug = new Map<string, FacetGroup>();
+  for (const group of groups) bySlug.set(group.slug, group);
+  return groups.map((group) => {
+    const parentSlug = facetParentSlug(group);
+    if (parentSlug === undefined) return group;
+    const parent = bySlug.get(parentSlug);
+    if (parent === undefined || parent.selected.length > 0) return group;
+    return { ...group, awaitingParent: { slug: parent.slug, label: parent.label } };
+  });
 }
 
 /**
@@ -891,7 +973,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
     slugs.push(slug);
   }
 
-  return slugs.map((slug) => {
+  const built: readonly FacetGroup[] = slugs.map((slug) => {
     const feature = bySlug.get(slug);
     const counts = input.facets[slug] ?? {};
     const counted = !skipped.has(slug) && slug in input.facets;
@@ -968,7 +1050,11 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
         selected: selected.includes(value),
       })),
     };
-  }).filter(keepsAnAxisOpen);
+  });
+  // The chain LAST, over the built list: a gate needs the parent group's own
+  // heading and whether the URL answered it, and neither is known until every
+  // group exists. See `resolveFacetParents`.
+  return resolveFacetParents(built.filter(keepsAnAxisOpen));
 }
 
 /**

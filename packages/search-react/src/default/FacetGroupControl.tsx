@@ -401,6 +401,10 @@ function CheckboxRow(props: {
   readonly group: FacetGroup;
   readonly node: FacetOptionNode;
   readonly onToggle: (slug: string, value: string) => void;
+  /** The rung above this axis is unanswered — see `resolveFacetParents`. The
+   * row is still DRAWN (the rail is a map of the axes a category has), and it
+   * cannot be pressed. */
+  readonly disabled?: boolean;
 }): ReactElement {
   const { group, node } = props;
   return (
@@ -417,6 +421,7 @@ function CheckboxRow(props: {
     >
       <Checkbox
         checked={node.option.selected}
+        disabled={props.disabled === true}
         data-testid={`facet-option-${group.slug}-${node.option.value}`}
         data-analytics="none"
         data-analytics-reason="a filter is a read, not a flow step"
@@ -445,6 +450,8 @@ function OptionPill(props: {
   readonly group: FacetGroup;
   readonly option: FacetOption;
   readonly onToggle: (slug: string, value: string) => void;
+  /** See {@link CheckboxRow}'s own. */
+  readonly disabled?: boolean;
 }): ReactElement {
   const { group, option } = props;
   const style: CSSProperties = { borderRadius: radii.full };
@@ -454,6 +461,7 @@ function OptionPill(props: {
       shape="round"
       type={option.selected ? "primary" : "default"}
       aria-pressed={option.selected}
+      disabled={props.disabled === true}
       {...POINTER_FOCUS}
       style={style}
       data-testid={`facet-option-${group.slug}-${option.value}`}
@@ -1190,6 +1198,12 @@ export function facetGroupReservedHeight(input: {
  * constrains.
  */
 export function facetGroupIsEmptyHeading(group: FacetGroup): boolean {
+  // A group WAITING on its parent is never an empty heading, whatever its
+  // option list says: an axis with no make chosen legitimately has no values
+  // to offer yet, and dropping it is how the model axis disappeared from the
+  // rail instead of saying which control to use first
+  // (`resolveFacetParents`).
+  if (group.awaitingParent !== undefined) return false;
   return (
     facetGroupOfferableOptions(group).options.length === 0 &&
     facetGroupShape(group) !== "dictionary"
@@ -1212,6 +1226,11 @@ export function FacetGroupControl(
   const [openState, setOpenState] = useState(props.defaultOpen !== false);
   const shape = facetGroupShape(group);
   const nodes = facetOptionNodes(group);
+  /* THE CHAIN. `undefined` for every axis with no parent and for every one
+     whose parent is answered — the ordinary case, and nothing below changes
+     for it. The fact is computed once, in `buildFacetGroups`, so the rail,
+     the phone sheet and the popular-values band cannot disagree about it. */
+  const awaiting = group.awaitingParent;
 
   /*
    * THE GROUP'S OWN FLOOR WHILE AN ANSWER IS IN FLIGHT (p43).
@@ -1373,10 +1392,37 @@ export function FacetGroupControl(
           <Typography.Text strong>{group.label}</Typography.Text>
         ))}
 
+      {/* THE RUNG ABOVE THIS ONE IS UNANSWERED — the control is switched off
+          and SAYS WHY. See `resolveFacetParents` for the rule and for why a
+          search rail states the reason where a composer form unmounts the
+          row. The hint is drawn whatever the shape, and it is the only thing
+          drawn for a dictionary: the searchable list of every model of every
+          make is precisely what the gate exists to stop offering. */}
+      {open && awaiting !== undefined && (
+        <>
+          {shape === "dictionary" && (
+            <Input
+              disabled
+              size="small"
+              placeholder={t(SEARCH_I18N_KEYS.facetsDictionarySearch)}
+              aria-label={group.label}
+              data-testid={`facet-dictionary-search-${group.slug}`}
+            />
+          )}
+          <Typography.Text
+            type="secondary"
+            data-testid={`facet-parent-first-${group.slug}`}
+            data-parent={awaiting.slug}
+          >
+            {t(SEARCH_I18N_KEYS.facetsParentFirst, { parent: awaiting.label })}
+          </Typography.Text>
+        </>
+      )}
+
       {/* Closed means NOT RENDERED, not hidden: a hundred `display:none`
           checkboxes are still a hundred stops for a screen reader, and the
           measured rail held 118 of them. */}
-      {open && shape === "dictionary" && (
+      {open && awaiting === undefined && shape === "dictionary" && (
         <DictionaryControl
           group={group}
           mode={props.dictionaryMode}
@@ -1398,6 +1444,7 @@ export function FacetGroupControl(
                   group={group}
                   option={node.option}
                   onToggle={props.onToggle}
+                  disabled={awaiting !== undefined}
                 />
               ))}
             </Flex>
@@ -1408,6 +1455,7 @@ export function FacetGroupControl(
                 group={group}
                 node={node}
                 onToggle={props.onToggle}
+                disabled={awaiting !== undefined}
               />
             ))
           )}

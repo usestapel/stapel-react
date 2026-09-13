@@ -171,6 +171,17 @@ function COLUMNS(count: number | undefined): CSSProperties {
   };
 }
 
+/**
+ * The «all of it» link, in the heading row.
+ *
+ * `paddingInline: 0` so the word starts where the caption's own gap put it
+ * rather than an antd button's inset further right; `height: auto` because an
+ * antd Button reserves a control's height and this one is a word on a line of
+ * type, which would otherwise make the heading row taller than the caption in
+ * it. No `alignSelf` any more — the row it used to end is gone.
+ */
+const SHOW_ALL: CSSProperties = { paddingInline: 0, height: "auto" };
+
 const ROW: CSSProperties = {
   // `break-inside` keeps a value and its count on one line when the browser
   // decides where the column ends.
@@ -213,10 +224,55 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
   const t = useT();
   const { group } = props;
   if (props.hidden === true) return null;
+  /* THE CHAIN REACHES THIS BLOCK TOO. An axis scoped by a sibling
+     (`optionsRef.parentFeature`) has buckets across EVERY parent until one is
+     chosen, so a band pointed at the model axis with no make chosen would
+     print the busiest twelve models of the whole catalogue as filters — the
+     one thing the rail's own gate exists to stop. The band has no control to
+     switch off, so it draws its caption and the reason and no values. See
+     `resolveFacetParents`. */
+  const awaiting = group.awaitingParent;
+  if (awaiting !== undefined) {
+    return (
+      <Flex
+        vertical
+        gap={spacing[2]}
+        data-testid={`popular-values-${group.slug}`}
+        data-label-source={group.labelSource}
+        data-awaiting-parent={awaiting.slug}
+      >
+        {props.heading !== null && (
+          <Typography.Text strong>{props.heading ?? group.label}</Typography.Text>
+        )}
+        <Typography.Text
+          type="secondary"
+          data-testid={`popular-parent-first-${group.slug}`}
+        >
+          {t(SEARCH_I18N_KEYS.facetsParentFirst, { parent: awaiting.label })}
+        </Typography.Text>
+      </Flex>
+    );
+  }
   const options = popularOptions(group, props.limit ?? POPULAR_VALUES_LIMIT);
   if (options.length === 0) return null;
 
   const responsive = props.columns === "responsive";
+
+  const showAll =
+    props.onShowAll === undefined ? null : (
+      <Button
+        type="link"
+        size="small"
+        {...POINTER_FOCUS}
+        style={SHOW_ALL}
+        data-testid={`popular-all-${group.slug}`}
+        data-analytics="none"
+        data-analytics-reason="opening a filter control is a read, not a flow step"
+        onClick={props.onShowAll}
+      >
+        {t(SEARCH_I18N_KEYS.facetsPopularAll)}
+      </Button>
+    );
 
   return (
     <Flex
@@ -230,8 +286,25 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
       <style href={POINTER_FOCUS_STYLE_HREF} precedence="default">
         {pointerFocusCss()}
       </style>
-      {props.heading !== null && (
-        <Typography.Text strong>{props.heading ?? group.label}</Typography.Text>
+      {/* THE WAY INTO THE WHOLE AXIS RIDES WITH THE HEADING (founder's read of
+          the live site, 2026-09-13). It was a link UNDER the columns, at the
+          start edge — which on a four-column block of twelve makes is three
+          rows and a gap below the only words that say what the block is, and
+          on the reference classified it sits immediately after the caption on
+          the caption's own baseline. A caption and the control that opens the
+          rest of what it names are one object; separating them by the object
+          itself is what made two reviewers miss it.
+
+          `align="baseline"`: the caption is bold body text and the link is
+          not, so aligning the BOXES leaves the two words sitting on different
+          lines by a pixel or two. */}
+      {(props.heading !== null || showAll !== null) && (
+        <Flex align="baseline" gap={spacing[3]} wrap>
+          {props.heading !== null && (
+            <Typography.Text strong>{props.heading ?? group.label}</Typography.Text>
+          )}
+          {showAll}
+        </Flex>
       )}
       <div
         data-testid={`popular-columns-${group.slug}`}
@@ -269,20 +342,6 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
           </div>
         ))}
       </div>
-      {props.onShowAll !== undefined && (
-        <Button
-          type="link"
-          size="small"
-          {...POINTER_FOCUS}
-          style={{ alignSelf: "flex-start", paddingInline: 0 }}
-          data-testid={`popular-all-${group.slug}`}
-          data-analytics="none"
-          data-analytics-reason="opening a filter control is a read, not a flow step"
-          onClick={props.onShowAll}
-        >
-          {t(SEARCH_I18N_KEYS.facetsPopularAll)}
-        </Button>
-      )}
     </Flex>
   );
 }

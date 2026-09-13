@@ -291,11 +291,17 @@ A dictionary outranks the pills, too: the live `make` axis is `maxSelected: 1`
 over a 418-value vocabulary, so "pick one" used to win and the control it drew
 was four hundred pills in a 280px rail.
 
-On the **desktop rail** a dictionary is a select-style FIELD
-(`dictionaryMode="field"`, which `<SearchPage>` sets for the column layout):
-closed it reads the chosen values or *Any*, and it opens the searchable list —
-a real `role="combobox"` button, Enter/Space to open, ArrowDown to open,
-Escape to close.
+On the **desktop rail** a dictionary is the BOX AND ITS VALUES
+(`dictionaryMode="inline"`, which `<SearchPage>` sets for the column layout):
+a *find a value* input with the busiest values listed under it, open from the
+first frame, folded at `visibleOptions` with a *Show all (N)* under the fold.
+
+It was a select-style field reading *Any* that had to be pressed first
+(`dictionaryMode="field"`) until 0.47: one press stood between a reader and
+every dictionary axis on the page, and the reference classified puts none
+there. `"field"` is still available to a host that asks for it by name — a
+real `role="combobox"` button, Enter/Space or ArrowDown to open, Escape to
+close.
 
 On a **phone** it is a SHEET (`dictionaryMode="sheet"`, the filter sheet's
 default). The closed row reads *Any* or the chosen values with their count;
@@ -322,8 +328,25 @@ isDictionaryFacet(group)           // vocabulary-backed, or untyped and long
 facetGroupIsVocabularyBacked(group) // the schema's type, else the answer's `vocabulary`
 ```
 
-`<SearchPage dictionaryMode>` overrides the per-layout default (`"field"` in
+`<SearchPage dictionaryMode>` overrides the per-layout default (`"inline"` in
 the column, `"sheet"` in the phone filter sheet).
+
+### A chained axis waits for the rung above it
+
+A catalogue may scope one axis by another — a model level enumerates the
+models of the make named by `optionsRef.parentFeature`. Until that parent
+carries a value the child's values are *every* child of *every* parent, so
+`buildFacetGroups` stamps `FacetGroup.awaitingParent` on it and every surface
+that draws facets switches the control off and NAMES the axis to answer first:
+the rail, the phone filter sheet and `<PopularValues>`. A pointer naming an
+axis this page does not have gates nothing — a control switched off by a slug
+nobody can answer is switched off forever.
+
+```ts
+facetParentSlug(group)        // the slug this axis is scoped by, or undefined
+group.awaitingParent          // { slug, label } while that parent is unanswered
+resolveFacetParents(groups)   // the rule, applied — `buildFacetGroups` runs it
+```
 
 A group with **no schema at all** (a branch category whose `/features/`
 answered `[]`) has no `maxSelected` to read, so `facetGroupShape` falls back

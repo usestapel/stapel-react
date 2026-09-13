@@ -74,7 +74,15 @@ describe("the rail writes the short key", () => {
   });
 
   it("puts `f.fuel_type` there too, and leaves a suffix-less slug alone", async () => {
-    mount(<FacetPanelPane categoryFeatures={LIVE_CARS_FEATURES} dictionaryMode="inline" />);
+    // A MAKE IS ALREADY CHOSEN, because this catalogue scopes `model` by
+    // `make_ref_select` (`optionsRef.parentFeature`) and the rail refuses to
+    // offer a model until a make is picked — see `facetChain.test.tsx`. The
+    // address this test is about is the same either way; what the make buys
+    // is a model row to press at all.
+    mount(
+      <FacetPanelPane categoryFeatures={LIVE_CARS_FEATURES} dictionaryMode="inline" />,
+      "type=listing&category=141/151&f.make=toyota"
+    );
     await waitFor(() =>
       expect(screen.getByTestId("facet-option-model-camry")).toBeTruthy()
     );

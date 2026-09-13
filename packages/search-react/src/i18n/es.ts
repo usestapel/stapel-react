@@ -91,6 +91,7 @@ export const searchI18nBundleEs: I18nDictionary = {
   "search.facets.search_empty": "Ningún filtro coincide con esto",
   "search.facets.dictionary_search": "Buscar un valor",
   "search.facets.dictionary_empty": "Ningún valor coincide con esto",
+  "search.facets.parent_first": "Elige primero {parent}",
   "search.facets.dictionary_chosen": "Elegido",
   "search.facets.dictionary_any": "Cualquiera",
   "search.facets.dictionary_recommended": "Recomendados",

@@ -308,7 +308,7 @@ describe("pinnedFacets reaches the panel through SearchPage", () => {
   });
 });
 
-describe("a dictionary axis is a FIELD on the desktop rail", () => {
+describe("a dictionary axis is a SEARCHABLE BOX on the desktop rail", () => {
   const VENDOR = [
     {
       slug: "vendor",
@@ -351,12 +351,23 @@ describe("a dictionary axis is a FIELD on the desktop rail", () => {
     );
   }
 
-  it("draws the «Any» field in the column layout", async () => {
+  it("draws the box and the values in the column layout", async () => {
+    // The «Any» FIELD was this layout's default until the founder read the
+    // live site (2026-09-13): a select-shaped trigger put one press between a
+    // reader and every dictionary axis, and the reference puts none there.
     mountVendor({ layout: "column" });
+    await waitFor(() =>
+      expect(screen.getByTestId("facet-dictionary-search-vendor")).toBeTruthy()
+    );
+    expect(screen.getByTestId("facet-option-vendor-apple")).toBeTruthy();
+    expect(screen.queryByTestId("facet-dictionary-field-vendor")).toBeNull();
+  });
+
+  it("still gives a host the closed field when it asks for it by name", async () => {
+    mountVendor({ layout: "column", dictionaryMode: "field" });
     await waitFor(() =>
       expect(screen.getByTestId("facet-dictionary-field-vendor")).toBeTruthy()
     );
-    // Closed: the list is behind the field, not stacked under a heading.
     expect(screen.queryByTestId("facet-option-vendor-apple")).toBeNull();
   });
 

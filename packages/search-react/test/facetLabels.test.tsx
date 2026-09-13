@@ -94,17 +94,17 @@ function mount(props: MountProps = {}): void {
 }
 
 /**
- * Open the vendor axis.
+ * Wait for the vendor axis's values.
  *
- * On the desktop rail a vocabulary-backed axis is a FIELD reading «Any»
- * (`dictionaryMode: "field"`, the layout's default since 0.26): its values —
- * and therefore every caption these tests are about — live behind it. The
- * host resolver still runs on the group's options either way; what changed is
- * only which click puts them on screen.
+ * There is nothing to open any more. The desktop rail drew a vocabulary-backed
+ * axis as a FIELD reading «Any» from 0.26 until the founder's read of the live
+ * site (2026-09-13) replaced it with the box and the values themselves, so the
+ * captions these tests are about are on screen as soon as the answer lands.
+ * The host resolver runs on the group's options either way; what changed is
+ * only whether a click is needed to see them.
  */
 async function openVendor(): Promise<void> {
-  const field = await screen.findByTestId("facet-dictionary-field-vendor");
-  fireEvent.click(field);
+  await screen.findByTestId("facet-dictionary-search-vendor");
 }
 
 describe("the host resolver names what nothing else can", () => {

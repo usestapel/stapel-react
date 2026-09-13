@@ -137,15 +137,18 @@ export {
   facetGroupOfferableOptions,
   facetOptionIsOfferable,
   facetOptionLabel,
+  facetParentSlug,
   featureAllowsFaceting,
   isFacetableFeature,
   orderFacetGroupsBySchema,
+  resolveFacetParents,
 } from "./state/facets.js";
 export type {
   BuildFacetGroupsInput,
   FacetGroup,
   FacetLabelSource,
   FacetOption,
+  FacetParentGate,
 } from "./state/facets.js";
 
 export {

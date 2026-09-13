@@ -170,6 +170,17 @@ export const SEARCH_I18N_KEYS = {
   /** The dictionary box matched no value of this group. Not `facetsEmpty`,
    * and not `facetsSearchEmpty`: the group exists and its values exist. */
   facetsDictionaryEmpty: "search.facets.dictionary_empty",
+  /**
+   * WHY this axis is switched off — the rung above it is unanswered.
+   *
+   * `{parent}` is the parent axis's own heading, so the sentence names the
+   * control a person has to use first rather than saying "unavailable". The
+   * composer says the same thing about the same catalogue pointer
+   * (`attributes.ref.parent_first`); this is the SEARCH side's own copy of it,
+   * because a filter rail and a form say it in different places and a
+   * translator handed one string for both has to pick which to be wrong on.
+   */
+  facetsParentFirst: "search.facets.parent_first",
   /** Over the values already chosen, which stay visible whatever the box
    * says — a filter a person cannot see is a filter they cannot remove. */
   facetsDictionaryChosen: "search.facets.dictionary_chosen",
@@ -576,6 +587,7 @@ export const searchI18nBundleEn: Record<string, string> = {
   "search.facets.search_empty": "No filter matches this",
   "search.facets.dictionary_search": "Find a value",
   "search.facets.dictionary_empty": "No value matches this",
+  "search.facets.parent_first": "Choose {parent} first",
   "search.facets.dictionary_chosen": "Chosen",
   "search.facets.dictionary_any": "Any",
   "search.facets.dictionary_recommended": "Recommended",
