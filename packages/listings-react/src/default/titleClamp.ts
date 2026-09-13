@@ -46,10 +46,32 @@ export const TITLE_CLAMP_CLASS = "stapel-listing-title-clamp";
 /** The `href` the hoisted stylesheet is deduplicated by. */
 export const TITLE_CLAMP_STYLE_HREF = "stapel-listings-title-clamp";
 
-/** The rule itself, as text, so a test can assert it. */
+/**
+ * The rule itself, as text, so a test can assert it.
+ *
+ * ── Why the class is written TWICE ────────────────────────────────────────
+ *
+ * `-webkit-line-clamp` does nothing without `display: -webkit-box`, so that
+ * one declaration is the whole clamp — and it is the easiest declaration in
+ * the rule for a host to overwrite by accident. A single class selector scores
+ * (0,1,0), exactly the same as the `[data-testid="…-title"]` selector a
+ * container naturally reaches for, so whichever stylesheet loads LAST wins.
+ * Measured on a live storefront (2026-09-13): the host set `display: block` on
+ * its title testids to stop two inline spans running together, that rule
+ * happened to come second, and every clamp in the app went inert — the class
+ * was on the element, the sheet was in the head, `-webkit-line-clamp: 2` was
+ * in the computed style, and a 113-character title still drew three lines.
+ *
+ * Repeating the class scores (0,2,0), which outranks any single class or
+ * attribute selector whatever the load order, and still loses to a host that
+ * really means it (an id, a doubled selector of its own, `!important`). That
+ * is the right place on the ladder: a clamp that cannot be overridden at all
+ * is a different bug.
+ */
 export function titleClampCss(): string {
+  const self = `.${TITLE_CLAMP_CLASS}.${TITLE_CLAMP_CLASS}`;
   return (
-    `.${TITLE_CLAMP_CLASS}{display:-webkit-box;-webkit-box-orient:vertical;` +
+    `${self}{display:-webkit-box;-webkit-box-orient:vertical;` +
     `-webkit-line-clamp:${String(TITLE_CLAMP_LINES)};overflow:hidden;` +
     `overflow-wrap:normal}`
   );

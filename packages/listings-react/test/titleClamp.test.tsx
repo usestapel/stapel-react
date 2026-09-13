@@ -62,6 +62,23 @@ describe("the clamp itself", () => {
     expect(titleClampCss()).toContain("overflow:hidden");
   });
 
+  it("outranks a host's own element selector on the same title", () => {
+    // THE DEFECT THIS EXISTS FOR, measured live 2026-09-13. Everything the
+    // other assertions check was true — class on the element, sheet in the
+    // head, `-webkit-line-clamp: 2` in the computed style — and the clamp was
+    // still inert, because the container set `display: block` on
+    // `[data-testid="listings-serp-title"]`. That selector scores (0,1,0),
+    // the same as a single class, so the later sheet won and a 113-character
+    // title drew three lines. The doubled class scores (0,2,0) and cannot
+    // lose that tie.
+    const rule = titleClampCss();
+    const selector = rule.slice(0, rule.indexOf("{"));
+    const classes = selector.split(".").filter((part) => part.length > 0);
+    expect(classes).toEqual([TITLE_CLAMP_CLASS, TITLE_CLAMP_CLASS]);
+    // The declaration that the host's rule actually collided with.
+    expect(rule).toContain("display:-webkit-box");
+  });
+
   it("moves a long word to the next line whole rather than breaking it", () => {
     // The ruling is "never mid-word". `line-clamp` decides where the BLOCK
     // ends; this decides that a word is not split to fill a line on the way
