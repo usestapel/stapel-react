@@ -65,6 +65,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Avatar, Flex, Skeleton, Typography } from "antd";
 import { spacing } from "@stapel/tokens";
+import { useIdentityTint } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import type { LinkComponent } from "@stapel/core";
 import { Image } from "@stapel/image";
@@ -178,6 +179,17 @@ export interface PersonAvatarProps {
   readonly profile: PublicProfile | null;
   /** The name the monogram is built from when there is no avatar. */
   readonly fallbackName: string;
+  /**
+   * WHAT THE TINT IS DERIVED FROM, when the caller has a better key than the
+   * profile carries. Normally absent: the profile's own `user_id` is the
+   * stable key, and the display name is the floor for somebody the batch
+   * could not name at all.
+   *
+   * Here so a surface holding an id the profile read has not answered yet can
+   * hand it over, rather than drawing one colour now and a different one when
+   * the read lands.
+   */
+  readonly tintKey?: string;
   /** The side, in CSS pixels — one of the `PERSON_*_AVATAR` constants, or a
    * host's own number. */
   readonly side: number;
@@ -196,6 +208,14 @@ export interface PersonAvatarProps {
  */
 export function PersonAvatar(props: PersonAvatarProps): ReactElement {
   const image = profileAvatarImage(props.profile);
+  /* THE KEY THE COLOUR IS DERIVED FROM, in the order of how stable it is: the
+     caller's own, else the person's id, else their name. Never an index and
+     never a counter — a face that changes colour when a list re-sorts is not
+     an identity, and the same person in two lists would disagree. */
+  const tintKey =
+    props.tintKey ?? props.profile?.user_id ?? props.fallbackName;
+  // Read unconditionally: a hook may not sit behind the photo branch below.
+  const tint = useIdentityTint(tintKey);
   if (image) {
     return (
       <Image
@@ -211,8 +231,25 @@ export function PersonAvatar(props: PersonAvatarProps): ReactElement {
       />
     );
   }
+  /* THE DISC, AND BOTH OF ITS COLOURS, ON ONE ELEMENT.
+     antd's `<Avatar>` paints its own background and its own text colour from
+     its component tokens, so a disc that stated only the background would be
+     a chosen colour against a derived one — which is the arrangement in which
+     a contrast claim passes a gate and fails on the glass. Both halves come
+     from one `useIdentityTint` call and both are written here, so what is
+     measured is what is painted. See `identityTint`'s header for the ratios
+     and for the construction that was refused. */
   return (
-    <Avatar size={props.side} style={{ flexShrink: 0 }}>
+    <Avatar
+      size={props.side}
+      data-testid="profiles-person-disc"
+      data-tint={tint.family}
+      style={{
+        flexShrink: 0,
+        background: tint.background,
+        color: tint.color,
+      }}
+    >
       {personMonogram(props.fallbackName)}
     </Avatar>
   );
