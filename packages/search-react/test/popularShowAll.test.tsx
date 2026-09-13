@@ -5,8 +5,8 @@
  * edge. On a four-column block of twelve makes that is three rows and a gap
  * below the only words that say what the block is, and two reviewers walking
  * the live storefront missed it. The reference classified puts it immediately
- * after the caption, on the caption's own line (shots:
- * `tasks/avito-vs-ours-2026-09-04/shots/avito-avtomobili-l2-feed.png`).
+ * after the caption, on the caption's own line — measured off the storefront
+ * spec's own comparison frames of a vehicles leaf (2026-09-04).
  *
  * WHAT THIS ASSERTS — where the control IS, in terms a reader would use:
  * before the values rather than after them, and inside the same row as the
