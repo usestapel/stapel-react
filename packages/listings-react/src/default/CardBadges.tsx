@@ -29,6 +29,11 @@ import type { ListingFeatureDao } from "../api/types.js";
 import type { CardBadgeRow } from "../model/cardBadges.js";
 import { cardBadgeTexts, hasCardBadgeContract } from "../model/cardBadges.js";
 import { featuresDtoFromDaoList, featuresFromDaoList } from "../model/features.js";
+import {
+  CARD_CLAMP_STYLE_HREF,
+  LOCATION_CLAMP_CLASS,
+  cardClampCss,
+} from "./titleClamp.js";
 import type { FeatureCopySource } from "../model/features.js";
 
 export interface CardBadgesProps {
@@ -71,21 +76,55 @@ export const CARD_SPEC_STYLE_HREF = "stapel-listings-card-spec-line";
  * measuring the card, a sticky-header calculation or the next layout rule
  * reads.
  *
- * So the truncation moves ONTO the span. The line becomes a flex container
- * and the span a flex child with `min-inline-size: 0`, which is the
- * declaration that lets a flex child shrink below its content at all — without
- * it `min-width:auto` keeps the box at the text's natural width and every
- * other rule here is decoration.
+ * So the truncation moved ONTO the span, and the box became a flex container
+ * so the span could shrink below its content (`min-inline-size: 0`, which is
+ * the declaration without which every other rule here is decoration).
+ *
+ * ── AND IT NEVER ACTED. The second round, and the reason ──────────────────
+ *
+ * Two reviewers re-measured the card at 390 on the live stand a release later
+ * and the same span still ran past its column — 7px on one category page and
+ * 47px on another. The class was on the element, the sheet was in the
+ * document, every declaration was in it. What was missing is that antd writes
+ *
+ *     a.ant-typography-ellipsis, span.ant-typography-ellipsis
+ *       { display: inline-block; max-width: 100% }
+ *
+ * (`antd/es/typography/style/mixins.js`, `getEllipsisStyles`), which scores
+ * (0,1,1) against a single class's (0,1,0). It wins on SPECIFICITY, so no
+ * hoisting and no load order could have saved the rule: the box was never a
+ * flex container, the span was therefore never a flex child, and
+ * `min-inline-size: 0` on an element that is not a flex item does nothing.
+ * `.ant-typography-ellipsis-single-line` then set `white-space: nowrap`,
+ * which INHERITS, so the span could not break either.
+ *
+ * Measured in headless Chromium on the DOM this component actually renders,
+ * with antd's own two rules, in a 180px column: the box computed
+ * `display: block`, the span `display: inline` and 454.77px wide — 274.77px
+ * past its column. With the fix below: box `display: flex`, span 180px, zero
+ * past the column.
+ *
+ * ── The fix, and why it is not a third rule ───────────────────────────────
+ *
+ * `ellipsis` goes, because the prop IS what puts those classes on the box.
+ * The cut is then `titleClamp.ts` at {@link LOCATION_CLAMP_LINES} — the same
+ * module, the same class and the same hoisted sheet that already cut the
+ * title, the place and the description on this card, ONE line, with the
+ * ellipsis after a whole word instead of inside one. What stays here is the
+ * BOX: `display: flex` and `min-inline-size: 0`, written with the class
+ * doubled so the declaration outranks any single class or element-plus-class
+ * selector whatever the load order — which is the ladder `titleClamp.ts`
+ * argues for its own rule, for the same reason, against the same antd sheet.
  *
  * A sheet rather than inline styles because the span is rendered by
  * `<CardBadges>` and the box by antd, and an inline style cannot reach a
  * child.
  */
 export function cardSpecLineCss(): string {
+  const self = `.${CARD_SPEC_LINE_CLASS}.${CARD_SPEC_LINE_CLASS}`;
   return [
-    `.${CARD_SPEC_LINE_CLASS}{display:flex;min-inline-size:0}`,
-    `.${CARD_SPEC_TEXT_CLASS}{flex:1 1 auto;min-inline-size:0;` +
-      `overflow:hidden;white-space:nowrap;text-overflow:ellipsis}`,
+    `${self}{display:flex;min-inline-size:0}`,
+    `.${CARD_SPEC_TEXT_CLASS}{flex:1 1 auto;min-inline-size:0}`,
   ].join("");
 }
 
@@ -103,7 +142,10 @@ export function CardBadges(props: CardBadgesProps): ReactElement | null {
     if (props.variant === "line") {
       return (
         <span
-          className={CARD_SPEC_TEXT_CLASS}
+          // The pair's own box rule, and the CUT, which is the card's one
+          // answer to "how do I cut text" (`titleClamp.ts`) rather than a
+          // second one written here.
+          className={`${CARD_SPEC_TEXT_CLASS} ${LOCATION_CLAMP_CLASS}`}
           data-testid={props.testId ?? "listings-card-badges"}
         >
           {printed.map((one) => one.text).join(LINE_SEPARATOR)}
@@ -147,12 +189,19 @@ export function CardSpecLine(props: {
       <style href={CARD_SPEC_STYLE_HREF} precedence="default">
         {cardSpecLineCss()}
       </style>
-      {/* `ellipsis` stays: it is what antd's own secondary text looks like
-          when it truncates, and the sheet above moves the clipping onto the
-          span that actually holds the words. */}
+      {/* The CUT's own sheet. Every card surface already mounts it for its
+          title and its place, and React 19 deduplicates on the `href`, so
+          this costs nothing on a card and makes the component whole for a
+          host that draws a spec line on its own. */}
+      <style href={CARD_CLAMP_STYLE_HREF} precedence="default">
+        {cardClampCss()}
+      </style>
+      {/* NO `ellipsis`. The prop is what puts `ant-typography-ellipsis` on
+          this box, and antd's `span.ant-typography-ellipsis{display:
+          inline-block}` outranks the pair's own `display:flex` on
+          specificity — see the note on `cardSpecLineCss`. */}
       <Typography.Text
         type="secondary"
-        ellipsis
         className={CARD_SPEC_LINE_CLASS}
         data-testid={props.testId}
       >

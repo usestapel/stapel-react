@@ -18,10 +18,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   ListingDetailPane,
   ListingSpecList,
+  RELATED_CARD_GAP,
+  RELATED_CARD_WIDTH,
   RELATED_STRIP_CLASS,
   SPEC_FOLD_MIN_HIDDEN,
   relatedStripCss,
 } from "../src/default/index.js";
+import { TITLE_CLAMP_CLASS } from "../src/default/titleClamp.js";
 import type { ListingCard } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { CARD, detail, statusInfo } from "./fixtures.js";
@@ -196,5 +199,121 @@ describe("the characteristics fold", () => {
       expect(screen.getAllByTestId(/^listings-spec-row-/)).toHaveLength(1);
       expect(screen.getByTestId("listings-spec-list-show-all")).toBeTruthy();
     }
+  });
+});
+
+/**
+ * THE TWO RAILS ARE RAILS, NOT STAIRCASES.
+ *
+ * Measured by the reviewers at 390 / 768 / 1024 / 1440 in both themes, and
+ * re-measured in headless Chromium on the LIVE page (`/l/1077`, the seller's
+ * rail, eight cards) while this was being written:
+ *
+ *   - the card width is `min(46%, 220px)`, which is a SHARE of the rail below
+ *     about 478px and a fixed 220 above it: measured on the live page, the
+ *     card is 175.72px wide with a 131.78px photo at 390 and 220 / 165 at
+ *     1440. One card, two sizes, and the photo height follows the width —
+ *     which is the range of widths and the differing photo heights the
+ *     reviewers reported across the four viewports they walked;
+ *   - the PRICES do not share a baseline: 1733px on six cards and 1709px on
+ *     two, a 24px step, because the title above them is one line on some cards
+ *     and two on others and nothing reserves the second;
+ *   - the rail's `scrollWidth` is 1844 against a `clientWidth` of 988 and
+ *     there is no arrow, no fade and no "more" card — the last card is cut at
+ *     the container's edge and nothing says the rail moves.
+ *
+ * WHAT THIS ASSERTS: the mechanism for each, in terms jsdom can establish —
+ * a card width that is one fixed length rather than a percentage, a reserved
+ * two-line title box, and arrow controls that exist, stay hidden while there
+ * is nothing to scroll to, and MOVE the rail when pressed.
+ *
+ * WHAT IT CANNOT SEE: jsdom lays nothing out and scrolls nothing. "The prices
+ * land on one baseline", "the photos are the same height" and "the arrow is
+ * over the rail's trailing edge" are browser facts. The rail's overflow is
+ * STUBBED here (jsdom reports 0 for every dimension), which is how the arrows
+ * can be exercised at all.
+ */
+describe("the find-more rails are rails", () => {
+  function stripOf(): HTMLElement {
+    return document.querySelector(`.${RELATED_STRIP_CLASS}`) as HTMLElement;
+  }
+
+  /** jsdom measures nothing, so the rail is TOLD it overflows. */
+  function overflowing(rail: HTMLElement, scrollWidth: number, clientWidth: number): void {
+    Object.defineProperty(rail, "scrollWidth", { value: scrollWidth, configurable: true });
+    Object.defineProperty(rail, "clientWidth", { value: clientWidth, configurable: true });
+    fireEvent.scroll(rail);
+  }
+
+  it("gives every card ONE fixed width, not a share of the container", () => {
+    const css = relatedStripCss();
+    expect(RELATED_CARD_WIDTH).toBe(220);
+    expect(css).toContain(`flex:0 0 ${String(RELATED_CARD_WIDTH)}px`);
+    // A percentage is what made the same card four different widths, so the
+    // CARD's own rule may not carry one. (The arrow's `border-radius: 50%`
+    // elsewhere in the sheet is a circle, not a width.)
+    const card = /\.stapel-listings-related>\*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(card).not.toBe("");
+    expect(card).not.toContain("%");
+  });
+
+  it("reserves the title's second line so the prices share a baseline", () => {
+    const css = relatedStripCss();
+    // Two lines of the title's OWN line-height, reserved whether the title
+    // fills them or not — the 24px step came from the cards where it does not.
+    expect(css).toContain(`.${RELATED_STRIP_CLASS} .${TITLE_CLAMP_CLASS}{min-block-size:2lh}`);
+  });
+
+  it("draws arrows that say the rail moves, and moves it", async () => {
+    render(
+      <TestProviders server={server()} resolveImage>
+        <ListingDetailPane id={7} similar={rows([11, 12, 13, 14])} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-similar")).toBeTruthy();
+    });
+    const back = screen.getByTestId("listings-detail-similar-back");
+    const forward = screen.getByTestId("listings-detail-similar-forward");
+    // Nothing has overflowed yet: a control that scrolls nowhere is worse
+    // than no control.
+    expect(back.hidden).toBe(true);
+    expect(forward.hidden).toBe(true);
+
+    const rail = stripOf();
+    overflowing(rail, 1844, 988);
+    await waitFor(() => {
+      expect(forward.hidden).toBe(false);
+    });
+    // At the start edge there is nothing behind the reader.
+    expect(back.hidden).toBe(true);
+
+    fireEvent.click(forward);
+    // One card and its gap — the rail lands ON a card rather than between two.
+    expect(rail.scrollLeft).toBe(RELATED_CARD_WIDTH + RELATED_CARD_GAP);
+
+    overflowing(rail, 1844, 988);
+    await waitFor(() => {
+      expect(back.hidden).toBe(false);
+    });
+    fireEvent.click(back);
+    expect(rail.scrollLeft).toBe(0);
+  });
+
+  it("names its arrows with words a screen reader can use", async () => {
+    render(
+      <TestProviders server={server()} resolveImage>
+        <ListingDetailPane id={7} similar={rows([11, 12])} />
+      </TestProviders>
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("listings-detail-similar")).toBeTruthy();
+    });
+    expect(screen.getByTestId("listings-detail-similar-forward").getAttribute("aria-label")).toBe(
+      "Next"
+    );
+    expect(screen.getByTestId("listings-detail-similar-back").getAttribute("aria-label")).toBe(
+      "Previous"
+    );
   });
 });

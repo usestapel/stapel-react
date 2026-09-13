@@ -128,7 +128,10 @@ export {
 // The two "find more" strips, for a host composing them itself.
 export {
   ListingRelatedStrip,
-  RELATED_CARD_BASIS,
+  RELATED_ARROW_CLASS,
+  RELATED_CARD_GAP,
+  RELATED_CARD_WIDTH,
+  RELATED_FRAME_CLASS,
   RELATED_STRIP_CLASS,
   RELATED_STYLE_HREF,
   relatedStripCss,
@@ -174,6 +177,12 @@ export {
   ListingSpecColumns,
   ListingSpecList,
   SPEC_FOLD_MIN_HIDDEN,
+  SPEC_FOOT_CLASS,
+  SPEC_LABEL_CLASS,
+  SPEC_LIST_CLASS,
+  SPEC_ROW_CLASS,
+  SPEC_STYLE_HREF,
+  SPEC_VALUE_CLASS,
   specListCss,
 } from "./ListingSpecList.js";
 export type { ListingSpecListProps } from "./ListingSpecList.js";

@@ -50,31 +50,77 @@ import type { FeatureDef, FeatureValueDto } from "@stapel/attributes-react";
 import { LISTINGS_I18N_KEYS } from "../i18n/keys.js";
 import { formatSpecValue } from "../model/featureText.js";
 
+/** The class the list itself carries — the grid the rows are laid into. */
+export const SPEC_LIST_CLASS = "stapel-listing-spec-list";
 /** The class one spec row carries. */
 export const SPEC_ROW_CLASS = "stapel-listing-spec-row";
-/** The class the row's inline label carries. */
+/** The class the row's label carries. */
 export const SPEC_LABEL_CLASS = "stapel-listing-spec-label";
+/** The class the row's value carries. */
+export const SPEC_VALUE_CLASS = "stapel-listing-spec-value";
+/** The class the fold's control carries, so it can cross both columns. */
+export const SPEC_FOOT_CLASS = "stapel-listing-spec-foot";
 /** The `href` the hoisted spec stylesheet is deduplicated by. */
 export const SPEC_STYLE_HREF = "stapel-listings-spec";
 
+/** The gutter between a label and its answer. */
+const SPEC_COLUMN_GAP: number = spacing[3];
+/** The gap between two characteristics. */
+const SPEC_ROW_GAP: number = spacing[1];
+
 /**
- * The rules an inline style cannot express — the label's own colour is set
- * per-instance as a custom property so ONE hoisted copy serves either theme.
+ * THE LIST IS A GRID OF TWO COLUMNS, and the row dissolves into it.
  *
- * `display: inline` on the label is the whole fix and is stated rather than
- * inherited: antd's `<Text>` renders a `<span>`, but a skin that retunes it
- * to a block would silently put the table back.
+ * ── Why not the paragraph this replaced ─────────────────────────
+ *
+ * The row WAS a paragraph: a muted label, one non-breaking space drawn by the
+ * label's `::after`, then the value in the same text flow. That shape was
+ * adopted against a real defect and fixed it — antd's `<Descriptions>` gave
+ * the value a cell a third of the page wide, in which a long answer wrapped
+ * under itself beside acres of empty label gutter. What it produced instead
+ * is the defect the reviewers measured at 390 / 768 / 1024 / 1440 in both
+ * themes: with the label INLINE, every value starts wherever the label before
+ * it happened to end, so fifteen characteristics read as fifteen sentences of
+ * prose and there is no column for an eye to run down.
+ *
+ * ── Why this grid is not the table coming back ────────────────────
+ *
+ * The tracks are the whole argument. `minmax(0, max-content)` for the LABEL:
+ * the column is exactly as wide as the longest label in this list and not one
+ * pixel more — it is not a reserved third of the page, and under pressure it
+ * may shrink below its content rather than push the answers off the page.
+ * `minmax(0, 1fr)` for the VALUE: every pixel that is left. So a long answer
+ * has MORE measure than it had as the second half of a paragraph, while the
+ * answers line up. Both findings hold at once, which is why this is one rule
+ * and not a width per breakpoint.
+ *
+ * `display: contents` on the ROW is the mechanism. A column can only be
+ * shared by every row if the labels and the values are children of the same
+ * grid; the row element stays in the DOM — it is what "one characteristic"
+ * means to a reader, to the fold's count and to a test — and lays out nothing
+ * of its own. The separator goes with it: a column gap and a non-breaking
+ * space would be a double gutter, and the space is what made it prose.
+ *
+ * The label's own colour is set per-instance as a custom property so ONE
+ * hoisted copy of this sheet serves either theme.
  */
 export function specListCss(): string {
   return [
-    // A paragraph, not a table row. `margin: 0` because the gap between rows
-    // is the list's, so a row can be lifted into a grid cell unchanged.
-    `.${SPEC_ROW_CLASS}{margin:0;min-inline-size:0;overflow-wrap:anywhere}`,
-    `.${SPEC_LABEL_CLASS}{display:inline;color:var(--listing-spec-label)}`,
-    // The one space between the question and the answer, owned by the label
-    // rather than written as a text node — a `{" "}` between two JSX elements
-    // is the kind of whitespace a formatter deletes.
-    `.${SPEC_LABEL_CLASS}::after{content:"\\00a0"}`,
+    `.${SPEC_LIST_CLASS}{display:grid;` +
+      `grid-template-columns:minmax(0,max-content) minmax(0,1fr);` +
+      `column-gap:${String(SPEC_COLUMN_GAP)}px;row-gap:${String(SPEC_ROW_GAP)}px;` +
+      `align-items:baseline;min-inline-size:0}`,
+    // The row keeps its element and lays out nothing: its label and its value
+    // are the grid's own items. `margin: 0` for the `<p>` it still is on an
+    // engine that does not honour `display: contents`.
+    `.${SPEC_ROW_CLASS}{display:contents;margin:0}`,
+    `.${SPEC_LABEL_CLASS}{color:var(--listing-spec-label)}`,
+    // A value is the one thing here that can be longer than its column: a
+    // stored code, a URL, a long compound word. It wraps inside its own track
+    // rather than widening the grid.
+    `.${SPEC_VALUE_CLASS}{min-inline-size:0;overflow-wrap:anywhere}`,
+    // The fold's control is a row of its own, not a third column.
+    `.${SPEC_FOOT_CLASS}{grid-column:1/-1}`,
   ].join("");
 }
 
@@ -153,12 +199,10 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
         {specListCss()}
       </style>
       <div
+        className={SPEC_LIST_CLASS}
         data-testid={props.testId ?? "listings-spec-list"}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: spacing[1],
-          minWidth: 0,
+          // The label's colour, per instance: one hoisted sheet, either theme.
           ["--listing-spec-label" as string]: token.colorTextSecondary,
           ...props.style,
         }}
@@ -187,7 +231,12 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
               >
                 {featureName(feature)}
               </Typography.Text>
-              <span data-testid={`listings-spec-value-${feature.slug}`}>{text}</span>
+              <span
+                className={SPEC_VALUE_CLASS}
+                data-testid={`listings-spec-value-${feature.slug}`}
+              >
+                {text}
+              </span>
             </p>
           );
         })}
@@ -199,6 +248,7 @@ export function ListingSpecList(props: ListingSpecListProps): ReactElement {
         {folded.length === rows.length ? null : (
           <Typography.Link
             role="button"
+            className={SPEC_FOOT_CLASS}
             aria-expanded={false}
             data-testid={`${props.testId ?? "listings-spec-list"}-show-all`}
             data-analytics="none"

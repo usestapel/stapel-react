@@ -21,7 +21,14 @@ import { describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import type { FeatureDef } from "@stapel/attributes-react";
-import { ListingDetailPane } from "../src/default/index.js";
+import { spacing } from "@stapel/tokens";
+import {
+  ListingDetailPane,
+  SPEC_FOOT_CLASS,
+  SPEC_LIST_CLASS,
+  SPEC_ROW_CLASS,
+  specListCss,
+} from "../src/default/index.js";
 import type { ListingDetailData } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { detail, statusInfo } from "./fixtures.js";
@@ -289,5 +296,87 @@ describe("digits are grouped only where they measure something", () => {
     const text = specText("population");
     expect(text).not.toContain("150000");
     expect(text.replace(/[^0-9]/g, "")).toBe("150000");
+  });
+});
+
+/**
+ * THE VALUES START AT ONE X, AND THE LABEL IS A COLUMN AGAIN — the reviewers'
+ * read of the live page at 390 / 768 / 1024 / 1440, both themes.
+ *
+ * The row was a paragraph: a muted label, one space, the value in the same
+ * flow. That fixed the defect it was built for — a long answer no longer
+ * wrapped inside a third-of-a-page cell — and produced the next one: with the
+ * label inline, every value begins wherever the label before it happened to
+ * end, so a list of fifteen characteristics reads as fifteen sentences of
+ * prose rather than as a table somebody can scan.
+ *
+ * BOTH findings are honoured by ONE grid and that is the whole point of the
+ * shape chosen: the LABEL track is `minmax(0, max-content)`, so it is exactly
+ * as wide as the longest label and never the fixed third of the page antd's
+ * `<Descriptions>` reserved, and the VALUE track is `minmax(0, 1fr)` — every
+ * pixel that is left. A long answer therefore has MORE measure than it had as
+ * a paragraph's second half, not less, while the values line up.
+ *
+ * The row keeps its element and its `<p>`; `display: contents` is what lets
+ * its label and its value be children of the LIST's grid, which is the only
+ * way one column can be shared by every row.
+ *
+ * WHAT THIS CANNOT SEE: jsdom computes no grid. "The values line up at one x"
+ * and "the label column is as wide as the longest label" are browser facts,
+ * measured in headless Chromium (see the CHANGELOG entry); what is asserted
+ * here is the mechanism — the tracks, the row that dissolves into them, the
+ * gap's source, and the run-on's own separator being gone.
+ */
+describe("the characteristics are a two-column grid at every width", () => {
+  it("draws a label track and a value track, with the gap from the tokens", async () => {
+    render(pane([MILEAGE, TRIM], <ListingDetailPane id={7} />));
+    const list = await screen.findByTestId("listings-spec-list");
+    const css = specListCss();
+
+    expect(list.classList.contains(SPEC_LIST_CLASS)).toBe(true);
+    // Two tracks: the label as wide as its words, the value taking the rest.
+    expect(css).toContain(
+      `.${SPEC_LIST_CLASS}{display:grid;` +
+        `grid-template-columns:minmax(0,max-content) minmax(0,1fr)`
+    );
+    // The gap is the spacing scale's, not a literal — both operands read.
+    expect(css).toContain(`column-gap:${String(spacing[3])}px`);
+    expect(css).toContain(`row-gap:${String(spacing[1])}px`);
+  });
+
+  it("dissolves the row so every value shares ONE column", async () => {
+    render(pane([MILEAGE, TRIM], <ListingDetailPane id={7} />));
+    const row = await screen.findByTestId("listings-spec-row-trim");
+    const label = within(row).getByTestId("listings-spec-label-trim");
+    const value = within(row).getByTestId("listings-spec-value-trim");
+    // The row element survives — it is what a person's "one characteristic"
+    // is, and what the fold counts.
+    expect(row.tagName).toBe("P");
+    expect(row.contains(label)).toBe(true);
+    expect(row.contains(value)).toBe(true);
+    // …and it lays out nothing of its own, so the label and the value are the
+    // grid's items. Without this each row is its own box and the columns of
+    // two rows have nothing to do with each other.
+    expect(specListCss()).toContain(`.${SPEC_ROW_CLASS}{display:contents`);
+    // The label and the value are two siblings, not one run of text.
+    expect(label.nextElementSibling).toBe(value);
+  });
+
+  it("drops the single space that made the list read as prose", async () => {
+    render(pane([TRIM], <ListingDetailPane id={7} />));
+    await screen.findByTestId("listings-spec-row-trim");
+    const css = specListCss();
+    // The separator was a non-breaking space drawn by the label's `::after`.
+    // A column gap replaces it; a gap AND a space would be a double gutter.
+    expect(css).not.toContain("::after");
+    expect(css).not.toContain("\\00a0");
+  });
+
+  it("lets the fold's control cross both columns", async () => {
+    const rows = [MILEAGE, POWER, VOLUME, TRIM];
+    render(pane(rows, <ListingDetailPane id={7} characteristicsLimit={1} />));
+    const control = await screen.findByTestId("listings-spec-list-show-all");
+    expect(control.classList.contains(SPEC_FOOT_CLASS)).toBe(true);
+    expect(specListCss()).toContain(`.${SPEC_FOOT_CLASS}{grid-column:1/-1}`);
   });
 });
