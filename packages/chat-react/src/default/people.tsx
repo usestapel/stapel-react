@@ -15,6 +15,7 @@
  */
 import type { ReactElement, ReactNode } from "react";
 import { Avatar, theme as antdTheme } from "antd";
+import { useIdentityTint } from "@stapel/tokens-antd/skin";
 import { useT } from "@stapel/core";
 import type { TranslateFn } from "@stapel/core";
 import { spacing } from "@stapel/tokens-antd";
@@ -164,6 +165,20 @@ export function CounterpartyAvatar(props: {
   const url = person?.avatarUrl ?? null;
   const initial = person === null ? "" : [...person.displayName][0] ?? "";
   const size = props.size ?? spacing[7];
+  /* THE SAME DISC THE REST OF THE FLEET DRAWS.
+     Three other surfaces draw a person — a result card's seller line, the
+     seller page and the listing page's seller block — and all three go
+     through `@stapel/profiles-react`'s `<PersonAvatar>`, which this package
+     may not import. So the decision lives in the bridge both depend on
+     (`identityTint`), and the inbox reads it rather than inventing a second
+     answer: one person wearing two colours on one screen is worse than the
+     flat grey both had.
+
+     Keyed on the counterparty's ID and not on their name, so a rename does
+     not repaint them — and only when there IS exactly one of them, which is
+     the same condition the initial is drawn under. */
+  const tint = useIdentityTint(ids.length === 1 ? (ids[0] ?? "") : "");
+  const named = initial !== "";
   return (
     <Avatar
       size={size}
@@ -172,15 +187,28 @@ export function CounterpartyAvatar(props: {
       // same word is noise to a screen reader.
       aria-hidden="true"
       data-testid="chat-row-avatar"
-      data-avatar={url !== null ? "photo" : initial !== "" ? "initial" : "unknown"}
+      data-avatar={url !== null ? "photo" : named ? "initial" : "unknown"}
+      {...(named && url === null ? { "data-tint": tint.family } : {})}
       style={{
-        background: token.colorFillQuaternary,
-        color: token.colorTextSecondary,
+        /* Both colours on the node and out of ONE call, because antd's
+           `<Avatar>` paints its own background and its own text colour: a
+           disc that stated only one of the two would be a chosen colour
+           against a derived one, which is the shape of a contrast claim that
+           passes a gate and fails on the glass.
+
+           The UNKNOWN arm keeps the neutral fill it had. It is deliberately
+           not tinted: a colour is an identity, and there is nobody to
+           identify — the glyph says "this deployment could not name them".
+           Its fill is translucent, so it has no fixed ratio to claim, and
+           nothing here claims one. */
+        ...(named && url === null
+          ? { background: tint.background, color: tint.color }
+          : { background: token.colorFillQuaternary, color: token.colorTextSecondary }),
         flex: "0 0 auto",
       }}
       {...(url !== null ? { src: url } : {})}
     >
-      {url === null ? (initial !== "" ? initial.toUpperCase() : <PersonGlyph />) : null}
+      {url === null ? (named ? initial.toUpperCase() : <PersonGlyph />) : null}
     </Avatar>
   );
 }
