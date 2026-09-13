@@ -129,9 +129,10 @@ import { SignInLink } from "./SignInLink.js";
 import { PHOTO_LINK_CLASS, ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import {
+  CARD_CLAMP_STYLE_HREF,
+  LOCATION_CLAMP_CLASS,
   TITLE_CLAMP_CLASS,
-  TITLE_CLAMP_STYLE_HREF,
-  titleClampCss,
+  cardClampCss,
 } from "./titleClamp.js";
 import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
@@ -614,21 +615,24 @@ export function ListingCard(props: ListingCardProps): ReactElement {
 
       <CardBadges rows={badgeDaos} copy={copy} variant="badges" />
 
-      {/* ONE line, and it truncates (D185). Measured on a live 1440px feed:
-          a two-part city-and-district name wrapped, the text block grew
-          104 -> 128px, and the two cards on either side of it stood 24px
-          shorter — a row of tiles with a ragged bottom edge and a heart
-          hanging below the line it belongs to. The place is a subtitle, not
-          prose: which city it is reads from the first words, and the tile's
-          height must be a property of the GRID rather than of how long this
-          particular neighbourhood is called. The full string stays in the
-          title attribute the way `ellipsis` puts it there, so nothing is
-          lost — it is one hover, or the listing's own page. */}
+      {/* ONE line (D185, and see `LOCATION_CLAMP_LINES` for why one) — but the
+          SAME rule as the title above it, not antd's `ellipsis`. On the live
+          storefront at 390px, two cards across, `ellipsis` cut the place
+          inside a word: a city, a comma, and the district name that follows
+          it chopped four letters in, while the title one row up wrapped
+          properly. A card with two answers to "how do I cut text" is the
+          defect `titleClamp.ts` exists to stop.
+
+          Nothing is lost by dropping `ellipsis`: it truncated in JS and handed
+          the remainder back as a hover-only tooltip, which is nothing at all
+          on the phone this was measured on. The clamp hides the overflow in
+          CSS, so the WHOLE string stays in the DOM — selectable, findable, and
+          read out in full by a screen reader. */}
       {listing.location_label !== undefined &&
       listing.location_label.length > 0 ? (
         <Typography.Text
           type="secondary"
-          ellipsis={{ tooltip: listing.location_label }}
+          className={LOCATION_CLAMP_CLASS}
           data-testid="listings-card-location"
         >
           {listing.location_label}
@@ -645,8 +649,8 @@ export function ListingCard(props: ListingCardProps): ReactElement {
       <style href={CARD_TARGET_STYLE_HREF} precedence="default">
         {cardTargetCss()}
       </style>
-      <style href={TITLE_CLAMP_STYLE_HREF} precedence="default">
-        {titleClampCss()}
+      <style href={CARD_CLAMP_STYLE_HREF} precedence="default">
+        {cardClampCss()}
       </style>
       <Card
         size="small"

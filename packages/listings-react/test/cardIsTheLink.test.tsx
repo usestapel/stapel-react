@@ -35,6 +35,7 @@ import { render, screen, within } from "@testing-library/react";
 import type { LinkComponent } from "@stapel/core";
 import { ListingCard } from "../src/default/index.js";
 import { CARD_HOVER_CLASS, cardTargetCss } from "../src/default/ListingCard.js";
+import { LOCATION_CLAMP_CLASS } from "../src/default/titleClamp.js";
 import type { ListingCard as ListingCardData } from "../src/index.js";
 import { TestProviders, mockServer } from "./harness.js";
 import { CARD } from "./fixtures.js";
@@ -295,9 +296,17 @@ describe("a search hit carries almost nothing, and the card still reads", () => 
       )
     );
     const place = screen.getByTestId("listings-card-location");
-    // antd renders `ellipsis` as its own single-line class; what matters is
-    // that the element declares it cannot wrap.
-    expect(place.className).toContain("ellipsis");
+    // ONE line is still the ruling. HOW it gets there has changed, and this
+    // assertion used to pin the wrong mechanism: it asked that the element
+    // "declare it cannot wrap" — antd's `ellipsis`, i.e. `white-space:
+    // nowrap` — which buys the single line by leaving the line no word
+    // boundary to break at, so the cut lands inside a word. Measured again at
+    // 390px with the card tiled two across, that drew a city, a comma, and the
+    // district name chopped four letters in. The clamp gets the same one line
+    // by ALLOWING the wrap and hiding what follows, so the browser breaks at
+    // the last whole word. See `titleClamp.ts` and its suite.
+    expect(place.className).toContain(LOCATION_CLAMP_CLASS);
+    expect(place.className).not.toContain("ant-typography-ellipsis");
     // Nothing is lost: the full name is still readable.
     expect(place.getAttribute("title") ?? place.textContent).toContain(
       "Дворцовый"

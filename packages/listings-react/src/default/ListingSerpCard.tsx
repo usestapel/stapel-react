@@ -108,9 +108,10 @@ import {
 } from "./ListingCard.js";
 import type { ListingCardOpenProps } from "./ListingCard.js";
 import {
+  CARD_CLAMP_STYLE_HREF,
+  LOCATION_CLAMP_CLASS,
   TITLE_CLAMP_CLASS,
-  TITLE_CLAMP_STYLE_HREF,
-  titleClampCss,
+  cardClampCss,
 } from "./titleClamp.js";
 import { ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
@@ -324,8 +325,8 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
       <style href={CARD_TARGET_STYLE_HREF} precedence="default">
         {cardTargetCss()}
       </style>
-      <style href={TITLE_CLAMP_STYLE_HREF} precedence="default">
-        {titleClampCss()}
+      <style href={CARD_CLAMP_STYLE_HREF} precedence="default">
+        {cardClampCss()}
       </style>
       <Card
         size="small"
@@ -489,9 +490,16 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                       <Fragment key="seller">{props.sellerSlot ?? null}</Fragment>
                     ) : listing.location_label !== undefined &&
                       listing.location_label.length > 0 ? (
+                      /* ONE line, the same clamp module as the title and the
+                         description above — see `LOCATION_CLAMP_LINES`. This
+                         card had NO rule here at all, so on a narrow column a
+                         two-part place name ran onto a second line and made
+                         the row ragged beside its neighbours, which is the
+                         third card drifting on the same question. */
                       <Typography.Text
                         key="location"
                         type="secondary"
+                        className={LOCATION_CLAMP_CLASS}
                         data-testid="listings-serp-location"
                       >
                         {listing.location_label}

@@ -77,9 +77,10 @@ import type { ListingCardOpenProps } from "./ListingCard.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import {
+  CARD_CLAMP_STYLE_HREF,
+  LOCATION_CLAMP_CLASS,
   TITLE_CLAMP_CLASS,
-  TITLE_CLAMP_STYLE_HREF,
-  titleClampCss,
+  cardClampCss,
 } from "./titleClamp.js";
 import type { ThemeModeProp } from "./types.js";
 
@@ -101,8 +102,8 @@ import type { ThemeModeProp } from "./types.js";
  */
 export {
   TITLE_CLAMP_CLASS as FEED_TITLE_CLASS,
-  TITLE_CLAMP_STYLE_HREF as FEED_CARD_STYLE_HREF,
-  titleClampCss as feedCardCss,
+  CARD_CLAMP_STYLE_HREF as FEED_CARD_STYLE_HREF,
+  cardClampCss as feedCardCss,
 } from "./titleClamp.js";
 
 /** The tile. `position: relative` is what the heart and the badge overlay are
@@ -173,8 +174,8 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
       <style href={CARD_TARGET_STYLE_HREF} precedence="default">
         {cardTargetCss()}
       </style>
-      <style href={TITLE_CLAMP_STYLE_HREF} precedence="default">
-        {titleClampCss()}
+      <style href={CARD_CLAMP_STYLE_HREF} precedence="default">
+        {cardClampCss()}
       </style>
       <div
         style={TILE}
@@ -222,11 +223,18 @@ export function ListingFeedCard(props: ListingFeedCardProps): ReactElement {
               />
             </Typography.Text>
 
+            {/* The place gets ONE line and the title two, but out of the SAME
+                module — see `LOCATION_CLAMP_LINES`. It was on antd's
+                `ellipsis`, which is one line by forbidding the wrap and
+                therefore cuts inside a word; this is one line by allowing it
+                and hiding the rest, so the ellipsis follows a whole word — and
+                the whole string stays in the DOM rather than being cut in JS
+                and offered back as a hover a phone cannot perform. */}
             {listing.location_label !== undefined &&
             listing.location_label.length > 0 ? (
               <Typography.Text
                 type="secondary"
-                ellipsis
+                className={LOCATION_CLAMP_CLASS}
                 data-testid="listings-feed-location"
               >
                 {listing.location_label}
