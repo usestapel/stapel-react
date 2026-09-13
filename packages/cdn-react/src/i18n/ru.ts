@@ -98,6 +98,26 @@ export const cdnI18nBundleRu: I18nDictionary = {
   "cdn.attachment.meta_missing": "Сведения об этом файле прочитать не удалось",
   "cdn.attachment.variants_pending": "Превью для этого вложения ещё готовятся",
 
+  "cdn.voice.record": "Записать голосовое сообщение",
+  "cdn.voice.stop": "Остановить и прикрепить",
+  "cdn.voice.cancel": "Удалить запись",
+  "cdn.voice.hint": "Удерживайте, чтобы записать; отпустите, чтобы прикрепить",
+  "cdn.voice.requesting": "Ждём доступ к микрофону…",
+  "cdn.voice.recording": "Идёт запись",
+  "cdn.voice.elapsed": "Записано: {clock}",
+  "cdn.voice.level": "Уровень микрофона",
+  "cdn.voice.limit_reached": "Запись остановилась на пределе {clock}",
+  "cdn.voice.empty": "Слишком коротко — записать ничего не успели",
+  "cdn.voice.failed.insecure_context":
+    "Микрофон работает только на защищённой странице (https)",
+  "cdn.voice.failed.unsupported": "Этот браузер не умеет записывать звук",
+  "cdn.voice.failed.no_codec":
+    "Этот браузер не записывает ни одного формата, который мы умеем хранить",
+  "cdn.voice.failed.denied":
+    "Доступ к микрофону запрещён — разрешите его в настройках сайта в браузере",
+  "cdn.voice.failed.no_device": "Микрофон на этом устройстве не найден",
+  "cdn.voice.failed.failed": "Не удалось включить микрофон",
+
   "cdn.bytes.b": "{value} Б",
   "cdn.bytes.kb": "{value} КБ",
   "cdn.bytes.mb": "{value} МБ",

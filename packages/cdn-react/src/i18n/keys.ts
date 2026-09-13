@@ -79,6 +79,33 @@ export const CDN_I18N_KEYS = {
   attachmentMetaMissing: "cdn.attachment.meta_missing",
   attachmentVariantsPending: "cdn.attachment.variants_pending",
 
+  // The microphone. A voice message is one control with five things it can
+  // be doing and six different ways of being unable to, and every one of them
+  // needs a sentence — a record button that can be pressed forever with
+  // nothing happening is the exact defect this vocabulary exists against.
+  voiceRecord: "cdn.voice.record",
+  voiceStop: "cdn.voice.stop",
+  voiceCancel: "cdn.voice.cancel",
+  voiceHint: "cdn.voice.hint",
+  voiceRequesting: "cdn.voice.requesting",
+  voiceRecording: "cdn.voice.recording",
+  voiceElapsed: "cdn.voice.elapsed",
+  voiceLevel: "cdn.voice.level",
+  voiceLimitReached: "cdn.voice.limit_reached",
+  voiceEmpty: "cdn.voice.empty",
+  /**
+   * The six refusals, each with its own remediation. They are NOT collapsible:
+   * "open the https page", "use another browser", "allow the microphone" and
+   * "plug one in" are four different next actions, and one grey button that
+   * says none of them is how a person concludes the feature is broken.
+   */
+  voiceFailedInsecureContext: "cdn.voice.failed.insecure_context",
+  voiceFailedUnsupported: "cdn.voice.failed.unsupported",
+  voiceFailedNoCodec: "cdn.voice.failed.no_codec",
+  voiceFailedDenied: "cdn.voice.failed.denied",
+  voiceFailedNoDevice: "cdn.voice.failed.no_device",
+  voiceFailedFailed: "cdn.voice.failed.failed",
+
   // Byte units. A NUMBER is formatted by `Intl`; its UNIT is copy — the
   // abbreviation differs by language, and every helper that returned the string
   // "1.4 MB" put an English abbreviation into a non-English sentence.
@@ -171,6 +198,26 @@ export const cdnI18nBundleEn: I18nDictionary = {
   "cdn.attachment.meta_missing": "None of this file's details could be read",
   "cdn.attachment.variants_pending":
     "Previews are still being generated for this attachment",
+
+  "cdn.voice.record": "Record a voice message",
+  "cdn.voice.stop": "Stop and attach",
+  "cdn.voice.cancel": "Discard the recording",
+  "cdn.voice.hint": "Hold to record, release to attach",
+  "cdn.voice.requesting": "Waiting for the microphone…",
+  "cdn.voice.recording": "Recording",
+  "cdn.voice.elapsed": "Recorded so far: {clock}",
+  "cdn.voice.level": "Microphone level",
+  "cdn.voice.limit_reached": "The recording stopped at the {clock} limit",
+  "cdn.voice.empty": "That was too short to record anything",
+  "cdn.voice.failed.insecure_context":
+    "The microphone only works on a secure (https) page",
+  "cdn.voice.failed.unsupported": "This browser cannot record audio",
+  "cdn.voice.failed.no_codec":
+    "This browser records no audio format we can store",
+  "cdn.voice.failed.denied":
+    "Microphone access was refused — allow it in the browser's site settings",
+  "cdn.voice.failed.no_device": "No microphone was found on this device",
+  "cdn.voice.failed.failed": "The microphone could not be started",
 
   "cdn.bytes.b": "{value} B",
   "cdn.bytes.kb": "{value} KB",

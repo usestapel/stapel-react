@@ -79,6 +79,7 @@ const { tracked } = useTracked();
 - cdn.media-intake → <MediaUploadField> [video|document]  demo/MediaUploadField.demo.tsx
 - cdn.single → <ImageUpload> [already-stored]  demo/ImageUpload.demo.tsx
 - cdn.thumbnail-tier → <CdnThumbnail> [default|fluid]  demo/ThumbnailTier.demo.tsx
+- cdn.voice → <VoiceRecordButton> [toggle|hold]  demo/VoiceRecordButton.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

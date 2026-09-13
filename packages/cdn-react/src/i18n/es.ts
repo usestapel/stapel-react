@@ -91,6 +91,26 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "cdn.attachment.variants_pending":
     "Las vistas previas de este adjunto se están generando",
 
+  "cdn.voice.record": "Grabar un mensaje de voz",
+  "cdn.voice.stop": "Parar y adjuntar",
+  "cdn.voice.cancel": "Descartar la grabación",
+  "cdn.voice.hint": "Mantén pulsado para grabar y suelta para adjuntar",
+  "cdn.voice.requesting": "Esperando al micrófono…",
+  "cdn.voice.recording": "Grabando",
+  "cdn.voice.elapsed": "Grabado hasta ahora: {clock}",
+  "cdn.voice.level": "Nivel del micrófono",
+  "cdn.voice.limit_reached": "La grabación se ha parado en el límite de {clock}",
+  "cdn.voice.empty": "Ha sido demasiado corto para grabar nada",
+  "cdn.voice.failed.insecure_context":
+    "El micrófono solo funciona en una página segura (https)",
+  "cdn.voice.failed.unsupported": "Este navegador no puede grabar audio",
+  "cdn.voice.failed.no_codec":
+    "Este navegador no graba ningún formato de audio que podamos almacenar",
+  "cdn.voice.failed.denied":
+    "Se ha denegado el acceso al micrófono: permítelo en los ajustes del sitio",
+  "cdn.voice.failed.no_device": "No se ha encontrado ningún micrófono en este dispositivo",
+  "cdn.voice.failed.failed": "No se ha podido iniciar el micrófono",
+
   "cdn.bytes.b": "{value} B",
   "cdn.bytes.kb": "{value} kB",
   "cdn.bytes.mb": "{value} MB",

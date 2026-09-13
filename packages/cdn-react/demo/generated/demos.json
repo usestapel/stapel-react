@@ -197,6 +197,35 @@
         "file": "demo/ThumbnailTier.demo.tsx",
         "line": 136
       }
+    },
+    {
+      "id": "cdn.voice",
+      "title": "Voice recording",
+      "description": "Record a voice message and hand the clip over. The container is chosen against the engine's own isTypeSupported — Opus in webm or ogg, AAC in mp4 on WebKit — because that string decides the file extension and the extension is what the CDN's intake allowlist reads. The clock is measured, the level meter is real or absent (never a bar that never moves), and the six ways a microphone can be unavailable are six sentences with four different next actions.",
+      "component": "VoiceRecordButton",
+      "covers": [],
+      "tokens": [
+        "brand",
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "toggle",
+          "description": "Press to start, press to stop. The one shape that works from a keyboard and a screen reader.",
+          "viewport": "desktop",
+          "step": "idle"
+        },
+        {
+          "id": "hold",
+          "description": "The phone idiom — hold to record, release to attach — with the toggle still underneath it for anyone without a pointer.",
+          "viewport": "phone",
+          "step": "idle"
+        }
+      ],
+      "source": {
+        "file": "demo/VoiceRecordButton.demo.tsx",
+        "line": 44
+      }
     }
   ]
 }

@@ -145,6 +145,14 @@ export {
   toStapelImage,
 } from "./model/refs.js";
 export { canHashLocally, sha256Hex } from "./model/hash.js";
+export {
+  classifyMediaError,
+  pickRecordingType,
+  RECORDING_CANDIDATES,
+  recordingExtension,
+  rmsLevel,
+} from "./model/recording.js";
+export type { RecordedClip, RecorderFailure } from "./model/recording.js";
 export { formatBytes, formatDurationMs } from "./model/format.js";
 export type { ByteUnit, FormattedBytes } from "./model/format.js";
 
@@ -153,6 +161,19 @@ export { CdnProvider } from "./headless/CdnProvider.js";
 export { ImageUpload } from "./headless/ImageUpload.js";
 export { MediaUploader } from "./headless/MediaUploader.js";
 export { useUploadImage } from "./headless/useUploadImage.js";
+export { useMediaUpload, asFile, limitsForTarget } from "./headless/useMediaUpload.js";
+export type {
+  MediaUploadBag,
+  MediaUploadCallOptions,
+  MediaUploadResult,
+  UseMediaUploadOptions,
+} from "./headless/useMediaUpload.js";
+export { useMediaRecorder } from "./headless/useMediaRecorder.js";
+export type {
+  MediaRecorderBag,
+  RecorderState,
+  UseMediaRecorderOptions,
+} from "./headless/useMediaRecorder.js";
 export type { UploadImageBag } from "./headless/useUploadImage.js";
 export { imageRowOf, useUploadQueue } from "./headless/useUploadQueue.js";
 export { useDescribe, useDescribeRef } from "./headless/useDescribe.js";

@@ -8,12 +8,13 @@
  * import { ImageUploadField, MediaGalleryField } from "@stapel/cdn-react/default";
  * ```
  *
- * Four surfaces, and they divide by what a person is doing rather than by which
+ * Five surfaces, and they divide by what a person is doing rather than by which
  * endpoint is behind them: {@link ImageUploadField} is one image slot,
  * {@link MediaGalleryField} is an ordered set of them, {@link MediaUploadField}
- * is the video/document intake, and {@link MediaAttachment} is the READ side —
- * what a `<type>/<hash>` looks like to somebody who did not upload it, which is
- * what `chat-react` and `listings-react` mount.
+ * is the video/document intake, {@link VoiceRecordButton} is the microphone,
+ * and {@link MediaAttachment} is the READ side — what a `<type>/<hash>` looks
+ * like to somebody who did not upload it, which is what `chat-react` and
+ * `listings-react` mount.
  */
 export { ImageUploadField } from "./ImageUploadField.js";
 export type { ImageUploadFieldProps } from "./ImageUploadField.js";
@@ -31,6 +32,11 @@ export {
   RESERVED_ASPECT,
 } from "./MediaAttachment.js";
 export type { MediaAttachmentProps } from "./MediaAttachment.js";
+export { VoiceRecordButton } from "./VoiceRecordButton.js";
+export type {
+  VoiceInteraction,
+  VoiceRecordButtonProps,
+} from "./VoiceRecordButton.js";
 export { MediaUploadField } from "./MediaUploadField.js";
 export type {
   MediaUploadFieldProps,
