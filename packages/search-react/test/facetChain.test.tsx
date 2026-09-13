@@ -206,7 +206,25 @@ describe("the rail — a switched-off axis says which one to use first", () => {
     expect(screen.queryAllByTestId(/^facet-option-child-/).length).toBeGreaterThan(0);
   });
 
-  it("holds in the PHONE sheet's shape too", () => {
+  it("holds in the PHONE sheet's real shape — the picker the panel mounts", () => {
+    // `sheet` WITH `onSetValues` is what `<FacetPanelPane>` passes below the
+    // breakpoint: the nested picker over the shared sheet component. A gate
+    // that only covered the fallback would leave the phone offering every
+    // model of every make, which is the surface the founder was on.
+    mount(
+      <FacetGroupControl
+        group={group("type=listing", "child")}
+        onToggle={() => undefined}
+        onSetValues={() => undefined}
+        dictionaryMode="sheet"
+      />
+    );
+    expect(screen.getByTestId("facet-parent-first-child").textContent).toContain("Марка");
+    expect(screen.queryAllByTestId(/^facet-option-child-/)).toHaveLength(0);
+    expect(screen.queryByTestId("facet-dictionary-trigger-child")).toBeNull();
+  });
+
+  it("holds in the sheet's FALLBACK shape too", () => {
     // Same group, the other surface. `sheet` without `onSetValues` falls back
     // to the closed field, which is the third shape this rule has to survive.
     mount(
