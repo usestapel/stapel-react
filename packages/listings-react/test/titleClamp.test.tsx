@@ -27,7 +27,7 @@
 import { describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
-import { ListingCard, ListingFeedCard } from "../src/default/index.js";
+import { ListingCard, ListingFeedCard, ListingSerpCard } from "../src/default/index.js";
 import {
   TITLE_CLAMP_CLASS,
   TITLE_CLAMP_LINES,
@@ -44,6 +44,7 @@ function providers(children: ReactElement): ReactElement {
 const CARDS = [
   { name: "the grid card", testId: "listings-card-title", render: () => <ListingCard listing={CARD} href="/l/7" /> },
   { name: "the tile card", testId: "listings-feed-title", render: () => <ListingFeedCard listing={CARD} href="/l/7" /> },
+  { name: "the list card", testId: "listings-serp-title", render: () => <ListingSerpCard listing={CARD} href="/l/7" /> },
 ] as const;
 
 describe("the clamp itself", () => {
@@ -100,16 +101,24 @@ describe.each(CARDS)("$name", ({ testId, render: renderCard }) => {
   });
 });
 
-describe("both cards answer the question the same way", () => {
-  it("shares one class and one href, so the two can never drift apart", () => {
-    // The defect was not that either rule was wrong on its own. It was that
-    // there were two of them, and only one card's was right.
-    const { unmount } = render(providers(<ListingCard listing={CARD} href="/l/7" />));
-    const gridClass = screen.getByTestId("listings-card-title").className;
-    unmount();
-    render(providers(<ListingFeedCard listing={CARD} href="/l/7" />));
-    const tileClass = screen.getByTestId("listings-feed-title").className;
-    expect(gridClass).toContain(TITLE_CLAMP_CLASS);
-    expect(tileClass).toContain(TITLE_CLAMP_CLASS);
+describe("every card answers the question the same way", () => {
+  it("shares one class across all THREE, so no card can drift apart", () => {
+    // The defect was not that any rule was wrong on its own. It was that there
+    // were several of them and only some cards' were right — and the count of
+    // "some" was wrong twice: the first fix reached the tile and missed the
+    // grid, the second reached the grid and missed the LIST card, which is the
+    // default view on a live storefront and therefore the one the owner is
+    // actually looking at. Three cards, one rule, asserted together.
+    const classes = CARDS.map(({ testId, render: renderCard }) => {
+      const { unmount } = render(providers(renderCard()));
+      const className = screen.getByTestId(testId).className;
+      unmount();
+      return { testId, className };
+    });
+    for (const { testId, className } of classes) {
+      expect(className, `${testId} must carry the shared clamp`).toContain(
+        TITLE_CLAMP_CLASS
+      );
+    }
   });
 });

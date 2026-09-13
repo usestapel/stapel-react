@@ -107,6 +107,11 @@ import {
   cardTargetCss,
 } from "./ListingCard.js";
 import type { ListingCardOpenProps } from "./ListingCard.js";
+import {
+  TITLE_CLAMP_CLASS,
+  TITLE_CLAMP_STYLE_HREF,
+  titleClampCss,
+} from "./titleClamp.js";
 import { ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
 import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
@@ -278,6 +283,9 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
       <style href={CARD_TARGET_STYLE_HREF} precedence="default">
         {cardTargetCss()}
       </style>
+      <style href={TITLE_CLAMP_STYLE_HREF} precedence="default">
+        {titleClampCss()}
+      </style>
       <Card
         size="small"
         data-testid="listings-serp-card"
@@ -372,7 +380,16 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                       </Flex>
                     )}
 
-                    <Typography.Text data-testid="listings-serp-title">
+                    {/* The clamp is the grid card's and the tile's, from
+                        `titleClamp.ts`. This card is the DEFAULT view on a
+                        live storefront, and it was the last of the three
+                        still answering the question its own way: no clamp at
+                        all, so a long title ran on for as many lines as it
+                        wanted and made the row ragged beside its neighbours. */}
+                    <Typography.Text
+                      data-testid="listings-serp-title"
+                      className={TITLE_CLAMP_CLASS}
+                    >
                       {title}
                     </Typography.Text>
 
