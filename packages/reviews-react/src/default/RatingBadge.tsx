@@ -56,6 +56,9 @@
  * in a `visuallyHidden` span: the column got narrower, the rating did not
  * lose a number.
  *
+ * The visible order is the reference's — score, stars, dot, count — and it is
+ * the same at every rung.
+ *
  * The glyph size is stated here as well as in the skin: `@stapel/tokens-antd`
  * excludes a READ-ONLY `<Rate>` from the phone touch floor (a rating nobody
  * can tick is not a touch target), and this component pins the same icon step
@@ -203,6 +206,14 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
                           every rung of the ladder, and announce "1 star" from
                           the collapsed single glyph, which is a lie.
                         */}
+                        <Typography.Text
+                          strong
+                          aria-hidden="true"
+                          style={SCORE}
+                          data-testid="reviews-rating-score"
+                        >
+                          {shape.withScale ? score : scoreBare}
+                        </Typography.Text>
                         <Rate
                           disabled
                           allowHalf
@@ -212,14 +223,6 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
                           style={STARS}
                           data-testid="reviews-rating-stars"
                         />
-                        <Typography.Text
-                          strong
-                          aria-hidden="true"
-                          style={SCORE}
-                          data-testid="reviews-rating-score"
-                        >
-                          {shape.withScale ? score : scoreBare}
-                        </Typography.Text>
                         {shape.withCount ? (
                           <>
                             <Typography.Text

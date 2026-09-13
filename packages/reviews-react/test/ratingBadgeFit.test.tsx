@@ -20,6 +20,9 @@
  *
  *     <seller name>  ****+  4.3 out of 5 · 6 revi…
  *
+ * (The glyphs sat before the number then; the owner later ruled for the
+ * reference's order, number first.)
+ *
  * A word cut in the middle. That is the defect this suite pins: the count no
  * longer shrinks and no longer carries an ellipsis. The badge measures its own
  * box and drops whole FACTS in a stated order instead — the scale, then four
@@ -289,15 +292,15 @@ describe("the one-line geometry", () => {
     }
   });
 
-  it("reads as one sentence: stars, score, ·, count", async () => {
+  it("reads as one sentence: score, stars, ·, count — the reference's order", async () => {
     await mountRated(300);
     const line = screen.getByTestId("reviews-rating-line");
     const order = [...line.children].map((node) =>
       node.getAttribute("data-testid")
     );
     expect(order).toEqual([
-      "reviews-rating-stars",
       "reviews-rating-score",
+      "reviews-rating-stars",
       "reviews-rating-dot",
       "reviews-rating-count",
       "reviews-rating-full",
@@ -305,19 +308,19 @@ describe("the one-line geometry", () => {
   });
 
   it.each(RUNGS)(
-    "keeps the star before the number at $width px, so nothing reorders",
+    "keeps the number before the star at $width px, so nothing reorders",
     async ({ width }) => {
       await mountRated(width);
       const line = screen.getByTestId("reviews-rating-line");
       const order = [...line.children].map((node) =>
         node.getAttribute("data-testid")
       );
-      // The reference's compact form writes «4,3 ★»; we keep the glyph first
-      // at every rung instead, so a card that resizes never reshuffles the
-      // badge's reading order under the eye.
+      // The reference writes "4.3 *", and so do we, at EVERY rung — only the
+      // glyph count and the length of the words change as the column narrows.
+      // A badge whose parts reorder while a card resizes is its own defect.
       expect(order.slice(0, 2)).toEqual([
-        "reviews-rating-stars",
         "reviews-rating-score",
+        "reviews-rating-stars",
       ]);
     }
   );

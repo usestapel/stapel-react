@@ -76,33 +76,27 @@ import {
 import type { ListingCardOpenProps } from "./ListingCard.js";
 import { ListingPhoto } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
+import {
+  TITLE_CLAMP_CLASS,
+  TITLE_CLAMP_STYLE_HREF,
+  titleClampCss,
+} from "./titleClamp.js";
 import type { ThemeModeProp } from "./types.js";
 
-/** Lines of title a tile draws before it clips. See the file header. */
-const TITLE_LINES = 2;
-
-/** The class the clamped title carries, for {@link feedCardCss}. */
-export const FEED_TITLE_CLASS = "stapel-listing-feed-title";
-
-/** The `href` the hoisted feed stylesheet is deduplicated by. */
-export const FEED_CARD_STYLE_HREF = "stapel-listings-feed-card";
-
 /**
- * The clamp, as a real CSS rule rather than an inline style.
+ * The title clamp is `titleClamp.ts`'s, not this file's.
  *
- * `-webkit-line-clamp` and `-webkit-box-orient` are the two declarations that
- * do not survive the trip through an inline style object: React's serializer
- * and every DOM implementation that is not a browser drop them silently, so a
- * tile written that way clamps in Chrome, does not clamp in a test, and
- * nothing anywhere says which. A hoisted sheet keeps one copy for the document
- * and makes the rule something a test can read.
+ * It lived here, and the grid card (`ListingCard`) answered the same question
+ * with antd's one-line `ellipsis` — which is how the busiest surface on the
+ * storefront ended up cutting job titles mid-word while the tile beside it
+ * wrapped them over two lines. One answer, one module, both cards.
+ *
+ * These three names stay as aliases because this file's tests and a reader
+ * looking for "the feed card's clamp" both expect them here.
  */
-export function feedCardCss(): string {
-  return (
-    `.${FEED_TITLE_CLASS}{display:-webkit-box;-webkit-box-orient:vertical;` +
-    `-webkit-line-clamp:${String(TITLE_LINES)};overflow:hidden}`
-  );
-}
+export const FEED_TITLE_CLASS = TITLE_CLAMP_CLASS;
+export const FEED_CARD_STYLE_HREF = TITLE_CLAMP_STYLE_HREF;
+export const feedCardCss = titleClampCss;
 
 /** The tile. `position: relative` is what the heart and the badge overlay are
  * pinned to; `minWidth: 0` keeps a long word inside its grid track. */

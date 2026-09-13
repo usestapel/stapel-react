@@ -128,6 +128,11 @@ import { CardBadges, CardSpecLine } from "./CardBadges.js";
 import { SignInLink } from "./SignInLink.js";
 import { PHOTO_LINK_CLASS, ListingPhotoStrip } from "./ListingPhoto.js";
 import { ListingPrice } from "./ListingPrice.js";
+import {
+  TITLE_CLAMP_CLASS,
+  TITLE_CLAMP_STYLE_HREF,
+  titleClampCss,
+} from "./titleClamp.js";
 import type { CategoryFeaturesProp, ThemeModeProp } from "./types.js";
 
 /**
@@ -589,7 +594,17 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         />
       </Typography.Text>
 
-      <Typography.Text ellipsis data-testid="listings-card-title">
+      {/*
+        Two lines, clipped at the end of the second — NOT antd's `ellipsis`,
+        which is one line and lands the cut in the middle of a word: this card
+        cut job titles mid-word on the live storefront's home grid while the
+        tile card beside it wrapped the same title over two lines. The rule is
+        `titleClamp.ts`'s, shared with that tile.
+      */}
+      <Typography.Text
+        className={TITLE_CLAMP_CLASS}
+        data-testid="listings-card-title"
+      >
         {title}
       </Typography.Text>
 
@@ -629,6 +644,9 @@ export function ListingCard(props: ListingCardProps): ReactElement {
     >
       <style href={CARD_TARGET_STYLE_HREF} precedence="default">
         {cardTargetCss()}
+      </style>
+      <style href={TITLE_CLAMP_STYLE_HREF} precedence="default">
+        {titleClampCss()}
       </style>
       <Card
         size="small"

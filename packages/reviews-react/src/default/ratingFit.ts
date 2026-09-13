@@ -30,10 +30,14 @@
  *   score-only   *  4.3                      — the last fact standing is the
  *                                             number a person reads.
  *
- * The reference's own compact form puts the star AFTER the number; we keep the
- * glyph BEFORE it at every step so the reading order never changes as the
- * column narrows — a badge whose parts reorder while a card resizes is a
- * different kind of broken.
+ * The order is the REFERENCE's: the number first, then the star glyph, then
+ * the count — "4.3 *  ·  6 reviews". It is the same order at every rung, so a
+ * card that resizes never reshuffles the badge under the eye; only the number
+ * of glyphs and the length of the words change.
+ *
+ * (This was the other way round for one release. The glyph-first order reads
+ * fine on its own, but it is not the order a person coming from the reference
+ * expects, and the owner ruled for the reference's form.)
  *
  * ── why an ESTIMATE and not a fit loop ────────────────────────────────────
  *
