@@ -266,23 +266,20 @@ describe("what makes it a sheet and not a bottom drawer", () => {
   it("gives the gesture a keyboard equivalent: the handle is a named button", () => {
     const onClose = vi.fn();
     renderSheet(onClose);
-    // A swipe-only dismissal is unreachable without a pointer. The handle is a
-    // real <button> with an accessible name, so Tab reaches it and Enter/Space
-    // (which fire `click`) dismiss.
-    //
-    // There are TWO named exits on a sheet since D474 — the handle and the ✕
-    // the header now draws — so the handle is taken by its own handle rather
-    // than by the name both of them carry.
-    const handle = screen.getByTestId("stapel-sheet-handle");
-    expect(handle.tagName).toBe("BUTTON");
-    expect(handle.getAttribute("aria-label")).toBe(DISMISS);
-    fireEvent.click(handle);
+    // A swipe-only dismissal is unreachable without a pointer. The named exit
+    // is the ✕ the header draws (D474): Tab reaches it, Enter/Space (which
+    // fire `click`) dismiss, and it is the ONLY control on the sheet carrying
+    // that name — the grab handle presses it too but is presentational, so
+    // "the close button" is never ambiguous.
+    const close = screen.getByRole("button", { name: DISMISS });
+    expect(close).toBe(screen.getByTestId("stapel-sheet-close"));
+    fireEvent.click(close);
     expect(onClose).toHaveBeenCalledTimes(1);
-    // Both of them close, and neither is the only one: a reader who can see
-    // the sheet has a ✕, a reader who is dragging it has the handle.
-    expect(
-      screen.getAllByRole("button", { name: DISMISS }).map((b) => b.dataset["testid"])
-    ).toEqual(["stapel-sheet-handle", "stapel-sheet-close"]);
+    const handle = screen.getByTestId("stapel-sheet-handle");
+    expect(handle.getAttribute("aria-hidden")).toBe("true");
+    expect(handle.tabIndex).toBe(-1);
+    fireEvent.click(handle);
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it("contains its own scrolling and clears the home indicator", () => {

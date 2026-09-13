@@ -33,9 +33,12 @@
  *
  *  - **swipe to dismiss** from the grab handle / header, with a distance
  *    threshold and a rubber-band return when the gesture does not commit;
- *  - **a keyboard equivalent for that gesture** — the handle IS a button with
- *    an accessible name, reachable by Tab and activated by Enter/Space, so
- *    the dismissal is never gesture-only (Esc also closes, via antd);
+ *  - **a visible, keyboard-reachable way out** — a ✕ at the phone touch floor
+ *    on the trailing edge of the title line, carrying the caller's own dismiss
+ *    copy, so the dismissal is never gesture-only (Esc also closes, via antd).
+ *    The grab handle presses it too but is presentational: it is 4px tall, and
+ *    a reviewer walking a live sheet read it as decoration and the sheet as
+ *    unclosable (D474);
  *  - **safe-area insets** — a sheet sits ON the home indicator otherwise;
  *  - **scroll containment** — `overscroll-behavior: contain`, so flicking
  *    past the end of the sheet's own content does not scroll the page under
@@ -615,16 +618,19 @@ function BottomSheet(props: BottomSheetProps): ReactElement {
       style={dismissible ? { ...grabArea, userSelect: "none" } : { userSelect: "none" }}
       {...(dismissible ? dragHandlers : {})}
     >
-      {/* The handle is a real button: the swipe is a shortcut, never the only
-          way out. Tab reaches it, Enter/Space dismisses, and a screen reader
-          announces it with the caller's own copy. A non-dismissible sheet
-          draws no handle at all rather than an inert one — an affordance that
-          is visibly offered and does nothing is worse than its absence. */}
+      {/* The handle is where the swipe starts, and pressing it dismisses too —
+          but it is PRESENTATIONAL since D474: the sheet's named exit is the ✕
+          below, and two controls carrying one name announce the same dismissal
+          twice to a screen reader and make "the close button" ambiguous to
+          every test that asks for it. A non-dismissible sheet draws no handle
+          at all rather than an inert one — an affordance that is visibly
+          offered and does nothing is worse than its absence. */}
       {dismissible && (
       <button
         type="button"
         onClick={onClose}
-        aria-label={props.dismissLabel}
+        aria-hidden="true"
+        tabIndex={-1}
         data-testid="stapel-sheet-handle"
         data-analytics="none"
         data-analytics-reason="local-ui-dismiss-sheet"

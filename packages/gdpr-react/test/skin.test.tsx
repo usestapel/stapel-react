@@ -227,9 +227,10 @@ describe("<AccountClosurePanel> — the confirm obeys the design system's surfac
     setViewportWidth(390);
     const dialog = await openConfirm();
     expect(dialog.getAttribute("data-stapel-dialog-surface")).toBe("sheet");
-    // The sheet's dismissal is never gesture-only: the grab handle is a real
-    // button carrying this pair's own close copy.
-    expect(screen.getByTestId("stapel-sheet-handle").getAttribute("aria-label"))
+    // The sheet's dismissal is never gesture-only: the substrate draws a
+    // visible ✕ carrying this pair's own close copy (the grab handle beside it
+    // presses it too, but is presentational — see D474 in tokens-antd).
+    expect(screen.getByTestId("stapel-sheet-close").getAttribute("aria-label"))
       .toBe("Close");
   });
 
