@@ -167,6 +167,8 @@ import {
 } from "./condensedBar.js";
 import { ListingHeroGallery } from "./ListingHeroGallery.js";
 import { ListingRelatedStrip } from "./ListingRelated.js";
+import { quickQuestionKeys } from "../model/questions.js";
+import type { ListingQuestionTopic } from "../model/questions.js";
 import type { ListingRelatedContext } from "./ListingRelated.js";
 import { useNotice } from "./notice.js";
 import { ListingSpecColumns, ListingSpecList } from "./ListingSpecList.js";
@@ -442,6 +444,28 @@ export interface ListingDetailPaneProps
    * the press itself.
    */
   readonly quickQuestions?: readonly string[];
+  /**
+   * WHAT KIND OF THING this listing is, so the canned questions fit it.
+   *
+   * The founder opened a job vacancy on the live site and was offered to ask
+   * the hiring manager whether their vacancy was still for sale: the four
+   * defaults are a GOODS classified's four, and every listing got them. The
+   * set now follows the listing's root category — see
+   * {@link quickQuestionKeys} for the three sets and
+   * {@link ListingQuestionTopic} for the five names.
+   *
+   * A PROP and not a read, and the reason is a hard boundary rather than a
+   * preference: the detail wire carries `category_id`, a bare string with no
+   * slug and no ancestry, and turning it into "this is a job" is a walk up
+   * the CATALOGUE — which belongs to `@stapel/categories-react`, a pair this
+   * one does not import. The storefront routed the visitor here through that
+   * tree and already knows.
+   *
+   * Default `"goods"` (`DEFAULT_QUESTION_TOPIC`): a host that says nothing keeps
+   * exactly the chips it had. {@link quickQuestions} still overrides
+   * everything — a host with its own sentences is not asking this question.
+   */
+  readonly questionTopic?: ListingQuestionTopic;
   /**
    * WHAT A PRESSED CHIP DOES, and why it is the host's.
    *
@@ -854,12 +878,8 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
     props.onQuickQuestion === undefined
       ? []
       : (
-          props.quickQuestions ?? [
-            t(LISTINGS_I18N_KEYS.detailQuestionAvailable),
-            t(LISTINGS_I18N_KEYS.detailQuestionPrice),
-            t(LISTINGS_I18N_KEYS.detailQuestionViewing),
-            t(LISTINGS_I18N_KEYS.detailQuestionDelivery),
-          ]
+          props.quickQuestions ??
+          quickQuestionKeys(props.questionTopic).map((key) => t(key))
         ).slice(0, QUICK_QUESTIONS_MAX);
   // The two arms of `actions` — see `isActionsConfig`.
   const actionsConfig: ListingActionsConfig | undefined = isActionsConfig(

@@ -181,6 +181,8 @@ export {
 } from "./model/features.js";
 export type { FeatureCopySource } from "./model/features.js";
 export { featureUnit, formatSpecValue } from "./model/featureText.js";
+export { DEFAULT_QUESTION_TOPIC, quickQuestionKeys } from "./model/questions.js";
+export type { ListingQuestionTopic } from "./model/questions.js";
 
 // ── model: the card badge contract (stapel-listings 0.21.3) ──────────────────
 export {

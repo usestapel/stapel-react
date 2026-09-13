@@ -175,6 +175,28 @@ export const LISTINGS_I18N_KEYS = {
   detailQuestionViewing: "listings.detail.question_viewing",
   detailQuestionDelivery: "listings.detail.question_delivery",
   /**
+   * THE QUESTIONS A VACANCY AND A SERVICE GET INSTEAD.
+   *
+   * The four above are a GOODS classified's four, and until now every listing
+   * got them: the founder opened a job vacancy on the live site and was
+   * offered "is it still for sale?" over a person's advertised job. What a
+   * reader wants to ask depends on what kind of thing the page is about, which
+   * is a fact about the listing's root category — see `questionTopic` on
+   * `<ListingDetailPane>` for why the pair is TOLD which it is rather than
+   * guessing from a numeric `category_id`.
+   *
+   * Every one of these opens with a greeting, in each locale's own form: the
+   * chip's whole job is to become the first line of a message to a stranger,
+   * and a bare "is it still for sale?" landing in somebody's inbox is the
+   * version of this feature that makes a marketplace feel like a machine.
+   */
+  detailQuestionJobOpen: "listings.detail.question_job_open",
+  detailQuestionJobSchedule: "listings.detail.question_job_schedule",
+  detailQuestionJobApply: "listings.detail.question_job_apply",
+  detailQuestionServiceAvailable: "listings.detail.question_service_available",
+  detailQuestionServicePrice: "listings.detail.question_service_price",
+  detailQuestionServiceSlot: "listings.detail.question_service_slot",
+  /**
    * THE DESKTOP GALLERY'S FOUR CONTROLS — see `<ListingHeroGallery>`.
    *
    * All four are icon-only or picture-only, so each of these strings IS the
@@ -446,10 +468,17 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.detail.take_down": "Take it down",
   "listings.detail.back": "Back",
   "listings.detail.ask_seller": "Ask the seller",
-  "listings.detail.question_available": "Is it still available?",
-  "listings.detail.question_price": "Is the price negotiable?",
-  "listings.detail.question_viewing": "Can I come and see it?",
-  "listings.detail.question_delivery": "Do you deliver?",
+  "listings.detail.question_available": "Hello! Is it still available?",
+  "listings.detail.question_price": "Hello! Is the price negotiable?",
+  "listings.detail.question_viewing": "Hello! Can I come and see it?",
+  "listings.detail.question_delivery": "Hello! Do you deliver?",
+  "listings.detail.question_job_open": "Hello! Is the vacancy still open?",
+  "listings.detail.question_job_schedule": "Hello! What are the working hours?",
+  "listings.detail.question_job_apply": "Hello! Where should I send my CV?",
+  "listings.detail.question_service_available":
+    "Hello! Do you still provide this service?",
+  "listings.detail.question_service_price": "Hello! How much would this cost?",
+  "listings.detail.question_service_slot": "Hello! When are you next available?",
   "listings.detail.gallery_open": "See all photos full size",
   "listings.detail.gallery_prev": "Previous photo",
   "listings.detail.gallery_next": "Next photo",
