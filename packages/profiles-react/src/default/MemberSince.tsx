@@ -16,23 +16,134 @@
  * at. The precision that is dropped here is not lost — `created_at` is on the
  * profile for anything that genuinely needs the instant.
  *
- * ── Why the Russian line carries no preposition ───────────────────────────
+ * ── How the Russian line gets its preposition back ────────────────────────
  *
- * `Intl` writes a Russian month-and-year in the NOMINATIVE case, and every
- * natural Russian phrasing of "since <month>" governs the genitive. A pair
- * cannot decline a month it did not build, and hand-keeping a twelve-word
- * genitive table for one caption is a translation memory nobody would
- * maintain. So the Russian key states the fact as "registration date:
- * <month year>" — the PHRASING moves, never the formatter. English and
- * Spanish keep their preposition, which their grammar allows.
+ * This line used to read "registration date: <month> <year>" — a label and a
+ * colon — because `Intl` writes a bare month-and-year in the NOMINATIVE case
+ * and every natural Russian "since <month>" governs the GENITIVE. The
+ * recorded blocker was that a pair cannot decline a month it did not build and
+ * a hand-kept twelve-word genitive table is a translation memory nobody would
+ * maintain.
+ *
+ * The table was never needed. `Intl` already knows both cases; it just does
+ * not offer the genitive for a month-and-year, because in that phrase the
+ * month is the subject. Ask the SAME formatter for a month-day-year and the
+ * month becomes a modifier, so the locale's own data declines it (September
+ * 2026 at `ru`, transliterated here because source is English-only):
+ *
+ * ```
+ * {month:"long", year:"numeric"}             -> "sentyabr 2026 g."   (nominative)
+ * {day:"numeric", month:"long", year:"numeric"}
+ *   .formatToParts()  -> [… {month:"sentyabrya"} …]                  (genitive)
+ * ```
+ *
+ * The day is requested ONLY to put the month in that grammatical position. It
+ * is never printed: what is rendered is the nominative phrase's own parts with
+ * the `month` part swapped for the declined word.
+ *
+ * ── Why a REBUILD and not a `{month} {year}` of our own ───────────────────
+ *
+ * Reading the two parts out and joining them with a space is the obvious
+ * version and it is wrong in most of the world. Spanish joins them with a
+ * word — `marzo de 2024`; Russian carries a trailing abbreviation for "year"
+ * behind a narrow no-break space; Japanese writes the year FIRST, as
+ * `2024`+year-sign+`3`+month-sign, with no month NAME at all. Those are the
+ * locale's pattern, not decoration, and a pair that assembles the pieces
+ * itself silently flattens every one of them. So only the WORD moves. The
+ * pattern around it stays whatever `Intl` wrote, which is why this is a real
+ * technique rather than a trick that happens to read well in two languages.
+ *
+ * For a language with no nominative/genitive split the swap is a no-op by
+ * construction: English reads `September` in both shapes, so the rebuild
+ * returns the identical string it was handed.
+ *
+ * ── What it does when it cannot ───────────────────────────────────────────
+ *
+ * A tag the runtime refuses (`en_US` — an underscore is a `RangeError` to
+ * `Intl`, and tags reach a host from config, a URL segment and stored
+ * preferences alike), or a shape whose parts carry no `month` at all, falls
+ * back to the plain nominative phrase — the WHOLE line this component
+ * rendered before any of this existed. Never a half sentence with the date
+ * missing out of it.
+ *
+ * The locale is always the ENGINE's, through `useFormat()`. `toLocaleDateString`
+ * and a bare `new Intl.DateTimeFormat(undefined, …)` read the BROWSER's
+ * preference, which is how a product whose user switched to `ru` in the app
+ * kept rendering English months beside Russian sentences.
  */
 import type { ReactElement } from "react";
 import { Typography } from "antd";
-import { useFormat, useT } from "@stapel/core";
+import type { Format, Instant } from "@stapel/core";
+import { toDate, useFormat, useT } from "@stapel/core";
 import { PROFILES_I18N_KEYS } from "../i18n/keys.js";
 
 /** The shape of the phrase — a month and a year, at the app's locale. */
-const MONTH_YEAR = { month: "long", year: "numeric" } as const;
+const MONTH_YEAR: Intl.DateTimeFormatOptions = { month: "long", year: "numeric" };
+
+/**
+ * The same phrase with a day in it. The day is NEVER rendered; it is there to
+ * move the month into the grammatical position where a locale that declines
+ * its months declines this one. See the module doc.
+ */
+const MONTH_YEAR_WITH_DAY: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+};
+
+/**
+ * The two formatters per locale, or `null` for a tag `Intl` refuses.
+ *
+ * Cached for the same reason `@stapel/core`'s formatters are: constructing an
+ * `Intl.DateTimeFormat` is among the more expensive things a render can do,
+ * and these are immutable and locale-pure. `null` is cached too — a malformed
+ * tag should cost one `RangeError`, not one per render.
+ */
+const cache = new Map<string, readonly [Intl.DateTimeFormat, Intl.DateTimeFormat] | null>();
+
+function formattersFor(
+  locale: string | undefined
+): readonly [Intl.DateTimeFormat, Intl.DateTimeFormat] | null {
+  const key = locale ?? "";
+  const hit = cache.get(key);
+  if (hit !== undefined) return hit;
+  let built: readonly [Intl.DateTimeFormat, Intl.DateTimeFormat] | null;
+  try {
+    built = [
+      new Intl.DateTimeFormat(locale, MONTH_YEAR),
+      new Intl.DateTimeFormat(locale, MONTH_YEAR_WITH_DAY),
+    ];
+  } catch {
+    built = null;
+  }
+  cache.set(key, built);
+  return built;
+}
+
+/**
+ * The month and year the sentence takes, with the month in whatever case the
+ * locale's "since" wants — or the plain nominative phrase where that cannot be
+ * worked out, and `null` where there is no date at all.
+ */
+function tenurePhrase(format: Format, value: Instant): string | null {
+  const nominative = format.date(value, MONTH_YEAR);
+  if (nominative === null) return null;
+  const date = toDate(value);
+  if (date === null) return null;
+
+  const formatters = formattersFor(format.locale);
+  if (formatters === null) return nominative;
+  const [plain, withDay] = formatters;
+
+  const declined = withDay.formatToParts(date).find((part) => part.type === "month");
+  if (declined === undefined) return nominative;
+
+  const parts = plain.formatToParts(date);
+  if (!parts.some((part) => part.type === "month")) return nominative;
+  return parts
+    .map((part) => (part.type === "month" ? declined.value : part.value))
+    .join("");
+}
 
 export interface MemberSinceProps {
   /**
@@ -60,7 +171,7 @@ export interface MemberSinceProps {
 export function MemberSince(props: MemberSinceProps): ReactElement | null {
   const t = useT();
   const format = useFormat();
-  const date = format.date(props.created_at, MONTH_YEAR);
+  const date = tenurePhrase(format, props.created_at);
   if (date === null) return null;
   return (
     <Typography.Text

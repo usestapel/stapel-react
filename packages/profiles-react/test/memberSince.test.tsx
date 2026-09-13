@@ -22,7 +22,11 @@ const MARCH_2024 = "2024-03-15T12:00:00Z";
 
 function mount(node: ReactElement, locale = "en"): ReturnType<typeof render> {
   const i18n = createI18n({ locale });
-  registerProfilesI18n(i18n);
+  // The en floor under whatever locale is asked for, exactly as the pair's own
+  // `registerProfilesI18nRu`/`Es` do — a locale with no bundle of its own then
+  // renders the English SENTENCE around its own formatted date, which is what
+  // a host running `ja` with no `ja` bundle actually sees.
+  registerProfilesI18n(i18n, locale);
   if (locale === "ru") registerProfilesI18nRu(i18n);
   if (locale === "es") registerProfilesI18nEs(i18n);
   return render(<I18nProvider i18n={i18n}>{node}</I18nProvider>);
@@ -56,18 +60,78 @@ describe("<MemberSince>", () => {
 
   it("speaks each locale's own sentence, and each locale's own month", () => {
     const { unmount } = mount(<MemberSince created_at={MARCH_2024} />, "ru");
-    // Russian states the fact rather than saying "since": `Intl` writes the
-    // month in the nominative case and a Russian "since <month>" governs the
-    // genitive, so the PHRASING moves rather than the formatter.
-    const ru = screen.getByTestId("member-since").textContent ?? "";
-    expect(ru).toContain("март");
-    expect(ru).toContain(":");
+    // Russian says "since" like every other locale, and the month is in the
+    // GENITIVE the preposition governs: `marta`, never the nominative `mart`.
+    //
+    // `\u202f` is a NARROW NO-BREAK SPACE, and it is ICU's, not ours: it is
+    // the literal the ru pattern puts between the year and the abbreviation
+    // for "year" that follows it, so the two cannot be split across a line.
+    // It survives here precisely because the
+    // line is a rebuild of the locale's own parts — a pair that joined a month
+    // and a year itself would have written an ordinary space and allowed the
+    // break.
+    expect(screen.getByTestId("member-since").textContent).toBe(
+      "На сайте с марта 2024\u202fг."
+    );
     unmount();
+
+    const en = mount(<MemberSince created_at={MARCH_2024} />, "en");
+    expect(screen.getByTestId("member-since").textContent).toBe(
+      "Member since March 2024"
+    );
+    en.unmount();
 
     mount(<MemberSince created_at={MARCH_2024} />, "es");
     const es = screen.getByTestId("member-since").textContent ?? "";
     expect(es).toContain("marzo");
     expect(es.startsWith("Miembro desde")).toBe(true);
+  });
+
+  /**
+   * The declension is a rebuild of the locale's OWN month-year phrase with one
+   * part swapped, never a `{month} {year}` of our own. That distinction is the
+   * whole safety of it: Spanish joins the two with `de` and Japanese writes
+   * neither word, and a pair that assembled the pieces itself would quietly
+   * flatten both. Only the WORD moves; the pattern around it is `Intl`'s.
+   */
+  it("keeps each locale's own month-year pattern, not a shape of our own", () => {
+    const { unmount } = mount(<MemberSince created_at={MARCH_2024} />, "es");
+    // `de` survives — the parts were rebuilt, not concatenated.
+    expect(screen.getByTestId("member-since").textContent).toBe(
+      "Miembro desde marzo de 2024"
+    );
+    unmount();
+
+    // Japanese writes the month as a NUMBER inside `2024年3月`. There is no
+    // case to decline and nothing to take apart; the line is the pattern.
+    mount(<MemberSince created_at={MARCH_2024} />, "ja");
+    expect(screen.getByTestId("member-since").textContent).toContain("2024年3月");
+  });
+
+  /**
+   * The fallback arm. A locale tag the runtime refuses (`en_US` — an
+   * underscore is a `RangeError` to `Intl`, and tags reach a host from config,
+   * a URL segment and stored preferences alike) leaves the declension with
+   * nothing to read.
+   *
+   * What must NOT happen is the half sentence — the preposition with the
+   * date missing behind it — which is what a decline path that returns its
+   * failure as an empty string produces. The line falls back to exactly what
+   * it rendered before this existed: the nominative phrase, whole.
+   */
+  it("falls back to the whole nominative line when the tag is unreadable", () => {
+    const i18n = createI18n({ locale: "en_US" });
+    registerProfilesI18n(i18n, "en_US");
+    render(
+      <I18nProvider i18n={i18n}>
+        <MemberSince created_at={MARCH_2024} />
+      </I18nProvider>
+    );
+    const text = screen.getByTestId("member-since").textContent ?? "";
+    expect(text).toBe("Member since March 2024");
+    // Belt and braces: no half sentence, whatever the runtime's own default
+    // locale writes the month as.
+    expect(text.endsWith("2024")).toBe(true);
   });
 
   it("publishes the instant it formatted, so a walker can check the reduction", () => {

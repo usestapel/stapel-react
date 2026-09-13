@@ -92,11 +92,14 @@ export const PROFILES_I18N_KEYS = {
    * The tenure line (`<MemberSince/>`) — `{date}` is a MONTH AND A YEAR
    * already formatted at the app's locale, never an ISO string.
    *
-   * The Russian text states the fact as "registration date: <month year>"
-   * rather than with a preposition: `Intl` writes the month in the nominative
-   * case and every Russian "since <month>" phrasing governs the genitive, so
-   * the SENTENCE moves rather than the formatter (see
-   * `default/MemberSince.tsx`).
+   * Every locale here says "since", the Russian one included. `{date}` arrives
+   * with its month already in whatever grammatical case that locale's
+   * preposition governs — Russian "since March" takes the genitive `marta`,
+   * never the nominative `mart` — because the component declines it through
+   * `Intl`'s own data before interpolating (see `default/MemberSince.tsx`). A
+   * translator writing a new locale can therefore phrase this the way the
+   * language actually phrases it, rather than working around a nominative
+   * month with a label and a colon.
    */
   publicMemberSince: "profiles.public.member_since",
   /**

@@ -91,7 +91,7 @@ export const profilesI18nBundleRu: I18nDictionary = {
   // The month arrives from `Intl` in the nominative case, so this line states
   // the fact rather than saying "since" — see keys.ts. The phrasing is what
   // moves; the formatter is the same one in every language.
-  "profiles.public.member_since": "Дата регистрации: {date}",
+  "profiles.public.member_since": "На сайте с {date}",
   "profiles.public.seller_type": "Продавец",
   "profiles.public.count.following.one": "Подписан на {count} человека",
   "profiles.public.count.following.few": "Подписан на {count} человек",
