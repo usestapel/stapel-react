@@ -168,6 +168,28 @@ export interface ListingSerpCardBaseProps
    * cross-seller feed leads with it. Both stay one line of composition.
    */
   readonly sellerSlotPosition?: "above" | "below";
+  /**
+   * The seller's RATING, drawn between the photo and the price — the
+   * reference's reading order (photo, stars, price, title).
+   *
+   * A SECOND slot rather than a position for {@link sellerSlot}, because the
+   * two answer different questions and a surface wants them in different
+   * places: the rating is a fact about the offer's trustworthiness and is read
+   * with the price, while the seller's NAME is provenance and belongs at the
+   * bottom with the place. Folding them together is what put the stars under
+   * the location on a live storefront.
+   *
+   * OUTSIDE THE ANCHOR, like `sellerSlot` and for the same reason: a rating
+   * usually links to the reviews it summarises, and a link inside a link is
+   * neither valid nor operable.
+   *
+   * **The caveat a host must know, and it is the same one `sellerSlot`
+   * carries:** `<RatingBadge>` FETCHES. One per card is one request per card.
+   * A container drawing a page of results should read every rating in ONE
+   * batched query keyed by the distinct owners on the page and hand each card
+   * the answer, never mount a fetching badge per row.
+   */
+  readonly ratingSlot?: ReactNode;
   /** The vertical action column at the trailing edge — call, write. The
    * favourite heart is added at its end by this component. */
   readonly actionsRail?: ReactNode;
@@ -329,6 +351,12 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
             <div className={CARD_MAIN_CLASS}>
               <Flex gap={spacing[3]} align="flex-start">
                 <Flex vertical gap={spacing[1]} style={BODY}>
+                  {/* STARS BETWEEN THE PHOTO AND THE PRICE — the reference's
+                      reading order. Outside the anchor (see `ratingSlot`), and
+                      before it, so the row reads photo, stars, price, title. */}
+                  {props.ratingSlot !== undefined ? (
+                    <div data-testid="listings-serp-rating">{props.ratingSlot}</div>
+                  ) : null}
                   <CardTarget
                     {...openProps(props)}
                     listingId={listing.id}

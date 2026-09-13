@@ -88,12 +88,17 @@ export type VirtualChildHref = (
 export function categoryChildTileEntries(
   children: readonly CategoryChild[],
   basePath: string,
-  hrefForVirtual?: VirtualChildHref
+  hrefForVirtual?: VirtualChildHref,
+  /** The level's own category, so a child with no art of its own inherits it
+   * rather than dropping to a monogram — see {@link categoryTileEntry}. */
+  parent?: Category
 ): readonly CategoryTileEntry[] {
+  const parentIcon =
+    parent === undefined ? null : categoryTileEntry(parent, basePath).icon;
   const out: CategoryTileEntry[] = [];
   for (const child of children) {
     if (isRowChild(child)) {
-      out.push(categoryTileEntry(child, basePath));
+      out.push(categoryTileEntry(child, basePath, parentIcon));
       continue;
     }
     if (hrefForVirtual === undefined) {
@@ -138,14 +143,33 @@ export interface CategoryCarouselBag {
  */
 export function categoryTileEntry(
   category: Category,
-  basePath: string
+  basePath: string,
+  /**
+   * The art to use when this row has none of its own — its PARENT's, from a
+   * caller that knows the tree.
+   *
+   * Measured on a live classified: one tile in sixty pages drew a grey
+   * initial beside siblings that all had illustrations, because that row's
+   * `catalog_icon` is empty and nothing walked up. A monogram is the right
+   * answer for a catalogue with no art at all; it is the wrong one for a row
+   * whose whole branch is illustrated.
+   *
+   * A PARAMETER and not a lookup inside this function, because a tile entry is
+   * built from one row and this module has no tree to climb. A caller that
+   * threads its own parent's resolved icon down gets a fallback that walks as
+   * far up as the caller does; one that passes nothing gets exactly the old
+   * behaviour.
+   */
+  fallbackIcon?: string | null
 ): CarouselEntry {
-  const reference =
+  const own =
     category.carousel_icon !== undefined && category.carousel_icon !== ""
       ? category.carousel_icon
       : category.catalog_icon !== undefined && category.catalog_icon !== ""
         ? category.catalog_icon
         : null;
+  const reference =
+    own ?? (fallbackIcon !== undefined && fallbackIcon !== "" ? fallbackIcon : null);
   return {
     category,
     label: categoryLabel(category),
