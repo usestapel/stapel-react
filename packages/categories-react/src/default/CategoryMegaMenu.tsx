@@ -78,15 +78,158 @@ const DEFAULT_MIN_WIDTH = 1024;
 /** Root rows the loading arm reserves room for. */
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6] as const;
 
-const panelStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(180px, 1fr) 3fr",
-  gap: spacing[4],
-  padding: spacing[4],
-  borderRadius: radii.lg,
-  background: cssVar("surface-overlay"),
-  boxShadow: cssVar("elevation-medium"),
-};
+/**
+ * The rail's narrowest width, in px — see {@link CategoryMegaMenuProps.railWidth}.
+ *
+ * The rail used to be `minmax(180px, 1fr)` beside a `3fr` pane: a quarter of
+ * the panel at 1440 (338px of 1400) and 236px at the 1024 guard, where a
+ * four-word root wraps onto two lines. The owner's read
+ * of the stand (2026-09-14) was that the column is too narrow; the reference's
+ * overlay could not be measured from this host (its edge refuses the address),
+ * so the number is a floor a host can move, not a measurement: 360px never
+ * wraps a two-word root at 16px, and above the floor the rail takes
+ * 1/(1 + {@link MEGA_MENU_PANE_FRACTION}) of the panel.
+ */
+export const MEGA_MENU_RAIL_WIDTH = 360;
+
+/** The pane's share of the panel against the rail's `1fr`: 2.5 puts the rail
+ * at two sevenths of the width (386px of 1400) — wider than the old quarter,
+ * still the narrower of the two columns. */
+export const MEGA_MENU_PANE_FRACTION = 2.5;
+
+/**
+ * The panel's own height ceiling — see {@link CategoryMegaMenuProps.maxHeight}.
+ *
+ * `dvh`, not `vh`: on a phone-class browser with a collapsing address bar the
+ * `vh` unit is the LARGEST viewport, and a panel sized by it would put its
+ * last rows under the bar. `spacing[6]` (32px) is the room for whatever the
+ * host stood the panel under — a header row typically — when it passes no
+ * measure of its own.
+ */
+export const MEGA_MENU_MAX_HEIGHT: string = `calc(100dvh - ${String(spacing[6])}px)`;
+
+/** The class every rail root carries — the hover/focus fill hangs on it. */
+export const MEGA_MENU_ROOT_CLASS = "stapel-mega-menu-root";
+
+/** The modifier the DISCLOSED root carries: the row whose pane is showing. */
+export const MEGA_MENU_ROOT_ACTIVE_CLASS = "stapel-mega-menu-root-active";
+
+/** The `href` the hoisted mega-menu sheet is deduplicated by. */
+export const MEGA_MENU_STYLE_HREF = "stapel-mega-menu";
+
+/**
+ * The rail row's rule set.
+ *
+ * A sheet rather than inline styles because `:hover` and `:focus-visible`
+ * cannot be said in a style attribute — and the row's fill could not stay
+ * inline either, since an inline `background` beats any sheet rule and the
+ * hover would never paint. So the fill LEAVES the style attribute and every
+ * state of it lives here, with `--stapel-*` custom properties so both themes
+ * resolve at paint time.
+ *
+ * `surface-sunken` — the design system's neutral tertiary fill — for the
+ * hovered, the focused and the disclosed row alike, and deliberately not
+ * `brand-subtle` (which the disclosed row drew before 0.32.0). The reference's
+ * overlay highlights its hovered root in light grey; a pointer resting on a row
+ * is an answer about THAT row and a brand tint there reads as a selection the
+ * person has not made. The three states share one fill because on this rail
+ * they are one state — hovering or focusing a root discloses it — and the
+ * disclosed row still says which it is by weight.
+ *
+ * `background-color`, never the shorthand: a host that put an image behind a
+ * row of its own keeps it.
+ */
+export function megaMenuCss(): string {
+  const root = `.${MEGA_MENU_ROOT_CLASS}`;
+  const active = `.${MEGA_MENU_ROOT_ACTIVE_CLASS}`;
+  return [
+    // A `<button>` brings a platform fill and border of its own.
+    `${root}{background-color:transparent;color:${cssVar("text")}}`,
+    `${root}:hover,${root}:focus-visible,${active}{` +
+      `background-color:${cssVar("surface-sunken")}}`,
+    // The pane's links: an underline under the pointer, so a column of plain
+    // text says which row is about to be followed.
+    `[data-stapel-mega-pane] a:hover,[data-stapel-mega-pane] a:focus-visible{` +
+      `text-decoration:underline}`,
+  ].join("");
+}
+
+/**
+ * The panel's box.
+ *
+ * It is its OWN scroll container — `overflow-y: auto` under a ceiling, with
+ * `overscroll-behavior: contain` — because the page behind it must not move
+ * when a wheel turns over it. Measured on the stand at 1440 (2026-09-14): the
+ * host's wrapper was the scroll box, the panel inside it was shorter than the
+ * wrapper's ceiling, so the box had nothing to scroll and the wheel CHAINED to
+ * the document — 1500px of page under a panel that then re-anchored to a
+ * header that had left the screen. `contain` on a box with nothing to scroll
+ * still stops the chain (probed on Chromium 153), which is what lets this be
+ * a property of the panel and not a rule the host has to remember.
+ */
+function panelStyle(maxHeight: number | string, railWidth: number): CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateColumns:
+      `minmax(${String(railWidth)}px, 1fr) ${String(MEGA_MENU_PANE_FRACTION)}fr`,
+    gap: spacing[4],
+    padding: spacing[4],
+    borderRadius: radii.lg,
+    background: cssVar("surface-overlay"),
+    boxShadow: cssVar("elevation-medium"),
+    boxSizing: "border-box",
+    maxHeight,
+    overflowY: "auto",
+    overscrollBehavior: "contain",
+  };
+}
+
+/**
+ * Hold the document still while a panel stands over it.
+ *
+ * `overflow: hidden` on the ROOT element, as an inline style that beats any
+ * sheet the host wrote; reference-counted because two panels may overlap
+ * (this one inside a host's own dialog) and the inner one closing must not
+ * hand the page back while the outer one stands; the previous inline values
+ * are restored exactly. `scrollbar-gutter: stable` beside it keeps a classic
+ * scrollbar's gutter while the bar itself is gone, so a page with one does
+ * not widen by 15px under the panel the moment it opens.
+ *
+ * The same lock `SkinDialog` holds, kept private there — an ask to export it
+ * from `/skin` is filed with this component's changeset.
+ */
+let pageScrollLocks = 0;
+let unlockedRoot: { readonly overflow: string; readonly gutter: string } | null = null;
+
+function lockPageScroll(): () => void {
+  if (typeof document === "undefined") return () => undefined;
+  const root = document.documentElement;
+  pageScrollLocks += 1;
+  if (pageScrollLocks === 1) {
+    unlockedRoot = {
+      overflow: root.style.overflow,
+      gutter: root.style.scrollbarGutter,
+    };
+    root.style.overflow = "hidden";
+    root.style.scrollbarGutter = "stable";
+  }
+  return () => {
+    pageScrollLocks -= 1;
+    if (pageScrollLocks > 0) return;
+    const previous = unlockedRoot;
+    unlockedRoot = null;
+    if (previous === null || previous.overflow === "") {
+      root.style.removeProperty("overflow");
+    } else {
+      root.style.overflow = previous.overflow;
+    }
+    if (previous === null || previous.gutter === "") {
+      root.style.removeProperty("scrollbar-gutter");
+    } else {
+      root.style.scrollbarGutter = previous.gutter;
+    }
+  };
+}
 
 const railStyle: CSSProperties = {
   display: "flex",
@@ -98,6 +241,9 @@ const railStyle: CSSProperties = {
   minWidth: 0,
 };
 
+/** A rail row is a target, not a sentence: the whole row is the button, and
+ * its fill — rest, hover, focus, disclosed — is `megaMenuCss()`'s, because an
+ * inline background would beat the sheet's hover rule. */
 function railItemStyle(active: boolean): CSSProperties {
   return {
     display: "flex",
@@ -107,9 +253,6 @@ function railItemStyle(active: boolean): CSSProperties {
     padding: `${String(spacing[2])}px ${String(spacing[3])}px`,
     border: "none",
     borderRadius: radii.md,
-    // A rail row is a target, not a sentence: the whole row highlights.
-    background: active ? cssVar("brand-subtle") : "transparent",
-    color: active ? cssVar("brand") : cssVar("text"),
     font: "inherit",
     fontWeight: active ? fontWeight.semibold : fontWeight.regular,
     textAlign: "start",
@@ -121,6 +264,16 @@ const railIconStyle: CSSProperties = {
   width: "1.5em",
   height: "1em",
   objectFit: "contain",
+  flex: "none",
+};
+
+/** The row's disclosure mark, at its trailing edge: the reference's root row
+ * is icon, name, chevron, and the chevron is what makes a 360px row read as
+ * one target rather than a short label in a wide column. Decorative — the
+ * button already says `aria-haspopup`. */
+const railChevronStyle: CSSProperties = {
+  marginInlineStart: "auto",
+  color: cssVar("text-subtle"),
   flex: "none",
 };
 
@@ -215,6 +368,30 @@ export interface CategoryMegaMenuProps extends ThemeModeProp, LinkComponentProp 
   readonly maxLinksPerColumn?: number;
   /** Narrowest viewport this panel may appear at. Default 1024. */
   readonly minWidth?: number;
+  /**
+   * The panel's height ceiling, above which its own box scrolls. Default
+   * {@link MEGA_MENU_MAX_HEIGHT} (`100dvh` less 32px). A host that stands the
+   * panel under a measured header passes the room that is actually left —
+   * `calc(100dvh - ${headerBottom}px - 16px)` — and drops any scroll box of
+   * its own around the panel: two nested scroll containers give the wheel
+   * to whichever has the taller content, which is the OUTER one exactly when
+   * the panel fits, and the outer one has no containment.
+   */
+  readonly maxHeight?: number | string;
+  /** The rail's narrowest width in px. Default {@link MEGA_MENU_RAIL_WIDTH}. */
+  readonly railWidth?: number;
+  /**
+   * Hold the document still while the panel is mounted on a wide viewport.
+   * Default `true`.
+   *
+   * A mounted panel is an open panel — this component never hides itself,
+   * the host mounts it when it opens — so the lock follows the mount. A host
+   * that draws the panel INLINE, as a page region rather than an overlay (a
+   * demo, a sitemap page), passes `false`. The lock is `overflow: hidden` on
+   * the root element with a stable scrollbar gutter, reference-counted
+   * against any other panel or dialog holding the same lock.
+   */
+  readonly lockScroll?: boolean;
   /** Escape, or a click outside the panel. The host owns the open state; this
    * component never hides itself, because a panel that closed on its own and a
    * button that still reads "open" are two answers to one question. */
@@ -333,6 +510,8 @@ function Panel(props: {
   readonly nodes: readonly CategoryTreeNode[];
   readonly href: (node: CategoryTreeNode) => string;
   readonly maxLinks: number;
+  readonly maxHeight: number | string;
+  readonly railWidth: number;
   readonly linkComponent?: LinkComponentProp["linkComponent"];
   readonly onClose?: () => void;
   readonly onSelect?: CategoryMegaMenuProps["onSelect"];
@@ -410,11 +589,16 @@ function Panel(props: {
     <div
       ref={rootRef}
       data-testid="categories-mega-menu"
-      style={panelStyle}
+      style={panelStyle(props.maxHeight, props.railWidth)}
       data-analytics="none"
       data-analytics-reason="keyboard navigation inside a local panel — moving focus is not an outcome; the host tracks the category link that is followed out of it"
       onKeyDown={onKeyDown}
     >
+      {/* The rail row's rest/hover/focus/disclosed fills and the pane links'
+          hover — see `megaMenuCss`. Hoisted and deduped by `href`. */}
+      <style href={MEGA_MENU_STYLE_HREF} precedence="default">
+        {megaMenuCss()}
+      </style>
       <div
         role="menu"
         aria-label={t(CATEGORIES_I18N_KEYS.megaMenuLabel)}
@@ -430,6 +614,11 @@ function Panel(props: {
               railRefs.current[position] = element;
             }}
             data-testid={`categories-mega-menu-root-${String(root.id)}`}
+            className={
+              position === index
+                ? `${MEGA_MENU_ROOT_CLASS} ${MEGA_MENU_ROOT_ACTIVE_CLASS}`
+                : MEGA_MENU_ROOT_CLASS
+            }
             aria-haspopup="true"
             aria-expanded={position === index}
             aria-controls={paneId}
@@ -450,6 +639,9 @@ function Panel(props: {
           >
             <RailIcon node={root} />
             <span>{nodeLabel(root, t)}</span>
+            <span aria-hidden="true" style={railChevronStyle}>
+              ›
+            </span>
           </button>
         ))}
       </div>
@@ -498,12 +690,23 @@ export function CategoryMegaMenu(
   const query = useCategoryTree(props.depth ?? DEFAULT_TREE_DEPTH, {
     enabled: wide && override === undefined,
   });
+  // The lock follows the mount, and the guard: a panel that renders nothing
+  // holds nothing still.
+  const lockScroll = props.lockScroll ?? true;
+  useEffect(() => {
+    if (!wide || !lockScroll) return;
+    return lockPageScroll();
+  }, [wide, lockScroll]);
 
   if (!wide) return null;
 
+  const maxHeight = props.maxHeight ?? MEGA_MENU_MAX_HEIGHT;
+  const railWidth = props.railWidth ?? MEGA_MENU_RAIL_WIDTH;
   const panelProps = {
     href,
     maxLinks: props.maxLinksPerColumn ?? DEFAULT_MAX_LINKS,
+    maxHeight,
+    railWidth,
     ...(props.linkComponent !== undefined
       ? { linkComponent: props.linkComponent }
       : {}),
@@ -534,7 +737,7 @@ export function CategoryMegaMenu(
             void query.refetch();
           }}
           loading={
-            <div style={panelStyle}>
+            <div style={panelStyle(maxHeight, railWidth)}>
               <div style={railStyle}>
                 {SKELETON_ROWS.map((slot) => (
                   <Skeleton.Button key={slot} active block size="small" />

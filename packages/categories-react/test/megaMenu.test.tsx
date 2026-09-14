@@ -8,8 +8,17 @@
  * TELLS THE HOST rather than hiding the panel behind the host's back.
  */
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { CategoryMegaMenu } from "../src/default/index.js";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  CategoryMegaMenu,
+  MEGA_MENU_MAX_HEIGHT,
+  MEGA_MENU_PANE_FRACTION,
+  MEGA_MENU_RAIL_WIDTH,
+  MEGA_MENU_ROOT_ACTIVE_CLASS,
+  MEGA_MENU_ROOT_CLASS,
+  MEGA_MENU_STYLE_HREF,
+  megaMenuCss,
+} from "../src/default/index.js";
 import {
   DESKTOP_WIDTH,
   PHONE_WIDTH,
@@ -285,6 +294,121 @@ describe("<CategoryMegaMenu>", () => {
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({ id: 161 }),
       "child"
+    );
+  });
+});
+
+/**
+ * The owner's desktop read of the stand (2026-09-14): the wheel scrolled the
+ * PAGE under the panel, the rail was too narrow, and a root row gave no hover.
+ * Three properties, each held by the panel itself rather than by a wrapper
+ * the host has to remember.
+ */
+describe("<CategoryMegaMenu> as an overlay", () => {
+  it("is its own scroll container, with scroll chaining contained", async () => {
+    await mountMenu({ nodes: TREE });
+    const panel = screen.getByTestId("categories-mega-menu");
+    expect(panel.style.overflowY).toBe("auto");
+    expect(panel.style.overscrollBehavior).toBe("contain");
+    expect(panel.style.maxHeight).toBe(MEGA_MENU_MAX_HEIGHT);
+    // A host under a measured header passes the room that is actually left.
+    cleanup();
+    await mountMenu({ nodes: TREE, maxHeight: "calc(100dvh - 104px)" });
+    expect(screen.getByTestId("categories-mega-menu").style.maxHeight).toBe(
+      "calc(100dvh - 104px)"
+    );
+  });
+
+  it("holds the document still while mounted, and hands it back exactly", async () => {
+    const root = document.documentElement;
+    root.style.overflow = "";
+    await mountMenu({ nodes: TREE });
+    expect(root.style.overflow).toBe("hidden");
+    expect(root.style.scrollbarGutter).toBe("stable");
+    cleanup();
+    expect(root.style.overflow).toBe("");
+    expect(root.style.scrollbarGutter).toBe("");
+  });
+
+  it("restores a host's own inline overflow rather than clearing it", async () => {
+    const root = document.documentElement;
+    root.style.overflow = "clip";
+    await mountMenu({ nodes: TREE });
+    expect(root.style.overflow).toBe("hidden");
+    cleanup();
+    expect(root.style.overflow).toBe("clip");
+    root.style.overflow = "";
+  });
+
+  it("does not lock below the guard, nor when the host opts out", async () => {
+    const root = document.documentElement;
+    setViewport(PHONE_WIDTH);
+    render(
+      <TestProviders server={mockServer(OK)}>
+        <CategoryMegaMenu nodes={TREE} />
+      </TestProviders>
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(root.style.overflow).toBe("");
+    cleanup();
+    setViewport(DESKTOP_WIDTH);
+    await mountMenu({ nodes: TREE, lockScroll: false });
+    expect(root.style.overflow).toBe("");
+  });
+
+  it("gives a root row a neutral hover and focus fill through a hoisted sheet", async () => {
+    await mountMenu({ nodes: TREE });
+    const sheet = document.querySelector(`style[data-href="${MEGA_MENU_STYLE_HREF}"]`)
+      ?? document.querySelector(`style[href="${MEGA_MENU_STYLE_HREF}"]`);
+    expect(sheet?.textContent).toBe(megaMenuCss());
+    const css = megaMenuCss();
+    // The neutral tertiary fill, not the brand tint, and never a literal colour.
+    expect(css).toContain(
+      `.${MEGA_MENU_ROOT_CLASS}:hover,.${MEGA_MENU_ROOT_CLASS}:focus-visible,` +
+        `.${MEGA_MENU_ROOT_ACTIVE_CLASS}{background-color:var(--stapel-surface-sunken)}`
+    );
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(/i);
+    // Every root carries the class; only the disclosed one the modifier — and
+    // no row carries an inline fill that would beat the sheet's hover rule.
+    const roots = screen.getAllByRole("menuitem");
+    for (const row of roots) {
+      expect(row.classList.contains(MEGA_MENU_ROOT_CLASS)).toBe(true);
+      expect(row.style.background).toBe("");
+      expect(row.style.backgroundColor).toBe("");
+    }
+    const active = roots.filter((row) =>
+      row.classList.contains(MEGA_MENU_ROOT_ACTIVE_CLASS)
+    );
+    expect(active).toHaveLength(1);
+    expect(active[0]?.getAttribute("aria-expanded")).toBe("true");
+    // Hover discloses another root, and the modifier follows it.
+    fireEvent.mouseEnter(screen.getByTestId("categories-mega-menu-root-1"));
+    await waitFor(() => {
+      expect(
+        screen
+          .getByTestId("categories-mega-menu-root-1")
+          .classList.contains(MEGA_MENU_ROOT_ACTIVE_CLASS)
+      ).toBe(true);
+    });
+    expect(
+      screen
+        .getByTestId("categories-mega-menu-root-141")
+        .classList.contains(MEGA_MENU_ROOT_ACTIVE_CLASS)
+    ).toBe(false);
+  });
+
+  it("lays the rail out from the width token, and from a host's own", async () => {
+    await mountMenu({ nodes: TREE });
+    expect(screen.getByTestId("categories-mega-menu").style.gridTemplateColumns).toBe(
+      `minmax(${String(MEGA_MENU_RAIL_WIDTH)}px, 1fr) ${String(MEGA_MENU_PANE_FRACTION)}fr`
+    );
+    expect(MEGA_MENU_RAIL_WIDTH).toBeGreaterThanOrEqual(360);
+    cleanup();
+    await mountMenu({ nodes: TREE, railWidth: 420 });
+    expect(screen.getByTestId("categories-mega-menu").style.gridTemplateColumns).toBe(
+      `minmax(420px, 1fr) ${String(MEGA_MENU_PANE_FRACTION)}fr`
     );
   });
 });

@@ -38,7 +38,16 @@ export { CategoryBreadcrumbsBar } from "./CategoryBreadcrumbsBar.js";
 export type { CategoryBreadcrumbsBarProps } from "./CategoryBreadcrumbsBar.js";
 export { CategoryCarouselStrip } from "./CategoryCarouselStrip.js";
 export type { CategoryCarouselStripProps } from "./CategoryCarouselStrip.js";
-export { CategoryMegaMenu } from "./CategoryMegaMenu.js";
+export {
+  CategoryMegaMenu,
+  MEGA_MENU_MAX_HEIGHT,
+  MEGA_MENU_PANE_FRACTION,
+  MEGA_MENU_RAIL_WIDTH,
+  MEGA_MENU_ROOT_ACTIVE_CLASS,
+  MEGA_MENU_ROOT_CLASS,
+  MEGA_MENU_STYLE_HREF,
+  megaMenuCss,
+} from "./CategoryMegaMenu.js";
 export type { CategoryMegaMenuProps } from "./CategoryMegaMenu.js";
 export {
   BLOCK_GAP_COMPACT_VAR,

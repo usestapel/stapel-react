@@ -858,9 +858,10 @@
       ],
       "tokens": [
         "surface-overlay",
-        "brand-subtle",
+        "surface-sunken",
         "border-subtle",
-        "text-muted"
+        "text-muted",
+        "text-subtle"
       ],
       "variants": [
         "open",

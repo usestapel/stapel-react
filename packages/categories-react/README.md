@@ -434,6 +434,24 @@ question.
 when to mount the panel, and below that width it renders nothing and asks for
 nothing. A phone's door into the catalogue is the tile grid, with no drawer.
 
+The panel is an **overlay in its own right**. It is its own scroll container —
+`maxHeight` (default `MEGA_MENU_MAX_HEIGHT`, `calc(100dvh - 32px)`) with
+`overflow-y: auto` and `overscroll-behavior: contain`, so a wheel over it never
+moves the page, whether or not it is tall enough to scroll. A host standing it
+under a measured header passes the room actually left
+(`maxHeight={\`calc(100dvh - ${top}px - 16px)\`}`) and puts NO scroll box of
+its own around it: two nested scroll containers give the wheel to whichever
+has the taller content, which is the outer one exactly when the panel fits.
+While mounted on a wide viewport it holds the document still (`lockScroll`,
+default `true` — a mounted panel is an open panel; a host drawing it inline as
+a page region passes `false`). The rail is `minmax(railWidth, 1fr)` beside
+`MEGA_MENU_PANE_FRACTION` fr — `MEGA_MENU_RAIL_WIDTH` (360px) at the floor,
+two sevenths of the panel above it. A root row's rest, hover, focus and
+disclosed fills are one hoisted sheet (`megaMenuCss()`, `MEGA_MENU_ROOT_CLASS`,
+`MEGA_MENU_ROOT_ACTIVE_CLASS`) painting the neutral `surface-sunken` role, so
+a host restyling the rail overrides a class rather than fighting an inline
+style.
+
 `node.path` is `"141/151/166"` — the exact form the search query's `category`
 parameter takes, so a host that routes categories through its feed passes its
 own `href` builder and hands the path straight over.

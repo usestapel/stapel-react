@@ -23,6 +23,8 @@ import { CategoriesDemoHarness } from "./_harness.js";
 import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import { DEMO_TREE } from "./fixtures.js";
 
+/* `lockScroll={false}` on every variant: the showcase draws the panel INLINE
+   on a page that must keep scrolling, which is the one case the prop is for. */
 const SEEDED: DemoSeed = { tree: { depth: 3, nodes: DEMO_TREE } };
 const NOTHING: DemoSeed = { tree: { depth: 3, nodes: [] } };
 const OUTAGE: DemoHandlers = {
@@ -36,7 +38,7 @@ export default defineDemo({
     "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below 1024px.",
   component: CategoryMegaMenu,
   covers: ["useCategoryTree"],
-  tokens: ["surface-overlay", "brand-subtle", "border-subtle", "text-muted"],
+  tokens: ["surface-overlay", "surface-sunken", "border-subtle", "text-muted", "text-subtle"],
   variants: {
     open: {
       description:
@@ -45,7 +47,7 @@ export default defineDemo({
       step: "ready",
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
-          <CategoryMegaMenu />
+          <CategoryMegaMenu lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
@@ -56,7 +58,7 @@ export default defineDemo({
       step: "ready-capped",
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
-          <CategoryMegaMenu maxLinksPerColumn={2} />
+          <CategoryMegaMenu maxLinksPerColumn={2} lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
@@ -66,7 +68,7 @@ export default defineDemo({
       step: "empty",
       render: () => (
         <CategoriesDemoHarness seed={NOTHING}>
-          <CategoryMegaMenu />
+          <CategoryMegaMenu lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
@@ -76,7 +78,7 @@ export default defineDemo({
       step: "failed",
       render: () => (
         <CategoriesDemoHarness handlers={OUTAGE}>
-          <CategoryMegaMenu />
+          <CategoryMegaMenu lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
