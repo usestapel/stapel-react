@@ -1,5 +1,34 @@
 # @stapel/tokens-antd
 
+## 0.22.0
+
+### Minor Changes
+
+- 249ee1b: The type ladder governs antd's headings, emphasis weight and family
+
+  antd DERIVES `fontSizeHeading1..5` from the base `fontSize` by its own
+  ratios, so a host's type scale governed body text and nothing else. On one
+  deployment `h1` rendered at 42px and `h2` at 34px — neither number exists
+  in that host's scale or in this dictionary's default (12/14/16/18/22/28/36).
+  The steps were unreachable, and no amount of theming could reach them.
+
+  `fontSizeHeading1..5` now map onto the dictionary's own top five steps
+  (`3xl`, `2xl`, `xl`, `lg`, `md`), read LIVE from the host's regenerated
+  `tokens.css` with the compiled-in step as the fallback — the same
+  live-scope discipline every colour role already uses.
+
+  Two more axes had the same defect and are fixed with it:
+
+  - `fontFamily` was the compiled-in `fontFamily.sans` and never the live
+    var, so a host that set `scales.fontFamily` got the new stack in its
+    generated sheet and the old one in every antd control.
+  - `fontWeightStrong` was antd's 600. A brand whose family ships only 400
+    and 700 got a synthesised 600 on every heading and every
+    `<Typography.Text strong>`.
+
+  A host whose scale already matches antd's derivation is unchanged; where
+  it does not, the scale wins, which is the point of having one.
+
 ## 0.21.0
 
 ### Minor Changes

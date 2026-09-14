@@ -37,6 +37,7 @@ import {
   cssVar,
   fontFamily,
   fontSize,
+  fontWeight,
   radii,
 } from "@stapel/tokens";
 import type { CoreTokenName, StapelVar } from "@stapel/tokens";
@@ -323,7 +324,33 @@ export function toAntdTheme(mode: ThemeMode = resolveThemeMode()): AntdThemeToke
     borderRadius: readLivePx(live, `radius-${bridgeRadiusRole}`, radii[bridgeRadiusRole]),
     fontSize: readLivePx(live, `font-size-${bridgeFontSizeRole}`, fontSize[bridgeFontSizeRole].fontSize),
     controlHeight: readLivePx(live, "control-height", controls.height),
-    fontFamily: fontFamily.sans,
+    /* THE FAMILY IS LIVE TOO, and it was the one shape axis that was not.
+       `fontFamily.sans` is the compiled-in default, so a host that set
+       `scales.fontFamily` in its own theme and regenerated got the new stack
+       in `tokens.css` and the OLD one in every antd control — the generated
+       sheet and the rendered page disagreeing about the same token. Same
+       live-scope discipline as the colour roles, same fallback. */
+    fontFamily: readLiveCssVar(live, "font-family-sans", fontFamily.sans),
+    /* ── HEADINGS COME FROM THE LADDER NOW ──────────────────────────────
+       antd DERIVES `fontSizeHeading1..5` from the base `fontSize` by its own
+       ratios, so a host's type scale governed body text and nothing else: on
+       one deployment, `h1` measured 42px and `h2` 34px, and neither number
+       exists in that host's scale or in the dictionary's default. The steps
+       were simply unreachable — a ladder nobody could climb.
+
+       Mapped onto the dictionary's own top five steps, read live like every
+       other axis. An un-themed host is unchanged only where its scale already
+       matches antd's derivation; where it does not, the SCALE wins, which is
+       the point of having one. */
+    fontSizeHeading1: readLivePx(live, "font-size-3xl", fontSize["3xl"].fontSize),
+    fontSizeHeading2: readLivePx(live, "font-size-2xl", fontSize["2xl"].fontSize),
+    fontSizeHeading3: readLivePx(live, "font-size-xl", fontSize.xl.fontSize),
+    fontSizeHeading4: readLivePx(live, "font-size-lg", fontSize.lg.fontSize),
+    fontSizeHeading5: readLivePx(live, "font-size-md", fontSize.md.fontSize),
+    /* WHAT "EMPHASIS" WEIGHS, from the host rather than from antd's 600.
+       A brand whose family ships only 400 and 700 was getting a synthesised
+       600 on every heading and every `<Typography.Text strong>`. */
+    fontWeightStrong: readLivePx(live, "font-weight-bold", fontWeight.bold),
   };
 }
 
