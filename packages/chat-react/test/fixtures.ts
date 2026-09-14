@@ -57,8 +57,37 @@ export function lastMessage(overrides: Partial<LastMessage> = {}): LastMessage {
     sender_id: SELLER,
     body_preview: "Is the bicycle still available?",
     preview_reason: null,
+    // What a 0.10.0 server sends for a line of words with nothing attached.
+    // BOTH fields, always: the projection computes them for every row, so a
+    // fixture that omits them is the PRE-0.10 wire, and a test that wants
+    // that arm has to ask for it (see `legacyLastMessage`).
+    attachment_types: [],
+    attachment_count: 0,
     ...overrides,
   };
+}
+
+/**
+ * The same row as a server OLDER than stapel-chat 0.10.0 sends it: the two
+ * attachment fields are ABSENT, not empty.
+ *
+ * Absent and empty are different answers — empty says "nothing is attached",
+ * absent says "this server cannot tell you" — and the row draws differently
+ * for each (`model/previews.ts`, the three arms). Deleting the keys rather
+ * than setting them to `undefined` is deliberate: `undefined` survives
+ * `JSON.stringify` as an absent key anyway, but a fixture that reads as
+ * present-and-undefined invites a test to assert against a body no server
+ * sends.
+ */
+export function legacyLastMessage(
+  overrides: Partial<LastMessage> = {}
+): LastMessage {
+  const {
+    attachment_types: _types,
+    attachment_count: _count,
+    ...rest
+  } = lastMessage(overrides);
+  return rest;
 }
 
 /**
@@ -77,6 +106,13 @@ export function wordlessLastMessage(
     body_preview: null,
     preview_reason: reason,
     ...(reason === "system" ? { kind: "system", sender_id: null } : {}),
+    // A 0.10.0 server cannot send `preview_reason: "attachment"` with an empty
+    // list — the reason IS "this message has attachments and no words" — so
+    // the default pair carries one. Callers that want a photo, a clip or six
+    // of them override both fields together.
+    ...(reason === "attachment"
+      ? { attachment_types: ["file"], attachment_count: 1 }
+      : {}),
     ...overrides,
   });
 }

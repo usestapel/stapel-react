@@ -106,7 +106,11 @@ import {
 import type { LinkComponent } from "@stapel/core";
 import type { Conversation, Subject } from "../api/types.js";
 import { ConversationList } from "../headless/ConversationList.js";
-import { inboxPreviewGlyph, inboxPreviewLine } from "../model/previews.js";
+import {
+  inboxPreviewLine,
+  inboxPreviewMarks,
+  previewReason,
+} from "../model/previews.js";
 import { inboxFilterActive } from "../model/inboxQuery.js";
 import type { ChatInboxView } from "../model/inboxQuery.js";
 import { conversationLeftAt } from "../model/membership.js";
@@ -504,7 +508,18 @@ function ConversationRow(props: {
   // server cannot know, and for the one long unbroken word a cap does not
   // help with.
   const previewText = inboxPreviewLine(props.row.last_message, viewerId, t);
-  const previewGlyph = inboxPreviewGlyph(props.row.last_message);
+  // ONE MARK PER TYPE (stapel-chat 0.10.0). The projection now names the kinds
+  // the last message carries, so the row that used to draw one paperclip for a
+  // photo, a voice note and a PDF alike draws a picture, a microphone and a
+  // clip — and `+N` for the ones no mark stands for. On a server that does not
+  // send the field the strip is the single generic clip it always was.
+  const previewMarks = inboxPreviewMarks(props.row.last_message);
+  // The sentence already SAYS "Attachment" in exactly the wordless case, so
+  // the marks are announced only when it does not — a captioned photo, whose
+  // line is the caption and whose picture mark is the only thing saying there
+  // is a photo. Announcing them in both arms is how a reader hears
+  // "paperclip Attachment": the same fact, twice, in one row.
+  const marksAreSpoken = previewReason(props.row.last_message) !== undefined;
 
   const meta =
     previewText === "" ? undefined : (
@@ -517,12 +532,19 @@ function ConversationRow(props: {
         }}
         data-testid="chat-row-preview"
       >
-        {previewGlyph === null ? null : (
-          /* `aria-hidden`: the sentence beside it already says the same thing,
-             and a screen reader announcing "paperclip Attachment" says it
-             twice. */
-          <span aria-hidden data-testid="chat-row-preview-glyph">
-            {`${previewGlyph} `}
+        {previewMarks.glyphs.length === 0 ? null : (
+          <span
+            data-testid="chat-row-preview-glyph"
+            {...(marksAreSpoken
+              ? { "aria-hidden": true }
+              : {
+                  role: "img",
+                  "aria-label": t(CHAT_I18N_KEYS.listPreviewAttachment),
+                })}
+          >
+            {`${previewMarks.glyphs.join("")}${
+              previewMarks.overflow > 0 ? `+${previewMarks.overflow}` : ""
+            } `}
           </span>
         )}
         {previewText}

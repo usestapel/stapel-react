@@ -507,8 +507,9 @@ export interface components {
          * @description The one line an inbox row draws under the title.
          *
          *     A projection, not a message: enough to PAINT the row, and deliberately not
-         *     enough to stand in for the thread (no id, no attachments, no revision
-         *     cursor — a client that wants those opens the conversation). It is annotated
+         *     enough to stand in for the thread (no id, no attachment DESCRIPTORS — only
+         *     their types and how many — no revision cursor; a client that wants those
+         *     opens the conversation). It is annotated
          *     for a whole page in the same query the list already costs, because the
          *     alternative a client is otherwise driven to — ``GET /messages?limit=1`` per
          *     row — is fifty requests for a fifty-row inbox.
@@ -529,6 +530,10 @@ export interface components {
             body_preview?: string | null;
             /** @description Which of the three ``null`` cases this is, or */
             preview_reason?: string | null;
+            /** @description The DISTINCT attachment types the last message */
+            attachment_types?: string[];
+            /** @description How many attachments that message carries — the */
+            attachment_count?: number;
         };
         /** @description Advance the requesting user's read/delivery markers. */
         MarkReadRequest: {

@@ -119,36 +119,153 @@ export function inboxPreviewLine(
 }
 
 /**
- * The GLYPH an inbox row draws in place of the wordless line's first word.
+ * The mark per TYPE — `image`/`gif` draw one picture, so the table is keyed by
+ * the glyph a type resolves to and deduplicated on it, never on the name.
+ *
+ * The names are the registry's, which are stapel-cdn's media kinds
+ * (`stapel_chat.attachments` — "one vocabulary, not two"). The registry is
+ * OPEN, so this table is NOT exhaustive and must never be read as an enum: a
+ * deployment that registers `sticker` sends `sticker`, and an unknown name
+ * falls back to the generic clip rather than disappearing off the row.
+ */
+const TYPE_GLYPH: Readonly<Record<string, string>> = {
+  image: "\u{1F5BC}\u{FE0F}",
+  gif: "\u{1F5BC}\u{FE0F}",
+  video: "\u{1F3AC}",
+  audio: "\u{1F3A4}",
+  file: "\u{1F4CE}",
+};
+
+/** A type this build has never heard of — still an attachment, still a mark. */
+const GENERIC_GLYPH = "\u{1F4CE}";
+/** A tombstone. */
+const DELETED_GLYPH = "\u{1F6AB}";
+
+/**
+ * How many marks a row draws before the rest become a number.
+ *
+ * Three, because the registry is open and the glyph strip shares a 300px row
+ * with a name, a badge and a clock: a message with six kinds in it would push
+ * the preview off the row to say something the `+N` says in two characters.
+ */
+const MAX_GLYPHS = 3;
+
+/** What an inbox row draws before its last line. */
+export interface InboxPreviewMarks {
+  /** One glyph per DISTINCT kind, in the order the message carries them. */
+  readonly glyphs: readonly string[];
+  /** The `N` in `+N`, or `0` when every attachment already has a mark. */
+  readonly overflow: number;
+}
+
+const NO_MARKS: InboxPreviewMarks = { glyphs: [], overflow: 0 };
+
+/** `attachment_types` as this build is willing to read it, or `undefined`. */
+function attachmentTypes(
+  last: LastMessage
+): readonly string[] | undefined {
+  const types = (last as { attachment_types?: unknown }).attachment_types;
+  return Array.isArray(types)
+    ? types.filter((t): t is string => typeof t === "string" && t !== "")
+    : undefined;
+}
+
+/** `attachment_count`, or the type count when the server did not send one. */
+function attachmentCount(last: LastMessage, fallback: number): number {
+  const count = (last as { attachment_count?: unknown }).attachment_count;
+  return typeof count === "number" && Number.isFinite(count) && count >= 0
+    ? Math.floor(count)
+    : fallback;
+}
+
+/**
+ * The MARKS an inbox row draws in front of the wordless line's first word.
  *
  * A row whose last message was a photo used to read "Attachment", which is the
  * one word that is true of every attachment and descriptive of none. A mark
  * before the sentence is read at a glance, in every language, at the size an
  * inbox row actually gives it.
  *
- * ── WHY IT IS ONE MARK AND NOT ONE PER TYPE ──────────────────────────────
+ * ── IT IS ONE MARK PER TYPE NOW, AND WHY IT WAS NOT ──────────────────────
  *
- * Because the projection does not say which type it was.
- * `LastMessageResponse` is deliberately "enough to PAINT the row and
- * deliberately not enough to stand in for the thread" — it carries `seq`,
- * `kind`, `sender_id`, `created_at`, `body_preview` and `preview_reason`, and
- * **no attachments**, by an explicit upstream decision. So "a picture" and "a
- * voice message" are indistinguishable here, and a table of five icons would
- * be this pair guessing which one to draw. One honest mark, and the type
- * recorded upstream as the thing that would make five possible.
+ * Because the projection did not say which type it was.
+ * `LastMessageResponse` carried `seq`, `kind`, `sender_id`, `created_at`,
+ * `body_preview` and `preview_reason` and no attachment information at all, so
+ * "a picture" and "a voice message" were indistinguishable here and a table of
+ * five icons would have been this pair guessing which one to draw. **stapel-chat
+ * 0.10.0 ships the two fields** — `attachment_types` (the DISTINCT types, in
+ * order of appearance) and `attachment_count` (the total) — computed from the
+ * message's own stored descriptors inside the query the list already runs. So
+ * the row draws what is there, and this pair still asks the CDN nothing.
  *
- * The glyph accompanies the sentence rather than replacing it: a reader who
- * gets no pixels still needs the word, and a mark alone is not a label.
+ * ── THE THREE ARMS ───────────────────────────────────────────────────────
+ *
+ * - **A tombstone** draws its own mark and nothing else. The server sends an
+ *   empty list and a `0` for it, and the check here is on `preview_reason`
+ *   anyway: a withdrawn message must not announce what it had, whichever half
+ *   of the wire is answering.
+ * - **A server that names the types** (0.10.0+) gets one glyph per distinct
+ *   kind, capped at {@link MAX_GLYPHS}, and `+N` for whatever the marks do not
+ *   already stand for — `count - glyphs.length`, so six photos read
+ *   "picture +5" and not "picture +6", which would be counting the one the
+ *   glyph is already showing twice.
+ * - **A server that does not** (the manifest claims `>=0.10 <0.11`, but a
+ *   deployment lags its pair every day of a rollout) sends no field at all.
+ *   `attachment_types` is `undefined` there and the row keeps the ONE generic
+ *   clip it drew before, exactly where it drew it — a blank space would be
+ *   this pair reporting "no attachment" about a message it simply cannot see
+ *   the types of, which is the one thing a degraded arm must not say.
+ *
+ * A captioned photo draws marks too: the words and the picture are both on the
+ * row, and `preview_reason` is `null` for it because there ARE words. That is
+ * why the marks are read off `attachment_types` rather than off the reason —
+ * the reason only ever spoke for the wordless case.
+ *
+ * The glyphs accompany the sentence rather than replacing it: a reader who gets
+ * no pixels still needs the word, and a mark alone is not a label.
+ */
+export function inboxPreviewMarks(
+  last: LastMessage | null | undefined
+): InboxPreviewMarks {
+  if (last === null || last === undefined) return NO_MARKS;
+
+  const reason = previewReason(last);
+  if (reason === "deleted") return { glyphs: [DELETED_GLYPH], overflow: 0 };
+
+  const types = attachmentTypes(last);
+  if (types === undefined || types.length === 0) {
+    /* PRE-0.10 ONLY, plus the shape a 0.10 server cannot produce (a wordless
+       attachment row with an empty list). Both keep the old generic mark, and
+       both keep it only where the old rule drew it. */
+    return reason === "attachment"
+      ? { glyphs: [GENERIC_GLYPH], overflow: 0 }
+      : NO_MARKS;
+  }
+
+  const glyphs: string[] = [];
+  for (const type of types) {
+    const glyph = TYPE_GLYPH[type] ?? GENERIC_GLYPH;
+    if (!glyphs.includes(glyph)) glyphs.push(glyph);
+    if (glyphs.length === MAX_GLYPHS) break;
+  }
+  const count = attachmentCount(last, types.length);
+  return {
+    glyphs,
+    overflow: count > glyphs.length ? count - glyphs.length : 0,
+  };
+}
+
+/**
+ * The FIRST mark a row draws, or `null` — {@link inboxPreviewMarks} for one
+ * glyph.
+ *
+ * Kept because it is this pair's published surface and a host may be drawing
+ * its own row with it. It answers the per-type glyph now (a photo row returns
+ * a picture, not a clip) for the same reason the row does: the server says
+ * which, and one honest mark beats one generic one.
  */
 export function inboxPreviewGlyph(
   last: LastMessage | null | undefined
 ): string | null {
-  switch (previewReason(last)) {
-    case "attachment":
-      return "\u{1F4CE}";
-    case "deleted":
-      return "\u{1F6AB}";
-    default:
-      return null;
-  }
+  return inboxPreviewMarks(last).glyphs[0] ?? null;
 }

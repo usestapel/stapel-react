@@ -349,7 +349,13 @@ export {
 } from "./model/attachments.js";
 export type { AttachmentMedium } from "./model/attachments.js";
 export { CHAT_DEFAULT_MAX_ATTACHMENTS } from "./model/limits.js";
-export { inboxPreviewGlyph } from "./model/previews.js";
+// The marks in front of a row's last line. ONE PER TYPE since stapel-chat
+// 0.10.0 ships `attachment_types` / `attachment_count` on the projection — a
+// photo row draws a picture, a voice note a microphone, and `+N` stands for
+// whatever the marks do not. `inboxPreviewGlyph` is the first of them, kept
+// for hosts drawing their own row.
+export { inboxPreviewGlyph, inboxPreviewMarks } from "./model/previews.js";
+export type { InboxPreviewMarks } from "./model/previews.js";
 export {
   attachmentTypeForFile,
   useAttachmentDraft,

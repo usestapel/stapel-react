@@ -293,6 +293,27 @@ says neither that nor "Live".
   deployment (`useRejoinSupported`) rather than the row — every rejoin control
   on the screen goes at once, because a control known not to work must not be
   offered for a second press.
+- ~~**The projection says a row's last line is a FILE and never which kind.**~~
+  **Fixed upstream (stapel-chat 0.10.0).** It was true, and `model/previews.ts`
+  said so in its own doc comment: `preview_reason: "attachment"` is one word
+  true of every attachment and descriptive of none, so a photo, a voice note
+  and a PDF drew the same paperclip and the comment named the missing field as
+  the thing that would make five marks possible. The ask was for the TYPES on
+  the projection — not the descriptors, which belong to the thread — and that
+  is what landed: `LastMessageResponse.attachment_types` (the DISTINCT types in
+  order of appearance) and `attachment_count` (the TOTAL, which is what a `+N`
+  counts), computed by `services.last_line_attachments` from the message's own
+  stored descriptors inside the query the list already runs. No
+  `cdn.describe_many` per row — the same batch discipline that keeps this pair
+  from describing a bubble — and a tombstone carries an empty list and a `0`,
+  so a withdrawn message never announces what it had. The type registry is OPEN
+  on both sides, so the glyph table here is explicitly NOT an enum: an unknown
+  name draws the generic clip rather than vanishing off the row. ONE arm is
+  still the degradation: a server older than 0.10.0 sends neither field, and
+  ABSENT is not EMPTY — the row keeps the single generic mark it drew before,
+  because a blank strip there would be this pair reporting "nothing attached"
+  about a message it cannot see inside. `inboxAttachmentMarks.test.tsx` pins
+  that arm apart from the rule.
 - ~~**A session refresh is invisible to a consumer.**~~ **Fixed upstream.**
   It was true: `@stapel/realtime` reported a stream as `reconnecting` while
   core's refresh was in flight, so a pair could not tell "renewing your
