@@ -210,6 +210,36 @@ export type ListingCardOpenProps =
  */
 export type ListingCardBlockedReason = "text" | "line" | "popover";
 
+/**
+ * ONE ROLE, ONE SCALE — the card title and the card price, wherever a card is
+ * drawn.
+ *
+ * Measured on the live storefront at 1440: the SERP list card priced at 22px
+ * and the grid card at 16px, the same role rendered two ways inside one
+ * product, which is worse than any gap against a reference. The titles were
+ * 16px on both against the reference's 18px desktop tier.
+ *
+ * Two things this fixes at once, and the second is the reason it is CSS and
+ * not a style object:
+ *
+ *  - the SERP price read `fontSize.xl.fontSize` — a NUMBER imported from
+ *    `@stapel/tokens`, which is the DEFAULT theme's ladder (xl 22/30). A
+ *    brand that publishes its own ladder (this one is lg 18/22, xl 21/26)
+ *    never reached the component, because a JS import is resolved at build
+ *    time and a brand is chosen at run time. Reading the custom property
+ *    instead is what makes the brand's ladder the one that applies.
+ *  - one declaration per role, in one place, rather than a size at each call
+ *    site. A second call site is how the two scales parted in the first
+ *    place.
+ *
+ * The tier is `md` on a narrow card and `lg` once the card is wide enough to
+ * be a row — the reference's 16px and 18px, asked of the card rather than of
+ * the window. Weight is NOT set here — the price is `<Typography.Text
+ * strong>` and the brand's own `fontWeightStrong` decides what strong means.
+ */
+export const CARD_TITLE_CLASS = "stapel-listing-card-title";
+export const CARD_PRICE_CLASS = "stapel-listing-card-price";
+
 /** The class the whole-card target carries, for {@link cardTargetCss}. */
 export const CARD_TARGET_CLASS = "stapel-listing-card-target";
 /** The class the card's OUTER box carries — the size container the row layout
@@ -312,6 +342,24 @@ export function cardTargetCss(): string {
   const bleed = `.${CARD_BLEED_CLASS}`;
   const hover = CARD_HOVER_CLASS;
   return [
+    // ONE ROLE, ONE SCALE — see CARD_TITLE_CLASS. Custom properties, so the
+    // BRAND's ladder applies rather than the default theme's numbers compiled
+    // in at build time.
+    //
+    // The tier asks the CARD's width, not the window's, and at the SAME
+    // threshold the row arm below uses: the big tier arrives exactly when the
+    // card becomes a horizontal row and has the measure to carry it. A window
+    // query would put an 18px title in a 280px grid tile on a wide screen,
+    // which is the defect this package's container rule exists to prevent —
+    // and `desktopSerpRow.test.tsx` refuses a `@media (min-width` in this
+    // sheet for that reason. It caught this rule written the wrong way.
+    `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{` +
+      `font-size:var(--stapel-font-size-md);` +
+      `line-height:var(--stapel-line-height-md)}`,
+    `@container (min-width:${String(LISTING_CARD_ROW_MIN)}px){` +
+      `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{` +
+      `font-size:var(--stapel-font-size-lg);` +
+      `line-height:var(--stapel-line-height-lg)}}`,
     `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
     `.${CARD_TARGET_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
     // A PRESS, answered where the press lands (D176). The rule is on the
@@ -588,7 +636,11 @@ export function ListingCard(props: ListingCardProps): ReactElement {
     >
       {props.badge}
 
-      <Typography.Text strong data-testid="listings-card-price">
+      <Typography.Text
+        strong
+        className={CARD_PRICE_CLASS}
+        data-testid="listings-card-price"
+      >
         <ListingPrice
           amount={listing.price}
           {...(listing.currency !== undefined ? { currency: listing.currency } : {})}
@@ -603,7 +655,7 @@ export function ListingCard(props: ListingCardProps): ReactElement {
         `titleClamp.ts`'s, shared with that tile.
       */}
       <Typography.Text
-        className={TITLE_CLAMP_CLASS}
+        className={`${TITLE_CLAMP_CLASS} ${CARD_TITLE_CLASS}`}
         data-testid="listings-card-title"
       >
         {title}

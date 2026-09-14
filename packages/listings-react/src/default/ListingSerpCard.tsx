@@ -79,7 +79,7 @@ import { Card, Flex, Typography, theme as antdTheme } from "antd";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { SignInCta } from "@stapel/core";
 import { useT } from "@stapel/core";
-import { fontSize, spacing } from "@stapel/tokens";
+import { spacing } from "@stapel/tokens";
 import type { ListingCard as ListingCardData } from "../api/types.js";
 import { asFeatureDaoList } from "../model/features.js";
 import type { FeatureCopySource } from "../model/features.js";
@@ -104,6 +104,8 @@ import {
   CARD_HOVER_CLASS,
   CARD_VIEWED_CLASS,
   CardTarget,
+  CARD_PRICE_CLASS,
+  CARD_TITLE_CLASS,
   cardTargetCss,
 } from "./ListingCard.js";
 import type { ListingCardOpenProps } from "./ListingCard.js";
@@ -386,14 +388,21 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                   >
                     {props.badge}
 
-                    {/* PRICE FIRST, and loud. `fontSize.xl` rather than an antd
-                        heading: this is a price, not a section title, and it must
-                        not enter the document outline of a page holding twenty of
-                        them. */}
+                    {/* PRICE FIRST, and loud — but at the SAME scale the grid
+                        card prices at, which is the whole of `CARD_PRICE_CLASS`.
+                        This read `fontSize.xl.fontSize` and drew 22px while the
+                        grid card beside it drew 16px for the same role; worse,
+                        that number is the DEFAULT theme's ladder compiled in at
+                        build time, so a brand publishing its own never reached
+                        this line.
+
+                        Still not an antd heading: this is a price, not a section
+                        title, and it must not enter the document outline of a
+                        page holding twenty of them. */}
                     <Flex align="center" gap={spacing[2]} wrap>
                       <Typography.Text
                         strong
-                        style={{ fontSize: fontSize.xl.fontSize }}
+                        className={CARD_PRICE_CLASS}
                         data-testid="listings-serp-price"
                       >
                         <ListingPrice amount={listing.price} {...currency} />
@@ -436,7 +445,7 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                         wanted and made the row ragged beside its neighbours. */}
                     <Typography.Text
                       data-testid="listings-serp-title"
-                      className={TITLE_CLAMP_CLASS}
+                      className={`${TITLE_CLAMP_CLASS} ${CARD_TITLE_CLASS}`}
                     >
                       {title}
                     </Typography.Text>
