@@ -86,16 +86,75 @@ function wideServer(): ReturnType<typeof mockServer> {
   });
 }
 
-async function mountWidePanel(initial = "type=listing"): Promise<void> {
+async function mountWidePanel(
+  initial = "type=listing",
+  props: { readonly openFacetGroups?: readonly string[] } = {}
+): Promise<void> {
   render(
     <TestHarness server={wideServer()} initialSearch={initial}>
-      <FacetPanelPane />
+      <FacetPanelPane {...props} />
     </TestHarness>
   );
   await waitFor(() =>
     expect(screen.getByTestId("facet-group-price_band")).toBeTruthy()
   );
 }
+
+/** Which groups have their OPTIONS on the page — the pane's own definition of
+ * open, and the one the cases below already use. */
+function openSlugs(): readonly string[] {
+  return Object.keys(WIDE_FACETS).filter((slug) =>
+    Object.keys(WIDE_FACETS[slug as keyof typeof WIDE_FACETS]).some(
+      (value) => screen.queryByTestId(`facet-option-${slug}-${value}`) !== null
+    )
+  );
+}
+
+describe("a host can name which groups open (openFacetGroups)", () => {
+  /* The pane's own rule opens the first five groups the server counted, which
+     is a guess from the evidence it has. The reference opens a different set
+     per section and it is NOT the busiest axes: a flats leaf opens rooms,
+     price and area — what somebody narrowing a flat reaches for, not what the
+     corpus happens to divide on. So a host that knows the leaf gets to say.
+
+     These assert the SEAM. Whether a given leaf's list is right is the host's
+     map to get right and the stand's to prove. */
+
+  it("opens exactly the named set, whatever the evidence says", async () => {
+    // `drive` has the LEAST evidence in this answer and opens anyway; four of
+    // the five the counter would have chosen stay shut.
+    await mountWidePanel("type=listing", { openFacetGroups: ["drive", "brand"] });
+    expect([...openSlugs()].sort()).toEqual(["brand", "drive"]);
+  });
+
+  it("ignores a slug this answer does not carry, rather than failing", async () => {
+    /* A per-leaf map is written against a catalogue that moves. A page whose
+       schema lost an axis should open one fewer group, not fail to render its
+       rail. */
+    await mountWidePanel("type=listing", {
+      openFacetGroups: ["brand", "retired_axis", "also_gone"],
+    });
+    expect(openSlugs()).toEqual(["brand"]);
+  });
+
+  it("an empty named set opens nothing — an answer, not a fallback", async () => {
+    /* The dangerous reading is "no names, so use the default", which would
+       silently reopen five groups on a leaf whose host wants them shut. */
+    await mountWidePanel("type=listing", { openFacetGroups: [] });
+    expect(openSlugs()).toEqual([]);
+  });
+
+  it("leaves the counted default alone when the host names nothing", async () => {
+    await mountWidePanel();
+    expect(openSlugs()).toEqual([
+      "price_band",
+      "brand",
+      "condition",
+      "colour",
+      "fuel",
+    ]);
+  });
+});
 
 describe("which groups open is decided by the answer's own evidence", () => {
   it("opens the top five counted groups by coverage and collapses the rest", async () => {

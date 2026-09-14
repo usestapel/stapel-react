@@ -403,6 +403,27 @@ export interface FacetPanelPaneProps extends ThemeModeProp {
    */
   readonly pinnedFacets?: readonly string[];
   /**
+   * WHICH GROUPS OPEN ON LOAD, named by the host instead of counted here.
+   *
+   * Absent — the default and every existing caller — is unchanged: the first
+   * {@link FACET_OPEN_GROUPS} groups the server actually counted, which is
+   * this pane guessing at what matters from the evidence it has.
+   *
+   * A host that knows the leaf can do better than a guess. The reference
+   * opens a different set per section, and it is not the busiest axes: on a
+   * flats leaf it opens rooms, price and area, which is what somebody
+   * narrowing a flat reaches for rather than what the corpus happens to
+   * divide on.
+   *
+   * Slugs the answer does not carry are IGNORED rather than an error: a
+   * per-leaf map is written against a catalogue that moves, and a page whose
+   * schema lost an axis should quietly open one fewer group, not fail to
+   * render its rail. A group the person has already ticked, and every group
+   * while the panel search is filtering, still opens regardless — those are
+   * facts about this session and they outrank any default.
+   */
+  readonly openFacetGroups?: readonly string[];
+  /**
    * How many groups before the tail folds under "All filters (K)". Default
    * {@link FACET_VISIBLE_GROUPS}; `null` draws every group, which is what a
    * phone sheet devoted to filtering wants.
@@ -1040,12 +1061,24 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                 // screen is the axes the category itself calls required. A
                 // group the server never counted starts as a header, which is
                 // what keeps the wall of "not counted" rows folded.
-                const openByOrder = new Set(
-                  drawable
-                    .filter((group) => group.counted || facetCoverage(group) > 0)
-                    .slice(0, FACET_OPEN_GROUPS)
-                    .map((group) => group.slug)
-                );
+                /* NAMED by the host, or counted here — see
+                   `openFacetGroups`. The named set is intersected with what
+                   is drawable so a stale slug opens nothing instead of
+                   throwing, and an empty intersection is a legitimate answer
+                   (a leaf whose named axes this answer does not carry). */
+                const openByOrder =
+                  props.openFacetGroups === undefined
+                    ? new Set(
+                        drawable
+                          .filter((group) => group.counted || facetCoverage(group) > 0)
+                          .slice(0, FACET_OPEN_GROUPS)
+                          .map((group) => group.slug)
+                      )
+                    : new Set(
+                        drawable
+                          .map((group) => group.slug)
+                          .filter((slug) => props.openFacetGroups?.includes(slug) === true)
+                      );
                 const searchable = drawable.length >= FACET_SEARCH_THRESHOLD;
                 const needle = searchable
                   ? filterQuery.trim().toLowerCase()

@@ -525,6 +525,10 @@ export interface SearchPageProps extends ThemeModeProp, ParseSearchStateOptions 
   /** Facet slugs pinned above every other group — see
    * {@link FacetPanelPaneProps.pinnedFacets}. */
   readonly pinnedFacets?: readonly string[];
+  /** Which facet groups open on load, by slug — see
+   * {@link FacetPanelPaneProps.openFacetGroups}. Absent keeps the pane's own
+   * "first N counted groups". */
+  readonly openFacetGroups?: readonly string[];
   /**
    * How a DICTIONARY group is drawn — see
    * {@link FacetPanelPaneProps.dictionaryMode}.
@@ -1055,6 +1059,10 @@ interface SearchPageBodyProps {
   readonly renderEmptyExits?: () => ReactNode;
   readonly locale?: string;
   readonly pinnedFacets?: readonly string[];
+  /** Which facet groups open on load, by slug — see
+   * {@link FacetPanelPaneProps.openFacetGroups}. Absent keeps the pane's own
+   * "first N counted groups". */
+  readonly openFacetGroups?: readonly string[];
   readonly resolveFacetLabels?: FacetLabelResolver;
   readonly searchBox?: boolean;
   readonly languages?: readonly string[];
@@ -1308,6 +1316,9 @@ function SearchPageBody(props: SearchPageBodyProps): ReactElement {
             : {})}
           {...(locale !== undefined ? { locale } : {})}
           {...(resolveFacetLabels !== undefined ? { resolveFacetLabels } : {})}
+          {...(props.openFacetGroups !== undefined
+            ? { openFacetGroups: props.openFacetGroups }
+            : {})}
           {...(props.pinnedFacets !== undefined
             ? { pinnedFacets: props.pinnedFacets }
             : {})}
@@ -1688,6 +1699,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
     visibleGroups,
     footerBar,
     pinnedFacets,
+    openFacetGroups,
     mode,
     ...parseOptions
   } = props;
@@ -1704,6 +1716,7 @@ export function SearchPage(props: SearchPageProps): ReactElement {
           {...(visibleGroups !== undefined ? { visibleGroups } : {})}
           {...(footerBar !== undefined ? { footerBar } : {})}
           {...(pinnedFacets !== undefined ? { pinnedFacets } : {})}
+          {...(openFacetGroups !== undefined ? { openFacetGroups } : {})}
           {...(categoryFeatures !== undefined ? { categoryFeatures } : {})}
           {...(categoryFeaturesPending !== undefined
             ? { categoryFeaturesPending }
