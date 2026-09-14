@@ -355,9 +355,8 @@ const ROW: CSSProperties = {
  * did not wrap: it kept its natural width and PAINTED OVER THE NEXT COLUMN.
  *
  * Measured on the industry axis of the jobs root at 1440: columns pitched
- * 187px, and «Производство электроники и бытовой техники» 357px wide at the
- * same baseline as the value 187px to its right — a 170px overlap, two
- * labels on top of each other. Makes never showed it because "Ford" is short;
+ * 187px, and a 357px value sitting at the same baseline as the value 187px
+ * to its right — a 170px overlap, two labels on top of each other. Makes never showed it because "Ford" is short;
  * the defect was in the block all along and only a long vocabulary revealed
  * it.
  *

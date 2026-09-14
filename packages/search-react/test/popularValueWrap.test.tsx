@@ -12,9 +12,9 @@ import type { ReactElement } from "react";
  * `column-width` is a MINIMUM, so the browser hands each row whatever width
  * the box divides into (155px in a 1088px pane). antd's `.ant-btn` carries
  * `white-space: nowrap`, so a value longer than its column kept its natural
- * width and painted OVER the next column: columns pitched 187px with
- * «Производство электроники и бытовой техники» rendering 357px wide at the
- * same baseline as the value 187px to its right.
+ * width and painted OVER the next column: columns pitched 187px with a
+ * value rendering 357px wide at the same baseline as the one 187px to its
+ * right.
  *
  * Makes never showed it — "Ford" is short. The defect was in the block all
  * along and only a long vocabulary revealed it, which is why this asserts the
