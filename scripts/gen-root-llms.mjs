@@ -36,9 +36,10 @@
 //   node scripts/gen-root-llms.mjs         # generate ./llms.txt
 //   pnpm gen:root-llms                     # generate (root script)
 //   pnpm gen:root-llms:check               # drift gate (fails on divergence)
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { trackedPackageDirs } from "./packages-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -49,10 +50,7 @@ const LLMS_TOKEN_BUDGET = 4000; // same budget every llms.txt in this fleet fits
 const approxTokens = (text) => Math.ceil(text.length / 4);
 
 async function publicPackages() {
-  const dirs = (await readdir(PACKAGES_DIR, { withFileTypes: true }))
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .sort();
+  const dirs = trackedPackageDirs(ROOT);
   const out = [];
   for (const dir of dirs) {
     const pkgPath = resolve(PACKAGES_DIR, dir, "package.json");

@@ -20,8 +20,9 @@
 //
 //   node scripts/check-contract-pins.mjs
 //   pnpm check:contract-pins
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { trackedPackageDirs } from "./packages-lib.mjs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { resolve, dirname } from "node:path";
@@ -346,10 +347,7 @@ async function main() {
   selfCheckRefProbe();
   checkPinsResolve(pins);
   checkPinsFresh(pins);
-  const dirs = (await readdir(resolve(ROOT, "packages"), { withFileTypes: true }))
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort();
+  const dirs = trackedPackageDirs(ROOT);
 
   const stale = [];
   const unreadable = [];

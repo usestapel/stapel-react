@@ -24,6 +24,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { trackedPackageDirs } from "./packages-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -52,10 +53,7 @@ async function localeBundles(genDir) {
 }
 
 async function main() {
-  const dirs = (await readdir(resolve(ROOT, "packages"), { withFileTypes: true }))
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort();
+  const dirs = trackedPackageDirs(ROOT);
 
   const gaps = [];
   let checked = 0;

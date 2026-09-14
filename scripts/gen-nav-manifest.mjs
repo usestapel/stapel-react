@@ -30,18 +30,27 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { filterTrackedPackages } from "./packages-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
 const PKG_DIR = resolve(ROOT, process.env.NAV_PKG_DIR ?? "packages/auth-react");
-const NAV_PACKAGES = (
-  process.env.NAV_PACKAGES ??
-  "packages/auth-react,packages/profiles-react,packages/notifications-react"
-)
-  .split(",")
-  .map((d) => d.trim())
-  .filter(Boolean);
+// The list is hand-kept in package.json, so it is filtered through the same
+// rule as every enumerator: a package the git index does not know (another
+// agent's unpushed pair, a dir CI never checked out) is skipped by name, not
+// read into the aggregate — that is how `ENOENT: packages/alerts-react/
+// package.json` reached CI and a foreign pair reached nav-manifest.json.
+const NAV_PACKAGES = filterTrackedPackages(
+  ROOT,
+  (
+    process.env.NAV_PACKAGES ??
+    "packages/auth-react,packages/profiles-react,packages/notifications-react"
+  )
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean)
+);
 
 const OUT_ROOT_MANIFEST = resolve(ROOT, "nav-manifest.json");
 

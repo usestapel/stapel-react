@@ -25,9 +25,10 @@
  *     next visible tag and a correct floor is reported as too low.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { trackedPackageDirs } from "./packages-lib.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -38,9 +39,8 @@ function git(...args) {
 /** Every workspace package: name -> directory. */
 function workspacePackages() {
   const byName = new Map();
-  for (const entry of readdirSync(join(ROOT, "packages"))) {
+  for (const entry of trackedPackageDirs(ROOT)) {
     const dir = join(ROOT, "packages", entry);
-    if (!statSync(dir).isDirectory()) continue;
     try {
       const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
       byName.set(pkg.name, { dir, entry, pkg });
