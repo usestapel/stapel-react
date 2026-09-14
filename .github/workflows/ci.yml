@@ -80,6 +80,9 @@ jobs:
         # sibling fetch brings down no tags to read locally.
         run: corepack pnpm check:gates
 
+      - name: Root scripts' own tests
+        run: corepack pnpm run test:scripts
+
       - name: Codegen drift gates (api / flows / errors / manifest)
         # Regenerates the committed projections from the pinned backend sources
         # and fails if any diverge — types, the flow registry, the backend-error
