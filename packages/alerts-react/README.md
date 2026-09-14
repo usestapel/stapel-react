@@ -67,7 +67,7 @@ always catches a `StapelApiError` with a `.code`.
 
 | hook | what it answers |
 |---|---|
-| `useIssues(filters)` | the triage page: rows, the same rows grouped by service worst-first, the total apart from the page, the cursor, and the validator |
+| `useIssues(filters)` | the triage page: rows, the same rows grouped by service worst-first, the total apart from the page, the cursor, and the validator; `filters.limit` is the page size (1..200, server default 50) |
 | `useIssue(id)` | one issue with its last 20 occurrences, their traces and their context |
 | `useIssueStatus()` | `fix` (POST `/fix` with the release), `mute`, `reopen`, `annotate` |
 
@@ -83,18 +83,22 @@ first question the feed answers and it must be answerable without a render.
 - **Close an issue with `PATCH {status: "fixed"}`.** Only `POST /fix` records
   the release AND zeroes `count_since_fix`, which is the entire answer to "did
   it come back?".
-- **Mute with a deadline and no status.** `muted_until` is only written when
-  the patch also carries `status` — a patch of the deadline alone is answered
-  200 and changes nothing, so `mute` always sends both.
+- **Mute by omitting the deadline.** `muted_until` on its own IS the mute (the
+  store infers `status: "muted"` from it and clears it on the way out of a
+  mute), so `mute` always sends the key — `null` for a mute with no deadline.
+  A patch without it is a note.
 
-## Backend gaps this pair works around
+## What the contract states, and the pair leans on
 
-| id | what |
-|---|---|
-| **A-1** | `docs/schema.json` declares `GET /issues` → `Issue[]`; the view returns `{count, offset, limit, results}`. `IssuePage` is declared by hand and asserted against the wire. |
-| **A-2** | The page size is `views.PAGE_SIZE` and is not a parameter, so the pair reads it out of the answer rather than hardcoding 50. |
-| **A-3** | `PATCH` ignores `muted_until` unless the patch also carries `status`. |
-| **A-4** | `set_status` never clears `muted_until` when the status moves on, so a fixed row can still carry last month's deadline — the skin renders it only while the issue IS muted. |
+- `GET /issues` answers `IssuePage` — `{count, offset, limit, results}` — and
+  the schema declares it, so the type is generated; `test/pair.test.ts` still
+  proves the envelope on the wire.
+- `?limit=` is a parameter (1..200, default 50). It is clamped, not refused,
+  and the envelope echoes the size applied, so `useIssues` pages by the echo
+  and never by the number it asked for.
+- `muted_until` belongs to the muted status: a patch of the deadline alone
+  mutes, and every transition out of `muted` clears it, so a non-muted row
+  never carries a deadline and the detail draws one only while muted.
 
 ## Staff-only, and it says so
 

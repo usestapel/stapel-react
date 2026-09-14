@@ -15,10 +15,11 @@
  * the last option, not the first, and choosing it says what it costs: nothing
  * will ever bring this back on its own.
  *
- * ── The patch always carries the status ───────────────────────────────────
+ * ── The patch is the deadline ─────────────────────────────────────────────
  *
- * BACKEND-GAP A-3: `muted_until` is only written when the patch also carries
- * `status`. `useIssueStatus().mute` sends both, always — see `model/status.ts`.
+ * `muted_until` on its own is a mute; the store infers the status from it.
+ * `useIssueStatus().mute` always sends the key — `null` for "forever" — see
+ * `model/status.ts`.
  */
 import { useState } from "react";
 import type { ReactElement } from "react";

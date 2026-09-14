@@ -20,11 +20,10 @@ import { BOARD, FATAL, FATAL_DETAIL, MUTED, REGRESSED, WARNING } from "./fixture
 /**
  * The contract test. Everything here is asserted against the WIRE — the pair's
  * real transports over an injected fetch — rather than against a stub of this
- * pair's own api object, because the three things that break a client of
- * stapel-alerts are all invisible to a module-level mock: the LIST BODY is a
- * page where the schema says an array, a conditional read answers 304 with no
- * body at all, and a mute that forgets to carry its status is accepted with a
- * 200 and changes nothing.
+ * pair's own api object, because the things that break a client of
+ * stapel-alerts are all invisible to a module-level mock: the LIST BODY is an
+ * envelope and not the rows, a conditional read answers 304 with no body at
+ * all, and a mute that omits the deadline key is a note and not a mute.
  */
 function api(routes: Parameters<typeof mockServer>[0]) {
   const server = mockServer(routes);
@@ -63,19 +62,18 @@ describe("the four operations, on the paths urls_v1.py registers", () => {
     );
   });
 
-  it("reads the list as a PAGE, not the array the schema declares", async () => {
-    // BACKEND-GAP A-1. `docs/schema.json` says `Issue[]`; `IssueListView.get`
-    // returns `{count, offset, limit, results}`. A pair that trusted the
-    // schema would render every row as `undefined`.
+  it("reads the list as the IssuePage envelope the schema declares", async () => {
+    // `{count, offset, limit, results}` — declared by the schema and still
+    // proved here on the wire: a generated type is a statement about the
+    // contract, and the rows a screen draws come from the body.
     const { api: client } = api({ "GET /issues": { body: BOARD } });
     const answer = await client.issues();
     expect(answer.outcome).toBe("modified");
     if (answer.outcome !== "modified") return;
     expect(answer.data.results).toHaveLength(5);
     expect(answer.data.count).toBe(5);
-    // The page SIZE comes from the answer, never from a constant here: the
-    // endpoint takes no page-size parameter, so a hardcoded 50 would page past
-    // rows the day `views.PAGE_SIZE` moves.
+    // The page SIZE is what the server applied — echoed and clamped — never a
+    // constant here, and never the number the caller asked for.
     expect(answer.data.limit).toBe(50);
   });
 
@@ -88,6 +86,7 @@ describe("the four operations, on the paths urls_v1.py registers", () => {
       since: "2026-09-01T00:00:00Z",
       open: true,
       offset: 50,
+      limit: 25,
     });
     const url = new URL(server.calls[0]?.url ?? "");
     expect(url.searchParams.get("status")).toBe("new");
@@ -96,6 +95,7 @@ describe("the four operations, on the paths urls_v1.py registers", () => {
     expect(url.searchParams.get("since")).toBe("2026-09-01T00:00:00Z");
     expect(url.searchParams.get("open")).toBe("true");
     expect(url.searchParams.get("offset")).toBe("50");
+    expect(url.searchParams.get("limit")).toBe("25");
   });
 
   it("omits `open` entirely when it is false", async () => {

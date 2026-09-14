@@ -59,8 +59,14 @@ export interface IssueFilters {
   readonly since?: string;
   /** Only `new` + `regressed` — the module's own definition of open. */
   readonly open?: boolean;
-  /** Row offset. The page SIZE is the server's and is not a parameter. */
+  /** Row offset; default 0. */
   readonly offset?: number;
+  /**
+   * Page size, 1..200; the server's default (50) when omitted. Out-of-range
+   * values are CLAMPED, not refused, and the envelope echoes the size that was
+   * applied — page by `IssuePage.limit`, never by this number.
+   */
+  readonly limit?: number;
 }
 
 /**
@@ -96,8 +102,8 @@ export interface AlertsApi {
   /**
    * The triage list, newest activity first.
    *
-   * Answers a PAGE (`{count, offset, limit, results}`), not the bare array the
-   * schema declares — see `api/types.ts`, BACKEND-GAP A-1.
+   * Answers a PAGE — `{count, offset, limit, results}`, the `IssuePage` the
+   * schema declares (`api/types.ts`).
    */
   issues(
     filters?: IssueFilters,
@@ -113,11 +119,11 @@ export interface AlertsApi {
   /**
    * Set a status a caller is allowed to assert, and/or leave a note.
    *
-   * **`muted_until` only lands together with `status: "muted"`** — the view
-   * applies the mute through `services.set_status`, which is reached only when
-   * the patch carries a status (BACKEND-GAP A-3). A patch of `muted_until`
-   * alone is accepted with a 200 and changes nothing, which is the worst
-   * possible answer, so `model/status.ts` never sends one.
+   * **`muted_until` on its own is a mute.** The field has no meaning in any
+   * other status, so a patch carrying only the deadline sets `status: "muted"`
+   * (`null` for a mute with no deadline), and any status other than `muted`
+   * ignores and CLEARS it — a deadline leaves with the mute. Omitting the key
+   * is not a mute at all, so `model/status.ts` always sends it.
    */
   patchIssue(issueId: string, patch: IssuePatch): Promise<Issue>;
 
@@ -236,6 +242,7 @@ export function createAlertsApi(
           // omitting it means. So `false` is sent as nothing.
           open: filters?.open === true ? true : undefined,
           offset: filters?.offset,
+          limit: filters?.limit,
         },
         options
       ),

@@ -9,15 +9,13 @@
  * so {@link useIssueStatus}'s `fix` is the POST — a patch to `fixed` would
  * close an issue whose regression nobody could later prove.
  *
- * ── Muting always carries the status ──────────────────────────────────────
+ * ── A mute is the deadline ────────────────────────────────────────────────
  *
- * BACKEND-GAP A-3: `IssueDetailView.patch` reaches `services.set_status` only
- * when the patch carries a `status`, and `set_status` writes `muted_until`
- * only when that status is `muted`. A patch of `muted_until` alone is
- * answered 200 and changes nothing — the worst possible answer, because the
- * screen would then show a mute that does not exist. So `mute` always sends
- * both fields, and "mute forever" sends an explicit `null` rather than
- * omitting the key.
+ * `PATCH {muted_until}` on its own is a mute: the field has no meaning in any
+ * other status, so the store infers `status: "muted"` from it, and any status
+ * other than `muted` clears it on the way out. What `mute` must never do is
+ * OMIT the key — a patch without `muted_until` is a note, not a mute — so
+ * "mute forever" sends an explicit `null`.
  *
  * ── `regressed` is not offered ────────────────────────────────────────────
  *
@@ -67,8 +65,8 @@ export interface MuteIssueInput {
   readonly issueId: string;
   /**
    * When the mute lapses, as an ISO-8601 instant. `null` mutes with no
-   * deadline — sent explicitly, because the field is only written when the
-   * patch carries it (see the module header).
+   * deadline — sent explicitly, because the key IS the mute (see the module
+   * header).
    */
   readonly mutedUntil: string | null;
   /** Why it is muted. Worth a sentence: a silent row with no reason is a trap. */
@@ -93,7 +91,7 @@ export interface AnnotateIssueInput {
 export interface IssueStatusBag {
   /** `POST /issues/{id}/fix` — close it with the release that claims it. */
   readonly fix: UseMutationResult<Issue, StapelApiError, FixIssueInput>;
-  /** `PATCH {status: "muted", muted_until}` — known, accepted, quiet. */
+  /** `PATCH {muted_until}` — known, accepted, quiet; the status is implied. */
   readonly mute: UseMutationResult<Issue, StapelApiError, MuteIssueInput>;
   /** `PATCH {status: "new"}` — back on the board, by a person's judgement. */
   readonly reopen: UseMutationResult<Issue, StapelApiError, ReopenIssueInput>;
@@ -143,7 +141,6 @@ export function useIssueStatus(): IssueStatusBag {
     mutationFn: (input) => {
       const note = trimmed(input.note);
       return api.patchIssue(input.issueId, {
-        status: "muted",
         muted_until: input.mutedUntil,
         ...(note !== undefined ? { note } : {}),
       });

@@ -82,9 +82,9 @@ is why `test/issuesHook.test.tsx` asserts `toBe`.
 - **`POST /fix` is the close.** A `PATCH {status: "fixed"}` leaves the same
   status and records no release and no zeroed `count_since_fix` — the counter
   that answers "did it come back?".
-- **`mute` always sends the status.** BACKEND-GAP A-3: the deadline is only
-  written when the patch carries a status. A deadline-only patch is answered
-  200 and changes nothing.
+- **`mute` always sends the `muted_until` key.** The deadline alone is the
+  mute — the store infers the status and clears the deadline on the way out —
+  and a patch without the key is a note. `null` is "forever".
 - **One invalidation.** `alertsQueryKeys.issues` is a prefix of both the list
   keys and the detail key, so a write invalidates everything this module caches
   in one call, and each re-ask is conditional.
@@ -101,20 +101,18 @@ is why `test/issuesHook.test.tsx` asserts `toBe`.
   store, not a directory an operator may filter by.
 - **It does not hide the staff wall.** The nav entry stays visible and the
   screen names the 403 — an empty board would say "nothing is broken".
-- **It does not draw a stale `muted_until`.** BACKEND-GAP A-4: the store never
-  clears the field, so it is read only while the status IS `muted`.
+- **It does not draw a deadline outside the muted status.** `null` while
+  muted means "no deadline"; every other status has none, because the store
+  clears it.
 - **It does not stream.** The module pushes nothing; the pair polls
   conditionally on `runtime.pollIntervalMs` (60 s by default, the interval the
   module's own API doc names), and `0` switches it off.
 
 ## Backend gaps
 
-| id | what | where the workaround lives |
-|---|---|---|
-| A-1 | the list answers a PAGE; `docs/schema.json` declares a bare `Issue[]` | `api/types.ts` (`IssuePage`), proved in `test/pair.test.ts` |
-| A-2 | the page size is a server constant and is not a parameter | `useIssues` reads `limit` out of the answer |
-| A-3 | `PATCH` ignores `muted_until` without a `status` | `model/status.ts` `mute` |
-| A-4 | `set_status` never clears `muted_until` | `default/IssueDetail.tsx` |
+None at stapel-alerts 0.2.1. The contract declares the `IssuePage` envelope,
+takes `?limit=`, mutes on `muted_until` alone and clears the deadline on the
+way out of a mute — the pair leans on each of those and works around nothing.
 
 ## Core seams used
 

@@ -5,21 +5,14 @@
  * generated schema (`./generated/schema.js`, produced by `pnpm gen:api` from
  * stapel-alerts's own committed `docs/schema.json`).
  *
- * ── BACKEND-GAP A-1: the list answers a PAGE, the schema says an array ────
+ * ── The page envelope comes from the schema, and is still proven on the wire ─
  *
- * `docs/schema.json` declares `GET /issues` → `Issue[]`, because
- * drf-spectacular reads `responses=IssueSerializer(many=True)` off the
- * decorator. The VIEW returns something else — `views.IssueListView.get`
- * builds `{count, offset, limit, results}` and hands it to `_conditional`.
- * Both halves are green in isolation and the statement joining them is false,
- * which is the seam defect in its purest form.
- *
- * A generated `Issue[]` is what a pair that trusted the schema would have
- * typed, and every row on the triage screen would have been `undefined`. So
- * {@link IssuePage} is declared here, by hand, with the ROWS still typed from
- * the generated `Issue` — the part of the contract that is true — and
- * `test/pair.test.ts` drives the real envelope through the real transport so
- * this correction is checked against the wire and not against a belief.
+ * `GET /issues` answers {@link IssuePage} — `{count, offset, limit, results}`
+ * — and the schema says so: the view renders its response THROUGH the
+ * envelope serializer and declares it as the response, so the declaration
+ * and the body cannot drift apart. `test/pair.test.ts` still drives the real
+ * envelope through the real transport, because a generated type is a
+ * statement about the contract and the wire is what a screen reads.
  *
  * ── The three enums come from the schema and are not re-narrowed ──────────
  *
@@ -62,22 +55,13 @@ export type IssueStatus = Schemas["Status295Enum"];
 export type SettableIssueStatus = Schemas["IssuePatchStatusEnum"];
 
 /**
- * A page of the triage list — the body the view actually returns (A-1 above).
+ * A page of the triage list — `{count, offset, limit, results}`.
  *
- * `limit` is the server's page size (`views.PAGE_SIZE`, 50) echoed back rather
- * than a number the client asked for: the endpoint takes no page-size
- * parameter at all, so a pair that hardcoded 50 would be one backend constant
- * away from paging past rows nobody ever saw.
+ * `limit` is the page size the server APPLIED, not the one asked for: `?limit=`
+ * is clamped to 1..200 (default 50) and echoed back, so a caller pages by the
+ * echoed value and never by its own request.
  */
-export interface IssuePage {
-  /** How many issues match the filters — not how many are in `results`. */
-  readonly count: number;
-  /** The offset this page starts at. */
-  readonly offset: number;
-  /** The server's page size, as it reports it. */
-  readonly limit: number;
-  readonly results: readonly Issue[];
-}
+export type IssuePage = Schemas["IssuePage"];
 
 /**
  * Severity, weakest first. The order is the whole point: a filter bar built

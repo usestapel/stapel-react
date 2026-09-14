@@ -149,11 +149,9 @@ export function IssueDetail(props: IssueDetailProps): ReactElement {
             {fmt.timestamp(issue.fixed_at) ?? absent}
           </Field>
         ) : null}
-        {/* `muted_until` is only meaningful WHILE muted: the store writes the
-            field when the mute is set and does not clear it when the status
-            moves on (BACKEND-GAP A-4), so a fixed issue can carry last
-            month's deadline. Reading it outside the muted status would print
-            a mute nobody set. */}
+        {/* A deadline belongs to the muted status: `null` while muted means
+            "no deadline", and any other status has none — the store clears
+            the field on every transition out of `muted`. */}
         {issue.status === "muted" ? (
           <Field
             label={t(ALERTS_I18N_KEYS.detailMutedUntil)}

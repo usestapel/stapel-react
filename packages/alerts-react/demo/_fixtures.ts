@@ -177,9 +177,9 @@ export const REGRESSED_DETAIL: IssueDetail = {
 /** A closed issue whose events retention already swept. */
 export const FIXED_DETAIL: IssueDetail = { ...FIXED, events: [] };
 
-/** The page body the list view returns (BACKEND-GAP A-1 — not a bare array). */
+/** The `IssuePage` envelope the list view returns. */
 export function page(rows: readonly Issue[]): IssuePage {
-  return { count: rows.length, offset: 0, limit: 50, results: rows };
+  return { count: rows.length, offset: 0, limit: 50, results: [...rows] };
 }
 
 /** A busy board: two services, five rows, every status represented. */

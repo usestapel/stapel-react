@@ -206,6 +206,25 @@ export interface components {
             sha?: string;
         };
         /**
+         * @description The envelope ``GET /issues`` returns: ``{count, offset, limit, results}``.
+         *
+         *     Both the wire and the contract. The list view renders its response THROUGH
+         *     this serializer and declares it as the response, so the schema cannot say
+         *     ``Issue[]`` while the body carries a page — which is what 0.2.0 did, with
+         *     a hand-written ``responses=IssueSerializer(many=True)`` that the generator
+         *     had no way to check against the method body.
+         *
+         *     ``results`` is the row serializer the view resolved through its seam
+         *     (``SerializerSeamMixin``), so a host that swaps the row shape gets the same
+         *     envelope around its own rows.
+         */
+        IssuePage: {
+            count: number;
+            offset: number;
+            limit: number;
+            results: components["schemas"]["Issue"][];
+        };
+        /**
          * @description * `new` - new
          *     * `fixed` - fixed
          *     * `muted` - muted
@@ -230,7 +249,14 @@ export interface components {
          * @enum {string}
          */
         LevelEnum: "debug" | "info" | "warning" | "error" | "fatal";
-        /** @description ``PATCH /issues/{id}`` — status and/or note. */
+        /**
+         * @description ``PATCH /issues/{id}`` — status, note, and/or the mute deadline.
+         *
+         *     ``muted_until`` on its own is a mute: the field has no meaning in any other
+         *     status, so a patch that carries only the deadline sets ``status=muted``
+         *     (``null`` for a mute with no deadline). With any status other than
+         *     ``muted`` the deadline is ignored and cleared.
+         */
         PatchedIssuePatch: {
             status?: components["schemas"]["IssuePatchStatusEnum"];
             note?: string;
@@ -299,6 +325,9 @@ export interface operations {
             query?: {
                 /** @description debug|info|warning|error|fatal */
                 level?: string;
+                /** @description Page size, 1..200; default 50. Out-of-range values are clamped and the envelope echoes the limit that was applied. */
+                limit?: number;
+                /** @description Rows to skip; default 0 */
                 offset?: number;
                 /** @description Only new + regressed */
                 open?: boolean;
@@ -319,7 +348,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Issue"][];
+                    "application/json": components["schemas"]["IssuePage"];
                 };
             };
         };

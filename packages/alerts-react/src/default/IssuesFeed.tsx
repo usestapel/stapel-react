@@ -44,7 +44,7 @@ import type { RowAction } from "@stapel/tokens-antd/skin";
 import { matchList, useFormat, useT } from "@stapel/core";
 import type { Issue } from "../api/types.js";
 import type { IssueFeedFilters, IssueGroup } from "../model/issues.js";
-import { useIssues } from "../model/issues.js";
+import { clearedIssueFilters, useIssues } from "../model/issues.js";
 import {
   isAlertsStaffOnly,
   isAlertsUnauthorized,
@@ -70,7 +70,9 @@ export function IssuesFeed(props: IssuesFeedProps): ReactElement {
   const bag = useIssues(filters);
 
   const absent = t(ALERTS_I18N_KEYS.none);
-  const anyFilter = Object.keys(filters).length > 0;
+  // `limit` is a page size, not a filter: it must not turn "nothing has
+  // failed" into "nothing matches these filters".
+  const anyFilter = Object.keys(filters).some((key) => key !== "limit");
 
   // The services the caller can actually offer the filter bar: the ones on
   // this page. The tracker serves no service registry (there is a `Service`
@@ -291,7 +293,7 @@ export function IssuesFeed(props: IssuesFeedProps): ReactElement {
                         data-testid={`${testId}-empty-clear`}
                         data-analytics="none"
                         data-analytics-reason="clearing a filter is a view change, not a decision about a bug"
-                        onClick={() => setFilters({})}
+                        onClick={() => setFilters(clearedIssueFilters(filters))}
                       >
                         {t(ALERTS_I18N_KEYS.filterClear)}
                       </SkinButton>

@@ -61,7 +61,17 @@ export function issueFiltersKey(filters?: IssueFilters): string {
   if (filters.since !== undefined) parts.push(`since=${filters.since}`);
   if (filters.open !== undefined) parts.push(`open=${String(filters.open)}`);
   if (filters.offset !== undefined) parts.push(`offset=${String(filters.offset)}`);
+  if (filters.limit !== undefined) parts.push(`limit=${String(filters.limit)}`);
   return parts.sort().join("&");
+}
+
+/**
+ * The filters with every FILTER removed and the page size kept: `limit` is a
+ * view setting, not a question about the rows, so "Clear" must not turn a
+ * host's hundred-row page back into fifty.
+ */
+export function clearedIssueFilters(filters: IssueFeedFilters): IssueFeedFilters {
+  return filters.limit === undefined ? {} : { limit: filters.limit };
 }
 
 /** One service's rows, as the feed groups them. */
@@ -131,7 +141,7 @@ export interface IssuesBag {
   readonly groups: LoadState<readonly IssueGroup[]>;
   /** How many issues match the filters across every page. */
   readonly total: number;
-  /** The server's page size, as it reported it. */
+  /** The page size the server APPLIED — `limit` echoed back, clamped to 1..200. */
   readonly pageSize: number;
   readonly offset: number;
   readonly hasPrevious: boolean;
@@ -153,6 +163,9 @@ export interface IssuesBag {
  * change — the alternative (a caller-held offset) reliably leaves somebody on
  * page 4 of a filter with one page, looking at an empty screen that is not
  * empty.
+ *
+ * `filters.limit` is passed through as `?limit=`; the hook still pages by the
+ * size the envelope echoes, so a request the server clamped cannot skip rows.
  */
 export function useIssues(
   filters: IssueFeedFilters = {},

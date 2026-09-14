@@ -161,21 +161,10 @@ describe("<IssueDetail>", () => {
     expect(empty.textContent).toContain("No occurrence is still stored");
   });
 
-  it("draws `muted until` only while the issue is muted (BACKEND-GAP A-4)", async () => {
+  it("draws `muted until` while the issue is muted", async () => {
     const muted = mockServer({ "GET /issues/": { body: { ...MUTED, events: [] } } });
     mount(muted, <IssueDetail issueId={MUTED.id} />);
     expect(await screen.findByTestId("alerts-issue-muted-until")).toBeTruthy();
-  });
-
-  it("does not draw a stale deadline on an issue that has moved on", async () => {
-    // The store writes `muted_until` when a mute is set and does not clear it
-    // when the status changes, so a fixed row can still carry last month's
-    // date. Reading it outside the muted status would print a mute nobody set.
-    const stale = { ...SWEPT_DETAIL, muted_until: "2026-01-01T00:00:00Z" };
-    const server = mockServer({ "GET /issues/": { body: stale } });
-    mount(server, <IssueDetail issueId={stale.id} />);
-    await screen.findByTestId("alerts-issue-title");
-    expect(screen.queryByTestId("alerts-issue-muted-until")).toBeNull();
   });
 
   it("names a missing issue, and says why one can be missing", async () => {
@@ -248,7 +237,7 @@ describe("<FixIssueDialog>", () => {
 });
 
 describe("<MuteIssueDialog>", () => {
-  it("patches a status AND a deadline together", async () => {
+  it("patches the deadline, and says nothing about the status", async () => {
     const server = mockServer({ "PATCH /issues/": { body: MUTED } });
     mount(
       server,
@@ -260,7 +249,7 @@ describe("<MuteIssueDialog>", () => {
       status?: string;
       muted_until?: string | null;
     };
-    expect(body.status).toBe("muted");
+    expect(body).not.toHaveProperty("status");
     expect(typeof body.muted_until).toBe("string");
   });
 
@@ -275,7 +264,6 @@ describe("<MuteIssueDialog>", () => {
     fireEvent.click(screen.getByTestId("alerts-mute-submit"));
     await waitFor(() => expect(server.calls.length).toBe(1));
     expect(JSON.parse(server.calls[0]?.body ?? "{}")).toEqual({
-      status: "muted",
       muted_until: null,
     });
   });

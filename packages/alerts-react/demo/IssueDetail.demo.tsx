@@ -49,7 +49,7 @@ export default defineDemo({
   id: "alerts.issue",
   title: "Issue",
   description:
-    "The occurrences are a sample and the count is the fact, so the heading states the relationship rather than leaving a list of twenty next to a count of four hundred looking like a contradiction. Each occurrence is collapsed over its own traceback and its own redacted context, because sixty frames inline would put every control on this screen below the fold. `Came back` is reported, never offered: the store sets it when a closed issue receives a new event, and the notice names the release that was supposed to have stopped it. `Muted until` is drawn only while the issue IS muted — the store does not clear the field when the status moves on.",
+    "The occurrences are a sample and the count is the fact, so the heading states the relationship rather than leaving a list of twenty next to a count of four hundred looking like a contradiction. Each occurrence is collapsed over its own traceback and its own redacted context, because sixty frames inline would put every control on this screen below the fold. `Came back` is reported, never offered: the store sets it when a closed issue receives a new event, and the notice names the release that was supposed to have stopped it. `Muted until` belongs to the muted status and is drawn only there: null while muted means no deadline, and the store clears the field on the way out of a mute.",
   component: IssueDetail,
   covers: ["MuteIssueDialog"],
   tokens: ["error", "warning", "success", "text-muted"],

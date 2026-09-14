@@ -115,6 +115,31 @@ describe("useIssues", () => {
     await waitFor(() => expect(result.current.offset).toBe(0));
   });
 
+  it("passes `limit` through and pages by the size the server ECHOES", async () => {
+    // `?limit=` is clamped server-side (1..200) and the envelope echoes what
+    // was applied, so the cursor moves by the echo — a request for 500 rows
+    // that the server cut to 200 must not skip the other 300.
+    const clamped = makePage([FATAL], { count: 450, offset: 0, limit: 200 });
+    const server = mockServer({ "GET /issues": { body: clamped } });
+    const { result } = renderHook(() => useIssues({ limit: 500 }), {
+      wrapper: wrapper(server),
+    });
+    await waitFor(() => expect(result.current.rows.status).toBe("ready"));
+    expect(new URL(server.calls[0]?.url ?? "").searchParams.get("limit")).toBe("500");
+    expect(result.current.pageSize).toBe(200);
+    await act(async () => {
+      result.current.nextPage();
+    });
+    await waitFor(() => expect(result.current.offset).toBe(200));
+  });
+
+  it("sends no `limit` unless asked, so the server's default applies", async () => {
+    const server = mockServer({ "GET /issues": { body: BOARD } });
+    renderHook(() => useIssues(), { wrapper: wrapper(server) });
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
+    expect(new URL(server.calls[0]?.url ?? "").searchParams.has("limit")).toBe(false);
+  });
+
   it("names the staff refusal instead of reporting an empty board", async () => {
     const server = mockServer({ "GET /issues": STAFF_ONLY });
     const { result } = renderHook(() => useIssues(), { wrapper: wrapper(server) });

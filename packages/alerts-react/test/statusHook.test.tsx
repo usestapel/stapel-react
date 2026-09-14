@@ -14,8 +14,8 @@ import { FATAL, MUTED } from "./fixtures.js";
  * The write half. Every assertion is on the BODY that reached the wire,
  * because the three defects this pair has to avoid are all body-shaped: a
  * close that patched a status instead of posting a release, a mute that
- * carried a deadline and no status (accepted, and silently ineffective —
- * BACKEND-GAP A-3), and a blank field recorded as an empty claim.
+ * omitted the deadline key (a note, not a mute), and a blank field recorded
+ * as an empty claim.
  */
 function wrapper(server: MockServer): (props: { children: ReactNode }) => ReactElement {
   return function Wrapper(props: { children: ReactNode }): ReactElement {
@@ -74,11 +74,10 @@ describe("useIssueStatus().fix", () => {
 });
 
 describe("useIssueStatus().mute", () => {
-  it("always carries the status beside the deadline (BACKEND-GAP A-3)", async () => {
-    // `IssueDetailView.patch` reaches `set_status` only when the patch carries
-    // a status, and `set_status` writes `muted_until` only when that status is
-    // `muted`. A patch of the deadline alone is answered 200 and changes
-    // nothing — the worst possible answer.
+  it("sends the deadline alone — the store infers the status from it", async () => {
+    // `muted_until` on its own is a mute: the field has no meaning in any
+    // other status, so the patch carries the deadline and says nothing about
+    // the status.
     const server = mockServer({ "PATCH /issues/": { body: MUTED } });
     const { result } = renderHook(() => useIssueStatus(), { wrapper: wrapper(server) });
     await act(async () => {
@@ -91,7 +90,6 @@ describe("useIssueStatus().mute", () => {
     await waitFor(() => expect(result.current.mute.isSuccess).toBe(true));
     expect(server.calls[0]?.method).toBe("PATCH");
     expect(JSON.parse(server.calls[0]?.body ?? "{}")).toEqual({
-      status: "muted",
       muted_until: "2026-09-20T09:00:00.000Z",
       note: "known",
     });
@@ -104,9 +102,9 @@ describe("useIssueStatus().mute", () => {
       result.current.mute.mutate({ issueId: MUTED.id, mutedUntil: null });
     });
     await waitFor(() => expect(result.current.mute.isSuccess).toBe(true));
-    // Omitting the key would leave whatever deadline the row already had.
+    // Omitting the key would be a patch of nothing: no deadline, no status,
+    // no mute. The key IS the mute, so "forever" is an explicit null.
     expect(JSON.parse(server.calls[0]?.body ?? "{}")).toEqual({
-      status: "muted",
       muted_until: null,
     });
   });

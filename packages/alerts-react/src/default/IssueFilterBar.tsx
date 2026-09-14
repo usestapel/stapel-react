@@ -27,6 +27,7 @@ import { useT } from "@stapel/core";
 import { ISSUE_LEVELS, ISSUE_STATUSES } from "../api/types.js";
 import type { IssueLevel, IssueStatus } from "../api/types.js";
 import type { IssueFeedFilters } from "../model/issues.js";
+import { clearedIssueFilters } from "../model/issues.js";
 import { ALERTS_I18N_KEYS } from "../i18n/keys.js";
 import { levelKey, statusKey } from "./labels.js";
 import type { ThemeModeProp } from "./types.js";
@@ -184,7 +185,7 @@ export function IssueFilterBar(props: IssueFilterBarProps): ReactElement {
             data-analytics-reason="clearing a filter is a view change, not a decision about a bug"
             onClick={() => {
               setChosen("any");
-              onChange({});
+              onChange(clearedIssueFilters(value));
             }}
           >
             {t(ALERTS_I18N_KEYS.filterClear)}

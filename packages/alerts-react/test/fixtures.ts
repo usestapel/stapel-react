@@ -126,12 +126,12 @@ export const REGRESSED_DETAIL: IssueDetail = { ...REGRESSED, events: [EVENT] };
 
 export const SWEPT_DETAIL: IssueDetail = { ...FIXED, events: [] };
 
-/** The PAGE the list view returns — never the bare array its schema declares. */
+/** The `IssuePage` envelope the list view returns. */
 export function makePage(
   rows: readonly Issue[],
   over: Partial<Omit<IssuePage, "results">> = {}
 ): IssuePage {
-  return { count: rows.length, offset: 0, limit: 50, results: rows, ...over };
+  return { count: rows.length, offset: 0, limit: 50, results: [...rows], ...over };
 }
 
 export const BOARD: IssuePage = makePage([
