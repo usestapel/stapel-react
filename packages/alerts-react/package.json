@@ -1,6 +1,6 @@
 {
   "name": "@stapel/alerts-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Headless React pair for stapel-alerts — the fleet's error tracker read and reconciled from a browser: the triage feed grouped by service with level, count and first/last seen, the issue with its last events, their traces and their redacted context, and the three writes an operator owns (mark fixed with the version and sha that claim it, mute until a date, reopen). The reads are ETag-aware — a conditional GET that comes back 304 keeps the rows already on screen instead of repainting them — and `regressed` is never offered as a status to set, because the store asserts it from evidence. Staff-only behind the host's session; the refusal is named, not drawn as an empty table. Zero visual opinion in the main entry; the opt-in `/default` subpath ships the antd skin.",
   "license": "MIT",
   "repository": {

@@ -3,7 +3,7 @@
   "packages": [
     {
       "package": "@stapel/alerts-react",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "entries": [
         {
           "id": "admin.alerts",
@@ -282,7 +282,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.31.4",
+      "version": "0.32.0",
       "entries": [
         {
           "id": "categories.catalog",
@@ -1067,7 +1067,7 @@
     },
     {
       "package": "@stapel/video-react",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "entries": [
         {
           "id": "video.rooms",
