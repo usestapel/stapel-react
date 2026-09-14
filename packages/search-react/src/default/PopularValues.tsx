@@ -334,15 +334,16 @@ export function PopularValuesTabs(props: PopularValuesTabsProps): ReactElement {
 }
 
 const ROW: CSSProperties = {
-  // `break-inside` keeps a value and its count on one line when the browser
-  // decides where the column ends.
+  // `break-inside` keeps an entry whole when the browser decides where the
+  // column ends.
   breakInside: "avoid",
-  display: "flex",
-  gap: spacing[2],
-  alignItems: "baseline",
-  // The row is a column wide and must stay so; without this a flex item's
-  // automatic minimum size is its CONTENT, which is how a long value pushed
-  // the row past its column instead of wrapping inside it.
+  /* A BLOCK, not a flex row, and the count is inside the value — see VALUE.
+     As a flex row with the count as a sibling, a wrapped label filled its
+     column and pushed the number to the far right, level with the label's
+     FIRST line: a three-line label with an orphan count floating against the
+     column edge, level with its top line and nowhere near its end. The reference
+     sets them inline — "Ford 33 008" — so the count follows the last word
+     wherever the label happens to break. */
   minInlineSize: 0,
 };
 
@@ -362,7 +363,22 @@ const ROW: CSSProperties = {
  *
  * `textAlign: start` because a wrapped button centres its lines by default,
  * which would ragged-centre a two-line value against a left-aligned column.
+ *
+ * The COUNT lives inside this button rather than beside it. Inline is what
+ * the reference does ("Ford 33 008"), and it is also the only arrangement in
+ * which the number follows the last word of a label that wraps: a sibling
+ * box can only ever sit after the label's whole BOX, which for a wrapped
+ * label is the full column width. Pressing the number applies the same value
+ * as pressing the word, which is what a reader expects of a single entry.
  */
+/** The count's ink — the design system's secondary text, not the link colour
+ * the button would otherwise give everything inside it. Read off the live
+ * token rather than named here, so a brand that retunes its neutrals retunes
+ * this too. */
+function COUNT_INK(token: { readonly colorTextSecondary: string }): CSSProperties {
+  return { color: token.colorTextSecondary, fontWeight: 400 };
+}
+
 const VALUE: CSSProperties = {
   paddingInline: 0,
   height: "auto",
@@ -428,6 +444,7 @@ export interface PopularValuesProps {
 
 export function PopularValues(props: PopularValuesProps): ReactElement | null {
   const t = useT();
+  const { token } = antdTheme.useToken();
   // Named before the early returns: a hook may not be called conditionally,
   // and both ids are inert on the arms that draw no tabs.
   const base = useId();
@@ -559,14 +576,14 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
                 props.onApply(group.slug, option.value);
               }}
             >
-              {option.label}
+              {option.label}{" "}
+              <span
+                style={COUNT_INK(token)}
+                data-testid={`popular-count-${group.slug}-${option.value}`}
+              >
+                {option.count}
+              </span>
             </Button>
-            <Typography.Text
-              type="secondary"
-              data-testid={`popular-count-${group.slug}-${option.value}`}
-            >
-              {option.count}
-            </Typography.Text>
           </div>
         ))}
       </div>

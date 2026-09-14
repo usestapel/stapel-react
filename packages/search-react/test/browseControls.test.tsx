@@ -85,7 +85,7 @@ describe("PopularValues", () => {
         onApply={(slug, value) => applied.push(`${slug}=${value}`)}
       />
     );
-    expect(screen.getByTestId("popular-value-vendor-toyota").textContent).toBe("Toyota");
+    expect(screen.getByTestId("popular-value-vendor-toyota").textContent).toContain("Toyota");
     expect(screen.getByTestId("popular-count-vendor-toyota").textContent).toBe("802");
     fireEvent.click(screen.getByTestId("popular-value-vendor-toyota"));
     expect(applied).toEqual(["vendor=toyota"]);

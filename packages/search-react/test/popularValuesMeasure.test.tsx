@@ -187,7 +187,7 @@ describe("what this must not change", () => {
     mount("responsive");
     expect(
       screen.getByTestId("popular-value-make_ref_select-vaz-lada").textContent
-    ).toBe("ВАЗ (LADA)");
+    ).toContain("ВАЗ (LADA)");
     expect(
       screen.getByTestId("popular-count-make_ref_select-vaz-lada").textContent
     ).toBe("6");

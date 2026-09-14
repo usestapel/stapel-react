@@ -64,9 +64,19 @@ describe("a popular value longer than its column", () => {
     expect(screen.getByTestId("popular-value-industry-v0").style.textAlign).toBe("start");
   });
 
-  it("still draws the value and its count", () => {
+  it("draws the count INSIDE the value, inline after the label", () => {
+    /* The reference sets them inline — "Ford 33 008" — and that is also the
+       only arrangement in which the number follows the last word of a label
+       that WRAPS. As a sibling box the count could only sit after the label's
+       whole box, which for a wrapped label is the full column width: the jobs
+       band showed a three-line label with an orphan count against the column
+       edge, level with its top line. */
     mount(<PopularValues group={group([LONG])} onApply={() => {}} columns="responsive" />);
-    expect(screen.getByTestId("popular-value-industry-v0").textContent).toBe(LONG);
-    expect(screen.getByTestId("popular-count-industry-v0").textContent).toBe("10");
+    const value = screen.getByTestId("popular-value-industry-v0");
+    const count = screen.getByTestId("popular-count-industry-v0");
+    expect(value.textContent).toContain(LONG);
+    expect(count.textContent).toBe("10");
+    // The containment is the claim: a sibling would pass every line above.
+    expect(value.contains(count)).toBe(true);
   });
 });
