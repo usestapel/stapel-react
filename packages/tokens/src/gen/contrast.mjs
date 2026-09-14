@@ -93,30 +93,39 @@ export const UI_FILL_ROLES = ["surface", "surface-raised", "surface-sunken", "su
 export const TEXT_ROLES = ["text", "text-muted", "text-subtle", "link", "link-hover"];
 
 /**
- * Component chrome — WCAG 1.4.11 non-text contrast, 3:1, on every
- * UI_FILL_ROLES surface.
- *
- * `border` and `border-subtle` are IN this list (2026-09-14; reverses the
- * 2026-07-18 "decorative" exemption). The exemption read WCAG 1.4.11's
- * decoration carve-out onto the dictionary's own adjectives, but the roles
- * are not decorative where they are drawn: every design-system bridge maps
- * `border` to the outline of an input/select/button (antd `colorBorder`, MUI
- * `divider`) — the only thing that says "this is a field" — and
- * `border-subtle` to the line between rows and panes. Measured on a live
- * dark stand (video-react, 2026-09-14): `border` on `surface-raised` 1.70:1,
- * `border-subtle` 1.24:1 — an input with no visible edge. `focus-ring` stays,
- * for the same reason it always was.
+ * Component chrome that MUST be perceivable — WCAG 1.4.11 non-text
+ * contrast, 3:1, on every UI_FILL_ROLES surface. The focus indicator has no
+ * text or fill change to fall back on (WCAG 2.4.7/2.4.11).
  */
-export const UI_ROLES = ["border", "border-subtle", "focus-ring"];
+export const UI_ROLES = ["focus-ring"];
+
+/**
+ * DECORATIVE chrome — `border` (an outline) and `border-subtle` (a divider).
+ * Checked at the same 3:1 on every UI_FILL_ROLES surface, in both modes, so
+ * a theme knows exactly where its lines fall below it — but reported as
+ * kind "decorative": WCAG 1.4.11 carves out a boundary that is pure
+ * decoration or whose component is bounded by something else (a fill, an
+ * elevation shadow, the focus ring). A failing decorative pair still needs a
+ * documented exception, and that exception's `reason` must say which
+ * fill/shadow carries the boundary instead; silence is not an option here
+ * either. Measured on a live dark stand (video-react, 2026-09-14): `border`
+ * on `surface-raised` 1.70:1, `border-subtle` 1.24:1 — the dark column was
+ * lifted to pass; the light column is pinned to the reference's light
+ * outlines by owner decision (2026-09-14) and carries the exceptions.
+ */
+export const DECORATIVE_ROLES = ["border", "border-subtle"];
 
 /**
  * Explicit contrast contract (user decision Q10a): the fg/bg pairs implied by
  * the §68 neutral role dictionary that must stay legible.
  *
- * Each entry: [fg role name, bg role name, "text" | "ui"].
- *   "text" → WCAG AA normal text, 4.5:1.
- *   "ui"   → large text / icon / meaningful graphical object / focus ring,
- *            3:1 (WCAG 1.4.11 non-text contrast + 1.4.3 large-text exception).
+ * Each entry: [fg role name, bg role name, "text" | "ui" | "decorative"].
+ *   "text"       → WCAG AA normal text, 4.5:1.
+ *   "ui"         → large text / icon / meaningful graphical object / focus
+ *                  ring, 3:1 (WCAG 1.4.11 non-text contrast + 1.4.3).
+ *   "decorative" → an outline or divider, measured at the same 3:1 but
+ *                  exempt under 1.4.11 when something else bounds the
+ *                  component — see DECORATIVE_ROLES.
  *
  * The neutral text family and the chrome family are a CROSS PRODUCT against
  * their fill lists (before 2026-09-14 the list was hand-picked — `text` and
@@ -129,6 +138,7 @@ export const UI_ROLES = ["border", "border-subtle", "focus-ring"];
 export const CONTRAST_PAIRS = [
   ...TEXT_ROLES.flatMap((fg) => TEXT_FILL_ROLES.map((bg) => [fg, bg, "text"])),
   ...UI_ROLES.flatMap((fg) => UI_FILL_ROLES.map((bg) => [fg, bg, "ui"])),
+  ...DECORATIVE_ROLES.flatMap((fg) => UI_FILL_ROLES.map((bg) => [fg, bg, "decorative"])),
   ["success", "success-bg", "text"],
   ["error", "error-bg", "text"],
   ["warning", "warning-bg", "text"],
@@ -140,7 +150,7 @@ export const CONTRAST_PAIRS = [
   ["info-on", "info", "text"],
 ];
 
-const THRESHOLD = { text: 4.5, ui: 3.0 };
+const THRESHOLD = { text: 4.5, ui: 3.0, decorative: 3.0 };
 
 /** Build the exception lookup key for a (fg, bg, mode) triple. */
 export function contrastExceptionKey(fgName, bgName, mode) {
@@ -185,7 +195,9 @@ export function checkContrastPairs(resolvedCore) {
           ratio,
           threshold,
           key: contrastExceptionKey(fgName, bgName, mode),
-          message: `contrast: ${fgName} on ${bgName} (${mode}) = ${ratio.toFixed(1)}:1 < ${threshold} (WCAG AA)`,
+          message:
+            `contrast: ${fgName} on ${bgName} (${mode}) = ${ratio.toFixed(1)}:1 < ${threshold} ` +
+            (kind === "decorative" ? "(WCAG 1.4.11, decorative)" : "(WCAG AA)"),
         });
       }
     }

@@ -223,7 +223,7 @@ export const colors = {
     "dark": "#151a23"
   },
   "text-subtle": {
-    "light": "#7b828f",
+    "light": "#636b77",
     "dark": "#959ca9"
   },
   "warning": {

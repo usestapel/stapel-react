@@ -11,6 +11,7 @@ import {
   TEXT_ROLES,
   TEXT_FILL_ROLES,
   UI_ROLES,
+  DECORATIVE_ROLES,
   UI_FILL_ROLES,
   // @ts-expect-error — .mjs has no type declarations; it's a build/gen tool.
 } from "../src/gen/contrast.mjs";
@@ -119,7 +120,7 @@ describe("checkContrastPairs", () => {
     expect(checkContrastPairs(resolvedCore)).toEqual([]);
   });
 
-  it("checks border/border-subtle against every surface at 3:1 (chrome is not decoration, 2026-09-14)", () => {
+  it("checks border/border-subtle against every surface at 3:1 as DECORATIVE chrome (2026-09-14)", () => {
     const resolvedCore = {
       surface: { light: "#ffffff", dark: "#0b0e14" },
       "surface-raised": { light: "#ffffff", dark: "#1c2230" },
@@ -127,7 +128,12 @@ describe("checkContrastPairs", () => {
       "border-subtle": { light: "#fcfcfc", dark: "#141a22" }, // ~1:1
       "focus-ring": { light: "#4657d9", dark: "#98a5fa" }, // legible, still checked
     };
-    const keys = checkContrastPairs(resolvedCore).map((f: { key: string }) => f.key);
+    const failures = checkContrastPairs(resolvedCore);
+    const keys = failures.map((f: { key: string }) => f.key);
+    const border = failures.find((f: { key: string }) => f.key === "border:surface:light");
+    expect(border.kind).toBe("decorative");
+    expect(border.threshold).toBe(3);
+    expect(border.message).toContain("(WCAG 1.4.11, decorative)");
     expect(keys).toContain("border:surface:light");
     expect(keys).toContain("border:surface-raised:dark");
     expect(keys).toContain("border-subtle:surface:light");
@@ -159,13 +165,19 @@ describe("CONTRAST_PAIRS — a cross product, not a hand-picked list (2026-09-14
     ]);
   });
 
-  it("checks every chrome role on every surface chrome sits on, as non-text 3:1", () => {
+  it("checks every chrome role on every surface chrome sits on: focus-ring as ui, borders as decorative, both 3:1", () => {
     for (const fg of UI_ROLES) {
       for (const bg of UI_FILL_ROLES) {
         expect(pairKeys.has(`${fg}:${bg}:ui`)).toBe(true);
       }
     }
-    expect(UI_ROLES).toEqual(["border", "border-subtle", "focus-ring"]);
+    for (const fg of DECORATIVE_ROLES) {
+      for (const bg of UI_FILL_ROLES) {
+        expect(pairKeys.has(`${fg}:${bg}:decorative`)).toBe(true);
+      }
+    }
+    expect(UI_ROLES).toEqual(["focus-ring"]);
+    expect(DECORATIVE_ROLES).toEqual(["border", "border-subtle"]);
     expect(UI_FILL_ROLES).toEqual(["surface", "surface-raised", "surface-sunken", "surface-overlay"]);
   });
 
@@ -220,14 +232,26 @@ describe("the shipped default theme under the cross-product gate", () => {
     expect(errors).toEqual([]);
   });
 
-  it("carries a documented exception ONLY for light pairs (light is pinned; the dark fixes are real)", () => {
+  it("carries documented exceptions ONLY for the two decorative border roles in light — every text pair passes on its own", () => {
     expect(theme.contrastExceptions.length).toBeGreaterThan(0);
     for (const exc of theme.contrastExceptions) {
       expect(exc.mode).toBe("light");
+      expect(["border", "border-subtle"]).toContain(exc.fg);
+      expect(exc.reason).toMatch(/shadow|fill|focus-ring|separator/);
     }
     const { warnings } = validateTheme(theme, ramps);
     expect(warnings.length).toBe(theme.contrastExceptions.length);
-    expect(warnings.every((w: string) => w.includes("(light)"))).toBe(true);
+    expect(warnings.every((w: string) => w.includes("(light)") && w.includes("decorative"))).toBe(true);
+  });
+
+  it("light: text-subtle clears 4.5 on every text fill and stays lighter than text-muted", () => {
+    const resolved = resolveTheme(theme, ramps).core;
+    for (const bg of TEXT_FILL_ROLES) {
+      expect(contrastRatio(resolved["text-subtle"].light, resolved[bg].light)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrastRatio(resolved["text-muted"].light, resolved.surface.light)).toBeGreaterThan(
+      contrastRatio(resolved["text-subtle"].light, resolved.surface.light)
+    );
   });
 
   it("dark: text-subtle clears 4.5 on surface-raised, border and border-subtle clear 3", () => {

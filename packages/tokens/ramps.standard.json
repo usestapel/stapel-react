@@ -1,5 +1,5 @@
 {
-  "_comment": "Standard raw colour ramps baked into @stapel/tokens (L1). This is the ONE place hex is born. Steps follow the 50–950 grid; values are theme-independent. A host adds custom ramps in its theme's `ramps` section (they merge on top of these). Ramps are NOT emitted as CSS custom properties — they are inlined into core-token definitions at generation time, so there is no `--stapel-raw-*` to reference (bypass closed by absence of API). Reachable in code only via the `@stapel/tokens/raw` subpath (theme-config + showcase; lint-guarded elsewhere).",
+  "_comment": "Standard raw colour ramps baked into @stapel/tokens (L1). This is the ONE place hex is born. Steps follow the 50–950 grid, with midpoint steps (450, 550, 575) where two roles must sit between neighbours in one column; values are theme-independent. A host adds custom ramps in its theme's `ramps` section (they merge on top of these). Ramps are NOT emitted as CSS custom properties — they are inlined into core-token definitions at generation time, so there is no `--stapel-raw-*` to reference (bypass closed by absence of API). Reachable in code only via the `@stapel/tokens/raw` subpath (theme-config + showcase; lint-guarded elsewhere).",
   "gray": {
     "25": "#ffffff",
     "50": "#fafafb",
@@ -10,6 +10,7 @@
     "450": "#959ca9",
     "500": "#7b828f",
     "550": "#6b737f",
+    "575": "#636b77",
     "600": "#5c6470",
     "700": "#3d4759",
     "800": "#2a3242",
