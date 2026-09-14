@@ -61,43 +61,74 @@ export function contrastRatio(hexA, hexB) {
 }
 
 /**
- * Explicit contrast contract (user decision Q10a): the "intentional" fg/bg
- * pairs implied by the §68 neutral role dictionary that must stay legible.
- * This is a curated list, NOT the full cross product of every role against
- * every other — most roles never actually sit on top of each other in the
- * UI, so a blind cross product would just be noise. Extend deliberately when
- * a new fg-on-bg relationship becomes real.
+ * The fills a foreground role can sit on. Two lists, because the two
+ * foreground families do not sit on the same things:
+ *
+ *  - TEXT_FILL_ROLES — every fill body text renders over: the four surfaces,
+ *    the brand tint (a selected row, a highlighted panel) and the four status
+ *    tints (an alert's body copy is `text`/`text-muted`, not the status colour).
+ *  - UI_FILL_ROLES — the surfaces component chrome (an input's outline, a
+ *    card's edge, a divider, the focus ring) is drawn on. A status alert's own
+ *    outline is its `*-border` role, and a brand-tinted row has no outline, so
+ *    the tints are not in this list.
+ *
+ * Add a fill here when a new place text or chrome sits on becomes real; the
+ * cross product below picks it up in both modes.
+ */
+export const TEXT_FILL_ROLES = [
+  "surface",
+  "surface-raised",
+  "surface-sunken",
+  "surface-overlay",
+  "brand-subtle",
+  "success-bg",
+  "warning-bg",
+  "error-bg",
+  "info-bg",
+];
+export const UI_FILL_ROLES = ["surface", "surface-raised", "surface-sunken", "surface-overlay"];
+
+/** The neutral text family — body, secondary, tertiary and the two link
+ * roles — WCAG AA normal text, 4.5:1, on every TEXT_FILL_ROLES fill. */
+export const TEXT_ROLES = ["text", "text-muted", "text-subtle", "link", "link-hover"];
+
+/**
+ * Component chrome — WCAG 1.4.11 non-text contrast, 3:1, on every
+ * UI_FILL_ROLES surface.
+ *
+ * `border` and `border-subtle` are IN this list (2026-09-14; reverses the
+ * 2026-07-18 "decorative" exemption). The exemption read WCAG 1.4.11's
+ * decoration carve-out onto the dictionary's own adjectives, but the roles
+ * are not decorative where they are drawn: every design-system bridge maps
+ * `border` to the outline of an input/select/button (antd `colorBorder`, MUI
+ * `divider`) — the only thing that says "this is a field" — and
+ * `border-subtle` to the line between rows and panes. Measured on a live
+ * dark stand (video-react, 2026-09-14): `border` on `surface-raised` 1.70:1,
+ * `border-subtle` 1.24:1 — an input with no visible edge. `focus-ring` stays,
+ * for the same reason it always was.
+ */
+export const UI_ROLES = ["border", "border-subtle", "focus-ring"];
+
+/**
+ * Explicit contrast contract (user decision Q10a): the fg/bg pairs implied by
+ * the §68 neutral role dictionary that must stay legible.
  *
  * Each entry: [fg role name, bg role name, "text" | "ui"].
  *   "text" → WCAG AA normal text, 4.5:1.
  *   "ui"   → large text / icon / meaningful graphical object / focus ring,
  *            3:1 (WCAG 1.4.11 non-text contrast + 1.4.3 large-text exception).
  *
- * ROLE-CATEGORY DECISION (2026-07-18, §68 Phase 6): `border` and
- * `border-subtle` are DELIBERATELY ABSENT from this list. WCAG 1.4.11 itself
- * only reaches UI components/graphical objects that convey required
- * information — it explicitly carves out "a component that... is pure
- * decoration, or has no requirement of visibility" (and inactive/disabled
- * chrome). By the §68 dictionary's own definitions `border` is a
- * "decorative border" and `border-subtle` is a "divider" (a subtle divider,
- * intentionally faint) —
- * neither conveys information on its own (no border-only affordance in this
- * system relies on hitting 3:1 to be perceivable; state is always carried by
- * a text/icon/fill change too). Gating them at 3:1 would be a false positive
- * against their own design intent, not a real accessibility gap. `focus-ring`
- * stays IN the list — a focus indicator is not decorative, WCAG 2.4.11/2.4.7
- * require it to be perceivable, and it has no accompanying text/fill change
- * to fall back on.
+ * The neutral text family and the chrome family are a CROSS PRODUCT against
+ * their fill lists (before 2026-09-14 the list was hand-picked — `text` and
+ * `text-muted` on three surfaces, `link` and `focus-ring` on `surface` only,
+ * no `text-subtle`, no borders — and the pairs it left out were exactly the
+ * ones a live stand failed on). The status and accent pairs stay explicit:
+ * a status colour sits on its own tint, an `*-on` label sits on its own
+ * solid fill, and the accent label sits on `brand`.
  */
 export const CONTRAST_PAIRS = [
-  // text on the surfaces it actually renders over
-  ["text", "surface", "text"],
-  ["text", "surface-sunken", "text"],
-  ["text", "surface-raised", "text"],
-  ["text-muted", "surface", "text"],
-  ["text-muted", "surface-sunken", "text"],
-  ["text-muted", "surface-raised", "text"],
-  ["link", "surface", "text"],
+  ...TEXT_ROLES.flatMap((fg) => TEXT_FILL_ROLES.map((bg) => [fg, bg, "text"])),
+  ...UI_ROLES.flatMap((fg) => UI_FILL_ROLES.map((bg) => [fg, bg, "ui"])),
   ["success", "success-bg", "text"],
   ["error", "error-bg", "text"],
   ["warning", "warning-bg", "text"],
@@ -107,8 +138,6 @@ export const CONTRAST_PAIRS = [
   ["warning-on", "warning", "text"],
   ["error-on", "error", "text"],
   ["info-on", "info", "text"],
-  // focus indicator — UI (non-text) contrast, 3:1 (a11y-critical, not decorative)
-  ["focus-ring", "surface", "ui"],
 ];
 
 const THRESHOLD = { text: 4.5, ui: 3.0 };

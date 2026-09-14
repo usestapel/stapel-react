@@ -41,8 +41,8 @@
 }
 
 [data-theme="dark"] {
-  --stapel-border-rgb: 61 71 89;
-  --stapel-border-subtle-rgb: 42 50 66;
+  --stapel-border-rgb: 123 130 143;
+  --stapel-border-subtle-rgb: 107 115 127;
   --stapel-brand-rgb: 152 165 250;
   --stapel-brand-active-rgb: 238 240 253;
   --stapel-brand-hover-rgb: 238 240 253;
@@ -69,7 +69,7 @@
   --stapel-text-rgb: 244 245 247;
   --stapel-text-muted-rgb: 174 182 194;
   --stapel-text-on-accent-rgb: 21 26 35;
-  --stapel-text-subtle-rgb: 123 130 143;
+  --stapel-text-subtle-rgb: 149 156 169;
   --stapel-warning-rgb: 232 179 75;
   --stapel-warning-bg-rgb: 51 39 15;
   --stapel-warning-border-rgb: 122 81 0;

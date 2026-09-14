@@ -1,11 +1,25 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   hexToRgb,
   relativeLuminance,
   contrastRatio,
   checkContrastPairs,
+  CONTRAST_PAIRS,
+  TEXT_ROLES,
+  TEXT_FILL_ROLES,
+  UI_ROLES,
+  UI_FILL_ROLES,
   // @ts-expect-error — .mjs has no type declarations; it's a build/gen tool.
 } from "../src/gen/contrast.mjs";
+import {
+  mergeRamps,
+  validateTheme,
+  resolveTheme,
+  // @ts-expect-error — .mjs has no type declarations; it's a build/gen tool.
+} from "../src/gen/lib.mjs";
 
 describe("hexToRgb", () => {
   it("parses 6-digit and 3-digit hex", () => {
@@ -105,20 +119,127 @@ describe("checkContrastPairs", () => {
     expect(checkContrastPairs(resolvedCore)).toEqual([]);
   });
 
-  it("does not check border/border-subtle against surfaces (decorative role-category exemption, §68 Phase 6)", () => {
-    // A theme where the decorative border roles are badly low-contrast but
-    // everything else (incl. focus-ring, which IS still gated) is fine.
+  it("checks border/border-subtle against every surface at 3:1 (chrome is not decoration, 2026-09-14)", () => {
     const resolvedCore = {
-      surface: { light: "#ffffff", dark: "#151a23" },
-      "surface-sunken": { light: "#f4f5f7", dark: "#151a23" },
-      border: { light: "#fefefe", dark: "#161c25" }, // ~1:1, would fail 3:1 if checked
+      surface: { light: "#ffffff", dark: "#0b0e14" },
+      "surface-raised": { light: "#ffffff", dark: "#1c2230" },
+      border: { light: "#fefefe", dark: "#161c25" }, // ~1:1
       "border-subtle": { light: "#fcfcfc", dark: "#141a22" }, // ~1:1
       "focus-ring": { light: "#4657d9", dark: "#98a5fa" }, // legible, still checked
     };
-    const failures = checkContrastPairs(resolvedCore);
-    expect(failures.some((f: { fgName: string }) => f.fgName === "border")).toBe(false);
-    expect(failures.some((f: { fgName: string }) => f.fgName === "border-subtle")).toBe(
-      false
+    const keys = checkContrastPairs(resolvedCore).map((f: { key: string }) => f.key);
+    expect(keys).toContain("border:surface:light");
+    expect(keys).toContain("border:surface-raised:dark");
+    expect(keys).toContain("border-subtle:surface:light");
+    expect(keys).toContain("border-subtle:surface-raised:dark");
+    expect(keys.some((k: string) => k.startsWith("focus-ring:"))).toBe(false);
+  });
+});
+
+describe("CONTRAST_PAIRS — a cross product, not a hand-picked list (2026-09-14)", () => {
+  const pairKeys = new Set(CONTRAST_PAIRS.map(([fg, bg, kind]: string[]) => `${fg}:${bg}:${kind}`));
+
+  it("checks every neutral text role on every fill text sits on, as AA text", () => {
+    for (const fg of TEXT_ROLES) {
+      for (const bg of TEXT_FILL_ROLES) {
+        expect(pairKeys.has(`${fg}:${bg}:text`)).toBe(true);
+      }
+    }
+    expect(TEXT_ROLES).toEqual(["text", "text-muted", "text-subtle", "link", "link-hover"]);
+    expect(TEXT_FILL_ROLES).toEqual([
+      "surface",
+      "surface-raised",
+      "surface-sunken",
+      "surface-overlay",
+      "brand-subtle",
+      "success-bg",
+      "warning-bg",
+      "error-bg",
+      "info-bg",
+    ]);
+  });
+
+  it("checks every chrome role on every surface chrome sits on, as non-text 3:1", () => {
+    for (const fg of UI_ROLES) {
+      for (const bg of UI_FILL_ROLES) {
+        expect(pairKeys.has(`${fg}:${bg}:ui`)).toBe(true);
+      }
+    }
+    expect(UI_ROLES).toEqual(["border", "border-subtle", "focus-ring"]);
+    expect(UI_FILL_ROLES).toEqual(["surface", "surface-raised", "surface-sunken", "surface-overlay"]);
+  });
+
+  it("keeps the status and accent pairs explicit", () => {
+    for (const key of [
+      "success:success-bg:text",
+      "warning:warning-bg:text",
+      "error:error-bg:text",
+      "info:info-bg:text",
+      "text-on-accent:brand:text",
+      "success-on:success:text",
+      "warning-on:warning:text",
+      "error-on:error:text",
+      "info-on:info:text",
+    ]) {
+      expect(pairKeys.has(key)).toBe(true);
+    }
+  });
+
+  it("goes red on the dark values a live stand failed on before 2026-09-14 (the pre-fix theme)", () => {
+    // The dark column as it shipped in @stapel/tokens <= 0.8.0: text-subtle
+    // gray.500, border gray.700, border-subtle gray.800 on surface-raised
+    // gray.850. Measured live (video-react) at 4.11 / 1.70 / 1.24 — the
+    // hand-picked list had none of these three pairs.
+    const preFix = {
+      "surface-raised": { light: "#ffffff", dark: "#1c2230" },
+      "text-subtle": { light: "#7b828f", dark: "#7b828f" },
+      border: { light: "#aeb6c2", dark: "#3d4759" },
+      "border-subtle": { light: "#d9dde3", dark: "#2a3242" },
+    };
+    const byKey = new Map(
+      checkContrastPairs(preFix).map((f: { key: string; ratio: number }) => [f.key, f.ratio])
     );
+    expect(byKey.get("text-subtle:surface-raised:dark")).toBeCloseTo(4.11, 2);
+    expect(byKey.get("border:surface-raised:dark")).toBeCloseTo(1.7, 1);
+    expect(byKey.get("border-subtle:surface-raised:dark")).toBeCloseTo(1.24, 2);
+  });
+});
+
+describe("the shipped default theme under the cross-product gate", () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const read = (name: string): unknown =>
+    JSON.parse(readFileSync(resolve(here, "..", name), "utf8"));
+  const theme = read("theme.default.json") as {
+    ramps: Record<string, Record<string, string>>;
+    contrastExceptions: { fg: string; bg: string; mode: string }[];
+  };
+  const ramps = mergeRamps(read("ramps.standard.json"), theme.ramps);
+
+  it("validates with no errors — dark passes on its own values", () => {
+    const { errors } = validateTheme(theme, ramps);
+    expect(errors).toEqual([]);
+  });
+
+  it("carries a documented exception ONLY for light pairs (light is pinned; the dark fixes are real)", () => {
+    expect(theme.contrastExceptions.length).toBeGreaterThan(0);
+    for (const exc of theme.contrastExceptions) {
+      expect(exc.mode).toBe("light");
+    }
+    const { warnings } = validateTheme(theme, ramps);
+    expect(warnings.length).toBe(theme.contrastExceptions.length);
+    expect(warnings.every((w: string) => w.includes("(light)"))).toBe(true);
+  });
+
+  it("dark: text-subtle clears 4.5 on surface-raised, border and border-subtle clear 3", () => {
+    const resolved = resolveTheme(theme, ramps).core;
+    const ratio = (fg: string, bg: string): number =>
+      contrastRatio(resolved[fg].dark, resolved[bg].dark) as number;
+    expect(ratio("text-subtle", "surface-raised")).toBeGreaterThanOrEqual(4.5);
+    expect(ratio("border", "surface-raised")).toBeGreaterThanOrEqual(3);
+    expect(ratio("border-subtle", "surface-raised")).toBeGreaterThanOrEqual(3);
+    // The hierarchy survives: secondary text is still lighter than tertiary,
+    // and an outline is still stronger than a divider.
+    expect(ratio("text-muted", "surface-raised")).toBeGreaterThan(ratio("text-subtle", "surface-raised"));
+    expect(ratio("border", "surface-raised")).toBeGreaterThan(ratio("border-subtle", "surface-raised"));
   });
 });

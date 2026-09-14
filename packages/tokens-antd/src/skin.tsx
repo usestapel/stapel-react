@@ -32,6 +32,11 @@
  *  - {@link SkinDialog} + {@link useDialogSurface} — on a phone a dialog is a
  *    bottom sheet; modals are tablet/desktop only. It also themes its own
  *    portal, so a dialog is on the right side wherever it was declared.
+ *  - {@link lockPageScroll} — the page behind a panel holds still: one
+ *    ref-counted `overflow: hidden` on the root element with the gutter kept,
+ *    restored exactly when the last panel lets go. `SkinDialog` holds it for
+ *    every dialog; a mega menu or any other thing that stands over the page
+ *    calls the same one instead of carrying a private copy.
  *  - {@link SkinConfirm} — a confirmation is a dialog (so: a sheet on a
  *    phone), never an anchored popover.
  *  - {@link SkinCarousel} — a swipeable strip is NATIVE scroll-snap with a
@@ -113,6 +118,7 @@ export {
 } from "./skin/dialog.js";
 export type { SkinDialogProps } from "./skin/dialog.js";
 export { useDialogSurface, MODAL_MEDIA_QUERY } from "./skin/dialogSurface.js";
+export { lockPageScroll, pageScrollLockCount } from "./skin/pageScroll.js";
 export type { DialogSurface } from "./skin/dialogSurface.js";
 export {
   useThemeMode,

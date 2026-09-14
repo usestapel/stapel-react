@@ -89,6 +89,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactElement, Re
 import { ConfigProvider, Drawer, Modal, theme as antdTheme } from "antd";
 import { isDevBuild } from "@stapel/core";
 import { useDialogSurface } from "./dialogSurface.js";
+import { lockPageScroll } from "./pageScroll.js";
 import type { DialogSurface } from "./dialogSurface.js";
 import { reportContractViolation, useSkinComponents } from "./components.js";
 import { SkinTheme } from "./theme.js";
@@ -176,53 +177,6 @@ export function sheetSizingCss(prefix: string): string {
     `${panel}{height:auto;max-height:${SHEET_MAX_HEIGHT};flex:0 1 auto;min-height:0}`,
     `${wrapper} .${prefix}-drawer-footer{flex-shrink:0}`,
   ].join("\n");
-}
-
-/**
- * THE PAGE BEHIND A DIALOG DOES NOT SCROLL — and antd's own lock cannot be
- * relied on to say so (D474).
- *
- * rc-util locks the page by injecting `html body { overflow-y: hidden }`. That
- * reaches the VIEWPORT only through overflow propagation, whose rule is: the
- * viewport takes the ROOT element's overflow, and only when that is `visible`
- * does it take body's instead. A host that writes `html { overflow-x: clip }`
- * — the standard cure for a phone page that drifts sideways, and what the
- * storefront this was measured on writes — makes the root's overflow no longer
- * `visible`, and antd's rule stops reaching the viewport. Measured at 768: a
- * modal taller than the screen, and the feed scrolling behind it.
- *
- * So the substrate locks the element the browser actually scrolls, and it does
- * it by an INLINE style, which beats any stylesheet the host wrote. Reference
- * counted because dialogs nest (a picker sheet opens from inside a filters
- * sheet, and closing the inner one must not hand the page back while the outer
- * one is standing), and the root's previous inline value is restored exactly —
- * a host that had written one of its own gets it back.
- *
- * No scrollbar compensation here: antd's locker already narrows `body` by the
- * scrollbar's width whenever it locks, which is the half of its work that was
- * never broken.
- */
-let pageScrollLocks = 0;
-let unlockedOverflow: string | null = null;
-
-function lockPageScroll(): () => void {
-  if (typeof document === "undefined") return () => undefined;
-  const root = document.documentElement;
-  pageScrollLocks += 1;
-  if (pageScrollLocks === 1) {
-    unlockedOverflow = root.style.overflow;
-    root.style.overflow = "hidden";
-  }
-  return () => {
-    pageScrollLocks -= 1;
-    if (pageScrollLocks > 0) return;
-    if (unlockedOverflow === null || unlockedOverflow === "") {
-      root.style.removeProperty("overflow");
-    } else {
-      root.style.overflow = unlockedOverflow;
-    }
-    unlockedOverflow = null;
-  };
 }
 
 /** The sheet's title line: the caller's heading, and the close on the trailing

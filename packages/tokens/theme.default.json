@@ -18,11 +18,11 @@
 
     "text": { "light": "gray.900", "dark": "gray.100" },
     "text-muted": { "light": "gray.600", "dark": "gray.400" },
-    "text-subtle": { "light": "gray.500", "dark": "gray.500" },
+    "text-subtle": { "light": "gray.500", "dark": "gray.450" },
     "text-on-accent": { "light": "gray.25", "dark": "gray.900" },
 
-    "border": { "light": "gray.400", "dark": "gray.700" },
-    "border-subtle": { "light": "gray.300", "dark": "gray.800" },
+    "border": { "light": "gray.400", "dark": "gray.500" },
+    "border-subtle": { "light": "gray.300", "dark": "gray.550" },
     "focus-ring": { "light": "brand.500", "dark": "brand.300" },
 
     "brand": { "light": "brand.500", "dark": "brand.300" },
@@ -53,8 +53,26 @@
     "info-border": { "light": "blue.300", "dark": "blue.700" },
     "info-on": { "light": "gray.25", "dark": "gray.900" }
   },
-  "contrastExceptions": [],
-  "_contrastExceptionsComment": "Documented per-pairing escape hatch for the contrast GATE (src/gen/contrast.mjs CONTRAST_PAIRS, checked by validateTheme in src/gen/lib.mjs). Empty here — the default theme's real fixes make every checked pairing legible on its own. Format if ever needed: { \"fg\": \"<role>\", \"bg\": \"<role>\", \"mode\": \"light\"|\"dark\", \"reason\": \"<why this pairing is intentionally exempt>\" }. `reason` is required (non-empty) — an exception can never be silent. An entry that stops failing (pairing now legit) or that is malformed is itself a validation ERROR — the list must only ever hold live, reasoned exceptions.",
+  "contrastExceptions": [
+    { "fg": "text-subtle", "bg": "surface", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "surface-raised", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "surface-sunken", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "surface-overlay", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "brand-subtle", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "success-bg", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "warning-bg", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "error-bg", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "text-subtle", "bg": "info-bg", "mode": "light", "reason": "text-subtle light is gray.500 (3.9:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- lifting it needs a gray step between 500 and 600 in the light column, an owner decision" },
+    { "fg": "border", "bg": "surface", "mode": "light", "reason": "border light is gray.400 (2.0:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light outline is gray.500 or darker, an owner decision" },
+    { "fg": "border", "bg": "surface-raised", "mode": "light", "reason": "border light is gray.400 (2.0:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light outline is gray.500 or darker, an owner decision" },
+    { "fg": "border", "bg": "surface-sunken", "mode": "light", "reason": "border light is gray.400 (2.0:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light outline is gray.500 or darker, an owner decision" },
+    { "fg": "border", "bg": "surface-overlay", "mode": "light", "reason": "border light is gray.400 (2.0:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light outline is gray.500 or darker, an owner decision" },
+    { "fg": "border-subtle", "bg": "surface", "mode": "light", "reason": "border-subtle light is gray.300 (1.4:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light divider is gray.500 or darker, an owner decision" },
+    { "fg": "border-subtle", "bg": "surface-raised", "mode": "light", "reason": "border-subtle light is gray.300 (1.4:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light divider is gray.500 or darker, an owner decision" },
+    { "fg": "border-subtle", "bg": "surface-sunken", "mode": "light", "reason": "border-subtle light is gray.300 (1.4:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light divider is gray.500 or darker, an owner decision" },
+    { "fg": "border-subtle", "bg": "surface-overlay", "mode": "light", "reason": "border-subtle light is gray.300 (1.4:1 on white): light mode pinned byte-identical this release (owner scope, 2026-09-14) -- a 3:1 light divider is gray.500 or darker, an owner decision" }
+  ],
+  "_contrastExceptionsComment": "Documented per-pairing escape hatch for the contrast GATE (src/gen/contrast.mjs CONTRAST_PAIRS, checked by validateTheme in src/gen/lib.mjs). The gate is a cross product since 2026-09-14 (text family x every fill, chrome x every surface, both modes); dark passes on its own, and the LIGHT entries here are the pairs light mode fails today (text-subtle 3.9:1, border 2.0:1, border-subtle 1.4:1 on white) while its values stay pinned — each one is a live AA failure the owner has to lift by editing the light column, and the stale-exception check deletes it the moment that happens. Format: { \"fg\": \"<role>\", \"bg\": \"<role>\", \"mode\": \"light\"|\"dark\", \"reason\": \"<why this pairing is intentionally exempt>\" }. `reason` is required (non-empty) — an exception can never be silent. An entry that stops failing (pairing now legit) or that is malformed is itself a validation ERROR — the list must only ever hold live, reasoned exceptions.",
   "scales": {
     "fontFamily": {
       "sans": "'Inter', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",

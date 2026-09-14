@@ -112,11 +112,11 @@ export interface ColorToken {
 export const colors = {
   "border": {
     "light": "#aeb6c2",
-    "dark": "#3d4759"
+    "dark": "#7b828f"
   },
   "border-subtle": {
     "light": "#d9dde3",
-    "dark": "#2a3242"
+    "dark": "#6b737f"
   },
   "brand": {
     "light": "#4657d9",
@@ -224,7 +224,7 @@ export const colors = {
   },
   "text-subtle": {
     "light": "#7b828f",
-    "dark": "#7b828f"
+    "dark": "#959ca9"
   },
   "warning": {
     "light": "#9a6700",
