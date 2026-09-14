@@ -1,5 +1,18 @@
 # @stapel/tokens-antd
 
+## 0.22.1
+
+### Patch Changes
+
+- ba0ab41: `lockPageScroll()` is exported from `/skin`.
+
+  The ref-counted root-element scroll lock `SkinDialog` held privately — `html { overflow: hidden; scrollbar-gutter: stable }` as inline style, the host's own inline values restored exactly when the last lock lets go, returns its unlock — is now the one copy every panel that stands over the page calls, instead of the private copies `SkinDialog` and `CategoryMegaMenu` each carried. `SkinDialog` itself now keeps the gutter too, so a page with a classic scrollbar no longer widens by 15px the moment a dialog opens. `pageScrollLockCount()` beside it, for tests.
+
+  Via `@stapel/tokens`: dark `colorBorder` and `colorBorderSecondary` are lighter (3:1 and above on every surface), and `colorTextTertiary` clears AA on every fill in both modes (light is one step darker).
+
+- Updated dependencies [ba0ab41]
+  - @stapel/tokens@0.8.1
+
 ## 0.22.0
 
 ### Minor Changes

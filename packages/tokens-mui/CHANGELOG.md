@@ -1,5 +1,13 @@
 # @stapel/tokens-mui
 
+## 0.3.4
+
+### Patch Changes
+
+- ba0ab41: Via `@stapel/tokens`: dark `palette.divider` (from `border`) is lighter, 3:1 and above on every surface, and `palette.text.disabled` (from `text-subtle`) clears AA on `background.paper` in both modes (light is one step darker). No code change in the bridge; the values flow from the token source.
+- Updated dependencies [ba0ab41]
+  - @stapel/tokens@0.8.1
+
 ## 0.3.3
 
 ### Patch Changes
