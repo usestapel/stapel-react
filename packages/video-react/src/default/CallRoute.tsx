@@ -41,8 +41,9 @@
  * statement about this session and nothing else.
  */
 import { useEffect, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { theme } from "antd";
+import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { CallResponse } from "../api/types.js";
 import { useCalls } from "../headless/CallsProvider.js";
 import { CallStage } from "./CallStage.js";
@@ -118,8 +119,32 @@ interface LatchedSession {
   readonly peerId: string | undefined;
 }
 
-export function CallRoute(props: CallRouteProps): ReactElement | null {
+/**
+ * The screen's frame: above the page, over all of it.
+ *
+ * Shape only. The fill and the text colour are the skin's — `<SkinTheme
+ * surface="raised">` paints them from the mode it resolves — and that is
+ * the fix rather than a tidy-up: this frame used to be a plain `<div>` OUTSIDE
+ * the component's own skin, painted with `token.colorBgContainer` read from
+ * antd's ambient theme. Under a host that themes through `data-theme` alone
+ * (the storefront) the ambient theme is antd's default, which is light, so a
+ * dark page got a white full-screen sheet with the dark theme's light text on
+ * it — every line of the in-call screen at 1.09:1 (stand measure 2026-09-14).
+ */
+const ROUTE_FRAME: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1100,
+  overflow: "auto",
+};
+
+/** The inset inside the frame, read where the theme is already resolved. */
+function RouteInset(props: { readonly children: ReactNode }): ReactElement {
   const { token } = theme.useToken();
+  return <div style={{ padding: token.padding }}>{props.children}</div>;
+}
+
+export function CallRoute(props: CallRouteProps): ReactElement | null {
   const calls = useCalls();
   const { nameFor, renderRemote, renderLocal, cameras, connection } = props;
 
@@ -173,17 +198,13 @@ export function CallRoute(props: CallRouteProps): ReactElement | null {
     session.peerId !== undefined ? nameFor?.(session.peerId) : undefined;
 
   return (
-    <div
+    <SkinTheme
+      surface="raised"
       data-testid="video-call-route"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1100,
-        background: token.colorBgContainer,
-        padding: token.padding,
-        overflow: "auto",
-      }}
+      style={ROUTE_FRAME}
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
     >
+      <RouteInset>
       <CallStage
         token={session.token}
         serverUrl={session.url}
@@ -220,6 +241,7 @@ export function CallRoute(props: CallRouteProps): ReactElement | null {
           />
         )}
       />
-    </div>
+      </RouteInset>
+    </SkinTheme>
   );
 }

@@ -164,6 +164,24 @@ export interface CallPanelProps extends ThemeModeProp {
 }
 
 export function CallPanel(props: CallPanelProps): ReactElement {
+  // THE SKIN WRAPS THE TOKEN READ, not the other way round. The frame and the
+  // corner picture fill themselves from `token.colorBgLayout` /
+  // `token.colorBgContainer`, and a token read above the component's own
+  // `<SkinTheme>` is whatever theme the HOST happens to have around it — under
+  // `<CallRoute>` that was the stage's skin (right), in a host that mounts
+  // this panel itself, or in the showcase, it was antd's ambient default
+  // (light). Read inside, the two fills come from the mode the skin resolved.
+  return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <CallPanelBody {...props} />
+    </SkinTheme>
+  );
+}
+
+function CallPanelBody(props: CallPanelProps): ReactElement {
   const t = useT();
   const { token } = theme.useToken();
   const { ref: frameRef, narrow } = useNarrow<HTMLDivElement>();
@@ -312,220 +330,219 @@ export function CallPanel(props: CallPanelProps): ReactElement {
   );
 
   return (
-    <SkinTheme
-      surface="bare"
-      {...(props.mode !== undefined ? { mode: props.mode } : {})}
-    >
-      <Flex vertical gap={token.paddingXS} data-testid="video-call-panel">
-        <Flex
-          align="center"
-          justify="space-between"
-          gap={token.paddingXS}
-          data-testid="video-call-header"
-        >
-          <Typography.Text strong>{title}</Typography.Text>
-          {clock !== undefined && (
-            <Typography.Text
-              type="secondary"
-              // A clock is digits, and a screen reader announcing every tick
-              // is a screen reader nobody leaves on.
-              aria-hidden
-              data-testid="video-call-clock"
-            >
-              {clock}
-            </Typography.Text>
-          )}
-        </Flex>
-
-        {connection !== "connected" && (
-          <Flex
-            align="center"
-            gap={token.paddingXS}
-            role="status"
-            data-testid="video-call-connection"
-          >
-            <Typography.Text type="warning">
-              {t(
-                connection === "reconnecting"
-                  ? VIDEO_I18N_KEYS.callReconnecting
-                  : VIDEO_I18N_KEYS.callConnectionLost
-              )}
-            </Typography.Text>
-            {onReconnect !== undefined && (
-              <Button
-                size="small"
-                onClick={onReconnect}
-                data-testid="video-call-reconnect"
-                data-analytics="none"
-                data-analytics-reason="re-minting a media grant is a server write the host app wraps with its own tracked()"
-              >
-                {t(VIDEO_I18N_KEYS.callReconnect)}
-              </Button>
-            )}
-          </Flex>
-        )}
-
-        <div
-          ref={frameRef}
-          style={{
-            position: "relative",
-            width: "100%",
-            aspectRatio: narrow ? "3 / 4" : "16 / 9",
-            background: token.colorBgLayout,
-            borderRadius: token.borderRadiusLG,
-            overflow: "hidden",
-          }}
-          data-testid="video-call-frame"
-        >
-          {audioOnly ? (
-            // The audio-only fallback is a STATE, not a broken video. A person
-            // on a bad connection who turned the camera off should see the
-            // call working, not an empty rectangle they read as a failure.
-            //
-            // …AND THE OTHER PERSON STILL HAS TO BE AUDIBLE. This arm used to
-            // draw the card INSTEAD of calling `renderRemote`, so on an
-            // audio-only call the host's media node was never mounted and
-            // there was no element for the remote audio track to attach to: a
-            // silent call, on the one kind of call that is nothing but audio.
-            // The card is what a person sees; the sink is what they hear.
-            <>
-              <Flex
-                vertical
-                align="center"
-                justify="center"
-                style={{ height: "100%" }}
-                data-testid="video-call-audio-only"
-              >
-                <Typography.Text strong>{title}</Typography.Text>
-                <Typography.Text type="secondary">
-                  {t(VIDEO_I18N_KEYS.callAudioOnly)}
-                </Typography.Text>
-              </Flex>
-              <div style={AUDIO_SINK} data-testid="video-call-audio-sink">
-                {renderRemote?.({ audioOnly: true }) ?? null}
-              </div>
-            </>
-          ) : (
-            renderRemote?.({ audioOnly: false }) ?? (
-              <Flex
-                align="center"
-                justify="center"
-                style={{ height: "100%" }}
-                data-testid="video-call-remote-empty"
-              >
-                <Typography.Text type="secondary">
-                  {t(VIDEO_I18N_KEYS.callWaitingForVideo)}
-                </Typography.Text>
-              </Flex>
-            )
-          )}
-
-          {!audioOnly && camOn && (
-            <div
-              style={{
-                position: "absolute",
-                right: token.paddingXS,
-                bottom: token.paddingXS,
-                width: narrow ? 96 : 160,
-                aspectRatio: "3 / 4",
-                borderRadius: token.borderRadius,
-                overflow: "hidden",
-                background: token.colorBgContainer,
-              }}
-              data-testid="video-call-pip"
-            >
-              {renderLocal?.() ?? null}
-            </div>
-          )}
-        </div>
-
-        {notice !== undefined && (
+    <Flex vertical gap={token.paddingXS} data-testid="video-call-panel">
+      <Flex
+        align="center"
+        justify="space-between"
+        gap={token.paddingXS}
+        data-testid="video-call-header"
+      >
+        <Typography.Text strong>{title}</Typography.Text>
+        {clock !== undefined && (
           <Typography.Text
-            type="warning"
-            role="alert"
-            data-testid="video-call-device-notice"
+            type="secondary"
+            // A clock is digits, and a screen reader announcing every tick
+            // is a screen reader nobody leaves on.
+            aria-hidden
+            data-testid="video-call-clock"
           >
-            {t(notice)}
+            {clock}
           </Typography.Text>
         )}
+      </Flex>
 
-        {/* Icon controls with `aria-label` and NO tooltip. Touch has no
-            hover, so a tooltip on a phone — which is where a call mostly
-            happens — never appears at all; and on a disabled antd button it
-            never appears anywhere, because a disabled control swallows the
-            pointer events a tooltip listens for. The label is the accessible
-            name; anything a person needs to READ is on the page (the device
-            notice above). */}
+      {connection !== "connected" && (
         <Flex
           align="center"
-          justify="center"
-          gap={token.paddingSM}
-          data-testid="video-call-controls"
+          gap={token.paddingXS}
+          role="status"
+          data-testid="video-call-connection"
         >
-                      <Button
-              shape="circle"
-              size="large"
-              type={micOn ? "default" : "primary"}
-              danger={!micOn}
-              aria-pressed={!micOn}
-              aria-label={t(micOn ? VIDEO_I18N_KEYS.callMute : VIDEO_I18N_KEYS.callUnmute)}
-              onClick={() => void controls.toggleMic()}
-              data-testid="video-call-mic"
+          <Typography.Text type="warning">
+            {t(
+              connection === "reconnecting"
+                ? VIDEO_I18N_KEYS.callReconnecting
+                : VIDEO_I18N_KEYS.callConnectionLost
+            )}
+          </Typography.Text>
+          {onReconnect !== undefined && (
+            <Button
+              size="small"
+              onClick={onReconnect}
+              data-testid="video-call-reconnect"
               data-analytics="none"
-              data-analytics-reason="a device toggle is a client-side media action; the host app wraps it with its own tracked()"
+              data-analytics-reason="re-minting a media grant is a server write the host app wraps with its own tracked()"
             >
-              {micOn ? "🎙" : "🔇"}
+              {t(VIDEO_I18N_KEYS.callReconnect)}
             </Button>
-
-          {!audioOnly && (
-                          <Button
-                shape="circle"
-                size="large"
-                type={camOn ? "default" : "primary"}
-                danger={!camOn}
-                aria-pressed={!camOn}
-                aria-label={t(
-                  camOn ? VIDEO_I18N_KEYS.callCameraOff : VIDEO_I18N_KEYS.callCameraOn
-                )}
-                onClick={() => void controls.toggleCam()}
-                data-testid="video-call-camera"
-                data-analytics="none"
-                data-analytics-reason="a device toggle is a client-side media action"
-              >
-                {camOn ? "📷" : "🚫"}
-              </Button>
           )}
-
-          {!audioOnly && cameras.length > 1 && (
-                          <Button
-                shape="circle"
-                size="large"
-                aria-label={t(VIDEO_I18N_KEYS.callFlipCamera)}
-                onClick={() => void controls.flipCamera()}
-                data-testid="video-call-flip"
-                data-analytics="none"
-                data-analytics-reason="a device switch is a client-side media action"
-              >
-                🔄
-              </Button>
-          )}
-
-                      <Button
-              shape="circle"
-              size="large"
-              danger
-              type="primary"
-              aria-label={t(VIDEO_I18N_KEYS.callHangUp)}
-              onClick={onHangup}
-              data-testid="video-call-hangup"
-              data-analytics="none"
-              data-analytics-reason="ending a call is a server write the host wraps with its own tracked()"
-            >
-              📵
-            </Button>
         </Flex>
+      )}
+
+      <div
+        ref={frameRef}
+        style={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: narrow ? "3 / 4" : "16 / 9",
+          background: token.colorBgLayout,
+          borderRadius: token.borderRadiusLG,
+          overflow: "hidden",
+        }}
+        data-testid="video-call-frame"
+      >
+        {audioOnly ? (
+          // The audio-only fallback is a STATE, not a broken video. A person
+          // on a bad connection who turned the camera off should see the
+          // call working, not an empty rectangle they read as a failure.
+          //
+          // …AND THE OTHER PERSON STILL HAS TO BE AUDIBLE. This arm used to
+          // draw the card INSTEAD of calling `renderRemote`, so on an
+          // audio-only call the host's media node was never mounted and
+          // there was no element for the remote audio track to attach to: a
+          // silent call, on the one kind of call that is nothing but audio.
+          // The card is what a person sees; the sink is what they hear.
+          <>
+            <Flex
+              vertical
+              align="center"
+              justify="center"
+              style={{ height: "100%" }}
+              data-testid="video-call-audio-only"
+            >
+              <Typography.Text strong>{title}</Typography.Text>
+              <Typography.Text type="secondary">
+                {t(VIDEO_I18N_KEYS.callAudioOnly)}
+              </Typography.Text>
+            </Flex>
+            <div style={AUDIO_SINK} data-testid="video-call-audio-sink">
+              {renderRemote?.({ audioOnly: true }) ?? null}
+            </div>
+          </>
+        ) : (
+          renderRemote?.({ audioOnly: false }) ?? (
+            <Flex
+              align="center"
+              justify="center"
+              style={{ height: "100%" }}
+              data-testid="video-call-remote-empty"
+            >
+              <Typography.Text type="secondary">
+                {t(VIDEO_I18N_KEYS.callWaitingForVideo)}
+              </Typography.Text>
+            </Flex>
+          )
+        )}
+
+        {!audioOnly && camOn && (
+          <div
+            style={{
+              position: "absolute",
+              right: token.paddingXS,
+              bottom: token.paddingXS,
+              width: narrow ? 96 : 160,
+              aspectRatio: "3 / 4",
+              borderRadius: token.borderRadius,
+              overflow: "hidden",
+              background: token.colorBgContainer,
+              // An edge, so the corner picture reads as a picture on a tile
+              // one step darker than it (1.21:1 between the two surfaces).
+              border: `1px solid ${token.colorBorder}`,
+              boxSizing: "border-box",
+            }}
+            data-testid="video-call-pip"
+          >
+            {renderLocal?.() ?? null}
+          </div>
+        )}
+      </div>
+
+      {notice !== undefined && (
+        <Typography.Text
+          type="warning"
+          role="alert"
+          data-testid="video-call-device-notice"
+        >
+          {t(notice)}
+        </Typography.Text>
+      )}
+
+      {/* Icon controls with `aria-label` and NO tooltip. Touch has no
+          hover, so a tooltip on a phone — which is where a call mostly
+          happens — never appears at all; and on a disabled antd button it
+          never appears anywhere, because a disabled control swallows the
+          pointer events a tooltip listens for. The label is the accessible
+          name; anything a person needs to READ is on the page (the device
+          notice above). */}
+      <Flex
+        align="center"
+        justify="center"
+        gap={token.paddingSM}
+        data-testid="video-call-controls"
+      >
+                    <Button
+            shape="circle"
+            size="large"
+            type={micOn ? "default" : "primary"}
+            danger={!micOn}
+            aria-pressed={!micOn}
+            aria-label={t(micOn ? VIDEO_I18N_KEYS.callMute : VIDEO_I18N_KEYS.callUnmute)}
+            onClick={() => void controls.toggleMic()}
+            data-testid="video-call-mic"
+            data-analytics="none"
+            data-analytics-reason="a device toggle is a client-side media action; the host app wraps it with its own tracked()"
+          >
+            {micOn ? "🎙" : "🔇"}
+          </Button>
+
+        {!audioOnly && (
+                        <Button
+              shape="circle"
+              size="large"
+              type={camOn ? "default" : "primary"}
+              danger={!camOn}
+              aria-pressed={!camOn}
+              aria-label={t(
+                camOn ? VIDEO_I18N_KEYS.callCameraOff : VIDEO_I18N_KEYS.callCameraOn
+              )}
+              onClick={() => void controls.toggleCam()}
+              data-testid="video-call-camera"
+              data-analytics="none"
+              data-analytics-reason="a device toggle is a client-side media action"
+            >
+              {camOn ? "📷" : "🚫"}
+            </Button>
+        )}
+
+        {!audioOnly && cameras.length > 1 && (
+                        <Button
+              shape="circle"
+              size="large"
+              aria-label={t(VIDEO_I18N_KEYS.callFlipCamera)}
+              onClick={() => void controls.flipCamera()}
+              data-testid="video-call-flip"
+              data-analytics="none"
+              data-analytics-reason="a device switch is a client-side media action"
+            >
+              🔄
+            </Button>
+        )}
+
+                    <Button
+            shape="circle"
+            size="large"
+            danger
+            type="primary"
+            aria-label={t(VIDEO_I18N_KEYS.callHangUp)}
+            onClick={onHangup}
+            data-testid="video-call-hangup"
+            data-analytics="none"
+            data-analytics-reason="ending a call is a server write the host wraps with its own tracked()"
+          >
+            📵
+          </Button>
       </Flex>
-    </SkinTheme>
+    </Flex>
   );
 }
 

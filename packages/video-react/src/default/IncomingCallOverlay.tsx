@@ -72,6 +72,29 @@ export interface IncomingCallOverlayProps extends ThemeModeProp {
 export function IncomingCallOverlay(
   props: IncomingCallOverlayProps
 ): ReactElement | null {
+  const ring = useIncomingCall();
+  if (!ring.incoming && !ring.outgoing) return null;
+  if (ring.call === undefined) return null;
+  // THE SKIN IS OUTSIDE THE FRAME, on purpose. The full-screen arm below
+  // fills itself with `token.colorBgContainer`, and a token read ABOVE the
+  // component's own `<SkinTheme>` is antd's ambient theme — light, in a host
+  // that themes through `data-theme` alone. That was a white sheet over a
+  // dark page with the dark theme's light text on it: the caller's name at
+  // 1.09:1 on a phone (stand measure 2026-09-14). Read where the mode is
+  // already resolved, the fill and the text come from the same side.
+  return (
+    <SkinTheme
+      surface="bare"
+      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    >
+      <RingOverlay {...props} />
+    </SkinTheme>
+  );
+}
+
+/** The ring itself; rendered only inside the skin above, so every token it
+ * reads is the resolved mode's. */
+function RingOverlay(props: IncomingCallOverlayProps): ReactElement | null {
   const t = useT();
   const { token } = theme.useToken();
   const { ref, narrow: measured } = useNarrow<HTMLDivElement>();
@@ -114,6 +137,16 @@ export function IncomingCallOverlay(
       <Avatar
         size={narrow ? 96 : 64}
         {...(avatar !== undefined ? { src: avatar } : {})}
+        // antd's own avatar fill is a translucent white over whatever is
+        // under it, lettered with the "on accent" colour — near-black in the
+        // dark theme, so an initial measured 2.76:1 on the ring card. The
+        // surface and text roles are a pair the token gate already holds to
+        // AA, in both modes.
+        style={{
+          backgroundColor: token.colorBgLayout,
+          color: token.colorText,
+          border: `1px solid ${token.colorBorder}`,
+        }}
         data-testid="video-ring-avatar"
       >
         {typeof name === "string" ? name.slice(0, 1).toUpperCase() : null}
@@ -201,45 +234,40 @@ export function IncomingCallOverlay(
   );
 
   return (
-    <SkinTheme
-      surface="bare"
-      {...(props.mode !== undefined ? { mode: props.mode } : {})}
+    <div
+      ref={ref}
+      role="dialog"
+      aria-modal="true"
+      aria-live="assertive"
+      aria-label={t(
+        ring.incoming
+          ? VIDEO_I18N_KEYS.callIncomingTitle
+          : VIDEO_I18N_KEYS.callOutgoing
+      )}
+      data-testid="video-ring-overlay"
+      data-variant={narrow ? "fullscreen" : "card"}
+      style={
+        narrow
+          ? {
+              position: "fixed",
+              inset: 0,
+              zIndex: 1200,
+              background: token.colorBgContainer,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: token.paddingLG,
+            }
+          : {
+              position: "fixed",
+              top: token.paddingLG,
+              right: token.paddingLG,
+              zIndex: 1200,
+              maxWidth: 360,
+            }
+      }
     >
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-live="assertive"
-        aria-label={t(
-          ring.incoming
-            ? VIDEO_I18N_KEYS.callIncomingTitle
-            : VIDEO_I18N_KEYS.callOutgoing
-        )}
-        data-testid="video-ring-overlay"
-        data-variant={narrow ? "fullscreen" : "card"}
-        style={
-          narrow
-            ? {
-                position: "fixed",
-                inset: 0,
-                zIndex: 1200,
-                background: token.colorBgContainer,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: token.paddingLG,
-              }
-            : {
-                position: "fixed",
-                top: token.paddingLG,
-                right: token.paddingLG,
-                zIndex: 1200,
-                maxWidth: 360,
-              }
-        }
-      >
-        {narrow ? body : <Card styles={{ body: { padding: token.paddingLG } }}>{body}</Card>}
-      </div>
-    </SkinTheme>
+      {narrow ? body : <Card styles={{ body: { padding: token.paddingLG } }}>{body}</Card>}
+    </div>
   );
 }
