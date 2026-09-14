@@ -390,6 +390,19 @@ export function buildRangeGroups(
   // The axes this answer planned and declined to offer — sparse, or with no
   // caption anyone could print. Dropped unless the URL constrains them.
   const withheld = new Set(withheldSlugs(input.withheld, "range"));
+  /* NOTHING TO FILTER BY, on either axis.
+     `withheldSlugs(..., "range")` is deliberately axis-discriminated — a
+     `year` withheld as a GROUP is still a slider — and that rule stands. This
+     is a narrower fact that cuts across it: a coverage of ZERO means no
+     listing in the candidate set carries the field at all, so a from/to over
+     it is a control whose every answer is empty. Measured on the flats leaf:
+     `living_space` came back `coverage: 0/34` as a group and was drawn as a
+     range anyway, beside a `square` at 30+ values that was drawn nowhere. */
+  const noEvidence = new Set(
+    (input.withheld ?? [])
+      .filter((row) => row.coverage === 0)
+      .map((row) => row.slug)
+  );
   // The axes that already have a bucket list. See `countedFacets`: one axis
   // gets one control, and the counted half is the one with evidence in it.
   const counted =
@@ -507,10 +520,25 @@ export function buildRangeGroups(
       // unnameable. The schema still declares the same slug, so without this
       // the rail would draw exactly the row the answer withheld.
       if (withheld.has(group.slug)) return false;
-      // The same axis is already a bucket list on this rail. A CORE column is
-      // exempt: it is not part of the category plan (the server reserves the
-      // slug), so a same-named group is a different question and the price
-      // input must not disappear because one arrived.
+      // Nothing in the answer carries this field — see `noEvidence`.
+      if (!group.active && noEvidence.has(group.slug)) return false;
+      /* The same axis is already a bucket list on this rail. A CORE column is
+         exempt: it is not part of the category plan (the server reserves the
+         slug), so a same-named group is a different question and the price
+         input must not disappear because one arrived.
+
+         KNOWN GAP, measured and NOT fixed here (2026-09-14): `countedFacets`
+         is documented as "the axes that already have a bucket list on the
+         rail" and is fed `bag.counted`, which is the SERVER's counted list.
+         Those differ. On a flats leaf `square` is counted with 30-odd bare
+         integers, the rail draws no group for it, and this line then drops
+         its range row too — so the total-area filter exists in neither
+         column. The fix is to pass the DRAWN set rather than the counted one,
+         which this function cannot compute: it never sees the groups. Two
+         heuristics were tried here and both were wrong, the second rejected
+         by this package's own `year` fixture — an imported `year` is a raw
+         int with no vocabulary, exactly like `square`, and its bucket list IS
+         wanted. Nothing in a FEATURE separates them; only the rail knows. */
       if (!group.core && counted.has(group.slug)) return false;
       // Nobody named it. A from/to picker captioned `kilometrage` is a control
       // whose meaning a reader has to guess out of the numbers inside it,

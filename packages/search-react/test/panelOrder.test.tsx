@@ -190,6 +190,45 @@ describe("a numeric axis is one a reader can name", () => {
 // --------------------------------------------------------------------------
 
 describe("an axis that is a choice AND a measurement gets ONE control", () => {
+  it("drops a row for an axis NOTHING in the answer carries", () => {
+    /* Measured on a live flats leaf: `living_space` came back withheld with
+       `coverage: 0` — no listing in the candidate set has the field at all —
+       and was drawn as a from/to anyway, because `withheldSlugs` is
+       axis-discriminated and it was withheld as a GROUP.
+
+       That discrimination is right and stays: a `year` withheld as a group is
+       still a slider. Zero COVERAGE is a narrower fact that cuts across it —
+       a picker over a field nobody filled can only ever return nothing. */
+    const rows = buildRangeGroups({
+      state: stateOf("type=listing"),
+      categoryFeatures: CAR_FEATURES,
+      ranges: {
+        mileage: { min: 0, max: 300000, label: "Mileage", label_translatable: false, order: 3 },
+      },
+      withheld: [
+        { slug: "mileage", axis: "group", reason: "coverage", coverage: 0, candidates: 52 },
+      ],
+      t: (key) => key,
+    });
+    expect(rows.map((row) => row.slug)).not.toContain("mileage");
+  });
+
+  it("keeps a zero-coverage row the reader has actually constrained", () => {
+    // A constraint with no control to remove it is worse than a dead control.
+    const rows = buildRangeGroups({
+      state: stateOf("type=listing&r.mileage=0..100000"),
+      categoryFeatures: CAR_FEATURES,
+      ranges: {
+        mileage: { min: 0, max: 300000, label: "Mileage", label_translatable: false, order: 3 },
+      },
+      withheld: [
+        { slug: "mileage", axis: "group", reason: "coverage", coverage: 0, candidates: 52 },
+      ],
+      t: (key) => key,
+    });
+    expect(rows.map((row) => row.slug)).toContain("mileage");
+  });
+
   it("leaves a counted slug to its bucket list", () => {
     const rows = buildRangeGroups({
       state: stateOf("type=listing"),
