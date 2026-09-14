@@ -1,0 +1,694 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/alerts-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-alerts",
+    "contract": ">=0.2 <0.3"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {},
+  "machines": [],
+  "operations": {
+    "alerts_api_v1_issues_fix_create": {
+      "method": "POST",
+      "path": "/alerts/api/v1/issues/{issue_id}/fix",
+      "tag": "alerts",
+      "request": "IssueFix",
+      "response": "Issue"
+    },
+    "alerts_api_v1_issues_list": {
+      "method": "GET",
+      "path": "/alerts/api/v1/issues",
+      "tag": "alerts",
+      "request": null,
+      "response": null
+    },
+    "alerts_api_v1_issues_partial_update": {
+      "method": "PATCH",
+      "path": "/alerts/api/v1/issues/{issue_id}",
+      "tag": "alerts",
+      "request": "PatchedIssuePatch",
+      "response": "Issue"
+    },
+    "alerts_api_v1_issues_retrieve": {
+      "method": "GET",
+      "path": "/alerts/api/v1/issues/{issue_id}",
+      "tag": "alerts",
+      "request": null,
+      "response": "IssueDetail"
+    },
+    "alerts_api_v1_report_create": {
+      "method": "POST",
+      "path": "/alerts/api/v1/report",
+      "tag": "alerts",
+      "request": "Report",
+      "response": null
+    }
+  },
+  "hooks": {
+    "useIssue": {
+      "kind": "query",
+      "operation": "issue"
+    },
+    "useIssues": {
+      "kind": "query",
+      "operation": "issues"
+    },
+    "useIssueStatus": {
+      "kind": "mutation",
+      "operations": [
+        "fixIssue",
+        "patchIssue"
+      ],
+      "invalidates": [
+        [
+          "alerts",
+          "issues"
+        ]
+      ]
+    }
+  },
+  "errors": {
+    "error.400.alerts_batch_too_large": {
+      "status": 400,
+      "params": [
+        "max"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.alerts_invalid_report": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.alerts_status_not_settable": {
+      "status": 400,
+      "params": [
+        "status"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.alerts_service_key_required": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.alerts_service_key_invalid": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.alerts_issue_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": []
+  },
+  "demos": [
+    {
+      "id": "alerts.feed",
+      "title": "Triage feed",
+      "description": "Grouped by the service that reported, worst level first and then loudest — never the wire's newest-first order, which answers 'what moved' and not 'what is broken'. Each row carries its level, its status, how many times it has happened and when it was first and last seen, because the gap between those two is what separates a flare from something that has been failing quietly for a month. The empty state is two different sentences depending on whether a filter is set: 'nothing has failed' and 'nothing matches these filters' are the one pair of messages an error tracker must never confuse. The 403 is named rather than drawn as an empty table.",
+      "component": "IssuesFeed",
+      "covers": [
+        "IssueFilterBar"
+      ],
+      "tokens": [
+        "error",
+        "warning",
+        "success",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "quiet",
+        "refused",
+        "filters"
+      ],
+      "source": "demo/IssuesFeed.demo.tsx"
+    },
+    {
+      "id": "alerts.fix",
+      "title": "Mark fixed",
+      "description": "Both fields are optional upstream and both are recorded, so the submit is never blocked — a CI caller has a sha, somebody closing a hotfix by hand may have only a version, and somebody closing a duplicate has neither. What the dialog does instead of refusing is state the cost while both are empty: the issue still closes, there is just nothing to point at the day the store reopens it. This posts to /issues/{id}/fix rather than patching the status, because only that endpoint records the release AND zeroes the since-the-fix counter, which is the entire answer to “did it come back?”.",
+      "component": "FixIssueDialog",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/FixIssueDialog.demo.tsx"
+    },
+    {
+      "id": "alerts.issue",
+      "title": "Issue",
+      "description": "The occurrences are a sample and the count is the fact, so the heading states the relationship rather than leaving a list of twenty next to a count of four hundred looking like a contradiction. Each occurrence is collapsed over its own traceback and its own redacted context, because sixty frames inline would put every control on this screen below the fold. `Came back` is reported, never offered: the store sets it when a closed issue receives a new event, and the notice names the release that was supposed to have stopped it. `Muted until` is drawn only while the issue IS muted — the store does not clear the field when the status moves on.",
+      "component": "IssueDetail",
+      "covers": [
+        "MuteIssueDialog"
+      ],
+      "tokens": [
+        "error",
+        "warning",
+        "success",
+        "text-muted"
+      ],
+      "variants": [
+        "default",
+        "phone",
+        "came-back",
+        "swept",
+        "mute"
+      ],
+      "source": "demo/IssueDetail.demo.tsx"
+    },
+    {
+      "id": "alerts.provider",
+      "title": "Alerts provider",
+      "description": "Everything in this pair reads its client, its poll interval and its analytics seam from one runtime handed to <AlertsProvider>. The headless layer has no visual opinion at all: this demo renders a number, because a number is what a host's own operations header would want, and the hook reports the total separately from the fifty rows a page carries. The second variant is the answer most accounts get from this module — a 403, named rather than drawn as a zero.",
+      "component": "AlertsProvider",
+      "variants": [
+        "default",
+        "phone",
+        "refused"
+      ],
+      "source": "demo/Alerts.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "alerts.col.count",
+    "alerts.col.firstSeen",
+    "alerts.col.issue",
+    "alerts.col.lastSeen",
+    "alerts.col.level",
+    "alerts.col.status",
+    "alerts.detail.context",
+    "alerts.detail.count",
+    "alerts.detail.environment",
+    "alerts.detail.events",
+    "alerts.detail.eventsEmpty",
+    "alerts.detail.eventsEmptyHint",
+    "alerts.detail.eventsHint",
+    "alerts.detail.failed",
+    "alerts.detail.fingerprint",
+    "alerts.detail.firstSeen",
+    "alerts.detail.fixedAt",
+    "alerts.detail.fixedIn",
+    "alerts.detail.fixedSha",
+    "alerts.detail.kind",
+    "alerts.detail.lastSeen",
+    "alerts.detail.loading",
+    "alerts.detail.markFixed",
+    "alerts.detail.mute",
+    "alerts.detail.mutedForever",
+    "alerts.detail.mutedUntil",
+    "alerts.detail.noContext",
+    "alerts.detail.noTrace",
+    "alerts.detail.notFound",
+    "alerts.detail.notFoundHint",
+    "alerts.detail.note",
+    "alerts.detail.occurrences",
+    "alerts.detail.receivedAt",
+    "alerts.detail.redacted",
+    "alerts.detail.regressed",
+    "alerts.detail.regressedHint",
+    "alerts.detail.release",
+    "alerts.detail.reopen",
+    "alerts.detail.reopenConfirm",
+    "alerts.detail.requestPath",
+    "alerts.detail.sentry",
+    "alerts.detail.service",
+    "alerts.detail.sinceFix",
+    "alerts.detail.title",
+    "alerts.detail.trace",
+    "alerts.detail.traceId",
+    "alerts.dialog.cancel",
+    "alerts.dialog.dismiss",
+    "alerts.error.unknown",
+    "alerts.feed.checking",
+    "alerts.feed.empty",
+    "alerts.feed.emptyFiltered",
+    "alerts.feed.emptyFilteredHint",
+    "alerts.feed.emptyHint",
+    "alerts.feed.failed",
+    "alerts.feed.groupSummary",
+    "alerts.feed.intro",
+    "alerts.feed.loading",
+    "alerts.feed.next",
+    "alerts.feed.previous",
+    "alerts.feed.range",
+    "alerts.feed.refresh",
+    "alerts.feed.signedOut",
+    "alerts.feed.signedOutHint",
+    "alerts.feed.staffOnly",
+    "alerts.feed.staffOnlyHint",
+    "alerts.feed.title",
+    "alerts.feed.upToDate",
+    "alerts.filter.anyLevel",
+    "alerts.filter.anyService",
+    "alerts.filter.anyStatus",
+    "alerts.filter.clear",
+    "alerts.filter.level",
+    "alerts.filter.openOnly",
+    "alerts.filter.openOnlyHint",
+    "alerts.filter.service",
+    "alerts.filter.since",
+    "alerts.filter.sinceAny",
+    "alerts.filter.sinceDay",
+    "alerts.filter.sinceMonth",
+    "alerts.filter.sinceWeek",
+    "alerts.filter.status",
+    "alerts.fix.blank",
+    "alerts.fix.body",
+    "alerts.fix.sha",
+    "alerts.fix.shaHint",
+    "alerts.fix.submit",
+    "alerts.fix.title",
+    "alerts.fix.version",
+    "alerts.fix.versionHint",
+    "alerts.kind.dlq",
+    "alerts.kind.exception",
+    "alerts.kind.log",
+    "alerts.kind.manual",
+    "alerts.kind.monitoring",
+    "alerts.kind.unknown",
+    "alerts.level.debug",
+    "alerts.level.error",
+    "alerts.level.fatal",
+    "alerts.level.info",
+    "alerts.level.unknown",
+    "alerts.level.warning",
+    "alerts.mute.body",
+    "alerts.mute.day",
+    "alerts.mute.forever",
+    "alerts.mute.foreverHint",
+    "alerts.mute.month",
+    "alerts.mute.note",
+    "alerts.mute.noteHint",
+    "alerts.mute.submit",
+    "alerts.mute.title",
+    "alerts.mute.until",
+    "alerts.mute.week",
+    "alerts.nav.feed",
+    "alerts.nav.issue",
+    "alerts.row.open",
+    "alerts.row.seenRange",
+    "alerts.row.sinceFix",
+    "alerts.status.fixed",
+    "alerts.status.muted",
+    "alerts.status.new",
+    "alerts.status.regressed",
+    "alerts.status.unknown",
+    "alerts.value.none",
+    "error.400.alerts_batch_too_large",
+    "error.400.alerts_invalid_report",
+    "error.400.alerts_status_not_settable",
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.alerts_service_key_required",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.alerts_service_key_invalid",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.alerts_issue_not_found",
+    "error.404.not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.conflict",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable"
+  ],
+  "exports": {
+    "runtime": [
+      "ADMIN_ROOT_ID",
+      "ALERTS_ERRORS",
+      "ALERTS_ERROR_CODES",
+      "ALERTS_ERROR_FORBIDDEN",
+      "ALERTS_ERROR_ISSUE_NOT_FOUND",
+      "ALERTS_ERROR_STATUS_NOT_SETTABLE",
+      "ALERTS_ERROR_UNAUTHORIZED",
+      "ALERTS_EVENTS",
+      "ALERTS_FLOWS",
+      "ALERTS_I18N_KEYS",
+      "AlertsProvider",
+      "AlertsRuntimeContext",
+      "DEFAULT_ALERTS_BASE_URL",
+      "DEFAULT_ALERTS_POLL_INTERVAL_MS",
+      "ISSUE_LEVELS",
+      "ISSUE_STATUSES",
+      "OPEN_ISSUE_STATUSES",
+      "SETTABLE_ISSUE_STATUSES",
+      "alertsErrorBundleEn",
+      "alertsI18nBundleEn",
+      "alertsQueryKeys",
+      "createAlertsApi",
+      "createAlertsRuntime",
+      "createFlowMachine",
+      "explainAlertsError",
+      "flowEndpoints",
+      "groupIssuesByService",
+      "isAlertsStaffOnly",
+      "isAlertsUnauthorized",
+      "isErrorCode",
+      "isIssueNotFound",
+      "isOpenStatus",
+      "isSettableStatus",
+      "isStatusNotSettable",
+      "issueFiltersKey",
+      "navEntries",
+      "registerAlertsI18n",
+      "toAlertsError",
+      "toFlowError",
+      "useAlertsAnalytics",
+      "useAlertsApi",
+      "useAlertsRuntime",
+      "useFlow",
+      "useIssue",
+      "useIssueStatus",
+      "useIssues"
+    ],
+    "types": [
+      "AlertsApi",
+      "AlertsErrorCode",
+      "AlertsErrorSpec",
+      "AlertsEventName",
+      "AlertsFlowId",
+      "AlertsFlowSpec",
+      "AlertsI18nKey",
+      "AlertsRawOptions",
+      "AlertsRuntime",
+      "AnnotateIssueInput",
+      "ConditionalRead",
+      "ConditionalReadOptions",
+      "CreateAlertsRuntimeOptions",
+      "ErrorEvent",
+      "FixIssueInput",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Issue",
+      "IssueBag",
+      "IssueDetail",
+      "IssueFeedFilters",
+      "IssueFilters",
+      "IssueFix",
+      "IssueGroup",
+      "IssueKind",
+      "IssueLevel",
+      "IssuePage",
+      "IssuePatch",
+      "IssueSnapshot",
+      "IssueStatus",
+      "IssueStatusBag",
+      "IssuesBag",
+      "IssuesSnapshot",
+      "MuteIssueInput",
+      "Remediation",
+      "ReopenIssueInput",
+      "Schemas",
+      "SettableIssueStatus"
+    ]
+  }
+}

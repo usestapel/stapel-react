@@ -1,0 +1,119 @@
+{
+  "name": "@stapel/alerts-react",
+  "version": "0.0.0",
+  "description": "Headless React pair for stapel-alerts — the fleet's error tracker read and reconciled from a browser: the triage feed grouped by service with level, count and first/last seen, the issue with its last events, their traces and their redacted context, and the three writes an operator owns (mark fixed with the version and sha that claim it, mute until a date, reopen). The reads are ETag-aware — a conditional GET that comes back 304 keeps the rows already on screen instead of repainting them — and `regressed` is never offered as a status to set, because the store asserts it from evidence. Staff-only behind the host's session; the refusal is named, not drawn as an empty table. Zero visual opinion in the main entry; the opt-in `/default` subpath ships the antd skin.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usestapel/stapel-react.git",
+    "directory": "packages/alerts-react"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./default": {
+      "types": "./dist/default/index.d.ts",
+      "default": "./dist/default/index.js"
+    },
+    "./i18n/ru": {
+      "types": "./dist/i18n/ru.d.ts",
+      "default": "./dist/i18n/ru.js"
+    },
+    "./i18n/es": {
+      "types": "./dist/i18n/es.d.ts",
+      "default": "./dist/i18n/es.js"
+    },
+    "./manifest": "./manifest.json",
+    "./manifest.json": "./manifest.json",
+    "./nav-manifest": "./nav-manifest.json",
+    "./nav-manifest.json": "./nav-manifest.json",
+    "./llms.txt": "./llms.txt",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "tsconfig.json",
+    "README.md",
+    "MODULE.md",
+    "CHANGELOG.md",
+    "manifest.json",
+    "nav-manifest.json",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && vitest run --exclude test/prodBundlePurity.test.ts",
+    "test:pack": "vitest run test/prodBundlePurity.test.ts",
+    "lint": "eslint .",
+    "size": "size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "index — the headless pair (client + the two reads + the three writes): no antd",
+      "path": "dist/index.js",
+      "limit": "12 KB"
+    },
+    {
+      "name": "default — the antd triage skin (feed, detail, filters, the two dialogs)",
+      "path": "dist/default/index.js",
+      "limit": "20 KB"
+    },
+    {
+      "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",
+      "path": "dist/i18n/ru.js",
+      "limit": "8 KB"
+    },
+    {
+      "name": "i18n/es — same deal for Spanish: a host pays for the locales it ships",
+      "path": "dist/i18n/es.js",
+      "limit": "8 KB"
+    }
+  ],
+  "peerDependencies": {
+    "@stapel/core": ">=0.22.0 <1.0.0",
+    "@stapel/tokens": ">=0.6.0",
+    "@stapel/tokens-antd": ">=0.15.0",
+    "@tanstack/react-query": "^5.0.0",
+    "antd": ">=5.20.0 <7",
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@stapel/tokens-antd": {
+      "optional": true
+    },
+    "antd": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@stapel/core": "workspace:^",
+    "@stapel/showcase": "workspace:^",
+    "@stapel/tokens": "workspace:^",
+    "@stapel/tokens-antd": "workspace:^",
+    "@tanstack/react-query": "^5.81.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "antd": "^6.5.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "size-limit": "^11.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

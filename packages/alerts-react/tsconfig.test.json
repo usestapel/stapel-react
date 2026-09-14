@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_comment": "Type-checks the test suite AND the demos (frontend-guardrails §4.2: 'demos are first-class code, compiled'). noEmit; the build tsconfig emits src only. Generated stories are excluded (they are drift-gated, not hand-edited). Unlike the sibling pairs, this one type-checks demos and tests TOGETHER, so the demo suite itself is checked — which needs the `import.meta.glob` declaration in test/vite-env.d.ts.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "test",
+    "demo"
+  ],
+  "exclude": [
+    "demo/generated"
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/alerts-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "alerts.feed",
+      "title": "Triage feed",
+      "description": "Grouped by the service that reported, worst level first and then loudest — never the wire's newest-first order, which answers 'what moved' and not 'what is broken'. Each row carries its level, its status, how many times it has happened and when it was first and last seen, because the gap between those two is what separates a flare from something that has been failing quietly for a month. The empty state is two different sentences depending on whether a filter is set: 'nothing has failed' and 'nothing matches these filters' are the one pair of messages an error tracker must never confuse. The 403 is named rather than drawn as an empty table.",
+      "component": "IssuesFeed",
+      "covers": [
+        "IssueFilterBar"
+      ],
+      "tokens": [
+        "error",
+        "warning",
+        "success",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two services, five rows, every status represented — billing is on top because it has the fatal.",
+          "viewport": "desktop",
+          "step": "busy"
+        },
+        {
+          "id": "phone",
+          "description": "390px: each row becomes a card with its level and status as badges, and the way in underneath.",
+          "viewport": "phone",
+          "step": "cards"
+        },
+        {
+          "id": "quiet",
+          "description": "Nothing has failed. Said out loud — the tracker is reachable and has nothing to show, which is not the same as a tracker that could not be read.",
+          "viewport": "desktop",
+          "step": "quiet"
+        },
+        {
+          "id": "refused",
+          "description": "Signed in with an account that is not staff. The door stayed visible and the screen explains itself; an empty board here would have said 'nothing is broken'.",
+          "viewport": "desktop",
+          "step": "refused"
+        },
+        {
+          "id": "filters",
+          "description": "The bar alone. Every control clears, and 'Clear filters' appears the moment anything is set.",
+          "viewport": "desktop",
+          "step": "filters"
+        }
+      ],
+      "source": {
+        "file": "demo/IssuesFeed.demo.tsx",
+        "line": 40
+      }
+    },
+    {
+      "id": "alerts.fix",
+      "title": "Mark fixed",
+      "description": "Both fields are optional upstream and both are recorded, so the submit is never blocked — a CI caller has a sha, somebody closing a hotfix by hand may have only a version, and somebody closing a duplicate has neither. What the dialog does instead of refusing is state the cost while both are empty: the issue still closes, there is just nothing to point at the day the store reopens it. This posts to /issues/{id}/fix rather than patching the status, because only that endpoint records the release AND zeroes the since-the-fix counter, which is the entire answer to “did it come back?”.",
+      "component": "FixIssueDialog",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Both fields empty — the consequence is stated, and the button still works.",
+          "viewport": "desktop",
+          "step": "blank"
+        },
+        {
+          "id": "phone",
+          "description": "390px: a bottom sheet, with the action bar pinned so “Mark fixed” is never below the fold.",
+          "viewport": "phone",
+          "step": "sheet"
+        }
+      ],
+      "source": {
+        "file": "demo/FixIssueDialog.demo.tsx",
+        "line": 26
+      }
+    },
+    {
+      "id": "alerts.issue",
+      "title": "Issue",
+      "description": "The occurrences are a sample and the count is the fact, so the heading states the relationship rather than leaving a list of twenty next to a count of four hundred looking like a contradiction. Each occurrence is collapsed over its own traceback and its own redacted context, because sixty frames inline would put every control on this screen below the fold. `Came back` is reported, never offered: the store sets it when a closed issue receives a new event, and the notice names the release that was supposed to have stopped it. `Muted until` is drawn only while the issue IS muted — the store does not clear the field when the status moves on.",
+      "component": "IssueDetail",
+      "covers": [
+        "MuteIssueDialog"
+      ],
+      "tokens": [
+        "error",
+        "warning",
+        "success",
+        "text-muted"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "An open fatal with three occurrences — one of them carrying no traceback at all, which is what a captured log record looks like.",
+          "viewport": "desktop",
+          "step": "open"
+        },
+        {
+          "id": "phone",
+          "description": "390px: the meta wraps, the tracebacks keep their own scroll.",
+          "viewport": "phone",
+          "step": "open-phone"
+        },
+        {
+          "id": "came-back",
+          "description": "Closed in 0.41.0 and failing again since. The notice names the release, because that is what somebody needs in order to act — not the status word.",
+          "viewport": "desktop",
+          "step": "regressed"
+        },
+        {
+          "id": "swept",
+          "description": "Closed long enough ago that retention took the events. The row survives: deleting it would turn “unresolved” into “never happened”.",
+          "viewport": "desktop",
+          "step": "swept"
+        },
+        {
+          "id": "mute",
+          "description": "Muting stops the notifications, not the recording — the first line of the dialog, because that is the thing people get wrong about a mute. “No deadline” is offered last and warned about.",
+          "viewport": "phone",
+          "step": "mute"
+        }
+      ],
+      "source": {
+        "file": "demo/IssueDetail.demo.tsx",
+        "line": 48
+      }
+    },
+    {
+      "id": "alerts.provider",
+      "title": "Alerts provider",
+      "description": "Everything in this pair reads its client, its poll interval and its analytics seam from one runtime handed to <AlertsProvider>. The headless layer has no visual opinion at all: this demo renders a number, because a number is what a host's own operations header would want, and the hook reports the total separately from the fifty rows a page carries. The second variant is the answer most accounts get from this module — a 403, named rather than drawn as a zero.",
+      "component": "AlertsProvider",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "A staff session: the tracker answers, and the count is real.",
+          "viewport": "desktop",
+          "step": "counted"
+        },
+        {
+          "id": "phone",
+          "description": "390px — the same headless read, no layout of its own.",
+          "viewport": "phone",
+          "step": "counted-phone"
+        },
+        {
+          "id": "refused",
+          "description": "Signed in, not staff. The read fails by CODE, and a host that reads the refusal can say so instead of showing a confident zero.",
+          "viewport": "desktop",
+          "step": "refused"
+        }
+      ],
+      "source": {
+        "file": "demo/Alerts.demo.tsx",
+        "line": 52
+      }
+    }
+  ]
+}

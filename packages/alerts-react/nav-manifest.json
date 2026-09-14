@@ -1,0 +1,46 @@
+{
+  "package": "@stapel/alerts-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "admin.alerts",
+      "labelKey": "alerts.nav.feed",
+      "icon": "BellOutlined",
+      "route": {
+        "path": "alerts"
+      },
+      "component": {
+        "export": "IssuesFeed",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 10
+    },
+    {
+      "id": "admin.alerts-issue",
+      "labelKey": "alerts.nav.issue",
+      "icon": "AuditOutlined",
+      "route": {
+        "path": ":issueId"
+      },
+      "component": {
+        "export": "IssueDetail",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "admin.alerts"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 11
+    }
+  ]
+}
