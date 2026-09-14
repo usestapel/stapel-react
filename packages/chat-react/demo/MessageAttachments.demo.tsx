@@ -138,7 +138,7 @@ export default defineDemo({
     },
     voice: {
       description:
-        "The waveform IS the render. stapel-cdn draws it once with showwavespic in the same pass that measured the length, so the client paints one <img> instead of looping a canvas over a float array.",
+        "The waveform IS the render. stapel-cdn draws it once with showwavespic in the same pass that measured the length, so the client paints one <img> instead of looping a canvas over a float array. The row is a player: play/pause, the measured length, and a playhead drawn over the strip from the element's own timeupdate — in a row whose height is reserved before any of it loads.",
       viewport: "phone",
       step: "audio",
       render: () => (

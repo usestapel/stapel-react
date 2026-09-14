@@ -59,6 +59,27 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   } as unknown as typeof ResizeObserver;
 }
 
+// jsdom's `Blob` (and therefore `File`) ships no `arrayBuffer()`. Every real
+// browser has had it since 2019, and the voice-message suite drives a
+// recorded clip through `@stapel/cdn-react`'s REAL upload flow, which reads
+// the bytes through it to compute the SHA-256 the dedup pre-check is asked
+// with — so without this shim that suite would be testing a gap in the test
+// environment rather than the seam. Mirrors cdn-react's own setup.
+if (typeof Blob !== "undefined" && typeof Blob.prototype.arrayBuffer !== "function") {
+  Blob.prototype.arrayBuffer = function arrayBuffer(this: Blob): Promise<ArrayBuffer> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as ArrayBuffer);
+      };
+      reader.onerror = () => {
+        reject(reader.error ?? new Error("FileReader failed"));
+      };
+      reader.readAsArrayBuffer(this);
+    });
+  };
+}
+
 // jsdom implements neither half of the object-URL API. The composer's pending
 // chips show a picked photo through it before any server has seen the bytes,
 // so without a stand-in the attachment suite would be testing a gap in the

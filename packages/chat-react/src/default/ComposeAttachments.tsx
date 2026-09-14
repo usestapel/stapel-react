@@ -13,47 +13,37 @@
  *
  * ── The intake a registry type lands in ───────────────────────────────────
  *
- * stapel-cdn has four upload endpoints and stapel-chat has five builtin
+ * stapel-cdn has five upload endpoints and stapel-chat has five builtin
  * attachment types, and they do NOT map one to one:
  *
  *   image, gif  → `POST /upload/image/`   (both are image rows; `gif` is its
  *                                          own chat type so a client can offer
  *                                          a play affordance without sniffing)
  *   video       → `POST /upload/video/`
+ *   audio       → `POST /upload/audio/`   (stapel-cdn 0.21.0 — the intake this
+ *                                          file recorded as MISSING until then;
+ *                                          `@stapel/cdn-react` >= 0.6.0)
  *   file, other → `POST /upload/file/`    (an unregistered type this build has
  *                                          never heard of is bytes with a name)
- *   audio       → NOTHING. See below.
  *
- * ── THE AUDIO HOLE, STATED RATHER THAN WORKED AROUND ──────────────────────
+ * ── A voice message goes through the SAME seam as a photo ─────────────────
  *
- * stapel-cdn has the whole write side for audio — an `Audio` model, storage, a
- * `post_save` that queues the waveform, `AudioProcessingService` (ffprobe for
- * the duration, one `showwavespic` for the strip), `audio/<hash>` refs, the
- * describe branch that resolves them, and `ALLOWED_AUDIO_EXTENSIONS` /
- * `MAX_AUDIO_SIZE` sitting in its settings — and **no HTTP intake**:
- * `urls_v1.py` mounts image, avatar, video, file and typed-image, and there is
- * no `AudioUploadView` anywhere in the package. So nothing in this fleet can
- * turn a recorded `Blob` into the `audio/<hash>` key stapel-chat's `audio`
- * attachment type requires.
+ * {@link VoiceAttachButton} is `@stapel/cdn-react`'s `<VoiceRecordButton>`
+ * with its clip handed to the draft as an `audio` attachment: `draft.add`
+ * with `{type: "audio"}`, which is the option `useAttachmentDraft` has carried
+ * since 0.19.0 for exactly this ("a recording is `audio`, whatever its MIME").
+ * From there it is a chip like any other — the step named while it goes,
+ * remove and retry, the send blocked until it is stored — and
+ * {@link useCdnAttachmentUpload} routes it to the audio intake through the
+ * one map below. Nothing in the headless entry moved, and a host that wired
+ * `upload={useCdnAttachmentUpload()}` for photos has wired voice too; the
+ * button itself is behind `<ConversationThreadPanel voice>` because a
+ * microphone control is a product decision a thread owner makes, not a
+ * consequence of being able to attach a file.
  *
- * What this file does about that is say so and stop. It does NOT route a voice
- * note through `POST /upload/file/`: `.webm` and `.ogg` are not in
- * `ALLOWED_FILE_EXTENSIONS`, so that call is a 400 today — and a deployment
- * that widened the allowlist to make it pass would get a `file/<hash>` ref,
- * which has no waveform and no duration EVER. A voice message that can never
- * show its length is a silently degraded voice message, and a silently
- * degraded mode somebody can reach is the exact defect this wave exists to
- * close.
- *
- * So **this pair ships no voice control**, rather than one that refuses. The
- * recorder itself is real and released — `@stapel/cdn-react`'s
- * `useMediaRecorder` / `<VoiceRecordButton>` produce a webm/opus `Blob` today
- * — and the only missing link is the intake. When stapel-cdn mounts
- * `POST /upload/audio/`, this file gains ONE line in the map below
- * (`audio: { kind: "audio" }`) and the composer gains the button; nothing else
- * in either pair has to move. `useCdnAttachmentUpload` already refuses the
- * type by NAME so that a host wiring it early learns which seam is missing
- * rather than reading "upload failed".
+ * The clip is NOT routed through `POST /upload/file/`, and never was: a
+ * `file/<hash>` reference has no waveform and no duration EVER, and a voice
+ * message that can never show its length is a silently degraded one.
  */
 import { useCallback, useMemo, useRef } from "react";
 import type { ChangeEvent, ReactElement } from "react";
@@ -64,8 +54,11 @@ import {
   limitsForTarget,
   runUpload,
   useCdnRuntime,
+  voiceFileName,
 } from "@stapel/cdn-react";
-import type { CdnRenderMeta, CdnUploadTarget } from "@stapel/cdn-react";
+import type { CdnRenderMeta, CdnUploadTarget, RecordedClip } from "@stapel/cdn-react";
+import { VoiceRecordButton } from "@stapel/cdn-react/default";
+import type { VoiceInteraction } from "@stapel/cdn-react/default";
 import { spacing } from "@stapel/tokens";
 import type { Attachment } from "../api/types.js";
 import type {
@@ -79,14 +72,16 @@ const TARGET_BY_TYPE: Readonly<Record<string, CdnUploadTarget>> = {
   image: { kind: "image" },
   gif: { kind: "image" },
   video: { kind: "video" },
+  audio: { kind: "audio" },
   file: { kind: "file" },
 };
 
-/** Types this build can store. `audio` is absent, and the header says why. */
+/** Types this build can store — the five builtin ones, since stapel-cdn 0.21.0. */
 export const STORABLE_ATTACHMENT_TYPES: readonly string[] = [
   "image",
   "gif",
   "video",
+  "audio",
   "file",
 ];
 
@@ -142,11 +137,7 @@ export function useCdnAttachmentUpload(): AttachmentUpload {
         // NAMED, and thrown before a byte moves. `type` is in the message so
         // a deployment that registered `sticker` in chat and forgot the CDN
         // half reads which type it was rather than "upload failed".
-        throw new Error(
-          type === "audio"
-            ? "stapel-cdn has no audio intake: a voice message cannot be stored yet"
-            : `no stapel-cdn intake for attachment type "${type}"`
-        );
+        throw new Error(`no stapel-cdn intake for attachment type "${type}"`);
       }
       const outcome = await runUpload(runtime.api, file, {
         target,
@@ -238,6 +229,67 @@ export function AttachButton(props: AttachButtonProps): ReactElement {
   );
 }
 
+/** What the host may tune on the microphone control. */
+export interface VoiceComposeOptions {
+  /**
+   * Stop on its own after this many milliseconds. Default two minutes: long
+   * enough for a message, well short of `MAX_AUDIO_SIZE`.
+   */
+  readonly maxMs?: number;
+  /** `"toggle"` (default) or the phone's hold-to-record. See cdn-react. */
+  readonly interaction?: VoiceInteraction;
+}
+
+/** Two minutes. */
+const DEFAULT_VOICE_MAX_MS = 120_000;
+
+export interface VoiceAttachButtonProps {
+  readonly draft: AttachmentDraftBag;
+  readonly options?: VoiceComposeOptions;
+  readonly disabled?: boolean;
+}
+
+/**
+ * The microphone, as an attach control.
+ *
+ * `@stapel/cdn-react`'s control records and hands back the clip; this wraps
+ * the clip as a `File` named from ITS container (the extension the audio
+ * intake reads) and adds it to the draft as `audio` — after which it is a
+ * chip on the same list as a photo, going through the same `upload` seam.
+ * The record-only arm of the control is used on purpose: the draft owns the
+ * upload so that "wait", "remove" and "retry" mean the same thing for a
+ * voice note as for a picture, and one message with three voice notes is
+ * three chips rather than three uploaders.
+ *
+ * Switched off when the draft is full (`canAdd`), with the reason beside the
+ * send control the way every other refusal is.
+ */
+export function VoiceAttachButton(props: VoiceAttachButtonProps): ReactElement {
+  const gate = useActionGate(props.draft.canAdd);
+  const { draft } = props;
+  const onRecorded = useCallback(
+    (clip: RecordedClip): void => {
+      const file = new File([clip.blob], voiceFileName(clip), {
+        ...(clip.mimeType !== "" ? { type: clip.mimeType } : {}),
+      });
+      draft.add([file], { type: "audio" });
+    },
+    [draft]
+  );
+  const maxMs = props.options?.maxMs ?? DEFAULT_VOICE_MAX_MS;
+  return (
+    <VoiceRecordButton
+      onRecorded={onRecorded}
+      maxMs={maxMs}
+      {...(props.options?.interaction !== undefined
+        ? { interaction: props.options.interaction }
+        : {})}
+      disabled={gate.disabled || props.disabled === true}
+      testId="chat-attach-voice"
+    />
+  );
+}
+
 /** One pending attachment: what it is, which step it is on, and a way out. */
 function Chip(props: {
   draft: AttachmentDraftBag;
@@ -265,8 +317,11 @@ function Chip(props: {
           style={{ objectFit: "cover", display: "block" }}
         />
       )}
-      <Typography.Text ellipsis style={{ maxWidth: "12rem" }}>
-        {item.name}
+      {/* A recording has no name a person chose — the timestamped one it was
+          stored under is a filename, not a label — so the chip says what it
+          IS. A picked file keeps the name its owner knows it by. */}
+      <Typography.Text ellipsis style={{ maxWidth: "12rem" }} data-testid="chat-attach-name">
+        {item.medium === "audio" ? t(CHAT_I18N_KEYS.attachVoice) : item.name}
       </Typography.Text>
       {/* THE STEP, NOT A PERCENTAGE. There is no honest byte-percentage behind
           `fetch` (the CDN pair's flow states the whole argument), so the chip

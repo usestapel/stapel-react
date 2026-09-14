@@ -600,10 +600,11 @@
     {
       "id": "chat.compose-attachments",
       "title": "Attaching to a message",
-      "description": "The two pickers and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
+      "description": "The pickers, the microphone and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse; a voice note is recorded rather than picked and joins the same list as an audio chip, bound for POST /upload/audio/. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
       "component": "AttachmentChips",
       "covers": [
-        "AttachButton"
+        "AttachButton",
+        "VoiceAttachButton"
       ],
       "tokens": [
         "surface-sunken",
@@ -611,6 +612,7 @@
       ],
       "variants": [
         "empty",
+        "voice",
         "uploading",
         "failed"
       ],
@@ -863,6 +865,7 @@
     "chat.attachment.open",
     "chat.attachment.pause",
     "chat.attachment.play",
+    "chat.attachment.progress",
     "chat.attachment.video_alt",
     "chat.call.blocked.busy",
     "chat.call.blocked.mandate_unknown",

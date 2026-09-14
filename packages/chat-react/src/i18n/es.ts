@@ -132,6 +132,7 @@ export const chatI18nBundleEs: I18nDictionary = {
   "chat.attachment.play": "Reproducir",
   "chat.attachment.pause": "Pausa",
   "chat.attachment.duration_unmeasured": "No se ha medido la duración",
+  "chat.attachment.progress": "Posición de reproducción",
   "chat.attachment.meta_partial": "No se han podido leer algunos datos de este archivo",
   "chat.attachment.meta_missing": "No se ha podido leer ningún dato de este archivo",
 

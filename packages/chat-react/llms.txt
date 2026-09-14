@@ -85,7 +85,7 @@ const { tracked } = useTracked();
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - chat.attachments → <MessageAttachments> [photo|clip|voice|document|still-generating]  demo/MessageAttachments.demo.tsx
-- chat.compose-attachments → <AttachmentChips> [empty|uploading|failed]  demo/ComposeAttachments.demo.tsx
+- chat.compose-attachments → <AttachmentChips> [empty|voice|uploading|failed]  demo/ComposeAttachments.demo.tsx
 - chat.conversation-list-panel → <ConversationListPanel> [default|more-to-load|empty|left|host-subject-line|row-identity]  demo/ConversationListPanelSkin.demo.tsx
 - chat.conversation-thread-panel → <ConversationThreadPanel> [default|earlier-history|no-messages-yet|dark|no-live-socket|seeded-question|subject-gone|thread-menu-open]  demo/ConversationThreadPanelSkin.demo.tsx
 - chat.conversations → <ConversationList> [default]  demo/ConversationList.demo.tsx

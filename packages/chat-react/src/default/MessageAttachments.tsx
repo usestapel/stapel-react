@@ -264,17 +264,36 @@ function Clip(props: {
 }
 
 /**
- * audio — the waveform, and one control.
+ * The height a voice row is reserved at, in CSS pixels, whatever has loaded.
+ *
+ * The strip's 4:1 box already fixes the row's height ONCE the row has a
+ * width; this is the floor underneath it, so a bubble that has not been laid
+ * out yet, a strip that never arrives (`meta_status: "missing"`) and a strip
+ * that does all draw the same row. A one-off geometry rather than a spacing
+ * step, named here so the next person changes it in one place.
+ */
+export const VOICE_ROW_MIN_HEIGHT_PX = 48;
+
+/**
+ * audio — the waveform, one control, and where the playhead is.
  *
  * The waveform is an IMAGE the CDN rendered (`showwavespic`, one ffmpeg pass in
  * the same run that measured the duration), so a client paints one `<img>`
  * rather than looping a canvas over a float array it would have to fetch and
  * decode. `preview_kind: "waveform"` is known from the type alone, which is why
- * the strip's box is reserved at 4:1 before any bytes exist.
+ * the strip's box is reserved at 4:1 before any bytes exist, with
+ * {@link VOICE_ROW_MIN_HEIGHT_PX} under it so the row cannot collapse before
+ * layout — nothing in this arm moves when the strip, the length or the
+ * playhead arrives.
  *
  * The element is a real `<audio>` with no `controls`: the browser's default
  * control bar is 300-odd pixels of chrome that would dwarf the strip, and the
- * only two things a voice message needs are play/pause and how long it is.
+ * three things a voice message needs are play/pause, how long it is and how
+ * far it has got. The playhead is a fill drawn OVER the strip, driven by the
+ * element's own `timeupdate`, and its denominator is the server's measured
+ * length when there is one and the element's decoded duration otherwise —
+ * so an unmeasured clip still shows progress once it plays, and the sentence
+ * that says nobody measured it stays until then.
  */
 function Voice(props: {
   attachment: Attachment;
@@ -284,9 +303,19 @@ function Voice(props: {
   const { attachment } = props;
   const audio = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [positionMs, setPositionMs] = useState(0);
+  const [decodedMs, setDecodedMs] = useState<number | null>(null);
   const source = attachmentUrl(attachment);
-  const clock = clockOf(attachment.duration_ms);
+  const measuredMs =
+    typeof attachment.duration_ms === "number" && attachment.duration_ms > 0
+      ? attachment.duration_ms
+      : null;
+  const totalMs = measuredMs ?? decodedMs;
+  const clock = clockOf(measuredMs ?? attachment.duration_ms);
   const strip = attachment.preview_b64;
+  const fraction =
+    totalMs === null || totalMs <= 0 ? 0 : Math.min(1, Math.max(0, positionMs / totalMs));
+  const percent = Math.round(fraction * 100);
   /**
    * A voice message whose ladder came back empty has no URL to play, and the
    * reason is a FACT about this deployment's CDN — not "disabled for unknown
@@ -315,9 +344,20 @@ function Voice(props: {
     }
   }, []);
 
+  const elapsed = clockOf(positionMs) ?? "0:00";
+
   return (
     <Flex vertical gap={spacing[1]} data-testid="chat-attachment-audio">
-      <Flex align="center" gap={spacing[3]} style={frameStyle(props.maxWidth)}>
+      <Flex
+        align="center"
+        gap={spacing[3]}
+        style={{
+          ...frameStyle(props.maxWidth),
+          minHeight: VOICE_ROW_MIN_HEIGHT_PX,
+          paddingInline: spacing[2],
+        }}
+        data-testid="chat-attachment-audio-row"
+      >
         <Button
           shape="circle"
           disabled={gate.disabled}
@@ -325,6 +365,7 @@ function Voice(props: {
           aria-label={t(
             playing ? CHAT_I18N_KEYS.attachmentPause : CHAT_I18N_KEYS.attachmentPlay
           )}
+          aria-pressed={playing}
           data-testid="chat-attachment-audio-toggle"
           data-analytics="none"
           data-analytics-reason="business action — host app wraps with its own tracked()"
@@ -332,19 +373,45 @@ function Voice(props: {
           {playing ? "❚❚" : "▶"}
         </Button>
         {/* The strip's box is reserved whether or not the bytes are here: the
-            shape follows from `preview_kind`, which follows from `type`. */}
-        <div style={{ flex: 1, aspectRatio: "4", minWidth: 0 }}>
+            shape follows from `preview_kind`, which follows from `type`. The
+            playhead is a fill over it — the same box, so it costs no height. */}
+        <div
+          style={{ flex: 1, aspectRatio: "4", minWidth: 0, position: "relative" }}
+          role="progressbar"
+          aria-label={t(CHAT_I18N_KEYS.attachmentProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          data-testid="chat-attachment-progress"
+        >
           {strip == null ? null : (
             <img
               src={strip}
               alt={t(CHAT_I18N_KEYS.attachmentAudioAlt)}
-              style={{ width: "100%", height: "100%", objectFit: "fill" }}
+              style={{ width: "100%", height: "100%", objectFit: "fill", display: "block" }}
               data-testid="chat-attachment-waveform"
             />
           )}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              insetBlock: 0,
+              insetInlineStart: 0,
+              width: `${String(percent)}%`,
+              background: cssVar("brand"),
+              opacity: 0.25,
+              pointerEvents: "none",
+            }}
+            data-testid="chat-attachment-playhead"
+          />
         </div>
         <Typography.Text type="secondary" data-testid="chat-attachment-duration">
-          {clock ?? t(CHAT_I18N_KEYS.attachmentDurationUnmeasured)}
+          {clock === null
+            ? t(CHAT_I18N_KEYS.attachmentDurationUnmeasured)
+            : playing || positionMs > 0
+              ? `${elapsed} / ${clock}`
+              : clock}
         </Typography.Text>
       </Flex>
       {gate.reason === null ? null : (
@@ -365,7 +432,22 @@ function Voice(props: {
           }}
           onEnded={() => {
             setPlaying(false);
+            setPositionMs(0);
           }}
+          onTimeUpdate={(event) => {
+            setPositionMs(Math.round(event.currentTarget.currentTime * 1000));
+          }}
+          onLoadedMetadata={(event) => {
+            // The element's own decoded length — the denominator for a clip
+            // the server never measured. Never written over the server's
+            // number when there is one: two answers to "how long" is the seam
+            // defect this fleet keeps finding.
+            const seconds = event.currentTarget.duration;
+            if (Number.isFinite(seconds) && seconds > 0) {
+              setDecodedMs(Math.round(seconds * 1000));
+            }
+          }}
+          data-testid="chat-attachment-audio-element"
         />
       )}
       <MetaNote attachment={attachment} />

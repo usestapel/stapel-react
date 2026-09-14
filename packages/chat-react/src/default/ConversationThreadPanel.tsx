@@ -32,7 +32,8 @@ import type {
 } from "../headless/useAttachmentDraft.js";
 import { readAttachments } from "../model/attachments.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
-import { AttachButton, AttachmentChips } from "./ComposeAttachments.js";
+import { AttachButton, AttachmentChips, VoiceAttachButton } from "./ComposeAttachments.js";
+import type { VoiceComposeOptions } from "./ComposeAttachments.js";
 import { MessageAttachments } from "./MessageAttachments.js";
 import { ErrorAlert } from "./ErrorAlert.js";
 import { TransportTag } from "./TransportTag.js";
@@ -139,6 +140,19 @@ export interface ConversationThreadPanelProps {
   upload?: AttachmentUpload;
   /** The deployment's `STAPEL_CHAT["MAX_ATTACHMENTS"]`. Default 10. */
   maxAttachments?: number;
+  /**
+   * A MICROPHONE beside the pickers. `true` for the defaults (two minutes,
+   * press-to-toggle), or the options. Needs {@link upload} — the recording
+   * goes through the same seam as a photo, as an `audio` attachment — and
+   * draws nothing without it, for the reason the pickers draw nothing: a
+   * control over bytes that can never be stored is the "visible but does
+   * nothing" shape this pair refuses. Behind a prop rather than implied by
+   * `upload` because a microphone in a thread is a product decision, not a
+   * consequence of being able to attach a file. Its sentences come from
+   * `@stapel/cdn-react`'s bundle, which a host that wired `upload` already
+   * registers.
+   */
+  voice?: boolean | VoiceComposeOptions;
 }
 
 /** What the header-actions slot is told. */
@@ -346,6 +360,7 @@ function Composer(props: {
   initialText: string | undefined;
   upload: AttachmentUpload | undefined;
   maxAttachments: number | undefined;
+  voice: boolean | VoiceComposeOptions | undefined;
 }): ReactElement {
   const t = useT();
   const errorDisplay = useErrorDisplay(CHAT_I18N_KEYS.unknownError);
@@ -374,6 +389,7 @@ function Composer(props: {
           pristine={bag.pristine}
           signInHint={bag.signInHint}
           attachments={bag.attachments}
+          voice={props.voice}
           errorNode={<ErrorAlert error={errorDisplay(bag.error)} />}
           t={t}
         />
@@ -395,6 +411,7 @@ function ComposerBody(props: {
   pristine: boolean;
   signInHint: string | null;
   attachments: AttachmentDraftBag | null;
+  voice: boolean | VoiceComposeOptions | undefined;
   errorNode: ReactElement | null;
   t: (key: string, params?: Readonly<Record<string, unknown>>) => string;
 }): ReactElement {
@@ -451,6 +468,12 @@ function ComposerBody(props: {
           <>
             <AttachButton draft={props.attachments} kind="media" />
             <AttachButton draft={props.attachments} kind="file" />
+            {props.voice === undefined || props.voice === false ? null : (
+              <VoiceAttachButton
+                draft={props.attachments}
+                {...(props.voice === true ? {} : { options: props.voice })}
+              />
+            )}
           </>
         )}
         <Button
@@ -664,6 +687,7 @@ export function ConversationThreadPanel(
               initialText={props.initialText}
               upload={props.upload}
               maxAttachments={props.maxAttachments}
+              voice={props.voice}
             />
           </div>
           </Card>

@@ -111,6 +111,7 @@ export type { StartCallButtonProps } from "./StartCallButton.js";
 export {
   ATTACHMENT_MAX_WIDTH_PX,
   MessageAttachments,
+  VOICE_ROW_MIN_HEIGHT_PX,
 } from "./MessageAttachments.js";
 export type { MessageAttachmentsProps } from "./MessageAttachments.js";
 export {
@@ -119,5 +120,10 @@ export {
   renderMetaToAttachment,
   STORABLE_ATTACHMENT_TYPES,
   useCdnAttachmentUpload,
+  VoiceAttachButton,
 } from "./ComposeAttachments.js";
-export type { AttachButtonProps } from "./ComposeAttachments.js";
+export type {
+  AttachButtonProps,
+  VoiceAttachButtonProps,
+  VoiceComposeOptions,
+} from "./ComposeAttachments.js";

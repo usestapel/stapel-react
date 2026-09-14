@@ -46,6 +46,7 @@ import type {
   ConversationListPanelProps,
 } from "./ConversationListPanel.js";
 import type { AttachmentUpload } from "../headless/useAttachmentDraft.js";
+import type { VoiceComposeOptions } from "./ComposeAttachments.js";
 import { ConversationThreadPanel } from "./ConversationThreadPanel.js";
 import type { ThreadHeaderActionsContext } from "./ConversationThreadPanel.js";
 import { ChatSkinTheme } from "./theme.js";
@@ -135,6 +136,8 @@ export interface ConversationSplitPanelProps {
   upload?: AttachmentUpload;
   /** `MAX_ATTACHMENTS` — forwarded to `<ConversationThreadPanel/>`. */
   maxAttachments?: number;
+  /** The microphone — forwarded to `<ConversationThreadPanel voice>`, where the reasoning is. */
+  voice?: boolean | VoiceComposeOptions;
   /**
    * What the OPEN thread's composer already says — forwarded to
    * `<ConversationThreadPanel initialText>`, where the two rules are.
@@ -400,6 +403,7 @@ function SplitBody(props: ConversationSplitPanelProps): ReactElement {
             {...(props.maxAttachments !== undefined
               ? { maxAttachments: props.maxAttachments }
               : {})}
+            {...(props.voice !== undefined ? { voice: props.voice } : {})}
             {...(props.notifications !== undefined
               ? { notifications: props.notifications }
               : {})}

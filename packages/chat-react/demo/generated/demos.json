@@ -28,7 +28,7 @@
         },
         {
           "id": "voice",
-          "description": "The waveform IS the render. stapel-cdn draws it once with showwavespic in the same pass that measured the length, so the client paints one <img> instead of looping a canvas over a float array.",
+          "description": "The waveform IS the render. stapel-cdn draws it once with showwavespic in the same pass that measured the length, so the client paints one <img> instead of looping a canvas over a float array. The row is a player: play/pause, the measured length, and a playhead drawn over the strip from the element's own timeupdate — in a row whose height is reserved before any of it loads.",
           "viewport": "phone",
           "step": "audio"
         },
@@ -53,10 +53,11 @@
     {
       "id": "chat.compose-attachments",
       "title": "Attaching to a message",
-      "description": "The two pickers and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
+      "description": "The pickers, the microphone and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse; a voice note is recorded rather than picked and joins the same list as an audio chip, bound for POST /upload/audio/. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
       "component": "AttachmentChips",
       "covers": [
-        "AttachButton"
+        "AttachButton",
+        "VoiceAttachButton"
       ],
       "tokens": [
         "surface-sunken",
@@ -70,8 +71,14 @@
           "step": "idle"
         },
         {
+          "id": "voice",
+          "description": "The same row with the microphone a thread owner switched on (`<ConversationThreadPanel voice>`). It is cdn-react's own control, handing its take to the draft as an audio attachment — so the upload, the wait and the retry are the ones every other chip has.",
+          "viewport": "phone",
+          "step": "idle"
+        },
+        {
           "id": "uploading",
-          "description": "Two files in flight, each naming the STEP it is on. The picture shows itself from a local object URL the instant it was picked — long before any server has seen it — and the send control is blocked with «wait for the attachments».",
+          "description": "Three attachments in flight, each naming the STEP it is on. The picture shows itself from a local object URL the instant it was picked — long before any server has seen it — the voice note says what it is rather than the timestamped filename it is stored under, and the send control is blocked with «wait for the attachments».",
           "viewport": "phone",
           "step": "uploading"
         },
@@ -84,7 +91,7 @@
       ],
       "source": {
         "file": "demo/ComposeAttachments.demo.tsx",
-        "line": 125
+        "line": 129
       }
     },
     {

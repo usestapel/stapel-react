@@ -30,8 +30,11 @@ import { defineDemo } from "@stapel/showcase";
 import { CdnProvider, createCdnRuntime } from "@stapel/cdn-react";
 import { actionAvailable, actionBlocked } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
-import { AttachButton } from "../src/default/ComposeAttachments.js";
-import { AttachmentChips } from "../src/default/ComposeAttachments.js";
+import {
+  AttachButton,
+  AttachmentChips,
+  VoiceAttachButton,
+} from "../src/default/ComposeAttachments.js";
 import { CHAT_I18N_KEYS, useAttachmentDraft } from "../src/index.js";
 import type {
   AttachmentDraftBag,
@@ -97,7 +100,7 @@ function Frame(props: { children: ReactElement }): ReactElement {
 }
 
 /** The live hook, for the one state a static render can actually reach. */
-function LiveEmpty(): ReactElement {
+function LiveEmpty(props: { voice?: boolean }): ReactElement {
   const draft = useAttachmentDraft({ upload: idle });
   return (
     <Flex vertical gap={spacing[3]}>
@@ -105,6 +108,7 @@ function LiveEmpty(): ReactElement {
       <Flex gap={spacing[2]} wrap>
         <AttachButton draft={draft} kind="media" />
         <AttachButton draft={draft} kind="file" />
+        {props.voice === true ? <VoiceAttachButton draft={draft} /> : null}
       </Flex>
     </Flex>
   );
@@ -126,9 +130,9 @@ export default defineDemo({
   id: "chat.compose-attachments",
   title: "Attaching to a message",
   description:
-    "The two pickers and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
+    "The pickers, the microphone and the pending list. Each picker's accept string comes from the intake its files go to, so it can never offer what the gate will refuse; a voice note is recorded rather than picked and joins the same list as an audio chip, bound for POST /upload/audio/. A chip names the step the upload is on — there is no honest byte-percentage behind fetch, so nothing here draws a bar — and carries the two ways out: remove it, or try it again.",
   component: AttachmentChips,
-  covers: ["AttachButton"],
+  covers: ["AttachButton", "VoiceAttachButton"],
   tokens: ["surface-sunken", "text-muted"],
   variants: {
     empty: {
@@ -142,9 +146,20 @@ export default defineDemo({
         </Frame>
       ),
     },
+    voice: {
+      description:
+        "The same row with the microphone a thread owner switched on (`<ConversationThreadPanel voice>`). It is cdn-react's own control, handing its take to the draft as an audio attachment — so the upload, the wait and the retry are the ones every other chip has.",
+      viewport: "phone",
+      step: "idle",
+      render: () => (
+        <Frame>
+          <LiveEmpty voice />
+        </Frame>
+      ),
+    },
     uploading: {
       description:
-        "Two files in flight, each naming the STEP it is on. The picture shows itself from a local object URL the instant it was picked — long before any server has seen it — and the send control is blocked with «wait for the attachments».",
+        "Three attachments in flight, each naming the STEP it is on. The picture shows itself from a local object URL the instant it was picked — long before any server has seen it — the voice note says what it is rather than the timestamped filename it is stored under, and the send control is blocked with «wait for the attachments».",
       viewport: "phone",
       step: "uploading",
       render: () => (
@@ -159,6 +174,14 @@ export default defineDemo({
                   type: "file",
                   medium: "file",
                   bytes: 250_000,
+                  step: "cdn.phase.uploading",
+                }),
+                item({
+                  id: "a4",
+                  name: "voice-2026-09-14T10-00-00-000.webm",
+                  type: "audio",
+                  medium: "audio",
+                  bytes: 84_000,
                   step: "cdn.phase.uploading",
                 }),
               ],

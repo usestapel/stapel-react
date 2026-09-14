@@ -352,6 +352,33 @@ for the other. `kind` decides nothing about this line any more; the only place
 it is still read is the arm for a 0.8.3 server, which sends no reason at all
 (see `src/model/previews.ts`).
 
+## Attachments and voice messages
+
+The skin's thread panel attaches through ONE seam, `upload`, which a host wires
+with `@stapel/cdn-react`'s uploader inside a `<CdnProvider>`; without it the
+thread is text-only and draws no attach control at all. A microphone is a
+second, deliberate switch on the same seam:
+
+```tsx
+import { ConversationThreadPanel, useCdnAttachmentUpload } from "@stapel/chat-react/default";
+
+function Thread({ id }: { id: string }) {
+  const upload = useCdnAttachmentUpload(); // needs <CdnProvider> above
+  return <ConversationThreadPanel conversationId={id} upload={upload} voice />;
+}
+```
+
+`voice` (or `voice={{ maxMs, interaction: "hold" }}`) draws `@stapel/cdn-react`'s
+`<VoiceRecordButton>` beside the pickers; a take becomes an `audio` chip on the
+same list as a photo and goes through `upload` to `POST /upload/audio/`
+(stapel-cdn 0.21.0, `@stapel/cdn-react` >= 0.6.0). The bubble on the other side
+is a player: play/pause, the length the server measured (or the sentence that
+says nobody did), and a playhead over the waveform the CDN rendered, in a row
+whose height is reserved before any of that arrives. The inbox row marks a
+voice note with its own glyph from `attachment_types`. Register
+`registerCdnI18n` beside `registerChatI18n`: the microphone's sentences are the
+cdn pair's.
+
 ## Locales
 
 ```tsx

@@ -236,6 +236,8 @@ export const CHAT_I18N_KEYS = {
   attachmentPlay: "chat.attachment.play",
   attachmentPause: "chat.attachment.pause",
   attachmentDurationUnmeasured: "chat.attachment.duration_unmeasured",
+  /** The accessible name of a voice message's playback position. */
+  attachmentProgress: "chat.attachment.progress",
   attachmentMetaPartial: "chat.attachment.meta_partial",
   attachmentMetaMissing: "chat.attachment.meta_missing",
 
@@ -465,6 +467,7 @@ export const chatI18nBundleEn: I18nDictionary = {
   "chat.attachment.play": "Play",
   "chat.attachment.pause": "Pause",
   "chat.attachment.duration_unmeasured": "Length was not measured",
+  "chat.attachment.progress": "Playback position",
   "chat.attachment.meta_partial": "Some details of this file could not be read",
   "chat.attachment.meta_missing": "None of this file's details could be read",
 

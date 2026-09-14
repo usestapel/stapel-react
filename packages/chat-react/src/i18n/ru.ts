@@ -132,6 +132,7 @@ export const chatI18nBundleRu: I18nDictionary = {
   "chat.attachment.play": "Воспроизвести",
   "chat.attachment.pause": "Пауза",
   "chat.attachment.duration_unmeasured": "Длительность не измерена",
+  "chat.attachment.progress": "Позиция воспроизведения",
   "chat.attachment.meta_partial": "Часть сведений об этом файле прочитать не удалось",
   "chat.attachment.meta_missing": "Сведения об этом файле прочитать не удалось",
 
