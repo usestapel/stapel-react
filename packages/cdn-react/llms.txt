@@ -1,6 +1,6 @@
 # @stapel/cdn-react 0.5.0
 
-Headless React flow pair for stapel-cdn (contract >=0.17 <0.18) — business + state, zero visual opinion.
+Headless React flow pair for stapel-cdn (contract >=0.21 <0.22) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -26,6 +26,7 @@ Paths are relative to `/cdn/api/v1/`.
 - describe_media: POST /describe/
 - random_image: GET /images/{image_type}/random/
 - sync_refs: POST /refs/sync/
+- upload_audio: POST /upload/audio/
 - upload_avatar: POST /upload/avatar/
 - upload_file: POST /upload/file/
 - upload_image: POST /upload/image/
@@ -80,6 +81,7 @@ const { tracked } = useTracked();
 - cdn.single → <ImageUpload> [already-stored]  demo/ImageUpload.demo.tsx
 - cdn.thumbnail-tier → <CdnThumbnail> [default|fluid]  demo/ThumbnailTier.demo.tsx
 - cdn.voice → <VoiceRecordButton> [toggle|hold]  demo/VoiceRecordButton.demo.tsx
+- cdn.voice-upload → <VoiceRecordButton> [idle]  demo/VoiceUpload.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).
 
 ## Snippets

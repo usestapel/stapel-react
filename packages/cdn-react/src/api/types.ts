@@ -61,6 +61,19 @@ export type CdnFileModel = Omit<Schemas["FileModel"], "render_meta"> &
   WithRenderMeta;
 
 /**
+ * A stored voice recording (stapel-cdn 0.21.0, `POST /upload/audio/`).
+ *
+ * No ladder and no picture geometry: the render contract of a voice message is
+ * `duration` plus the waveform strip, and BOTH ARRIVE LATER. The 201 that
+ * creates the row carries `duration: null` and an empty `preview_b64` — the
+ * ffprobe/`showwavespic` pass runs after the row exists — so a client that
+ * needs the measured length re-reads the ref through `describe` (or reads
+ * `render_meta.meta_status`), and a client that has the clip's own clock uses
+ * that as the optimistic value in the meantime (`useVoiceUpload`).
+ */
+export type CdnAudio = Omit<Schemas["Audio"], "render_meta"> & WithRenderMeta;
+
+/**
  * `render_meta`, widened and made OPTIONAL on every row that carries one.
  *
  * Optional is the second half of widening 3 and it is a statement about
@@ -87,15 +100,24 @@ export type CdnFileUploadResponse = Omit<
   Schemas["FileUploadResponse"],
   "file"
 > & { readonly file: CdnFileModel };
+export type CdnAudioUploadResponse = Omit<
+  Schemas["AudioUploadResponse"],
+  "audio"
+> & { readonly audio: CdnAudio };
 
-/** What `file/exists/` answers with when it found something. */
-export type CdnFileKind = "image" | "video" | "file";
+/**
+ * What `file/exists/` answers with when it found something. Four since
+ * stapel-cdn 0.21.0: the audio branch landed with the audio intake, because a
+ * dedup check that cannot see one of the kinds it precedes sends the caller
+ * to re-upload bytes it already holds.
+ */
+export type CdnFileKind = "image" | "video" | "audio" | "file";
 
 /** The `file/exists/` answer, with `file` narrowed alongside `type`. */
 export type CdnFileExistsResponse = Omit<
   Schemas["FileExistsResponse"],
   "file"
-> & { readonly file: CdnImage | CdnVideo | CdnFileModel | null };
+> & { readonly file: CdnImage | CdnVideo | CdnAudio | CdnFileModel | null };
 
 /**
  * One entry of a describe snapshot's `variants[]`.
@@ -161,11 +183,11 @@ export type CdnMetaStatus = CdnRenderMeta["meta_status"];
 export type CdnVariantsStatus = Schemas["VariantsStatusEnum"];
 
 /**
- * The three rows an upload can produce. `file/exists/` returns the same union
+ * The four rows an upload can produce. `file/exists/` returns the same union
  * under `file`, discriminated by its sibling `type` — never by sniffing which
  * fields a row happens to have.
  */
-export type CdnMediaRow = CdnImage | CdnVideo | CdnFileModel;
+export type CdnMediaRow = CdnImage | CdnVideo | CdnAudio | CdnFileModel;
 
 /**
  * The opaque `<type>/<hash>` string a consuming module stores — `Profile.avatar`,

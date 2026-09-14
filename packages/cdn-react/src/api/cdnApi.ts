@@ -1,5 +1,6 @@
 import type { StapelClient } from "@stapel/core";
 import type {
+  CdnAudioUploadResponse,
   CdnDescribeResponse,
   CdnFileExistsResponse,
   CdnFileUploadResponse,
@@ -179,6 +180,24 @@ export interface CdnApi {
     file: File,
     options?: { readonly signal?: AbortSignal }
   ): Promise<CdnFileUploadResponse>;
+
+  /**
+   * `POST /upload/audio/` — a voice recording (stapel-cdn 0.21.0,
+   * `IsNotAnonymousUser`). Stored `audio/<hash>`, passthrough: no transcode,
+   * playable from `original_url` the moment the 201 lands. Same 200/201
+   * envelope rule as {@link uploadImage}.
+   *
+   * The extension allowlist is `STAPEL_CDN["ALLOWED_AUDIO_EXTENSIONS"]` —
+   * `.webm` first because it is what a browser's `MediaRecorder` produces —
+   * and the ceiling `MAX_AUDIO_SIZE` (50 MB), enforced BEFORE the body is
+   * hashed. `duration` and the waveform are filled in by a background pass,
+   * so the row that comes back says `duration: null`: not a broken upload, a
+   * measurement that has not happened yet.
+   */
+  uploadAudio(
+    file: File,
+    options?: { readonly signal?: AbortSignal }
+  ): Promise<CdnAudioUploadResponse>;
 }
 
 /**
@@ -229,5 +248,8 @@ export function createCdnApi(client: StapelClient): CdnApi {
 
     uploadFile: (file, options) =>
       client.post("/upload/file/", filePart(file), signalOf(options)),
+
+    uploadAudio: (file, options) =>
+      client.post("/upload/audio/", filePart(file), signalOf(options)),
   };
 }

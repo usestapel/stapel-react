@@ -226,6 +226,29 @@
         "file": "demo/VoiceRecordButton.demo.tsx",
         "line": 44
       }
+    },
+    {
+      "id": "cdn.voice-upload",
+      "title": "Voice message, stored",
+      "description": "Record → store → reference, in one control. The take goes to POST /upload/audio/ named after the container the engine chose (an AAC take is .m4a, because that — not .mp4 — is what the audio allowlist spells), and onUploaded gets audio/<hash> with a length to draw: the clip's own clock until the server's ffprobe pass lands, and the result says which one it is. While the take is being stored the control is off and names the step, because a second take would abort the first upload.",
+      "component": "VoiceRecordButton",
+      "covers": [],
+      "tokens": [
+        "brand",
+        "surface-sunken"
+      ],
+      "variants": [
+        {
+          "id": "idle",
+          "description": "At rest it is the same control as the gesture demo's toggle; the difference is everything after the second press, which needs a microphone to reach.",
+          "viewport": "phone",
+          "step": "idle"
+        }
+      ],
+      "source": {
+        "file": "demo/VoiceUpload.demo.tsx",
+        "line": 87
+      }
     }
   ]
 }

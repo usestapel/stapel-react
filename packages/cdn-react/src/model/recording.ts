@@ -78,7 +78,9 @@ export const RECORDING_CANDIDATES: readonly {
   { mimeType: "audio/ogg;codecs=opus", extension: ".ogg" },
   { mimeType: "audio/webm", extension: ".webm" },
   { mimeType: "audio/ogg", extension: ".ogg" },
-  { mimeType: "audio/mp4", extension: ".mp4" },
+  // `.m4a`: what `ALLOWED_AUDIO_EXTENSIONS` calls an AAC-in-MP4 recording.
+  // `.mp4` is on the VIDEO list only, and the audio intake reads its own.
+  { mimeType: "audio/mp4", extension: ".m4a" },
 ];
 
 /** The extension a recording MIME implies, dot included, or `""`. */

@@ -4,7 +4,7 @@
   "version": "0.5.0",
   "backend": {
     "module": "stapel-cdn",
-    "contract": ">=0.17 <0.18"
+    "contract": ">=0.21 <0.22"
   },
   "layers": [
     "api",
@@ -50,6 +50,13 @@
       "tag": "Refs",
       "request": "RefSyncRequest",
       "response": "RefSyncResponse"
+    },
+    "upload_audio": {
+      "method": "POST",
+      "path": "/cdn/api/v1/upload/audio/",
+      "tag": "Audio",
+      "request": null,
+      "response": "AudioUploadResponse"
     },
     "upload_avatar": {
       "method": "POST",
@@ -520,6 +527,20 @@
         "hold"
       ],
       "source": "demo/VoiceRecordButton.demo.tsx"
+    },
+    {
+      "id": "cdn.voice-upload",
+      "title": "Voice message, stored",
+      "description": "Record → store → reference, in one control. The take goes to POST /upload/audio/ named after the container the engine chose (an AAC take is .m4a, because that — not .mp4 — is what the audio allowlist spells), and onUploaded gets audio/<hash> with a length to draw: the clip's own clock until the server's ffprobe pass lands, and the result says which one it is. While the take is being stored the control is off and names the step, because a second take would abort the first upload.",
+      "component": "VoiceRecordButton",
+      "tokens": [
+        "brand",
+        "surface-sunken"
+      ],
+      "variants": [
+        "idle"
+      ],
+      "source": "demo/VoiceUpload.demo.tsx"
     }
   ],
   "i18nKeys": [
@@ -709,13 +730,17 @@
       "useUploadImage",
       "useUploadPreview",
       "useUploadQueue",
+      "useVoiceUpload",
       "validateFile",
       "variantsReadyAtOf",
-      "variantsStatusOf"
+      "variantsStatusOf",
+      "voiceFileName"
     ],
     "types": [
       "ByteUnit",
       "CdnApi",
+      "CdnAudio",
+      "CdnAudioUploadResponse",
       "CdnDescribeResponse",
       "CdnErrorCode",
       "CdnErrorSpec",
@@ -771,7 +796,10 @@
       "UploadQueueBag",
       "UseMediaRecorderOptions",
       "UseMediaUploadOptions",
-      "UseUploadQueueOptions"
+      "UseUploadQueueOptions",
+      "VoiceUploadBag",
+      "VoiceUploadCallOptions",
+      "VoiceUploadResult"
     ]
   }
 }

@@ -89,13 +89,24 @@ export type CdnUploadTarget =
        * `file/<hash>`. Its allowlist narrows on MIME as well as extension.
        */
       readonly kind: "file";
+    }
+  | {
+      /**
+       * `POST /upload/audio/` (stapel-cdn 0.21.0) — a voice recording, stored
+       * as `audio/<hash>`, passthrough. The row is born playable and born
+       * SETTLED as far as this flow is concerned: there is no ladder to wait
+       * for, and the duration/waveform pass runs afterwards on its own clock
+       * (`api/types.ts`, `CdnAudio`) — waiting on it here would hold a chat
+       * message hostage to ffprobe.
+       */
+      readonly kind: "audio";
     };
 
 /**
  * The asset type a target produces, which is what the pre-check must match
  * before it may short-circuit. `"product"` is not a guess: it is the literal
- * the view writes (`ImageUploadView.post`); `"video"` and `"file"` are the
- * prefixes `stapel_cdn.metadata.media_ref` builds for those two models.
+ * the view writes (`ImageUploadView.post`); `"video"`, `"audio"` and `"file"`
+ * are the prefixes `stapel_cdn.metadata.media_ref` builds for those models.
  */
 export function targetAssetType(target: CdnUploadTarget): string {
   switch (target.kind) {
@@ -107,6 +118,8 @@ export function targetAssetType(target: CdnUploadTarget): string {
       return target.assetType;
     case "video":
       return "video";
+    case "audio":
+      return "audio";
     case "file":
       return "file";
   }
@@ -116,15 +129,18 @@ export function targetAssetType(target: CdnUploadTarget): string {
  * What `file/exists/` would call this target's rows.
  *
  * The pre-check answers about ANY object with these bytes, and its `type` is
- * one of three strings (`FileExistsView._exists_response`). A hit is only a hit
- * when the KIND matches too: the same bytes stored earlier as a document are
- * not the image this upload would return, and short-circuiting on them would
- * hand a caller a ref that resolves to the wrong model.
+ * one of four strings (`FileExistsView._exists_response`; `audio` since
+ * 0.21.0). A hit is only a hit when the KIND matches too: the same bytes
+ * stored earlier as a document are not the image this upload would return, and
+ * short-circuiting on them would hand a caller a ref that resolves to the
+ * wrong model.
  */
 export function targetFileKind(target: CdnUploadTarget): CdnFileKind {
   switch (target.kind) {
     case "video":
       return "video";
+    case "audio":
+      return "audio";
     case "file":
       return "file";
     default:
@@ -163,7 +179,7 @@ export interface UploadOutcome {
    * {@link kind} — never inferred from which fields happen to be present.
    */
   readonly row: CdnMediaRow;
-  /** `image` | `video` | `file` — the model this row is. */
+  /** `image` | `video` | `audio` | `file` — the model this row is. */
   readonly kind: CdnFileKind;
   /** The pre-check hit and NO upload request was made. */
   readonly deduped: boolean;
@@ -401,7 +417,10 @@ export function variantsReadyAtOf(row: CdnMediaRow): string | null {
  *
  * A document has neither — no ladder, no probe, nothing to wait for — so it is
  * born settled, and reporting `false` for it would make a file upload look
- * permanently unfinished.
+ * permanently unfinished. A recording is born settled for the same reason:
+ * its `is_compressed` is about an opt-in transcode submodule, not a ladder,
+ * and its duration pass is a measurement this flow deliberately does not
+ * wait on (`CdnUploadTarget`, the `audio` arm).
  *
  * Exported for `useUploadQueue`'s restored-item resolution, which derives the
  * same `variantsReady` from a row `file/exists/` hands back rather than one a
@@ -418,10 +437,10 @@ function sig(signal: AbortSignal | undefined): { signal?: AbortSignal } {
 }
 
 /**
- * POST the bytes and hand back the ROW, whichever of the three envelopes it
- * arrived in — `{image}`, `{video}` or `{file}`. Unwrapping here is what lets
- * the rest of the flow be one flow: the three intakes differ in the key their
- * envelope uses and in nothing else this pair cares about.
+ * POST the bytes and hand back the ROW, whichever of the four envelopes it
+ * arrived in — `{image}`, `{video}`, `{audio}` or `{file}`. Unwrapping here is
+ * what lets the rest of the flow be one flow: the intakes differ in the key
+ * their envelope uses and in nothing else this pair cares about.
  */
 async function uploadTo(
   api: CdnApi,
@@ -438,6 +457,8 @@ async function uploadTo(
       return (await api.uploadImage(file, sig(signal))).image;
     case "video":
       return (await api.uploadVideo(file, sig(signal))).video;
+    case "audio":
+      return (await api.uploadAudio(file, sig(signal))).audio;
     case "file":
       return (await api.uploadFile(file, sig(signal))).file;
   }

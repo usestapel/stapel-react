@@ -92,6 +92,31 @@ extensions for a clip; 50 MB plus a MIME allowlist for a document):
 <MediaUploadField kind="file" onUploaded={(ref) => form.set("attachment", ref)} />
 ```
 
+## A voice message
+
+Three problems, three pieces: capturing (`useMediaRecorder`), storing
+(`useVoiceUpload`, over `POST /upload/audio/` — stapel-cdn 0.21.0) and saying it
+(the consuming module). The skinned control does the first two end to end:
+
+```tsx
+<VoiceRecordButton
+  maxMs={120_000}
+  onUploaded={({ key, durationMs, measured }) => send({ attachments: [{ key, type: "audio" }] })}
+/>
+```
+
+`key` is `audio/<hash>` — opaque, store it. `durationMs` is the server's ffprobe
+measurement when it had already happened by the time the row came back and the
+clip's own clock otherwise (`measured` says which): the duration and waveform
+are produced by a background pass, so the reference is valid and playable before
+either exists. Without `onUploaded` the control only records (`onRecorded` hands
+you the `Blob`) and needs no `<CdnProvider>`.
+
+The audio ceilings mirror `MAX_AUDIO_SIZE` (50 MB) and
+`ALLOWED_AUDIO_EXTENSIONS` (`.webm .ogg .opus .m4a .mp3 .wav .flac .aac`); the
+container the engine chose decides the extension, and an AAC take is named `.m4a`
+because that — not `.mp4` — is what the audio intake accepts.
+
 ## Rendering a reference somebody else uploaded
 
 ```tsx

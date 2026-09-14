@@ -39,11 +39,15 @@ export const ERROR_NO_FILE = "error.400.no_file";
 
 /**
  * The ceilings for one intake kind. Defaults reproduce `stapel_cdn/conf.py`'s
- * `DEFAULTS` at the pinned contract (v0.17.0) — re-verified line by line
- * against `conf.py` when the pin moved 0.12 → 0.17: `MAX_IMAGE_SIZE` 20 MB,
- * `MAX_VIDEO_SIZE` 100 MB, `MAX_FILE_SIZE` 50 MB, all three extension lists and
- * `ALLOWED_FILE_MIME_TYPES` unchanged, including the deliberate absence of
- * `application/octet-stream`.
+ * `DEFAULTS` at the pinned contract (v0.21.0) — re-verified line by line
+ * against `conf.py` when the pin moved 0.17 → 0.21: `MAX_IMAGE_SIZE` 20 MB,
+ * `MAX_VIDEO_SIZE` 100 MB, `MAX_FILE_SIZE` 50 MB, `MAX_AUDIO_SIZE` 50 MB; the
+ * image list is `.avif` in / `.bmp` out since 0.17.1; the audio list is the
+ * one `AudioUploadView` reads (`.webm .ogg .opus .m4a .mp3 .wav .flac .aac`)
+ * and, like image and video, carries NO MIME list — the view gates on the
+ * extension and a byte sniff for active content, never on the declared
+ * Content-Type. `ALLOWED_FILE_MIME_TYPES` unchanged, including the deliberate
+ * absence of `application/octet-stream`.
  */
 export interface CdnIntakeLimits {
   /** Byte ceiling. `STAPEL_CDN["MAX_IMAGE_SIZE" | …]`. */
@@ -63,6 +67,8 @@ export interface CdnIntakeLimits {
 export interface CdnLimits {
   readonly image: CdnIntakeLimits;
   readonly video: CdnIntakeLimits;
+  /** `POST /upload/audio/` — stapel-cdn 0.21.0. */
+  readonly audio: CdnIntakeLimits;
   readonly file: CdnIntakeLimits;
 }
 
@@ -72,11 +78,18 @@ const MB = 1024 * 1024;
 export const CDN_DEFAULT_LIMITS: CdnLimits = {
   image: {
     maxBytes: 20 * MB,
-    extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic", ".heif"],
+    extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".heic", ".heif"],
   },
   video: {
     maxBytes: 100 * MB,
     extensions: [".mp4", ".webm", ".mov", ".avi", ".mkv"],
+  },
+  audio: {
+    maxBytes: 50 * MB,
+    // `.webm` leads because it is what MediaRecorder produces; the container
+    // is shared with the video list, and the ENDPOINT a caller chose is what
+    // decides which model the bytes become (`conf.py`, ALLOWED_AUDIO_EXTENSIONS).
+    extensions: [".webm", ".ogg", ".opus", ".m4a", ".mp3", ".wav", ".flac", ".aac"],
   },
   file: {
     maxBytes: 50 * MB,
@@ -106,6 +119,7 @@ export const CDN_DEFAULT_LIMITS: CdnLimits = {
 export interface CdnLimitsOverride {
   readonly image?: Partial<CdnIntakeLimits>;
   readonly video?: Partial<CdnIntakeLimits>;
+  readonly audio?: Partial<CdnIntakeLimits>;
   readonly file?: Partial<CdnIntakeLimits>;
 }
 
@@ -129,6 +143,7 @@ export function resolveCdnLimits(override?: CdnLimitsOverride): CdnLimits {
   return {
     image: mergeIntake(CDN_DEFAULT_LIMITS.image, override?.image),
     video: mergeIntake(CDN_DEFAULT_LIMITS.video, override?.video),
+    audio: mergeIntake(CDN_DEFAULT_LIMITS.audio, override?.audio),
     file: mergeIntake(CDN_DEFAULT_LIMITS.file, override?.file),
   };
 }

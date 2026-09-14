@@ -141,6 +141,60 @@ export function fileRow(options: { readonly hash: string }): Record<string, unkn
   };
 }
 
+/**
+ * A stored recording row, as `AudioSerializer` renders the 201 — which is
+ * BEFORE the background pass: `duration: null`, `preview_b64: ""`, and a
+ * snapshot whose `meta_status` says so. `durationMs` is for the row a later
+ * `file/exists/` hands back, once ffprobe has run.
+ */
+export function audioRow(options: {
+  readonly hash: string;
+  readonly durationMs?: number | null;
+  readonly extension?: string;
+}): Record<string, unknown> {
+  const { hash } = options;
+  const ext = options.extension ?? ".webm";
+  const measured = options.durationMs ?? null;
+  return {
+    id: 12,
+    ref: `audio/${hash}`,
+    file_hash: hash,
+    original_filename: `voice${ext}`,
+    file_extension: ext,
+    mime_type: ext === ".webm" ? "audio/webm" : "audio/ogg",
+    original_size: 18_324,
+    duration: measured === null ? null : measured / 1000,
+    preview_b64: measured === null ? "" : "data:image/webp;base64,V0FWRQ==",
+    original_url: `https://cdn.test/media/cdn/audio/${hash.slice(0, 8)}${ext}`,
+    render_meta: renderMeta({
+      ref: `audio/${hash}`,
+      kind: "audio",
+      mime: ext === ".webm" ? "audio/webm" : "audio/ogg",
+      ext,
+      bytes: 18_324,
+      width: null,
+      height: null,
+      aspect: null,
+      previewB64: measured === null ? null : "data:image/webp;base64,V0FWRQ==",
+      previewKind: "waveform",
+      durationMs: measured,
+      metaStatus: measured === null ? "partial" : "ok",
+      metaReason: measured === null ? "not_generated" : null,
+    }),
+    refs: [],
+    is_compressed: false,
+    uploaded_by: "00000000-0000-0000-0000-000000000001",
+    uploaded_by_username: "seller",
+    created_at: "2026-09-14T10:00:00Z",
+    updated_at: "2026-09-14T10:00:00Z",
+  };
+}
+
+/** What a `MediaRecorder` hands over: bytes with a MIME and no name. */
+export function recordedBlob(mime = "audio/webm;codecs=opus"): Blob {
+  return new Blob(["opus-bytes-head", "opus-bytes-tail"], { type: mime });
+}
+
 export function videoFile(name = "clip.mp4"): File {
   return new File(["some-mp4-bytes"], name, { type: "video/mp4" });
 }
@@ -230,6 +284,10 @@ export function uploadedVideo(row: Record<string, unknown>): unknown {
 
 export function uploadedFile(row: Record<string, unknown>): unknown {
   return { file: row, message: "File uploaded successfully" };
+}
+
+export function uploadedAudio(row: Record<string, unknown>): unknown {
+  return { audio: row, message: "Audio uploaded successfully" };
 }
 
 /** stapel-cdn's real refusal envelope. */

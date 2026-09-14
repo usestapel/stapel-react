@@ -123,23 +123,26 @@ export interface UseMediaUploadOptions {
 /**
  * Which ceilings a target is measured against.
  *
- * The runtime publishes three intakes because stapel-cdn declares three
- * (`MAX_IMAGE_SIZE` / `MAX_VIDEO_SIZE` / `MAX_FILE_SIZE`). Reading the wrong
- * one is not a rounding error: it would refuse a 30 MB clip against the image
- * ceiling, which is the one thing `model/limits.ts` says a mirror must never
- * do.
+ * The runtime publishes four intakes because stapel-cdn declares four
+ * (`MAX_IMAGE_SIZE` / `MAX_VIDEO_SIZE` / `MAX_AUDIO_SIZE` / `MAX_FILE_SIZE`).
+ * Reading the wrong one is not a rounding error: it would refuse a 30 MB clip
+ * against the image ceiling, which is the one thing `model/limits.ts` says a
+ * mirror must never do.
  */
 export function limitsForTarget(
   target: CdnUploadTarget,
   limits: {
     readonly image: CdnIntakeLimits;
     readonly video: CdnIntakeLimits;
+    readonly audio: CdnIntakeLimits;
     readonly file: CdnIntakeLimits;
   }
 ): CdnIntakeLimits {
   switch (target.kind) {
     case "video":
       return limits.video;
+    case "audio":
+      return limits.audio;
     case "file":
       return limits.file;
     default:
@@ -186,9 +189,13 @@ function extensionForMime(mime: string): string {
     case "audio/ogg":
     case "video/ogg":
       return ".ogg";
-    case "audio/mp4":
     case "video/mp4":
       return ".mp4";
+    // `.m4a`, not `.mp4`: the container is the same, but the audio intake's
+    // allowlist (`ALLOWED_AUDIO_EXTENSIONS`) spells an AAC recording `.m4a`
+    // and does not carry `.mp4` — a WebKit voice note named `.mp4` is a 400.
+    case "audio/mp4":
+      return ".m4a";
     case "audio/mpeg":
       return ".mp3";
     case "audio/wav":

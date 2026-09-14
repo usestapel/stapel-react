@@ -62,6 +62,8 @@
 export { CDN_DESCRIBE_MAX_REFS, createCdnApi } from "./api/cdnApi.js";
 export type { CdnApi } from "./api/cdnApi.js";
 export type {
+  CdnAudio,
+  CdnAudioUploadResponse,
   CdnDescribeResponse,
   CdnFileExistsResponse,
   CdnFileKind,
@@ -174,6 +176,12 @@ export type {
   RecorderState,
   UseMediaRecorderOptions,
 } from "./headless/useMediaRecorder.js";
+export { useVoiceUpload, voiceFileName } from "./headless/useVoiceUpload.js";
+export type {
+  VoiceUploadBag,
+  VoiceUploadCallOptions,
+  VoiceUploadResult,
+} from "./headless/useVoiceUpload.js";
 export type { UploadImageBag } from "./headless/useUploadImage.js";
 export { imageRowOf, useUploadQueue } from "./headless/useUploadQueue.js";
 export { useDescribe, useDescribeRef } from "./headless/useDescribe.js";

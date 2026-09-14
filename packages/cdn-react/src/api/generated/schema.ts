@@ -171,6 +171,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cdn/api/v1/upload/audio/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload an audio recording
+         * @description Upload a voice recording (chat voice message, call note).
+         *
+         *     **Supported formats:** WebM, Ogg, Opus, M4A, MP3, WAV, FLAC, AAC
+         *     (`STAPEL_CDN["ALLOWED_AUDIO_EXTENSIONS"]`). WebM/Opus is what a browser's
+         *     `MediaRecorder` produces, so it is the shape a chat client sends by default.
+         *
+         *     **What happens on upload:**
+         *     1. Size cap, extension allowlist and byte sniff run BEFORE the body is hashed
+         *     2. File hash (SHA-256) is calculated for deduplication
+         *     3. If the caller already holds these bytes, the existing recording is
+         *        returned (200 OK) and nothing new is stored
+         *     4. Otherwise the recording is stored **as-is** — passthrough, no transcode —
+         *        and is immediately playable from `original_url`
+         *
+         *     **Store `ref` (`audio/<hash>`)**, not the numeric id: it is the handle
+         *     `cdn.describe` / `POST /describe/` resolve, and what a chat message carries.
+         *
+         *     **`duration` and `preview_b64` are filled in asynchronously.** The waveform
+         *     strip (ffmpeg `showwavespic`) and the measured duration (ffprobe) are
+         *     produced by a background pass, so the 201 that creates the row carries
+         *     `duration: null` and an empty `preview_b64`. That is not a broken upload:
+         *     the recording is already playable. Re-read the ref through `/describe/`
+         *     (or this response's `render_meta.meta_status`) to pick the waveform up. A
+         *     deployment with no ffmpeg leaves both empty forever, with the reason named
+         *     in `render_meta.meta_reason` rather than a fabricated zero.
+         *
+         *     **Request format:** `multipart/form-data` with `file` field
+         *
+         *     **Maximum file size:** `STAPEL_CDN["MAX_AUDIO_SIZE"]`, 50MB by default.
+         *     Enforced before the body is hashed; over it the answer is 413.
+         *
+         *     **Quota:** recordings count towards the per-owner object and byte ceilings
+         *     (`MAX_OBJECTS_PER_OWNER` / `MAX_BYTES_PER_OWNER`) like every other stored
+         *     object; over them the answer is 403.
+         *
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["upload_audio"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cdn/api/v1/upload/avatar/": {
         parameters: {
             query?: never;
@@ -325,6 +381,95 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * @description Serializer for the Audio model (voice recordings).
+         *
+         *     A recording has no variant ladder and no picture geometry, so this is
+         *     deliberately much shorter than :class:`VideoSerializer`: the render
+         *     contract of a voice message is ``duration`` plus the waveform strip, and
+         *     both live in ``render_meta`` (``duration_ms`` + ``preview_b64``) as well
+         *     as on their own fields.
+         *
+         *     ``ref`` is the field a consumer actually stores. Everything else here is
+         *     a view of one row; ``audio/<hash>`` is the durable handle that
+         *     ``cdn.describe`` / ``POST /describe/`` resolve later, and a chat message
+         *     keeps that string rather than a numeric id.
+         */
+        Audio: {
+            readonly id: number;
+            /** @description Durable media reference: audio/<hash>. Store THIS. */
+            readonly ref: string;
+            /** @description SHA-256 hash of the original file */
+            readonly file_hash: string;
+            original_filename: string;
+            file_extension: string;
+            mime_type?: string;
+            /** @description File size in bytes */
+            readonly original_size: number;
+            /**
+             * Format: double
+             * @description Duration in seconds
+             */
+            readonly duration: number | null;
+            /** @description Inline waveform strip: data:image/webp;base64,... */
+            readonly preview_b64: string;
+            /**
+             * Format: uri
+             * @description URL to the stored recording (always passthrough — no transcode).
+             */
+            readonly original_url: string;
+            /** @description cdn.describe snapshot for this recording (see RenderMeta). */
+            readonly render_meta: {
+                ref: string;
+                /** @description Open media-kind registry (STAPEL_CDN['MEDIA_KINDS']): image, gif, video, audio, file, or a host-defined kind. */
+                kind?: string | null;
+                mime: string;
+                /** @description Lowercase, dot-prefixed. */
+                ext: string;
+                bytes: number;
+                width?: number | null;
+                height?: number | null;
+                /**
+                 * Format: float
+                 * @description width / height, 6dp.
+                 */
+                aspect?: number | null;
+                square?: boolean;
+                animated?: boolean;
+                duration_ms?: number | null;
+                /** @description data:image/webp;base64,... bounded by STAPEL_CDN['MICRO_PREVIEW_MAX_BYTES']; null when refused or not generated, with meta_reason saying which. */
+                preview_b64?: string | null;
+                /** @enum {string|null} */
+                preview_kind?: "blur" | "poster" | "waveform" | null;
+                poster_url?: string | null;
+                /** @enum {string} */
+                meta_status: "ok" | "partial" | "missing";
+                /** @description stapel_cdn.metadata.REASONS; null when ok. */
+                meta_reason?: string | null;
+                variants?: Record<string, never>[];
+            };
+            /** @description List of references: service/entity_type/entity_id */
+            refs?: string[];
+            /** @description Whether ffmpeg-audio compression has run (opt-in submodule) */
+            readonly is_compressed: boolean;
+            /** Format: uuid */
+            readonly uploaded_by: string | null;
+            readonly uploaded_by_username: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /** @description Successful audio (voice recording) upload. */
+        AudioUploadResponse: {
+            /** @description Uploaded recording object (serialized by AudioSerializer) */
+            audio: components["schemas"]["Audio"];
+            /**
+             * @description Confirmation message
+             * @example Audio uploaded successfully
+             */
+            message: string;
+        };
+        /**
          * @description The refs one ``POST /describe/`` call asks about.
          *
          *     Shape only. The ceiling is NOT checked here: it belongs to
@@ -399,14 +544,14 @@ export interface components {
         /** @description File existence check result. */
         FileExistsResponse: {
             /** @description File object if found, null otherwise */
-            file: (components["schemas"]["Image"] | components["schemas"]["Video"] | components["schemas"]["FileModel"]) | null;
+            file: (components["schemas"]["Image"] | components["schemas"]["Video"] | components["schemas"]["Audio"] | components["schemas"]["FileModel"]) | null;
             /**
              * @description Whether the file exists
              * @example true
              */
             exists: boolean;
             /**
-             * @description File type if found (image or video)
+             * @description File type if found (image, video, audio or file)
              * @example image
              */
             type: string | null;
@@ -726,7 +871,7 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
+            /** @description The language `error` is written in (e.g. 'en', 'ru'), */
             error_language?: string;
         };
         /**
@@ -1117,6 +1262,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefSyncResponse"];
+                };
+            };
+        };
+    };
+    upload_audio: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description Audio recording to upload (webm, ogg, opus, m4a, mp3, wav, flac, aac)
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioUploadResponse"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioUploadResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
