@@ -744,6 +744,53 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
           // outside, the panel would have had to keep its own list of core
           // slugs — which is how a board ends up offering a price filter
           // against a server that answers zero for one.
+          // THE DRAWN SET, COMPUTED BEFORE THE RANGES THAT NEED IT.
+          //
+          // `countedFacets` below means "the axes that already have a bucket
+          // list ON THIS RAIL", and it used to be fed `bag.counted` — the
+          // SERVER's counted list. Those are different sets, and the gap
+          // between them lost a filter outright: on a flats leaf `square` is
+          // counted with thirty-odd bare integers, `buildFacetGroups` builds
+          // no group for it (an `int` is not in `FACETABLE_FEATURE_TYPES` —
+          // a number is narrowed with two bounds, not a checkbox per value),
+          // and the counted-wins rule then dropped its range row in favour of
+          // a bucket list nothing renders. the total-area axis existed in neither
+          // column.
+          //
+          // Two heuristics were tried inside `buildRangeGroups` and both were
+          // wrong: nothing in a FEATURE separates `square` from an imported
+          // `year`, which is a raw int whose bucket list IS wanted. Only the
+          // rail knows, so the rail is what answers — this is an ORDERING
+          // change, not a new rule. The groups are built and filtered first,
+          // and the ranges are built from the result.
+          //
+          // SCHEMA order, required first — see `orderFacetGroupsBySchema`.
+          // The rail ranked by evidence for two releases, which on a
+          // three-listing cars leaf put condition and colour above make,
+          // model and year: the busiest axis is the right question for a chip
+          // row with room for four and the wrong one for the column a person
+          // narrows a catalogue in. Groups the schema does not name keep
+          // evidence order among themselves.
+          //
+          // A group with no options is a heading with nothing under it. What
+          // is left in that state after `buildFacetGroups` learned to read
+          // the schema is the genuinely unanswerable case: a `ref_select`
+          // whose config is a bare pointer into a vocabulary this pair cannot
+          // read. A heading with no control under it names nothing, so it is
+          // not drawn. Dropped HERE and not only inside the control, so the
+          // count in "All filters (K)", the panel search and the fold all
+          // agree about what is on the rail.
+          const drawable = orderFacetGroupsBySchema({
+            groups: (answer.status === "ready" ? answer.data : [])
+              .filter(facetGroupIsDrawable)
+              .filter((group) => !facetGroupIsEmptyHeading(group)),
+            ...(props.categoryFeatures !== undefined
+              ? { categoryFeatures: props.categoryFeatures }
+              : {}),
+            ...(props.pinnedFacets !== undefined
+              ? { pinned: props.pinnedFacets }
+              : {}),
+          });
           const ranges = buildRangeGroups({
             state,
             ...(props.categoryFeatures !== undefined
@@ -759,11 +806,19 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
             // schema cannot put back a sparse or unnameable row the server
             // just removed (0.16.0).
             withheld: bag.withheld,
-            // ONE AXIS, ONE CONTROL. A slug the answer COUNTED already has a
-            // bucket list on this rail; a from/to picker over the same field
-            // is a second control writing the same filter. See
-            // `BuildRangeGroupsInput.countedFacets`.
-            countedFacets: bag.counted,
+            // ONE AXIS, ONE CONTROL. A slug that HAS a bucket list on this
+            // rail does not also get a from/to picker over the same field —
+            // that is a second control writing the same filter. The set is
+            // the drawn one, not the server's counted one; see the note on
+            // `drawable` above and `BuildRangeGroupsInput.countedFacets`.
+            //
+            // Before the answer is ready there are no drawn groups to ask, so
+            // the server's list stands in — the pane is under its loading arm
+            // at that point and draws no ranges anyway.
+            countedFacets:
+              answer.status === "ready"
+                ? drawable.map((group) => group.slug)
+                : bag.counted,
             ...(props.bothAxes !== undefined ? { bothAxes: props.bothAxes } : {}),
             ...(bag.currency !== undefined ? { currency: bag.currency } : {}),
             t,
@@ -1026,35 +1081,12 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
               )}
             >
               {(groups) => {
-                // A group with no options is a heading with nothing under
-                // it. What is left in that state after `buildFacetGroups`
-                // learned to read the schema is the genuinely unanswerable
-                // case: a `ref_select` whose config is a bare pointer into
-                // a vocabulary this pair cannot read. A heading with no
-                // control under it names nothing, so it is not drawn.
-                // SCHEMA order, required first — see
-                // `orderFacetGroupsBySchema`. The rail ranked by evidence for
-                // two releases, which on a three-listing cars leaf put
-                // condition and colour above make, model and year:
-                // the busiest axis is the right question for a chip row with
-                // room for four and the wrong one for the column a person
-                // narrows a catalogue in. Groups the schema does not name
-                // keep evidence order among themselves.
-                const drawable = orderFacetGroupsBySchema({
-                  groups: groups
-                    .filter(facetGroupIsDrawable)
-                    // A bucket list with no buckets is a caption and an empty
-                    // box. Dropped HERE and not only inside the control, so
-                    // the count in "All filters (K)", the panel search and the
-                    // fold all agree about what is on the rail.
-                    .filter((group) => !facetGroupIsEmptyHeading(group)),
-                  ...(props.categoryFeatures !== undefined
-                    ? { categoryFeatures: props.categoryFeatures }
-                    : {}),
-                  ...(props.pinnedFacets !== undefined
-                    ? { pinned: props.pinnedFacets }
-                    : {}),
-                });
+                // `drawable` is computed ABOVE, before the ranges, because
+                // the range half needs to know which slugs this rail draws a
+                // bucket list for. `groups` here is the same list the hoisted
+                // computation read (`LoadList` hands its ready data to this
+                // arm), so the two cannot disagree.
+                void groups;
                 // Which groups OPEN — see the module note. Chosen groups are
                 // open unconditionally below; the rest are the first
                 // FACET_OPEN_GROUPS of the order above, so the panel's first

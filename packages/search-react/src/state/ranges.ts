@@ -527,18 +527,25 @@ export function buildRangeGroups(
          slug), so a same-named group is a different question and the price
          input must not disappear because one arrived.
 
-         KNOWN GAP, measured and NOT fixed here (2026-09-14): `countedFacets`
-         is documented as "the axes that already have a bucket list on the
-         rail" and is fed `bag.counted`, which is the SERVER's counted list.
-         Those differ. On a flats leaf `square` is counted with 30-odd bare
-         integers, the rail draws no group for it, and this line then drops
-         its range row too — so the total-area filter exists in neither
-         column. The fix is to pass the DRAWN set rather than the counted one,
-         which this function cannot compute: it never sees the groups. Two
-         heuristics were tried here and both were wrong, the second rejected
-         by this package's own `year` fixture — an imported `year` is a raw
-         int with no vocabulary, exactly like `square`, and its bucket list IS
-         wanted. Nothing in a FEATURE separates them; only the rail knows. */
+         WHAT `countedFacets` MUST BE FED (closed 0.50.0, in the caller).
+         This line reads "already has a bucket list ON THE RAIL", and it used
+         to be handed `bag.counted` — the SERVER's counted list. Those differ,
+         and the gap lost a filter outright: on a flats leaf `square` was
+         counted with 30-odd bare integers, `buildFacetGroups` built no group
+         for it (an `int` is not in `FACETABLE_FEATURE_TYPES`), and this line
+         then dropped its range row too, so the total-area filter existed in
+         neither column.
+
+         The fix could not go here: this function never sees the groups. Two
+         heuristics were tried in this file and both were wrong, the second
+         rejected by this package's own `year` fixture — an imported `year` is
+         a raw int with no vocabulary, exactly like `square`, and its bucket
+         list IS wanted. Nothing in a FEATURE separates them; only the rail
+         knows. So `FacetPanelPane` now builds its drawable groups BEFORE the
+         ranges and passes those slugs (`test/drawnAxisColumn.test.tsx`).
+
+         A caller that passes the server's list still gets the old behaviour.
+         Pass the drawn set. */
       if (!group.core && counted.has(group.slug)) return false;
       // Nobody named it. A from/to picker captioned `kilometrage` is a control
       // whose meaning a reader has to guess out of the numbers inside it,
