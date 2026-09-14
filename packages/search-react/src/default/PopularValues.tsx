@@ -340,6 +340,36 @@ const ROW: CSSProperties = {
   display: "flex",
   gap: spacing[2],
   alignItems: "baseline",
+  // The row is a column wide and must stay so; without this a flex item's
+  // automatic minimum size is its CONTENT, which is how a long value pushed
+  // the row past its column instead of wrapping inside it.
+  minInlineSize: 0,
+};
+
+/**
+ * THE VALUE WRAPS INSIDE ITS COLUMN.
+ *
+ * `column-width` is a MINIMUM, so the browser hands this row whatever width
+ * the box divides into — 155px in the storefront's 1088px pane. antd's
+ * `.ant-btn` sets `white-space: nowrap`, so a value longer than its column
+ * did not wrap: it kept its natural width and PAINTED OVER THE NEXT COLUMN.
+ *
+ * Measured on the industry axis of the jobs root at 1440: columns pitched
+ * 187px, and «Производство электроники и бытовой техники» 357px wide at the
+ * same baseline as the value 187px to its right — a 170px overlap, two
+ * labels on top of each other. Makes never showed it because "Ford" is short;
+ * the defect was in the block all along and only a long vocabulary revealed
+ * it.
+ *
+ * `textAlign: start` because a wrapped button centres its lines by default,
+ * which would ragged-centre a two-line value against a left-aligned column.
+ */
+const VALUE: CSSProperties = {
+  paddingInline: 0,
+  height: "auto",
+  whiteSpace: "normal",
+  textAlign: "start",
+  minInlineSize: 0,
 };
 
 export interface PopularValuesProps {
@@ -522,7 +552,7 @@ export function PopularValues(props: PopularValuesProps): ReactElement | null {
               type="link"
               size="small"
               {...POINTER_FOCUS}
-              style={{ paddingInline: 0, height: "auto" }}
+              style={VALUE}
               data-testid={`popular-value-${group.slug}-${option.value}`}
               data-analytics="none"
               data-analytics-reason="a filter is a read, not a flow step"
