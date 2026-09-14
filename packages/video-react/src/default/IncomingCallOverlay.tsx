@@ -19,7 +19,9 @@
  * the call, and the answer tap is the one that must not miss. Measured on the
  * ELEMENT the way the rest of this package does, so a desktop host that mounts
  * this inside a narrow column gets the phone treatment — which is correct,
- * because the constraint is the width, not the device.
+ * because the constraint is the width, not the device. The element measured is
+ * the full-bleed FRAME, never the dialog whose width this decision sets: see
+ * {@link RING_FRAME}.
  *
  * ── The countdown is the SERVER's ────────────────────────────────────────
  *
@@ -29,7 +31,7 @@
  * visible defect is an overlay that outlives the call it announces.
  */
 import { useEffect, useRef } from "react";
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Avatar, Button, Card, Flex, Typography, theme } from "antd";
 import { useT } from "@stapel/core";
 import { spacing } from "@stapel/tokens";
@@ -68,6 +70,46 @@ export interface IncomingCallOverlayProps extends ThemeModeProp {
    */
   readonly variant?: "auto" | "fullscreen" | "card";
 }
+
+/**
+ * THE MEASURED BOX, and the reason it is a box of its own.
+ *
+ * This frame is what `useNarrow()` observes, and its size is the same in both
+ * arms — that is the whole point of it, not a tidy-up.
+ *
+ * The ref used to sit on the dialog below, whose own width is what `narrow`
+ * DECIDES: "card" makes it 360 wide, "fullscreen" makes it fill the viewport.
+ * So on a desktop the measurement fed itself — 1440 says card, the card
+ * measures 360, 360 says fullscreen, fullscreen measures 1440 — and there is
+ * no fixed point. The overlay flipped variant on EVERY animation frame, and
+ * because the two arms are different trees (a `<Card>` wrapper in one, a bare
+ * body in the other) React rebuilt the subtree each time: the stand measured
+ * 120 distinct accept-button DOM nodes over 120 frames, the accept button
+ * jumping between x=1250 and x=728. A pointer press cannot become a click
+ * across two different nodes, so the accept button was unpressable and no
+ * `POST /calls/<id>/accept` was ever issued — the call rang until it timed out
+ * as missed (walker defect: connects at 390, never at 1440).
+ *
+ * At 390 there was no loop, because fullscreen measures 390, which is still
+ * narrow: the phone happened to sit on the one stable arm, which is exactly
+ * why the defect was invisible on the width everyone tested.
+ *
+ * A `position: fixed` overlay is laid out against its containing block — the
+ * viewport, or the nearest transformed/filtered ancestor — whatever column the
+ * host mounted it in. So measuring THIS frame still answers the question the
+ * package asks everywhere ("how wide is the box this thing is drawn in?"), and
+ * answers it with a number the answer cannot move.
+ *
+ * `pointerEvents: "none"` keeps the full-bleed frame from swallowing the page
+ * underneath in the card arm; the dialog inside sets `auto` in both arms, so
+ * what is clickable is exactly what was clickable before.
+ */
+const RING_FRAME: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1200,
+  pointerEvents: "none",
+};
 
 export function IncomingCallOverlay(
   props: IncomingCallOverlayProps
@@ -234,40 +276,41 @@ function RingOverlay(props: IncomingCallOverlayProps): ReactElement | null {
   );
 
   return (
-    <div
-      ref={ref}
-      role="dialog"
-      aria-modal="true"
-      aria-live="assertive"
-      aria-label={t(
-        ring.incoming
-          ? VIDEO_I18N_KEYS.callIncomingTitle
-          : VIDEO_I18N_KEYS.callOutgoing
-      )}
-      data-testid="video-ring-overlay"
-      data-variant={narrow ? "fullscreen" : "card"}
-      style={
-        narrow
-          ? {
-              position: "fixed",
-              inset: 0,
-              zIndex: 1200,
-              background: token.colorBgContainer,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: token.paddingLG,
-            }
-          : {
-              position: "fixed",
-              top: token.paddingLG,
-              right: token.paddingLG,
-              zIndex: 1200,
-              maxWidth: 360,
-            }
-      }
-    >
-      {narrow ? body : <Card styles={{ body: { padding: token.paddingLG } }}>{body}</Card>}
+    <div ref={ref} style={RING_FRAME} data-testid="video-ring-frame">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-live="assertive"
+        aria-label={t(
+          ring.incoming
+            ? VIDEO_I18N_KEYS.callIncomingTitle
+            : VIDEO_I18N_KEYS.callOutgoing
+        )}
+        data-testid="video-ring-overlay"
+        data-variant={narrow ? "fullscreen" : "card"}
+        style={
+          narrow
+            ? {
+                position: "absolute",
+                inset: 0,
+                background: token.colorBgContainer,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: token.paddingLG,
+                pointerEvents: "auto",
+              }
+            : {
+                position: "absolute",
+                top: token.paddingLG,
+                right: token.paddingLG,
+                maxWidth: 360,
+                pointerEvents: "auto",
+              }
+        }
+      >
+        {narrow ? body : <Card styles={{ body: { padding: token.paddingLG } }}>{body}</Card>}
+      </div>
     </div>
   );
 }

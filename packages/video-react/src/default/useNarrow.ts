@@ -14,6 +14,22 @@
  * better served by the viewport's answer than by silently choosing the wide
  * layout.
  *
+ * ── THE ONE INVARIANT A CALLER HAS TO KEEP ───────────────────────────────
+ *
+ * **Put `ref` on an element whose own width `narrow` does not decide.** A
+ * measurement that feeds itself has no fixed point: 1440 says "wide", the wide
+ * arm is 360 across, 360 says "narrow", the narrow arm is 1440 across. The
+ * hook then flips on every animation frame, and if the two arms are different
+ * trees React rebuilds the subtree just as often — which makes every control
+ * inside unclickable, because a press and a release land on two different DOM
+ * nodes and no `click` is ever dispatched. That is not hypothetical: it is how
+ * `<IncomingCallOverlay>` became unanswerable on a desktop while working on a
+ * phone (the phone's arm happened to be the stable one), and the symptom was a
+ * call that rang until it timed out as missed.
+ *
+ * Measure a wrapper that is sized by the layout — full-bleed, `width: 100%`,
+ * a host's column — and let the arms differ INSIDE it.
+ *
  * This wants to live in `@stapel/tokens-antd/skin` beside `SkinDialog` — every
  * pair with a table repeats it otherwise. Recorded as such in the pair's
  * requests file; kept local until that lands so this pane is not blocked on it.

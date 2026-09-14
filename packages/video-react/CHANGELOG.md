@@ -1,5 +1,41 @@
 # @stapel/video-react
 
+## 0.3.7
+
+### Patch Changes
+
+- fix(video-react): the ring stops measuring the box its own answer resizes, so a desktop call can be answered
+
+  `<IncomingCallOverlay>` chooses full-screen or card by measuring a box with
+  `useNarrow()`, and the ref sat on the dialog whose own width that choice sets.
+  That measurement fed itself and had no fixed point: a 1440 viewport says
+  "card", the card is 360 across, 360 says "full-screen", full-screen is 1440
+  across. The overlay flipped arm on every animation frame, and because the two
+  arms are different trees (a `<Card>` wrapper in one, a bare body in the other)
+  React rebuilt the subtree just as often.
+
+  A pointer press cannot become a click across two different DOM nodes, so the
+  accept button was unpressable: the stand measured 120 distinct accept-button
+  nodes over 120 animation frames on the live storefront at 1440, the button
+  jumping between x=1250 and x=728, and **no `POST /calls/{id}/accept` was ever
+  issued** — the callee's screen stayed on the ring, the caller's stayed on
+  "calling", and both timed out as a missed call. At 390 there was no loop
+  (full-screen measures 390, which is still narrow), which is why a call
+  connected on a phone and never on a desktop.
+
+  The overlay now renders a full-bleed frame — `position: fixed; inset: 0;
+pointer-events: none`, the same style object in both arms — and measures THAT,
+  with the dialog drawn inside it. A fixed overlay is laid out against its
+  containing block, so the number is still "how wide is the box this is drawn
+  in", but it is one the answer cannot move. Nothing about either arm's geometry
+  or what is clickable changes: the card still sits at the top right, the
+  full-screen arm still fills the viewport, and the page under a card is still
+  reachable.
+
+  `useNarrow()` now states the invariant every caller has to keep — put the ref
+  on an element whose width `narrow` does not decide — and `video-ring-frame` is
+  a new test id on the measured frame.
+
 ## 0.3.6
 
 ### Patch Changes

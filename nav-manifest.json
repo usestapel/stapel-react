@@ -1067,7 +1067,7 @@
     },
     {
       "package": "@stapel/video-react",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "entries": [
         {
           "id": "video.rooms",
