@@ -317,3 +317,62 @@ The measured value is followed through a `const` alias chain of **any depth** �
 without that the rule would have missed the very defect it exists for, since
 `<IncomingCallOverlay>` binds `narrow` under the alias `measured` and the style
 reads a later `const` derived from it.
+
+## The adjacent class: a width literal, and which ones are accepted
+
+A sweep for hard-coded width numbers runs into this rule's territory from one
+step out. This rule asks **"did you measure the right box?"**; that sweep asks
+**"should you have measured a box at all?"** The two share one discriminator,
+and it is recorded here so the next sweep does not spend a round re-deciding
+it:
+
+| the number is compared against | verdict | why |
+| --- | --- | --- |
+| a VIEWPORT source — `window.innerWidth`, `matchMedia("(min-width: N)")`, a `@media` string built in JS | a defect in a library | the number is a claim about every device, so it belongs to a token rung (`breakpoints.tablet`) or to the host (a prop) |
+| an ELEMENT source — a `ResizeObserver` `contentRect.width`, `getBoundingClientRect().width` | **accepted** | the number means something local — "below this the four columns stop fitting IN THIS BOX" — and no token can express it |
+
+### The accepted list (2026-09-16 sweep)
+
+Element-measured thresholds. These are correct as written; a future sweep must
+not re-raise them:
+
+- `packages/calendar-react/src/default/useElementWidth.ts` — `GRID_MIN_WIDTH =
+  560`, `CELL_DENSE_WIDTH = 760`, both compared against a `ResizeObserver`
+  width. Below 560 a month grid has no room for a day number plus one event
+  title, and a calendar that scrolls sideways is not a calendar.
+- `packages/profiles-react/src/default/RevealPhoneButton.tsx` —
+  `CONTACT_REVEAL_LABEL_MIN_WIDTH = 416`, compared against `box.width`.
+
+And one shape outside the libraries: in an **app**, a hard-coded viewport width
+can be exactly right — a deployment's composition may land on no rung. The
+storefront's `SERP_RAIL_MIN_WIDTH` is legitimate: named once, passed into the
+pairs' props. The defect class is a library baking a device claim in, not a
+number existing.
+
+### The open findings
+
+- `packages/video-react/src/default/useNarrow.ts` — **fixed** in 67d79c27:
+  `NARROW_LIMIT = 768` sat under a comment *promising* it matched the tablet
+  edge of `@stapel/tokens`; it is now `breakpoints.tablet`. The cheap half of
+  the class — the value was right and only its provenance was a comment.
+- `packages/categories-react/src/default/CategoryMegaMenu.tsx` —
+  `DEFAULT_MIN_WIDTH = 1024`, read as `window.innerWidth >= minWidth`. The
+  `minWidth` prop already exists, so a host *can* name the edge; the default is
+  on no rung of `@stapel/tokens` and coincides with one deployment's private
+  edge. Open for that package's owner.
+
+The pattern all of these are steered towards is `search-react`'s `railFrom`: a
+prop, defaulted to the token edge, read live — which is what `shell-react`
+0.19.0's `chromeFrom` copied after both chromes drew the phone page on every
+width from 768 to 1199.
+
+### What a lint rule here could and could not claim
+
+It could flag a numeric literal compared against a viewport source inside
+`packages/*`. It could **not** have caught the defect that started the sweep:
+`shell-react` took its arm from `useBreakpoint() === "desktop"` — a token rung,
+no literal anywhere — and the bug was that it was the *wrong* rung with no way
+for a host to name another. A literal scan cannot see that. A gate whose
+description is broader than what it checks is worse than no gate, so the honest
+scope of any such rule is "hard-coded viewport NUMBERS", never "wrong layout
+arms".
