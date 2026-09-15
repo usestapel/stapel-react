@@ -139,7 +139,14 @@ export function locationLineCss(): string {
     // container and does nothing on a flex one, so a label that had been
     // turned into a flex box truncated with a hard cut mid-glyph instead of
     // an ellipsis.
-    `${label}{display:block;min-inline-size:0;overflow:hidden;` +
+    // DOUBLED. This span lives inside an antd Button, and `text-overflow` /
+    // `white-space` are exactly the ladder antd's own per-theme class carries
+    // — injected into <head> at runtime, so at the (0,1,0) a single class
+    // scores it wins on order. antd 6 styles `> span` only inside
+    // `Button.Group`, so nothing contests it TODAY; that is the same "safe
+    // today" that shipped the card scale and two gallery counters inert, and
+    // a doubled selector is behaviour-identical where there is no competitor.
+    `${label}${label}{display:block;min-inline-size:0;overflow:hidden;` +
       `text-overflow:ellipsis;white-space:nowrap}`,
     // The word a person is looking for never loses a pixel to a place name.
     `${end}{flex:0 0 auto}`,
