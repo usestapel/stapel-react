@@ -32,11 +32,22 @@ describe("the card type scale is declared once", () => {
     // Custom properties, not numbers: a compiled-in size is the default
     // theme's, and the whole point is that a brand's own ladder applies.
     expect(css).toContain(
-      `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{font-size:var(--stapel-font-size-md);line-height:var(--stapel-line-height-md)}`
+      `.${CARD_TITLE_CLASS}.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}.${CARD_PRICE_CLASS}{font-size:var(--stapel-font-size-md);line-height:var(--stapel-line-height-md)}`
     );
     expect(css).toContain(
-      `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{font-size:var(--stapel-font-size-lg);line-height:var(--stapel-line-height-lg)}`
+      `.${CARD_TITLE_CLASS}.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}.${CARD_PRICE_CLASS}{font-size:var(--stapel-font-size-lg);line-height:var(--stapel-line-height-lg)}`
     );
+  });
+
+  it("outranks antd's runtime sheet instead of racing it", () => {
+    // antd injects `.css-<hash>` with Typography's font-size into <head> at
+    // runtime, AFTER this static sheet, at the same (0,1,0) specificity a
+    // single class has — so a single-class rule loses on order. This shipped
+    // inert exactly once that way: class on the element, container 1062px,
+    // rule in the sheet, computed size still antd's. `@container` adds no
+    // specificity, so the selector has to.
+    expect(css).toContain(`.${CARD_PRICE_CLASS}.${CARD_PRICE_CLASS}`);
+    expect(css).toContain(`.${CARD_TITLE_CLASS}.${CARD_TITLE_CLASS}`);
   });
 
   it("asks the CARD's width for the tier, at the row arm's own threshold", () => {

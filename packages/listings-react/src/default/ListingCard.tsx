@@ -353,11 +353,23 @@ export function cardTargetCss(): string {
     // which is the defect this package's container rule exists to prevent —
     // and `desktopSerpRow.test.tsx` refuses a `@media (min-width` in this
     // sheet for that reason. It caught this rule written the wrong way.
-    `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{` +
+    // DOUBLED, and that is the whole reason this shipped inert the first time.
+    // antd generates a per-theme class (`.css-wgezi7`) carrying Typography's
+    // own font-size, injects it into <head> at RUNTIME — after this static
+    // sheet — and it has the same specificity a single class has, so it wins
+    // on order. Measured on the stand: the class was on the element, the
+    // container was 1062px, the `@container` rule was in the sheet, and the
+    // computed size was still antd's 16px. A `@container` wrapper adds no
+    // specificity of its own.
+    //
+    // Doubling the class is (0,2,0) against antd's (0,1,0) and wins on
+    // specificity rather than on order, which is the only thing that is
+    // stable against a runtime-injected sheet.
+    `.${CARD_TITLE_CLASS}.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}.${CARD_PRICE_CLASS}{` +
       `font-size:var(--stapel-font-size-md);` +
       `line-height:var(--stapel-line-height-md)}`,
     `@container (min-width:${String(LISTING_CARD_ROW_MIN)}px){` +
-      `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{` +
+      `.${CARD_TITLE_CLASS}.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}.${CARD_PRICE_CLASS}{` +
       `font-size:var(--stapel-font-size-lg);` +
       `line-height:var(--stapel-line-height-lg)}}`,
     `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
