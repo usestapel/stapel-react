@@ -111,6 +111,28 @@ tester.run("no-pinned-corpus-fact", rule, {
         'const SEED = process.env.SEED || "1345";\n' +
         "out.seed = SEED;",
     },
+    // A FLUSH, not a corpus fact. The batch size is the number this very code
+    // chose; nothing reseeds it, and the buffer is emptied in the branch the
+    // comparison guards. All five of the rule's first-pass count hits across a
+    // fleet's 799 walkers were this one shape.
+    {
+      filename: WALKER,
+      code:
+        "let chunk = [];\n" +
+        "for (const y of offsets) {\n" +
+        "  chunk.push({ at: y, b64: await band() });\n" +
+        "  if (chunk.length === 24) { foreign.push(...(await scanFrames(chunk))); chunk = []; }\n" +
+        "}",
+    },
+    // …and the same flush written with `splice`.
+    {
+      filename: WALKER,
+      code:
+        "if (buf.length === 50) {\n" +
+        "  await send(buf);\n" +
+        "  buf.splice(0);\n" +
+        "}",
+    },
     // OUT OF SCOPE — a unit test's corpus is its own fixture. Deterministic by
     // construction, and `toHaveLength(24)` against a file the test itself wrote
     // is exactly right.

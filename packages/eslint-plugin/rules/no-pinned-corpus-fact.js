@@ -65,6 +65,13 @@
 //     stops and "as many as the seed made" starts; it is an option because
 //     that line is a judgement.
 //
+//     A FLUSH is silent too: `if (buf.length === 24) { send(buf); buf = []; }`.
+//     The number is the batch size this very code chose, nothing reseeds it,
+//     and the buffer is emptied in the branch the comparison guards. All five
+//     of the rule's first-pass count hits across a fleet's 799 walkers were
+//     that one shape, and reporting them would have spent the rule's whole
+//     credibility on its first run.
+//
 // `pinnedIdInUrl` — an id-shaped literal standing as a whole PATH SEGMENT of a
 //     url: `/l/1345`, `` `${BASE}/l/1345` ``, `https://…/issues/4f2c…`. Also an
 //     id-shaped value of a query parameter whose name contains `id`
@@ -304,6 +311,77 @@ export default {
       return found;
     }
 
+    /** The identifier a count expression is counting, or null. */
+    function countedName(expression) {
+      if (!expression) return null;
+      if (expression.type === "Identifier") return expression.name;
+      if (expression.type === "MemberExpression") return countedName(expression.object);
+      return null;
+    }
+
+    /** `name = []` / `name.length = 0` / `name.splice(0)` anywhere under a node. */
+    function emptiesBuffer(node, name) {
+      let found = false;
+      const walk = (current) => {
+        if (found || current === null || typeof current !== "object") return;
+        if (Array.isArray(current)) {
+          for (const item of current) walk(item);
+          return;
+        }
+        if (typeof current.type !== "string") return;
+        if (
+          current.type === "AssignmentExpression" &&
+          current.operator === "=" &&
+          current.right?.type === "ArrayExpression" &&
+          current.right.elements.length === 0 &&
+          countedName(current.left) === name
+        ) {
+          found = true;
+          return;
+        }
+        if (
+          current.type === "CallExpression" &&
+          current.callee?.type === "MemberExpression" &&
+          current.callee.property?.name === "splice" &&
+          countedName(current.callee.object) === name
+        ) {
+          found = true;
+          return;
+        }
+        for (const key of Object.keys(current)) {
+          if (key === "parent") continue;
+          walk(current[key]);
+        }
+      };
+      walk(node);
+      return found;
+    }
+
+    /**
+     * `if (buf.length === 24) { flush(buf); buf = []; }` — a FLUSH, not a
+     * corpus fact. The number is the batch size this very code chose, nothing
+     * reseeds it, and the buffer is emptied in the branch the comparison
+     * guards. Found by sweeping a fleet's walkers: all five of the rule's
+     * first-pass count hits were this one shape, and reporting them would have
+     * been the rule's whole credibility on its first run.
+     */
+    function isFlushedBuffer(comparison, counted) {
+      const name = countedName(counted);
+      if (name === null) return false;
+      for (let current = comparison; current; current = current.parent) {
+        if (current.type === "IfStatement" || current.type === "ConditionalExpression") {
+          if (
+            emptiesBuffer(current.consequent, name) ||
+            emptiesBuffer(current.alternate, name)
+          ) {
+            return true;
+          }
+        }
+        if (current.type === "FunctionDeclaration" || current.type === "Program") break;
+      }
+      return false;
+    }
+
     /** `process.env.X` (or `process.env["X"]`). */
     function isProcessEnv(node) {
       return (
@@ -322,15 +400,16 @@ export default {
       // `finalCount === 390`
       BinaryExpression(node) {
         if (!EQUALITY_OPERATORS.has(node.operator)) return;
-        const leftNumber = pinnedNumber(node.left);
         const rightNumber = pinnedNumber(node.right);
+        const leftNumber = pinnedNumber(node.left);
         const counted =
           rightNumber !== null && isCountShaped(node.left)
-            ? node
+            ? node.left
             : leftNumber !== null && isCountShaped(node.right)
-              ? node
+              ? node.right
               : null;
         if (counted === null) return;
+        if (isFlushedBuffer(node, counted)) return;
         context.report({
           node,
           messageId: "pinnedCount",

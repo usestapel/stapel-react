@@ -93,6 +93,11 @@ sockets.length === 1          // "one socket per tab"
 
 // ✓ — a relation between two reads, not a literal
 finalCount === initialCount
+
+// ✓ — a FLUSH. The batch size is this code's own choice, nothing reseeds it,
+// and the buffer is emptied in the branch the comparison guards.
+if (chunk.length === 24) { foreign.push(...await scanFrames(chunk)); chunk = []; }
+if (buf.length === 50) { await send(buf); buf.splice(0); }
 ```
 
 Relational operators are silent on purpose: reporting them would tell an author
@@ -206,10 +211,17 @@ only where the corpus belongs to somebody else.
 ## The sweep (2026-09-16)
 
 Run at `error` over one client fleet's `deploy/probes/**` and `walkers/**` — 799
-files — it reports **216** sites: 181 `pinnedId`, 30 `pinnedIdDefault`, 5
-`pinnedCount`. Twelve distinct listing ids and four user uuids account for
-nearly all of the id hits; the same four ids appear in dozens of walkers. See
-`CHANGELOG.md` for the verdicts.
+files — it reports **211** sites: 181 `pinnedId` and 30 `pinnedIdDefault`.
+Twelve distinct listing ids and four user uuids account for nearly all of them;
+the same four ids repeat across dozens of walkers.
+
+**Zero `pinnedCount`**, and that is the honest answer rather than a weak one:
+the count defect was repaired in the probe that had it before this rule
+existed, so the rule stands as the net under that repair, not as a finding
+about today. Three false-positive families were found by the sweep itself and
+closed before these numbers were taken — a filesystem path whose scratch
+directory is named with a uuid, a taxonomy axis inside a query string, and the
+flush buffer above, which accounted for every count hit in the first pass.
 
 One wiring note for whoever adopts it: that fleet is a plain `.mjs` repository
 with no `package.json` and no ESLint config, so the rule cannot run there until
