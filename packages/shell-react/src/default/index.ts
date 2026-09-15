@@ -13,7 +13,8 @@
  *
  * Two chromes live here, siblings rather than modes of one another:
  * `<AppShell/>` (Sider/Drawer — the signed-in app) and `<PublicShell/>` (top
- * bar + browse bar — the public storefront). They share `resolveNav`, the
+ * bar + browse bar — the public storefront). Both change arms at ONE edge a
+ * host can name (`chromeFrom`), defaulting to the tokens' `tablet` rung. They share `resolveNav`, the
  * icon table, the nav `Menu` and the theme config; they share no geometry.
  */
 export { AppShell } from "./AppShell.js";
@@ -25,6 +26,7 @@ export type { PublicShellProps } from "./PublicShell.js";
 // `HEADER_HEIGHT_VAR` is the same two numbers as a custom property on the
 // shell's root, for the half of a deployment that is a stylesheet.
 export {
+  DEFAULT_CHROME_FROM,
   DEFAULT_HEADER_SCROLL_THRESHOLDS,
   HEADER_HEIGHT_DESKTOP,
   HEADER_HEIGHT_PHONE,
@@ -36,6 +38,7 @@ export {
   SCROLL_SENTINEL_HEIGHT,
   headerScrollThresholds,
   publicShellCss,
+  publicShellStyleHref,
 } from "./PublicShell.js";
 export type { HeaderScrollThresholds } from "./PublicShell.js";
 // WHERE A ROUTE LANDS — both chromes call this, and it is exported so a host
@@ -43,6 +46,10 @@ export type { HeaderScrollThresholds } from "./PublicShell.js";
 // rather than a fifth version of it. `<AppShell scrollRestoration={false}>` /
 // `<PublicShell scrollRestoration={false}>` opt out.
 export { useRouteScrollReset } from "./routeScroll.js";
+// "Is the window at least this wide" — the one width read both chromes make,
+// exported so a host arranging its own chrome around an `<Outlet/>` changes
+// arms at the SAME edge rather than writing a second reading of the window.
+export { useWiderThan } from "./chromeWidth.js";
 // The two host-resolved brand slots `<PublicShell/>` falls back to when the
 // host passes neither `brand` nor `footer` and a `<SiteProvider>` is mounted
 // (multibrand spec, frontend decision). Exported on their own so a host that arranges its own

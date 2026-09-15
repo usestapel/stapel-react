@@ -27,6 +27,7 @@ import type { ReactElement } from "react";
 import { I18nProvider, createI18n } from "@stapel/core";
 import { breakpoints, spacing } from "@stapel/tokens";
 import {
+  DEFAULT_CHROME_FROM,
   DEFAULT_HEADER_SCROLL_THRESHOLDS,
   HEADER_HEIGHT_DESKTOP,
   HEADER_HEIGHT_PHONE,
@@ -114,7 +115,15 @@ describe("the header height is the shell's to publish", () => {
 
   it("switches at the shell's own breakpoint, in a media query rather than a render", () => {
     const css = publicShellCss();
-    expect(css).toContain(`@media (min-width:${String(breakpoints.desktop)}px)`);
+    /* THE SAME EDGE THE RENDER CHANGES ARMS AT, read off the constant both
+       sides take rather than restated as a number here — a sheet whose rung
+       sits at a different width than the header it describes publishes a
+       height that is wrong for the whole band between them (D449). It used to
+       say `breakpoints.desktop`, matching a render that drew the phone header
+       to 1199; both moved to the `tablet` rung together. */
+    expect(DEFAULT_CHROME_FROM).toBe(breakpoints.tablet);
+    expect(css).toContain(`@media (min-width:${String(DEFAULT_CHROME_FROM)}px)`);
+    expect(css).not.toContain(`@media (min-width:${String(breakpoints.desktop)}px)`);
     expect(css).toContain(
       `${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px`
     );
@@ -828,14 +837,14 @@ describe("scrolledChipRow", () => {
     const css = publicShellCss();
     const row = `.${PUBLIC_CHIPS_CLASS}[data-sticky="true"]`;
     // The same two rungs that DECLARE the height, in the same order — the
-    // desktop one last, so a desk width wins over the dock rung exactly the
-    // way the height itself does (D449).
+    // WIDE one last, so a width above the edge wins over the dock rung exactly
+    // the way the height itself does (D449).
     expect(css).toContain(
       `.${PUBLIC_SHELL_CLASS}:where([data-phone-chrome="dock"]) ${row}` +
         `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}`
     );
     expect(css).toContain(
-      `@media (min-width:${String(breakpoints.desktop)}px){` +
+      `@media (min-width:${String(DEFAULT_CHROME_FROM)}px){` +
         `.${PUBLIC_SHELL_CLASS} ${row}` +
         `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}}`
     );

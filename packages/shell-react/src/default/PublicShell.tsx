@@ -60,12 +60,17 @@ import { Button, Drawer, Flex, Layout, theme } from "antd";
 import { Link, Outlet } from "react-router";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { useBreakpoint, useOptionalSite, useT } from "@stapel/core";
-import { breakpoints, cssVar, spacing } from "@stapel/tokens-antd";
+import { useOptionalSite, useT } from "@stapel/core";
+import { cssVar, spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { NavDock, DOCK_CLEARANCE, dockRenders } from "./NavDock.js";
 import { useRouteScrollReset } from "./routeScroll.js";
+import { DEFAULT_CHROME_FROM, useWiderThan } from "./chromeWidth.js";
+
+/** Re-exported from `./chromeWidth.js`, which both chromes read it from —
+ * see there for what it is and why it moved off the `desktop` rung. */
+export { DEFAULT_CHROME_FROM };
 import { CloseGlyph, HomeGlyph, MenuGlyph } from "./icons.js";
 import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SiteBrand } from "./SiteBrand.js";
@@ -164,8 +169,27 @@ export const PUBLIC_HEADER_CLASS = "stapel-public-shell-header";
  */
 export const PUBLIC_CHIPS_CLASS = "stapel-public-shell-chips";
 
-/** The `href` the hoisted shell sheet is deduplicated by (React 19). */
+/** The `href` the hoisted shell sheet is deduplicated by (React 19) at the
+ * DEFAULT edge. See {@link publicShellStyleHref}. */
 export const PUBLIC_SHELL_STYLE_HREF = "stapel-public-shell";
+
+/**
+ * The `href` for a sheet written at `chromeFrom`.
+ *
+ * React 19 deduplicates a hoisted `<style href>` BY THAT HREF and keeps the
+ * first one it saw. Two shells on one page at two different edges — a host
+ * previewing its storefront inside its own admin, say — would otherwise share
+ * one sheet and one of them would publish a header height for a width it never
+ * changes arms at. The default edge keeps the historical href exactly, so
+ * nothing that already reads it moves.
+ */
+export function publicShellStyleHref(
+  chromeFrom: number = DEFAULT_CHROME_FROM
+): string {
+  return chromeFrom === DEFAULT_CHROME_FROM
+    ? PUBLIC_SHELL_STYLE_HREF
+    : `${PUBLIC_SHELL_STYLE_HREF}-${String(chromeFrom)}`;
+}
 
 /**
  * The custom property `<PublicShell/>` publishes its header height on.
@@ -181,11 +205,18 @@ export const HEADER_HEIGHT_VAR = "--stapel-header-height";
  * The shell's root sheet: the header height as a custom property, switched by
  * a MEDIA QUERY rather than by a render.
  *
+ * `chromeFrom` is the edge the RENDER changes arms at, and this sheet must be
+ * given the same one — see {@link PublicShellProps.chromeFrom}. A sheet whose
+ * rung sits at a different width than the header it describes publishes a
+ * height that is wrong for the whole band between them, and two pairs pin
+ * against that number (D449: the rail and the results toolbar sat 8px under
+ * the header because the property said 56 while the header drew 64).
+ *
  * Why a sheet and not an inline `style`: an inline value is computed at render
  * from `useBreakpoint()`, and a host's sticky box then reads the height of the
  * chrome the shell drew for the LAST render it did. The media query is the
- * same edge (`breakpoints.desktop`) evaluated by the engine on every reflow,
- * so a window dragged across 1200px moves the rail and the header together.
+ * same edge (`chromeFrom`) evaluated by the engine on every reflow, so a
+ * window dragged across it moves the rail and the header together.
  *
  * The phone rung is declared only for `phoneChrome="dock"`, and that is the
  * honest half: in `"drawer"` the phone header wraps to a second line for the
@@ -196,8 +227,8 @@ export const HEADER_HEIGHT_VAR = "--stapel-header-height";
  * ── Why the dock rung is wrapped in `:where()` (D449) ─────────────────────
  *
  * A media query adds NO specificity. `.stapel-public-shell[data-phone-chrome=
- * "dock"]` is (0,2,0) and `.stapel-public-shell` inside
- * `@media (min-width:1200px)` is (0,1,0), so on a 1440px desktop running the
+ * "dock"]` is (0,2,0) and `.stapel-public-shell` inside the wide arm's
+ * `@media (min-width:…)` is (0,1,0), so on a 1440px desktop running the
  * dock chrome the phone rung won the cascade and the property resolved to
  * 56px under a 64px header. Both sticky things on the page read it, so the
  * filter rail and the results toolbar pinned 8px UNDER the header — measured
@@ -264,13 +295,13 @@ export const HEADER_HEIGHT_VAR = "--stapel-header-height";
  * writes inline: `top: 0` is an inline declaration, which no sheet rule of
  * ours could beat anyway, and paint needs no override.
  */
-export function publicShellCss(): string {
+export function publicShellCss(chromeFrom: number = DEFAULT_CHROME_FROM): string {
   const shell = `.${PUBLIC_SHELL_CLASS}`;
   const header = `.${PUBLIC_HEADER_CLASS}[data-sticky="true"]`;
   const chips = `.${PUBLIC_CHIPS_CLASS}`;
   return [
     `${shell}:where([data-phone-chrome="dock"]){${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_PHONE)}px}`,
-    `@media (min-width:${String(breakpoints.desktop)}px){` +
+    `@media (min-width:${String(chromeFrom)}px){` +
       `${shell}{${HEADER_HEIGHT_VAR}:${String(HEADER_HEIGHT_DESKTOP)}px}}`,
     // ── The scrolled chip row ────────────────────────────────────────────────
     //
@@ -306,7 +337,7 @@ export function publicShellCss(): string {
     // than pinning at an offset nobody computed.
     `${shell}:where([data-phone-chrome="dock"]) ${chips}[data-sticky="true"]` +
       `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}`,
-    `@media (min-width:${String(breakpoints.desktop)}px){` +
+    `@media (min-width:${String(chromeFrom)}px){` +
       `${shell} ${chips}[data-sticky="true"]` +
       `{position:sticky;inset-block-start:var(${HEADER_HEIGHT_VAR})}}`,
     `@media (prefers-reduced-motion:reduce){${chips}{transition:none}}`,
@@ -490,7 +521,41 @@ export interface PublicShellProps {
    */
   readonly contentMaxWidth?: number | false;
   /**
-   * The floating bottom dock (`<NavDock/>`), ON below the desktop breakpoint.
+   * WHERE THE PHONE SHELL ENDS AND THE WIDE ONE BEGINS, in CSS pixels.
+   * Default {@link DEFAULT_CHROME_FROM} — `@stapel/tokens`' `tablet` rung.
+   *
+   * Below it: the phone shell exactly as before — the bottom dock, the
+   * hamburger sheet or the docked one-row header, no browse bar. From it up:
+   * the wide shell — no dock, the browse bar, the horizontal menu, the
+   * 64px header row and the theme switch in it.
+   *
+   * ── Why it is a prop and not a rung ──────────────────────────────────────
+   *
+   * The ladder has three numbers and a deployment's composition may not land
+   * on one of them. The fleet's storefront puts its filter rail at 1024 (the
+   * owner's tablet rule — measured: at 768 the 280px rail leaves the results
+   * one card across where 767 gave two), so its chrome has to change arms at
+   * 1024 or the two rules draw a hybrid — a desktop filter rail with the
+   * phone's bottom dock under it, which is what that band looked like. Moving
+   * `desktop` to 1024 in `@stapel/tokens` would re-compose every other app on
+   * the ladder, so the deployment names its own width HERE, once, and the
+   * ladder stays the ladder. Same shape, same reasoning, as
+   * `<SearchPage railFrom>` (`@stapel/search-react` 0.32.7).
+   *
+   * It is read against the VIEWPORT, live (a rotation swaps the chrome with no
+   * reload) — the one legitimate use of viewport geometry, because "which
+   * chrome does this window get" is a question about the window. Everything
+   * that lays out INSIDE the chrome still measures its own box.
+   *
+   * The sheet this component publishes `--stapel-header-height` on is written
+   * at the SAME number, so the height a host pins against never describes an
+   * arm the shell is not drawing.
+   */
+  readonly chromeFrom?: number;
+  /**
+   * The floating bottom dock (`<NavDock/>`), ON below
+   * {@link PublicShellProps.chromeFrom} — a phone surface, and from 0.19.0
+   * only a phone one: it used to float over every window under 1200px.
    *
    * Default skins ARE the product (§83): a storefront's phone chrome is a
    * dock, and a pair that made it opt-in would ship every deployment the
@@ -504,8 +569,9 @@ export interface PublicShellProps {
    */
   readonly dock?: boolean;
   /**
-   * Which chrome this storefront wears BELOW the desktop breakpoint. Desktop
-   * is untouched either way — this prop has no effect there at all.
+   * Which chrome this storefront wears BELOW
+   * {@link PublicShellProps.chromeFrom}. The wide shell is untouched either
+   * way — this prop has no effect there at all.
    *
    *  - `"drawer"` (default, and byte-identical to every release before this
    *    prop existed): a hamburger opens the nav sheet, and the header takes a
@@ -563,9 +629,12 @@ export interface PublicShellProps {
    * height that row is worth is published as {@link HEADER_HEIGHT_VAR} for the
    * two pairs that pin against it.
    *
-   *  - `"desktop"` — sticky at and above `breakpoints.desktop`, and NOT below.
-   *  - `"phone"` — sticky below it (what `"dock"` already did), and not on a
-   *    desktop.
+   *  - `"desktop"` — sticky on the WIDE arm (at and above
+   *    {@link PublicShellProps.chromeFrom}), and NOT below it. The name is
+   *    kept: it is the same side of the same one edge, which since 0.19.0 sits
+   *    at the tokens' `tablet` rung by default rather than at `desktop`.
+   *  - `"phone"` — sticky below the edge (what `"dock"` already did), and not
+   *    on the wide arm.
    *  - `true` — both (the default). `false` — neither, including the dock
    *    chrome's, for a host whose own chrome owns the top edge.
    *
@@ -672,7 +741,7 @@ export interface PublicShellProps {
    *    at the top of the page cannot make the strip flicker; a host that also
    *    passes `headerScrollFlag` keeps its own edges for both.
    *  - WHERE: below the header, pinned under it wherever the shell publishes
-   *    {@link HEADER_HEIGHT_VAR} (a desktop width, or a phone in
+   *    {@link HEADER_HEIGHT_VAR} (the wide arm, or a phone in
    *    `phoneChrome="dock"`). It is never inside the header, which would make
    *    the published height a lie the two pairs pinning against it would
    *    inherit.
@@ -804,8 +873,11 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   const t = useT();
   const { token } = theme.useToken();
   const contentMaxWidth = props.contentMaxWidth ?? DEFAULT_CONTENT_MAX_WIDTH;
-  const breakpoint = useBreakpoint();
-  const isDesktop = breakpoint === "desktop";
+  const chromeFrom = props.chromeFrom ?? DEFAULT_CHROME_FROM;
+  // ONE decision, at one edge. `wide` is "this window gets the desktop
+  // chrome"; it was `useBreakpoint() === "desktop"`, which said "this window
+  // is at least 1200" and drew a phone for the 432px in between.
+  const wide = useWiderThan(chromeFrom);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Where a route lands: the top on a PUSH, where it was left on a POP, and
@@ -815,7 +887,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   // The decluttered phone chrome, and ONLY below the desktop breakpoint: the
   // prop describes a phone, and a desktop that changed shape because of it
   // would be this component quietly growing a second layout axis.
-  const dockChrome = !isDesktop && props.phoneChrome === "dock";
+  const dockChrome = !wide && props.phoneChrome === "dock";
 
   /*
    * ── Is the header pinned? ─────────────────────────────────────────────────
@@ -828,9 +900,9 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     props.headerSticky === undefined
       ? true
       : props.headerSticky === "desktop"
-        ? isDesktop
+        ? wide
         : props.headerSticky === "phone"
-          ? !isDesktop
+          ? !wide
           : props.headerSticky;
 
   // The scroll flag: two observers on ONE box, and only when asked for. The
@@ -928,10 +1000,11 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         ? <SiteLegalFooter />
         : undefined;
 
-  // The dock is a PHONE/tablet surface: on a desktop the browse bar is already
-  // one click from every destination and an island floating over the content
-  // would be chrome competing with chrome.
-  const showDock = !isDesktop && props.dock !== false;
+  // The dock is a PHONE surface: on the wide arm the browse bar is already one
+  // click from every destination and an island floating over the content would
+  // be chrome competing with chrome. "Phone" is `chromeFrom` and not the
+  // ladder's `desktop` rung — the island used to float over a 1199px laptop.
+  const showDock = !wide && props.dock !== false;
 
   /*
    * Does an island actually float over this page?
@@ -956,15 +1029,15 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     props.nav.length > 0 ? (
       <NavMenu
         nav={props.nav}
-        mode={isDesktop ? "horizontal" : "inline"}
+        mode={wide ? "horizontal" : "inline"}
         testId="public-shell-menu"
         {...(props.navBadges !== undefined ? { badges: props.navBadges } : {})}
         style={{ borderInlineEnd: "none", background: "transparent" }}
-        {...(isDesktop ? {} : { onNavigate: () => setDrawerOpen(false) })}
+        {...(wide ? {} : { onNavigate: () => setDrawerOpen(false) })}
       />
     ) : null;
 
-  // The three header slots, built once and ARRANGED differently per width. On
+  // The three header slots, built once and ARRANGED differently per arm. On
   // a phone the brand, the account control and a search field cannot share one
   // 390px line without each of them being unreadable, so the search takes a
   // second line of the same header rather than being dropped: a storefront
@@ -1041,7 +1114,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     props.searchSlot !== undefined ? (
       <div
         style={
-          isDesktop || dockChrome
+          wide || dockChrome
             ? // Dominant: on a phone in dock mode the search field IS the
               // header, and every other row it used to share space with has
               // moved into the dock.
@@ -1065,7 +1138,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     <div
       style={{
         marginInlineStart:
-          (isDesktop || dockChrome) && props.searchSlot !== undefined ? 0 : "auto",
+          (wide || dockChrome) && props.searchSlot !== undefined ? 0 : "auto",
         flex: "0 0 auto",
         display: "flex",
         alignItems: "center",
@@ -1074,7 +1147,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       data-testid="public-shell-account"
     >
       {props.accountSlot ?? <SignInCta />}
-      {isDesktop && themeControl && (
+      {wide && themeControl && (
         <div data-testid="public-shell-theme">
           <ShellThemeControl />
         </div>
@@ -1083,7 +1156,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
   );
 
   const menuTrigger =
-    !isDesktop && !dockChrome && hasBrowse ? (
+    !wide && !dockChrome && hasBrowse ? (
       <Button
         type="text"
         aria-label={t(SHELL_I18N_KEYS.navOpenMenu)}
@@ -1129,8 +1202,8 @@ function PublicChrome(props: PublicShellProps): ReactElement {
     >
       {/* The header height as a custom property, hoisted and deduped by
           `href` — see `publicShellCss`. */}
-      <style href={PUBLIC_SHELL_STYLE_HREF} precedence="default">
-        {publicShellCss()}
+      <style href={publicShellStyleHref(chromeFrom)} precedence="default">
+        {publicShellCss(chromeFrom)}
       </style>
       {scrollFlag && (
         <div
@@ -1154,7 +1227,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
       <Layout.Header
         className={PUBLIC_HEADER_CLASS}
         data-testid="public-shell-header"
-        data-phone-chrome={isDesktop ? undefined : dockChrome ? "dock" : "drawer"}
+        data-phone-chrome={wide ? undefined : dockChrome ? "dock" : "drawer"}
         /* What the sheet's seam rules are gated on — see `publicShellCss`.
            Resolved for the width being drawn, like `data-phone-chrome` above:
            an unpinned header has no seam to paint. */
@@ -1165,17 +1238,17 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         data-scrolled={flagAsked !== null ? (scrolled ? "true" : "false") : undefined}
         style={{
           display: "flex",
-          alignItems: isDesktop || dockChrome ? "center" : "stretch",
-          flexDirection: isDesktop || dockChrome ? "row" : "column",
-          gap: isDesktop ? spacing[4] : dockChrome ? spacing[3] : spacing[2],
+          alignItems: wide || dockChrome ? "center" : "stretch",
+          flexDirection: wide || dockChrome ? "row" : "column",
+          gap: wide ? spacing[4] : dockChrome ? spacing[3] : spacing[2],
           // The side padding is the PAGE's, not the header's — see
           // `PAGE_GUTTER_CSS`. Only the block padding differs by chrome.
-          padding: isDesktop
+          padding: wide
             ? `0 ${PAGE_GUTTER_CSS}`
             : dockChrome
               ? `0 ${PAGE_GUTTER_CSS}`
               : `${String(spacing[2])}px ${PAGE_GUTTER_CSS}`,
-          height: isDesktop
+          height: wide
             ? HEADER_HEIGHT_DESKTOP
             : dockChrome
               ? HEADER_HEIGHT_PHONE
@@ -1201,7 +1274,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
           borderBottom: `1px solid ${token.colorSplit}`,
         }}
       >
-        {isDesktop || dockChrome ? (
+        {wide || dockChrome ? (
           <>
             {brandNode}
             {homeNode}
@@ -1253,7 +1326,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
         </div>
       )}
 
-      {isDesktop && hasBrowse && (
+      {wide && hasBrowse && (
         <Flex
           align="center"
           gap={spacing[5]}
@@ -1302,7 +1375,7 @@ function PublicChrome(props: PublicShellProps): ReactElement {
 
       {/* No sheet in dock mode: the dock IS the navigation, and a drawer that
           nothing opens is a surface a screen reader still walks into. */}
-      {!isDesktop && !dockChrome && (
+      {!wide && !dockChrome && (
         <Drawer
           placement="left"
           open={drawerOpen}

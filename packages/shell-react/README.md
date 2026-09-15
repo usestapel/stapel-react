@@ -74,8 +74,10 @@ import { AppShell } from "@stapel/shell-react/default";
 </Route>;
 ```
 
-A responsive antd `Layout`: a `Sider` + `Menu` at desktop width, a hamburger
-`Drawer` at phone/tablet width (`@stapel/core`'s `useBreakpoint`). Theme comes
+A responsive antd `Layout` with **three** arms at two edges: the hamburger
+`Drawer` below `chromeFrom` (default `breakpoints.tablet`, 768), the `Sider`
+collapsed to a glyph rail from there, and the full labelled `Sider` + `Menu`
+from `breakpoints.desktop`. Theme comes
 from `toAntdThemeConfig(mode)` (`@stapel/tokens-antd`) — the same call
 `@stapel/auth-react`'s `AuthPanel` makes. The shell does not own the router:
 `nav` is already-resolved data, and the consumer wires its own route tree
@@ -112,7 +114,8 @@ the nav `Menu`, `toAntdThemeConfig`, `useBreakpoint`) and no geometry:
 
 | | `<AppShell/>` | `<PublicShell/>` |
 |---|---|---|
-| Nav chrome | `Layout.Sider` (desktop) / `Drawer` (phone) | top bar + browse bar (desktop) / `Drawer` or dock (phone — `phoneChrome`) |
+| Nav chrome | `Layout.Sider`, labelled (≥1200) or a glyph rail (≥`chromeFrom`) / `Drawer` (below it) | top bar + browse bar (≥`chromeFrom`) / `Drawer` or dock (below it — `phoneChrome`) |
+| Where the arm changes | `chromeFrom` — default `breakpoints.tablet` (**768**), a width a host can name | same |
 | Slots | `logo`, `headerExtra` | `brand`, `searchSlot`, `categorySlot`, `accountSlot`, `footer` |
 | Sign-in | host's business | **default CTA when `accountSlot` is omitted** |
 | Content width | full width of the content column | `contentMaxWidth` (default **1280**, centred; `false` = edge to edge) |
@@ -219,19 +222,21 @@ category strip — offsets itself by the header's height:
 .my-filter-rail { position: sticky; top: var(--stapel-header-height, 56px); }
 ```
 
-The property is a **media query**, not a render: an inline value computed from
-`useBreakpoint()` is applied at render, so a window dragged across 1200px moves
-the header before it moves whatever pinned under it. It is declared on the
-shell's own root rather than on `:root`, so two shells on one page cannot fight
-over one name — and below the desktop edge it is declared for `"dock"` ONLY,
+The property is a **media query**, not a render: an inline value computed at
+render means a window dragged across the edge moves the header before it moves
+whatever pinned under it. The rung sits at **`chromeFrom`** — the same number
+the render changes arms at, so the published height always describes the arm
+actually on screen. It is declared on the shell's own root rather than on
+`:root`, so two shells on one page cannot fight over one name — and below the
+edge it is declared for `"dock"` ONLY,
 because in `"drawer"` the phone header wraps to a second line for the search
 field and has no fixed height at all. Keep a fallback in the `var()` for that
 case; being told nothing is better than being told 56px.
 
 The dock rung is written `.stapel-public-shell:where([data-phone-chrome="dock"])`
-and the desktop rung is declared LAST, so above the breakpoint the desktop
-answer wins whatever chrome the phone wears. Without the `:where()` the dock
-selector is (0,2,0) against the desktop rule's (0,1,0), a media query adds no
+and the wide rung is declared LAST, so above the edge the wide answer wins
+whatever chrome the phone wears. Without the `:where()` the dock
+selector is (0,2,0) against the wide rule's (0,1,0), a media query adds no
 specificity, and a `"dock"` storefront read 56px under a 64px header at every
 width — everything pinned to the variable then sat 8px behind the header (D449).
 

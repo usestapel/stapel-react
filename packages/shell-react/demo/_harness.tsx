@@ -35,11 +35,12 @@ import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { Link } from "react-router";
 import { Avatar, Card, Flex, Input, Tag, Typography } from "antd";
-import { I18nProvider, createI18n, useBreakpoint, useT } from "@stapel/core";
+import { I18nProvider, createI18n, useT } from "@stapel/core";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 import { ADMIN_ROOT_ID, resolveNav } from "../src/index.js";
 import type { ResolvedNavEntry } from "../src/index.js";
 import { registerShellI18n } from "../src/i18n/keys.js";
+import { DEFAULT_CHROME_FROM, useWiderThan } from "../src/default/chromeWidth.js";
 import type { NavEntry, PackageNavManifest } from "@stapel/core";
 
 /** Demo-local copy — a `demo.*` (unmanaged) namespace, so `i18n-key-exists`
@@ -364,10 +365,14 @@ export function CategoryStrip(): ReactElement {
 
 /** A signed-in person's account control: a monogram and a name, and on a
  * phone the monogram alone — the name is the first thing a 390px header can
- * afford to lose, and the last thing the account control can. */
+ * afford to lose, and the last thing the account control can.
+ *
+ * It asks the SHELL's edge, not the ladder's `desktop` rung: this control
+ * sits in the header the shell draws, so it has to lose the name on exactly
+ * the widths that header is the phone one. */
 export function AccountControl(): ReactElement {
   const t = useT();
-  const isDesktop = useBreakpoint() === "desktop";
+  const wide = useWiderThan(DEFAULT_CHROME_FROM);
   return (
     <span
       style={{ display: "inline-flex", alignItems: "center", gap: spacing[2] }}
@@ -382,7 +387,7 @@ export function AccountControl(): ReactElement {
       >
         {t("demo.account.initials")}
       </Avatar>
-      {isDesktop && (
+      {wide && (
         <span style={{ color: cssVar("text"), whiteSpace: "nowrap" }}>
           {t("demo.account.name")}
         </span>

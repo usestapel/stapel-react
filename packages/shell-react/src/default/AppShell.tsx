@@ -3,10 +3,12 @@
  * core, owner directive: scripted-fullstack navigation with no LLM in the
  * loop). Renders the tree `resolveNav` (`../headless/resolveNav.js`)
  * already resolved — this component owns NO nav logic of its own, only
- * chrome: an antd `Layout` with a `Sider` + `Menu` on desktop, a hamburger
- * `Drawer` "sheet" on phone/tablet (`@stapel/core`'s `useBreakpoint`, which
- * now answers correctly on the FIRST client render, so the drawer branch is
- * never painted on a desktop for a frame and swapped out).
+ * chrome: an antd `Layout` with three arms at two edges — the hamburger
+ * `Drawer` "sheet" below `chromeFrom` (the tokens' `tablet` rung by default),
+ * the `Sider` collapsed to a glyph rail from there, and the full labelled
+ * `Sider` + `Menu` from `breakpoints.desktop`. Both edges are read on the
+ * FIRST client render (`./chromeWidth.js`), so no arm is painted for a frame
+ * and swapped out.
  *
  * Theme comes from `SkinTheme` (`@stapel/tokens-antd/skin`) — the fleet's ONE
  * self-theming wrapper, not a local `ConfigProvider` built from a `mode` prop
@@ -30,14 +32,15 @@ import { Button, Drawer, Layout, theme } from "antd";
 import { Outlet } from "react-router";
 import { SkinTheme, useThemeMode } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
-import { actionAvailable, actionBlocked, useBreakpoint, useT } from "@stapel/core";
+import { actionAvailable, actionBlocked, useT } from "@stapel/core";
 import type { ActionAvailability } from "@stapel/core";
-import { spacing } from "@stapel/tokens-antd";
+import { breakpoints, spacing } from "@stapel/tokens-antd";
 import { adminNavIds } from "../headless/resolveNav.js";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
 import { CloseGlyph, MenuGlyph } from "./icons.js";
 import { useRouteScrollReset } from "./routeScroll.js";
+import { DEFAULT_CHROME_FROM, useWiderThan } from "./chromeWidth.js";
 import { ShellThemeControl } from "./ShellThemeControl.js";
 import { SHELL_I18N_KEYS } from "../i18n/keys.js";
 
@@ -58,6 +61,18 @@ const HEADER_HEIGHT_PHONE = spacing[7] + spacing[2];
  * from visible behind it.
  */
 const DRAWER_WIDTH = "min(20rem, 86vw)";
+
+
+/**
+ * How wide the rail is when it carries GLYPHS AND NO LABELS — the tablet arm.
+ *
+ * A real third arm rather than either neighbour's: at 768 a 200px labelled
+ * rail spends a quarter of the window on words and leaves the content 568px,
+ * and the phone's hamburger hides the destinations altogether on a device with
+ * room for them. 64px is antd's own collapsed width rounded to the spacing
+ * scale, and it clears the 44px touch target `SkinTheme` holds controls to.
+ */
+const RAIL_COLLAPSED_WIDTH = spacing[8];
 
 export interface AppShellProps {
   /** Already-resolved nav — the output of `resolveNav(installed,
@@ -119,6 +134,23 @@ export interface AppShellProps {
    */
   readonly navBadges?: Readonly<Record<string, number>>;
   /**
+   * WHERE THE PHONE SHELL ENDS AND THE RAIL BEGINS, in CSS pixels. Default
+   * `DEFAULT_CHROME_FROM` — `@stapel/tokens`' `tablet` rung.
+   *
+   * THREE arms, not two, and the middle one is its own:
+   *
+   *  - below the edge: the hamburger and the nav sheet, unchanged;
+   *  - from the edge to `breakpoints.desktop`: the `Sider` COLLAPSED to a
+   *    glyph rail — the destinations stay on screen, where a tablet has room
+   *    for them, without spending 200px of a 768px window on labels;
+   *  - from `breakpoints.desktop`: the full labelled rail, unchanged.
+   *
+   * The same prop, the same reasoning, as `<PublicShell chromeFrom>` — a
+   * deployment whose composition puts the edge somewhere the three-rung ladder
+   * cannot say names it once, here.
+   */
+  readonly chromeFrom?: number;
+  /**
    * The theme switch (`<ShellThemeControl/>`), ON by default — at the foot of
    * the `Sider` on a desktop, at the foot of the nav sheet on a phone. Since
    * 0.14.0 it is the COMPACT icon button; a host that wants the three-label
@@ -178,8 +210,14 @@ function AppChrome(props: AppShellProps): ReactElement {
   const liveMode = useThemeMode();
   const mode = props.mode ?? liveMode;
   const { token } = theme.useToken();
-  const breakpoint = useBreakpoint();
-  const isDesktop = breakpoint === "desktop";
+  const chromeFrom = props.chromeFrom ?? DEFAULT_CHROME_FROM;
+  // TWO edges, one mechanism. `rail` is "there is room for the rail at all"
+  // (it was `useBreakpoint() === "desktop"`, i.e. 1200, which put a hamburger
+  // on every tablet); `labels` is "there is room for the words beside the
+  // glyphs", which is a genuinely different question and the tokens' own
+  // `desktop` rung is the right answer to it.
+  const rail = useWiderThan(chromeFrom);
+  const labels = useWiderThan(breakpoints.desktop);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Where a route lands: the top on a PUSH, where it was left on a POP, and
@@ -210,13 +248,13 @@ function AppChrome(props: AppShellProps): ReactElement {
           alignItems: "center",
           gap: spacing[3],
           padding: `0 ${String(spacing[4])}px`,
-          height: isDesktop ? HEADER_HEIGHT_DESKTOP : HEADER_HEIGHT_PHONE,
+          height: rail ? HEADER_HEIGHT_DESKTOP : HEADER_HEIGHT_PHONE,
           lineHeight: 1,
           background: token.colorBgContainer,
           borderBottom: `1px solid ${token.colorSplit}`,
         }}
       >
-        {!isDesktop && (
+        {!rail && (
           <Button
             type="text"
             aria-label={t(SHELL_I18N_KEYS.navOpenMenu)}
@@ -249,9 +287,16 @@ function AppChrome(props: AppShellProps): ReactElement {
         </div>
       </Layout.Header>
       <Layout>
-        {isDesktop ? (
+        {rail ? (
           <Layout.Sider
             theme={mode}
+            /* THE TABLET ARM. `collapsed` is antd's own icon rail, and antd's
+               `Menu` reads the collapse out of `Layout.Sider`'s context, so
+               `NavMenu` needs to know nothing about the width it is drawn at
+               — which is the point: one nav renderer, three geometries. */
+            collapsed={!labels}
+            collapsedWidth={RAIL_COLLAPSED_WIDTH}
+            data-rail={labels ? "labels" : "glyphs"}
             style={{
               background: token.colorBgContainer,
               borderInlineEnd: `1px solid ${token.colorSplit}`,
