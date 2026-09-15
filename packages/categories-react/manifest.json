@@ -851,7 +851,7 @@
     {
       "id": "categories.mega-menu",
       "title": "Category mega menu",
-      "description": "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below 1024px.",
+      "description": "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below the tokens' desktop rung, which a host moves with `minWidth`.",
       "component": "CategoryMegaMenu",
       "covers": [
         "useCategoryTree"
