@@ -1212,6 +1212,12 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
             const galleryBox = (
               <div
                 ref={photo.ref}
+                // THE OWNER'S SWIPE RULE, applied where the finger is. The
+                // strip used to leave this to native scroll-snap, which snaps
+                // to the nearest point (50%, not the owner's 30%) and lets one
+                // long drag cross several photographs. See
+                // `useGalleryPosition`.
+                {...photo.gesture}
                 data-testid="listings-detail-gallery"
                 data-gallery-active={String(photo.active)}
                 className={LISTINGS_GALLERY_CLASS}

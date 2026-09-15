@@ -58,7 +58,9 @@
  * `scrollLeft / slideWidth`, for the reason `nearestSlideIndex` gives: the
  * arithmetic version has to know the gap, the peek and the writing direction.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { swipeStep } from "./cardGallery.js";
 import { cssVar, fontSize, radii, spacing } from "@stapel/tokens";
 
 /**
@@ -194,6 +196,15 @@ export interface GalleryPosition {
   readonly active: number;
   /** Attach to the scrolling box. */
   readonly ref: (node: HTMLElement | null) => (() => void) | undefined;
+  /**
+   * The finger. Spread onto the scrolling box — see {@link useGalleryPosition}
+   * for why a native snap cannot answer the owner's rule on its own.
+   */
+  readonly gesture: {
+    readonly onPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+    readonly onPointerUp: (event: ReactPointerEvent<HTMLElement>) => void;
+    readonly onPointerCancel: () => void;
+  };
 }
 
 /**
@@ -248,7 +259,66 @@ export function useGalleryPosition(enabled: boolean): GalleryPosition {
     },
     [enabled]
   );
-  return { active, ref };
+  /* THE FINGER, AND WHY THE CSS COULD NOT DO THIS.
+   *
+   * The owner's rule is: a photograph changes at 30% of a slide OR on a
+   * flick, and ONE gesture moves exactly ONE photograph however far it
+   * travels. This strip answered with native scroll-snap, and native
+   * scroll-snap cannot express either half:
+   *
+   *  - there is no threshold to set. The browser snaps to the NEAREST point,
+   *    which is 50% by construction — measured on the stand as "no commit at
+   *    45% of the hero's width, commit at 48%".
+   *  - `scroll-snap-stop: always` governs a fling's momentum, not a finger
+   *    the scroller is following. A long continuous drag crosses as many
+   *    slides as the finger does and snaps at the end — measured as one drag
+   *    advancing TWO photographs.
+   *
+   * So the rule is applied here, with `swipeStep` — the same function the
+   * card's strip and the desktop lightbox already commit on, which returns
+   * -1 | 0 | 1 and is therefore one photograph by construction. The CSS half
+   * is `touch-action: pan-y` on the strip: the browser stops panning it
+   * sideways, so there is exactly one thing moving the strip and the two
+   * cannot disagree. Vertical panning is untouched, so the page still
+   * scrolls under a diagonal thumb.
+   */
+  const gestureStart = useRef<{ x: number; y: number; at: number } | null>(null);
+  const gesture = useMemo(
+    () => ({
+      onPointerDown: (event: ReactPointerEvent<HTMLElement>): void => {
+        gestureStart.current = {
+          x: event.clientX,
+          y: event.clientY,
+          at: typeof performance === "object" ? performance.now() : Date.now(),
+        };
+      },
+      onPointerCancel: (): void => {
+        gestureStart.current = null;
+      },
+      onPointerUp: (event: ReactPointerEvent<HTMLElement>): void => {
+        const start = gestureStart.current;
+        gestureStart.current = null;
+        if (start === null) return;
+        const node = event.currentTarget;
+        const slide = node.firstElementChild;
+        // The SLIDE's width, never the well's and never the viewport's
+        // (§83). A strip is full-bleed on a phone and a column elsewhere.
+        const slideWidth =
+          slide instanceof HTMLElement ? slide.getBoundingClientRect().width : 0;
+        const now = typeof performance === "object" ? performance.now() : Date.now();
+        const elapsed = Math.max(1, now - start.at);
+        const dx = event.clientX - start.x;
+        const velocity = Math.abs(dx) / elapsed;
+        const step = swipeStep(dx, event.clientY - start.y, slideWidth, velocity);
+        if (step === 0 || slideWidth <= 0) return;
+        const count = node.children.length;
+        const target = Math.min(count - 1, Math.max(0, active + step));
+        node.scrollTo({ left: target * slideWidth, behavior: "smooth" });
+      },
+    }),
+    [active]
+  );
+  return { active, ref, gesture };
 }
 
 /**
@@ -259,6 +329,7 @@ export function useGalleryPosition(enabled: boolean): GalleryPosition {
  * flex basis is what makes the strip a strip rather than a row of squeezed
  * photographs.
  */
+// stapel-color-literal: the counter pill sits ON a photograph, not on a theme surface — its ground is whatever pixels the seller uploaded, so a scrim and white text are correct in BOTH themes and a surface token would be wrong in both.
 export function detailGalleryCss(): string {
   return `
 .${LISTINGS_GALLERY_CLASS}[data-gallery-layout="grid"] {
@@ -269,6 +340,11 @@ export function detailGalleryCss(): string {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  /* ONE THING MOVES THIS STRIP. The browser stops panning it sideways so the
+     gesture layer in useGalleryPosition is the only thing that does — see the
+     note there for why native snap cannot express the owner's rule.
+     pan-y and not none: a diagonal thumb must still scroll the page. */
+  touch-action: pan-y;
 }
 .${LISTINGS_GALLERY_CLASS}[data-gallery-layout="strip"] > * {
   flex: 0 0 ${LISTINGS_GALLERY_STRIP_BASIS};

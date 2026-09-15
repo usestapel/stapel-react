@@ -568,6 +568,7 @@ export function cardGalleryCss(): string {
       `inset-inline-end:${String(spacing[2])}px;z-index:1;pointer-events:none;` +
       `padding:${String(spacing[1] / 2)}px ${String(spacing[2])}px;` +
       `border-radius:${String(radii.full)}px;` +
+      // stapel-color-literal: the counter pill sits ON a photograph, not on a theme surface — its ground is whatever pixels the seller uploaded, so a scrim and white text are correct in BOTH themes and a surface token would be wrong in both.
       `background:rgba(0,0,0,0.55);color:#fff;` +
       `font-size:${String(fontSize.xs.fontSize)}px;` +
       `line-height:${String(fontSize.xs.lineHeight)}px;` +
