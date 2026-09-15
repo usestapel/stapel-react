@@ -1,5 +1,70 @@
 # @stapel/listings-react
 
+## 0.37.0
+
+### Minor Changes
+
+- fadff50: `<ListingSerpCard trustPanel>` — the seller-trust column the reference draws,
+  as slots, without the claims.
+
+  Measured on the reference's 980px results row: a fixed 220px column on the
+  card's trailing edge carrying the seller's name, a one-line rating, two badges
+  and both verbs. Fixed rather than a flexible remainder, because a remainder
+  makes the panel's width a function of the title's length and the verbs then
+  change size row to row. Applied in the ROW arm only — below the row threshold
+  the card is a stacked tile, and a 220px column beside a 260px card is not a
+  layout.
+
+  THE BADGES ARE SLOTS AND NOTHING ELSE, and that is the point rather than a
+  detail. The reference's badge wording asserts facts about a seller —
+  documents checked, a reliability grade — which a given deployment may not
+  hold. A badge is drawn only where the host can name the fact behind it from
+  its own data, so this pair ships the shape and never the claim: pass no
+  badges and the panel draws none, with no placeholder and no reserved box
+  suggesting a verification is coming. An empty array draws nothing too.
+
+  The whole panel is absent when nothing is passed, so a host with only a seller
+  name gets a seller name.
+
+### Patch Changes
+
+- d509a8b: The gallery counters and the condensed title outrank antd instead of tying it.
+
+  `stapel/no-inert-typography-override` found the detail gallery's counter still
+  carrying the defect 0.36.1 fixed one component over:
+  `.stapel-listings-detail-count` is a single class at (0,1,0) and the class
+  lands on an antd `Typography.Text`, which carries a per-theme class injected
+  into `<head>` at runtime — second, so it wins the tie. The counter's
+  `font-size` and `line-height` were inert, and so was its white colour: the
+  text on a 55% black photo scrim was whatever antd's Typography says, not the
+  white the scrim was designed for.
+
+  The card gallery's identical counter and the condensed bar's title are doubled
+  too. Both are plain spans today, so nothing contests them — but the cost of a
+  doubled selector where there is no competitor is zero, and "it is still a
+  span" is not a property worth depending on when the same defect has now
+  shipped three times in this package.
+
+- 0fa3fd6: The listing strip commits on the owner's swipe rule, not the browser's.
+
+  The rule is 30% of a slide OR a flick, and one gesture moves exactly one
+  photograph however far it travels. The strip answered with native
+  scroll-snap, which can express neither half: there is no threshold to set,
+  because the browser snaps to the NEAREST point — 50% by construction, measured
+  on the stand as no commit at 45% of the hero's width and a commit at 48% — and
+  `scroll-snap-stop: always` governs a fling's momentum rather than a finger the
+  scroller is following, so a long continuous drag crossed as many slides as the
+  finger did and advanced two photographs.
+
+  The rule now runs where the finger is, through `swipeStep`: the same function
+  the card's strip and the desktop lightbox already commit on, which returns
+  `-1 | 0 | 1` and is therefore one photograph by construction. Two answers to
+  one question inside one package become one.
+
+  `touch-action: pan-y` is the other half — the browser stops panning the strip
+  sideways, so exactly one thing moves it and the two cannot disagree. A
+  diagonal thumb still scrolls the page.
+
 ## 0.36.1
 
 ### Patch Changes

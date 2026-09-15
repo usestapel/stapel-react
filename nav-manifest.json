@@ -211,7 +211,7 @@
     },
     {
       "package": "@stapel/billing-react",
-      "version": "0.10.3",
+      "version": "0.10.4",
       "entries": [
         {
           "id": "account.billing",
@@ -282,7 +282,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.32.0",
+      "version": "0.33.0",
       "entries": [
         {
           "id": "categories.catalog",
@@ -556,7 +556,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.36.1",
+      "version": "0.37.0",
       "entries": [
         {
           "id": "listings.detail",
@@ -1067,7 +1067,7 @@
     },
     {
       "package": "@stapel/video-react",
-      "version": "0.3.7",
+      "version": "0.3.8",
       "entries": [
         {
           "id": "video.rooms",
