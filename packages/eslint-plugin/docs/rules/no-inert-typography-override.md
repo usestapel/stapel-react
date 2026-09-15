@@ -140,7 +140,11 @@ below (0,2,0) and carries no id.
 
 Every losing member of a selector **list** is reported separately: in
 `.a.a,.b{…}` the doubled half is fine and the single half is not, and a reader
-has to be told which.
+has to be told which. So is every **arm**: `cardTargetCss()` 0.36.0 carried the
+same two classes flat and again inside the `@container` arm, and that file is
+**four** findings, not one — each is its own edit, and collapsing them is how a
+half-fix ships looking clean. (Run against the file as `967be421` shipped it,
+the rule reports 356:6, 356:27, 360:8 and 360:29, and is silent on 0.36.1.)
 
 ### `inertTypographyElementSelector` — a bare type selector
 

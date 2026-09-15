@@ -186,6 +186,65 @@ tester.run("no-inert-typography-override", rule, {
         },
       ],
     },
+    // ── CASE 1+2 TOGETHER: the file as 967be421 shipped it ────────────────
+    //
+    // Transcribed from `git show 967be421:…/ListingCard.tsx`. FOUR findings,
+    // not one: two selectors in the list, and the whole thing again in the
+    // `@container` arm. Each is a separate edit, and an earlier draft of this
+    // rule keyed its de-duplication on the selector, which collapsed the arm
+    // into the flat rule and would have blessed a half-fix.
+    {
+      filename: CARD,
+      code:
+        'const CARD_TITLE_CLASS = "stapel-listing-card-title";\n' +
+        'const CARD_PRICE_CLASS = "stapel-listing-card-price";\n' +
+        "const LISTING_CARD_ROW_MIN = 560;\n" +
+        "function cardTargetCss() {\n" +
+        "  return [\n" +
+        "    `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{` +\n" +
+        "      `font-size:var(--stapel-font-size-md);` +\n" +
+        "      `line-height:var(--stapel-line-height-md)}`,\n" +
+        "    `@container (min-width:${String(LISTING_CARD_ROW_MIN)}px){` +\n" +
+        "      `.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}{` +\n" +
+        "      `font-size:var(--stapel-font-size-lg);` +\n" +
+        "      `line-height:var(--stapel-line-height-lg)}}`,\n" +
+        "  ].join('');\n" +
+        "}",
+      errors: [
+        {
+          messageId: "inertTypographyOverride",
+          data: {
+            selector: ".stapel-listing-card-title",
+            property: "font-size",
+            score: "(0,1,0)",
+          },
+        },
+        {
+          messageId: "inertTypographyOverride",
+          data: {
+            selector: ".stapel-listing-card-price",
+            property: "font-size",
+            score: "(0,1,0)",
+          },
+        },
+        {
+          messageId: "inertTypographyOverride",
+          data: {
+            selector: ".stapel-listing-card-title",
+            property: "font-size",
+            score: "(0,1,0)",
+          },
+        },
+        {
+          messageId: "inertTypographyOverride",
+          data: {
+            selector: ".stapel-listing-card-price",
+            property: "font-size",
+            score: "(0,1,0)",
+          },
+        },
+      ],
+    },
     // ── CASE 3: listings-react 0.30.5, the title clamp ────────────────────
     //
     // An attribute selector at (0,1,0) against the HOST's storefront.css

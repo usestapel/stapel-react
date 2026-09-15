@@ -538,10 +538,15 @@ export default {
     /** Roots to grade, collected first so every constant is known. */
     const roots = [];
     /**
-     * `selector|property` pairs already reported in this file. A sheet whose
-     * selector lives in a `const` is assembled twice — once where the constant
-     * is written, once where it is interpolated — and one inert rule is one
-     * finding, not two.
+     * Report positions already used in this file.
+     *
+     * Keyed on the POSITION and not on the selector: two rules for the same
+     * selector are two separate fixes. `cardTargetCss()` 0.36.0 had the price
+     * ladder twice — once flat and once inside the `@container` arm — and a
+     * per-selector key silently collapsed them into one finding, which is
+     * exactly how a half-fix ships looking clean. A position repeats only when
+     * one stylesheet constant is assembled into two places, and then both
+     * sites are real code.
      */
     const reported = new Set();
 
@@ -681,12 +686,13 @@ export default {
           if (score.unknown) continue; // not readable — see specificityOf
           if (score.a > 0 || score.b >= 2) continue; // outranks antd on its own
           const shown = displaySelector(selector);
-          const key = `${shown}|${hit.property}`;
+          const leading = selector.length - selector.trimStart().length;
+          const loc = locFor(assembled, rule.preludeStart + part.start + leading, node);
+          const key = `${String(loc.start.line)}:${String(loc.start.column)}|${shown}|${hit.property}`;
           if (reported.has(key)) continue;
           reported.add(key);
-          const leading = selector.length - selector.trimStart().length;
           context.report({
-            loc: locFor(assembled, rule.preludeStart + part.start + leading, node),
+            loc,
             messageId:
               score.b === 0 ? "inertTypographyElementSelector" : "inertTypographyOverride",
             data: {
