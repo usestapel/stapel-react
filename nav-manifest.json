@@ -211,7 +211,7 @@
     },
     {
       "package": "@stapel/billing-react",
-      "version": "0.10.4",
+      "version": "0.10.5",
       "entries": [
         {
           "id": "account.billing",
@@ -491,7 +491,7 @@
     },
     {
       "package": "@stapel/gdpr-react",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "entries": [
         {
           "id": "account.privacy",
@@ -556,7 +556,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.37.0",
+      "version": "0.37.1",
       "entries": [
         {
           "id": "listings.detail",
@@ -642,7 +642,7 @@
     },
     {
       "package": "@stapel/moderation-react",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "entries": [
         {
           "id": "moderation.policy",
@@ -727,7 +727,7 @@
     },
     {
       "package": "@stapel/notifications-react",
-      "version": "0.11.1",
+      "version": "0.11.2",
       "entries": [
         {
           "id": "notifications.feed",
@@ -952,7 +952,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.50.0",
+      "version": "0.50.1",
       "entries": [
         {
           "id": "search.results",
@@ -1067,7 +1067,7 @@
     },
     {
       "package": "@stapel/video-react",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "entries": [
         {
           "id": "video.rooms",
@@ -1138,7 +1138,7 @@
     },
     {
       "package": "@stapel/workspaces-react",
-      "version": "0.19.1",
+      "version": "0.19.2",
       "entries": [
         {
           "id": "workspaces.list",
