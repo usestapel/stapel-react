@@ -545,7 +545,12 @@ export function useCardGallery(count: number): CardGallery {
  */
 export function cardGalleryCss(): string {
   const box = `.${CARD_GALLERY_CLASS}`;
-  const counter = `.${CARD_GALLERY_COUNTER_CLASS}`;
+  /* DOUBLED. This pill is a plain span today, so nothing contests it — but the
+     same class on an antd Typography.Text is inert at (0,1,0), which is how
+     the detail gallery's identical counter lost its size AND its white colour.
+     A doubled selector behaves identically where there is no competitor, so
+     the cost of not depending on "it is still a span" is zero. */
+  const counter = `.${CARD_GALLERY_COUNTER_CLASS}.${CARD_GALLERY_COUNTER_CLASS}`;
   return [
     // The counter is placed against this box, so the box has to be the
     // containing block. Nothing else about the gallery changes: a `relative`

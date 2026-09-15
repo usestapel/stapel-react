@@ -66,7 +66,10 @@ export function condensedBarCss(): string {
     // One line, and the end of a long title is the part a reader can spare.
     // `min-inline-size:0` is what lets it shrink inside the flex row at all —
     // without it a long title pushes the two verbs off the screen.
-    `.${CONDENSED_TITLE_CLASS}{flex:1 1 auto;min-inline-size:0;` +
+    /* DOUBLED for the same reason as the gallery counters: a span today, and
+       inert the moment it becomes an antd Typography.Text. Identical where
+       nothing contests it. */
+    `.${CONDENSED_TITLE_CLASS}.${CONDENSED_TITLE_CLASS}{flex:1 1 auto;min-inline-size:0;` +
       `overflow:hidden;white-space:nowrap;text-overflow:ellipsis;` +
       `font-size:${String(fontSize.sm.fontSize)}px;` +
       `line-height:${String(fontSize.sm.lineHeight)}px}`,

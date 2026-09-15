@@ -426,7 +426,14 @@ export function detailGalleryCss(): string {
   position: relative;
   min-inline-size: 0;
 }
-.${LISTINGS_GALLERY_COUNTER_CLASS} {
+/* DOUBLED, because this class lands on an antd Typography.Text
+   (ListingHeroGallery.tsx) and a single class ties the per-theme class antd
+   injects at runtime — which is injected second, so it wins on order. The
+   font-size and line-height below were inert, and so was the white colour:
+   text on a 55% black scrim, decided by antd's Typography instead. The
+   no-inert-typography-override rule found this one; the same defect shipped
+   twice in this package already. */
+.${LISTINGS_GALLERY_COUNTER_CLASS}.${LISTINGS_GALLERY_COUNTER_CLASS} {
   position: absolute;
   inset-block-end: ${String(spacing[2])}px;
   inset-inline-end: ${String(spacing[2])}px;
