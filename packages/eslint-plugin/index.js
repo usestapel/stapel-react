@@ -39,6 +39,8 @@ import noSilentSlot from "./rules/no-silent-slot.js";
 import noBooleanDisabled from "./rules/no-boolean-disabled.js";
 import antdAlertTitle from "./rules/antd-alert-title.js";
 import noSelfMeasuringRef from "./rules/no-self-measuring-ref.js";
+import noSkinColorLiteral from "./rules/no-skin-color-literal.js";
+import noPinnedCorpusFact from "./rules/no-pinned-corpus-fact.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -112,6 +114,23 @@ const rules = {
   // frame, and no desktop call ever connected because the accept button was
   // rebuilt between the press and the release.
   "no-self-measuring-ref": noSelfMeasuringRef,
+  // A colour written down in a skin is a colour one of the two themes will get
+  // wrong. `@stapel/video-react` 0.3.6 drew the in-call screen on a white sheet
+  // under the dark theme's light text — 1.09:1 on every line — and shipped its
+  // fix with a line-by-line grep of its OWN `src/default/**` for a colour
+  // literal. This is that grep for the other twenty-eight packages. It does not
+  // replace the theme-owner rules (no-local-skin-theme,
+  // no-hardcoded-theme-mode): the 0.3.6 defect itself was a token read above
+  // the skin, with no literal anywhere, and the rule header says so at length.
+  "no-skin-color-literal": noSkinColorLiteral,
+  // A probe asserts behaviour, not the weather on the day it was typed. Two
+  // probes broke in one week on the same class: one pinned a corpus count
+  // (`finalCount === 390`, false after the next reseed), the other pinned an
+  // entity id that a reseed deleted — and because a SPA answers 200 for any
+  // `/l/<id>`, the probe walked on through every assertion that followed.
+  // Self-scoped to probe / e2e paths; a unit test's corpus is its own fixture
+  // and is deliberately out of scope.
+  "no-pinned-corpus-fact": noPinnedCorpusFact,
 };
 
 // Read from package.json rather than typed: this is the version ESLint prints
@@ -415,6 +434,39 @@ const recommended = [
     },
   },
   {
+    // The skin layer's colour canon. `.ts` as well as `.tsx`: two of the
+    // fleet's live hits are in `cardGallery.ts` / `detailGallery.ts`, which
+    // build their stylesheets as strings and render no JSX at all.
+    //
+    // WARN in `recommended`, ERROR in `strict`, and the sweep is the reason
+    // rather than caution: run over every `packages/*/src/default` on
+    // 2026-09-16 it reports SIX sites in four packages — a QR code's pure
+    // black on pure white, a scrim over an arbitrary photograph, a `var()`
+    // fallback — and every one of them already carries a paragraph explaining
+    // why it is deliberate. That is a worklist for four package owners (add
+    // the marker, or tokenise), not a wall that turns four packages red before
+    // their owners have seen it. Promote to "error" once those six carry
+    // `// stapel-color-literal: <why>`.
+    files: ["**/src/default/**/*.{ts,tsx,js,jsx}"],
+    rules: { "stapel/no-skin-color-literal": "warn" },
+  },
+  {
+    // Probes and end-to-end walkers. ERROR from the first day, and safely so:
+    // this repository has no probe paths at all, so the rule cannot turn
+    // anything red here — it ships armed for the fleets that do. The rule
+    // carries the same scope internally, so a consumer who never spreads this
+    // preset still gets the right answer.
+    files: [
+      "**/deploy/probes/**/*.{js,mjs,cjs,ts,mts,cts}",
+      "**/probes/**/*.{js,mjs,cjs,ts,mts,cts}",
+      "**/e2e/**/*.{js,mjs,cjs,ts,mts,cts}",
+      "**/walkers/**/*.{js,mjs,cjs,ts,mts,cts}",
+      "**/*.probe.{js,mjs,cjs,ts,mts,cts}",
+      "**/*.e2e.{js,mjs,cjs,ts,mts,cts}",
+    ],
+    rules: { "stapel/no-pinned-corpus-fact": "error" },
+  },
+  {
     files: JSX,
     rules: {
       "stapel/no-hardcoded-text": "error",
@@ -611,6 +663,13 @@ const strict = [
     // must import antd's Modal and Drawer.
     files: DIALOG_SUBSTRATE,
     rules: { "stapel/no-bare-dialog": "off" },
+  },
+  {
+    // A colour literal in a skin is a correctness defect in one of the two
+    // themes, not a style ruling: a package that has finished its six-line
+    // migration opts in and cannot regress.
+    files: ["**/src/default/**/*.{ts,tsx,js,jsx}"],
+    rules: { "stapel/no-skin-color-literal": "error" },
   },
 ];
 
