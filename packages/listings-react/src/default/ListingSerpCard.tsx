@@ -104,6 +104,7 @@ import {
   CARD_HOVER_CLASS,
   CARD_VIEWED_CLASS,
   CardTarget,
+  CARD_PANEL_CLASS,
   CARD_PRICE_CLASS,
   CARD_TITLE_CLASS,
   cardTargetCss,
@@ -212,6 +213,31 @@ export interface ListingSerpCardBaseProps
    * the answer, never mount a fetching badge per row.
    */
   readonly ratingSlot?: ReactNode;
+  /**
+   * THE SELLER-TRUST PANEL — a fixed 220px column on the card's trailing edge,
+   * in the row arm only.
+   *
+   * Measured on the reference's 980px results row: the seller's name, a
+   * one-line rating, two badges and both verbs, in that order.
+   *
+   * SLOTS AND NOT CONTENT, and `badges` especially. The reference's badge
+   * wording asserts facts about a seller — documents checked, a reliability
+   * grade — that a given deployment may not hold. A badge is drawn only where
+   * the host can name the fact behind it from its own data, so this pair
+   * supplies the SHAPE and never the claim: pass no badges and the panel draws
+   * none, with no placeholder and no reserved box pretending one is coming.
+   *
+   * The whole panel is absent when nothing is passed, so a host that has only
+   * a seller name gets a seller name.
+   */
+  readonly trustPanel?: {
+    readonly seller?: ReactNode;
+    readonly rating?: ReactNode;
+    /** Drawn in order. Empty or absent draws nothing at all — see above. */
+    readonly badges?: readonly ReactNode[];
+    /** The verbs. Stacked, each the panel's full width. */
+    readonly actions?: ReactNode;
+  };
   /** The vertical action column at the trailing edge — call, write. The
    * favourite heart is added at its end by this component. */
   readonly actionsRail?: ReactNode;
@@ -279,6 +305,43 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
      which is where every reference classified's phone SERP has it and where a
      thumb already is; the rail is at the far end of a line of text, three
      glances away from the picture a person is actually looking at. */
+  /* The panel, built only from the parts the host actually passed. An empty
+     `badges` array draws nothing — no placeholder, no reserved height — which
+     is the whole of the badge rule: the shape is this pair's, the claim is the
+     deployment's, and a badge nobody can substantiate is not drawn. */
+  const panelParts = props.trustPanel;
+  const panelBadges = panelParts?.badges ?? [];
+  const hasPanel =
+    panelParts !== undefined
+    && (panelParts.seller !== undefined
+      || panelParts.rating !== undefined
+      || panelParts.actions !== undefined
+      || panelBadges.length > 0);
+  const trustPanel = hasPanel ? (
+    <div className={CARD_PANEL_CLASS} data-testid="listings-serp-panel">
+      {panelParts?.seller !== undefined ? (
+        <div data-testid="listings-serp-panel-seller">{panelParts.seller}</div>
+      ) : null}
+      {panelParts?.rating !== undefined ? (
+        <div data-testid="listings-serp-panel-rating">{panelParts.rating}</div>
+      ) : null}
+      {panelBadges.length > 0 ? (
+        /* The array is rendered as it arrives: these are the HOST's nodes and
+           their keys are the host's, which is also why an index key would be
+           wrong here — the badges a deployment can substantiate differ per
+           seller, so position is not identity. */
+        <Flex vertical gap={spacing[1]} data-testid="listings-serp-panel-badges">
+          {panelBadges}
+        </Flex>
+      ) : null}
+      {panelParts?.actions !== undefined ? (
+        <Flex vertical gap={spacing[2]} data-testid="listings-serp-panel-actions">
+          {panelParts.actions}
+        </Flex>
+      ) : null}
+    </div>
+  ) : null;
+
   const rail =
     props.actionsRail !== undefined ? (
       <Flex
@@ -518,6 +581,7 @@ export function ListingSerpCard(props: ListingSerpCardProps): ReactElement {
                 </Flex>
 
                 {rail}
+                {trustPanel}
               </Flex>
             </div>
           </div>

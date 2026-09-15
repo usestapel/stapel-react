@@ -237,6 +237,22 @@ export type ListingCardBlockedReason = "text" | "line" | "popover";
  * the window. Weight is NOT set here — the price is `<Typography.Text
  * strong>` and the brand's own `fontWeightStrong` decides what strong means.
  */
+/**
+ * THE SELLER-TRUST PANEL'S COLUMN — a fixed 220px on the card's trailing edge.
+ *
+ * Measured on the reference's results row: 980px of card holding a photo, the
+ * text lines, and a 220px panel carrying the seller's name, a one-line rating,
+ * two badges and both verbs. Fixed rather than a flexible remainder, because a
+ * remainder makes the panel's width a function of the title's length and the
+ * verbs then change size row to row.
+ *
+ * Only in the ROW arm. Below the row threshold the card is a stacked tile and
+ * a 220px column beside a 260px card is not a layout — the panel's parts fall
+ * back into the reading column in source order.
+ */
+export const CARD_PANEL_CLASS = "stapel-listing-card-panel";
+export const CARD_PANEL_WIDTH = 220;
+
 export const CARD_TITLE_CLASS = "stapel-listing-card-title";
 export const CARD_PRICE_CLASS = "stapel-listing-card-price";
 
@@ -372,6 +388,15 @@ export function cardTargetCss(): string {
       `.${CARD_TITLE_CLASS}.${CARD_TITLE_CLASS},.${CARD_PRICE_CLASS}.${CARD_PRICE_CLASS}{` +
       `font-size:var(--stapel-font-size-lg);` +
       `line-height:var(--stapel-line-height-lg)}}`,
+    // The trust panel's column — see CARD_PANEL_CLASS. Doubled for the reason
+    // every rule in this sheet is: a single class ties antd's runtime sheet
+    // and loses on order.
+    `.${CARD_PANEL_CLASS}.${CARD_PANEL_CLASS}{display:flex;flex-direction:column;` +
+      `gap:${String(spacing[2])}px;min-inline-size:0}`,
+    `@container (min-width:${String(LISTING_CARD_ROW_MIN)}px){` +
+      `.${CARD_PANEL_CLASS}.${CARD_PANEL_CLASS}{` +
+      `flex:0 0 ${String(CARD_PANEL_WIDTH)}px;` +
+      `inline-size:${String(CARD_PANEL_WIDTH)}px}}`,
     `.${CARD_TARGET_CLASS}{display:block;color:inherit;text-decoration:none}`,
     `.${CARD_TARGET_CLASS}:focus-visible{outline:2px solid var(--listing-card-focus);outline-offset:2px}`,
     // A PRESS, answered where the press lands (D176). The rule is on the
