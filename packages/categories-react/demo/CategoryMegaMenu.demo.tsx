@@ -24,7 +24,17 @@ import type { DemoHandlers, DemoSeed } from "./_harness.js";
 import { DEMO_TREE } from "./fixtures.js";
 
 /* `lockScroll={false}` on every variant: the showcase draws the panel INLINE
-   on a page that must keep scrolling, which is the one case the prop is for. */
+   on a page that must keep scrolling, which is the one case the prop is for.
+
+   `minWidth={0}` on every variant, and it is not a shortcut. Each variant
+   declares `viewport: "desktop"`, but a frame's DECLARED viewport is not the
+   `window.innerWidth` the runner has — a static render photographs at whatever
+   width the environment happens to be, which used to be the same 1024 the
+   default guard was hard-coded to, so the photograph only ever worked by
+   coincidence. The guard is a behaviour, and behaviour is proven in
+   `test/megaMenuGuard.test.tsx` at six real widths; a photograph is for what
+   the panel LOOKS like. Switching it off here keeps the two from deciding each
+   other. */
 const SEEDED: DemoSeed = { tree: { depth: 3, nodes: DEMO_TREE } };
 const NOTHING: DemoSeed = { tree: { depth: 3, nodes: [] } };
 const OUTAGE: DemoHandlers = {
@@ -35,7 +45,7 @@ export default defineDemo({
   id: "categories.mega-menu",
   title: "Category mega menu",
   description:
-    "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below 1024px.",
+    "The desktop catalogue panel: roots on the left, the chosen root's second-level headers and their first five third-level links on the right, and a tail link to the header when there are more. One cached tree read, ARIA menu semantics on the rail, and nothing at all below the tokens' desktop rung, which a host moves with `minWidth`.",
   component: CategoryMegaMenu,
   covers: ["useCategoryTree"],
   tokens: ["surface-overlay", "surface-sunken", "border-subtle", "text-muted", "text-subtle"],
@@ -47,7 +57,7 @@ export default defineDemo({
       step: "ready",
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
-          <CategoryMegaMenu lockScroll={false} />
+          <CategoryMegaMenu minWidth={0} lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
@@ -58,7 +68,7 @@ export default defineDemo({
       step: "ready-capped",
       render: () => (
         <CategoriesDemoHarness seed={SEEDED}>
-          <CategoryMegaMenu maxLinksPerColumn={2} lockScroll={false} />
+          <CategoryMegaMenu minWidth={0} maxLinksPerColumn={2} lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
@@ -68,7 +78,7 @@ export default defineDemo({
       step: "empty",
       render: () => (
         <CategoriesDemoHarness seed={NOTHING}>
-          <CategoryMegaMenu lockScroll={false} />
+          <CategoryMegaMenu minWidth={0} lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },
@@ -78,7 +88,7 @@ export default defineDemo({
       step: "failed",
       render: () => (
         <CategoriesDemoHarness handlers={OUTAGE}>
-          <CategoryMegaMenu lockScroll={false} />
+          <CategoryMegaMenu minWidth={0} lockScroll={false} />
         </CategoriesDemoHarness>
       ),
     },

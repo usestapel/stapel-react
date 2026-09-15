@@ -14,7 +14,7 @@
  *
  * ── The guard is a guard, not a policy ─────────────────────────────────────
  *
- * Below `minWidth` (default 1024) this renders NOTHING. The storefront still
+ * Below `minWidth` (default `breakpoints.desktop`) this renders NOTHING. The storefront still
  * decides when to mount it — it opens from a button, and a phone gets the tile
  * grid instead, with no drawer. The guard only makes the two decisions
  * impossible to contradict: a menu that opened at 480px because somebody's
@@ -52,7 +52,7 @@ import type {
   ReactElement,
 } from "react";
 import { Skeleton } from "antd";
-import { cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
+import { breakpoints, cssVar, fontWeight, radii, spacing } from "@stapel/tokens-antd";
 import { loadStateFromQuery, useT } from "@stapel/core";
 import {
   EmptyState,
@@ -71,9 +71,20 @@ import type { ThemeModeProp } from "./types.js";
 /** Third-level links a column shows before it hands the rest to the tail. */
 const DEFAULT_MAX_LINKS = 5;
 
-/** The narrowest viewport this panel may appear at. The phone door is the
- * tile grid; a mega-menu on a phone covers the page it navigates. */
-const DEFAULT_MIN_WIDTH = 1024;
+/**
+ * The narrowest viewport this panel may appear at, by default — the tokens'
+ * own `desktop` rung. The phone door is the tile grid; a mega-menu on a phone
+ * covers the page it navigates.
+ *
+ * IT WAS A HARD-CODED 1024, which is on no rung of `@stapel/tokens` and
+ * happened to equal one deployment's private edge — so the fleet default
+ * silently carried one storefront's composition to every host that named
+ * nothing. A width that is a claim about every device belongs to the ladder or
+ * to the caller, never to a literal in between: the rung is the default and
+ * {@link CategoryMegaMenuProps.minWidth} is how a deployment says otherwise.
+ * (Same treatment as `<SearchPage railFrom>` and `<PublicShell chromeFrom>`.)
+ */
+const DEFAULT_MIN_WIDTH: number = breakpoints.desktop;
 
 /** Root rows the loading arm reserves room for. */
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6] as const;
@@ -82,7 +93,7 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6] as const;
  * The rail's narrowest width, in px — see {@link CategoryMegaMenuProps.railWidth}.
  *
  * The rail used to be `minmax(180px, 1fr)` beside a `3fr` pane: a quarter of
- * the panel at 1440 (338px of 1400) and 236px at the 1024 guard, where a
+ * the panel at 1440 (338px of 1400) and 236px at a 1024 guard, where a
  * four-word root wraps onto two lines. The owner's read
  * of the stand (2026-09-14) was that the column is too narrow; the reference's
  * overlay could not be measured from this host (its edge refuses the address),
@@ -366,7 +377,16 @@ export interface CategoryMegaMenuProps extends ThemeModeProp, LinkComponentProp 
   readonly nodes?: readonly CategoryTreeNode[];
   /** Third-level links per column before the tail link. Default 5. */
   readonly maxLinksPerColumn?: number;
-  /** Narrowest viewport this panel may appear at. Default 1024. */
+  /**
+   * Narrowest viewport this panel may appear at. Default `breakpoints.desktop`
+   * (1200) — the tokens' own rung, not a number picked here.
+   *
+   * A deployment whose catalogue button appears earlier than the ladder says
+   * passes its own width, and passes the SAME one it uses everywhere else: the
+   * fleet storefront opens this panel at its `SERP_RAIL_MIN_WIDTH` (1024, the
+   * owner's tablet rule), which is one number that deployment names once and
+   * hands to every pair that needs it.
+   */
   readonly minWidth?: number;
   /**
    * The panel's height ceiling, above which its own box scrolls. Default

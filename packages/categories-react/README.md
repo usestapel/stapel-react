@@ -430,9 +430,17 @@ and a click outside call `onClose` — the panel never hides itself, because a
 closed panel and a trigger that still reads "open" are two answers to one
 question.
 
-`minWidth` (default 1024) is a **guard, not a policy**: the storefront decides
-when to mount the panel, and below that width it renders nothing and asks for
-nothing. A phone's door into the catalogue is the tile grid, with no drawer.
+`minWidth` (default `breakpoints.desktop`, 1200) is a **guard, not a policy**:
+the storefront decides when to mount the panel, and below that width it renders
+nothing and asks for nothing. A phone's door into the catalogue is the tile
+grid, with no drawer.
+
+The default is the tokens' own rung rather than a number chosen here. It was a
+hard-coded `1024` — on no rung of the ladder, and equal to one deployment's
+private edge — so every host that named nothing inherited one storefront's
+composition. A deployment whose catalogue button opens earlier passes its own
+width, and passes the same one it hands every other pair (`<SearchPage
+railFrom>`, `<PublicShell chromeFrom>`).
 
 The panel is an **overlay in its own right**. It is its own scroll container —
 `maxHeight` (default `MEGA_MENU_MAX_HEIGHT`, `calc(100dvh - 32px)`) with
