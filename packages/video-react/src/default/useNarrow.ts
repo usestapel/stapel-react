@@ -37,10 +37,19 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { useBreakpoint } from "@stapel/core";
+import { breakpoints } from "@stapel/tokens-antd";
 
-/** Below this the four-column table becomes a list of cards. Matches the
- * tablet edge of `@stapel/tokens`' three breakpoints. */
-export const NARROW_LIMIT = 768;
+/**
+ * Below this the four-column table becomes a list of cards — the `tablet` edge
+ * of `@stapel/tokens`' three breakpoints.
+ *
+ * READ FROM THE TOKENS, not restated. It was the literal `768` with a comment
+ * promising it matched, which is the same class of claim as a schema that says
+ * it matches the wire: true on the day it is written and unchecked every day
+ * after. The same sweep that found the shell deciding its chrome from a
+ * hard-coded width found this one, and the fix is the cheaper half of it.
+ */
+export const NARROW_LIMIT: number = breakpoints.tablet;
 
 export interface NarrowBox<T extends HTMLElement> {
   /** Put this on the element whose width decides the layout. */
