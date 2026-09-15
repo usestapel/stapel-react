@@ -38,6 +38,7 @@ import noAdhocSocket from "./rules/no-adhoc-socket.js";
 import noSilentSlot from "./rules/no-silent-slot.js";
 import noBooleanDisabled from "./rules/no-boolean-disabled.js";
 import antdAlertTitle from "./rules/antd-alert-title.js";
+import noSelfMeasuringRef from "./rules/no-self-measuring-ref.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -104,6 +105,13 @@ const rules = {
   // `recommended` — there is no migration to sequence, only a rename, and a
   // prop a major version stops reading renders an alert with no heading.
   "antd-alert-title": antdAlertTitle,
+  // A measurement that decides the size of the thing it measures. Not
+  // doctrine and not a vendor rename — a correctness defect with a production
+  // cost: video-react 0.3.6's `<IncomingCallOverlay>` measured the dialog
+  // whose own width the measurement set, flipped arm on every animation
+  // frame, and no desktop call ever connected because the accept button was
+  // rebuilt between the press and the release.
+  "no-self-measuring-ref": noSelfMeasuringRef,
 };
 
 // Read from package.json rather than typed: this is the version ESLint prints
@@ -416,6 +424,18 @@ const recommended = [
       // whose every site is `message` → `title`, autofixed, so it ships at
       // ERROR straight away instead of joining the worklist tier.
       "stapel/antd-alert-title": "error",
+      // A self-measuring ref (see the rule header for the ring defect).
+      //
+      // WARN in `recommended`, ERROR in `strict`, and the sweep is the reason
+      // rather than caution: run over every `packages/*/src` on 2026-09-15 it
+      // reports exactly ONE hit — `tokens-antd/src/skin/pane.tsx`, a real
+      // instance of the same loop (the gutter it picks from the measurement
+      // changes the content-box width it measures, so a `measure="wide"` pane
+      // at 800-816 CSS px oscillates every frame). That is an open finding for
+      // that package's owner, and an `error` here would turn the fleet's most
+      // widely used layout primitive red before its owner had seen it. Promote
+      // to "error" once pane.tsx lands its fix.
+      "stapel/no-self-measuring-ref": "warn",
     },
   },
   {
@@ -567,6 +587,9 @@ const strict = [
     files: JSX,
     rules: {
       ...doctrineRules(DOCTRINE_JSX, "error"),
+      // The self-measuring ref is a correctness defect, not a style ruling:
+      // a pair that has opted into `strict` wants it to fail the build.
+      "stapel/no-self-measuring-ref": "error",
       // The full dialog surface — Modal, Drawer AND Popconfirm — as an ERROR
       // on every file, not just the skins. This is what a product repo arms
       // when it wants the doctrine to be a gate rather than a worklist.

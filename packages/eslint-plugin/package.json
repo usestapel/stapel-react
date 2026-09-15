@@ -21,6 +21,7 @@
     "lib",
     "rules",
     "stylelint",
+    "docs",
     "README.md"
   ],
   "scripts": {
