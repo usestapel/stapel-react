@@ -41,6 +41,7 @@ import antdAlertTitle from "./rules/antd-alert-title.js";
 import noSelfMeasuringRef from "./rules/no-self-measuring-ref.js";
 import noSkinColorLiteral from "./rules/no-skin-color-literal.js";
 import noPinnedCorpusFact from "./rules/no-pinned-corpus-fact.js";
+import noInertTypographyOverride from "./rules/no-inert-typography-override.js";
 
 const rules = {
   "no-raw-colors": noRawColors,
@@ -131,6 +132,16 @@ const rules = {
   // Self-scoped to probe / e2e paths; a unit test's corpus is its own fixture
   // and is deliberately out of scope.
   "no-pinned-corpus-fact": noPinnedCorpusFact,
+  // A CSS rule that cannot win is a rule that did not ship. Four times in one
+  // wave a pair's own static sheet set a typography declaration at (0,1,0) —
+  // one class, or one `[data-testid]` — and antd's per-theme Typography class,
+  // injected into <head> at RUNTIME after that sheet, took the element. The
+  // class was on the node, the rule was in the sheet, and the computed style
+  // was antd's. Graded on the SELECTOR THAT SHIPS, never on the expression
+  // that builds it: that distinction is the fourth lesson, from a per-package
+  // test that asserted the literal template and broke on a refactor which
+  // changed no emitted byte.
+  "no-inert-typography-override": noInertTypographyOverride,
 };
 
 // Read from package.json rather than typed: this is the version ESLint prints
@@ -451,6 +462,28 @@ const recommended = [
     rules: { "stapel/no-skin-color-literal": "warn" },
   },
   {
+    // A typography declaration a pair's own stylesheet cannot win with.
+    //
+    // TS_JS and not `src/default/**`: these sheets are built in plain `.ts`
+    // modules (`titleClamp.ts`, `cardGallery.ts`, `condensedBar.ts`) and the
+    // fourth instance of this defect was in a HOST APP's chrome, which no
+    // skin-layer glob reaches. The rule reads declaration syntax, so a file
+    // with no stylesheet in it is untouched whatever its path.
+    //
+    // WARN in `recommended`, ERROR in `strict`, and the sweep is the reason
+    // rather than caution: run over every `packages/*/src` on 2026-09-16 with
+    // only this rule armed it reports FOUR sites in two packages. One is a
+    // live instance of the exact defect — `detailGallery.ts`'s
+    // `.stapel-listings-detail-count` font ladder at (0,1,0), on a class the
+    // lightbox puts on an `<antd Typography.Text>` — and the other three are
+    // the same shape on plain `<span>`s, where the rule cannot see that antd
+    // is not in the race. That is a worklist for two package owners, not a
+    // wall that turns them red before they have seen it. Promote to "error"
+    // once those four are graded.
+    files: TS_JS,
+    rules: { "stapel/no-inert-typography-override": "warn" },
+  },
+  {
     // Probes and end-to-end walkers. ERROR from the first day, and safely so:
     // this repository has no probe paths at all, so the rule cannot turn
     // anything red here — it ships armed for the fleets that do. The rule
@@ -584,6 +617,11 @@ const recommended = [
       "stapel/no-raw-error-shape": "off",
       // A load-state fixture's job is to BE the flattened shape.
       "stapel/no-flattened-load-state": "off",
+      // A specificity fixture's job is to BE the losing selector — this
+      // rule's own suite is a sheet of them. (The rule carries the same
+      // carve-out internally, so a consumer who never spreads this preset
+      // still gets the right answer.)
+      "stapel/no-inert-typography-override": "off",
       // Route fixtures legitimately probe reserved-path collisions on purpose
       // (that's what this rule's own tests do).
       "stapel/no-reserved-backend-route": "off",
@@ -670,6 +708,19 @@ const strict = [
     // migration opts in and cannot regress.
     files: ["**/src/default/**/*.{ts,tsx,js,jsx}"],
     rules: { "stapel/no-skin-color-literal": "error" },
+  },
+  {
+    // A stylesheet rule that loses to antd is a correctness defect — the
+    // declaration does not apply at all — not a style ruling, so a package
+    // that has graded its sheet opts in and cannot regress.
+    files: TS_JS,
+    rules: { "stapel/no-inert-typography-override": "error" },
+  },
+  {
+    // …and the fixture carve-out, which the block above would otherwise have
+    // switched back on for test files.
+    files: TEST_FILES,
+    rules: { "stapel/no-inert-typography-override": "off" },
   },
 ];
 
