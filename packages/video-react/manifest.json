@@ -4,7 +4,7 @@
   "version": "0.3.8",
   "backend": {
     "module": "stapel-video",
-    "contract": ">=0.11 <0.12"
+    "contract": ">=0.12 <0.13"
   },
   "layers": [
     "api",

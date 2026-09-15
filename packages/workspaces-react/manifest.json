@@ -4,7 +4,7 @@
   "version": "0.19.1",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.30 <0.31"
+    "contract": ">=0.31 <0.32"
   },
   "layers": [
     "api",

@@ -302,7 +302,7 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
+            /** @description The language `error` is written in (e.g. 'en', 'ru'), */
             error_language?: string;
         };
     };

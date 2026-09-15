@@ -17,8 +17,11 @@ export interface paths {
          *     from a public /privacy form — the form is the channel a regulator
          *     expects to exist, and it cannot require a login. The anonymous variant
          *     goes through the core's tiered captcha policy
-         *     (``@captcha_protected``); an unconfigured captcha backend leaves the
-         *     form open exactly as before, which is a host's decision to make.
+         *     (``@captcha_protected``); an unconfigured captcha backend leaves that
+         *     decorator doing nothing, which is why the door also carries a rolling
+         *     hourly budget per caller (``stapel_gdpr.throttling``,
+         *     ``INTAKE_RATE_LIMIT_PER_HOUR``) — spent before anything is recorded or
+         *     mailed, so a refused knock leaves no row and sends no acknowledgement.
          *
          *     **Permissions:** `AllowAny`
          */
@@ -98,7 +101,12 @@ export interface paths {
          * Get erasure status
          * @description State, receipts, obligations and `fully_erased_by` for one erasure.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Guests reach this on purpose: a guest session can close its own account
+         *     and must be able to watch that erasure. What bounds them is not the gate
+         *     but ``erasure_visible`` — the row must be theirs, or their authority must
+         *     be one that could have opened it.
+         *
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         get: operations["gdpr_api_v1_erasures_retrieve"];
         put?: never;
@@ -142,7 +150,11 @@ export interface paths {
          * List my erasure requests
          * @description The caller's own erasures — the "pending deletion" list a UI shows.
          *
-         *     **Permissions:** `IsAuthenticated`
+         *     Guests reach this on purpose, and a guest's list is their own: the rows
+         *     come from ``own_erasures``, which is keyed on the caller's pk and has no
+         *     parameter an id could be walked through.
+         *
+         *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
         get: operations["gdpr_api_v1_me_erasures_list"];
         put?: never;
@@ -294,13 +306,7 @@ export interface paths {
         };
         /**
          * Get data export status
-         * @description Base view exposing serializer seams.
-         *
-         *     Every concrete view declares ``request_serializer_class`` /
-         *     ``response_serializer_class`` (``None`` when that direction carries no
-         *     serialized payload). Subclasses may swap either class attribute — or
-         *     override the getters — to customize the request/response envelopes
-         *     without rewriting the method bodies.
+         * @description The caller's own latest export — guests included, same as opening one.
          *
          *     **Permissions:** `IsAuthenticated, AccountNotClosed`
          */
@@ -677,7 +683,7 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
+            /** @description The language `error` is written in (e.g. 'en', 'ru'), */
             error_language?: string;
         };
         /**
@@ -772,6 +778,14 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1066,6 +1080,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -1189,6 +1211,14 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
