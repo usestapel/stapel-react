@@ -137,7 +137,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Cancel the authenticated user's subscription. Cancels the subscription at the Stripe provider (when one exists) and marks it cancelled locally. Takes no request body.
+         * @description Cancel the authenticated user's subscription at the provider. The subscription stays active until the end of the period already paid for: the response carries `cancel_at_period_end: true` and the `current_period_end` it runs to. Refused with `error.409.subscription_not_paid` when there is no paid subscription (`is_paid: false`) — the free plan is not a subscription and has nothing to cancel. Takes no request body.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -405,17 +405,42 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
+            /** @description The language `error` is written in (e.g. 'en', 'ru'), */
             error_language?: string;
         };
-        /** @description SubscriptionResponse(plan: str, status: str, stripe_subscription_id: Optional[str], current_period_start: Optional[str], current_period_end: Optional[str], cancelled_at: Optional[str]) */
+        /**
+         * @description The caller's subscription, including the users who have none.
+         *
+         *     ``GET /subscription`` answers for every authenticated user, so this
+         *     shape has to be able to say "there is no subscription here" — which is
+         *     what ``is_paid: false`` means. ``plan``/``status`` cannot say it: a
+         *     free-plan row reads ``plan="free", status="active"``, and a client
+         *     that decides from those offers a cancel button to somebody who never
+         *     paid.
+         *
+         *     The three booleans are the whole decision, and they are computed
+         *     server-side on purpose: ``is_active`` compares ``current_period_end``
+         *     against the clock, and a client's clock is not the one that bills.
+         */
         SubscriptionResponse: {
+            /** @description Plan slug. ``free`` for an account that never subscribed */
             plan: string;
+            /** @description The provider's status, mirrored */
             status: string;
+            /** @description The provider object, or null */
             stripe_subscription_id: string | null;
+            /** @description ISO-8601, or null when unknown */
             current_period_start: string | null;
+            /** @description ISO-8601 renewal/expiry moment, or null */
             current_period_end: string | null;
+            /** @description ISO-8601 moment the cancellation was requested */
             cancelled_at: string | null;
+            /** @description The subscriber has cancelled and service */
+            cancel_at_period_end?: boolean;
+            /** @description There is a provider subscription behind this row (plan is */
+            is_paid?: boolean;
+            /** @description The subscription entitles the user right now — an */
+            is_active?: boolean;
         };
         /** @description TransactionListResponse(transactions: List[stapel_billing.dto.TransactionResponse] = <factory>, next_cursor: Optional[str] = None, has_more: bool = False) */
         TransactionListResponse: {
@@ -603,6 +628,14 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

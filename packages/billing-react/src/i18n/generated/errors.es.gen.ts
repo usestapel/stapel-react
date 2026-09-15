@@ -57,6 +57,7 @@ export const billingErrorBundleEs: Record<BillingErrorCode, string> = {
   "error.408.request_timeout": "Tiempo de espera de la solicitud agotado",
   "error.409.conflict": "El recurso ya existe",
   "error.409.duplicate_webhook_event": "El evento de Stripe ya se ha procesado",
+  "error.409.subscription_not_paid": "No hay ninguna suscripción de pago que cancelar",
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",
   "error.415.unsupported_media_type": "Tipo de contenido no compatible",

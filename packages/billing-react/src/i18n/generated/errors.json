@@ -341,6 +341,13 @@
     "en": "Stripe event already processed"
   },
   {
+    "code": "error.409.subscription_not_paid",
+    "status": 409,
+    "params": [],
+    "remediation": "verify",
+    "en": "There is no paid subscription to cancel"
+  },
+  {
     "code": "error.410.gone",
     "status": 410,
     "params": [],

@@ -57,6 +57,7 @@ export const billingErrorBundleRu: Record<BillingErrorCode, string> = {
   "error.408.request_timeout": "Время ожидания запроса истекло",
   "error.409.conflict": "Ресурс уже существует",
   "error.409.duplicate_webhook_event": "Событие Stripe уже обработано",
+  "error.409.subscription_not_paid": "Нет платной подписки, которую можно отменить",
   "error.410.gone": "Ресурс был безвозвратно удалён",
   "error.413.payload_too_large": "Тело запроса слишком большое",
   "error.415.unsupported_media_type": "Неподдерживаемый тип данных",

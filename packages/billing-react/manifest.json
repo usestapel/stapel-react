@@ -4,7 +4,7 @@
   "version": "0.10.3",
   "backend": {
     "module": "stapel-billing",
-    "contract": ">=0.12 <0.13"
+    "contract": ">=0.14 <0.15"
   },
   "layers": [
     "api",
@@ -402,6 +402,11 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.409.subscription_not_paid": {
+      "status": 409,
+      "params": [],
+      "remediation": "verify"
+    },
     "error.410.gone": {
       "status": 410,
       "params": [],
@@ -680,6 +685,7 @@
     "error.408.request_timeout",
     "error.409.conflict",
     "error.409.duplicate_webhook_event",
+    "error.409.subscription_not_paid",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.415.unsupported_media_type",
