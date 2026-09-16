@@ -564,7 +564,8 @@
       ],
       "variants": [
         "default",
-        "phone"
+        "phone",
+        "needsPayment"
       ],
       "source": "demo/RecordingDetailPaneSkin.demo.tsx"
     },
@@ -582,6 +583,18 @@
         "phone"
       ],
       "source": "demo/RecordingsListSkin.demo.tsx"
+    },
+    {
+      "id": "recordings.needs-payment-skin",
+      "title": "Recording parked on payment",
+      "description": "A recording's own park (stapel-recordings 0.25.0), not a mutation's 402 refusal — the reason names why in words, and a reason this build has never seen still gets a sentence rather than a raw key.",
+      "component": "RecordingNeedsPaymentNotice",
+      "variants": [
+        "default",
+        "freeMinutes",
+        "phone"
+      ],
+      "source": "demo/RecordingNeedsPaymentNoticeSkin.demo.tsx"
     },
     {
       "id": "recordings.payment-skin",
@@ -667,7 +680,7 @@
     {
       "id": "recordings.status-chip",
       "title": "Status chip",
-      "description": "The eleven lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
+      "description": "The twelve lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
       "component": "RecordingStatusChip",
       "variants": [
         "default",
@@ -803,6 +816,10 @@
     "recordings.list.open",
     "recordings.list.retry",
     "recordings.list.workspace_note",
+    "recordings.needs_payment.reason.free_minutes_exhausted",
+    "recordings.needs_payment.reason.insufficient_credits",
+    "recordings.needs_payment.reason.unknown",
+    "recordings.needs_payment.title",
     "recordings.payment.action",
     "recordings.payment.hint",
     "recordings.payment.title",
@@ -848,6 +865,7 @@
     "recordings.status.diarizing",
     "recordings.status.error",
     "recordings.status.merging",
+    "recordings.status.needs_payment",
     "recordings.status.normalizing",
     "recordings.status.processing_label",
     "recordings.status.queued",

@@ -86,8 +86,9 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
-- recordings.detail-skin → <RecordingDetailPane> [default|phone]  demo/RecordingDetailPaneSkin.demo.tsx
+- recordings.detail-skin → <RecordingDetailPane> [default|phone|needsPayment]  demo/RecordingDetailPaneSkin.demo.tsx
 - recordings.list-skin → <RecordingsList> [default|phone]  demo/RecordingsListSkin.demo.tsx
+- recordings.needs-payment-skin → <RecordingNeedsPaymentNotice> [default|freeMinutes|phone]  demo/RecordingNeedsPaymentNoticeSkin.demo.tsx
 - recordings.payment-skin → <PaymentRequiredNotice> [default|phone]  demo/PaymentRequiredNoticeSkin.demo.tsx
 - recordings.player-skin → <RecordingPlayer> [default|phone]  demo/RecordingPlayerSkin.demo.tsx
 - recordings.reprocess-skin → <ReprocessAction> [default|phone]  demo/ReprocessActionSkin.demo.tsx
