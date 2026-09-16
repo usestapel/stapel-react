@@ -82,6 +82,43 @@ tags nor a reachable origin now **fails as BLIND** rather than passing: before
 the fallback existed, the freshness half of this gate silently reported
 nothing on every CI and release run.
 
+**Behind, and whether that matters.** The minors-behind threshold above
+decides list-vs-fail exactly as it always has — this is a second, orthogonal
+question the gate asks of every pin that IS behind, not a change in how
+tolerant it is. For each one, `scripts/check-contract-pins.mjs`
+(`classifyWireDiff`) diffs `docs/schema.json`, `docs/errors.json` and
+`docs/flows.json` between the pinned ref and the newest tag — the exact three
+files every `gen:*` driver reads — and splits the outcome:
+
+- **Byte-identical.** Regenerating against the newer ref cannot change a
+  single committed projection; that is what byte-identical *means* for those
+  three files. `scripts/auto-bump-safe-pins.mjs` runs in CI (`ci.yml` and
+  `release.yml`, before the gate) and bumps this case itself — a bot commit,
+  no review, message naming the versions crossed and that the wire was
+  identical. A pin that never needed a human never reaches one. Four of the
+  seven pins bumped the night this was built were exactly this shape (core,
+  billing, video, moderation — three deployment-side releases and one whose
+  three post-fix patches never touched the wire at all).
+- **Wire moved.** Same severity as before (listed at one minor, failed at
+  two) — the message now names what moved: which file, which operation or
+  schema, which field, and — the line this feature exists to surface reliably
+  — whether anything **became required**. A pure description-text edit is
+  named too (never silently treated as "nothing"), so a human reading it can
+  tell "the `error_language` wording moved again" from "a new required field
+  landed on a response body" without opening the sibling repo. This is a
+  deliberate PR, same as it always was — the gate only got better at saying
+  *why* it stopped a pin, never more lenient about which pins it stops.
+
+**What this cannot see.** A byte-identical verdict is a claim about the
+wire's *shape*, not about what a given input does under it. A behaviour
+change that reuses an existing field, an existing status code and an
+existing required set — a bug fix, a changed default, a tightened validation
+rule — moves nothing in `docs/schema.json` and is invisible here by
+construction. Catching that class is what each backend's own contract/
+behaviour tests are for, not this gate; a byte-identical pin is safe to
+auto-bump on the wire's shape alone, and says nothing about what changed
+behind it.
+
 ## Publishing a pair for the FIRST time
 
 Releases are tokenless: npm **OIDC trusted publishing**, configured per package

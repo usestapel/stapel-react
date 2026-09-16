@@ -12,6 +12,8 @@ env:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # scripts/auto-bump-safe-pins.mjs pushes a bot commit for wire-identical pins
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,6 +72,30 @@ jobs:
         # would find it — after the release. See scripts/check-peer-floors.mjs.
         run: corepack pnpm check:peer-floors
 
+      - name: Auto-bump wire-identical pins (bot commit, no review)
+        # scripts/auto-bump-safe-pins.mjs asks the SAME question the gate below
+        # asks (does a pin's docs/schema.json / docs/errors.json / docs/flows.json
+        # move between the pinned ref and the sibling's newest tag?) and acts on
+        # the answer the gate cannot act on itself: when the wire is
+        # byte-identical, a pin that is merely behind is not a finding for a
+        # human — regenerating against the newer ref provably changes nothing
+        # this repo generates. It bumps, regenerates and commits directly;
+        # anything wire-MOVED is left exactly alone for the gate below to name
+        # and fail on. `pull_request` runs get no write token (and must not push
+        # into someone else's branch), so this only runs on `push`.
+        #
+        # Runs after every sibling is checked out (needs them to diff) and
+        # before the freshness gate (so a bump made HERE clears the finding in
+        # THIS SAME run, not only the next one) — cheap even when it does
+        # nothing: `pnpm gen:pinned` only runs at all when at least one pin
+        # qualifies.
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "stapel-bot"
+          git config user.email "bot@stapel.dev"
+          corepack pnpm run bump:safe-pins
+          git push origin "HEAD:${{ github.ref_name }}"
+
       - name: Contract pin + error-bundle gates
         # `pnpm ci` (package.json) runs check:gates and this workflow did not:
         # the steps below are a hand-copy of that script that drifted, so the
@@ -77,7 +103,9 @@ jobs:
         # library — has never run on a pull request, only inside `pnpm release`
         # after merge. The freshness check reaches the network (git ls-remote
         # --tags on each sibling's origin, ~8s for 26) because a --depth 1
-        # sibling fetch brings down no tags to read locally.
+        # sibling fetch brings down no tags to read locally. Wire-identical pins
+        # never reach this check at all on a push run — the step above already
+        # bumped them; a wire-MOVED pin is exactly what this still fails on.
         run: corepack pnpm check:gates
 
       - name: Root scripts' own tests

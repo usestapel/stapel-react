@@ -108,6 +108,21 @@ jobs:
         # not just ci.yml. See scripts/check-peer-floors.mjs.
         run: corepack pnpm check:peer-floors
 
+      - name: Auto-bump wire-identical pins (bot commit, no review)
+        # Same step as ci.yml, same reason: `publish: corepack pnpm run release`
+        # below runs `check:gates`, whose pin-freshness half fails a pin two
+        # minors behind unconditionally — including a pin that is behind on a
+        # BYTE-IDENTICAL docs/schema.json / docs/errors.json / docs/flows.json,
+        # which regenerating cannot change. scripts/auto-bump-safe-pins.mjs
+        # bumps and commits exactly that case before the gate runs, so a
+        # release is never blocked on a restamp with nothing left to review.
+        # A wire-MOVED pin is untouched here — that stays the gate's fail.
+        run: |
+          git config user.name "stapel-bot"
+          git config user.email "bot@stapel.dev"
+          corepack pnpm run bump:safe-pins
+          git push origin HEAD:main
+
       - name: Version PR or publish to npm
         uses: changesets/action@v1
         with:

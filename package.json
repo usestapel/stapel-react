@@ -46,6 +46,7 @@
     "gen": "pnpm gen:api && pnpm gen:feature-def && pnpm gen:rules && pnpm gen:flows && pnpm gen:errors && pnpm gen:events && pnpm gen:demos && pnpm gen:manifest && pnpm gen:tokens && pnpm gen:nav && pnpm gen:root-llms",
     "check:peer-floors": "node scripts/check-peer-floors.mjs",
     "check:contract-pins": "node scripts/check-contract-pins.mjs",
+    "bump:safe-pins": "node scripts/auto-bump-safe-pins.mjs",
     "check:error-bundles": "node scripts/check-error-bundles.mjs",
     "check:gates": "node scripts/check-contract-pins.mjs && node scripts/check-error-bundles.mjs",
     "check:gates:strict": "node scripts/check-contract-pins.mjs --strict && node scripts/check-error-bundles.mjs --strict && DEMOS_SKIN_GATE=strict NAV_GATE=strict pnpm gen:demos && DEMOS_SKIN_GATE=strict NAV_GATE=strict pnpm gen:nav",

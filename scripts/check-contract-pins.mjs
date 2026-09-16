@@ -46,7 +46,7 @@ export function parseRange(range) {
   };
 }
 
-const cmp = (a, b) =>
+export const cmp = (a, b) =>
   a[0] - b[0] || a[1] - b[1] || (a[2] ?? 0) - (b[2] ?? 0);
 
 /** Is `version` inside `[min, max)`? */
@@ -54,12 +54,12 @@ export function contains(range, version) {
   return cmp(version, range.min) >= 0 && cmp(version, range.max) < 0;
 }
 
-function parseVersion(text) {
+export function parseVersion(text) {
   const m = /^version\s*=\s*"(\d+)\.(\d+)(?:\.(\d+))?"/m.exec(text);
   return m ? [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)] : null;
 }
 
-const show = (v) => v.join(".");
+export const show = (v) => v.join(".");
 
 /**
  * WHAT KIND OF OBJECT a sha names in a checkout — `"commit"`, `"tag"`,
@@ -202,6 +202,254 @@ function selfCheckRefProbe() {
 }
 
 /**
+ * WIRE DIFF — the piece that lets the freshness check tell "behind" apart
+ * from "behind on something that changed the wire".
+ *
+ * Before this, "two or more minors behind" failed unconditionally, whether
+ * the span behind the pin was a required field landing on a response body or
+ * three deployment-side patches that never touched `docs/*.json` at all. Both
+ * read as the identical one-line finding, so every trivial release anywhere
+ * in the fleet — a docstring fix, a management command, a test-only retag —
+ * became a same-day fire drill for whoever was at the keyboard when the
+ * two-minors threshold tripped (core, billing, notifications and gdpr all
+ * tripped it the same night of 2026-09-16; core and billing turned out to be
+ * BYTE-IDENTICAL on the wire).
+ *
+ * `docs/schema.json`, `docs/errors.json` and `docs/flows.json` are exactly
+ * the three files this repo's generators read (CONTRIBUTING.md "Contract
+ * pins") — so byte-identical across all three, between the pinned ref and the
+ * newest tag, is not a heuristic for "safe": it is a proof that regenerating
+ * against the newer ref cannot change a single committed projection. That
+ * case is auto-bumped by `scripts/auto-bump-safe-pins.mjs`, no review needed.
+ * Any other byte, on any of the three files, means a human reads the
+ * itemized diff below and decides — the same reading this file's own history
+ * shows happening by hand, released as a deliberate PR each time.
+ *
+ * WHAT THIS CANNOT SEE: a behaviour change behind an unchanged schema — a bug
+ * fix, a changed default, a new validation rule that reuses an existing
+ * field and an existing status code. `docs/schema.json` describes the SHAPE
+ * of a contract, not what a given input does under it, so a byte-identical
+ * verdict here is a claim about the wire's shape only. Catching a behavioural
+ * drift that leaves the shape alone is what each backend's OWN contract/
+ * behaviour tests are for, not this gate.
+ */
+
+/** The three files every `gen:*` driver reads (CONTRIBUTING.md "Contract pins"). */
+export const WIRE_FILES = ["docs/schema.json", "docs/errors.json", "docs/flows.json"];
+
+/**
+ * The newest release tag's commit sha, materialized into `dir` if it is not
+ * there already. CI's sibling checkouts are `git init` + `fetch --depth 1
+ * <pinned-sha>` (ci.yml) — a single commit, no tags, so the pinned ref is
+ * reachable but the newest tag never is without asking origin for it by
+ * name. One shallow, single-ref fetch per stale module; never `--tags`
+ * (which would drag a full history download per sibling to answer a
+ * question about one name). `null` when the tag cannot be fetched at all —
+ * a private sibling, a network outage, a tag that is only a local
+ * convention and was never pushed.
+ */
+export function fetchTagCommit(dir, version) {
+  const tagName = `v${version.join(".")}`;
+  try {
+    return execFileSync("git", ["-C", dir, "rev-parse", `${tagName}^{commit}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    // Not already present — the common case on a fresh CI checkout.
+  }
+  try {
+    execFileSync(
+      "git",
+      ["-C", dir, "fetch", "-q", "--depth", "1", "origin", `refs/tags/${tagName}:refs/tags/${tagName}`],
+      { stdio: ["ignore", "pipe", "ignore"], timeout: 30_000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }
+    );
+  } catch {
+    return null;
+  }
+  try {
+    return execFileSync("git", ["-C", dir, "rev-parse", `${tagName}^{commit}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** A file's text at a ref, or `null` when the ref or the path is unreadable
+ * (the file did not exist yet at that ref — not the same claim as "empty"). */
+export function readAtRef(dir, ref, path) {
+  try {
+    // stderr silenced: "the file didn't exist yet at this ref" is a NORMAL
+    // outcome here (an added or removed contract artifact), not a fault —
+    // git's "fatal: path does not exist" belongs in the return value below,
+    // not scrolling past a human as if the check itself were failing.
+    return execFileSync("git", ["-C", dir, "show", `${ref}:${path}`], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** A property's declared type, coarse enough to say "this changed" without
+ * caring which of `type` / `$ref` / `oneOf` / `allOf` a generator used to
+ * say it — an enum swapped for a `$ref` to a differently-named enum (the
+ * categories 0.23.1 `AxisRoleEnum` → `AxisRoleDerivedEnum` rename, 2026-09-16)
+ * is exactly the shape this must not call identical. */
+function propertyType(prop) {
+  if (prop == null) return "absent";
+  if (prop.$ref) return prop.$ref;
+  if (prop.oneOf) return `oneOf(${prop.oneOf.map(propertyType).join("|")})`;
+  if (prop.allOf) return `allOf(${prop.allOf.map(propertyType).join("&")})`;
+  return prop.type ?? "unknown";
+}
+
+/**
+ * `docs/schema.json` structural diff: which operation gained or lost a
+ * status code, which schema gained/lost/retyped a field, and — the one line
+ * this whole feature exists to surface reliably — which field BECAME
+ * required. A pure description-text edit (the `error_language` wording core
+ * 0.62.0 fixed, echoed into every other pair afterwards) is reported too,
+ * but only when nothing structural already explains the byte difference, so
+ * the one-line summary a human reads first is never buried under noise.
+ */
+export function diffSchemaJson(before, after) {
+  const out = [];
+  const bPaths = before?.paths ?? {};
+  const aPaths = after?.paths ?? {};
+  for (const path of new Set([...Object.keys(bPaths), ...Object.keys(aPaths)])) {
+    const b = bPaths[path];
+    const a = aPaths[path];
+    if (b === undefined) { out.push(`new path ${path}`); continue; }
+    if (a === undefined) { out.push(`path ${path} REMOVED`); continue; }
+    for (const method of new Set([...Object.keys(b), ...Object.keys(a)])) {
+      const bm = b[method];
+      const am = a[method];
+      if (bm == null && am == null) continue;
+      const opId = am?.operationId ?? bm?.operationId ?? `${method.toUpperCase()} ${path}`;
+      if (bm == null) { out.push(`${opId}: new operation`); continue; }
+      if (am == null) { out.push(`${opId}: operation REMOVED`); continue; }
+      const bResp = Object.keys(bm.responses ?? {});
+      const aResp = Object.keys(am.responses ?? {});
+      let structural = false;
+      for (const s of aResp) if (!bResp.includes(s)) { out.push(`${opId}: gains a ${s} response`); structural = true; }
+      for (const s of bResp) if (!aResp.includes(s)) { out.push(`${opId}: LOSES its ${s} response`); structural = true; }
+      if (!structural && bm.description !== am.description) out.push(`${opId}: description text changed`);
+    }
+  }
+  const bSchemas = before?.components?.schemas ?? {};
+  const aSchemas = after?.components?.schemas ?? {};
+  for (const name of new Set([...Object.keys(bSchemas), ...Object.keys(aSchemas)])) {
+    const b = bSchemas[name];
+    const a = aSchemas[name];
+    if (b === undefined) { out.push(`schema ${name}: new`); continue; }
+    if (a === undefined) { out.push(`schema ${name}: REMOVED`); continue; }
+    const bProps = Object.keys(b.properties ?? {});
+    const aProps = Object.keys(a.properties ?? {});
+    let structural = false;
+    for (const p of aProps) if (!bProps.includes(p)) { out.push(`${name}.${p}: new field`); structural = true; }
+    for (const p of bProps) if (!aProps.includes(p)) { out.push(`${name}.${p}: field REMOVED`); structural = true; }
+    const bReq = new Set(b.required ?? []);
+    const aReq = new Set(a.required ?? []);
+    for (const f of aReq) if (!bReq.has(f)) { out.push(`${name}.${f}: BECAME REQUIRED`); structural = true; }
+    for (const f of bReq) if (!aReq.has(f)) { out.push(`${name}.${f}: no longer required`); structural = true; }
+    for (const p of aProps) {
+      if (!bProps.includes(p)) continue; // already reported as new above
+      const bType = propertyType(b.properties[p]);
+      const aType = propertyType(a.properties[p]);
+      if (bType !== aType) { out.push(`${name}.${p}: type changed (${bType} -> ${aType})`); structural = true; }
+    }
+    if (!structural && b.description !== a.description) out.push(`schema ${name}: description text changed`);
+  }
+  return out;
+}
+
+/** `docs/errors.json` diff, keyed on `code` — the identity a pair's i18n
+ * catalogue and error-handling branches key on, not array position. */
+export function diffErrorsJson(before, after) {
+  const out = [];
+  const bByCode = new Map((before ?? []).map((e) => [e.code, e]));
+  const aByCode = new Map((after ?? []).map((e) => [e.code, e]));
+  for (const code of new Set([...bByCode.keys(), ...aByCode.keys()])) {
+    const b = bByCode.get(code);
+    const a = aByCode.get(code);
+    if (!b) { out.push(`${code}: new error code (status ${a.status})`); continue; }
+    if (!a) { out.push(`${code}: error code REMOVED`); continue; }
+    if (b.status !== a.status) out.push(`${code}: status ${b.status} -> ${a.status}`);
+    else if (JSON.stringify(b) !== JSON.stringify(a)) out.push(`${code}: text or params changed`);
+  }
+  return out;
+}
+
+/** `docs/flows.json` diff, keyed on `id`. Flows are rare (most pairs declare
+ * zero), so this stops at "which flow, added/removed/changed" rather than
+ * walking each flow's own step list — proportionate to how often it fires. */
+export function diffFlowsJson(before, after) {
+  const out = [];
+  const bById = new Map((before ?? []).map((f) => [f.id, f]));
+  const aById = new Map((after ?? []).map((f) => [f.id, f]));
+  for (const id of new Set([...bById.keys(), ...aById.keys()])) {
+    const b = bById.get(id);
+    const a = aById.get(id);
+    if (!b) { out.push(`flow ${id}: new`); continue; }
+    if (!a) { out.push(`flow ${id}: REMOVED`); continue; }
+    if (JSON.stringify(b) !== JSON.stringify(a)) out.push(`flow ${id}: content changed`);
+  }
+  return out;
+}
+
+/** One wire file's diff, named. `null` on either side means the file did not
+ * exist at that ref (an added or removed contract artifact, not a body this
+ * repo can structurally diff — reported as a fact, not by pretending). */
+export function diffWireFile(file, beforeText, afterText) {
+  if (beforeText === afterText) return [];
+  if (beforeText === null) return [`${file}: file did not exist at the pinned ref`];
+  if (afterText === null) return [`${file}: file no longer exists at the newest tag`];
+  let before;
+  let after;
+  try {
+    before = JSON.parse(beforeText);
+    after = JSON.parse(afterText);
+  } catch {
+    return [`${file}: content differs (not valid JSON on at least one side)`];
+  }
+  const bullets = file.endsWith("schema.json")
+    ? diffSchemaJson(before, after)
+    : file.endsWith("errors.json")
+      ? diffErrorsJson(before, after)
+      : file.endsWith("flows.json")
+        ? diffFlowsJson(before, after)
+        : [];
+  return bullets.length > 0
+    ? bullets.map((b) => `${file}: ${b}`)
+    : [`${file}: text differs (no structural change detected — likely whitespace or key order)`];
+}
+
+/**
+ * The verdict this whole feature exists to compute: is the sibling's newest
+ * release wire-identical to the one this repo is pinned to, or did it move?
+ *
+ * `resolvable: false` means the newest tag could not be fetched at all — the
+ * caller must NOT read that as identical (a network outage is not a wire
+ * diff), so it is reported as its own finding, same severity as today's
+ * "cannot see the newest tag" blindness a few lines up in this file.
+ */
+export function classifyWireDiff(dir, pinnedRef, newestVersion) {
+  const newestRef = fetchTagCommit(dir, newestVersion);
+  if (!newestRef) {
+    return { resolvable: false, identical: false, bullets: [], newestRef: null };
+  }
+  const bullets = [];
+  for (const file of WIRE_FILES) {
+    bullets.push(...diffWireFile(file, readAtRef(dir, pinnedRef, file), readAtRef(dir, newestRef, file)));
+  }
+  return { resolvable: true, identical: bullets.length === 0, bullets, newestRef };
+}
+
+/**
  * A pin that RESOLVES can still lie about the world: a ref four minors behind
  * the library regenerates a pair that typechecks, looks plausible, and goes
  * silent against the wire the library actually speaks (stapel-chat 0.2-era
@@ -241,7 +489,7 @@ function selfCheckRefProbe() {
  * that answers with zero tags is an ANSWER (an unreleased sibling), not
  * blindness, and returns [].
  */
-function releaseTags(dir) {
+export function releaseTags(dir) {
   const parse = (names) =>
     names
       .map((t) => t.trim().replace(/^v/, ""))
@@ -287,9 +535,47 @@ function releaseTags(dir) {
   }
 }
 
+/** At most this many bullets per module in the printed report — enough to
+ * name every field/operation a human needs to see, never so many that the
+ * one line that matters (a new required field) scrolls off screen behind a
+ * schema's worth of description-text churn. */
+const MAX_BULLETS_PRINTED = 12;
+
+function formatBullets(bullets) {
+  const shown = bullets.slice(0, MAX_BULLETS_PRINTED);
+  const rest = bullets.length - shown.length;
+  return (
+    shown.map((b) => `        · ${b}`).join("\n") +
+    (rest > 0 ? `\n        · …and ${rest} more (see \`pnpm check:contract-pins\` output, or diff the two refs directly)` : "")
+  );
+}
+
+/**
+ * THE SPLIT this whole feature exists for: `behind` used to be the entire
+ * verdict — one number, two buckets (list at one minor, fail at two).
+ * `checkPinsFresh` now asks a second, orthogonal question of every pin that
+ * IS behind: did `docs/schema.json` / `docs/errors.json` / `docs/flows.json`
+ * move between the pinned ref and the newest tag? The minors-behind
+ * threshold still decides list-vs-fail exactly as before (nothing here makes
+ * the gate more or less tolerant of a stale pin) — what changed is that a
+ * WIRE-IDENTICAL pin, at either tier, is never reported as something a human
+ * must act on: it is a freshness restamp with a machine-checkable proof of
+ * safety, collected separately so `auto-bump-safe-pins.mjs` can land it
+ * without review. A WIRE-MOVED pin keeps exactly today's severity (listed at
+ * one minor, failed at two) but the message now names what moved, because
+ * that reading is the manual work this file's own commit history shows
+ * happening by hand, twice, the same night this feature was written.
+ */
+export function classifyPin(dir, entry, pinned, newest) {
+  const behind = newest[0] - pinned[0] > 0 ? Infinity : newest[1] - pinned[1];
+  const wire = classifyWireDiff(dir, entry.ref, newest);
+  return { behind, wire };
+}
+
 function checkPinsFresh(pins) {
   const notes = [];
   const stale = [];
+  const safe = [];
   const blind = [];
   for (const [module, entry] of Object.entries(pins.modules ?? {})) {
     const dir = resolve(ROOT, SIBLING_ROOT, module);
@@ -313,11 +599,35 @@ function checkPinsFresh(pins) {
     }
     const newest = tags.at(-1) ?? null;
     if (!pinned || !newest) continue;
-    const behind = newest[0] - pinned[0] > 0 ? Infinity : newest[1] - pinned[1];
-    if (behind >= 2) stale.push(`${module}: pinned ${show(pinned)}, newest tag v${newest.join(".")} (${behind === Infinity ? "a major" : behind + " minors"} behind)`);
-    else if (behind === 1) notes.push(`${module}: pinned ${show(pinned)}, newest tag v${newest.join(".")}`);
+    const { behind, wire } = classifyPin(dir, entry, pinned, newest);
+    if (behind < 1) continue; // current
+
+    const versions = `pinned ${show(pinned)}, newest tag v${newest.join(".")}`;
+    const span = behind === Infinity ? "a major" : `${behind} minors`;
+
+    if (!wire.resolvable) {
+      // Cannot prove safety — never silently treated as identical. Same
+      // severity as before this feature existed, with the caveat named.
+      if (behind >= 2) stale.push(`${module}: ${versions} (${span} behind) — wire diff unavailable, could not fetch v${newest.join(".")} to compare`);
+      else notes.push(`${module}: ${versions} — wire diff unavailable, could not fetch v${newest.join(".")} to compare`);
+      continue;
+    }
+
+    if (wire.identical) {
+      // Safe at ANY tier: a pin one minor behind on a byte-identical wire is
+      // exactly as bumpable as one two minors behind on the same proof.
+      safe.push(`${module}: ${versions} — docs/schema.json, docs/errors.json and docs/flows.json are BYTE-IDENTICAL; safe to auto-bump (\`pnpm run bump:safe-pins\`)`);
+      continue;
+    }
+
+    // Wire moved. Severity is UNCHANGED from before this feature (still
+    // decided by `behind` alone) — only the message grows a named diff.
+    const detail = formatBullets(wire.bullets);
+    if (behind >= 2) stale.push(`${module}: ${versions} (${span} behind), WIRE MOVED:\n${detail}`);
+    else notes.push(`${module}: ${versions}, wire moved:\n${detail}`);
   }
   for (const n of notes) console.error(`  ~ pin one minor behind (a deliberate hold, or the next bump): ${n}`);
+  for (const s of safe) console.error(`  = pin behind, wire byte-identical (safe): ${s}`);
   if (blind.length > 0) {
     // Not a listing matter and not a warning: this is the gate reporting that
     // it could not run. Passing here is how it silently passed for months.
@@ -328,10 +638,13 @@ function checkPinsFresh(pins) {
       `  (\`git fetch --tags\`) or network access to its origin.`);
   }
   if (stale.length > 0) {
-    console.error(`✖ contract-pins: ${stale.length} pin(s) are two or more minors behind the library they pin:\n` +
+    console.error(`✖ contract-pins: ${stale.length} pin(s) are two or more minors behind the library they pin,\n` +
+      `  with the wire itself moved (a byte-identical pin this stale is bumped automatically, never listed here):\n` +
       stale.map((s) => `    - ${s}`).join("\n") +
-      `\n  A pair regenerated from such a pin is internally consistent and wrong about the wire. Bump the pin\n` +
-      `  to the release the pair is built for and regenerate it (pnpm gen:pinned), or record the hold in the note.`);
+      `\n  A pair regenerated from such a pin is internally consistent and wrong about the wire. Read what moved\n` +
+      `  above, bump the pin to the release the pair is built for, and regenerate it (pnpm gen:pinned) — or\n` +
+      `  record the hold in the note. This cannot see a behaviour change behind an unchanged schema; that is\n` +
+      `  what the backend's own contract/behaviour tests are for.`);
   }
   if (blind.length > 0 || stale.length > 0) {
     // Both blocks are printed before exiting: a run that is blind for one
@@ -422,7 +735,15 @@ async function main() {
   if (STRICT) process.exit(1);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Only run the CLI when this file is the process entry point. Without this
+// guard, importing the module's exported functions for a test (as
+// check-contract-pins.test.mjs now does) ran the WHOLE gate as a side effect
+// of `import` — network calls, `console.error` noise, and a `process.exit(1)`
+// that would kill the test runner on any real stale pin, for reasons having
+// nothing to do with the test that triggered it.
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
