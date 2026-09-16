@@ -109,6 +109,32 @@ files every `gen:*` driver reads — and splits the outcome:
   deliberate PR, same as it always was — the gate only got better at saying
   *why* it stopped a pin, never more lenient about which pins it stops.
 
+**Meeting the gate.** A `chore(contract-pins): auto-bump ...` commit in
+`git log` is not yours to review or revert — it is the byte-identical case
+above, already proven safe by the diff it names in its own message (which
+versions crossed, and that `docs/schema.json`/`docs/errors.json`/
+`docs/flows.json` were identical at bump time). Pull it like any other
+commit and move on. A **wire-moved failure**, in CI or in `pnpm
+check:contract-pins` at your desk, is asking you to read the itemized diff
+it prints — file, operation or schema, field, and whether anything became
+required — and make the deliberate-PR call this section already describes:
+bump and regenerate, or record the hold with a reason. It is not asking you
+to make the gate pass by any means; a pin that stays two minors behind on
+purpose is a hold, not a suppressed check.
+
+Either way — bumped by the bot or bumped by you — **the pin moving is not a
+review of the pair's own code**. The gate proves the generated projection
+matches the wire; it says nothing about whether the component code that
+reads that wire has caught up with whatever the release actually shipped.
+stapel-recordings 0.25.0 added a new REQUIRED field
+(`RecordingDTO.needs_payment_reason`), so the regen alone forced a
+one-line fixture fix to keep `tsc` green — and that would have been enough
+to make every gate here pass while the pair kept rendering "Unknown state"
+for a parked recording, `needs_payment_reason` read by nothing. Compiling
+is not the same claim as reacting: teaching `RecordingStatusChip` and
+`RecordingDetailPane` the new status was separate, deliberate work the
+gate could not ask for, and a green bump is not evidence that it happened.
+
 **What this cannot see.** A byte-identical verdict is a claim about the
 wire's *shape*, not about what a given input does under it. A behaviour
 change that reuses an existing field, an existing status code and an
