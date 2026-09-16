@@ -118,10 +118,33 @@ jobs:
         # release is never blocked on a restamp with nothing left to review.
         # A wire-MOVED pin is untouched here — that stays the gate's fail.
         run: |
+          set -eu
           git config user.name "stapel-bot"
           git config user.email "bot@stapel.dev"
+          before="$(git rev-parse HEAD)"
           corepack pnpm run bump:safe-pins
-          git push origin HEAD:main
+          after="$(git rev-parse HEAD)"
+          if [ "$before" = "$after" ]; then
+            echo "bump:safe-pins made no commit — nothing to push"
+            exit 0
+          fi
+          # Shared tree, several agents pushing to main: a bot commit racing a
+          # human's push is routine. Rebase the ONE bot commit onto the new tip
+          # and retry rather than treating a non-fast-forward as fatal — never
+          # force-push, so a real conflict still stops here for a human.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt/3) — fetching and rebasing onto the new tip"
+            git fetch origin main
+            if ! git rebase origin/main; then
+              echo "rebase conflict — leaving the bot commit unpushed locally for a human to resolve"
+              exit 1
+            fi
+          done
+          echo "push still rejected after 3 attempts"
+          exit 1
 
       - name: Version PR or publish to npm
         uses: changesets/action@v1

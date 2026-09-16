@@ -91,10 +91,34 @@ jobs:
         # qualifies.
         if: github.event_name == 'push'
         run: |
+          set -eu
           git config user.name "stapel-bot"
           git config user.email "bot@stapel.dev"
+          before="$(git rev-parse HEAD)"
           corepack pnpm run bump:safe-pins
-          git push origin "HEAD:${{ github.ref_name }}"
+          after="$(git rev-parse HEAD)"
+          if [ "$before" = "$after" ]; then
+            echo "bump:safe-pins made no commit — nothing to push"
+            exit 0
+          fi
+          # This is a shared tree with several agents pushing to main; a bot
+          # commit racing a human's push is routine, not a failure. Rebase the
+          # ONE bot commit onto the new tip and retry rather than treating a
+          # non-fast-forward as fatal — never force-push over someone else's
+          # work, so a real conflict still stops here for a human to look at.
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${{ github.ref_name }}"; then
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt/3) — fetching and rebasing onto the new tip"
+            git fetch origin "${{ github.ref_name }}"
+            if ! git rebase "origin/${{ github.ref_name }}"; then
+              echo "rebase conflict — leaving the bot commit unpushed locally for a human to resolve"
+              exit 1
+            fi
+          done
+          echo "push still rejected after 3 attempts"
+          exit 1
 
       - name: Contract pin + error-bundle gates
         # `pnpm ci` (package.json) runs check:gates and this workflow did not:
