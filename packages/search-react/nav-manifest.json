@@ -1,6 +1,6 @@
 {
   "package": "@stapel/search-react",
-  "version": "0.50.1",
+  "version": "0.51.0",
   "entries": [
     {
       "id": "search.results",
