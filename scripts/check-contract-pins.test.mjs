@@ -28,6 +28,7 @@ import {
   diffFlowsJson,
   diffSchemaJson,
   diffWireFile,
+  fetchTagCommit,
 } from "./check-contract-pins.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -161,13 +162,22 @@ test("diffWireFile: a file appearing for the first time is named as new, not dif
 
 // ---------------------------------------------------------------------------
 // 2. Real pairs — the fleet's own 2026-09-16 pin sweep.
+//
+// Both ends are resolved through `fetchTagCommit` — the SAME tag-fetch
+// `classifyWireDiff` itself uses for the newest tag — rather than a
+// hardcoded "pinned ref" sha. contract-pins.json's actual pin for these
+// modules moves on (this repo bumped gdpr/video/moderation the same night
+// this feature was built, and keeps moving), and CI's sibling checkouts are
+// `git init` + `fetch --depth 1 <the CURRENT pin>` — no history, no tags,
+// nothing else fetchable by name alone. A hardcoded older sha is exactly
+// what these tests must not depend on being present.
 // ---------------------------------------------------------------------------
 
-test("classifyWireDiff: stapel-gdpr 0.5.8 -> v0.7.1 is WIRE MOVED — the L-6 rate-limit budget names its 429s", { skip: !existsSync(siblingDir("stapel-gdpr")) }, () => {
+test("classifyWireDiff: stapel-gdpr v0.5.8 -> v0.7.1 is WIRE MOVED — the L-6 rate-limit budget names its 429s", { skip: !existsSync(siblingDir("stapel-gdpr")) }, () => {
   const dir = siblingDir("stapel-gdpr");
-  // The pin this repo carried into 2026-09-16 (contract-pins.json history).
-  const pinnedRef = "eb3eeb46419554cc37b24ddcac00a64926b70ac2";
-  const result = classifyWireDiff(dir, pinnedRef, [0, 7, 1]);
+  const beforeRef = fetchTagCommit(dir, [0, 5, 8]);
+  assert.ok(beforeRef, "v0.5.8 must be fetchable (public tag) even from a shallow checkout");
+  const result = classifyWireDiff(dir, beforeRef, [0, 7, 1]);
   assert.equal(result.resolvable, true, "v0.7.1 must resolve in a checkout that has it");
   assert.equal(result.identical, false, "0.6.0's 429 budget is a real wire move, not a restamp");
   assert.ok(
@@ -182,19 +192,21 @@ test("classifyWireDiff: stapel-gdpr 0.5.8 -> v0.7.1 is WIRE MOVED — the L-6 ra
   );
 });
 
-test("classifyWireDiff: stapel-video, one minor behind, is wire byte-identical — safe", { skip: !existsSync(siblingDir("stapel-video")) }, () => {
+test("classifyWireDiff: stapel-video v0.11.2 -> v0.12.0, one minor apart, is wire byte-identical — safe", { skip: !existsSync(siblingDir("stapel-video")) }, () => {
   const dir = siblingDir("stapel-video");
-  const pinnedRef = "7962844455e88d9980228f6d35d9a04db89b3760"; // pinned at 0.11.2 through 2026-09-16
-  const result = classifyWireDiff(dir, pinnedRef, [0, 12, 0]);
+  const beforeRef = fetchTagCommit(dir, [0, 11, 2]);
+  assert.ok(beforeRef, "v0.11.2 must be fetchable (public tag) even from a shallow checkout");
+  const result = classifyWireDiff(dir, beforeRef, [0, 12, 0]);
   assert.equal(result.resolvable, true);
   assert.deepEqual(result.bullets, []);
   assert.equal(result.identical, true);
 });
 
-test("classifyWireDiff: stapel-moderation, one minor behind, is wire byte-identical — safe", { skip: !existsSync(siblingDir("stapel-moderation")) }, () => {
+test("classifyWireDiff: stapel-moderation v0.7.2 -> v0.8.0, one minor apart, is wire byte-identical — safe", { skip: !existsSync(siblingDir("stapel-moderation")) }, () => {
   const dir = siblingDir("stapel-moderation");
-  const pinnedRef = "cd50493e9521b42779d40ff7298862376d827874"; // pinned at 0.7.2 through 2026-09-16
-  const result = classifyWireDiff(dir, pinnedRef, [0, 8, 0]);
+  const beforeRef = fetchTagCommit(dir, [0, 7, 2]);
+  assert.ok(beforeRef, "v0.7.2 must be fetchable (public tag) even from a shallow checkout");
+  const result = classifyWireDiff(dir, beforeRef, [0, 8, 0]);
   assert.equal(result.resolvable, true);
   assert.deepEqual(result.bullets, []);
   assert.equal(result.identical, true);
