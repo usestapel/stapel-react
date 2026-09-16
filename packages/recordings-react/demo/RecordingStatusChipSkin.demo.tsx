@@ -35,7 +35,7 @@ export default defineDemo({
   id: "recordings.status-chip",
   title: "Status chip",
   description:
-    "The eleven lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
+    "The twelve lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
   component: RecordingStatusChip,
   variants: {
     default: {

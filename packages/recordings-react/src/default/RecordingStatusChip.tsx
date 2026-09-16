@@ -11,7 +11,7 @@ import { RECORDINGS_I18N_KEYS } from "../i18n/keys.js";
  * The visual audit's finding on this pair was that the status rendered as the
  * raw lowercase enum in muted body text — `processing` and `done` looked
  * identical two feet from the screen — and that the two values shown were not
- * even in the backend's vocabulary. Both halves are fixed here: the eleven
+ * even in the backend's vocabulary. Both halves are fixed here: the twelve
  * REAL values each get a sentence and a colour, and a value this build has
  * never seen renders as a neutral "unknown state" chip rather than as its own
  * enum member.
@@ -33,12 +33,17 @@ const STATUS_KEYS: Readonly<Record<string, string>> = {
   completed: RECORDINGS_I18N_KEYS.statusCompleted,
   error: RECORDINGS_I18N_KEYS.statusError,
   deleted: RECORDINGS_I18N_KEYS.statusDeleted,
+  needs_payment: RECORDINGS_I18N_KEYS.statusNeedsPayment,
 };
 
 /** antd `Tag` colour per status. Roles, not hexes — the theme owns the value. */
 function toneFor(status: string): string | undefined {
   if (status === "completed") return "success";
   if (status === "error") return "error";
+  // Parked on money, not broken — the same tone PaymentRequiredNotice uses
+  // for the 402 case, so a person learns one colour for "this needs a
+  // top-up" everywhere it appears in this pair.
+  if (status === "needs_payment") return "warning";
   if (isProcessingStatus(status)) return "processing";
   if (status === "uploading" || status === "created") return "default";
   return undefined;

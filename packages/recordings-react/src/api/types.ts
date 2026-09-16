@@ -86,7 +86,7 @@ export type ShareUnlockRequest = Schemas["ShareUnlockRequest"];
 // ── lifecycle vocabulary (values, not a narrowed type) ───────────────────────
 
 /**
- * The eleven values `RecordingStatus` (stapel-recordings `models.py`) can
+ * The twelve values `RecordingStatus` (stapel-recordings `models.py`) can
  * carry, as DATA.
  *
  * The wire type stays `string` on purpose (see "documented corrections"
@@ -94,6 +94,11 @@ export type ShareUnlockRequest = Schemas["ShareUnlockRequest"];
  * to copy, and a way to say "this is not one I know" instead of printing the
  * enum member. Fixtures use these values too — a showcase that invents
  * `"processing"` / `"done"` teaches a lifecycle no deployment emits.
+ *
+ * `needs_payment` (backend 0.25.0) is the twelfth: the pipeline parked
+ * because the account could not afford the next stage — not a pipeline
+ * failure and not `error`, which is why it is its own value rather than a
+ * flag on one. {@link Recording.needs_payment_reason} names why.
  */
 export const RECORDING_STATUSES = [
   "created",
@@ -107,16 +112,17 @@ export const RECORDING_STATUSES = [
   "completed",
   "error",
   "deleted",
+  "needs_payment",
 ] as const;
 
-/** One of the eleven values {@link RECORDING_STATUSES} names. */
+/** One of the twelve values {@link RECORDING_STATUSES} names. */
 export type RecordingStatus = (typeof RECORDING_STATUSES)[number];
 
 /**
  * The six statuses the PIPELINE owns the next transition of
  * (`PROCESSING_STATUSES`, stapel-recordings `models.py`). `created` /
  * `uploading` wait on the client's own upload; `completed` / `error` /
- * `deleted` are terminal.
+ * `deleted` / `needs_payment` are terminal.
  */
 export const PROCESSING_STATUSES: readonly RecordingStatus[] = [
   "queued",
@@ -127,14 +133,42 @@ export const PROCESSING_STATUSES: readonly RecordingStatus[] = [
   "merging",
 ];
 
-/** Statuses after which nothing further arrives. */
+/**
+ * Statuses after which nothing further arrives ON ITS OWN. `needs_payment`
+ * belongs here next to `error` (stapel-recordings CHANGELOG 0.25.0):
+ * `is_processing` answers false and `poll_after_seconds` is absent, the same
+ * "stop asking" shape `error` already has — a person's move (paying, same as
+ * retrying an error) is what moves it next, not the poll loop.
+ */
 export const TERMINAL_STATUSES: readonly RecordingStatus[] = [
   "completed",
   "error",
   "deleted",
+  "needs_payment",
 ];
 
-/** Is this string one of the eleven values the backend enum defines? */
+/**
+ * The `needs_payment_reason` codes this pair recognizes with a specific
+ * sentence (stapel-recordings 0.25.0). The wire's own vocabulary of reasons
+ * is not closed — see {@link isKnownNeedsPaymentReason} — so a code outside
+ * this list is not an error, only one this build has not been taught yet.
+ */
+export const NEEDS_PAYMENT_REASONS = [
+  "insufficient_credits",
+  "free_minutes_exhausted",
+] as const;
+
+/** One of the reasons {@link NEEDS_PAYMENT_REASONS} names. */
+export type NeedsPaymentReason = (typeof NEEDS_PAYMENT_REASONS)[number];
+
+/** Is this string one of the reason codes this pair has specific copy for? */
+export function isKnownNeedsPaymentReason(
+  reason: string
+): reason is NeedsPaymentReason {
+  return (NEEDS_PAYMENT_REASONS as readonly string[]).includes(reason);
+}
+
+/** Is this string one of the twelve values the backend enum defines? */
 export function isKnownRecordingStatus(status: string): status is RecordingStatus {
   return (RECORDING_STATUSES as readonly string[]).includes(status);
 }

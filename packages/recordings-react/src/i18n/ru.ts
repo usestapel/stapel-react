@@ -35,6 +35,7 @@ export const recordingsI18nBundleRu: I18nDictionary = {
   "recordings.status.completed": "Готово",
   "recordings.status.error": "Ошибка",
   "recordings.status.deleted": "Удалена",
+  "recordings.status.needs_payment": "Требуется оплата",
   "recordings.status.unknown": "Неизвестное состояние",
   "recordings.status.processing_label": "В обработке",
 
@@ -114,6 +115,14 @@ export const recordingsI18nBundleRu: I18nDictionary = {
   "recordings.payment.hint":
     "Расшифровка и пересказы тарифицируются. Пополните баланс, чтобы запустить это снова.",
   "recordings.payment.action": "Пополнить",
+
+  "recordings.needs_payment.title": "Пополните баланс, чтобы закончить эту запись",
+  "recordings.needs_payment.reason.insufficient_credits":
+    "Баланс закончился на середине этой записи.",
+  "recordings.needs_payment.reason.free_minutes_exhausted":
+    "Бесплатные минуты за этот период закончились.",
+  "recordings.needs_payment.reason.unknown":
+    "Эта запись ждёт оплаты, чтобы продолжить.",
 
   "recordings.uploader.heading": "Новая запись",
   "recordings.uploader.pick": "Выберите аудио или видео",

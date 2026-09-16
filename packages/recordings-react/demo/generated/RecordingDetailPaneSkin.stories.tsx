@@ -12,3 +12,6 @@ Default.parameters = { stapel: {"viewport":"desktop","step":"ready"} };
 export const Phone = (): ReactElement => renderDemoVariant(demo, "phone");
 Phone.storyName = "phone";
 Phone.parameters = { stapel: {"viewport":"phone","step":"ready-phone"} };
+export const NeedsPayment = (): ReactElement => renderDemoVariant(demo, "needsPayment");
+NeedsPayment.storyName = "needsPayment";
+NeedsPayment.parameters = { stapel: {"viewport":"desktop","step":"needs-payment"} };

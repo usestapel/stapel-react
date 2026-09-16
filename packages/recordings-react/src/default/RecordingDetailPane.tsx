@@ -7,6 +7,7 @@ import type { Recording } from "../api/types.js";
 import { RecordingDetail } from "../headless/RecordingDetail.js";
 import { useRecordingsFormat } from "../model/format.js";
 import { RECORDINGS_I18N_KEYS } from "../i18n/keys.js";
+import { RecordingNeedsPaymentNotice } from "./RecordingNeedsPaymentNotice.js";
 import { RecordingPlayer } from "./RecordingPlayer.js";
 import { RecordingStatusChip } from "./RecordingStatusChip.js";
 import { ReprocessAction } from "./ReprocessAction.js";
@@ -114,6 +115,15 @@ function DetailBody(props: {
           </Typography.Text>
         ) : null}
       </header>
+
+      {recording.status === "needs_payment" ? (
+        <RecordingNeedsPaymentNotice
+          reason={recording.needs_payment_reason}
+          {...(props.renderTopUpAction !== undefined
+            ? { renderTopUpAction: props.renderTopUpAction }
+            : {})}
+        />
+      ) : null}
 
       <div style={factsStyle}>
         <Fact

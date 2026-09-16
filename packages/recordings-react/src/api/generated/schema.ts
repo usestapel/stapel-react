@@ -450,6 +450,14 @@ export interface components {
          *     *stop* as explicitly as it says *ask again*. The same number travels as
          *     the ``Retry-After`` header for callers that read HTTP rather than the
          *     body.
+         *
+         *     ``needs_payment_reason`` is set exactly when ``status`` is
+         *     ``needs_payment``: the machine-readable code the park carries
+         *     (``insufficient_credits``, ``free_minutes_exhausted``), so a client can
+         *     render "top up to finish this recording" with the right sentence instead
+         *     of a generic stall. Only the reason crosses the wire — the park's
+         *     ``detail`` can carry balance internals and stays in ``workflow_state``,
+         *     which is the same line the error seam draws.
          */
         RecordingDTO: {
             id: string;
@@ -470,6 +478,7 @@ export interface components {
             created_at: string;
             is_processing: boolean;
             poll_after_seconds: number | null;
+            needs_payment_reason: string | null;
         };
         /** @description The token a client presents after passing a share's passcode. */
         ShareUnlockDTO: {

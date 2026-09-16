@@ -28,11 +28,17 @@
           "description": "At 390px — the same screen stacked, with 44px controls inherited from SkinTheme.",
           "viewport": "phone",
           "step": "ready-phone"
+        },
+        {
+          "id": "needsPayment",
+          "description": "status === \"needs_payment\": the reason-specific top-up prompt in place of the generic chip a parked recording rendered as before this pin bumped to stapel-recordings 0.25.0.",
+          "viewport": "desktop",
+          "step": "needs-payment"
         }
       ],
       "source": {
         "file": "demo/RecordingDetailPaneSkin.demo.tsx",
-        "line": 23
+        "line": 39
       }
     },
     {
@@ -62,6 +68,38 @@
       "source": {
         "file": "demo/RecordingsListSkin.demo.tsx",
         "line": 23
+      }
+    },
+    {
+      "id": "recordings.needs-payment-skin",
+      "title": "Recording parked on payment",
+      "description": "A recording's own park (stapel-recordings 0.25.0), not a mutation's 402 refusal — the reason names why in words, and a reason this build has never seen still gets a sentence rather than a raw key.",
+      "component": "RecordingNeedsPaymentNotice",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "insufficient_credits — the balance ran out partway through.",
+          "viewport": "desktop",
+          "step": "insufficient-credits"
+        },
+        {
+          "id": "freeMinutes",
+          "description": "free_minutes_exhausted — the period's free allowance is spent.",
+          "viewport": "desktop",
+          "step": "free-minutes-exhausted"
+        },
+        {
+          "id": "phone",
+          "description": "At 390px, with a reason code this build does not recognize and the slot unfilled — the generic fallback sentence, never the raw code.",
+          "viewport": "phone",
+          "step": "unknown-reason"
+        }
+      ],
+      "source": {
+        "file": "demo/RecordingNeedsPaymentNoticeSkin.demo.tsx",
+        "line": 45
       }
     },
     {
@@ -257,7 +295,7 @@
     {
       "id": "recordings.status-chip",
       "title": "Status chip",
-      "description": "The eleven lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
+      "description": "The twelve lifecycle values the backend can emit, each with a sentence and a tone, and the neutral chip an unknown status falls back to.",
       "component": "RecordingStatusChip",
       "covers": [],
       "tokens": [],

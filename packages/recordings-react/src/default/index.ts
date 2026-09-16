@@ -22,6 +22,7 @@ export { SummaryPane } from "./SummaryPane.js";
 export { ResummarizeAction } from "./ResummarizeAction.js";
 export { ReprocessAction } from "./ReprocessAction.js";
 export { PaymentRequiredNotice } from "./PaymentRequiredNotice.js";
+export { RecordingNeedsPaymentNotice } from "./RecordingNeedsPaymentNotice.js";
 export { SharedRecordingView } from "./SharedRecordingView.js";
 export { ShareUnlockGate } from "./ShareUnlockGate.js";
 export { SharedMedia } from "./SharedMedia.js";

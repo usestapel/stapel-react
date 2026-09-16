@@ -83,6 +83,24 @@ export const DONE: Recording = {
   created_at: "2026-08-18T15:30:00Z",
   is_processing: false,
   poll_after_seconds: null,
+  needs_payment_reason: null,
+};
+
+export const NEEDS_PAYMENT: Recording = {
+  ...DONE,
+  id: "rec-3",
+  resource_key: "rec/rec-3",
+  title: "Board update — Q3",
+  status: "needs_payment",
+  segments_count: 12,
+  speakers_count: 3,
+  word_count: 210,
+  transcript_storage_key: null,
+  summary: null,
+  created_at: "2026-08-22T10:15:00Z",
+  is_processing: false,
+  poll_after_seconds: null,
+  needs_payment_reason: "insufficient_credits",
 };
 
 export const PROCESSING: Recording = {
@@ -196,6 +214,14 @@ export const OWNER_HANDLERS: DemoHandlers = {
   "/media": MEDIA,
   "/recordings/rec-2": DONE,
   "/recordings": [PROCESSING, DONE],
+};
+
+/** The needs_payment screen — its own handler map (a separate recordingId,
+ * `rec-3`) rather than folded into {@link OWNER_HANDLERS}, so the finished-
+ * recording demo does not grow a park it is not about. */
+export const NEEDS_PAYMENT_HANDLERS: DemoHandlers = {
+  "/recordings/upload-limits": UPLOAD_LIMITS,
+  "/recordings/rec-3": NEEDS_PAYMENT,
 };
 
 /** The frame every skin demo renders inside. */

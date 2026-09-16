@@ -33,6 +33,7 @@ export const RECORDINGS_I18N_KEYS = {
   statusCompleted: "recordings.status.completed",
   statusError: "recordings.status.error",
   statusDeleted: "recordings.status.deleted",
+  statusNeedsPayment: "recordings.status.needs_payment",
   statusUnknown: "recordings.status.unknown",
   statusProcessingLabel: "recordings.status.processing_label",
 
@@ -112,6 +113,21 @@ export const RECORDINGS_I18N_KEYS = {
   paymentTitle: "recordings.payment.title",
   paymentHint: "recordings.payment.hint",
   paymentAction: "recordings.payment.action",
+
+  // ── needs_payment (a recording's OWN park, not a mutation's 402) ─────────
+  // Distinct from the block above: `paymentTitle`/`paymentHint` answer a
+  // REFUSAL a mutation makes before doing anything; these answer a recording
+  // sitting in `status === "needs_payment"` right now, with a reason worth a
+  // specific sentence — see RecordingNeedsPaymentNotice.
+  needsPaymentTitle: "recordings.needs_payment.title",
+  needsPaymentReasonInsufficientCredits:
+    "recordings.needs_payment.reason.insufficient_credits",
+  needsPaymentReasonFreeMinutesExhausted:
+    "recordings.needs_payment.reason.free_minutes_exhausted",
+  // The reason vocabulary is not closed (api/types.ts NEEDS_PAYMENT_REASONS)
+  // — a code this build has never seen still renders a sentence, never a
+  // raw snake_case key.
+  needsPaymentReasonUnknown: "recordings.needs_payment.reason.unknown",
 
   // ── uploader (create -> upload -> finalize, ONE surface) ─────────────────
   uploaderHeading: "recordings.uploader.heading",
@@ -201,6 +217,7 @@ export const recordingsI18nBundleEn: I18nDictionary = {
   "recordings.status.completed": "Ready",
   "recordings.status.error": "Failed",
   "recordings.status.deleted": "Deleted",
+  "recordings.status.needs_payment": "Needs payment",
   "recordings.status.unknown": "Unknown state",
   "recordings.status.processing_label": "Processing",
 
@@ -279,6 +296,14 @@ export const recordingsI18nBundleEn: I18nDictionary = {
   "recordings.payment.hint":
     "Transcription and summaries are metered. Top up to run this again.",
   "recordings.payment.action": "Top up",
+
+  "recordings.needs_payment.title": "Top up to finish this recording",
+  "recordings.needs_payment.reason.insufficient_credits":
+    "Your balance ran out partway through this recording.",
+  "recordings.needs_payment.reason.free_minutes_exhausted":
+    "Your free minutes for this period are used up.",
+  "recordings.needs_payment.reason.unknown":
+    "This recording is waiting on a payment to continue.",
 
   "recordings.uploader.heading": "New recording",
   "recordings.uploader.pick": "Choose audio or video",

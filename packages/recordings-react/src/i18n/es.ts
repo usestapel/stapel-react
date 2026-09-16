@@ -31,6 +31,7 @@ export const recordingsI18nBundleEs: I18nDictionary = {
   "recordings.status.completed": "Lista",
   "recordings.status.error": "Con error",
   "recordings.status.deleted": "Eliminada",
+  "recordings.status.needs_payment": "Requiere pago",
   "recordings.status.unknown": "Estado desconocido",
   "recordings.status.processing_label": "En proceso",
 
@@ -110,6 +111,14 @@ export const recordingsI18nBundleEs: I18nDictionary = {
   "recordings.payment.hint":
     "Las transcripciones y los resúmenes se facturan. Recarga para volver a ejecutarlo.",
   "recordings.payment.action": "Recargar",
+
+  "recordings.needs_payment.title": "Recarga saldo para terminar esta grabación",
+  "recordings.needs_payment.reason.insufficient_credits":
+    "El saldo se agotó a mitad de esta grabación.",
+  "recordings.needs_payment.reason.free_minutes_exhausted":
+    "Los minutos gratuitos de este período se han agotado.",
+  "recordings.needs_payment.reason.unknown":
+    "Esta grabación espera un pago para continuar.",
 
   "recordings.uploader.heading": "Nueva grabación",
   "recordings.uploader.pick": "Elige un audio o un vídeo",
