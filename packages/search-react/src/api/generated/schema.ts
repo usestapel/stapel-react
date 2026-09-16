@@ -245,6 +245,8 @@ export interface components {
             vocabulary: string | null;
             /** @description The vocabulary level `vocabulary` resolves against. Present only alongside a non-null `vocabulary`. */
             level?: string;
+            /** @description The dictionaries behind a group whose contributing categories name DIFFERENT ones — a pets root over a cat breed level and a dog one. Present only in that case, and then `vocabulary` and `level` are null/absent because there genuinely is no single address. That says nothing about the captions: `values` is the union of what these dictionaries know about the codes this answer counted, and a code two of them spell differently takes the word of the first — the category most of this page is made of. Listed in that same order. */
+            vocabularies?: components["schemas"]["VocabularyAddress"][];
             /** @description Where this group sits in ONE panel, numbered together with the numeric axes in `facet_meta.ranges` — draw both halves sorted by it and price and year land where the category's schema puts them, among the makes and models rather than below all of them. Core ranges take the first positions (they exist for every document in every category); the rest follow the plan's own order, which for a category's own schema is mandatory first and then as authored. `null` when the plan has no position for the group, which a client sorts last. */
             order: number | null;
         };
@@ -429,7 +431,7 @@ export interface components {
                     [key: string]: number;
                 };
             };
-            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}, vocabulary, level}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. `extras` carries what a term holds besides its caption (a colour's `hue`) and is present only for the codes that hold anything. `vocabulary` names the vocabulary a `ref_select` axis reads its options from and is null for an inline `select` — the only way a client with no leaf schema of its own can tell the two apart. */
+            /** @description {slug: {label, label_translatable, url_key, translatable, values: {value: caption}, vocabulary, level}} — one entry for EVERY group in `facets`. `url_key` is the group's key in the address. `label` is the group's heading and is null when the definition has no name; `values` is empty for a slug whose options are not inline in the category schema and whose vocabulary resolved nothing, because this module will not invent a caption it has not read. `extras` carries what a term holds besides its caption (a colour's `hue`) and is present only for the codes that hold anything. `vocabulary` names the vocabulary a `ref_select` axis reads its options from and is null for an inline `select` — the only way a client with no leaf schema of its own can tell the two apart. It is also null for a group fed by SEVERAL dictionaries (a pets root over cat and dog breeds), which names them in `vocabularies` and still captions its values from all of them: no single address is a different fact from no captions. */
             facet_labels: {
                 [key: string]: components["schemas"]["FacetLabels"];
             };
@@ -464,6 +466,11 @@ export interface components {
             /** @description What this answer could not do: `category_suggestions` (no provider for category names), `category_rollup` (no ancestry, so counts would read 0), `category_listing_suggestions` (no name matched and the configured engine does not implement the optional goods-driven verb, or it failed). */
             degraded: string[];
             backend: string;
+        };
+        /** @description One dictionary a facet group draws its option codes from. */
+        VocabularyAddress: {
+            vocabulary: string;
+            level: string;
         };
         /** @description One axis that was planned and then not offered, and why. */
         WithheldAxis: {

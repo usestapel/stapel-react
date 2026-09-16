@@ -281,6 +281,23 @@ export interface FacetGroup {
    */
   readonly vocabulary?: string;
   /**
+   * EVERY dictionary feeding this group, when there is more than one and
+   * therefore no single {@link vocabulary} to name.
+   *
+   * The measured case is a parent over children whose same-named axis comes
+   * out of different catalogues — a pets root over a cat-breed level and a
+   * dog-breed level. The server sets `vocabulary`/`level` to null there
+   * because there genuinely is no single address, and lists the contributors
+   * here instead, in the order the captions were resolved from.
+   *
+   * Carried rather than collapsed to the first entry: "no single address" is
+   * a true and useful fact, and a client that fetched from a first-of-many
+   * address would be reading one catalogue for a group drawn from several.
+   * What it IS enough for is the only question the panel asks of it — see
+   * {@link facetGroupIsVocabularyBacked}.
+   */
+  readonly vocabularies?: readonly { readonly vocabulary: string; readonly level: string }[];
+  /**
    * Where this group sits in the ONE sequence the panel draws — the answer's
    * `facet_labels[<slug>].order`, numbered together with the numeric axes'
    * `facet_meta.ranges[<slug>].order` (stapel-search 0.16.0+).
@@ -549,7 +566,13 @@ function isSearchableVocabularyAxis(group: FacetGroup): boolean {
 export function facetGroupIsVocabularyBacked(group: FacetGroup): boolean {
   const type = group.feature === undefined ? undefined : featureType(group.feature);
   if (type !== undefined) return VOCABULARY_BACKED_TYPES.includes(type);
-  return group.vocabulary !== undefined;
+  /* EITHER address answers this question. The singular field goes null when a
+     group is fed by SEVERAL dictionaries, and that is exactly the page with no
+     schema to ask — a parent — so reading only `vocabulary` concluded "not a
+     dictionary" for the widest lists in the catalogue and drew a checkbox per
+     breed instead of the sheet. How many dictionaries there are does not
+     change what the control should be. */
+  return group.vocabulary !== undefined || (group.vocabularies?.length ?? 0) > 0;
 }
 
 /**
@@ -804,6 +827,18 @@ function optionalVocabulary(
   return vocabulary === undefined ? {} : { vocabulary };
 }
 
+/** The contributing dictionaries, when the answer names more than one. */
+function optionalVocabularies(
+  input: BuildFacetGroupsInput,
+  slug: string
+): { vocabularies?: readonly { readonly vocabulary: string; readonly level: string }[] } {
+  const stated = input.facetLabels?.[slug]?.vocabularies;
+  if (stated === undefined || stated.length === 0) return {};
+  return {
+    vocabularies: stated.map((a) => ({ vocabulary: a.vocabulary, level: a.level })),
+  };
+}
+
 /**
  * The group's stated place in the panel, when the answer states one.
  *
@@ -1036,6 +1071,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
       ...optionalOrder(input.facetLabels?.[slug]?.order),
       ...optionalExtras(input.facetLabels?.[slug]?.extras),
       ...optionalVocabulary(resolveVocabulary(input, feature, slug)),
+      ...optionalVocabularies(input, slug),
       ...resolveGroupLabel(input, feature, slug),
       feature,
       counted,
