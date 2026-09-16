@@ -51,9 +51,9 @@ describe("a union-fed group", () => {
       },
       state: STATE,
     });
-    expect(group).toBeDefined();
+    if (group === undefined) throw new Error("no group was built");
     // The panel's only question, and the answer does not depend on how many.
-    expect(facetGroupIsVocabularyBacked(group!)).toBe(true);
+    expect(facetGroupIsVocabularyBacked(group)).toBe(true);
   });
 
   it("carries the contributors rather than collapsing to the first", () => {
@@ -94,6 +94,7 @@ describe("a union-fed group", () => {
       },
       state: STATE,
     });
-    expect(facetGroupIsVocabularyBacked(group!)).toBe(false);
+    if (group === undefined) throw new Error("no group was built");
+    expect(facetGroupIsVocabularyBacked(group)).toBe(false);
   });
 });
