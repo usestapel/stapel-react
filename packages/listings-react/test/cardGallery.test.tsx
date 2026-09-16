@@ -18,6 +18,7 @@ import {
   SWIPE_MIN_PX,
   cardGalleryCss,
   segmentIndex,
+  SWIPE_FLICK_VELOCITY,
   swipeStep,
 } from "../src/default/cardGallery.js";
 import type { ListingCard as ListingCardData } from "../src/index.js";
@@ -115,6 +116,29 @@ describe("the swipe threshold", () => {
   it("ignores a drag shorter than the threshold — that is a tap that wobbled", () => {
     expect(swipeStep(SWIPE_MIN_PX - 1, 0)).toBe(0);
     expect(swipeStep(-(SWIPE_MIN_PX - 1), 0)).toBe(0);
+  });
+
+  it("holds the flick FLOOR at the boundary, not just under it", () => {
+    /* A flick buys a photograph at any distance ABOVE the floor — and the
+       floor is real. Measured by the walker on a 315px phone hero: an 8% flick
+       does not commit, 15% and 20% do, which brackets 32px (10.2% of 315).
+       That is `SWIPE_MIN_PX` doing its job, because a drag under it is a tap
+       that wobbled and a tap on a card NAVIGATES — so a floor that drifts
+       down does not turn a photograph, it opens a listing the reader did not
+       ask for.
+
+       Asserted AT the boundary in both directions, because "below fails" and
+       "above succeeds" are two different claims and only the pair of them
+       pins a number. The velocity is well over SWIPE_FLICK_VELOCITY here, so
+       nothing but the floor can be refusing it. */
+    const fast = SWIPE_FLICK_VELOCITY * 4;
+    // One pixel under: refused however fast the finger was moving.
+    expect(swipeStep(-(SWIPE_MIN_PX - 1), 0, 1000, fast)).toBe(0);
+    expect(swipeStep(SWIPE_MIN_PX - 1, 0, 1000, fast)).toBe(0);
+    // At the floor: a flick commits, even though 32 of a 1000px slide is far
+    // below SWIPE_COMMIT_FRACTION — which is the whole point of the flick arm.
+    expect(swipeStep(-SWIPE_MIN_PX, 0, 1000, fast)).toBe(1);
+    expect(swipeStep(SWIPE_MIN_PX, 0, 1000, fast)).toBe(-1);
   });
 
   it("advances on a leftward drag and rewinds on a rightward one", () => {
