@@ -224,6 +224,79 @@ describe("<Subscription> (status + cancel)", () => {
 });
 
 /**
+ * `is_active`/`is_paid` are the server's answer and the bag's first source.
+ * The status rule they replace is a client-side guess over two fields that
+ * cannot carry the decision: `status` is the provider's value MIRRORED, so a
+ * row whose renewal webhook never landed reads `active` past the period it
+ * paid for, and a free-plan row reads `plan: "free", status: "active"` while
+ * nobody ever paid. Both cases below are ones where the guess and the server
+ * DISAGREE — a fixture where they agree proves nothing about which one the bag
+ * read.
+ */
+describe("<Subscription> entitlement comes from the server", () => {
+  afterEach(cleanup);
+
+  function renderBag(body: Record<string, unknown>): void {
+    server.use(http.get(`${BASE}/subscription`, () => HttpResponse.json(body)));
+    const runtime = createBillingRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <Subscription>
+          {({ status, isActive, isPaid }) => (
+            <div>
+              <span data-testid="status">{status ?? "loading"}</span>
+              <span data-testid="active">{String(isActive)}</span>
+              <span data-testid="paid">{String(isPaid)}</span>
+            </div>
+          )}
+        </Subscription>
+      )
+    );
+  }
+
+  it("says inactive when status reads active and the server says it is not", async () => {
+    // The missed-webhook shape: the period ended, the mirrored status did not.
+    renderBag({
+      ...SUBSCRIPTION,
+      status: "active",
+      current_period_end: "2026-06-15T00:00:00Z",
+      is_active: false,
+      is_paid: true,
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("status").textContent).toBe("active")
+    );
+    expect(screen.getByTestId("active").textContent).toBe("false");
+    expect(screen.getByTestId("paid").textContent).toBe("true");
+  });
+
+  it("says active when the status rule would not, because the server does", async () => {
+    // WHICH statuses entitle is the SERVER's list, not this pair's: the pinned
+    // stapel-billing entitles `active` and `trialing` (models.py,
+    // ENTITLING_SUBSCRIPTION_STATUSES) and a deployment that adds one — the
+    // card being retried, say — answers `is_active: true` under a status the
+    // hardcoded rule rejects. The client must not keep a second copy of that
+    // list; this fixture is the answer such a server sends.
+    renderBag({ ...SUBSCRIPTION, status: "past_due", is_active: true, is_paid: true });
+    await waitFor(() =>
+      expect(screen.getByTestId("status").textContent).toBe("past_due")
+    );
+    expect(screen.getByTestId("active").textContent).toBe("true");
+  });
+
+  it("falls back to the status rule on a server that sends neither field", async () => {
+    renderBag(SUBSCRIPTION);
+    await waitFor(() =>
+      expect(screen.getByTestId("status").textContent).toBe("active")
+    );
+    expect(screen.getByTestId("active").textContent).toBe("true");
+    // Absence is not `false`: a cancel button gated on this must not read one.
+    expect(screen.getByTestId("paid").textContent).toBe("null");
+  });
+});
+
+/**
  * The three answers a catalogue read can give, kept apart — the regression the
  * `LoadState` cutover exists for. Before it the bag handed skins
  * `packages: []` for BOTH "the shop sells nothing" and "the pricing endpoint

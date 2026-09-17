@@ -18,8 +18,24 @@ export interface SubscriptionBag {
   readonly plan: string | null;
   /** The lifecycle status, narrowed to the backend's choices, else null. */
   readonly status: SubscriptionStatus | null;
-  /** True while `status` is `active` or `trialing`. */
+  /**
+   * Does this subscription entitle the caller RIGHT NOW?
+   *
+   * The server's `is_active` when it sends one: it compares
+   * `current_period_end` against the clock that bills, and a row whose renewal
+   * webhook never arrived reads `status: "active"` forever. Servers older than
+   * the field send nothing, and only there does the bag fall back to the
+   * status rule (`active` or `trialing`).
+   */
   readonly isActive: boolean;
+  /**
+   * Is there a provider subscription behind this row (`is_paid`)?
+   *
+   * `plan`/`status` cannot answer it — a free-plan row reads `plan: "free",
+   * status: "active"` — so this is what gates a cancel button. `null` on a
+   * server that does not send the field: not knowing is not `false`.
+   */
+  readonly isPaid: boolean | null;
   /** The initial subscription read is in flight. */
   readonly isLoading: boolean;
   /** The read, the cancel, or the portal request failed. */
@@ -63,7 +79,9 @@ export function Subscription(props: {
     subscription,
     plan: subscription?.plan ?? null,
     status,
-    isActive: status === "active" || status === "trialing",
+    isActive:
+      subscription?.is_active ?? (status === "active" || status === "trialing"),
+    isPaid: subscription?.is_paid ?? null,
     isLoading: query.isLoading,
     isError: query.isError || cancelMutation.isError || portalMutation.isError,
     error:
