@@ -33,7 +33,7 @@ export type Schemas = components["schemas"];
  */
 export type FacetLabels = Omit<
   Schemas["FacetLabels"],
-  "label" | "label_translatable" | "url_key" | "vocabulary" | "order"
+  "label" | "label_translatable" | "url_key" | "vocabulary" | "level" | "order"
 > & {
   /**
    * Where this group sits in ONE panel, numbered together with the numeric
@@ -102,10 +102,20 @@ export type FacetLabels = Omit<
    * 0.14.0 server inside that range sends no `vocabulary` at all. Same
    * treatment as `url_key` above: `Omit`ted from the generated member and
    * re-declared optional here, because a type must not promise a field a
-   * server the pair says it supports does not send. `level` is generated
-   * optional already and is inherited unchanged.
+   * server the pair says it supports does not send.
    */
   readonly vocabulary?: string | null;
+  /**
+   * The vocabulary level {@link vocabulary} resolves against.
+   *
+   * WHY IT IS NOT THE GENERATED SHAPE: the generated member is optional but
+   * NOT nullable, and the union case sends `null` — the same answer that
+   * nulls `vocabulary` because several dictionaries feed the group nulls its
+   * level with it. `undefined` and `null` mean one thing here (no single
+   * level), and this pair reads neither: only `vocabularies[].level` names a
+   * level it can resolve against.
+   */
+  readonly level?: string | null;
 };
 
 /** `facet_labels` as a whole: `{slug: {label, translatable, values}}`. */
