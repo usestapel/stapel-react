@@ -211,7 +211,7 @@
     },
     {
       "package": "@stapel/billing-react",
-      "version": "0.10.5",
+      "version": "0.11.0",
       "entries": [
         {
           "id": "account.billing",
@@ -282,7 +282,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.33.0",
+      "version": "0.33.1",
       "entries": [
         {
           "id": "categories.catalog",
@@ -888,7 +888,7 @@
     },
     {
       "package": "@stapel/recordings-react",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "entries": [
         {
           "id": "recordings.list",
@@ -952,7 +952,7 @@
     },
     {
       "package": "@stapel/search-react",
-      "version": "0.50.1",
+      "version": "0.51.0",
       "entries": [
         {
           "id": "search.results",
