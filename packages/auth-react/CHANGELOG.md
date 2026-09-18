@@ -1,5 +1,39 @@
 # @stapel/auth-react
 
+## 0.24.0
+
+### Minor Changes
+
+- The OTP doors declare the statuses they already answered with, and the backup-code
+  count admits it can be absent.
+
+  Regenerated against stapel-auth 0.41.1 (pin moved from 0.39.1; the span is 0.41.0
+  and 0.41.1). `docs/errors.json` and `docs/flows.json` are byte-identical across it,
+  so no error key, catalogue or flow moves — the whole change is in the generated
+  schema.
+
+  **Four operations gain response codes.** `POST /email/request/` and
+  `POST /phone/request/` gain `429` (the 30-second resend cooldown and the hourly send
+  budget); `POST /email/verify/` and `POST /phone/verify/` gain `423` (the cross-code
+  failure counter crossed a lock tier) and `503` (the store behind either limit could
+  not answer — nothing was checked, so this is not a rejection). All four are
+  additive: the entries appear in `operations[...]["responses"]` alongside the codes
+  already there, no existing response, payload or required set moves, and nothing in
+  the pair branches on them. A host that switches on `StapelApiError.status` around
+  the OTP panels now has these three cases typed instead of falling through to the
+  generic branch.
+
+  **`backup_codes_remaining` is `number | null`.** On `SecurityStatus.totp` the field
+  was typed `number` and is now nullable, which is the reason this release is a minor
+  rather than a patch: a host reading it off the exported schema type must handle
+  `null`. Nothing in the pair changes — `<TotpManager/>` already coalesces the value
+  to `0` before rendering it.
+
+  The rest of the span is description text: the request and verify operations now
+  document that `target` in the 200 body is masked, and spell out the 400 → 422/423
+  sequence between a code that still has attempts, one whose own budget is spent, and
+  an identifier locked across re-requested codes.
+
 ## 0.23.0
 
 ### Minor Changes

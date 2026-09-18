@@ -1,6 +1,6 @@
 {
   "package": "@stapel/auth-react",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "entries": [
     {
       "id": "auth.login",

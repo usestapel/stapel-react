@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/cdn-react",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "backend": {
     "module": "stapel-cdn",
-    "contract": ">=0.21 <0.22"
+    "contract": ">=0.23 <0.24"
   },
   "layers": [
     "api",

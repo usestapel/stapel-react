@@ -1,5 +1,23 @@
 # @stapel/cdn-react
 
+## 0.6.1
+
+### Patch Changes
+
+- Regenerated against stapel-cdn 0.23.1 (pin moved from 0.21.0).
+
+  Description text only. `docs/errors.json` and `docs/flows.json` are byte-identical
+  across the span, and in `docs/schema.json` no path, status code, schema, field or
+  required set moves — three operations restate what the deployment's settings decide:
+  `random_image` and `upload_typed_image` now say the accepted types are whatever
+  `STAPEL_CDN["ASSET_TYPES"]` holds (the zero-infra default is `("avatar",)`) rather
+  than naming `product` and `avatar` as if they were fixed, and `upload_image` says
+  the stored type is `STAPEL_CDN["DEFAULT_UPLOAD_TYPE"]`, or the first entry of
+  `ASSET_TYPES` when a deployment names none, instead of the literal `"product"` that
+  a deployment without that type would have been refused for.
+
+  No public type changes shape; the pair's runtime is untouched.
+
 ## 0.6.0
 
 ### Minor Changes

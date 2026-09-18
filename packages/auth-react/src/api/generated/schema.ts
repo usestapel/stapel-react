@@ -316,6 +316,8 @@ export interface paths {
          *     - If authenticated non-anonymous user requests OTP for an email already registered to another account, returns 409 Conflict
          *     - If the caller already has a VERIFIED email, requesting a code for a different one returns 403 `error.403.change_requires_current` — replacing a verified authenticator goes through the email change flow, which proves the current address first
          *     - Admin accounts (staff/superuser) always receive real OTP even in mock mode for security
+         *     - `target` in the 200 body is MASKED (`u***@example.com`) — it is there to show the user which address the code went to, never to echo the address back
+         *     - `429 error.429.rate_limit` when the 30-second cooldown or the hourly send budget is not clear yet, `422 error.422.blocked` when it IS clear but the identifier is still blocked for burning a code's attempt budget (see `POST /email/verify/`). The cooldown is checked first, so inside those 30 seconds a blocked identifier is told 429 — the two are a sequence, not a choice
          *
          *
          *     **Permissions:** `DenyEnrollOnly`
@@ -354,6 +356,30 @@ export interface paths {
          *     - `LOGGED_IN` - Existing user logged in
          *     - `MERGED` - Anonymous user merged into existing account
          *     - `MODIFIED` - Authenticated user set an email, or re-verified the one already on the account
+         *
+         *     **Wrong codes — 400, then 422 or 423.** Two independent limits guard this
+         *     endpoint, and they are not interchangeable:
+         *
+         *     - `400 error.400.invalid_code_attempts` (`params.attempts_remaining`) — the
+         *       code in the user's hands still has budget. Keep the input open.
+         *     - `422 error.422.blocked` (`params.retry_after_minutes`) — that ONE code's own
+         *       budget is spent: the `OTP_MAX_ATTEMPTS`-th wrong guess (default 5) against a
+         *       single code destroys it and blocks the identifier for `OTP_BLOCK_DURATION`
+         *       (default 10 minutes). For that window every call here answers 422 — the
+         *       correct code included. Requesting a new code is refused too, as 429 while
+         *       the 30-second resend cooldown is still running and as 422 after it.
+         *     - `423 error.423.account_locked` (`params.retry_after_minutes`) — the
+         *       CROSS-code failure counter crossed a tier: 5, 10 or 20 failures in a rolling
+         *       hour lock the identifier for 15 minutes, 1 hour and 24 hours. Only wrong
+         *       codes that were actually checked advance it, so this tier is reached by
+         *       spreading guesses over RE-REQUESTED codes; emptying one code's budget meets
+         *       422 first (the counter stops one short). The lock is consulted before the
+         *       code is, so while it stands the endpoint answers 423 without looking at the
+         *       code at all.
+         *     - `503 error.503.verification_unavailable` — the store behind either limit
+         *       could not answer. Not a rejection: nothing was checked.
+         *
+         *     A successful verification clears the cross-code counter and the lock.
          *
          *
          *     **Permissions:** `DenyEnrollOnly`
@@ -1437,6 +1463,8 @@ export interface paths {
          *     - If authenticated non-anonymous user requests OTP for a phone already registered to another account, returns 409 Conflict
          *     - If the caller already has a VERIFIED phone, requesting a code for a different one returns 403 `error.403.change_requires_current` — replacing a verified authenticator goes through the phone change flow, which proves the current number first
          *     - Admin accounts (staff/superuser) always receive real OTP even in mock mode for security
+         *     - `target` in the 200 body is MASKED (`+7 *** *** 12 34`) — it is there to show the user which number the code went to, never to echo the number back
+         *     - `429 error.429.rate_limit` when the 30-second cooldown or the hourly send budget is not clear yet, `422 error.422.blocked` when it IS clear but the identifier is still blocked for burning a code's attempt budget (see `POST /phone/verify/`). The cooldown is checked first, so inside those 30 seconds a blocked identifier is told 429 — the two are a sequence, not a choice
          *
          *
          *     **Permissions:** `DenyEnrollOnly`
@@ -1475,6 +1503,30 @@ export interface paths {
          *     - `LOGGED_IN` - Existing user logged in
          *     - `MERGED` - Anonymous user merged into existing account
          *     - `MODIFIED` - Authenticated user set a phone, or re-verified the one already on the account
+         *
+         *     **Wrong codes — 400, then 422 or 423.** Two independent limits guard this
+         *     endpoint, and they are not interchangeable:
+         *
+         *     - `400 error.400.invalid_code_attempts` (`params.attempts_remaining`) — the
+         *       code in the user's hands still has budget. Keep the input open.
+         *     - `422 error.422.blocked` (`params.retry_after_minutes`) — that ONE code's own
+         *       budget is spent: the `OTP_MAX_ATTEMPTS`-th wrong guess (default 5) against a
+         *       single code destroys it and blocks the identifier for `OTP_BLOCK_DURATION`
+         *       (default 10 minutes). For that window every call here answers 422 — the
+         *       correct code included. Requesting a new code is refused too, as 429 while
+         *       the 30-second resend cooldown is still running and as 422 after it.
+         *     - `423 error.423.account_locked` (`params.retry_after_minutes`) — the
+         *       CROSS-code failure counter crossed a tier: 5, 10 or 20 failures in a rolling
+         *       hour lock the identifier for 15 minutes, 1 hour and 24 hours. Only wrong
+         *       codes that were actually checked advance it, so this tier is reached by
+         *       spreading guesses over RE-REQUESTED codes; emptying one code's budget meets
+         *       422 first (the counter stops one short). The lock is consulted before the
+         *       code is, so while it stands the endpoint answers 423 without looking at the
+         *       code at all.
+         *     - `503 error.503.verification_unavailable` — the store behind either limit
+         *       could not answer. Not a rejection: nothing was checked.
+         *
+         *     A successful verification clears the cross-code counter and the lock.
          *
          *
          *     **Permissions:** `DenyEnrollOnly`
@@ -3932,11 +3984,8 @@ export interface components {
              * @example true
              */
             is_enabled: boolean;
-            /**
-             * @description How many unused backup codes are left
-             * @example 6
-             */
-            backup_codes_remaining: number;
+            /** @description How many unused backup codes are left, or null */
+            backup_codes_remaining: number | null;
         };
         /** @description Serializer for Service API Keys */
         ServiceAPIKey: {
@@ -5042,6 +5091,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -5100,6 +5157,22 @@ export interface operations {
                 };
             };
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6582,6 +6655,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -6640,6 +6721,22 @@ export interface operations {
                 };
             };
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

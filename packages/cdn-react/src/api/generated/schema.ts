@@ -101,7 +101,10 @@ export interface paths {
          * Get random image by type
          * @description Get a random image of the specified type.
          *
-         *     **Available types:** product, avatar
+         *     **Available types:** every entry of `STAPEL_CDN["ASSET_TYPES"]` — the same
+         *     setting `TypeEnum` in this document is generated from. The zero-infra
+         *     default is `("avatar",)`; anything else answers
+         *     `error.400.invalid_image_type`.
          *
          *     **Requires:** Staff user or API key authentication.
          *
@@ -130,11 +133,14 @@ export interface paths {
         put?: never;
         /**
          * Upload an image with specific type
-         * @description Upload an image file with a specific type (product, avatar).
+         * @description Upload an image file with a caller-chosen type.
          *
          *     **Supported formats:** JPEG, PNG, GIF, WebP, BMP, HEIC, HEIF
          *
-         *     **Available types:** product, avatar
+         *     **Available types:** every entry of `STAPEL_CDN["ASSET_TYPES"]` — the same
+         *     setting `TypeEnum` in this document is generated from. The zero-infra
+         *     default is `("avatar",)`; anything else answers
+         *     `error.400.invalid_image_type`.
          *
          *     **Maximum file size:** `STAPEL_CDN["MAX_IMAGE_SIZE"]`, 20MB by default.
          *     Enforced before the body is hashed; over it the answer is 413.
@@ -320,11 +326,13 @@ export interface paths {
          *     **Maximum file size:** `STAPEL_CDN["MAX_IMAGE_SIZE"]`, 20MB by default.
          *     Enforced before the body is hashed; over it the answer is 413.
          *
-         *     **Stored type:** `"product"` — one value from `STAPEL_CDN["ASSET_TYPES"]`,
-         *     same as any type `TypedImageUploadView` accepts. The zero-infra default is
-         *     `("avatar",)` only (see `ASSET_TYPES` in CONFIG.MD), so a deployment that
-         *     never added `"product"` gets a 400 here, exactly as
-         *     `/images/product/upload/` already does for that string.
+         *     **Stored type:** `STAPEL_CDN["DEFAULT_UPLOAD_TYPE"]` when a deployment names
+         *     one, otherwise the FIRST entry of `STAPEL_CDN["ASSET_TYPES"]` — read from the
+         *     setting, never a literal, so the stored type is always a member of the
+         *     `TypeEnum` this document generates from that same setting. On the zero-infra
+         *     default (`ASSET_TYPES = ("avatar",)`) that is `"avatar"`. A `DEFAULT_UPLOAD_TYPE`
+         *     naming a value absent from `ASSET_TYPES` is a misconfiguration: this endpoint
+         *     answers 400 and `stapel_cdn.assets.W014` reports it at boot.
          *
          *
          *     **Permissions:** `IsNotAnonymousUser`
