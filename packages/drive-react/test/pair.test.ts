@@ -64,8 +64,14 @@ describe("self-description (frontend-core §2.4 — manifest)", () => {
     expect(manifest.backend.module).toBe("stapel-docs");
     // This package was born on the 0.5 surface and grew a share sheet on the
     // 0.6 one; a manifest announcing an older range would be announcing a wire
-    // it cannot call.
-    expect(manifest.backend.contract).toBe(">=0.8 <0.9");
+    // it cannot call. The range is GENERATED from the pinned sibling, so this
+    // asserts the floor is not below that surface rather than one exact string
+    // — an equality here goes stale on every pin bump and fails the release
+    // for a manifest that is correct.
+    const floor = /^>=(\d+)\.(\d+) </.exec(String(manifest.backend.contract));
+    if (!floor) throw new Error(`unparseable range: ${manifest.backend.contract}`);
+    expect(Number(floor[1])).toBe(0);
+    expect(Number(floor[2])).toBeGreaterThanOrEqual(8);
     expect(Array.isArray(manifest.layers)).toBe(true);
   });
 
