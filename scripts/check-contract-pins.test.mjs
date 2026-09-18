@@ -122,6 +122,79 @@ test("diffSchemaJson: an enum rename shows as a type change on every property th
   );
 });
 
+test("diffSchemaJson: nullable:true added is a type change — the stapel-auth 0.39.1 -> 0.41.1 blind spot (2026-09-18)", () => {
+  // Real shape: SecurityStatusTOTP.backup_codes_remaining, integer -> integer | null.
+  // `type` alone reads "integer" on both sides; the old propertyType() missed
+  // this and the gate reported nothing but a description edit.
+  const before = {
+    components: {
+      schemas: {
+        SecurityStatusTOTP: {
+          properties: { backup_codes_remaining: { type: "integer", example: 6 } },
+          required: ["backup_codes_remaining"],
+        },
+      },
+    },
+  };
+  const after = {
+    components: {
+      schemas: {
+        SecurityStatusTOTP: {
+          properties: { backup_codes_remaining: { type: "integer", nullable: true } },
+          required: ["backup_codes_remaining"],
+        },
+      },
+    },
+  };
+  const bullets = diffSchemaJson(before, after);
+  assert.ok(
+    bullets.includes(
+      "SecurityStatusTOTP.backup_codes_remaining: type changed (integer -> integer;nullable)"
+    ),
+    `expected the nullable addition named as a type change; got:\n${bullets.join("\n")}`
+  );
+});
+
+test("diffSchemaJson: a 3.1 type array gaining \"null\" is a type change", () => {
+  const before = { components: { schemas: { X: { properties: { a: { type: "string" } }, required: [] } } } };
+  const after = { components: { schemas: { X: { properties: { a: { type: ["string", "null"] } }, required: [] } } } };
+  const bullets = diffSchemaJson(before, after);
+  assert.ok(
+    bullets.includes("X.a: type changed (string -> null,string)"),
+    `expected the null-in-type-array to be named; got:\n${bullets.join("\n")}`
+  );
+});
+
+test("diffSchemaJson: a 3.1 anyOf gaining a null member is a type change", () => {
+  const before = { components: { schemas: { X: { properties: { a: { anyOf: [{ type: "string" }] } }, required: [] } } } };
+  const after = {
+    components: {
+      schemas: {
+        X: { properties: { a: { anyOf: [{ type: "string" }, { type: "null" }] } }, required: [] },
+      },
+    },
+  };
+  const bullets = diffSchemaJson(before, after);
+  assert.ok(
+    bullets.includes("X.a: type changed (anyOf(string) -> anyOf(string|null))"),
+    `expected the null-in-anyOf to be named; got:\n${bullets.join("\n")}`
+  );
+});
+
+test("diffSchemaJson: an enum gaining a value is a type change (the generated literal union widens)", () => {
+  const before = { components: { schemas: { X: { properties: { a: { type: "string", enum: ["red"] } }, required: [] } } } };
+  const after = {
+    components: {
+      schemas: { X: { properties: { a: { type: "string", enum: ["red", "blue"] } }, required: [] } },
+    },
+  };
+  const bullets = diffSchemaJson(before, after);
+  assert.ok(
+    bullets.some((b) => b.startsWith("X.a: type changed")),
+    `expected the enum widening to be named; got:\n${bullets.join("\n")}`
+  );
+});
+
 test("diffSchemaJson: a pure description edit is reported only when nothing structural already explains the byte diff", () => {
   const before = { components: { schemas: { X: { description: "old wording", properties: {}, required: [] } } } };
   const after = { components: { schemas: { X: { description: "new wording", properties: {}, required: [] } } } };

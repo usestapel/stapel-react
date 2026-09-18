@@ -295,16 +295,58 @@ export function readAtRef(dir, ref, path) {
 }
 
 /** A property's declared type, coarse enough to say "this changed" without
- * caring which of `type` / `$ref` / `oneOf` / `allOf` a generator used to
- * say it — an enum swapped for a `$ref` to a differently-named enum (the
- * categories 0.23.1 `AxisRoleEnum` → `AxisRoleDerivedEnum` rename, 2026-09-16)
- * is exactly the shape this must not call identical. */
+ * caring which of `type` / `$ref` / `oneOf` / `allOf` / `anyOf` a generator
+ * used to say it — an enum swapped for a `$ref` to a differently-named enum
+ * (the categories 0.23.1 `AxisRoleEnum` → `AxisRoleDerivedEnum` rename,
+ * 2026-09-16) is exactly the shape this must not call identical.
+ *
+ * Also folds in every OTHER facet that changes the TYPE openapi-typescript
+ * (the generator behind `gen-api.mjs`) emits for this property — verified
+ * against its own transform, not guessed:
+ *   - `nullable: true`                         (OpenAPI 3.0 null)
+ *   - a `"null"` member of a `type` array, or of `anyOf`   (OpenAPI 3.1 null)
+ *     (dist/transform/schema-object.mjs:62,181,202-289 in openapi-typescript
+ *     7.13.0 — all three add `| null` to the generated type)
+ *   - `enum` membership                        (a literal union)
+ *   - an array's `items`                       (the element type)
+ *   - `additionalProperties`                   (an index signature, or none)
+ *
+ * `format`, `minimum`/`maximum`, `minLength`/`maxLength` and `pattern` are
+ * deliberately left OUT: openapi-typescript never reads them (grepped absent
+ * from schema-object.mjs) — they are validation-only annotations, and a
+ * change to one of them must keep reading as docs-only here, not as a wire
+ * move.
+ *
+ * The gap this closes (2026-09-18): stapel-auth 0.39.1 → 0.41.1 added
+ * `nullable: true` to `SecurityStatusTOTP.backup_codes_remaining` (integer →
+ * integer | null, a real generated-type change) and the old fingerprint —
+ * `type` alone, "integer" on both sides — read that as identical and the
+ * gate reported nothing but a description edit.
+ */
 function propertyType(prop) {
   if (prop == null) return "absent";
-  if (prop.$ref) return prop.$ref;
-  if (prop.oneOf) return `oneOf(${prop.oneOf.map(propertyType).join("|")})`;
-  if (prop.allOf) return `allOf(${prop.allOf.map(propertyType).join("&")})`;
-  return prop.type ?? "unknown";
+  const parts = [];
+  if (prop.$ref) parts.push(prop.$ref);
+  if (prop.oneOf) parts.push(`oneOf(${prop.oneOf.map(propertyType).join("|")})`);
+  if (prop.allOf) parts.push(`allOf(${prop.allOf.map(propertyType).join("&")})`);
+  if (prop.anyOf) parts.push(`anyOf(${prop.anyOf.map(propertyType).join("|")})`);
+  if (parts.length === 0) {
+    parts.push(
+      Array.isArray(prop.type) ? [...prop.type].sort().join(",") : prop.type ?? "unknown"
+    );
+  }
+  if (prop.nullable) parts.push("nullable");
+  if (Array.isArray(prop.enum)) {
+    parts.push(`enum(${[...prop.enum].map((v) => JSON.stringify(v)).sort().join(",")})`);
+  }
+  if (prop.items) parts.push(`items(${propertyType(prop.items)})`);
+  if ("additionalProperties" in prop) {
+    const ap = prop.additionalProperties;
+    parts.push(
+      `additionalProperties(${typeof ap === "object" && ap !== null ? propertyType(ap) : String(ap)})`
+    );
+  }
+  return parts.join(";");
 }
 
 /**
