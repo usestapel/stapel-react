@@ -1,5 +1,20 @@
 # @stapel/translate-react
 
+## 0.2.0
+
+### Minor Changes
+
+- A bulk id can be an integer, and the pair announces the 0.8 contract.
+
+  stapel-translate 0.8.2 re-emits its schema on core 0.84.0.
+  `BulkUpdateResponse.updated_ids` is `(number | string)[]` rather than
+  `string[]` — the field is a pk list, and a uuid-only type was false for every
+  integer pk it returned. `GET /translations/data.json/` drops the required
+  `revision` query parameter nothing read. The backend's own minor moves 0.7 ->
+  0.8, so `manifest.json` and `llms.txt` now announce `>=0.8 <0.9`; the pair's
+  own pair test asserts that floor instead of one literal range, so a later pin
+  bump cannot fail a manifest that is correct.
+
 ## 0.1.0
 
 ### Minor Changes

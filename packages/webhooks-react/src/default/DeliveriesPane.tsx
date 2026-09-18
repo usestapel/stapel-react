@@ -120,7 +120,8 @@ export function DeliveriesPane(props: DeliveriesPaneProps): ReactElement {
       key: "response",
       title: t(WEBHOOKS_I18N_KEYS.logResponse),
       render: (_: unknown, row: Delivery): string =>
-        row.response_status > 0 ? String(row.response_status) : absent,
+        // null = the attempt never got an answer; reads as absent, same as 0.
+        (row.response_status ?? 0) > 0 ? String(row.response_status) : absent,
     },
     {
       key: "last",

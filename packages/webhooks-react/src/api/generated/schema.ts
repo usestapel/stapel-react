@@ -192,7 +192,7 @@ export interface components {
             /** @description attempts */
             attempts: number;
             /** @description response status */
-            response_status: number;
+            response_status: number | null;
             /** @description last error */
             last_error: string;
             id: string;

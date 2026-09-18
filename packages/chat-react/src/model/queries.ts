@@ -12,6 +12,7 @@ import { useSettledInboxFilter } from "./inboxQuery.js";
 import type { ChatInboxFilter } from "./inboxQuery.js";
 import { chatQueryKeys } from "./queryKeys.js";
 import {
+  anchorValue,
   mergeNewerPage,
   threadLastSeq,
   threadWindowFromPage,
@@ -112,7 +113,7 @@ export function useConversations(
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>
-      last.has_next ? (last.next_anchor ?? undefined) : undefined,
+      last.has_next ? (anchorValue(last.next_anchor) ?? undefined) : undefined,
     enabled: sessionReady,
   });
 }

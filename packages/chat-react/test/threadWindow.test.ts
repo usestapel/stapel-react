@@ -45,6 +45,22 @@ describe("the newest page becomes the window", () => {
     expect(window.olderAnchor).toBe("3");
   });
 
+  // stapel-chat 0.10.1 types an anchor `string | integer` — a thread pages on
+  // `seq`, which is a number. It travels as one query parameter either way.
+  it("takes a numeric anchor as the string the query carries", () => {
+    const window = threadWindowFromPage(
+      messagePage([5, 4, 3], { has_next: true, next_anchor: 3 })
+    );
+    expect(window.olderAnchor).toBe("3");
+  });
+
+  it("keeps no anchor when the page has none", () => {
+    const window = threadWindowFromPage(
+      messagePage([3, 2, 1], { has_next: false, next_anchor: null })
+    );
+    expect(window.olderAnchor).toBeNull();
+  });
+
   it("an empty thread is an empty window, not a missing one", () => {
     const window = threadWindowFromPage(messagePage([]));
     expect(window.messages).toEqual([]);

@@ -207,7 +207,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get all features for this category, sorted by order. Includes inherited features. For a `chips` parent that declares no features of its own the answer is the EFFECTIVE schema — the intersection of its children's, since the parent renders the feed and the chip row for all of them; a feature only some children carry appears once its chip is picked, and one whose children disagree carries `divergent: true` beside the widest config of theirs. The `X-Effective-From: children` response header says the list was intersected rather than read off this node (`own` otherwise).
+         * @description Get all features for this category, sorted by order. Includes inherited features. For a `chips` parent that declares no features of its own the answer is the EFFECTIVE schema — the UNION of its children's, since the parent renders the feed and the chip row for all of them. A feature only some children carry is in it too, marked `partial: true` with `carried_by` naming them and a config merged from them alone; one whose carrying children disagree carries `divergent: true` beside the widest config of theirs. The `X-Effective-From: children` response header says the list was merged from the children rather than read off this node (`own` otherwise).
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
@@ -422,20 +422,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get all data as a cacheable JSON array.
-         *
-         *     The `revision` parameter is required for cache busting - clients should use the current
-         *     max revision from `/revision` endpoint. Response includes Cache-Control header for 30 days.
-         *
-         *     **Usage:**
-         *     1. Call `/revision` to get current max revision
-         *     2. Call `/data.json?revision={max_revision}` to get all data
-         *     3. Cache the response locally - it won't change until revision changes
-         *
+         * @description Return all items as a JSON array with long cache headers.
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
-        get: operations["categories_api_v1_categories_data.json_retrieve"];
+        get: operations["categories_api_v1_categories_data.json_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -637,20 +628,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get all data as a cacheable JSON array.
-         *
-         *     The `revision` parameter is required for cache busting - clients should use the current
-         *     max revision from `/revision` endpoint. Response includes Cache-Control header for 30 days.
-         *
-         *     **Usage:**
-         *     1. Call `/revision` to get current max revision
-         *     2. Call `/data.json?revision={max_revision}` to get all data
-         *     3. Cache the response locally - it won't change until revision changes
-         *
+         * @description Return all items as a JSON array with long cache headers.
          *
          *     **Permissions:** `ReadOnlyOrStaff`
          */
-        get: operations["categories_api_v1_features_data.json_retrieve"];
+        get: operations["categories_api_v1_features_data.json_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -759,8 +741,8 @@ export interface components {
         };
         /** @description Response for bulk create/update operations. */
         BulkUpdateResponse: {
-            /** @description List of created/updated object IDs */
-            updated_ids: string[];
+            /** @description List of created/updated object IDs (each a pk: integer or uuid) */
+            updated_ids: (number | string)[];
         };
         /**
          * @description The PUBLIC category projection — every anonymous read serves this.
@@ -1426,6 +1408,7 @@ export interface components {
         FeatureCreateUpdate: {
             readonly id: number;
             config?: components["schemas"]["FeatureConfig"];
+            readonly axis_role_derived: string;
             readonly revision: number;
             deleted?: boolean;
             /** Ancestors pks */
@@ -1494,16 +1477,6 @@ export interface components {
              *     * `mileage` - Mileage
              */
             axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
-            /**
-             * @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value.
-             *
-             *     * `make` - Make (brand / vendor / manufacturer)
-             *     * `model` - Model
-             *     * `generation` - Generation
-             *     * `year` - Year of manufacture
-             *     * `mileage` - Mileage
-             */
-            readonly axis_role_derived: components["schemas"]["AxisRoleDerivedEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1659,20 +1632,26 @@ export interface components {
             parent_feature?: components["schemas"]["Feature"] | null;
         };
         /**
-         * @description A compact feature as it reads in an EFFECTIVE (intersected) schema.
+         * @description A compact feature as it reads in an EFFECTIVE (merged) schema.
          *
-         *     One key more than the compact form, and only where it is true: a
-         *     `chips` parent's schema is the intersection of its children's, and a
-         *     feature whose children disagree about its config, its requiredness or
-         *     its rules carries ``divergent: true`` so a client can hide the control
-         *     until a chip is picked instead of showing one that means something
-         *     different per chip. The config beside it is already the widest the
-         *     children accept, so a client that shows it anyway refuses nothing a
-         *     child would take.
+         *     Three keys more than the compact form, and only where they apply. A
+         *     `chips` parent's schema is the UNION of its children's:
          *
-         *     Absent means false — the key is dropped rather than sent as ``false``,
-         *     so a leaf and a `tiles` parent answer byte-for-byte what they answered
-         *     before this existed.
+         *     * a feature whose carrying children disagree about its config, its
+         *       requiredness or its rules carries ``divergent: true`` so a client can
+         *       hide the control until a chip is picked instead of showing one that
+         *       means something different per chip. The config beside it is already the
+         *       widest those children accept, so a client that shows it anyway refuses
+         *       nothing a child would take;
+         *     * a feature only SOME children carry carries ``partial: true`` and
+         *       ``carried_by`` naming their slugs. Its config is merged from those
+         *       children alone. A client may filter the whole partition by it, or offer
+         *       it only under the chips that have it — but it no longer disappears from
+         *       the parent while the leaf beside it keeps it.
+         *
+         *     Absent means false — the keys are dropped rather than sent as ``false``
+         *     and an empty list, so a leaf and a `tiles` parent answer byte-for-byte
+         *     what they answered before these existed.
          */
         FeatureEffective: {
             readonly id: number;
@@ -1724,8 +1703,12 @@ export interface components {
             hints?: unknown;
             /** @description Form section; sections order by first appearance. */
             group?: string;
-            /** @description Present and true when the children of this `chips` parent do not agree on the feature; the config shown is the widest of theirs. Absent means the children agree. */
-            readonly divergent: boolean;
+            /** @description Present and true when the children of this `chips` parent that carry the feature do not agree on it; the config shown is the widest of theirs. Absent means the carrying children agree. */
+            divergent?: boolean;
+            /** @description Present and true when only SOME children of this `chips` parent carry the feature; `carried_by` names them and the config shown is merged from them alone. Absent means every child carries it. */
+            partial?: boolean;
+            /** @description Slugs of the children that carry this feature, in the order `GET /children/` returns them. Present only beside `partial: true`. */
+            carried_by?: string[];
         };
         /** @description Serializer for FeatureValidationResult. */
         FeatureValidationResult: {
@@ -2048,6 +2031,7 @@ export interface components {
         PatchedFeatureCreateUpdate: {
             readonly id?: number;
             config?: components["schemas"]["FeatureConfig"];
+            readonly axis_role_derived?: string;
             readonly revision?: number;
             deleted?: boolean;
             /** Ancestors pks */
@@ -2116,16 +2100,6 @@ export interface components {
              *     * `mileage` - Mileage
              */
             axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
-            /**
-             * @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value.
-             *
-             *     * `make` - Make (brand / vendor / manufacturer)
-             *     * `model` - Model
-             *     * `generation` - Generation
-             *     * `year` - Year of manufacture
-             *     * `mileage` - Mileage
-             */
-            readonly axis_role_derived?: components["schemas"]["AxisRoleDerivedEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -2674,7 +2648,7 @@ export interface operations {
         responses: {
             200: {
                 headers: {
-                    /** @description `own` — the schema is this node's own (own + inherited). `children` — this node is a `chips` parent declaring nothing itself, so the list is the intersection of its children's schemas. */
+                    /** @description `own` — the schema is this node's own (own + inherited). `children` — this node is a `chips` parent declaring nothing itself, so the list is the union of its children's schemas. */
                     "X-Effective-From"?: "children" | "own";
                     [name: string]: unknown;
                 };
@@ -2973,12 +2947,9 @@ export interface operations {
             };
         };
     };
-    "categories_api_v1_categories_data.json_retrieve": {
+    "categories_api_v1_categories_data.json_list": {
         parameters: {
-            query: {
-                /** @description Current revision number (for cache busting). Get from /revision endpoint. */
-                revision: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -2990,7 +2961,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Category"];
+                    "application/json": components["schemas"]["Category"][];
                 };
             };
         };
@@ -3104,7 +3075,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Feature"];
+                    "application/json": components["schemas"]["FeatureCreateUpdate"];
                 };
             };
         };
@@ -3154,7 +3125,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Feature"];
+                    "application/json": components["schemas"]["FeatureCreateUpdate"];
                 };
             };
         };
@@ -3203,7 +3174,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Feature"];
+                    "application/json": components["schemas"]["FeatureCreateUpdate"];
                 };
             };
         };
@@ -3271,12 +3242,9 @@ export interface operations {
             };
         };
     };
-    "categories_api_v1_features_data.json_retrieve": {
+    "categories_api_v1_features_data.json_list": {
         parameters: {
-            query: {
-                /** @description Current revision number (for cache busting). Get from /revision endpoint. */
-                revision: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -3288,7 +3256,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Feature"];
+                    "application/json": components["schemas"]["Feature"][];
                 };
             };
         };

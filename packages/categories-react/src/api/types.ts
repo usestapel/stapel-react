@@ -241,16 +241,30 @@ export type MaxRevision = Schemas["MaxRevision"];
  * not re-state them.
  */
 /**
- * `divergent` is stapel-categories 0.20.1's extension, declared here by hand
- * rather than folded into the generated `FeatureDef` — that type is a
- * cross-package canon (`@stapel/attributes-react`'s §68 schema, checked
- * against the Python dataclass and stapel-categories' own payload), not this
- * pair's to widen. Present and `true` only on a `chips` parent's EFFECTIVE
- * schema ({@link CategoryFeaturesEffectiveFrom} `"children"`), for a feature
- * whose children disagree on config, `mandatory` or `rules` — see
- * `visibleFeatures`.
+ * The three EFFECTIVE-schema keys are declared here by hand rather than folded
+ * into the generated `FeatureDef` — that type is a cross-package canon
+ * (`@stapel/attributes-react`'s §68 schema, checked against the Python
+ * dataclass and stapel-categories' own payload), not this pair's to widen.
+ * All three appear only on a `chips` parent's EFFECTIVE schema
+ * ({@link CategoryFeaturesEffectiveFrom} `"children"`), and each is ABSENT
+ * rather than false/empty everywhere else, so a leaf reads exactly as before.
+ *
+ * `divergent` (stapel-categories 0.20.1): the children that carry the feature
+ * disagree on config, `mandatory` or `rules`; the config beside it is the
+ * widest of theirs — see `visibleFeatures`.
+ *
+ * `partial` / `carried_by` (0.24.0): only SOME children carry the feature, and
+ * `carried_by` names their slugs in `GET /children/` order. The parent's
+ * schema is the UNION of its children's, so such a feature is in the list
+ * rather than dropped from it, with a config merged from the carrying children
+ * alone. Carried for a host that wants to label or filter by it; this pair
+ * shows the row either way.
  */
-export type CategoryFeature = FeatureDef & { readonly divergent?: true };
+export type CategoryFeature = FeatureDef & {
+  readonly divergent?: true;
+  readonly partial?: true;
+  readonly carried_by?: readonly string[];
+};
 
 /**
  * Re-exported so a host reading `axis_role` off a {@link CategoryFeature} — or
@@ -265,7 +279,8 @@ export type { AxisRole, FeatureConfig };
  * `own` — this row's resolved schema (own + inherited), byte-for-byte what
  * every build before stapel-categories 0.20.1 answered. `children` — this row
  * is a `chips` parent declaring no features of its own, so the answer is the
- * INTERSECTION of its children's, off the `X-Effective-From` response header.
+ * UNION of its children's (the INTERSECTION before stapel-categories 0.24.0),
+ * off the `X-Effective-From` response header.
  * A server predating 0.20.1 sends no such header, which reads as `"own"` —
  * the byte-for-byte answer it always sent.
  */

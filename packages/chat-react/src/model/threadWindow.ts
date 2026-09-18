@@ -62,6 +62,18 @@ export const EMPTY_THREAD_WINDOW: ChatThreadWindow = {
   olderAnchor: null,
 };
 
+/**
+ * A page anchor as the query parameter carries it.
+ *
+ * The wire types an anchor `string | integer` (stapel-chat 0.10.1): it is the
+ * raw ordering value, a timestamp for the inbox and a `seq` for a thread. Both
+ * travel as one query parameter, so a number is normalized to its decimal
+ * string here rather than at every call site. Absent stays absent.
+ */
+export function anchorValue(anchor: string | number | null | undefined): string | null {
+  return anchor === null || anchor === undefined ? null : String(anchor);
+}
+
 function ascending(items: readonly ChatMessage[]): ChatMessage[] {
   return [...items].sort((a, b) => a.seq - b.seq);
 }
@@ -189,7 +201,7 @@ export function threadWindowFromPage(page: MessagePage): ChatThreadWindow {
   return {
     messages: ascending(page.items),
     hasOlder: page.has_next,
-    olderAnchor: page.next_anchor ?? null,
+    olderAnchor: anchorValue(page.next_anchor),
   };
 }
 
@@ -207,12 +219,12 @@ export function mergeOlderPage(
     (message) => first === 0 || message.seq < first
   );
   if (older.length === 0) {
-    return { ...window, hasOlder: page.has_next, olderAnchor: page.next_anchor ?? null };
+    return { ...window, hasOlder: page.has_next, olderAnchor: anchorValue(page.next_anchor) };
   }
   return {
     messages: [...older, ...window.messages],
     hasOlder: page.has_next,
-    olderAnchor: page.next_anchor ?? null,
+    olderAnchor: anchorValue(page.next_anchor),
   };
 }
 

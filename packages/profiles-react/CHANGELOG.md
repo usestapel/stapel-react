@@ -1,5 +1,19 @@
 # @stapel/profiles-react
 
+## 0.27.0
+
+### Minor Changes
+
+- A public profile may have no avatar image and no creation time.
+
+  stapel-profiles 0.21.1 types `ProfilePublic.avatar_image` and
+  `ProfilePublicResponse.created_at` nullable. Neither is new behaviour — a
+  profile with no avatar and a row with no creation time could always arrive —
+  so this is the schema catching up with the answer, and a consumer that read
+  either field as always-present was reading a type that was not true.
+  `ProfilePublic.display_name` also widens from 35 to 80 characters, and the
+  pair announces the 0.21 contract.
+
 ## 0.26.3
 
 ### Patch Changes

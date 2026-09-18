@@ -593,10 +593,10 @@ export interface components {
         };
         PaginatedConversationResponseList: {
             items: components["schemas"]["ConversationResponse"][];
-            /** @description Anchor value for next page */
-            next_anchor?: string | null;
-            /** @description Anchor value for previous page */
-            prev_anchor?: string | null;
+            /** @description Anchor value for next page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            next_anchor?: (string | number) | null;
+            /** @description Anchor value for previous page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            prev_anchor?: (string | number) | null;
             /** @description Whether there are more items after this page */
             has_next: boolean;
             /** @description Whether there are items before this page */
@@ -606,10 +606,10 @@ export interface components {
         };
         PaginatedMessageResponseList: {
             items: components["schemas"]["MessageResponse"][];
-            /** @description Anchor value for next page */
-            next_anchor?: string | null;
-            /** @description Anchor value for previous page */
-            prev_anchor?: string | null;
+            /** @description Anchor value for next page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            next_anchor?: (string | number) | null;
+            /** @description Anchor value for previous page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            prev_anchor?: (string | number) | null;
             /** @description Whether there are more items after this page */
             has_next: boolean;
             /** @description Whether there are items before this page */

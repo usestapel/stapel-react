@@ -165,7 +165,7 @@ export function messagePage(
     readonly direction?: "next" | "prev";
     readonly has_next?: boolean;
     readonly has_prev?: boolean;
-    readonly next_anchor?: string | null;
+    readonly next_anchor?: string | number | null;
   } = {}
 ): MessagePage {
   const direction = options.direction ?? "next";

@@ -28,6 +28,14 @@ export interface CategoryFeatureEntry {
    * ever true under {@link CategoryFeaturesBag.effectiveFrom} `"children"` —
    * see `visibleFeatures`. */
   readonly divergent: boolean;
+  /** `feature.partial === true` (stapel-categories 0.24.0): only SOME children
+   * of this `chips` parent carry the feature. Normalized like `divergent`, and
+   * like it only ever true under `effectiveFrom: "children"`. The row is shown
+   * either way; this names it for a host that wants to label or filter by it. */
+  readonly partial: boolean;
+  /** The slugs behind {@link partial}, in `GET /children/` order — empty when
+   * every child carries the feature, or when this is an `"own"` schema. */
+  readonly carriedBy: readonly string[];
   /**
    * Which classified AXIS this feature IS — `"make"`, `"model"`,
    * `"generation"`, `"year"`, `"mileage"` — or `null` for the overwhelming
@@ -79,10 +87,12 @@ export interface CategoryFeaturesBag {
    * `"own"` — `features` is this category's own resolved schema, exactly as
    * every build before stapel-categories 0.20.1 answered. `"children"` — this
    * category is a `chips` parent declaring none of its own: `features` is the
-   * INTERSECTION of its children's, and any row's `divergent: true` means the
-   * children disagree on it. Defaults to `"own"` while the read is not yet
-   * `ready` and whenever the server sends no `X-Effective-From` header at all
-   * (a build older than 0.20.1).
+   * UNION of its children's (the INTERSECTION before stapel-categories
+   * 0.24.0), a row's `divergent: true` means the children carrying it disagree
+   * on it, and its `partial: true` means only some children carry it at all.
+   * Defaults to `"own"` while the read is not yet `ready` and whenever the
+   * server sends no `X-Effective-From` header at all (a build older than
+   * 0.20.1).
    */
   readonly effectiveFrom: CategoryFeaturesEffectiveFrom;
   readonly isFetching: boolean;
@@ -93,10 +103,14 @@ export interface CategoryFeaturesBag {
  * Hides a `divergent: true` row until a chip is picked.
  *
  * `effectiveFrom: "children"` (see {@link CategoryFeaturesBag}) can carry a
- * feature only some children declare, or one whose config, `mandatory` or
- * `rules` disagree between them — the row's `config` is already the WIDEST
- * of theirs, so drawing it before a chip narrows to one child offers a
- * control that means something different depending which chip gets picked.
+ * feature whose config, `mandatory` or `rules` disagree between the children
+ * carrying it — the row's `config` is already the WIDEST of theirs, so drawing
+ * it before a chip narrows to one child offers a control that means something
+ * different depending which chip gets picked. A `partial: true` row (one only
+ * some children carry, stapel-categories 0.24.0) is NOT hidden: its config is
+ * merged from the children that do carry it and means one thing, and hiding it
+ * would put the parent back to answering less than the leaf beneath it —
+ * which is the whole reason the schema became a union.
  * Once a chip IS picked (a `CategoryCascade` `commit: "stage"` stop's own
  * partition select — see `headless/CategoryCascade.tsx`) the row means
  * exactly what that child says, and it is safe to show.
@@ -159,6 +173,8 @@ export function CategoryFeatures(props: CategoryFeaturesProps): ReactNode {
         mandatory: feature.mandatory === true,
         optionsAreKeys: featureOptionsAreKeys(feature),
         divergent: feature.divergent === true,
+        partial: feature.partial === true,
+        carriedBy: feature.carried_by ?? [],
         axisRole: axisRoleOf(feature),
       }))
     ),

@@ -1,5 +1,17 @@
 # @stapel/moderation-react
 
+## 0.3.0
+
+### Minor Changes
+
+- A verdict that fell over carries no confidence score.
+
+  stapel-moderation 0.8.1 types `VerdictPresenterDTO.confidence` nullable — a
+  screening that failed produces no number, which is the same row the DLQ holds.
+  The generated member is `number | null`, and the case card's decision list
+  drops the confidence line for it, exactly as it already did for 0, rather than
+  rendering an empty value beside a decision.
+
 ## 0.2.2
 
 ### Patch Changes

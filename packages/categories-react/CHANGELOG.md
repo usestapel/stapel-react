@@ -1,5 +1,40 @@
 # @stapel/categories-react
 
+## 0.34.0
+
+### Minor Changes
+
+- An effective schema is a UNION, `data.json` is typed as the array it always
+  answered, and a bulk id can be an integer.
+
+  Regenerated against **stapel-categories 0.24.0**. The EFFECTIVE schema of a
+  `chips` parent — `GET {id}/features/` under `X-Effective-From: children` — is
+  now the UNION of its children's rather than their intersection, so a feature
+  only SOME children carry is in the list instead of missing from it. Two
+  additive keys say so and are exposed on `CategoryFeature`: `partial: true`,
+  and `carried_by` naming the carrying children's slugs in `GET /children/`
+  order (the bag's rows carry them as `partial` / `carriedBy`, normalized like
+  `divergent`). `visibleFeatures` does NOT hide a partial row — its config is
+  merged from the children that carry it and means one thing — so behaviour
+  changes only in that more rows can arrive. Both keys are absent rather than
+  false/empty on an `own` schema, so a leaf reads exactly as before.
+
+  The same release re-emits the schema on core 0.84.0, and four more public
+  shapes move with it. `GET /categories/data.json/` and `GET
+/features/data.json/` declare `Category[]` / `Feature[]` where they declared a
+  single object — the endpoint never changed, the statement about it did — and
+  both lose the `revision` query parameter that was declared required and read by
+  nothing, so a caller that omitted it was passing a type check it should have
+  failed. `BulkUpdateResponse.updated_ids` is `(number | string)[]`: it is a pk
+  list and this module's pks are integers, so `string[]` was wrong for every row
+  it ever returned. `FeatureCreateUpdate.axis_role_derived` is a plain read-only
+  `string` again rather than the enum ref, `FeatureEffective.divergent` is
+  optional rather than required-and-readonly, and the three Feature write
+  operations answer `FeatureCreateUpdate` instead of `Feature`. The operation ids
+  of the two `data.json` reads change with their shape
+  (`…_data.json_retrieve` -> `…_data.json_list`), which is visible in
+  `manifest.json` and `llms.txt`.
+
 ## 0.33.1
 
 ### Patch Changes

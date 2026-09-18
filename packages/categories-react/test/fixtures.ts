@@ -331,11 +331,26 @@ export const FEATURE_DIVERGENT: CategoryFeature = {
   divergent: true,
 };
 
-/** One `effectiveFrom: "children"` answer: an ordinary row plus a divergent
- * one, exactly as a `chips` parent with no features of its own would send. */
+/** A row a `chips` parent's EFFECTIVE schema carries because only SOME of its
+ * children declare it — stapel-categories 0.24.0, where the parent's schema
+ * became the UNION of its children's rather than their intersection. */
+export const FEATURE_PARTIAL: CategoryFeature = {
+  id: 17,
+  slug: "battery_life",
+  name: "feature.battery_life",
+  translate: "title",
+  config: { type: "int", min: 0, max: 72 },
+  partial: true,
+  carried_by: ["laptops", "tablets"],
+};
+
+/** One `effectiveFrom: "children"` answer: an ordinary row, a divergent one
+ * and one only some children carry, exactly as a `chips` parent with no
+ * features of its own would send. */
 export const FEATURES_EFFECTIVE: readonly CategoryFeature[] = [
   FEATURE_POWER,
   FEATURE_DIVERGENT,
+  FEATURE_PARTIAL,
 ];
 
 // ── the NESTED tree (`GET /tree/?depth=N`) ─────────────────────────────────

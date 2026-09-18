@@ -49,6 +49,14 @@ function Probe(props: { id: number | null }): ReactElement {
                   .join(",")
               : ""}
           </span>
+          <span data-testid="partial">
+            {bag.state.status === "ready"
+              ? bag.state.data
+                  .filter((e) => e.partial)
+                  .map((e) => `${e.feature.slug}:${e.carriedBy.join("+")}`)
+                  .join(",")
+              : ""}
+          </span>
           <span data-testid="badges">
             {bag.badges.map((f) => f.slug).join(",")}
           </span>
@@ -210,9 +218,11 @@ describe("effectiveFrom — the X-Effective-From header (stapel-categories 0.20.
     });
     expect(screen.getByTestId("effective-from").textContent).toBe("own");
     expect(screen.getByTestId("divergent").textContent).toBe("");
+    // An "own" schema carries neither key, so both normalize to absent.
+    expect(screen.getByTestId("partial").textContent).toBe("");
   });
 
-  it("reads 'children' off a chips parent's intersected answer, and surfaces divergent rows", async () => {
+  it("reads 'children' off a chips parent's merged answer, and surfaces divergent rows", async () => {
     const server = mockServer({
       "/features/": {
         body: FEATURES_EFFECTIVE,
@@ -229,6 +239,12 @@ describe("effectiveFrom — the X-Effective-From header (stapel-categories 0.20.
     });
     expect(screen.getByTestId("effective-from").textContent).toBe("children");
     expect(screen.getByTestId("divergent").textContent).toBe("screen_size");
+    // stapel-categories 0.24.0: a feature only some children carry is IN the
+    // union, named, with the children that carry it — not dropped from it.
+    expect(screen.getByTestId("partial").textContent).toBe(
+      "battery_life:laptops+tablets"
+    );
+    expect(screen.getByTestId("slugs").textContent).toContain("battery_life");
   });
 
   it("defaults to 'own' when the server sends no header at all", async () => {
@@ -257,14 +273,20 @@ describe("effectiveFrom — the X-Effective-From header (stapel-categories 0.20.
 });
 
 describe("visibleFeatures — hides a divergent row until a chip is picked", () => {
-  it("hides divergent rows when no chip is picked", () => {
+  it("hides divergent rows when no chip is picked, and keeps partial ones", () => {
     const visible = visibleFeatures(FEATURES_EFFECTIVE, { chipPicked: false });
-    expect(visible.map((f) => f.slug)).toEqual(["power_w"]);
+    // `battery_life` is carried by only some children and means one thing
+    // anyway; hiding it would put the parent back below the leaf beneath it.
+    expect(visible.map((f) => f.slug)).toEqual(["power_w", "battery_life"]);
   });
 
   it("shows every row once a chip is picked", () => {
     const visible = visibleFeatures(FEATURES_EFFECTIVE, { chipPicked: true });
-    expect(visible.map((f) => f.slug)).toEqual(["power_w", "screen_size"]);
+    expect(visible.map((f) => f.slug)).toEqual([
+      "power_w",
+      "screen_size",
+      "battery_life",
+    ]);
   });
 
   it("is a no-op over an 'own' schema, which never carries divergent rows", () => {

@@ -253,3 +253,36 @@ describe("the queue names the refusal the nav axis cannot express", () => {
     expect(empty.textContent).toContain("queue is clear");
   });
 });
+
+describe("a verdict that carries no score", () => {
+  // stapel-moderation 0.8.1 types `confidence` nullable: a screening that fell
+  // over produced no number. The line is dropped, exactly as for 0.
+  it("drops the confidence line instead of rendering null", async () => {
+    const scored = CASE_DETAIL.verdicts[0];
+    if (scored === undefined) throw new Error("fixture has no verdict");
+    render(
+      <TestProviders
+        server={card({
+          ...CASE_DETAIL,
+          verdicts: [{ ...scored, confidence: null }],
+        })}
+      >
+        <CaseDetail open caseId={CASE_DETAIL.id} onClose={() => {}} />
+      </TestProviders>
+    );
+    fireEvent.click(await screen.findByText("Decisions"));
+    const list = await screen.findByTestId("moderation-case-verdicts");
+    expect(list.textContent).not.toContain("Confidence");
+  });
+
+  it("still renders the line for a verdict that has one", async () => {
+    render(
+      <TestProviders server={card(CASE_DETAIL)}>
+        <CaseDetail open caseId={CASE_DETAIL.id} onClose={() => {}} />
+      </TestProviders>
+    );
+    fireEvent.click(await screen.findByText("Decisions"));
+    const list = await screen.findByTestId("moderation-case-verdicts");
+    expect(list.textContent).toContain("Confidence");
+  });
+});

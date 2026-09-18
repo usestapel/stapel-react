@@ -1,5 +1,20 @@
 # @stapel/chat-react
 
+## 0.22.0
+
+### Minor Changes
+
+- A page anchor can be a number.
+
+  stapel-chat 0.10.1 types `next_anchor` / `prev_anchor` on both paginated
+  envelopes as `string | integer`: the anchor is the raw value of the ordering
+  field, a timestamp for the inbox and a `seq` for a thread. The pair typed it
+  `string`, which was one numeric ordering away from handing a number to string
+  code. The generated members are `(string | number) | null`, and the anchor is
+  normalized to the decimal string the query parameter carries in one place
+  (`anchorValue`), so `ChatThreadWindow.olderAnchor` and the inbox's page param
+  keep the type they had. A string anchor is unchanged.
+
 ## 0.21.0
 
 ### Minor Changes

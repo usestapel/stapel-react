@@ -514,7 +514,8 @@ export function CaseDetail(props: CaseDetailProps): ReactElement {
                 <Flex gap={spacing["2"]} align="center" wrap>
                   <Tag>{t(verdictSourceKey(row.source))}</Tag>
                   <Typography.Text strong>{t(decisionKey(row.decision))}</Typography.Text>
-                  {row.confidence > 0 ? (
+                  {/* null = the screening produced no score (it fell over); same silence as 0. */}
+                  {row.confidence !== null && row.confidence > 0 ? (
                     <Typography.Text type="secondary">
                       {t(MODERATION_I18N_KEYS.verdictConfidence, {
                         value: row.confidence,

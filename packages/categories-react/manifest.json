@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.33.1",
+  "version": "0.34.0",
   "backend": {
     "module": "stapel-categories",
-    "contract": ">=0.23 <0.24"
+    "contract": ">=0.24 <0.25"
   },
   "layers": [
     "api",
@@ -58,12 +58,12 @@
       "request": "CategoryStaff",
       "response": "CategoryStaff"
     },
-    "categories_api_v1_categories_data.json_retrieve": {
+    "categories_api_v1_categories_data.json_list": {
       "method": "GET",
       "path": "/categories/api/v1/categories/data.json/",
       "tag": "Categories",
       "request": null,
-      "response": "Category"
+      "response": null
     },
     "categories_api_v1_categories_deleted_children_list": {
       "method": "GET",
@@ -210,14 +210,14 @@
       "path": "/categories/api/v1/features/",
       "tag": "Features",
       "request": "FeatureCreateUpdate",
-      "response": "Feature"
+      "response": "FeatureCreateUpdate"
     },
-    "categories_api_v1_features_data.json_retrieve": {
+    "categories_api_v1_features_data.json_list": {
       "method": "GET",
       "path": "/categories/api/v1/features/data.json/",
       "tag": "Features",
       "request": null,
-      "response": "Feature"
+      "response": null
     },
     "categories_api_v1_features_destroy": {
       "method": "DELETE",
@@ -238,7 +238,7 @@
       "path": "/categories/api/v1/features/{id}/",
       "tag": "Features",
       "request": "PatchedFeatureCreateUpdate",
-      "response": "Feature"
+      "response": "FeatureCreateUpdate"
     },
     "categories_api_v1_features_retrieve": {
       "method": "GET",
@@ -259,7 +259,7 @@
       "path": "/categories/api/v1/features/{id}/",
       "tag": "Features",
       "request": "FeatureCreateUpdate",
-      "response": "Feature"
+      "response": "FeatureCreateUpdate"
     },
     "categories_api_v1_tree_list": {
       "method": "GET",

@@ -392,3 +392,40 @@ describe("<WebhooksSettingsPane> — the page a route mounts", () => {
     expect(screen.queryByTestId("webhooks-settings-docs")).toBeNull();
   });
 });
+
+describe("a delivery that never got an answer", () => {
+  // stapel-webhooks 0.1.2 types `response_status` nullable: a connection that
+  // failed carries no status code. It reads as absent, exactly as 0 did.
+  const NO_ANSWER = { ...DELIVERY_DEAD, response_status: null };
+
+  function noAnswerReads(): MockServer {
+    return mockServer({
+      "/event-catalog": { body: CATALOG },
+      "/deliveries/": { body: NO_ANSWER },
+      "/deliveries": { body: [NO_ANSWER] },
+      "/subscriptions": { body: [HEALTHY] },
+    });
+  }
+
+  it("shows no status code in the log instead of rendering null", async () => {
+    render(
+      <TestProviders server={noAnswerReads()}>
+        <DeliveriesPane subscriptionId={HEALTHY.id} />
+      </TestProviders>
+    );
+    const rows = await screen.findByTestId("webhooks-log-rows");
+    expect(rows.textContent).not.toContain("null");
+    expect(rows.textContent).toContain("—");
+  });
+
+  it("says so on the detail sheet", async () => {
+    render(
+      <TestProviders server={noAnswerReads()}>
+        <DeliveriesPane subscriptionId={HEALTHY.id} />
+      </TestProviders>
+    );
+    await screen.findByTestId("webhooks-log-rows");
+    fireEvent.click(screen.getByTestId(`webhooks-log-open-${NO_ANSWER.id}`));
+    expect(await screen.findByText("No response was received.")).toBeTruthy();
+  });
+});

@@ -282,7 +282,7 @@
     },
     {
       "package": "@stapel/categories-react",
-      "version": "0.33.1",
+      "version": "0.34.0",
       "entries": [
         {
           "id": "categories.catalog",
@@ -326,7 +326,7 @@
     },
     {
       "package": "@stapel/chat-react",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "entries": [
         {
           "id": "chat.conversations",
@@ -642,7 +642,7 @@
     },
     {
       "package": "@stapel/moderation-react",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "entries": [
         {
           "id": "moderation.policy",
@@ -770,7 +770,7 @@
     },
     {
       "package": "@stapel/profiles-react",
-      "version": "0.26.3",
+      "version": "0.27.0",
       "entries": [
         {
           "id": "profiles.settings",
@@ -1041,7 +1041,7 @@
     },
     {
       "package": "@stapel/translate-react",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "entries": [
         {
           "id": "account.language",
@@ -1112,7 +1112,7 @@
     },
     {
       "package": "@stapel/webhooks-react",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "entries": [
         {
           "id": "account.webhooks",

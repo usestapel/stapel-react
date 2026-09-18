@@ -197,9 +197,15 @@ describe("self-description (frontend-core §2.4 — drift-gated manifest)", () =
     const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
     expect(manifest.package).toBe("@stapel/translate-react");
     expect(manifest.backend.module).toBe("stapel-translate");
-    // The pair was generated against the 0.7 contract — the minor that added
-    // `POST text/` and this module's own error codes.
-    expect(manifest.backend.contract).toContain("0.7");
+    // The pair was born on the 0.7 contract — the minor that added `POST text/`
+    // and this module's own error codes. The range is GENERATED from the pinned
+    // sibling, so this asserts the FLOOR is not below that surface rather than
+    // one exact string: an equality goes stale on every pin bump and fails the
+    // release for a manifest that is correct.
+    const floor = /^>=(\d+)\.(\d+) </.exec(String(manifest.backend.contract));
+    if (!floor) throw new Error(`unparseable range: ${manifest.backend.contract}`);
+    expect(Number(floor[1])).toBe(0);
+    expect(Number(floor[2])).toBeGreaterThanOrEqual(7);
     expect(Array.isArray(manifest.layers)).toBe(true);
   });
 

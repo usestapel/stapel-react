@@ -1,5 +1,20 @@
 # @stapel/webhooks-react
 
+## 0.2.0
+
+### Minor Changes
+
+- A delivery attempt that never got an answer carries no status code.
+
+  stapel-webhooks 0.1.2 types `DeliveryPresenterDTO.response_status` nullable:
+  connection refused, DNS failure and timeout all end an attempt with no HTTP
+  status, and the schema typed it `integer`, so the pair was told a number always
+  arrives. The generated member is `number | null`, and both places that render
+  it — the log's response column and the detail sheet's response row — take null
+  down the same branch 0 already took: the column reads as absent, the sheet says
+  "No response was received." No behaviour changes for an attempt that did get a
+  status.
+
 ## 0.1.1
 
 ### Patch Changes

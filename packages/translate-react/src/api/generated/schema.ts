@@ -465,16 +465,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get all data as a cacheable JSON array.
-         *
-         *     The `revision` parameter is required for cache busting - clients should use the current
-         *     max revision from `/revision` endpoint. Response includes Cache-Control header for 30 days.
-         *
-         *     **Usage:**
-         *     1. Call `/revision` to get current max revision
-         *     2. Call `/data.json?revision={max_revision}` to get all data
-         *     3. Cache the response locally - it won't change until revision changes
-         *
+         * @description Return all items as a JSON array with long cache headers.
          *
          *     **Permissions:** `ReadOnlyOrSuperUser`
          */
@@ -514,8 +505,8 @@ export interface components {
     schemas: {
         /** @description Response for bulk create/update operations. */
         BulkUpdateResponse: {
-            /** @description List of created/updated object IDs */
-            updated_ids: string[];
+            /** @description List of created/updated object IDs (each a pk: integer or uuid) */
+            updated_ids: (number | string)[];
         };
         /** @description Dashboard translation statistics across all languages. */
         DashboardStatsResponse: {
@@ -873,7 +864,7 @@ export interface components {
             params?: {
                 [key: string]: unknown;
             };
-            /** @description Active Django locale `error` was rendered in (e.g */
+            /** @description The language `error` is written in (e.g. 'en', 'ru'), */
             error_language?: string;
         };
         /**
@@ -1800,10 +1791,7 @@ export interface operations {
     };
     "translate_api_v1_translations_data.json_list": {
         parameters: {
-            query: {
-                /** @description Current revision number (for cache busting). Get from /revision endpoint. */
-                revision: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;

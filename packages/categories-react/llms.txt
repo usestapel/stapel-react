@@ -1,6 +1,6 @@
-# @stapel/categories-react 0.33.1
+# @stapel/categories-react 0.34.0
 
-Headless React flow pair for stapel-categories (contract >=0.23 <0.24) — business + state, zero visual opinion.
+Headless React flow pair for stapel-categories (contract >=0.24 <0.25) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -27,7 +27,7 @@ Paths are relative to `/categories/api/v1/`.
 - categories_api_v1_categories_carousel_list: GET /categories/carousel/
 - categories_api_v1_categories_children_list: GET /categories/{id}/children/
 - categories_api_v1_categories_create: POST /categories/
-- categories_api_v1_categories_data.json_retrieve: GET /categories/data.json/
+- categories_api_v1_categories_data.json_list: GET /categories/data.json/
 - categories_api_v1_categories_deleted_children_list: GET /categories/{id}/deleted-children/
 - categories_api_v1_categories_destroy: DELETE /categories/{id}/
 - categories_api_v1_categories_feature_editor_apply_create: POST /categories/{id}/feature-editor/apply/
@@ -49,7 +49,7 @@ Paths are relative to `/categories/api/v1/`.
 - categories_api_v1_features_bulk_add_create: POST /features/bulk_add/
 - categories_api_v1_features_convert_type_create: POST /features/{id}/convert-type/
 - categories_api_v1_features_create: POST /features/
-- categories_api_v1_features_data.json_retrieve: GET /features/data.json/
+- categories_api_v1_features_data.json_list: GET /features/data.json/
 - categories_api_v1_features_destroy: DELETE /features/{id}/
 - categories_api_v1_features_list: GET /features/
 - categories_api_v1_features_partial_update: PATCH /features/{id}/

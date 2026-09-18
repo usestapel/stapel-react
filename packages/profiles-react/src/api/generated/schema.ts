@@ -986,7 +986,7 @@ export interface components {
             avatar_source?: components["schemas"]["AvatarSourceEnum"];
             /** @description Avatar reference matching avatar_source: CDN 'avatar/<hash>' ref, a Gravatar email-hash, a plain URL, or an uploaded file key. */
             avatar?: string | null;
-            readonly avatar_image: components["schemas"]["StapelImage"];
+            readonly avatar_image: components["schemas"]["StapelImage"] | null;
             /**
              * Format: int64
              * @description User's location ID from geo service
@@ -1074,7 +1074,7 @@ export interface components {
              * @description ISO 8601 time this PROFILE was created — the tenure a seller page renders as "on the site since March 2024". Not a sign-in time and not an activity signal
              * @example 2025-01-15T12:00:00Z
              */
-            created_at: string;
+            created_at: string | null;
             /**
              * @description Which kinds of contact this person has published — the fact only, never the value
              * @example {

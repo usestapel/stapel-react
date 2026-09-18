@@ -677,7 +677,7 @@ export interface components {
              * Format: double
              * @description confidence
              */
-            confidence: number;
+            confidence: number | null;
             /** @description model */
             model: string;
             id: string;

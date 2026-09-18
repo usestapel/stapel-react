@@ -110,7 +110,8 @@ export function DeliveryDetailSheet(
                     key: "response",
                     label: t(WEBHOOKS_I18N_KEYS.detailResponse),
                     children:
-                      row.response_status > 0
+                      // null = the attempt never got an answer; same line as 0.
+                      (row.response_status ?? 0) > 0
                         ? row.response_status
                         : t(WEBHOOKS_I18N_KEYS.detailNoResponse),
                   },
