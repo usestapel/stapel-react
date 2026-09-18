@@ -62,7 +62,7 @@
  * type-scaled heading of a page, with its height reserved while the read is in
  * flight. This one is a heading INSIDE a row.)
  */
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Avatar, Flex, Skeleton, Typography } from "antd";
 import { spacing } from "@stapel/tokens";
 import { useIdentityTint } from "@stapel/tokens-antd/skin";
@@ -261,6 +261,23 @@ export function PersonAvatar(props: PersonAvatarProps): ReactElement {
 }
 
 /**
+ * THE NAME GIVES WAY — every element between the flex line and the text.
+ *
+ * A display name longer than the column it stands in is the normal case on a
+ * marketplace, and `min-width: auto` is the flex default all the way down:
+ * through the anchor to antd's ellipsis span, whose `max-width: 100%` is then
+ * 100% of a box that cannot shrink. Applied to the text AND to the link that
+ * may wrap it, so neither end of the line is the rigid one.
+ *
+ * A CSS ellipsis truncates the paint only — the whole name stays in the DOM
+ * and in the accessibility tree.
+ */
+const NAME_SHRINKS: CSSProperties = {
+  minInlineSize: 0,
+  maxInlineSize: "100%",
+};
+
+/**
  * The name as an `h1`–`h4`, and NOTHING else different.
  *
  * `font: inherit` and a zeroed margin are the whole implementation: a browser's
@@ -325,6 +342,7 @@ export function PersonRow(props: PersonRowProps): ReactElement {
     <Typography.Text
       strong={props.size === "header"}
       ellipsis
+      style={NAME_SHRINKS}
       data-stapel-person-name
     >
       {name}
@@ -337,6 +355,12 @@ export function PersonRow(props: PersonRowProps): ReactElement {
   const href = props.href;
   const notify = props.onOpen;
   const linkAttrs = {
+    /* The anchor is a FLEX ITEM, and a flex item's `min-width: auto` is what
+       kept a long display name at its full measure and pushed it out through
+       the panel's right edge. antd's ellipsis span inside is `max-width:100%`
+       of this element, so it can only fire once this one is allowed to give
+       way. */
+    style: NAME_SHRINKS,
     "data-stapel-person-link": "",
     "data-analytics": "none",
     "data-analytics-reason":

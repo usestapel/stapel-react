@@ -77,6 +77,7 @@ import {
 } from "@stapel/tokens-antd/skin";
 import { fontSize, spacing } from "@stapel/tokens";
 import { pickRatingFit, ratingFitShape } from "./ratingFit.js";
+import { starBreakdown } from "../model/rating.js";
 import { ReviewAggregate } from "../headless/ReviewAggregate.js";
 import type { ReviewAggregateProps } from "../headless/ReviewAggregate.js";
 import { REVIEWS_I18N_KEYS, REVIEWS_I18N_PLURALS } from "../i18n/keys.js";
@@ -129,6 +130,24 @@ const COUNT: CSSProperties = { flex: "0 0 auto", whiteSpace: "nowrap" };
 
 /** Between the score and the count, for the eye only. */
 const DOT: CSSProperties = { flex: "0 0 auto" };
+
+/**
+ * The value antd's `<Rate allowHalf>` is actually given.
+ *
+ * `<Rate>` floors to the half below: at `value={4.8}` its fifth star is HALF
+ * filled, which draws 4.5 over a 4.8 rating and takes a third of a star off
+ * every seller on the screen. `starBreakdown` is the module's own rule — a
+ * remainder of a quarter or more is a half, three quarters or more is whole —
+ * so the glyphs are quantised to the NEAREST half before antd sees them and
+ * 4.8 draws five.
+ *
+ * The score beside the stars keeps the unrounded `4.8`, and the spoken line
+ * keeps it too: the glyphs are the approximation, never the number.
+ */
+function starValue(rounded: number, max: number): number {
+  const stars = starBreakdown(rounded, max);
+  return stars.full + stars.half * 0.5;
+}
 
 export type RatingBadgeProps = ThemeModeProp &
   Omit<ReviewAggregateProps, "children">;
@@ -219,7 +238,7 @@ export function RatingBadge(props: RatingBadgeProps): ReactElement {
                           allowHalf
                           aria-hidden="true"
                           count={shape.allStars ? bag.max : 1}
-                          value={shape.allStars ? summary.rounded : 1}
+                          value={shape.allStars ? starValue(summary.rounded, bag.max) : 1}
                           style={STARS}
                           data-testid="reviews-rating-stars"
                         />
