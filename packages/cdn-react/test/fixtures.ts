@@ -73,7 +73,13 @@ export function describeResponse(
   return { items, missing };
 }
 
-/** A stored video row — no ladder, a poster, and a measured length. */
+/**
+ * A stored video row — no ladder, a poster, and a measured length.
+ *
+ * `processed: false` is the row as it exists between the 201 and the
+ * transcode: stapel-cdn 0.25.0 answers `null` for every rendition that has
+ * not been written, where it used to answer a computed path that 404s.
+ */
 export function videoRow(options: {
   readonly hash: string;
   readonly processed?: boolean;
@@ -81,6 +87,11 @@ export function videoRow(options: {
 }): Record<string, unknown> {
   const { hash } = options;
   const processed = options.processed ?? true;
+  const rendition = (tier: string): string | null =>
+    processed ? `https://cdn.test/media/cdn/videos/${hash.slice(0, 8)}.${tier}.mp4` : null;
+  const posterUrl = processed
+    ? `https://cdn.test/media/cdn/posters/${hash.slice(0, 8)}.webp`
+    : null;
   return {
     id: 11,
     file_hash: hash,
@@ -91,7 +102,14 @@ export function videoRow(options: {
     original_size: 4_000_000,
     duration: 12.5,
     original_url: `https://cdn.test/media/cdn/videos/${hash.slice(0, 8)}.mp4`,
-    poster_url: `https://cdn.test/media/cdn/posters/${hash.slice(0, 8)}.webp`,
+    variant_16p_url: rendition("16p"),
+    variant_32p_url: rendition("32p"),
+    variant_240p_url: rendition("240p"),
+    variant_480p_url: rendition("480p"),
+    variant_720p_url: rendition("720p"),
+    variant_1080p_url: rendition("1080p"),
+    variant_2160p_url: rendition("2160p"),
+    poster_url: posterUrl,
     is_processed: processed,
     render_meta: renderMeta({
       ref: `video/${hash}`,
@@ -103,7 +121,7 @@ export function videoRow(options: {
       height: 1080,
       aspect: 1.777778,
       previewKind: "poster",
-      posterUrl: `https://cdn.test/media/cdn/posters/${hash.slice(0, 8)}.webp`,
+      posterUrl,
       durationMs: options.durationMs === undefined ? 12_500 : options.durationMs,
     }),
     uploaded_by: "00000000-0000-0000-0000-000000000001",

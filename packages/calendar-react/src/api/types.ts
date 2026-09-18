@@ -20,6 +20,19 @@ export type Schemas = components["schemas"];
 
 /** A calendar event — a series master or a concrete occurrence. */
 export type CalendarEvent = Schemas["EventResponse"];
+/**
+ * `DELETE /events/{id}` 200 — what the delete DID, not an echo of the row.
+ *
+ * Since stapel-calendar 0.8.0 the endpoint answers `EventDeleteResponse`
+ * instead of the event: on a materialized occurrence a delete tombstones the
+ * row rather than removing it (so the recurrence rule cannot resurrect the
+ * slot), and the two outcomes are different facts a UI may want to say. There
+ * is therefore no `id` to read off this body — invalidate the cache with the
+ * id you already had.
+ */
+export type EventDeleteOutcome = Schemas["EventDeleteResponse"];
+/** `deleted` (the row is gone) or `cancelled` (tombstoned; it still reads back). */
+export type EventDeleteStatus = Schemas["StatusEnum"];
 /** POST /events request body — create an event (optionally a recurring series). */
 export type EventCreateRequest = Schemas["EventCreateRequest"];
 /**

@@ -16,6 +16,7 @@ import type {
   ListingFeatureView,
   ListingStatusInfo,
 } from "../api/types.js";
+import { isOwnerStatus } from "../api/types.js";
 import { useListing, useListingStatus } from "../model/queries.js";
 import { useFavoriteListing } from "../model/mutations.js";
 import { asFeatureDaoList, featuresFromDaoList, unreadableFeatureCount } from "../model/features.js";
@@ -197,10 +198,11 @@ export function useListingDetail(
         detail.data.moderation_status ?? "pending"
       );
     }
-    // The probe still knows both axes for a row the detail cannot return —
+    // Only the OWNER's probe body knows both axes; a stranger's carries
+    // `is_deleted` alone, so there is no status to build from it.
     // `moderation_status` arrives as a bare string there, so it is narrowed
     // by the same table rather than trusted.
-    if (probe.data !== undefined) {
+    if (probe.data !== undefined && isOwnerStatus(probe.data)) {
       const moderation = probe.data.moderation_status;
       return listingStatusView(
         probe.data.status,
@@ -214,7 +216,11 @@ export function useListingDetail(
     return undefined;
   }, [detail.data, probe.data]);
 
-  const owner = detail.data?.owner ?? probe.data?.owner_id;
+  const probeOwner =
+    probe.data !== undefined && isOwnerStatus(probe.data)
+      ? probe.data.owner_id
+      : undefined;
+  const owner = detail.data?.owner ?? probeOwner;
   const viewerIsOwner =
     options.viewerId === undefined || owner === undefined
       ? undefined

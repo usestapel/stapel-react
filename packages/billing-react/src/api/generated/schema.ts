@@ -28,6 +28,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/api/v1/checkout/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Staff buy a package without a card, and the REAL post-payment path runs.
+         *
+         *     THE GATE IS WHO, NEVER A SETTING. ``IsStaffUser`` is checked here, on the
+         *     server, on every call — a fleet rule, and the reason this is not a mock
+         *     payment provider behind an environment flag: a deployment must not behave
+         *     differently because of a variable, and "is this deployment pretending" is
+         *     not a question a reader should have to ask of a settings file.
+         *
+         *     The client's control being hidden is NOT the gate. A non-staff account
+         *     that posts this body anyway gets 403 from ``permission_classes``, which is
+         *     what makes the hidden checkbox merely a courtesy.
+         *
+         *     The client chooses the PACKAGE and nothing else. Credits, price and
+         *     currency come from the catalogue, so a forged body cannot ask for a
+         *     number: the worst a staff member can do is buy a package they could have
+         *     bought.
+         *
+         *     **Permissions:** `IsAuthenticated, IsStaffUser`
+         */
+        post: operations["billing_api_v1_checkout_simulate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/api/v1/internal/debit": {
         parameters: {
             query?: never;
@@ -387,6 +423,24 @@ export interface components {
             storage_limit_bytes: number;
             description: string;
         };
+        /** @description Buy a credit package WITHOUT a card. Staff only, enforced server-side. */
+        SimulatedCheckoutRequest: {
+            /** @description Credit-package slug, exactly as the real checkout takes it */
+            package: string;
+        };
+        /** @description What the simulated return from the processor produced. */
+        SimulatedCheckoutResponse: {
+            /** @description The ledger row, which carries `metadata.simulated` */
+            transaction_id: string | null;
+            /** @description Credits granted — the package's, not a number the client chose */
+            credits: number;
+            /** @description Wallet balance after the grant */
+            balance: number;
+            /** @description The synthetic checkout-session id the grant was claimed on */
+            session_id: string;
+            /** @description Always true. Present so a caller cannot mistake this */
+            simulated?: boolean;
+        };
         /** @description Structured error returned by all Stapel API endpoints. */
         StapelError: {
             /**
@@ -524,6 +578,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+        };
+    };
+    billing_api_v1_checkout_simulate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulatedCheckoutRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SimulatedCheckoutRequest"];
+                "multipart/form-data": components["schemas"]["SimulatedCheckoutRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimulatedCheckoutResponse"];
                 };
             };
         };

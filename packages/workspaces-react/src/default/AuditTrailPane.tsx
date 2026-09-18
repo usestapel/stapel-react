@@ -33,6 +33,7 @@ import { spacing } from "@stapel/tokens";
 import { useAudit } from "../model/queries.js";
 import { titleCaseKey, useWorkspaceFormat } from "../model/format.js";
 import type { AuditEvent, AuditParams } from "../api/types.js";
+import { pageAnchor } from "../api/anchors.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { AnchorPager, Muted, PersonLine, StatusTag } from "./parts.js";
 import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
@@ -228,14 +229,14 @@ function AuditTrailBody(props: { readonly workspaceId: string }): ReactElement {
           testId="audit-pager"
           onPrev={() =>
             setWalk({
-              anchor: page.prev_anchor ?? undefined,
+              anchor: pageAnchor(page.prev_anchor),
               direction: "prev",
               index: Math.max(1, walk.index - 1),
             })
           }
           onNext={() =>
             setWalk({
-              anchor: page.next_anchor ?? undefined,
+              anchor: pageAnchor(page.next_anchor),
               direction: "next",
               index: walk.index + 1,
             })

@@ -1,5 +1,15 @@
 # @stapel/docs-react
 
+## 0.9.2
+
+### Patch Changes
+
+- Pin restamp to the GDPR-owner releases — stapel-docs 0.10.0 and
+  stapel-profiles 0.22.0. Migrations and a core floor upstream; the contracts are
+  byte-identical apart from the declared range, so the only change here is the
+  manifest and `llms.txt` saying which backend range these pairs are built
+  against.
+
 ## 0.9.1
 
 ### Patch Changes

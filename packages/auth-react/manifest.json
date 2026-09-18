@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/auth-react",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.42 <0.43"
+    "contract": ">=0.43 <0.44"
   },
   "layers": [
     "api",
@@ -1073,6 +1073,13 @@
       "tag": "Token",
       "request": "TokenVerify",
       "response": "TokenVerifyResponse"
+    },
+    "jwt_status": {
+      "method": "GET",
+      "path": "/auth/api/v1/jwt/status/",
+      "tag": "auth",
+      "request": null,
+      "response": "JWTStatus"
     }
   },
   "hooks": {
@@ -3309,6 +3316,8 @@
       "ForcedPasswordChangeFlow",
       "ForcedPasswordChangeFlowDeps",
       "ForcedPasswordChangeState",
+      "JwtStatus",
+      "JwtStatusTokens",
       "LinkedOAuthAccount",
       "LoginCapabilities",
       "LoginResponse",

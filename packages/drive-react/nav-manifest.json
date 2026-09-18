@@ -1,6 +1,6 @@
 {
   "package": "@stapel/drive-react",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "entries": [
     {
       "id": "drive.home",

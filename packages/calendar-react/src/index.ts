@@ -21,6 +21,8 @@ export type {
   Schemas,
   CalendarEvent,
   EventCreateRequest,
+  EventDeleteOutcome,
+  EventDeleteStatus,
   EventUpdateRequest,
   ParticipantsReplaceRequest,
   CalendarResponse,

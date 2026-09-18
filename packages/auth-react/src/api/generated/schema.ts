@@ -510,6 +510,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/api/v1/jwt/status/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current JWT session state
+         * @description Decodes the caller's own access/refresh tokens and reports whether they are still valid, together with the presented profile of the authenticated user. Mints nothing and never refreshes a token.
+         *
+         *     **Permissions:** `AllowAny`
+         */
+        get: operations["jwt_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/api/v1/logout/": {
         parameters: {
             query?: never;
@@ -3261,6 +3283,31 @@ export interface components {
             expires_at: string;
         };
         /**
+         * @description The status payload, as the contract describes it.
+         *
+         *     Declaration only — the view answers with the dict it always answered
+         *     with, and this says what that dict is. ``profile`` is deliberately an
+         *     open object: its shape is the deployment's, decided by the swappable
+         *     ``USERS_PROFILE_PRESENTER``, and pinning one presenter's fields here
+         *     would describe a payload a host that swapped it does not send.
+         */
+        JWTStatus: {
+            authenticated: boolean;
+            profile?: {
+                [key: string]: unknown;
+            } | null;
+            tokens?: components["schemas"]["JWTStatusTokens"];
+            /** @description Present when the request carried no tokens. */
+            message?: string;
+        };
+        /** @description The ``tokens`` block of the status payload. */
+        JWTStatusTokens: {
+            access_token_valid: boolean;
+            refresh_token_valid: boolean;
+            access_token_exp: number | null;
+            refresh_token_exp: number | null;
+        };
+        /**
          * @description * `access` - access
          *     * `erasure` - erasure
          *     * `rectification` - rectification
@@ -5364,6 +5411,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    jwt_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JWTStatus"];
                 };
             };
         };

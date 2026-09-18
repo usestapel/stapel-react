@@ -1,5 +1,22 @@
 # @stapel/video-react
 
+## 0.4.0
+
+### Minor Changes
+
+- **BREAKING (pre-1.0, so a minor).** `lobby/deny` answers a participant.
+
+  stapel-video 0.13.0 makes deny the symmetric twin of admit: both answer the
+  lobby entry's state after the decision, so a host screen re-renders the row it
+  just acted on from the response either way. The one asymmetry is the token,
+  and that is the point — a denied participant is minted none.
+
+  `denyParticipant` resolves to the new `DenyResponse` instead of echoing the
+  request body. For a caller that read the response: `body.status` →
+  `body.participant.status`, `body.participant_id` → `body.participant.id`. The
+  pair's own lobby hook never read the body (it settles the row by the id it
+  sent), so `useMeetingLobby` and the default `<LobbyPanel/>` are unchanged.
+
 ## 0.3.9
 
 ### Patch Changes

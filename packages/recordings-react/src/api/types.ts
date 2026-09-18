@@ -73,7 +73,13 @@ export type Job = Schemas["JobDTO"];
 /** One speaker-attributed transcript segment. ONE shape for both doors — the
  * owner's paginated read and the projection inside a share link. */
 export type TranscriptSegment = Schemas["TranscriptSegmentDTO"];
-/** The anchor-paginated envelope one transcript page arrives in. */
+/**
+ * The anchor-paginated envelope one transcript page arrives in.
+ *
+ * `next_anchor`/`prev_anchor` are INTEGERS since stapel-recordings 0.27.0 —
+ * they carry a `sequence_num`, which is what the `anchor` query parameter has
+ * always taken, and the contract used to declare them as strings.
+ */
 export type TranscriptPage = Schemas["TranscriptPage"];
 /** A recording as seen through a public share link. Field presence follows the
  * share's granted {@link SharePermission}s, not the caller's request. */

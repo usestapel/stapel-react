@@ -138,6 +138,21 @@ export type OtpRequestResponse = Schemas["OtpSentResponse"];
 export type StatusResponse = Schemas["SimpleStatusResponse"];
 
 /**
+ * `GET /jwt/status/` 200 (stapel-auth 0.43.0) — what the caller's own tokens
+ * say about themselves. `AllowAny`: it decodes what was presented, mints
+ * nothing and refreshes nothing, so it is safe to ask before a session exists.
+ *
+ * `profile` is an OPEN object on purpose — its shape is the deployment's, set
+ * by the swappable `USERS_PROFILE_PRESENTER` — so a reader narrows it itself
+ * rather than trusting a shape this pair invented.
+ */
+export type JwtStatus = Schemas["JWTStatus"];
+
+/** The `tokens` block of {@link JwtStatus}: validity plus the two `exp`
+ * claims, in seconds since the epoch, or null when the token was absent. */
+export type JwtStatusTokens = Schemas["JWTStatusTokens"];
+
+/**
  * `POST /password/change/otp/verify/`'s response (stapel-auth ≥0.7.0):
  * ordinarily a bare `StatusResponse` (status=password_changed — no session
  * change). If the caller was an anonymous guest session, a successful

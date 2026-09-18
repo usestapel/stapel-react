@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { matchList } from "@stapel/core";
 import { createRecordingsRuntime } from "../src/model/runtime.js";
@@ -13,7 +14,11 @@ import { RecordingComposer } from "../src/headless/RecordingComposer.js";
 import { UploadFinalizer } from "../src/headless/UploadFinalizer.js";
 import { RecordingMedia } from "../src/headless/RecordingMedia.js";
 import { uploadGate } from "../src/headless/RecordingUpload.js";
-import { useRecordings, useUploadLimits } from "../src/model/queries.js";
+import {
+  useRecordings,
+  useTranscript,
+  useUploadLimits,
+} from "../src/model/queries.js";
 import { RECORDINGS_I18N_KEYS } from "../src/i18n/keys.js";
 import {
   UploadPreflightError,
@@ -80,6 +85,53 @@ describe("useRecordings (happy path)", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.title).toBe("Team standup");
+  });
+});
+
+describe("useTranscript (integer anchors)", () => {
+  it("passes the wire's own `next_anchor` back as the `anchor` parameter", async () => {
+    // stapel-recordings 0.27.0 declares `next_anchor`/`prev_anchor` as the
+    // integer `sequence_num` they carry — the same thing `?anchor=` takes.
+    // The page param must travel unparsed: `anchor=412`, never `anchor=NaN`
+    // and never a quoted string.
+    const seen: string[] = [];
+    server.use(
+      http.get(`${BASE}/recordings/:id/transcript`, ({ request }) => {
+        seen.push(request.url);
+        const anchor = new URL(request.url).searchParams.get("anchor");
+        return HttpResponse.json(
+          anchor === null
+            ? {
+                items: [],
+                next_anchor: 412,
+                prev_anchor: null,
+                has_next: true,
+                has_prev: false,
+                count: 1,
+              }
+            : {
+                items: [],
+                next_anchor: null,
+                prev_anchor: 412,
+                has_next: false,
+                has_prev: true,
+                count: 1,
+              }
+        );
+      })
+    );
+    const runtime = createRecordingsRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useTranscript("rec-1"), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.pages[0]?.next_anchor).toBe(412);
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
+    expect(seen[1]).toContain("anchor=412");
+    expect(result.current.hasNextPage).toBe(false);
   });
 });
 

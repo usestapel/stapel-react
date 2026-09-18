@@ -11,6 +11,7 @@ import type {
   ChangeOldVerifiedResponse,
   DelayedChangeInitiatedResponse,
   DelayedChangeStatus,
+  JwtStatus,
   LinkedOAuthAccount,
   LoginResponse,
   MfaEnrollSessionResponse,
@@ -113,6 +114,15 @@ export interface AuthApi {
   capabilities(): Promise<Capabilities>;
   me(): Promise<StapelUser>;
   logout(): Promise<StatusResponse>;
+  /**
+   * What the caller's own tokens say about themselves (stapel-auth 0.43.0).
+   *
+   * `AllowAny`, and it mints nothing: it decodes what was presented and
+   * reports validity plus the two `exp` claims. Asking it is therefore not a
+   * way to refresh a session, and it answers `{authenticated: false}` with a
+   * `message` when the request carried no tokens at all.
+   */
+  jwtStatus(): Promise<JwtStatus>;
 
   // Email / Phone OTP (auth-sa.md §1–2)
   otpRequest(channel: OtpChannel, value: string, captchaToken?: string): Promise<OtpRequestResponse>;
@@ -328,6 +338,7 @@ export function createAuthApi(client: StapelClient): AuthApi {
 
     capabilities: () => client.get("/capabilities/"),
     me: () => client.get("/me/"),
+    jwtStatus: () => client.get("/jwt/status/"),
     logout: () => client.post("/logout/", undefined, mutating()),
 
     otpRequest: (channel, value, captchaToken) =>

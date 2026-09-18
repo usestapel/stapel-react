@@ -6,6 +6,7 @@ import type {
   CalendarRangeParams,
   CalendarResponse,
   EventCreateRequest,
+  EventDeleteOutcome,
   EventUpdateRequest,
   ParticipantsReplaceRequest,
   Rsvp,
@@ -79,8 +80,14 @@ export interface CalendarApi {
     eventId: string,
     body: ParticipantsReplaceRequest
   ): Promise<CalendarEvent>;
-  /** Cancel/delete an event (owner-only); resolves to the updated event. */
-  deleteEvent(eventId: string): Promise<CalendarEvent>;
+  /**
+   * Cancel/delete an event (owner-only).
+   *
+   * Resolves to what the call DID, not to the row: a series master is removed
+   * (`deleted`), a materialized occurrence is tombstoned (`cancelled`) so the
+   * recurrence rule cannot resurrect that instant. There is no id in the body.
+   */
+  deleteEvent(eventId: string): Promise<EventDeleteOutcome>;
   /** Record the current user's RSVP to an event; resolves to the updated event. */
   respond(eventId: string, rsvp: Rsvp): Promise<CalendarEvent>;
 }

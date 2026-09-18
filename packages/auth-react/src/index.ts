@@ -33,6 +33,8 @@ export type {
   LoginResponse,
   OtpRequestResponse,
   StatusResponse,
+  JwtStatus,
+  JwtStatusTokens,
   PasswordOtpChangeResponse,
   PasswordRegisterRequest,
   OtpChannel,

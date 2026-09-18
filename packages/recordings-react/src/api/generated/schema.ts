@@ -521,8 +521,8 @@ export interface components {
          */
         TranscriptPage: {
             items: components["schemas"]["TranscriptSegmentDTO"][];
-            next_anchor: string | null;
-            prev_anchor: string | null;
+            next_anchor: number | null;
+            prev_anchor: number | null;
             has_next: boolean;
             has_prev: boolean;
             count: number;

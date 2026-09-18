@@ -163,7 +163,7 @@ export interface components {
         };
         /** @description One destination in the dropdown, ready to render and ready to follow. */
         CategorySuggestion: {
-            /** @description Category id. A `listings`-graded row derives it from the path's leaf segment. */
+            /** @description Category id. A `listings`-graded row derives it from the path's leaf segment; a path whose leaf is not an id yields no row at all (`category_listing_ids` in `degraded[]`) rather than a row with something else in this field. */
             id: number;
             /** @description Category slug. Empty on a `listings`-graded row: no comm Function in the fleet resolves a path id to its slug or name yet. */
             slug: string;
@@ -471,7 +471,7 @@ export interface components {
             items: string[];
             /** @description Which dictionary answered — the same resolution /query reports. */
             language: string;
-            /** @description What this answer could not do: `category_suggestions` (no provider for category names), `category_rollup` (no ancestry, so counts would read 0), `category_listing_suggestions` (no name matched and the configured engine does not implement the optional goods-driven verb, or it failed). */
+            /** @description What this answer could not do: `category_suggestions` (no provider for category names), `category_rollup` (no ancestry, so counts would read 0), `category_listing_suggestions` (no name matched and the configured engine does not implement the optional goods-driven verb, or it failed), `category_listing_ids` (goods-driven rows were dropped because their indexed path leaf is not a category id, so the declared integer `id` cannot be resolved). */
             degraded: string[];
             backend: string;
         };

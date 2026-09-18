@@ -1,6 +1,6 @@
-# @stapel/billing-react 0.11.0
+# @stapel/billing-react 0.12.0
 
-Headless React flow pair for stapel-billing (contract >=0.17 <0.18) — business + state, zero visual opinion.
+Headless React flow pair for stapel-billing (contract >=0.19 <0.20) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -22,6 +22,7 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/billing/api/v1/`.
 - billing_api_v1_checkout_create: POST /checkout
+- billing_api_v1_checkout_simulate_create: POST /checkout/simulate
 - billing_api_v1_internal_debit_create: POST /internal/debit
 - billing_api_v1_portal_retrieve: GET /portal
 - billing_api_v1_products_retrieve: GET /products

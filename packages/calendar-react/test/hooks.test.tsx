@@ -20,6 +20,7 @@ import { EventRsvp } from "../src/headless/EventRsvp.js";
 import { useCalendar } from "../src/model/queries.js";
 import { calendarI18nBundleEn } from "../src/i18n/keys.js";
 import {
+  useDeleteEvent,
   useReplaceParticipants,
   useUpdateEvent,
 } from "../src/model/mutations.js";
@@ -132,6 +133,46 @@ describe("useUpdateEvent (PATCH, happy path)", () => {
     expect(seenMethod).toBe("PATCH");
     expect(seenBody).toEqual({ title: "Renamed review" });
     expect(result.current.data?.title).toBe("Renamed review");
+  });
+});
+
+describe("useDeleteEvent (DELETE answers a verdict, not the row)", () => {
+  it("resolves the outcome and needs no id from the body", async () => {
+    // stapel-calendar 0.8.0: a delete on a materialized occurrence tombstones
+    // the row instead of removing it, so the endpoint answers what it DID.
+    // A caller that read `.id` off this result to invalidate its cache reads
+    // `undefined` — the id it passed in is the only one there ever was.
+    let seenUrl = "";
+    server.use(
+      http.delete(`${BASE}/events/:id`, ({ request }) => {
+        seenUrl = request.url;
+        return HttpResponse.json({ status: "cancelled" });
+      })
+    );
+    const runtime = createCalendarRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useDeleteEvent(), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    result.current.mutate(EVENT.id);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(seenUrl).toContain(`/events/${EVENT.id}`);
+    expect(result.current.data).toEqual({ status: "cancelled" });
+    expect(result.current.data).not.toHaveProperty("id");
+  });
+
+  it("reports a plain delete as `deleted`", async () => {
+    server.use(
+      http.delete(`${BASE}/events/:id`, () =>
+        HttpResponse.json({ status: "deleted" })
+      )
+    );
+    const runtime = createCalendarRuntime({ baseUrl: BASE });
+    const { result } = renderHook(() => useDeleteEvent(), {
+      wrapper: ({ children }) => wrap(runtime, children),
+    });
+    result.current.mutate(EVENT.id);
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.status).toBe("deleted");
   });
 });
 

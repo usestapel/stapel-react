@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { ListingDetailPane } from "../src/default/index.js";
 import { TestProviders, mockServer } from "./harness.js";
-import { OWNER, STRANGER, detail, statusInfo } from "./fixtures.js";
+import { OWNER, STRANGER, detail, publicStatusInfo, statusInfo } from "./fixtures.js";
 
 /**
  * Four absences, four sentences — and the two that a single 404 would have
@@ -87,11 +87,12 @@ describe("a removed listing is not a typo", () => {
   it("says 'taken down' with no retry when the probe still answers for the row", async () => {
     // The archived-not-deleted case, measured on a live stand: the detail
     // read 404s (its queryset filters the row out) while the AllowAny probe
-    // answers 200 — and its whole body there was `{"is_deleted": false}`.
-    // The pane used to fall into the generic "could not load / retry" arm: a
-    // retry that could never help, on a row that is gone on purpose.
+    // answers 200 — and its whole body there is the public scope, `is_deleted`
+    // and nothing else. The pane used to fall into the generic "could not
+    // load / retry" arm: a retry that could never help, on a row that is gone
+    // on purpose.
     const srv = mockServer({
-      "/listings/7/status/": { body: { is_deleted: false } },
+      "/listings/7/status/": { body: publicStatusInfo() },
       "/listings/7/": { status: 404, body: { localizable_error: "error.404.listing_not_found" } },
     });
     render(

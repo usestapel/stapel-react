@@ -53,6 +53,7 @@ import {
 } from "../model/mutations.js";
 import { useWorkspaceFormat } from "../model/format.js";
 import type { Invitation, InvitationStatusFilter, InvitationsParams } from "../api/types.js";
+import { pageAnchor } from "../api/anchors.js";
 import { WORKSPACES_I18N_KEYS } from "../i18n/keys.js";
 import { AnchorPager, Muted, PersonLine, RowActions, StatusTag } from "./parts.js";
 import { ActiveWorkspaceBoundary } from "./ActiveWorkspace.js";
@@ -248,14 +249,14 @@ function InvitationsBody(props: {
           testId="invitations-pager"
           onPrev={() =>
             setWalk({
-              anchor: page.prev_anchor ?? undefined,
+              anchor: pageAnchor(page.prev_anchor),
               direction: "prev",
               index: Math.max(1, walk.index - 1),
             })
           }
           onNext={() =>
             setWalk({
-              anchor: page.next_anchor ?? undefined,
+              anchor: pageAnchor(page.next_anchor),
               direction: "next",
               index: walk.index + 1,
             })

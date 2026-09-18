@@ -217,6 +217,23 @@ export interface components {
             /** @description User ids to invite */
             participant_ids?: string[];
         };
+        /**
+         * @description The outcome of `DELETE /events/{event_id}`.
+         *
+         *     Not an `EventResponse`: a delete answers what it did, and for a
+         *     materialized occurrence what it did is not a deletion. The body is one
+         *     word because that word is the whole information — but it IS information,
+         *     which is why the endpoint does not answer 204.
+         */
+        EventDeleteResponse: {
+            /**
+             * @description What the delete did — `deleted` (the row is gone) or `cancelled` (a materialized occurrence was tombstoned and still reads back)
+             *
+             *     * `deleted` - The row is gone
+             *     * `cancelled` - A materialized occurrence was tombstoned, not removed — it still reads back, with `status: cancelled`, so the recurrence rule cannot resurrect it at that instant
+             */
+            status: components["schemas"]["StatusEnum"];
+        };
         /** @description A calendar event (series master or concrete occurrence). */
         EventResponse: {
             /** @description Event id (UUID) */
@@ -340,6 +357,12 @@ export interface components {
             /** @description One of accepted/tentative/declined */
             rsvp: string;
         };
+        /**
+         * @description * `deleted` - The row is gone
+         *     * `cancelled` - A materialized occurrence was tombstoned, not removed — it still reads back, with `status: cancelled`, so the recurrence rule cannot resurrect it at that instant
+         * @enum {string}
+         */
+        StatusEnum: "deleted" | "cancelled";
     };
     responses: never;
     parameters: never;
@@ -485,7 +508,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EventResponse"];
+                    "application/json": components["schemas"]["EventDeleteResponse"];
                 };
             };
         };

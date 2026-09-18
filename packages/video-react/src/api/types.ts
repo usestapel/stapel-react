@@ -84,6 +84,18 @@ export type LobbyActionRequest = Schemas["LobbyActionRequest"];
  * them. */
 export type AdmitResponse = Schemas["AdmitResponse"];
 
+/**
+ * `POST …/lobby/deny` — the now-denied participant, nested.
+ *
+ * The symmetric twin of {@link AdmitResponse}, and NEW IN stapel-video 0.13.0:
+ * the route used to be declared as answering the request body back. A host
+ * screen re-renders the row it just acted on from `participant`, whichever
+ * verdict it sent; the one asymmetry is the token, and that is the point —
+ * a denied participant is minted none. Read `body.participant.status` and
+ * `body.participant.id`, not `body.status` / `body.participant_id`.
+ */
+export type DenyResponse = Schemas["DenyResponse"];
+
 // ── The call half of the contract (0.3.0) ───────────────────────────────────
 //
 // stapel-video 0.11.0 added a SECOND lifecycle beside the room one, and the

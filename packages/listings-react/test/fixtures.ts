@@ -13,7 +13,8 @@ import type {
   ListingCard,
   ListingDetailData,
   ListingDraft,
-  ListingStatusInfo,
+  ListingStatusOwnerInfo,
+  ListingStatusPublicInfo,
   MyCounters,
   MyListingCard,
   PaginatedListingCards,
@@ -159,9 +160,10 @@ export function detail(
 }
 
 export function statusInfo(
-  overrides: Partial<ListingStatusInfo> = {}
-): ListingStatusInfo {
+  overrides: Partial<ListingStatusOwnerInfo> = {}
+): ListingStatusOwnerInfo {
   return {
+    scope: "owner",
     status: "published",
     moderation_status: "approved",
     is_deleted: false,
@@ -170,6 +172,13 @@ export function statusInfo(
     owner_id: OWNER,
     ...overrides,
   };
+}
+
+/** The stranger-scoped probe body: whether the row is gone, and no more. */
+export function publicStatusInfo(
+  overrides: Partial<ListingStatusPublicInfo> = {}
+): ListingStatusPublicInfo {
+  return { scope: "public", is_deleted: false, ...overrides };
 }
 
 export const DRAFT: ListingDraft = {

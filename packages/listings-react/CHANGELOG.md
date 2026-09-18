@@ -1,5 +1,31 @@
 # @stapel/listings-react
 
+## 0.38.0
+
+### Minor Changes
+
+- The status probe answers two bodies now, and the pair reads which one it got.
+
+  `GET /listings/{id}/status/` is `AllowAny` and reads `all_objects`, which is
+  the point: it is what lets a page say "this listing was removed" instead of
+  the 404 a made-up id also produces. But the full body carried `owner_id` and
+  `moderation_status`, and listing ids are sequential — so under `AllowAny` it
+  was an enumeration oracle over the whole fleet, other people's drafts and
+  rejected rows included.
+
+  stapel-listings 0.23.0 keeps the capability and drops the disclosure:
+  `ListingStatusResponse` is a discriminated union on `scope`, the owner (and
+  the service transport) still gets `ListingStatus`, everyone else gets
+  `ListingStatusPublic` — `{scope, is_deleted}` and nothing more.
+
+  `ListingStatusInfo` is therefore the UNION. New: `isOwnerStatus(body)`, the
+  typed narrowing, plus `ListingStatusOwnerInfo` / `ListingStatusPublicInfo`.
+  `useListingDetail` narrows before it reads: the two-axis status view and
+  `viewerIsOwner` are built from an owner body only, and the removed/withdrawn
+  sentences — which need nothing but `is_deleted` — are unchanged for a
+  stranger. A host that read `status`, `moderation_status` or `owner_id` off
+  `useListingStatus().data` must narrow first; it will no longer compile.
+
 ## 0.37.1
 
 ### Patch Changes

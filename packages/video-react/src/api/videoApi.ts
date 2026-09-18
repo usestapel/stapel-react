@@ -6,6 +6,7 @@ import type {
   CallResponse,
   CallSessionRequest,
   CallTokenResponse,
+  DenyResponse,
   JoinRequest,
   JoinResponse,
   LobbyActionRequest,
@@ -153,12 +154,17 @@ export interface VideoApi {
     options?: { readonly signal?: AbortSignal }
   ): Promise<AdmitResponse>;
 
-  /** Host verdict: turn a waiting person away. Sticky for this room. */
+  /**
+   * Host verdict: turn a waiting person away. Sticky for this room.
+   *
+   * Answers the denied participant nested under `participant` — the twin of
+   * {@link VideoApi.admitParticipant}'s body, minus the token.
+   */
   denyParticipant(
     joinCode: string,
     request: LobbyActionRequest,
     options?: { readonly signal?: AbortSignal }
-  ): Promise<LobbyActionRequest>;
+  ): Promise<DenyResponse>;
 
   // ── 1:1 calls ────────────────────────────────────────────────────────────
   //

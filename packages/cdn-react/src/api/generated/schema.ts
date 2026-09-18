@@ -912,24 +912,24 @@ export interface components {
             /** Format: uri */
             readonly original_url: string;
             /** Format: uri */
-            readonly variant_16p_url: string;
+            readonly variant_16p_url: string | null;
             /** Format: uri */
-            readonly variant_32p_url: string;
+            readonly variant_32p_url: string | null;
             /** Format: uri */
-            readonly variant_240p_url: string;
+            readonly variant_240p_url: string | null;
             /** Format: uri */
-            readonly variant_480p_url: string;
+            readonly variant_480p_url: string | null;
             /** Format: uri */
-            readonly variant_720p_url: string;
+            readonly variant_720p_url: string | null;
             /** Format: uri */
-            readonly variant_1080p_url: string;
+            readonly variant_1080p_url: string | null;
             /** Format: uri */
-            readonly variant_2160p_url: string;
+            readonly variant_2160p_url: string | null;
             /**
              * Format: uri
              * @description Derived poster frame; null until one has been written.
              */
-            readonly poster_url: string;
+            readonly poster_url: string | null;
             /** @description cdn.describe snapshot for this video (see RenderMeta). */
             readonly render_meta: {
                 ref: string;

@@ -70,6 +70,7 @@ export {
   LISTINGS_ENGAGEMENT_BATCH_LIMIT,
   MODERATION_STATUSES,
   engagementIds,
+  isOwnerStatus,
 } from "./api/types.js";
 export type {
   DeleteResponse,
@@ -94,6 +95,8 @@ export type {
   ListingOwnerTransition,
   ListingPageParams,
   ListingStatusInfo,
+  ListingStatusOwnerInfo,
+  ListingStatusPublicInfo,
   MyCounters,
   MyListingCard,
   MyListingsParams,

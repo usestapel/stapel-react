@@ -19,6 +19,7 @@ import type {
   Workspace,
   WorkspaceList,
 } from "../api/types.js";
+import { pageAnchor } from "../api/anchors.js";
 import { useWorkspacesApi } from "./context.js";
 import { workspacesQueryKeys } from "./queryKeys.js";
 import { hasCapability } from "./capabilities.js";
@@ -200,7 +201,7 @@ export function useInfiniteInvitations(
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>
-      last.has_next ? (last.next_anchor ?? undefined) : undefined,
+      last.has_next ? pageAnchor(last.next_anchor) : undefined,
     enabled: sessionReady && workspaceId !== null && workspaceId !== "",
   });
 }

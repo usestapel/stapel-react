@@ -1,5 +1,20 @@
 # @stapel/search-react
 
+## 0.52.1
+
+### Patch Changes
+
+- Pin to stapel-search 0.18.1: `/suggest` gains the `category_listing_ids`
+  degradation — goods-driven rows whose indexed path leaf is not a category id
+  are dropped rather than sent with something else in the declared integer `id`,
+  so the rows may simply be absent.
+
+  Contract text only, no type change. `degraded[]` is `string[]` on the wire and
+  `SearchDegradationKind` is the set of degradations this pair has WORDING for,
+  not a mirror of the vocabulary: like its sibling `category_listing_suggestions`,
+  the new literal falls to the generic `unknown` arm, which shows the sentence
+  with the literal beside it instead of silence.
+
 ## 0.52.0
 
 ### Minor Changes

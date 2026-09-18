@@ -7,6 +7,7 @@ import type { StapelApiError } from "@stapel/core";
 import type {
   CalendarEvent,
   EventCreateRequest,
+  EventDeleteOutcome,
   EventUpdateRequest,
   ParticipantsReplaceRequest,
   Rsvp,
@@ -76,20 +77,28 @@ export function useCreateEvent(): UseMutationResult<
   return useMutation(options);
 }
 
-/** Cancel/delete an event by id (owner-only) — returns the updated event. */
+/**
+ * Cancel/delete an event by id (owner-only).
+ *
+ * Resolves to {@link EventDeleteOutcome} — `deleted` or `cancelled` — and NOT
+ * to the event: since stapel-calendar 0.8.0 the body carries no id, so the
+ * invalidation is keyed off the id the caller already passed in rather than
+ * off anything read back.
+ */
 export function useDeleteEvent(): UseMutationResult<
-  CalendarEvent,
+  EventDeleteOutcome,
   StapelApiError,
   string
 > {
   const api = useCalendarApi();
   const queryClient = useQueryClient();
-  const options: UseMutationOptions<CalendarEvent, StapelApiError, string> = {
-    mutationFn: (eventId) => api.deleteEvent(eventId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all });
-    },
-  };
+  const options: UseMutationOptions<EventDeleteOutcome, StapelApiError, string> =
+    {
+      mutationFn: (eventId) => api.deleteEvent(eventId),
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: calendarQueryKeys.all });
+      },
+    };
   return useMutation(options);
 }
 

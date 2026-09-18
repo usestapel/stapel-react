@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { StapelApiError } from "@stapel/core";
-import type { CalendarEvent } from "../api/types.js";
+import type { EventDeleteOutcome } from "../api/types.js";
 import { useDeleteEvent } from "../model/mutations.js";
 
 /** Render-prop bag for {@link EventDelete}. */
@@ -9,8 +9,16 @@ export interface EventDeleteBag {
   remove(): void;
   /** The call is in flight. */
   readonly isDeleting: boolean;
-  /** The server's echo of the row after the call, else null. */
-  readonly deleted: CalendarEvent | null;
+  /**
+   * What the call DID, once it has answered — `{status: "deleted"}` or
+   * `{status: "cancelled"}` — else null.
+   *
+   * Since stapel-calendar 0.8.0 this is no longer the row: a delete on a
+   * materialized occurrence tombstones it instead of removing it, and the
+   * body says which of the two happened. There is no id here to invalidate a
+   * cache with; the hook uses the id it was given.
+   */
+  readonly outcome: EventDeleteOutcome | null;
   readonly isError: boolean;
   readonly error: StapelApiError | null;
   reset(): void;
@@ -45,7 +53,7 @@ export function EventDelete(props: {
       mutation.mutate(eventId);
     },
     isDeleting: mutation.isPending,
-    deleted: mutation.data ?? null,
+    outcome: mutation.data ?? null,
     isError: mutation.isError,
     error: mutation.error ?? null,
     reset: () => {

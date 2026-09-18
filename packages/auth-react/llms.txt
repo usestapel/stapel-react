@@ -1,6 +1,6 @@
-# @stapel/auth-react 0.24.0
+# @stapel/auth-react 0.25.0
 
-Headless React flow pair for stapel-auth (contract >=0.42 <0.43) — business + state, zero visual opinion.
+Headless React flow pair for stapel-auth (contract >=0.43 <0.44) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -166,6 +166,7 @@ Paths are relative to `/auth/api/v1/`.
 - auth_api_v1_verification_preferences_update: PUT /verification/preferences/
 - auth_api_v1_verification_retrieve: GET /verification/{challenge_id}/
 - auth_api_v1_verify_create: POST /verify/
+- jwt_status: GET /jwt/status/
 
 ## Query hooks (server state; keys come only from the key factory)
 - useAdminAudit (query) → adminAudit

@@ -1099,8 +1099,21 @@ export interface components {
                 [key: string]: components["schemas"]["ListingEngagement"];
             };
         };
-        /** @description Lightweight status view (mirrors the listings.status comm Function). */
+        /**
+         * @description Lightweight status view (mirrors the listings.status comm Function).
+         *
+         *     Answered to the listing's owner and to the service transport only; every
+         *     other caller gets ``ListingStatusPublicSerializer``. ``scope`` is the
+         *     discriminator that tells the two apart on the wire.
+         */
         ListingStatus: {
+            /**
+             * @description Always `owner`: the full body, answered to the listing's owner and to the service transport.
+             *
+             *     * `owner` - owner (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            scope: "owner";
             status: components["schemas"]["StatusD41Enum"];
             moderation_status: string;
             is_deleted: boolean;
@@ -1108,6 +1121,50 @@ export interface components {
             is_active: boolean;
             owner_id: string;
         };
+        /**
+         * @description What a STRANGER may learn from the status probe: that a row exists.
+         *
+         *     The probe reads ``all_objects``, so it answers for soft-deleted and
+         *     unpublished listings — that is the point: it is what lets a page say "this
+         *     listing was removed" instead of the 404 a made-up id also produces.
+         *
+         *     But the full status view carries ``owner_id`` and ``moderation_status``,
+         *     and listing ids are sequential. Under ``AllowAny`` that made the endpoint
+         *     an enumeration oracle: walk the ids and harvest, for every listing in the
+         *     fleet including other people's drafts and rejected rows, who owns it and
+         *     what a moderator decided about it. Verified live on a stand.
+         *
+         *     Deleting the endpoint would have been the wrong fix — a real client uses
+         *     it, and the capability it grants a stranger (learning that a listing
+         *     existed and is gone) is the feature. So the CAPABILITY stays and the
+         *     DISCLOSURE goes: one boolean, which is all the removed-versus-never-existed
+         *     sentence needs.
+         *
+         *     Both shapes carry ``scope``, so a client reads which one it got instead
+         *     of probing for a field: the route answers two bodies and the contract
+         *     says so (``ListingStatusResponse``, a discriminated union on ``scope``).
+         */
+        ListingStatusPublic: {
+            /**
+             * @description Always `public`: the narrow body every caller who is neither the owner nor a service gets.
+             *
+             *     * `public` - public (enum property replaced by openapi-typescript)
+             * @enum {string}
+             */
+            scope: "public";
+            is_deleted: boolean;
+        };
+        /**
+         * @description * `public` - public
+         * @enum {string}
+         */
+        ListingStatusPublicScopeEnum: "public";
+        ListingStatusResponse: components["schemas"]["ListingStatus"] | components["schemas"]["ListingStatusPublic"];
+        /**
+         * @description * `owner` - owner
+         * @enum {string}
+         */
+        ListingStatusScopeEnum: "owner";
         /**
          * @description The body of ``POST listings/{id}/transition/``: where to move it.
          *
@@ -1866,7 +1923,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListingStatus"];
+                    "application/json": components["schemas"]["ListingStatusResponse"];
                 };
             };
         };

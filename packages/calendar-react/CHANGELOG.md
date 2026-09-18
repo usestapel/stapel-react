@@ -1,5 +1,23 @@
 # @stapel/calendar-react
 
+## 0.9.0
+
+### Minor Changes
+
+- **BREAKING (pre-1.0, so a minor).** A delete answers what it DID, not the row.
+
+  On a materialized occurrence stapel-calendar's `DELETE /events/{id}` does not
+  remove anything: it tombstones the row so the recurrence rule cannot resurrect
+  that instant. 0.8.0 stops pretending otherwise and answers
+  `EventDeleteResponse {status: "deleted" | "cancelled"}` instead of the event.
+
+  `deleteEvent` and `useDeleteEvent` now resolve to `EventDeleteOutcome` (new,
+  with `EventDeleteStatus`). There is no `id` in the body, so a caller that
+  invalidated a cache from the result must use the id it already passed in —
+  `useDeleteEvent` always did, and still invalidates the whole calendar key.
+  `EventDeleteBag.deleted` is renamed to `EventDeleteBag.outcome` for the same
+  reason: it was never the deleted row, and after 0.8.0 it could not be.
+
 ## 0.8.2
 
 ### Patch Changes

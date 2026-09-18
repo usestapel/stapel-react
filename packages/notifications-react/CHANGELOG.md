@@ -1,5 +1,20 @@
 # @stapel/notifications-react
 
+## 0.12.0
+
+### Minor Changes
+
+- The feed anchor is carried back as whatever the envelope sent.
+
+  The core anchor envelope now declares `next_anchor` / `prev_anchor` as the RAW
+  value of the field the paginator orders by — `string | number`, because the
+  same paginator serves lists ordered by a datetime and by a sequence — while
+  the `?anchor=` parameter every one of these routes documents takes a string.
+
+  `useInfiniteNotificationFeed` stringifies at that one boundary instead of
+  assuming the datetime spelling. The feed is ordered by `created_at` today and
+  the envelope no longer promises it always will be.
+
 ## 0.11.2
 
 ### Patch Changes

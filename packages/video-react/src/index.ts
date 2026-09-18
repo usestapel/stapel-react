@@ -75,6 +75,7 @@ export type {
   ParticipantListResponse,
   LobbyActionRequest,
   AdmitResponse,
+  DenyResponse,
 } from "./api/types.js";
 
 // ── flows ────────────────────────────────────────────────────────────────────

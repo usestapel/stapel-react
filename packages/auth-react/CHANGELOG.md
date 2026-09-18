@@ -1,5 +1,22 @@
 # @stapel/auth-react
 
+## 0.25.0
+
+### Minor Changes
+
+- `GET /jwt/status/`, as a typed call.
+
+  stapel-auth 0.43.0 publishes the session probe in the contract: it decodes the
+  caller's own access/refresh tokens and reports validity plus the two `exp`
+  claims, together with the deployment's presented profile. `AllowAny`, and it
+  mints nothing — asking is not a way to refresh.
+
+  New: `api.jwtStatus()` and the `JwtStatus` / `JwtStatusTokens` types. `profile`
+  stays an open object on purpose: its shape belongs to the swappable
+  `USERS_PROFILE_PRESENTER`, so a reader narrows it rather than trusting a shape
+  this pair invented. Nothing in the pair calls it — `useMe` and the session
+  machine are untouched.
+
 ## 0.24.0
 
 ### Minor Changes

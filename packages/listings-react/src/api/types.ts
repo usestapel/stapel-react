@@ -224,9 +224,40 @@ export type ListingDraft = Schemas["ListingDraft"];
 /** The partial body a `save-draft` write sends. */
 export type ListingDraftPatch = Schemas["PatchedListingDraft"];
 
-/** `GET /{pk}/status/` 200 — the AllowAny status probe, and the ONLY read that
- * still answers for a soft-deleted listing (`Listing.all_objects`). */
-export type ListingStatusInfo = Schemas["ListingStatus"];
+/**
+ * `GET /{pk}/status/` 200 — the AllowAny status probe, and the ONLY read that
+ * still answers for a soft-deleted listing (`Listing.all_objects`).
+ *
+ * Since stapel-listings 0.23.0 the route answers TWO bodies, discriminated by
+ * `scope`: the owner (and the service transport) gets the full
+ * {@link ListingStatusOwnerInfo}, everyone else gets
+ * {@link ListingStatusPublicInfo}, which carries `is_deleted` and nothing
+ * else. Narrow with {@link isOwnerStatus} before reading `status`,
+ * `moderation_status`, `is_expired`, `is_active` or `owner_id`.
+ */
+export type ListingStatusInfo = Schemas["ListingStatusResponse"];
+
+/** The owner-scoped status body: both axes plus `is_expired` / `is_active` /
+ * `owner_id`. */
+export type ListingStatusOwnerInfo = Schemas["ListingStatus"];
+
+/** The stranger-scoped status body: whether the row is gone, and no more.
+ * Listing ids are sequential, so the fuller body under `AllowAny` was an
+ * enumeration oracle for owners and moderation verdicts. */
+export type ListingStatusPublicInfo = Schemas["ListingStatusPublic"];
+
+/**
+ * Narrow a status probe body to the owner-scoped one.
+ *
+ * The `scope` discriminator is the contract's own answer, so a caller reads
+ * which body it got instead of probing for a field that a public body simply
+ * does not carry.
+ */
+export function isOwnerStatus(
+  body: ListingStatusInfo
+): body is ListingStatusOwnerInfo {
+  return body.scope === "owner";
+}
 
 /** `GET /my/counters/` 200 — the three dashboard tab counts. */
 export type MyCounters = Schemas["MyCountersResponse"];

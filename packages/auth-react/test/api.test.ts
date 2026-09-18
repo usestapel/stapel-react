@@ -51,6 +51,51 @@ describe("authApi", () => {
     await expect(api.revokeSession("abc")).resolves.toEqual({ status: "revoked" });
   });
 
+  it("reads the JWT status probe without minting anything", async () => {
+    // stapel-auth 0.43.0. `AllowAny`, so it answers before a session exists —
+    // and it must be a plain GET: a probe that refreshed a token would turn
+    // "am I signed in" into a side effect.
+    let seenMethod = "";
+    server.use(
+      http.get(`${BASE}/jwt/status/`, ({ request }) => {
+        seenMethod = request.method;
+        return HttpResponse.json({
+          authenticated: true,
+          profile: { id: "u-1", display_name: "Ada" },
+          tokens: {
+            access_token_valid: true,
+            refresh_token_valid: true,
+            access_token_exp: 1_790_000_000,
+            refresh_token_exp: 1_790_600_000,
+          },
+        });
+      })
+    );
+    const api = makeApi();
+    const status = await api.jwtStatus();
+    expect(seenMethod).toBe("GET");
+    expect(status.authenticated).toBe(true);
+    expect(status.tokens?.access_token_valid).toBe(true);
+    expect(status.tokens?.refresh_token_exp).toBe(1_790_600_000);
+    // The presenter is the deployment's, so the profile stays an open object.
+    expect(status.profile?.["display_name"]).toBe("Ada");
+  });
+
+  it("reports a tokenless request as unauthenticated, with a message", async () => {
+    server.use(
+      http.get(`${BASE}/jwt/status/`, () =>
+        HttpResponse.json({
+          authenticated: false,
+          message: "No tokens presented",
+        })
+      )
+    );
+    const status = await makeApi().jwtStatus();
+    expect(status.authenticated).toBe(false);
+    expect(status.tokens).toBeUndefined();
+    expect(status.message).toBe("No tokens presented");
+  });
+
   it("unwraps the passkey list envelope", async () => {
     server.use(
       http.get(`${BASE}/passkey/`, () =>

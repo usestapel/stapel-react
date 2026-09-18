@@ -1,5 +1,18 @@
 # @stapel/recordings-react
 
+## 0.9.0
+
+### Minor Changes
+
+- Transcript page anchors are integers.
+
+  stapel-recordings 0.27.0 types `TranscriptPage.next_anchor` / `prev_anchor` as
+  the `sequence_num` they have always carried — the same thing the `?anchor=`
+  parameter takes — instead of as strings. `useTranscript` passes the value
+  straight back; the `Number()` that stood between the two is gone, so a wire
+  type that ever stopped being a number would fail loudly instead of being
+  papered over.
+
 ## 0.8.0
 
 ### Minor Changes

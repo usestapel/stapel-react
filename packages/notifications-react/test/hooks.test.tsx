@@ -107,6 +107,46 @@ describe("<NotificationFeed> (headless, load-more)", () => {
   });
 });
 
+describe("the feed anchor is whatever the envelope sent", () => {
+  it("sends an integer next_anchor back as the `?anchor=` string", async () => {
+    // The core anchor envelope types `next_anchor` as the ordering field's
+    // raw value — `string | number` — while `?anchor=` takes a string. A
+    // feed that ordered by a sequence would otherwise walk off the end here.
+    const seen: (string | null)[] = [];
+    server.use(
+      http.get(`${BASE}/feed/`, ({ request }) => {
+        const anchor = new URL(request.url).searchParams.get("anchor");
+        seen.push(anchor);
+        return HttpResponse.json({
+          ...feedPage(anchor === null, "03"),
+          next_anchor: anchor === null ? 412 : null,
+        });
+      })
+    );
+    const runtime = createNotificationsRuntime({ baseUrl: BASE });
+    render(
+      wrap(
+        runtime,
+        <NotificationFeed>
+          {({ state, hasNextPage, fetchNextPage }) => (
+            <div>
+              <span data-testid="count">{loadedRowsOrEmpty(state).length}</span>
+              <span data-testid="has-next">{String(hasNextPage)}</span>
+              <button onClick={fetchNextPage}>more</button>
+            </div>
+          )}
+        </NotificationFeed>
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("has-next").textContent).toBe("true")
+    );
+    screen.getByText("more").click();
+    await waitFor(() => expect(seen).toHaveLength(2));
+    expect(seen[1]).toBe("412");
+  });
+});
+
 describe("marking read — the request, the optimistic write, and the way back", () => {
   /**
    * Renders the headless bag's read half as text, so each assertion below is

@@ -82,8 +82,16 @@ export function useInfiniteNotificationFeed(
         ...(pageParam !== undefined ? { anchor: pageParam } : {}),
       }),
     initialPageParam: undefined as string | undefined,
+    // The envelope declares `next_anchor` as the ordering field's RAW value —
+    // `string | number`, because the same core paginator serves feeds ordered
+    // by a datetime and by a sequence. The `?anchor=` parameter takes a
+    // string, so the value is stringified on the way back out rather than
+    // assumed: this feed is ordered by `created_at` today and the envelope
+    // does not promise it always will be.
     getNextPageParam: (last) =>
-      last.has_next ? (last.next_anchor ?? undefined) : undefined,
+      last.has_next && last.next_anchor !== null && last.next_anchor !== undefined
+        ? String(last.next_anchor)
+        : undefined,
     enabled: sessionReady,
     refetchInterval: feedPollInterval(mode, visible),
     // A hidden tab is never polled, so the interval alone would leave a

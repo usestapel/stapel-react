@@ -23,7 +23,7 @@ import {
   variantsReadyAtOf,
   variantsStatusOf,
 } from "../src/index.js";
-import type { CdnImage, CdnMediaRow, CdnRenderMeta } from "../src/index.js";
+import type { CdnImage, CdnMediaRow, CdnRenderMeta, CdnVideo } from "../src/index.js";
 import { fileRow, imageRow, renderMeta, videoRow } from "./fixtures.js";
 
 const HASH = "a".repeat(64);
@@ -146,6 +146,23 @@ describe("renderMetaToStapelImage — a ref this client did not upload", () => {
     expect(meta.kind).toBe("video");
     expect(meta.poster_url).toContain("/posters/");
     expect(meta.duration_ms).toBe(12_500);
+  });
+
+  it("admits a video whose renditions have not been written yet", () => {
+    // stapel-cdn 0.25.0: the seven flat `variant_<n>p_url` fields and
+    // `poster_url` are no longer computed paths emitted regardless of what
+    // exists — before the transcode they are null, where they used to be a
+    // URL that 404s into a broken player. A reader must coalesce.
+    const row = videoRow({ hash: HASH, processed: false });
+    const video = row as unknown as CdnVideo;
+    expect(video.variant_720p_url).toBeNull();
+    expect(video.variant_2160p_url).toBeNull();
+    expect(video.poster_url).toBeNull();
+    // And the pair's own boundary invents nothing in its place.
+    const meta = renderMetaToStapelImage(
+      asMeta(row["render_meta"] as Record<string, unknown>)
+    );
+    expect(meta.poster_url).toBeNull();
   });
 });
 

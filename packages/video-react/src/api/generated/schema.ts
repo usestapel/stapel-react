@@ -259,7 +259,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Deny a waiting participant (host-only).
+         * @description Deny a waiting participant (host-only). Returns their lobby row.
+         *
+         *     The symmetric twin of the admit action: both answer the lobby entry's
+         *     state after the decision, so a host screen re-renders the row it just
+         *     acted on from the response either way. The one difference is the token,
+         *     and it is the point — a denied participant is minted none.
          *
          *     **Permissions:** `IsAuthenticated`
          */
@@ -428,6 +433,18 @@ export interface components {
             token: string;
             /** @description The media server the token is for — where the BROWSER connects, */
             url: string;
+        };
+        /**
+         * @description The outcome of a host deny action.
+         *
+         *     The symmetric twin of `AdmitResponse`: both answer the lobby
+         *     entry's state AFTER the decision, so a host screen re-renders the row it
+         *     just acted on from the response either way. The one difference is the
+         *     token, and it is the point — a denied participant is minted none.
+         */
+        DenyResponse: {
+            /** @description The now-denied participant (`status` reads `denied`) */
+            participant: components["schemas"]["ParticipantResponse"];
         };
         /** @description Join a room. */
         JoinRequest: {
@@ -841,7 +858,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LobbyActionRequest"];
+                    "application/json": components["schemas"]["DenyResponse"];
                 };
             };
         };

@@ -179,9 +179,13 @@ export function useTranscript(
         ...(pageParam !== undefined ? { anchor: pageParam } : {}),
       }),
     initialPageParam: undefined as number | undefined,
+    // stapel-recordings 0.27.0 types `next_anchor` as the integer
+    // `sequence_num` it always was, so it is passed through rather than
+    // re-parsed: a `Number()` here would silently paper over a wire type that
+    // stopped being a number.
     getNextPageParam: (lastPage) =>
       lastPage.has_next && lastPage.next_anchor !== null
-        ? Number(lastPage.next_anchor)
+        ? lastPage.next_anchor
         : undefined,
     enabled: sessionReady && enabled && recordingId.length > 0,
     refetchInterval: (query) => {

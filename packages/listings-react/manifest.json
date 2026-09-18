@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.37.1",
+  "version": "0.38.0",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.22 <0.23"
+    "contract": ">=0.23 <0.24"
   },
   "layers": [
     "api",
@@ -126,7 +126,7 @@
       "path": "/listings/api/v1/listings/{id}/status/",
       "tag": "listings",
       "request": null,
-      "response": "ListingStatus"
+      "response": "ListingStatusResponse"
     },
     "listings_api_v1_listings_transition_create": {
       "method": "POST",
@@ -1361,6 +1361,7 @@
       "hasNativeShare",
       "isBatchValid",
       "isListingViewed",
+      "isOwnerStatus",
       "isPubliclyVisible",
       "lifecycleCaption",
       "listingFieldErrors",
@@ -1475,6 +1476,8 @@
       "ListingPageParams",
       "ListingQuestionTopic",
       "ListingStatusInfo",
+      "ListingStatusOwnerInfo",
+      "ListingStatusPublicInfo",
       "ListingStatusTone",
       "ListingStatusView",
       "ListingTransitionInput",

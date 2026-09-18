@@ -1,5 +1,20 @@
 # @stapel/cdn-react
 
+## 0.7.0
+
+### Minor Changes
+
+- A video's renditions are null until they exist.
+
+  stapel-cdn 0.25.0 makes the seven flat `variant_<n>p_url` fields and
+  `poster_url` on a video row nullable. They used to be computed paths emitted
+  whether or not the transcode had run, so reading one early gave a URL that
+  404s — a broken player, which reads to the person as a rejected upload.
+
+  `CdnVideo` widens accordingly. The pair itself takes a video's picture from
+  `render_meta` and never from these fields, so nothing here changes behaviour;
+  a host that reads them directly must coalesce.
+
 ## 0.6.1
 
 ### Patch Changes

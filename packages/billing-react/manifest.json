@@ -1,10 +1,10 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/billing-react",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "backend": {
     "module": "stapel-billing",
-    "contract": ">=0.17 <0.18"
+    "contract": ">=0.19 <0.20"
   },
   "layers": [
     "api",
@@ -23,10 +23,17 @@
       "request": "CheckoutRequest",
       "response": "CheckoutResponse"
     },
+    "billing_api_v1_checkout_simulate_create": {
+      "method": "POST",
+      "path": "/billing/api/v1/checkout/simulate",
+      "tag": "Internal",
+      "request": "SimulatedCheckoutRequest",
+      "response": "SimulatedCheckoutResponse"
+    },
     "billing_api_v1_internal_debit_create": {
       "method": "POST",
       "path": "/billing/api/v1/internal/debit",
-      "tag": "Internal",
+      "tag": "Checkout",
       "request": "CreditDebitRequest",
       "response": "CreditOperationResponse"
     },

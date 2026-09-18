@@ -56,6 +56,18 @@ export type CdnVariantMeta = Schemas["Image"]["variants_meta"][number];
 export type CdnImage = Omit<Schemas["Image"], "type" | "render_meta"> &
   WithRenderMeta & { readonly type: string };
 
+/**
+ * An uploaded video row.
+ *
+ * Since stapel-cdn 0.25.0 the seven flat `variant_<n>p_url` fields and
+ * `poster_url` are NULLABLE: they used to be computed paths emitted whether or
+ * not the rendition existed, so reading one before the transcode had run gave
+ * a URL that 404s — a broken `<video>` that reads to the person as a rejected
+ * upload. Null is the honest answer, and it must be coalesced at the point of
+ * use. The pair itself takes a video's picture from `render_meta` and never
+ * from these fields ({@link toStapelImage}); a client that reads them directly
+ * has to narrow.
+ */
 export type CdnVideo = Omit<Schemas["Video"], "render_meta"> & WithRenderMeta;
 export type CdnFileModel = Omit<Schemas["FileModel"], "render_meta"> &
   WithRenderMeta;

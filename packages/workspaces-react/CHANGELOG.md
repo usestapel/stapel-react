@@ -1,5 +1,21 @@
 # @stapel/workspaces-react
 
+## 0.20.0
+
+### Minor Changes
+
+- One bridge from a page envelope's anchor to the `?anchor=` value.
+
+  The core anchor envelope now declares `next_anchor` / `prev_anchor` as the RAW
+  value of the field the paginator orders by — `string | number` — while the
+  query parameter these routes document takes a string. Members, invitations and
+  the audit trail all walk by anchor, and five call sites each assumed the
+  datetime spelling.
+
+  New internal `pageAnchor()` stringifies once; the members bag's `nextAnchor` /
+  `prevAnchor` and the two pagers are unchanged in shape. A host that assigned
+  `page.next_anchor` straight into a `string` must widen.
+
 ## 0.19.2
 
 ### Patch Changes

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { loadStateFromQuery, mapLoad } from "@stapel/core";
 import type { LoadState, StapelApiError } from "@stapel/core";
 import type { Member, MemberInvite, MembersParams } from "../api/types.js";
+import { pageAnchor } from "../api/anchors.js";
 import { useMembers } from "../model/queries.js";
 import {
   useInviteMembers,
@@ -121,8 +122,8 @@ export function Members(props: {
         : {
             hasNext: data.has_next,
             hasPrev: data.has_prev,
-            nextAnchor: data.next_anchor ?? null,
-            prevAnchor: data.prev_anchor ?? null,
+            nextAnchor: pageAnchor(data.next_anchor) ?? null,
+            prevAnchor: pageAnchor(data.prev_anchor) ?? null,
             count: data.count,
           },
     writeError:

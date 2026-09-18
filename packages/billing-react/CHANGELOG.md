@@ -1,5 +1,19 @@
 # @stapel/billing-react
 
+## 0.12.0
+
+### Minor Changes
+
+- Pin to stapel-billing 0.19.0. The generated surface grows `POST
+/checkout/simulate` (`SimulatedCheckoutRequest` / `SimulatedCheckoutResponse`):
+  staff buy a credit package without a card and the real post-payment path runs.
+  The gate is `IsStaffUser`, checked server-side on every call, never a setting —
+  so a deployment never behaves differently because of a variable, and a forged
+  body can still only ask for a package, never for a number.
+
+  No client method and no hook: the endpoint is staff tooling, and nothing in
+  this pair calls it. The types are there for a host that wants to.
+
 ## 0.11.0
 
 ### Minor Changes

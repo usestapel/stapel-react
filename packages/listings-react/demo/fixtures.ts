@@ -223,6 +223,7 @@ export const DEMO_PAGE_WITH_NEXT: PaginatedListingCards = {
 
 /** What `GET /listings/{id}/status/` says about DEMO_DETAIL. */
 export const DEMO_STATUS = {
+  scope: "owner" as const,
   status: "published" as const,
   moderation_status: "pending" as const,
   is_deleted: false,
