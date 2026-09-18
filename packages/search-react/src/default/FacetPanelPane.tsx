@@ -1218,9 +1218,17 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                       ) : (
                         <FacetGroupControl
                           key={
-                            needle === ""
+                            (needle === ""
                               ? item.group.slug
-                              : `${item.group.slug}:match`
+                              : `${item.group.slug}:match`) +
+                            // A group that was held shut and has just been
+                            // opened by its parent re-asks the open/closed
+                            // question: `defaultOpen` was decided while it was
+                            // gated, i.e. while it was not a candidate to open
+                            // at all, and the reader's next move is precisely
+                            // this group. Same remount idiom as the search box
+                            // above, for the same reason.
+                            (item.group.gated === true ? ":gated" : "")
                           }
                           group={item.group}
                           onToggle={bag.toggle}
@@ -1233,6 +1241,11 @@ export function FacetPanelPane(props: FacetPanelPaneProps): ReactElement {
                           defaultOpen={
                             needle !== "" ||
                             item.group.selected.length > 0 ||
+                            // A dependent arrived filtered while its parent is
+                            // not — the deep-link case. The parent is drawn
+                            // OPEN beside it, so the reader can see what their
+                            // selection is a child of (`parent_missing`).
+                            bag.dependentFacets.openParents.includes(item.group.slug) ||
                             openByOrder.has(item.group.slug)
                           }
                           {...(props.dictionaryMode !== undefined

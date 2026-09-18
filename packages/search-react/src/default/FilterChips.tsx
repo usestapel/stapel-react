@@ -683,11 +683,19 @@ function OpenerChipRow(props: FilterChipsOpenerProps): ReactElement | null {
               style={CHIP}
               shape="round"
               type={spec.facet.selected.length > 0 ? "primary" : "default"}
+              // The answer is holding this axis shut: the chip stays in the
+              // row — it is the map of what this category narrows by — and it
+              // does not open onto a sheet with nothing in it. See
+              // `useDependentFacets`.
+              {...(spec.facet.gated === true
+                ? { disabled: true, "data-gated": "true" }
+                : {})}
               data-testid={`search-chip-${spec.facet.slug}`}
               data-band={spec.band}
               data-analytics="none"
               data-analytics-reason="a filter is a read, not a flow step"
               onClick={() => {
+                if (spec.facet.gated === true) return;
                 setOpen(`facet:${spec.facet.slug}`);
               }}
             >

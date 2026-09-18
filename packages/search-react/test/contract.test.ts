@@ -17,7 +17,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { createStapelClient } from "@stapel/core";
-import { createSearchApi, parseSearchState } from "../src/index.js";
+import { buildFacetGroups, createSearchApi, parseSearchState } from "../src/index.js";
 import type { paths } from "../src/api/generated/schema.js";
 
 const BASE = "https://search.test/search/api/v1";
@@ -226,5 +226,93 @@ describe("a parsed hit keeps owner_key (stapel-search 0.15.0)", () => {
 
     expect(response.items[0]?.owner_key).toBe("u-7");
     expect(response.items[1]?.owner_key).toBe("");
+  });
+});
+
+describe("a staged answer keeps its dependency fields (stapel-search 0.18.0)", () => {
+  it("survives the JSON.parse round trip on `query`, `null` and `false` included", async () => {
+    // The wire text, not a JS object literal. Four fields, and the two that
+    // are easiest to lose are the ones that are NOT truthy: `depends_on: null`
+    // is "this axis has no parent" and `gated: false` is "this one is open",
+    // and a client that read either as absence would be reading a staging
+    // server as one that does not stage.
+    const wireBody = JSON.stringify({
+      items: [],
+      category_resolved: null,
+      facets: { make: { alfa: 9 }, model: {} },
+      facet_meta: {
+        approximate: false,
+        candidates: 9,
+        counted: ["make"],
+        skipped: [],
+        dropped_filters: [],
+        core_ranges: [],
+        plan: "category",
+        withheld: [],
+        categories: [],
+        dependent_facets: "staged",
+      },
+      facet_labels: {
+        make: {
+          translatable: false,
+          values: { alfa: "Alfa" },
+          depends_on: null,
+          gated: false,
+        },
+        model: {
+          translatable: false,
+          values: {},
+          depends_on: "make",
+          gated: true,
+        },
+      },
+      next_anchor: null,
+      prev_anchor: null,
+      has_next: false,
+      has_prev: false,
+      count: 9,
+      count_is_lower_bound: false,
+      exact_total: true,
+      degraded: [],
+      backend: "postgres",
+      language: "en",
+      sort: "relevance",
+      took_ms: 1,
+    });
+    const client = createStapelClient({
+      baseUrl: BASE,
+      fetch: (async () =>
+        new Response(wireBody, {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })) as typeof globalThis.fetch,
+    });
+    const api = createSearchApi(client);
+    const { state } = parseSearchState(new URLSearchParams("type=listing"), {
+      defaultType: "listing",
+    });
+
+    const response = await api.query(state);
+
+    expect(response.facet_meta.dependent_facets).toBe("staged");
+    expect(response.facet_labels["make"]?.depends_on).toBeNull();
+    expect(response.facet_labels["make"]?.gated).toBe(false);
+    expect(response.facet_labels["model"]?.depends_on).toBe("make");
+    expect(response.facet_labels["model"]?.gated).toBe(true);
+    // Absent, not false: the server sends it only for the deep-link case.
+    expect(response.facet_labels["model"]?.parent_missing).toBeUndefined();
+
+    // …and the panel model reads all four rather than only carrying them.
+    const groups = buildFacetGroups({
+      facets: response.facets,
+      meta: response.facet_meta,
+      facetLabels: response.facet_labels,
+      state,
+    });
+    const model = groups.find((group) => group.slug === "model");
+    expect(model?.dependsOn).toBe("make");
+    expect(model?.gated).toBe(true);
+    expect(model?.options).toEqual([]);
+    expect(model?.awaitingParent?.slug).toBe("make");
   });
 });

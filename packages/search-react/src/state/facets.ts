@@ -58,7 +58,12 @@ import {
   optionsRefOf,
 } from "@stapel/attributes-react";
 import type { FeatureDef } from "@stapel/attributes-react";
-import type { FacetLabelsMap, FacetMeta, SearchQueryState } from "../api/types.js";
+import type {
+  FacetLabels,
+  FacetLabelsMap,
+  FacetMeta,
+  SearchQueryState,
+} from "../api/types.js";
 import { facetKeyMapFromLabels } from "./urlState.js";
 
 /**
@@ -348,6 +353,59 @@ export interface FacetGroup {
    * is answered, and either way the group is offered normally.
    */
   readonly awaitingParent?: FacetParentGate | undefined;
+  /**
+   * The sibling axis this group's codes are the CHILDREN of, as the ANSWER
+   * states it (`facet_labels[<slug>].depends_on`, stapel-search 0.18.0+).
+   *
+   * The same relationship {@link facetParentSlug} reads off the category
+   * schema, said by the side that can always say it: a branch page and a text
+   * query carry no leaf schema, so the client-side read has nothing to look
+   * at there. `undefined` when the server states no mode at all.
+   */
+  readonly dependsOn?: string | undefined;
+  /**
+   * The answer is deliberately holding this group SHUT: it depends on a group
+   * the request carries no value for, so no aggregation was asked for and
+   * there is nothing to count (stapel-search 0.18.0's `gated`).
+   *
+   * Different from a group with no buckets on this page — that one was
+   * counted and came back empty. This one has not been counted, which is why
+   * it survives {@link keepsAnAxisOpen} on this flag rather than on its
+   * coverage.
+   */
+  readonly gated?: boolean;
+  /**
+   * The request filters on THIS group and carries no value for the group it
+   * depends on — a deep link, or an address an older panel wrote
+   * (stapel-search 0.18.0's `parent_missing`).
+   *
+   * The filter IS applied and the group is counted as usual. What the flag
+   * asks of a surface is that the PARENT group be drawn open beside it, so
+   * the reader can see what their selection is a child of.
+   */
+  readonly parentMissing?: boolean;
+}
+
+/**
+ * How the answering server treats a group whose codes are a sibling's
+ * children — `facet_meta.dependent_facets`, and `undefined` for a server that
+ * says nothing.
+ *
+ * Three values rather than two, because silence is not `flat`. A pre-0.18
+ * server has never heard the question, and the pair then applies its own
+ * schema-derived rule ({@link resolveFacetParents}) exactly as it did before
+ * — that rule shipped three releases ago and a storefront depends on it. A
+ * server that answers `flat` HAS the rule and declined to apply it, and a
+ * client that kept gating anyway would be hiding a panel the server sent.
+ */
+export type DependentFacetsMode = "staged" | "flat";
+
+export function dependentFacetsMode(
+  meta: Pick<FacetMeta, "dependent_facets"> | undefined
+): DependentFacetsMode | undefined {
+  const stated = meta?.dependent_facets;
+  if (stated === "staged" || stated === "flat") return stated;
+  return undefined;
 }
 
 /**
@@ -422,6 +480,122 @@ export function resolveFacetParents(
     if (parent === undefined || parent.selected.length > 0) return group;
     return { ...group, awaitingParent: { slug: parent.slug, label: parent.label } };
   });
+}
+
+/**
+ * THE CHAIN AS THE ANSWER STATES IT, which outranks the schema-derived one.
+ *
+ * `resolveFacetParents` above reads `optionsRef.parentFeature` out of the
+ * category schema. That is the right rule and the wrong place to be the only
+ * copy of it: a branch page and a text query carry no leaf schema at all, and
+ * the server decides staging on the SETTLED query — extraction can supply the
+ * parent's value out of the text («toyota camry» is a make filter), which no
+ * client can reproduce. stapel-search 0.18.0 therefore says it on the wire,
+ * and this is where the pair stops holding an opinion of its own:
+ *
+ *  - `staged` — the server's `gated` decides, per group, and nothing else
+ *    does. A group it gated arrives counted-and-empty; its options are
+ *    dropped and `counted` is set to `false`, which is the truth (no
+ *    aggregation was requested) and is what keeps it out of every
+ *    "this axis is dead" predicate in this module.
+ *  - `flat` — the server has the rule and declined to apply it. Nothing is
+ *    gated, the schema-derived rule is NOT applied on top, and the panel
+ *    draws what was sent.
+ *  - stated by nobody — a pre-0.18 server, a hand-built group, a fixture.
+ *    The schema-derived rule applies, exactly as it did before 0.18 existed.
+ */
+export function applyDependentFacets(
+  groups: readonly FacetGroup[],
+  mode: DependentFacetsMode | undefined
+): readonly FacetGroup[] {
+  if (mode === undefined) return resolveFacetParents(groups);
+  if (mode === "flat") return groups;
+  const bySlug = new Map<string, FacetGroup>();
+  for (const group of groups) bySlug.set(group.slug, group);
+  return groups.map((group) => {
+    if (group.gated !== true) return group;
+    const parent = group.dependsOn === undefined ? undefined : bySlug.get(group.dependsOn);
+    return {
+      ...group,
+      // A gated group is present so the rail keeps its shape, and empty
+      // because nothing counted it. Both halves are the affordance.
+      counted: false,
+      options: [],
+      ...(parent === undefined
+        ? {}
+        : { awaitingParent: { slug: parent.slug, label: parent.label } }),
+    };
+  });
+}
+
+/**
+ * Every group that hangs off `slug` — its direct dependents and theirs, in
+ * the order the answer put them in.
+ *
+ * Transitive on purpose: a catalogue chains make → model → generation, and
+ * clearing the make while leaving a generation behind is the same wrong
+ * answer one rung further down. Reads the ANSWER's `dependsOn` first and the
+ * schema's `parentFeature` second, so it works on a page that has one, the
+ * other, or both. Bounded against a schema that declares a cycle — a link
+ * neither side can ever open, which `stapel_search.E005`/`W011` name upstream.
+ */
+export function dependentFacetSlugs(
+  groups: readonly FacetGroup[],
+  slug: string
+): readonly string[] {
+  const parentOf = new Map<string, string>();
+  for (const group of groups) {
+    const parent = group.dependsOn ?? facetParentSlug(group);
+    if (parent !== undefined) parentOf.set(group.slug, parent);
+  }
+  const out: string[] = [];
+  const reached = new Set<string>([slug]);
+  for (let pass = 0; pass < groups.length; pass += 1) {
+    let grew = false;
+    for (const group of groups) {
+      if (reached.has(group.slug)) continue;
+      const parent = parentOf.get(group.slug);
+      if (parent === undefined || !reached.has(parent)) continue;
+      reached.add(group.slug);
+      out.push(group.slug);
+      grew = true;
+    }
+    if (!grew) break;
+  }
+  return out;
+}
+
+/**
+ * `filters` with every dependent of `slug` REMOVED — the half of a parent
+ * change that has to happen in the same update as the change itself.
+ *
+ * Why it cannot be left to the next answer: the request carrying the new make
+ * and the old model is a real request, and the server answers it honestly —
+ * `parent_missing` is exactly what it says back. The reader would see one
+ * page of a model that belongs to a make they just stopped asking for, and a
+ * chip they never chose. So the child comes off in the SAME commit, which is
+ * also one history entry and one request rather than two.
+ *
+ * Both spellings of a key are dropped: the address may carry `f.model` (the
+ * answer's `url_key`) while the groups are keyed by `model_ref_select`, and
+ * removing one of the two leaves the filter applied under the other.
+ */
+export function clearDependentFilters(
+  filters: Readonly<Record<string, readonly string[]>>,
+  groups: readonly FacetGroup[],
+  slug: string
+): Readonly<Record<string, readonly string[]>> {
+  const dependents = dependentFacetSlugs(groups, slug);
+  if (dependents.length === 0) return filters;
+  const drop = new Set<string>();
+  for (const dependent of dependents) {
+    drop.add(dependent);
+    const group = groups.find((candidate) => candidate.slug === dependent);
+    if (group?.urlKey !== undefined) drop.add(group.urlKey);
+  }
+  const kept = Object.entries(filters).filter(([key]) => !drop.has(key));
+  if (kept.length === Object.keys(filters).length) return filters;
+  return Object.fromEntries(kept);
 }
 
 /**
@@ -610,6 +784,10 @@ export function facetGroupIsVocabularyBacked(group: FacetGroup): boolean {
  * disappear silently a second time.
  */
 export function facetGroupIsDrawable(group: FacetGroup): boolean {
+  // The gate is the affordance. A group the answer is holding shut has no
+  // evidence and no options by construction, and the reader's next move is
+  // the control it names — see `applyDependentFacets`.
+  if (group.gated === true) return true;
   if (group.selected.length > 0) return true;
   if (facetGroupHasEvidence(group)) return true;
   if (isSearchableVocabularyAxis(group)) return true;
@@ -852,6 +1030,26 @@ function optionalOrder(order: number | null | undefined): { order?: number } {
   return typeof order === "number" ? { order } : {};
 }
 
+/**
+ * The answer's staging facts for one group, carried verbatim
+ * (stapel-search 0.18.0). Each key is dropped when the server did not state
+ * it: `exactOptionalPropertyTypes` makes "absent" and "present but undefined"
+ * different types, and absent is what a `flat` answer and a pre-0.18 one
+ * both are.
+ */
+function optionalDependency(labels: FacetLabels | undefined): {
+  dependsOn?: string;
+  gated?: boolean;
+  parentMissing?: boolean;
+} {
+  if (labels === undefined) return {};
+  return {
+    ...(typeof labels.depends_on === "string" ? { dependsOn: labels.depends_on } : {}),
+    ...(typeof labels.gated === "boolean" ? { gated: labels.gated } : {}),
+    ...(labels.parent_missing === true ? { parentMissing: true } : {}),
+  };
+}
+
 /** The answer's term bags for one slug, when it sent any. An empty map is
  * dropped with an absent one: neither says anything a surface can draw. */
 function optionalExtras(
@@ -1072,6 +1270,7 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
       ...optionalExtras(input.facetLabels?.[slug]?.extras),
       ...optionalVocabulary(resolveVocabulary(input, feature, slug)),
       ...optionalVocabularies(input, slug),
+      ...optionalDependency(input.facetLabels?.[slug]),
       ...resolveGroupLabel(input, feature, slug),
       feature,
       counted,
@@ -1089,8 +1288,12 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
   });
   // The chain LAST, over the built list: a gate needs the parent group's own
   // heading and whether the URL answered it, and neither is known until every
-  // group exists. See `resolveFacetParents`.
-  return resolveFacetParents(built.filter(keepsAnAxisOpen));
+  // group exists. See `applyDependentFacets` for which of the two rules — the
+  // answer's or the schema's — decides.
+  return applyDependentFacets(
+    built.filter(keepsAnAxisOpen),
+    dependentFacetsMode(input.meta)
+  );
 }
 
 /**
@@ -1131,6 +1334,12 @@ export function buildFacetGroups(input: BuildFacetGroupsInput): readonly FacetGr
  *    see {@link facetOptionIsOfferable}.
  */
 function keepsAnAxisOpen(group: FacetGroup): boolean {
+  // A GATED group is present and empty BY DESIGN (stapel-search 0.18.0): the
+  // server answered it without counting it, so every measurement below reads
+  // zero and would drop the one control that says which filter to use first.
+  // Asked before `counted`, because the wire says counted-and-empty here and
+  // `applyDependentFacets` has not corrected that yet.
+  if (group.gated === true) return true;
   if (!group.counted) return true;
   if (group.selected.length > 0) return true;
   // A vocabulary axis survives its own zero: its control is a field over a

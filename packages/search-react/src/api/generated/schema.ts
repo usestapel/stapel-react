@@ -247,6 +247,12 @@ export interface components {
             level?: string;
             /** @description The dictionaries behind a group whose contributing categories name DIFFERENT ones — a pets root over a cat breed level and a dog one. Present only in that case, and then `vocabulary` and `level` are null/absent because there genuinely is no single address. That says nothing about the captions: `values` is the union of what these dictionaries know about the codes this answer counted, and a code two of them spell differently takes the word of the first — the category most of this page is made of. Listed in that same order. */
             vocabularies?: components["schemas"]["VocabularyAddress"][];
+            /** @description The slug of the sibling group this one's option codes are the CHILDREN of (`OptionsRef.parentFeature`): a model group depends on the make group, a generation group on the model. `null` for an independent axis. Absent entirely when `facet_meta.dependent_facets` is `flat`. Draw a dependent group below the group it names — the answer already orders it that way — and treat it as unavailable while `gated` is true. */
+            depends_on?: string | null;
+            /** @description True when this answer deliberately holds the group shut: it depends on a group the request carries no value for, so `values` is empty and NO aggregation was requested for it. Not the same as a group with no buckets on this page — this one has not been counted. Choose the parent and ask again, and the group comes back with the children of what was chosen. Absent when `facet_meta.dependent_facets` is `flat`. */
+            gated?: boolean;
+            /** @description Present and true only when the request filters on THIS group while carrying no value for the group it `depends_on` — a deep link, or an address an older panel wrote. The filter is applied and the group is counted as usual; this says the parent group should be drawn open beside it, so the reader can see what the selection is a child of. The server never infers the parent from the child. */
+            parent_missing?: boolean;
             /** @description Where this group sits in ONE panel, numbered together with the numeric axes in `facet_meta.ranges` — draw both halves sorted by it and price and year land where the category's schema puts them, among the makes and models rather than below all of them. Core ranges take the first positions (they exist for every document in every category); the rest follow the plan's own order, which for a category's own schema is mandatory first and then as authored. `null` when the plan has no position for the group, which a client sorts last. */
             order: number | null;
         };
@@ -266,6 +272,8 @@ export interface components {
             ranges: {
                 [key: string]: components["schemas"]["RangeAxis"];
             };
+            /** @description `staged` | `flat` — how this server answered groups that declare `OptionsRef.parentFeature`. `staged`: a dependent group is returned empty with `gated: true` until its parent carries a value, the way the posting form has always behaved — general before specific. `flat`: every group is counted independently, which is the pre-0.18 answer, and `depends_on`/`gated` are absent from `facet_labels`. Sent under both values: a client follows the server rather than carrying its own opinion. */
+            dependent_facets: string;
             /** @description Where the plan came from. `category` — the queried category's own authored schema. `evidence` — the categories the CANDIDATE SET actually contains, used when that schema did not fill MAX_FACET_FIELDS, which is every branch category and every text query (`categories.features` resolves own + ANCESTOR-inherited features, so a branch owns no axes; its leaves do). */
             plan: string;
             /**

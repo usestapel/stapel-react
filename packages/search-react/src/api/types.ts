@@ -292,11 +292,26 @@ export type FacetRangesMap = Readonly<Record<string, FacetRangeAxis>>;
  */
 export type FacetMeta = Omit<
   Schemas["FacetMeta"],
-  "withheld" | "categories" | "ranges"
+  "withheld" | "categories" | "ranges" | "dependent_facets"
 > & {
   readonly withheld: readonly FacetWithheldAxis[];
   readonly categories: readonly FacetCategoryCount[];
   readonly ranges?: FacetRangesMap;
+  /**
+   * How this server answered a group whose codes are a sibling's children
+   * (stapel-search 0.18.0's `DEPENDENT_FACETS`).
+   *
+   * ABSENT is a third answer and the panel reads it as such: a pre-0.18
+   * server, and a meta a host or a fixture builds by hand, state nothing, and
+   * the pair then falls back to the rule it derives from the category schema
+   * itself (`resolveFacetParents`). `"flat"` is a server that HAS the rule and
+   * declined to apply it, which is why it must not read the same way as
+   * silence — see {@link dependentFacetsMode}.
+   *
+   * WHY IT IS NOT THE GENERATED SHAPE: 0.18.0 declares it REQUIRED, and the
+   * two cases above carry no such key.
+   */
+  readonly dependent_facets?: string;
 };
 
 /** `GET /suggest` 200, as the CURRENT generated schema describes it. */

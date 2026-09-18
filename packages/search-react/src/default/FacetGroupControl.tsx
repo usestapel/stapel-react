@@ -1232,6 +1232,9 @@ export function facetGroupIsEmptyHeading(group: FacetGroup): boolean {
   // rail instead of saying which control to use first
   // (`resolveFacetParents`).
   if (group.awaitingParent !== undefined) return false;
+  // Same sentence, said by the server (stapel-search 0.18.0): a gated group
+  // is empty because nothing counted it, not because the axis is dead.
+  if (group.gated === true) return false;
   return (
     facetGroupOfferableOptions(group).options.length === 0 &&
     facetGroupShape(group) !== "dictionary"
@@ -1301,7 +1304,14 @@ export function FacetGroupControl(
   });
 
   const disclosure = props.collapsible === true && props.heading !== false;
-  const open = !disclosure || openState;
+  /* HELD SHUT BY THE ANSWER (stapel-search 0.18.0's `gated`).
+     Collapsed and INERT, not merely disabled: there is nothing inside to
+     reveal — the server counted nothing and sent no options — so an
+     expandable header would open onto an empty box, and a focus stop on it
+     is a tab stop that leads nowhere. The hint below the header is the whole
+     content of the group, and it names the control to use first. */
+  const gated = group.gated === true;
+  const open = !gated && (!disclosure || openState);
 
   // Nothing to narrow by: no heading either. See `facetGroupIsEmptyHeading`.
   // AFTER the hooks, never before one — the group can gain buckets on the next
@@ -1391,6 +1401,10 @@ export function FacetGroupControl(
       // drawn (a heading a person cannot read still beats none) and it is
       // MARKED, so a storefront's own test can refuse to ship it.
       data-label-source={group.labelSource}
+      // Held shut by the answer, and readable from a stand: the group is on
+      // screen, named, and offering nothing until its parent is answered.
+      {...(gated ? { "data-gated": "true" } : {})}
+      {...(group.parentMissing === true ? { "data-parent-missing": "true" } : {})}
     >
       {/* The ring the keyboard gets and the mouse does not — one hoisted
           element for the whole document, deduped by `href`. */}
@@ -1404,10 +1418,19 @@ export function FacetGroupControl(
             {...POINTER_FOCUS}
             style={DISCLOSURE_HEADER}
             aria-expanded={open}
+            {...(gated
+              ? {
+                  disabled: true,
+                  tabIndex: -1,
+                  "aria-disabled": true as const,
+                  "data-gated": "true",
+                }
+              : {})}
             data-testid={`facet-toggle-${group.slug}`}
             data-analytics="none"
             data-analytics-reason="opening a filter group is a read, not a flow step"
             onClick={() => {
+              if (gated) return;
               setOpenState((was) => !was);
             }}
           >
@@ -1415,7 +1438,7 @@ export function FacetGroupControl(
             {/* The one fact a closed group owes its header: how many of its
                 values are CHOSEN. Not the option count — that is what the
                 fold's own "Show all (N)" answers once the group is open. */}
-            {group.selected.length > 0 && (
+            {!gated && group.selected.length > 0 && (
               <Typography.Text
                 type="secondary"
                 data-testid={`facet-toggle-count-${group.slug}`}
@@ -1435,9 +1458,9 @@ export function FacetGroupControl(
           row. The hint is drawn whatever the shape, and it is the only thing
           drawn for a dictionary: the searchable list of every model of every
           make is precisely what the gate exists to stop offering. */}
-      {open && awaiting !== undefined && (
+      {(open || gated) && awaiting !== undefined && (
         <>
-          {shape === "dictionary" && (
+          {open && shape === "dictionary" && (
             <Input
               disabled
               size="small"

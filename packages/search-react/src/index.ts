@@ -130,7 +130,11 @@ export type {
 
 export {
   FACETABLE_FEATURE_TYPES,
+  applyDependentFacets,
   buildFacetGroups,
+  clearDependentFilters,
+  dependentFacetSlugs,
+  dependentFacetsMode,
   facetGroupHasEvidence,
   facetGroupIsDrawable,
   facetGroupIsVocabularyBacked,
@@ -145,6 +149,7 @@ export {
 } from "./state/facets.js";
 export type {
   BuildFacetGroupsInput,
+  DependentFacetsMode,
   FacetGroup,
   FacetLabelSource,
   FacetOption,
@@ -223,6 +228,12 @@ export { SearchResults } from "./headless/SearchResults.js";
 export type { SearchPageInfo, SearchResultsBag } from "./headless/SearchResults.js";
 export { FacetPanel, useFacetPanel } from "./headless/FacetPanel.js";
 export type { FacetPanelBag } from "./headless/FacetPanel.js";
+
+export { useDependentFacets } from "./headless/useDependentFacets.js";
+export type {
+  DependentFacet,
+  DependentFacetsBag,
+} from "./headless/useDependentFacets.js";
 export { useHostFacetLabels } from "./headless/useFacetLabels.js";
 export type {
   FacetLabelRequest,

@@ -4,7 +4,7 @@
   "version": "0.51.1",
   "backend": {
     "module": "stapel-search",
-    "contract": ">=0.17 <0.18"
+    "contract": ">=0.18 <0.19"
   },
   "layers": [
     "api",
@@ -997,9 +997,11 @@
       "SearchRuntimeContext",
       "SearchStateProvider",
       "activeFilterCount",
+      "applyDependentFacets",
       "buildFacetGroups",
       "buildFacetKeyMap",
       "buildRangeGroups",
+      "clearDependentFilters",
       "clearFilters",
       "consonantKey",
       "coreRangeLabelKey",
@@ -1010,6 +1012,8 @@
       "createSearchRuntime",
       "degradationAudience",
       "degradationMessageKey",
+      "dependentFacetSlugs",
+      "dependentFacetsMode",
       "explainSearchError",
       "facetGroupHasEvidence",
       "facetGroupIsDrawable",
@@ -1049,6 +1053,7 @@
       "translitKey",
       "translitPrefixMatch",
       "useAppliedSort",
+      "useDependentFacets",
       "useFacetKeys",
       "useFacetPanel",
       "useHostFacetLabels",
@@ -1072,6 +1077,9 @@
       "BuildFacetGroupsInput",
       "BuildRangeGroupsInput",
       "CreateSearchRuntimeOptions",
+      "DependentFacet",
+      "DependentFacetsBag",
+      "DependentFacetsMode",
       "FacetAxisKind",
       "FacetCategoryCount",
       "FacetGroup",

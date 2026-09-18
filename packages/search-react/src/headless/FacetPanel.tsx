@@ -7,14 +7,18 @@ import type {
   FacetMeta,
   FacetRangesMap,
   FacetWithheldGroup,
+  SearchQueryState,
   SearchRange,
 } from "../api/types.js";
 import { useSearchQuery } from "../model/queries.js";
 import { buildFacetGroups } from "../state/facets.js";
+import { setFilterValues, toggleFilterValue } from "../state/urlState.js";
 import { FACET_PLAN_EVIDENCE, FACET_RANGES } from "../state/degradations.js";
 import type { FacetGroup } from "../state/facets.js";
 import { useHostFacetLabels } from "./useFacetLabels.js";
 import type { FacetLabelResolver } from "./useFacetLabels.js";
+import { useDependentFacets } from "./useDependentFacets.js";
+import type { DependentFacetsBag } from "./useDependentFacets.js";
 import {
   usePublishRangeAxes,
   useRememberedRangeAxes,
@@ -126,6 +130,19 @@ export interface FacetPanelBag {
   readonly planUnavailable: boolean;
   /** Facet values + ranges + geo currently applied. */
   readonly activeFilters: number;
+  /**
+   * Which groups this answer is holding SHUT behind a parent, and the rule a
+   * parent change follows (stapel-search 0.18.0) — see
+   * {@link DependentFacetsBag}.
+   *
+   * A skin reads it to draw a gated group inert and to force a
+   * `parent_missing` group's parent open. It does NOT have to apply the
+   * reducer rule: `toggle`, `setValues` and `clear` below already commit the
+   * parent's change and its dependents' removal as one update, so every
+   * surface that writes through this bag — the rail, the phone drawer, both
+   * chip rows — cascades without knowing that it does.
+   */
+  readonly dependentFacets: DependentFacetsBag;
 
   toggle(slug: string, value: string): void;
   /**
@@ -148,6 +165,10 @@ export interface FacetPanelBag {
   clear(slug: string): void;
   clearAll(): void;
 }
+
+/** One frozen empty list, so the dependency hook's memo does not re-run on
+ * every render of a page whose answer has not landed. */
+const NO_GROUPS: readonly FacetGroup[] = [];
 
 const EMPTY_META: FacetMeta = {
   approximate: false,
@@ -231,6 +252,7 @@ export function useFacetPanel(props: {
     setRanges,
     clearAll,
     toggleFilter,
+    patch,
     activeFilters,
   } = useSearchState();
   const t = useT();
@@ -296,6 +318,35 @@ export function useFacetPanel(props: {
   );
   const reservedRangeAxes = useRememberedRangeAxes(searchState.category);
 
+  /*
+   * THE CHAIN, AND WHY THE WRITE PATH IS HERE RATHER THAN IN THE PROVIDER.
+   *
+   * `SearchStateProvider` knows the URL and nothing about facets; which group
+   * is whose child is a fact about the ANSWER (`depends_on`) and about the
+   * category schema, and both of those arrive here. So the cascade is applied
+   * at the one seam every facet-writing surface already goes through — the
+   * rail, the phone drawer, the opener chips and the applied chips all write
+   * through this bag — and each of them cascades without carrying the rule.
+   *
+   * One commit, never two: the parent's new value and the child's removal
+   * fold into a single `patch`, which is one history entry and one request.
+   * Committing them separately would put a request carrying the new make and
+   * the old model on the wire, and that request has an honest answer
+   * (`parent_missing`) that the reader never asked for.
+   */
+  const groupList = labelled.status === "ready" ? labelled.data : NO_GROUPS;
+  const dependentFacets = useDependentFacets(groupList, searchState.filters, meta);
+  const writeFilter = (next: SearchQueryState, slug: string, fallback: () => void): void => {
+    const cascaded = dependentFacets.onParentChange(next, slug);
+    // Nothing hangs off this slug: keep the ordinary single-slug path, which
+    // carries the provider's own history mode for a filter change.
+    if (cascaded === next) {
+      fallback();
+      return;
+    }
+    patch({ filters: cascaded.filters });
+  };
+
   return {
     state: labelled,
     // Read off the ANSWER's own state rather than off the projection, so a
@@ -326,12 +377,23 @@ export function useFacetPanel(props: {
       envelope.status === "ready" &&
       envelope.data.degraded.includes(FACET_PLAN_EVIDENCE),
     activeFilters,
-    toggle: toggleFilter,
-    setValues: setFilter,
+    dependentFacets,
+    toggle: (slug, value) => {
+      writeFilter(toggleFilterValue(searchState, slug, value), slug, () => {
+        toggleFilter(slug, value);
+      });
+    },
+    setValues: (slug, values) => {
+      writeFilter(setFilterValues(searchState, slug, values), slug, () => {
+        setFilter(slug, values);
+      });
+    },
     setRange,
     setRanges,
     clear: (slug) => {
-      setFilter(slug, []);
+      writeFilter(setFilterValues(searchState, slug, []), slug, () => {
+        setFilter(slug, []);
+      });
     },
     clearAll,
   };
