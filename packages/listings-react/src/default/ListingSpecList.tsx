@@ -65,6 +65,8 @@ export const SPEC_STYLE_HREF = "stapel-listings-spec";
 
 /** The gutter between a label and its answer. */
 const SPEC_COLUMN_GAP: number = spacing[3];
+/** The widest the label track gets, as a share of the list. */
+const SPEC_LABEL_MAX = "45%";
 /** The gap between two characteristics. */
 const SPEC_ROW_GAP: number = spacing[1];
 
@@ -85,14 +87,15 @@ const SPEC_ROW_GAP: number = spacing[1];
  *
  * ── Why this grid is not the table coming back ────────────────────
  *
- * The tracks are the whole argument. `minmax(0, max-content)` for the LABEL:
- * the column is exactly as wide as the longest label in this list and not one
- * pixel more — it is not a reserved third of the page, and under pressure it
- * may shrink below its content rather than push the answers off the page.
- * `minmax(0, 1fr)` for the VALUE: every pixel that is left. So a long answer
- * has MORE measure than it had as the second half of a paragraph, while the
- * answers line up. Both findings hold at once, which is why this is one rule
- * and not a width per breakpoint.
+ * The LABEL track is `fit-content(45%)`: as wide as the longest label and not
+ * a pixel more, but never past 45% of the list — a longer label wraps by word
+ * inside its track. The VALUE track is `minmax(0, 1fr)`: everything left, so
+ * an answer always has at least 55% of the measure.
+ *
+ * The cap is what keeps a phone row readable: one long label must not take
+ * the row and leave its answer a sliver. The value wraps with `break-word`,
+ * not `anywhere`, because `anywhere` drops its min-content to one glyph and
+ * lets the grid starve it.
  *
  * `display: contents` on the ROW is the mechanism. A column can only be
  * shared by every row if the labels and the values are children of the same
@@ -107,18 +110,17 @@ const SPEC_ROW_GAP: number = spacing[1];
 export function specListCss(): string {
   return [
     `.${SPEC_LIST_CLASS}{display:grid;` +
-      `grid-template-columns:minmax(0,max-content) minmax(0,1fr);` +
+      `grid-template-columns:fit-content(${SPEC_LABEL_MAX}) minmax(0,1fr);` +
       `column-gap:${String(SPEC_COLUMN_GAP)}px;row-gap:${String(SPEC_ROW_GAP)}px;` +
       `align-items:baseline;min-inline-size:0}`,
     // The row keeps its element and lays out nothing: its label and its value
     // are the grid's own items. `margin: 0` for the `<p>` it still is on an
     // engine that does not honour `display: contents`.
     `.${SPEC_ROW_CLASS}{display:contents;margin:0}`,
-    `.${SPEC_LABEL_CLASS}{color:var(--listing-spec-label)}`,
-    // A value is the one thing here that can be longer than its column: a
-    // stored code, a URL, a long compound word. It wraps inside its own track
-    // rather than widening the grid.
-    `.${SPEC_VALUE_CLASS}{min-inline-size:0;overflow-wrap:anywhere}`,
+    `.${SPEC_LABEL_CLASS}{color:var(--listing-spec-label);min-inline-size:0;overflow-wrap:break-word}`,
+    // A value wraps by word; only a single word longer than its track (a
+    // stored code, a URL) breaks inside it.
+    `.${SPEC_VALUE_CLASS}{min-inline-size:0;overflow-wrap:break-word}`,
     // The fold's control is a row of its own, not a third column.
     `.${SPEC_FOOT_CLASS}{grid-column:1/-1}`,
   ].join("");

@@ -27,6 +27,7 @@ import {
   SPEC_FOOT_CLASS,
   SPEC_LIST_CLASS,
   SPEC_ROW_CLASS,
+  SPEC_VALUE_CLASS,
   specListCss,
 } from "../src/default/index.js";
 import type { ListingDetailData } from "../src/index.js";
@@ -311,11 +312,10 @@ describe("digits are grouped only where they measure something", () => {
  * prose rather than as a table somebody can scan.
  *
  * BOTH findings are honoured by ONE grid and that is the whole point of the
- * shape chosen: the LABEL track is `minmax(0, max-content)`, so it is exactly
- * as wide as the longest label and never the fixed third of the page antd's
- * `<Descriptions>` reserved, and the VALUE track is `minmax(0, 1fr)` — every
- * pixel that is left. A long answer therefore has MORE measure than it had as
- * a paragraph's second half, not less, while the values line up.
+ * shape chosen: the LABEL track is `fit-content(45%)`, as wide as the longest
+ * label but never past 45% of the list, and the VALUE track is
+ * `minmax(0, 1fr)` — every pixel that is left, at least 55%, so one long
+ * label cannot leave the values a sliver on a phone.
  *
  * The row keeps its element and its `<p>`; `display: contents` is what lets
  * its label and its value be children of the LIST's grid, which is the only
@@ -337,8 +337,12 @@ describe("the characteristics are a two-column grid at every width", () => {
     // Two tracks: the label as wide as its words, the value taking the rest.
     expect(css).toContain(
       `.${SPEC_LIST_CLASS}{display:grid;` +
-        `grid-template-columns:minmax(0,max-content) minmax(0,1fr)`
+        `grid-template-columns:fit-content(45%) minmax(0,1fr)`
     );
+    // A value wraps by word; `anywhere` would shrink its min-content to one
+    // glyph and let the grid starve it.
+    expect(css).toContain(`.${SPEC_VALUE_CLASS}{min-inline-size:0;overflow-wrap:break-word}`);
+    expect(css).not.toContain("overflow-wrap:anywhere");
     // The gap is the spacing scale's, not a literal — both operands read.
     expect(css).toContain(`column-gap:${String(spacing[3])}px`);
     expect(css).toContain(`row-gap:${String(spacing[1])}px`);

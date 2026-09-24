@@ -359,6 +359,11 @@ export function detailGalleryCss(): string {
      SkinCarousel already carries on its slides. */
   scroll-snap-stop: always;
 }
+/* A lone photograph has nothing to peek at: it takes the whole strip rather
+   than leaving a 14% blank beside it. */
+.${LISTINGS_GALLERY_CLASS}[data-gallery-layout="strip"] > :only-child {
+  flex-basis: 100%;
+}
 .${LISTINGS_GALLERY_CLASS}[data-gallery-layout="hero"] {
   display: flex;
   flex-direction: column;

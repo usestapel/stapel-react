@@ -18,6 +18,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import {
+  LISTINGS_GALLERY_CLASS,
   LISTINGS_GALLERY_COUNTER_CLASS,
   LISTINGS_GALLERY_FRAME_CLASS,
   ListingDetailPane,
@@ -162,6 +163,15 @@ describe("the strip's counter tracks the strip", () => {
     const css = detailGalleryCss();
     expect(css).toContain(`.${LISTINGS_GALLERY_FRAME_CLASS} {`);
     expect(css).toContain(`.${LISTINGS_GALLERY_COUNTER_CLASS} {`);
+  });
+});
+
+describe("a lone photograph fills the strip", () => {
+  it("drops the peek basis when there is nothing to peek at", () => {
+    const css = detailGalleryCss().replace(/\s+/g, " ");
+    expect(css).toContain(
+      `.${LISTINGS_GALLERY_CLASS}[data-gallery-layout="strip"] > :only-child { flex-basis: 100%; }`
+    );
   });
 });
 
