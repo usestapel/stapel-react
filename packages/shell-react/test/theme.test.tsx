@@ -190,6 +190,15 @@ describe("the control shows three states and marks the chosen one", () => {
     );
   });
 
+  it("keeps the segments tight enough for one row on a 360px phone", () => {
+    render(<ThemeModeControl variant="settings" value="system" onChange={() => {}} />);
+    // Measured on a 16px root: 347 of 352px at 360 with these two numbers.
+    for (const segment of screen.getAllByRole("radio")) {
+      expect(segment.style.padding).toBe("0px 0.4375rem");
+      expect(segment.style.gap).toBe("0.25rem");
+    }
+  });
+
   it.each([
     ["light" as const, /^Light$/],
     ["dark" as const, /^Dark$/],

@@ -240,6 +240,16 @@ const UNMARKED_FG = "var(--stapel-text-muted, currentColor)";
 const SEGMENT_MIN_HEIGHT = "2.75rem";
 
 /**
+ * A segment's side padding and the gap between its glyph and its label.
+ *
+ * Sized so the three named segments fit ONE row on a 360px phone with the
+ * 4px page gutter (measured at a 16px root: 347 of 352px). The track still
+ * wraps below that, so a narrower mount keeps every state visible.
+ */
+const SEGMENT_PADDING_INLINE = "0.4375rem";
+const SEGMENT_GLYPH_GAP = "0.25rem";
+
+/**
  * The class both variants' buttons carry so ONE hoisted stylesheet (React 19's
  * `<style href precedence>` dedup, the same mechanism `NavDock` uses) can draw
  * the ring — an inline `style` object cannot express a pseudo-class.
@@ -510,10 +520,10 @@ function SettingsControl({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "0.4375rem",
+              gap: SEGMENT_GLYPH_GAP,
               minHeight: SEGMENT_MIN_HEIGHT,
               minWidth: 0,
-              padding: "0 0.75rem",
+              padding: `0 ${SEGMENT_PADDING_INLINE}`,
               border: `1px solid ${marked ? MARKED_BORDER : "transparent"}`,
               borderRadius: "var(--stapel-radius-md, 0.5rem)",
               background: marked ? MARKED_BG : "transparent",
