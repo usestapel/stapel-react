@@ -217,12 +217,34 @@ export function obstructedInsets(target: Element): ObstructedInsets {
   const width = Math.max(0, right - left);
   for (const fraction of [0.1, 0.5, 0.9]) {
     const x = left + width * fraction;
-    const over = barAt(x, band.top + 1, target, band);
-    if (over !== null) top = Math.max(top, over.bottom - band.top);
-    const under = barAt(x, band.bottom - 1, target, band);
-    if (under !== null) bottom = Math.max(bottom, band.bottom - under.top);
+    top = Math.max(top, stackFrom(x, band.top, 1, target, band) - band.top);
+    bottom = Math.max(bottom, band.bottom - stackFrom(x, band.bottom, -1, target, band));
   }
   return { top, bottom };
+}
+
+/** How far bars reach in from one edge. Bars STACK (a sticky footer above a
+ * fixed dock) and FLOAT (a dock with a margin under it), so each bar found
+ * moves the edge and the next few pixels past it are probed again; a gap of
+ * {@link BAR_REACH} with nothing in it ends the stack. */
+const BAR_REACH = 24;
+
+function stackFrom(x: number, from: number, step: 1 | -1, target: Element, band: Band): number {
+  let edge = from;
+  for (let guard = 0; guard < 8; guard += 1) {
+    let found: DOMRect | null = null;
+    for (let offset = 1; offset <= BAR_REACH && found === null; offset += 4) {
+      const y = edge + step * offset;
+      if (y <= band.top || y >= band.bottom) break;
+      found = barAt(x, y, target, band);
+    }
+    if (found === null) return edge;
+    const next = step === 1 ? found.bottom : found.top;
+    // A bar that does not move the edge any further ends the scan.
+    if (step === 1 ? next <= edge : next >= edge) return edge;
+    edge = next;
+  }
+  return edge;
 }
 
 /** How far to scroll so `frame` sits in the uncovered band; 0 when it does. */

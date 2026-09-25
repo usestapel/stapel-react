@@ -79,6 +79,30 @@ describe("revealField", () => {
     expect(obstructedInsets(field)).toEqual({ top: 56, bottom: 64 });
   });
 
+  it("sees a sticky footer stacked on a floating dock (measured at 390)", () => {
+    // The composer's own footer (712-772) sits on the shell's dock (780-836),
+    // which floats 8px above the viewport's bottom edge.
+    const footer = document.createElement("div");
+    footer.style.position = "sticky";
+    const dock = document.createElement("nav");
+    dock.style.position = "fixed";
+    document.body.append(footer, dock);
+    box(footer, 712, 60);
+    box(dock, 780, 56, 8, 374);
+    Object.defineProperty(document, "elementsFromPoint", {
+      configurable: true,
+      value: (_x: number, y: number) =>
+        y >= 780 && y < 836 ? [dock] : y >= 712 && y < 772 ? [footer] : [document.body],
+    });
+    const field = row('<div class="row"><input /></div>');
+    box(field, 728, 100);
+    box(one(field, "input"), 760, 44);
+    expect(obstructedInsets(field)).toEqual({ top: 0, bottom: 844 - 712 });
+    revealField(field);
+    // Band 12..700 (688 room), the 100px row centred: its top at 306.
+    expect(scrolls[0]?.top).toBeCloseTo(728 - 306);
+  });
+
   it("scrolls a field hidden under the bottom bar into the uncovered band and focuses its input", () => {
     chrome();
     const field = row('<div class="row"><label>Title</label><input id="t" /><div role="alert">Fill in this field</div></div>');
