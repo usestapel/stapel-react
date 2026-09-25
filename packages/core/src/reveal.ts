@@ -25,9 +25,12 @@
  *     and its error, so a screen reader hears the reason and not only a caret
  *     that moved.
  *
- * DOM only, no React and no design system: the skins pass a row or a control,
- * and `revealFirstInvalid` finds one by `aria-invalid` and a selector.
+ * No design system: the skins pass a row or a control, and
+ * `revealFirstInvalid` finds one by `aria-invalid` and a selector.
+ * `useRevealOnRefusal` is the one React hook, for refusals that arrive from a
+ * server.
  */
+import { useEffect, useRef } from "react";
 
 /** What can take the caret. Hidden and file inputs are skipped: a file
  * picker's real input is visually hidden and its button is the control. */
@@ -456,4 +459,32 @@ export function revealFirstInvalid(
   const { rowSelector: _rows, rowOf: _rowOf, ...rest } = options;
   revealField(row, { ...rest, frame: row, control: hit === row ? null : hit });
   return true;
+}
+
+/** What {@link useRevealOnRefusal} needs to find a design system's rows. */
+export type RevealOnRefusalOptions = RevealFirstInvalidOptions;
+
+/**
+ * Land on the first refused field when a SERVER refusal arrives (a submit
+ * answered 400 with field errors), not only when the client refused it.
+ *
+ * `refusedKeys` is the set of fields currently refused, in any order. The
+ * reveal runs when a key appears that was not refused a render ago — the
+ * answer to a press — and never when errors only clear as the person types.
+ */
+export function useRevealOnRefusal(
+  root: { readonly current: ParentNode | null },
+  refusedKeys: readonly string[],
+  options: RevealOnRefusalOptions = {}
+): void {
+  const seen = useRef<ReadonlySet<string>>(new Set());
+  const key = [...refusedKeys].sort().join("\u0001");
+  useEffect(() => {
+    const now = new Set(refusedKeys);
+    const fresh = [...now].some((one) => !seen.current.has(one));
+    seen.current = now;
+    if (!fresh || root.current === null) return;
+    revealFirstInvalid(root.current, options);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the refused set; options are read at the moment of the refusal
+  }, [key]);
 }

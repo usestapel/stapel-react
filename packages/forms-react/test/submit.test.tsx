@@ -347,3 +347,22 @@ describe("the unsupported-kind guard", () => {
     );
   });
 });
+
+describe("a refused submit lands on the field", () => {
+  it("puts the caret in the first field the refusal names", async () => {
+    const server = mockServer({
+      [`GET /public/${PUBLIC_ID}/`]: { body: publicForm() },
+    });
+    const { StapelForm } = await import("../src/default/index.js");
+    render(
+      <TestHarness server={server}>
+        <StapelForm publicId={PUBLIC_ID} />
+      </TestHarness>
+    );
+    const input = await screen.findByLabelText("Your name");
+    const submit = screen.getByTestId("forms-submit");
+    submit.focus();
+    fireEvent.click(submit);
+    await waitFor(() => expect(document.activeElement).toBe(input));
+  }, 60_000);
+});

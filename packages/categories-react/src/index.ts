@@ -109,6 +109,7 @@ export {
   isLinkedChild,
   isRowChild,
   isVirtualChild,
+  partitionSides,
 } from "./catalog/stage.js";
 export type { BrowseStage, BrowseStageInput, ChildControl } from "./catalog/stage.js";
 export {

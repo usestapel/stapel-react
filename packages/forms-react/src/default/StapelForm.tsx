@@ -24,7 +24,9 @@
  * that renders an empty form because a fetch failed — `matchLoad`'s three
  * required arms make writing one a compile error.
  */
+import { useRef } from "react";
 import type { ReactElement, ReactNode } from "react";
+import { useRevealOnRefusal } from "@stapel/core/reveal";
 import { Alert, Form, Typography } from "antd";
 import {
   ErrorAlert,
@@ -119,6 +121,22 @@ function useFieldError(): (
 ) => { validateStatus: "error"; help: string } | Record<string, never> {
   const format = useFormatFlowError();
   return (e) => (e ? { validateStatus: "error", help: format(e) } : {});
+}
+
+/**
+ * A submit the SERVER refused lands on the first field it named: scrolled
+ * clear of the host's bars, focused, announced (`@stapel/core/reveal`).
+ */
+function RefusalLanding(props: {
+  readonly refused: readonly string[];
+  readonly children: ReactNode;
+}): ReactElement {
+  const root = useRef<HTMLDivElement | null>(null);
+  useRevealOnRefusal(root, props.refused, {
+    rowSelector: ".ant-form-item-has-error",
+    rowOf: (element) => element.closest(".ant-form-item"),
+  });
+  return <div ref={root}>{props.children}</div>;
 }
 
 function FieldRow(props: FieldRowSlotProps): ReactElement {
@@ -297,6 +315,7 @@ export function StapelForm(props: StapelFormProps): ReactElement {
                   form.meta.submit_label ??
                   t(FORMS_I18N_KEYS.fillSubmit);
                 return (
+                  <RefusalLanding refused={Object.keys(bag.fieldErrors)}>
                   <Form
                     layout="vertical"
                     data-testid="forms-form"
@@ -353,6 +372,7 @@ export function StapelForm(props: StapelFormProps): ReactElement {
 
                     <SubmitBar bag={bag} label={label} />
                   </Form>
+                  </RefusalLanding>
                 );
                 }}
             </LoadBoundary>

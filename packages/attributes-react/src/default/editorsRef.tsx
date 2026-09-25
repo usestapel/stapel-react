@@ -399,8 +399,16 @@ function useStoredLabels(
 ): Readonly<Record<string, string>> {
   const [labels, setLabels] = useState<Readonly<Record<string, string>>>({});
   const asked = useRef(new Set<string>());
-  const key = codes.join(" ");
+  /* Which (client, vocabulary, level) an answer belongs to. An answer is kept
+     unless THAT moved: the codes changing under an in-flight resolve (the
+     recents arriving, an assistant's value landing, StrictMode's second
+     mount) is not a reason to throw it away — a code already marked asked is
+     never asked again, so a discarded answer left the field showing its slug
+     (`vaz-lada` for its make label) for good. */
+  const generation = useRef(0);
+  const key = codes.join(" ");
   useEffect(() => {
+    generation.current += 1;
     asked.current = new Set<string>();
     setLabels({});
   }, [vocabulary, level, client]);
@@ -409,19 +417,18 @@ function useStoredLabels(
     const wanted = codes.filter((code) => !asked.current.has(code));
     if (wanted.length === 0) return;
     for (const code of wanted) asked.current.add(code);
-    let live = true;
+    const mine = generation.current;
     void client
       .resolve(vocabulary, level, wanted)
       .then((found) => {
-        if (live) setLabels((previous) => ({ ...previous, ...found }));
+        if (generation.current === mine) setLabels((previous) => ({ ...previous, ...found }));
       })
       .catch(() => {
         // An unresolvable code keeps showing itself — the stored answer is the
-        // truth, and a blank control would be a worse lie than a slug.
+        // truth, and a blank control would be a worse lie than a slug. A
+        // FAILED ask is not an answer, so a later render may ask again.
+        if (generation.current === mine) for (const code of wanted) asked.current.delete(code);
       });
-    return () => {
-      live = false;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the codes, joined: the array identity changes every render
   }, [client, vocabulary, level, key]);
   return labels;

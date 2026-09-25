@@ -177,6 +177,21 @@ export function isRowChild(child: CategoryChild): child is CategoryRowChild {
 }
 
 /**
+ * The SIDES a partition parent (`children_as: "chips"`) asks a listing to be
+ * filed under: its own row children, never a pointer and never a value.
+ *
+ * A pointer (`linked`) is a door into another branch — a car-rental link
+ * under the cars parent leads into services — so offering it as an answer to "which
+ * side is this car on" files a car listing into a different tree. A value of
+ * an expanded branch has no id to file under at all.
+ */
+export function partitionSides(children: readonly CategoryChild[]): CategoryRowChild[] {
+  return children.filter(
+    (child): child is CategoryRowChild => isRowChild(child) && !isLinkedChild(child)
+  );
+}
+
+/**
  * The row's own live child COUNT, when it states one at all —
  * `children_pks.length` first, `children_count` next (the only channel a
  * depth-capped `CategoryTreeNode` carries, since it has no `children_pks` of
