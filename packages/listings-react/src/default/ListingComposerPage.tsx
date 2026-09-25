@@ -111,6 +111,7 @@ import {
   Typography,
 } from "antd";
 import { SkinButton as Button } from "@stapel/tokens-antd/skin";
+import { revealField as revealFieldIn } from "@stapel/core/reveal";
 import {
   ErrorAlert,
   GatedButton,
@@ -179,47 +180,18 @@ export function composerFieldId(field: string): string {
   return `listings-composer-field-${field}`;
 }
 
-/** What counts as a control a person can be put in front of. A slot's control
- * belongs to the container, so the field is asked for its first focusable
- * descendant rather than assumed to be an `<input>`. */
-const FOCUSABLE =
-  "input,select,textarea,button,[href],[tabindex]:not([tabindex='-1'])";
-
 /**
- * Put the person in front of one field: open whatever it is folded inside,
- * bring it into view, and focus what they are meant to answer.
- *
- * The disclosure step is the one that is easy to forget. A characteristic
- * lives in a `<details>` section that may be closed (`groupCollapse="auto"`),
- * and scrolling to a control inside a closed disclosure scrolls to nothing —
- * the "take me to the first empty field" button would report success and move
- * the page nowhere. Any depth of nesting is opened, because the answer to
- * "where is it" must not depend on how the section was drawn.
- *
- * The rest is guarded rather than assumed. `scrollIntoView` does not exist in
- * every environment this renders in (jsdom, older embedded engines), and a
- * field whose control came from a slot may have nothing focusable in it at
- * all — in which case scrolling to it is still the whole of the help that can
- * honestly be given.
+ * Put the person in front of one field: open whatever it is folded inside
+ * (a characteristic's `<details>` under `groupCollapse="auto"`), scroll its
+ * row clear of the host's sticky and fixed bars, focus what they are meant to
+ * answer and announce it. The mechanism is `@stapel/core/reveal`, shared with
+ * every other form; this only names the row.
  */
 function revealField(id: string): void {
   if (typeof document === "undefined") return;
   const anchor = document.getElementById(id);
   if (anchor === null) return;
-  for (
-    let folded = anchor.closest("details");
-    folded !== null;
-    folded = folded.parentElement?.closest("details") ?? null
-  ) {
-    folded.open = true;
-  }
-  if (typeof anchor.scrollIntoView === "function") {
-    anchor.scrollIntoView({ block: "center", behavior: "smooth" });
-  }
-  const control = anchor.matches(FOCUSABLE)
-    ? anchor
-    : anchor.querySelector<HTMLElement>(FOCUSABLE);
-  control?.focus();
+  revealFieldIn(anchor, { frame: anchor.closest(".ant-form-item") ?? anchor });
 }
 
 /**

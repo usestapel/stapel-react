@@ -196,6 +196,28 @@ does not change without updating both.
 dropped rather than chopped mid-token, unless the very first word alone
 already overruns the budget, in which case it is hard-cut.
 
+## Reveal: a refused field is reached, not only named
+
+`@stapel/core/reveal` — every form's "take me to the field" (DOM only):
+
+```ts
+import { revealField, revealFirstInvalid } from "@stapel/core/reveal";
+
+// A refused Next/Submit: open the section, scroll the ROW clear of sticky and
+// fixed bars (measured, not configured), focus the control, announce it.
+revealField(control, { frame: control.closest(".ant-form-item") });
+
+// Or the first refused field under a root, by aria-invalid / a row class.
+revealFirstInvalid(form, {
+  rowSelector: ".ant-form-item-has-error",
+  rowOf: (el) => el.closest(".ant-form-item"),
+});
+```
+
+Smooth unless `prefers-reduced-motion`; re-checked once the scroll settles.
+A searchable select on a touch screen is focused with its keyboard held back
+until touched; a switched-off control gives the caret to its row.
+
 ## Quick start
 
 One `<StapelProvider>` composes the three core providers
