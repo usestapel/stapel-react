@@ -90,6 +90,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cdn/api/v1/images/{image_type}/{file_hash}/original/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download my original upload
+         * @description The uploader's own original, when it is kept off the public route.
+         *
+         *     A watermarked image's original is protected (``stapel_cdn.protected``);
+         *     the person who uploaded it may still download it, and so may an internal
+         *     service call. Everyone else gets the same 404 as for a missing image.
+         *
+         *     **Permissions:** `OperandHolder`
+         */
+        get: operations["cdn_image_original"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cdn/api/v1/images/{image_type}/random/": {
         parameters: {
             query?: never;
@@ -149,6 +175,33 @@ export interface paths {
          *     **Permissions:** `IsNotAnonymousUser`
          */
         post: operations["upload_typed_image"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cdn/api/v1/media/signed/{token}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fetch a protected file by signed token
+         * @description Serve one protected file behind a short-lived signed token.
+         *
+         *     The token (``stapel_cdn.protected.signed_url``) is minted only for
+         *     internal readers — ``cdn.describe`` with ``{"clean": true}`` is a comm
+         *     Function — and names one path inside the protected tree. Anyone holding
+         *     it may fetch until it expires (``SIGNED_MEDIA_TTL_SECONDS``): that is what
+         *     lets a vision provider fetch the clean copy by URL. Expired, forged and
+         *     unknown tokens all answer the same 404.
+         */
+        get: operations["cdn_signed_media"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -744,6 +797,10 @@ export interface components {
                 url: string;
                 width: number;
                 height: number;
+                /** @description Present (true) when this rendition carries a watermark. */
+                watermarked?: boolean;
+                /** @description The same rendition without the watermark, for machine readers (moderation, vision models). Only on watermarked renditions with STAPEL_CDN['WATERMARK_KEEP_CLEAN']. */
+                clean_url?: string;
             }[];
             /**
              * @description 'pending' — variant generation has not completed, every variant_<size>_url in this payload is a prediction; 'ready' — the ladder exists and the URLs resolve.
@@ -1125,6 +1182,44 @@ export interface operations {
             };
         };
     };
+    cdn_image_original: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                file_hash: string;
+                image_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
     random_image: {
         parameters: {
             query?: never;
@@ -1240,6 +1335,35 @@ export interface operations {
                 };
             };
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
+        };
+    };
+    cdn_signed_media: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

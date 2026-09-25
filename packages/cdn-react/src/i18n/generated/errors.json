@@ -274,6 +274,13 @@
     "en": "Listing not found"
   },
   {
+    "code": "error.404.media_not_found",
+    "status": 404,
+    "params": [],
+    "remediation": "retry",
+    "en": "Media not found or link expired"
+  },
+  {
     "code": "error.404.no_images",
     "status": 404,
     "params": [],

@@ -1,6 +1,6 @@
 # @stapel/cdn-react 0.7.0
 
-Headless React flow pair for stapel-cdn (contract >=0.25 <0.26) — business + state, zero visual opinion.
+Headless React flow pair for stapel-cdn (contract >=0.27 <0.28) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -21,6 +21,8 @@ api (typed client) · model (hooks, session) · flows (machines) · headless · 
 ## Operations (typed; use the named op, never a path string)
 Request/response schema names are in manifest.json + the generated types.
 Paths are relative to `/cdn/api/v1/`.
+- cdn_image_original: GET /images/{image_type}/{file_hash}/original/
+- cdn_signed_media: GET /media/signed/{token}/
 - check_file_exists_get: GET /file/exists/
 - check_file_exists_post: POST /file/exists/
 - describe_media: POST /describe/
@@ -37,7 +39,7 @@ Paths are relative to `/cdn/api/v1/`.
 - useCdnRef (query) → fileExists
 
 ## Errors (render t(code, params); UX from remediation)
-54 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 3 · reauthenticate 1.
+55 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 3 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}

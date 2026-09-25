@@ -4,7 +4,7 @@
   "version": "0.7.0",
   "backend": {
     "module": "stapel-cdn",
-    "contract": ">=0.25 <0.26"
+    "contract": ">=0.27 <0.28"
   },
   "layers": [
     "api",
@@ -16,6 +16,20 @@
   "flows": {},
   "machines": [],
   "operations": {
+    "cdn_image_original": {
+      "method": "GET",
+      "path": "/cdn/api/v1/images/{image_type}/{file_hash}/original/",
+      "tag": "Images",
+      "request": null,
+      "response": null
+    },
+    "cdn_signed_media": {
+      "method": "GET",
+      "path": "/cdn/api/v1/media/signed/{token}/",
+      "tag": "Media",
+      "request": null,
+      "response": null
+    },
     "check_file_exists_get": {
       "method": "GET",
       "path": "/cdn/api/v1/file/exists/",
@@ -306,6 +320,11 @@
       "remediation": "verify"
     },
     "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.media_not_found": {
       "status": 404,
       "params": [],
       "remediation": "retry"
@@ -647,6 +666,7 @@
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
+    "error.404.media_not_found",
     "error.404.no_images",
     "error.404.not_found",
     "error.404.verification_challenge_not_found",
