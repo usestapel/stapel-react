@@ -370,18 +370,50 @@ export function announce(message: string): void {
   }, 50);
 }
 
-/** After the smooth scroll settles, correct once for chrome that moved. */
-function settleThenCorrect(frame: Element): void {
+/** Where the scroller stands, so a check can tell its own scroll from the
+ * person's. */
+function positionOf(frame: Element): number {
+  const scroller = scrollParentOf(frame);
+  return scroller === null ? window.scrollY : scroller.scrollTop;
+}
+
+/**
+ * Re-check the landing after the page has settled, and correct it.
+ *
+ * Two things move a field after it was revealed: chrome that answers to
+ * scrolling, and the form itself — a dependent row filling in once its
+ * vocabulary answers pushes the refused row down after it was measured
+ * (seen at 390: a modification row measured clear, then 10px under the footer).
+ * So the check runs whether or not this reveal scrolled, once the smooth
+ * scroll ends and again a little later. It never fights the person: if the
+ * position is no longer where this left it, they have scrolled, and it stops.
+ */
+function settleThenCorrect(frame: Element, scrolled: boolean): void {
   const scroller = scrollParentOf(frame) ?? window;
-  let done = false;
-  const correct = (): void => {
-    if (done) return;
-    done = true;
-    scroller.removeEventListener("scrollend", correct);
-    scrollBy(frame, scrollDelta(frame), "auto");
+  let expected: number | null = scrolled ? null : positionOf(frame);
+  let checks = 0;
+  const check = (): void => {
+    checks += 1;
+    const now = positionOf(frame);
+    if (expected !== null && Math.abs(now - expected) > 4) return;
+    const delta = scrollDelta(frame);
+    scrollBy(frame, delta, "auto");
+    expected = positionOf(frame);
+    if (checks < 2) setTimeout(check, 600);
   };
-  scroller.addEventListener("scrollend", correct, { once: true });
-  setTimeout(correct, 900);
+  if (scrolled) {
+    let fired = false;
+    const once = (): void => {
+      if (fired) return;
+      fired = true;
+      scroller.removeEventListener("scrollend", once);
+      check();
+    };
+    scroller.addEventListener("scrollend", once, { once: true });
+    setTimeout(once, 900);
+  } else {
+    setTimeout(check, 350);
+  }
 }
 
 function revealNow(field: Element, options: RevealFieldOptions): RevealResult {
@@ -389,7 +421,7 @@ function revealNow(field: Element, options: RevealFieldOptions): RevealResult {
   const behavior = options.behavior ?? (reducedMotion() ? "auto" : "smooth");
   const delta = scrollDelta(frame);
   scrollBy(frame, delta, behavior);
-  if (delta !== 0 && behavior === "smooth") settleThenCorrect(frame);
+  settleThenCorrect(frame, delta !== 0 && behavior === "smooth");
 
   const wanted =
     options.control instanceof HTMLElement ? options.control : firstFocusableIn(field);

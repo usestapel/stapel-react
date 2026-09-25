@@ -121,6 +121,33 @@ describe("revealField", () => {
     );
   });
 
+  it("corrects a row the form pushed under a bar after it was revealed", () => {
+    chrome();
+    const field = row('<div class="row"><input /></div>');
+    box(field, 600, 100);
+    box(one(field, "input"), 620, 40);
+    revealField(field);
+    expect(scrolls).toHaveLength(0);
+    // A dependent row above it filled in: pushed 100px down, under the dock.
+    box(field, 700, 100);
+    vi.advanceTimersByTime(400);
+    expect(scrolls).toHaveLength(1);
+    expect(scrolls[0]?.behavior).toBe("auto");
+  });
+
+  it("never fights a person who scrolled away after the reveal", () => {
+    chrome();
+    const field = row('<div class="row"><input /></div>');
+    box(field, 600, 100);
+    box(one(field, "input"), 620, 40);
+    revealField(field);
+    Object.defineProperty(window, "scrollY", { value: 300, configurable: true });
+    box(field, 900, 100);
+    vi.advanceTimersByTime(2000);
+    expect(scrolls).toHaveLength(0);
+    Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
+  });
+
   it("does not scroll a field already inside the band, and still focuses it", () => {
     chrome();
     const field = row('<div class="row"><textarea></textarea></div>');
