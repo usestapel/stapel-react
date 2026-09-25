@@ -1,5 +1,11 @@
 # @stapel/categories-react
 
+## 0.35.0
+
+### Minor Changes
+
+- 22938ca: `partitionSides(children)`: the sides a partition parent files a listing under — its own row children, never a CategoryLink pointer into another branch and never a value of an expanded branch.
+
 ## 0.34.0
 
 ### Minor Changes

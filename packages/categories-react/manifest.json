@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/categories-react",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "backend": {
     "module": "stapel-categories",
     "contract": ">=0.24 <0.25"
@@ -1187,6 +1187,7 @@
       "nodeOffersTileGrid",
       "parseSnapshot",
       "parseTreenodePks",
+      "partitionSides",
       "rankCategoryMatches",
       "registerCategoriesI18n",
       "renderCategoryLabel",
