@@ -1,5 +1,11 @@
 # @stapel/core
 
+## 0.28.1
+
+### Patch Changes
+
+- f6d2534: `reveal` re-checks the landing after the page settles, whether or not it scrolled: a row the form pushed under a bar after it was measured (a dependent row filling in) is corrected. A person who scrolled away in the meantime is never fought.
+
 ## 0.28.0
 
 ### Minor Changes
