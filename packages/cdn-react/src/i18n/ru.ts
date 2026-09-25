@@ -33,6 +33,7 @@ export const cdnI18nBundleRu: I18nDictionary = {
   "error.400.missing_fields": "Заполнены не все обязательные поля",
   "error.400.no_file": "Файл не выбран",
   "error.403.storage_quota_exceeded": "Исчерпана квота на хранение",
+  "error.404.media_not_found": "Файл не найден или ссылка устарела",
   "error.404.no_images": "Обработанных изображений не найдено",
   "error.413.file_too_large": "Файл слишком большой",
   "error.503.image_decoder_unavailable":

@@ -28,6 +28,7 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "error.400.missing_fields": "Faltan campos obligatorios",
   "error.400.no_file": "No se ha elegido ningún archivo",
   "error.403.storage_quota_exceeded": "Se ha superado la cuota de almacenamiento",
+  "error.404.media_not_found": "Archivo no encontrado o enlace caducado",
   "error.404.no_images": "No se han encontrado imágenes procesadas",
   "error.413.file_too_large": "El archivo es demasiado grande",
   "error.503.image_decoder_unavailable":
