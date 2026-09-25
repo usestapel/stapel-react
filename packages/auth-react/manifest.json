@@ -4,7 +4,7 @@
   "version": "0.25.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.44 <0.45"
+    "contract": ">=0.45 <0.46"
   },
   "layers": [
     "api",
