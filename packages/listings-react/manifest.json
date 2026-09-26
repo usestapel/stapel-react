@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
   "package": "@stapel/listings-react",
-  "version": "0.38.2",
+  "version": "0.38.3",
   "backend": {
     "module": "stapel-listings",
     "contract": ">=0.23 <0.24"
@@ -1143,6 +1143,7 @@
     "listings.compose.details_no_category",
     "listings.compose.edit_title",
     "listings.compose.geo_incomplete",
+    "listings.compose.image_required",
     "listings.compose.invalid_summary",
     "listings.compose.location_help",
     "listings.compose.location_label",

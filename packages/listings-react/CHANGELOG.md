@@ -1,5 +1,11 @@
 # @stapel/listings-react
 
+## 0.38.3
+
+### Patch Changes
+
+- 6f005db: The mirror states the deployment's photo requirement (`requireImageOnPublish`, default on) under `images`: the server's refusal of a photo-less publish is a flat `publish_validation_failed` with no field, which left the composer saying "check the highlighted fields" with nothing highlighted. The gate now names the gallery, and a host's reveal can land on it.
+
 ## 0.38.2
 
 ### Patch Changes
