@@ -196,6 +196,13 @@ export function mirrorListingFields(
     out[PRICE_FIELD] = mirrored(LISTINGS_I18N_KEYS.composePriceInvalid);
   }
 
+  // The server's own rule, stated before the round trip: its refusal is a
+  // flat `publish_validation_failed` with no field to route, which left the
+  // composer saying "check the highlighted fields" with nothing highlighted.
+  if (limits.requireImageOnPublish && values.images.length === 0) {
+    out[IMAGES_FIELD] = mirrored(LISTINGS_I18N_KEYS.composeImageRequired);
+  }
+
   if (values.images.length > limits.maxImages) {
     out[IMAGES_FIELD] = mirrored(LISTINGS_I18N_KEYS.composeTooManyImages, {
       max: limits.maxImages,

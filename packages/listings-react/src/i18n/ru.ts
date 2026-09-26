@@ -179,6 +179,7 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.compose.geo_incomplete":
     "Рядом с широтой нужна долгота — половина координаты никуда не указывает",
   "listings.compose.photos": "Фотографии",
+  "listings.compose.image_required": "Добавьте хотя бы одну фотографию",
   "listings.compose.too_many_images":
     "К объявлению можно приложить не больше {max} фото",
   "listings.compose.details": "Характеристики",

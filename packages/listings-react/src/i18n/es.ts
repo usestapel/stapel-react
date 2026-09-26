@@ -155,6 +155,7 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.compose.geo_incomplete":
     "Una latitud necesita su longitud al lado — media coordenada no apunta a ningún sitio",
   "listings.compose.photos": "Fotos",
+  "listings.compose.image_required": "Añada al menos una foto",
   "listings.compose.too_many_images":
     "Un anuncio admite como mucho {max} fotos",
   "listings.compose.details": "Detalles",

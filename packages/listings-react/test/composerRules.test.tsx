@@ -113,6 +113,9 @@ function bagFor(
         initialValues: {
           categoryId: "phones",
           description: "A perfectly ordinary description, long enough to pass.",
+          // A photo, so the publish gate judges the rules under test and not
+          // the deployment's photo requirement.
+          images: ["product/abc123"],
           ...(options.initialFeatures ? { features: options.initialFeatures } : {}),
         },
       }),

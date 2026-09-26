@@ -232,6 +232,23 @@ describe("the mirror, which never refuses what the server would accept", () => {
     expect(mirrorListingFields(values, DEFAULT_DRAFT_LIMITS)["location"]).toBeDefined();
   });
 
+  it("states the deployment's photo requirement before the round trip", () => {
+    // The server refuses a photo-less publish with a flat 400 and no field to
+    // route; saying it here is what puts the refusal on the gallery.
+    const values = { ...emptyDraftValues(), categoryId: "c", description: "abcd" };
+    expect(mirrorListingFields(values, DEFAULT_DRAFT_LIMITS)["images"]?.code).toBe(
+      "listings.compose.image_required"
+    );
+    expect(
+      mirrorListingFields({ ...values, images: ["product/abc"] }, DEFAULT_DRAFT_LIMITS)["images"]
+    ).toBeUndefined();
+    expect(
+      mirrorListingFields(values, { ...DEFAULT_DRAFT_LIMITS, requireImageOnPublish: false })[
+        "images"
+      ]
+    ).toBeUndefined();
+  });
+
   it("raises its own refusals with status 0", () => {
     // A client-side rule must not be indistinguishable from one that came
     // over the wire (the cdn-react precedent).

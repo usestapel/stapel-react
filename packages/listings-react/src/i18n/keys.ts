@@ -234,6 +234,9 @@ export const LISTINGS_I18N_KEYS = {
   composeLocationHelp: "listings.compose.location_help",
   composeGeoIncomplete: "listings.compose.geo_incomplete",
   composePhotos: "listings.compose.photos",
+  /** A publish with no photo where the deployment requires one
+   * (`REQUIRE_IMAGE_ON_PUBLISH`, library default on). */
+  composeImageRequired: "listings.compose.image_required",
   composeTooManyImages: "listings.compose.too_many_images",
   composeDetails: "listings.compose.details",
   composeDetailsLoading: "listings.compose.details_loading",
@@ -509,6 +512,7 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.compose.geo_incomplete":
     "A latitude needs a longitude beside it — half a coordinate points nowhere",
   "listings.compose.photos": "Photos",
+  "listings.compose.image_required": "Add at least one photo",
   "listings.compose.too_many_images":
     "A listing can carry at most {max} photos",
   "listings.compose.details": "Details",
