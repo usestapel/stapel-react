@@ -1,5 +1,11 @@
 # @stapel/core
 
+## 0.29.0
+
+### Minor Changes
+
+- 8655353: reveal: `revealStart(start, { focus })` — a step change brings the step's start under the sticky header (window on a phone, the dialog body on a desktop), smooth unless reduced motion, and focuses the step heading.
+
 ## 0.28.1
 
 ### Patch Changes

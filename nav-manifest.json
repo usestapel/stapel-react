@@ -556,7 +556,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.38.3",
+      "version": "0.39.0",
       "entries": [
         {
           "id": "listings.detail",

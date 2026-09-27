@@ -1,5 +1,11 @@
 # @stapel/listings-react
 
+## 0.39.0
+
+### Minor Changes
+
+- 8655353: Composer: answers a category switch drops are shelved and come back (value and provenance) when a later schema asks for them again; `setCategory(id, { quiet: true })` drops without reporting in `droppedOnCategoryChange` — for a partition side switch (new/used).
+
 ## 0.38.3
 
 ### Patch Changes
