@@ -33,8 +33,8 @@
  * unconditionally optional because its `require` rule had a typo.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
-import { Alert, Divider, Form, Tag, Typography } from "antd";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { Alert, Divider, Form, Tag, Typography, theme as antdTheme } from "antd";
 import { useFormatFlowError, useT } from "@stapel/core";
 import type { FlowError } from "@stapel/core";
 import { SkinTheme, useElementWidth } from "@stapel/tokens-antd/skin";
@@ -172,7 +172,40 @@ export interface FeatureFieldsProps {
   /** Whether the named sections collapse, and what they do on the first
    * frame. Default `"none"` — see {@link FeatureGroupCollapse}. */
   readonly groupCollapse?: FeatureGroupCollapse;
+  /**
+   * Rows a background writer (an AI job, an import) is still expected to
+   * fill. Each is drawn with a soft moving shimmer and `aria-busy`, and stays
+   * fully editable: a person may type over it at any moment, and the writer
+   * is the host's to stop. Unknown slugs are ignored.
+   */
+  readonly pendingSlugs?: readonly string[];
+  /**
+   * Rows that background writer has JUST filled — highlighted briefly, once,
+   * so the eye finds what changed. The host decides how long a slug stays in
+   * the list; the highlight itself fades on its own.
+   */
+  readonly filledSlugs?: readonly string[];
 }
+
+/** Stylesheet id for the pending/filled row marks (hoisted, deduplicated). */
+const ROW_MARKS_STYLE_HREF = "stapel-attributes-row-marks";
+
+/**
+ * The pending shimmer and the just-filled highlight, as one hoisted sheet.
+ *
+ * The shimmer is an overlay (`pointer-events: none`) so it never takes a tap
+ * from the control under it. Under reduced motion it is a still tint.
+ */
+export const ROW_MARKS_CSS: string = [
+  "[data-attributes-pending]{position:relative;border-radius:var(--attributes-mark-radius,8px)}",
+  "[data-attributes-pending]::after{content:\"\";position:absolute;inset:-4px;border-radius:inherit;pointer-events:none;" +
+    "background:linear-gradient(100deg,transparent 20%,var(--attributes-mark-pending) 50%,transparent 80%);" +
+    "background-size:200% 100%;animation:stapel-attributes-shimmer 1.6s ease-in-out infinite;opacity:.9}",
+  "[data-attributes-filled]{border-radius:var(--attributes-mark-radius,8px);animation:stapel-attributes-filled 2.4s ease-out 1}",
+  "@keyframes stapel-attributes-shimmer{from{background-position:150% 0}to{background-position:-50% 0}}",
+  "@keyframes stapel-attributes-filled{from{background-color:var(--attributes-mark-filled);box-shadow:0 0 0 4px var(--attributes-mark-filled)}to{background-color:transparent;box-shadow:0 0 0 4px transparent}}",
+  "@media (prefers-reduced-motion: reduce){[data-attributes-pending]::after{animation:none;background:var(--attributes-mark-pending);opacity:.35}[data-attributes-filled]{animation:none;box-shadow:0 0 0 4px var(--attributes-mark-filled)}}",
+].join("\n");
 
 /** One hint under a field, already resolved through the host's catalogue. */
 export interface FeatureHint {
@@ -552,7 +585,10 @@ function SectionChevron(props: { readonly open: boolean }): ReactElement {
 
 export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   const t = useT();
+  const { token } = antdTheme.useToken();
   const errors = props.errors ?? {};
+  const pending = new Set(props.pendingSlugs ?? []);
+  const filled = new Set(props.filledSlugs ?? []);
   const column = useRef<HTMLDivElement>(null);
   const { below } = useElementWidth(column, {
     thresholds: { touch: TOUCH_FLOOR_BELOW },
@@ -698,7 +734,22 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
   return (
     <SkinTheme surface="bare">
       <TouchFloorProvider value={below.touch ?? false}>
-        <div ref={column} data-testid="attributes-fields">
+        {pending.size > 0 || filled.size > 0 ? (
+          <style href={ROW_MARKS_STYLE_HREF} precedence="default">
+            {ROW_MARKS_CSS}
+          </style>
+        ) : null}
+        <div
+          ref={column}
+          data-testid="attributes-fields"
+          style={
+            {
+              "--attributes-mark-pending": token.colorPrimaryBg,
+              "--attributes-mark-filled": token.colorSuccessBg,
+              "--attributes-mark-radius": `${String(token.borderRadiusLG)}px`,
+            } as CSSProperties
+          }
+        >
           {sections.map((section) => {
             if (section.rows.length === 0) return null;
             // The ungrouped rows are "the questions before the first heading":
@@ -835,6 +886,11 @@ export function FeatureFields(props: FeatureFieldsProps): ReactElement {
                     <div
                       key={feature.slug}
                       data-testid={featureRowTestId(feature.slug)}
+                      {...(pending.has(feature.slug)
+                        ? { "data-attributes-pending": "", "aria-busy": true as const }
+                        : filled.has(feature.slug)
+                          ? { "data-attributes-filled": "" }
+                          : {})}
                     >
                       {props.renderRow ? (
                         <>{props.renderRow(row)}</>

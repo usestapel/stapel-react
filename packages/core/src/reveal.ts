@@ -465,6 +465,60 @@ export function revealField(
   return null;
 }
 
+/**
+ * Bring the START of a view — a form step, a wizard page — to the top of the
+ * part of the screen nobody is covering, and hand focus to its heading.
+ *
+ * The companion of {@link revealField} for a step change (owner, 2026-09-27:
+ * «on Next there is no scroll to the top of the form»): the scroll port is
+ * found, not assumed — the window on a phone, a dialog's body on a desktop —
+ * and a sticky header is measured, not configured. Smooth unless reduced
+ * motion. A start already in the upper part of the uncovered band is left
+ * where it is: scrolling DOWN to it would hide what sits above it.
+ *
+ * `focus` is the heading, made programmatically focusable when it is not, and
+ * focused without scrolling so a screen reader reads from the new step.
+ */
+export function revealStart(
+  start: Element,
+  options: { readonly focus?: Element | null; readonly behavior?: ScrollBehavior } = {}
+): Element | null {
+  if (typeof document === "undefined") return null;
+  const behavior = options.behavior ?? (reducedMotion() ? "auto" : "smooth");
+  const delta = startDelta(start);
+  scrollBy(start, delta, behavior);
+  if (delta !== 0 && behavior === "smooth") {
+    // Chrome that answers to scrolling may have moved while it ran; one
+    // correction once it settles, unless the person has scrolled since.
+    const scroller = scrollParentOf(start) ?? window;
+    let fired = false;
+    const once = (): void => {
+      if (fired) return;
+      fired = true;
+      scroller.removeEventListener("scrollend", once);
+      scrollBy(start, startDelta(start), "auto");
+    };
+    scroller.addEventListener("scrollend", once, { once: true });
+    setTimeout(once, 900);
+  }
+  const target = options.focus ?? null;
+  if (!(target instanceof HTMLElement)) return null;
+  if (!target.matches(FOCUSABLE)) target.tabIndex = -1;
+  target.focus({ preventScroll: true });
+  return document.activeElement === target ? target : null;
+}
+
+/** How far to scroll so `start` sits just under the top bars; 0 when its top
+ * is already in the upper third of the uncovered band. */
+function startDelta(start: Element): number {
+  const band = bandOf(scrollParentOf(start));
+  const top = band.top + obstructedInsets(start).top + GAP;
+  const rect = start.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) return 0;
+  if (rect.top >= top && rect.top <= top + (band.bottom - top) / 3) return 0;
+  return rect.top - top;
+}
+
 export interface RevealFirstInvalidOptions extends Omit<RevealFieldOptions, "frame" | "control"> {
   /** Extra selector for a refused ROW (a design system's error class). */
   readonly rowSelector?: string;

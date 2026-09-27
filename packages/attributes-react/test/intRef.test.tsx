@@ -1,12 +1,9 @@
 /**
  * The vocabulary-backed int (`IntConfig.optionsRef`) — the year-of-make field
- * scoped by the chosen generation. The owner's ruling, final shape (together,
- * not instead): the keypad stays AND a dropdown of the allowed set rides along.
+ * scoped by the chosen generation. Owner, 2026-09-27: once the set is known
+ * the year is PICKED from it, newest first; the keypad remains only while the
+ * set is not known (loading, no client, a failed or capped fetch).
  *
- *  - typing filters the dropdown (autocomplete over the allowed set);
- *  - a typed number that IS allowed commits and the dropdown goes away;
- *  - a typed number that is NOT allowed shows the FULL set plus a bounds
- *    hint — the dropdown is the recovery path;
  *  - the steppers walk the ALLOWED set (skipping gaps) and grey out at the
  *    ends;
  *  - exactly one allowed value → baked (committed + grey), like any other
@@ -90,12 +87,12 @@ function yearInput(): HTMLInputElement {
 }
 
 describe("constrained int editor", () => {
-  it("keeps the numeric keypad", async () => {
+  it("draws the loaded set as a picker, not a keypad (owner, 2026-09-27)", async () => {
     renderYear({ generation: ["g15"] });
-    await waitFor(() => {
-      expect(yearInput()).toBeTruthy();
-    });
-    expect(yearInput().getAttribute("inputmode")).toBe("numeric");
+    const picker = await screen.findByTestId("attributes-int-picker");
+    expect(picker.id).toBe(featureControlId("year"));
+    expect(picker.textContent).toContain("2008–2012");
+    expect(document.querySelector('[data-testid="attributes-number-field"]')).toBeNull();
   });
 
   /**
@@ -114,26 +111,13 @@ describe("constrained int editor", () => {
     expect(yearInput().getAttribute("pattern")).toBe("[0-9]*");
   });
 
-  it("narrows min/max to the live set and hangs a datalist off the input", async () => {
+  it("lists the allowed years newest first", async () => {
     renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    await waitFor(() => {
-      expect(yearInput().getAttribute("list")).toBeTruthy();
-    });
-    // The ends of the LOADED set win over the catalogue's static bound: they
-    // are the constraint the server will actually apply.
-    expect(yearInput().getAttribute("min")).toBe("2008");
-    expect(yearInput().getAttribute("max")).toBe("2012");
-
-    const list = document.getElementById(yearInput().getAttribute("list") ?? "");
-    expect(list?.tagName.toLowerCase()).toBe("datalist");
-    expect([...(list?.querySelectorAll("option") ?? [])].map((one) => one.value)).toEqual([
-      "2008",
-      "2009",
-      "2010",
-      "2011",
-      "2012",
-    ]);
+    fireEvent.click(await screen.findByTestId("attributes-int-picker"));
+    const rows = [...document.querySelectorAll("[data-stapel-picker-row]")].map((one) =>
+      (one.textContent ?? "").trim()
+    );
+    expect(rows).toEqual(["2012", "2011", "2010", "2009", "2008"]);
   });
 
   it("suppresses the static range hint once the live set is on the control", async () => {
@@ -145,48 +129,19 @@ describe("constrained int editor", () => {
     expect(screen.queryByText(/1900\s*–\s*2027|1900\s*—\s*2027/)).toBeNull();
   });
 
-  it("typing a prefix filters the dropdown to matching allowed values", async () => {
-    renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    fireEvent.change(yearInput(), { target: { value: "201" } });
-    const panel = await screen.findByTestId("attributes-int-suggestions");
-    const rows = [...panel.querySelectorAll("[data-int-suggestion]")].map(
-      (row) => row.textContent
-    );
-    expect(rows).toEqual(["2010", "2011", "2012"]);
-  });
-
-  it("a typed ALLOWED number commits and hides the dropdown", async () => {
-    const { onChange } = renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    fireEvent.change(yearInput(), { target: { value: "2010" } });
-    expect(onChange).toHaveBeenCalledWith("year", 2010, "user");
-    await waitFor(() => {
-      expect(screen.queryByTestId("attributes-int-suggestions")).toBeNull();
-    });
-  });
-
-  it("a typed DISALLOWED number opens the full set with a bounds hint", async () => {
-    renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    fireEvent.change(yearInput(), { target: { value: "2013" } });
-    const panel = await screen.findByTestId("attributes-int-suggestions");
-    const rows = [...panel.querySelectorAll("[data-int-suggestion]")].map(
-      (row) => row.textContent
-    );
-    expect(rows).toEqual(["2008", "2009", "2010", "2011", "2012"]);
+      it("a held DISALLOWED number is refused with the allowed range", async () => {
+    renderYear({ generation: ["g15"], year: 2013 });
+    await screen.findByTestId("attributes-int-picker");
     const hint = screen.getByTestId("attributes-int-out-of-set");
     expect(hint.textContent).toContain("2008");
     expect(hint.textContent).toContain("2012");
   });
 
-  it("picking a suggestion commits it", async () => {
+  it("picking a year commits it", async () => {
     const { onChange } = renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    fireEvent.change(yearInput(), { target: { value: "201" } });
-    const panel = await screen.findByTestId("attributes-int-suggestions");
-    const row = [...panel.querySelectorAll("[data-int-suggestion]")].find(
-      (one) => one.textContent === "2011"
+    fireEvent.click(await screen.findByTestId("attributes-int-picker"));
+    const row = [...document.querySelectorAll("[data-stapel-picker-row]")].find(
+      (one) => (one.textContent ?? "").trim() === "2011"
     ) as HTMLElement;
     fireEvent.click(row);
     expect(onChange).toHaveBeenCalledWith("year", 2011, "user");
@@ -360,8 +315,12 @@ describe("the constrained int says which state it is in", () => {
         language: undefined,
       },
     });
-    const said = await screen.findByTestId("attributes-int-refusal-range");
-    expect(said.textContent ?? "").toContain("2008");
+    await waitFor(() =>
+      expect(screen.getByTestId("attributes-int-refusal-range").textContent ?? "").toContain(
+        "2008"
+      )
+    );
+    const said = screen.getByTestId("attributes-int-refusal-range");
     expect(said.textContent ?? "").toContain("2012");
   });
 
@@ -416,15 +375,12 @@ describe("the three states where the set is NOT loaded still refuse a number", (
     expect(screen.queryByTestId("attributes-int-out-of-set")).toBeNull();
   });
 
-  it("binds the refusal to the input, so it is not a line addressed by nothing", async () => {
-    renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    fireEvent.change(yearInput(), { target: { value: "2013" } });
-    const hint = await screen.findByTestId("attributes-int-out-of-set");
-    const describedBy = yearInput().getAttribute("aria-describedby");
+  it("binds the refusal to the picker, so it is not a line addressed by nothing", async () => {
+    renderYear({ generation: ["g15"], year: 2013 });
+    const picker = await screen.findByTestId("attributes-int-picker");
+    const hint = screen.getByTestId("attributes-int-out-of-set");
+    const describedBy = picker.getAttribute("aria-describedby");
     expect(describedBy).toBeTruthy();
-    // The id is on the field's own error line — the sentence a screen reader
-    // is handed with the control, not a paragraph beside it.
     const described = document.getElementById(describedBy ?? "");
     expect(described?.contains(hint)).toBe(true);
     expect(described?.textContent).toContain("2008");
@@ -437,40 +393,18 @@ describe("the three states where the set is NOT loaded still refuse a number", (
    * own constraint validation is the half that DOES apply to one — a state,
    * not an attribute, so nothing rewrites what was typed.
    */
-  it("refuses an out-of-set year on the element itself", async () => {
-    renderYear({ generation: ["g15"] });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("attributes-int-ref").getAttribute("data-state")
-      ).toBe("bounded")
+  it("says the refusal on the row for a probe that reads the page", async () => {
+    renderYear({ generation: ["g15"], year: 2013 });
+    await screen.findByTestId("attributes-int-picker");
+    expect(screen.getByTestId("attributes-int-ref").getAttribute("data-int-bound")).toBe(
+      "refused"
     );
-    const year = yearInput();
-    expect(year.checkValidity()).toBe(true);
-    fireEvent.change(year, { target: { value: "2013" } });
-    await waitFor(() => expect(year.checkValidity()).toBe(false));
-    expect(year.validity.customError).toBe(true);
-    expect(year.validationMessage).toContain("2008");
-    expect(
-      screen.getByTestId("attributes-int-ref").getAttribute("data-int-bound")
-    ).toBe("refused");
-    expect(year.value).toBe("2013");
-    fireEvent.change(year, { target: { value: "2010" } });
-    await waitFor(() => expect(year.checkValidity()).toBe(true));
-    expect(
-      screen.getByTestId("attributes-int-ref").getAttribute("data-int-bound")
-    ).toBe("ok");
   });
 
   it("still prefers the LIVE set's ends once they land", async () => {
-    renderYear({ generation: ["g15"] });
-    await waitFor(() => expect(yearInput()).toBeTruthy());
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("attributes-int-ref").getAttribute("data-state")
-      ).toBe("bounded")
-    );
-    fireEvent.change(yearInput(), { target: { value: "2013" } });
-    const hint = await screen.findByTestId("attributes-int-out-of-set");
+    renderYear({ generation: ["g15"], year: 2013 });
+    await screen.findByTestId("attributes-int-picker");
+    const hint = screen.getByTestId("attributes-int-out-of-set");
     // The catalogue says 1900–2027; the set says 2008–2012, and the set is
     // what the server will apply.
     expect(hint.textContent).toContain("2008");

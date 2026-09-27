@@ -63,6 +63,10 @@ const YEAR: FeatureDef = feature("year", { type: "int", min: 1900, max: 2030 }, 
   ],
 });
 
+/** The same span as a STATIC bound — nothing derived it, so it stays a
+ * keypad with the recovery dropdown. */
+const STATIC_YEAR: FeatureDef = feature("year", { type: "int", min: 2018, max: 2024 });
+
 /** One allowed value — the bake. */
 const PINNED_YEAR: FeatureDef = feature("year", { type: "int", min: 1900, max: 2030 }, {
   rules: [
@@ -115,7 +119,7 @@ describe("the bound as a mechanism, not as prose", () => {
   /** D392 — the bound was operable and still invisible to everything that
    * READS the field rather than tapping it. */
   it("writes the bound on the element, list and all", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     const year = box("year");
     expect(year.getAttribute("min")).toBe("2018");
     expect(year.getAttribute("max")).toBe("2024");
@@ -145,14 +149,14 @@ describe("the bound as a mechanism, not as prose", () => {
   });
 
   it("offers the allowed values as a dropdown beside the keypad", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     expect(suggestions()).toEqual([]);
     fireEvent.click(screen.getByTestId("attributes-int-open"));
     expect(suggestions()).toEqual(["2018", "2019", "2020", "2021", "2022", "2023", "2024"]);
   });
 
   it("typing a valid value commits it and hides the dropdown", () => {
-    const { onChange } = renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const { onChange } = renderFields([STATIC_YEAR], {});
     fireEvent.click(screen.getByTestId("attributes-int-open"));
     expect(suggestions().length).toBe(7);
     fireEvent.change(box("year"), { target: { value: "2021" } });
@@ -162,13 +166,13 @@ describe("the bound as a mechanism, not as prose", () => {
   });
 
   it("a typed prefix filters the dropdown instead of refusing", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     fireEvent.change(box("year"), { target: { value: "202" } });
     expect(suggestions()).toEqual(["2020", "2021", "2022", "2023", "2024"]);
   });
 
   it("picking a value from the dropdown commits it", () => {
-    const { onChange } = renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    const { onChange } = renderFields([STATIC_YEAR], {});
     fireEvent.change(box("year"), { target: { value: "202" } });
     const row = [...document.querySelectorAll("[data-int-suggestion]")].find(
       (one) => one.textContent === "2022"
@@ -177,15 +181,21 @@ describe("the bound as a mechanism, not as prose", () => {
     expect(onChange).toHaveBeenLastCalledWith("year", 2022, "user");
   });
 
-  it("an out-of-bounds value opens the FULL set and names the answers that set the bound", () => {
-    const { onChange } = renderFields([GENERATION, YEAR], { generation: ["g20"] });
+  it("a static bound keeps the recovery dropdown for an out-of-bounds value", () => {
+    const { onChange } = renderFields([STATIC_YEAR], {});
     fireEvent.change(box("year"), { target: { value: "1995" } });
     expect(suggestions()).toEqual(["2018", "2019", "2020", "2021", "2022", "2023", "2024"]);
     const hint = screen.getByTestId("attributes-int-out-of-range");
-    expect(hint.textContent).toBe("For G20 the value is from 2018 to 2024.");
+    expect(hint.textContent).toBe("Outside the allowed range — from 2018 to 2024.");
     // Said, never enforced: what was typed is what the caller is told.
     expect(onChange).toHaveBeenLastCalledWith("year", 1995, "user");
     expect(box("year").value).toBe("1995");
+  });
+
+  it("a held value outside a DERIVED range names the answers that set it", () => {
+    renderFields([GENERATION, YEAR], { generation: ["g20"], year: 1995 });
+    const hint = screen.getByTestId("attributes-int-out-of-range");
+    expect(hint.textContent).toBe("For G20 the value is from 2018 to 2024.");
   });
 
   it("says the range plainly when no rule set it", () => {
@@ -266,7 +276,7 @@ describe("the bound as a mechanism, not as prose", () => {
   });
 
   it("says the bound under the box while the answer fits, and only then", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"], year: 2020 });
+    renderFields([STATIC_YEAR], { year: 2020 });
     expect(screen.getByText("From 2018 to 2024.")).toBeTruthy();
     fireEvent.change(box("year"), { target: { value: "1995" } });
     expect(screen.queryByText("From 2018 to 2024.")).toBeNull();
@@ -282,14 +292,14 @@ describe("the bound as a mechanism, not as prose", () => {
    * browser's own constraint validation.
    */
   it("refuses an out-of-bounds number ON THE ELEMENT, and keeps what was typed", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     const year = box("year");
     expect(year.checkValidity()).toBe(true);
 
     fireEvent.change(year, { target: { value: "1990" } });
     expect(year.checkValidity()).toBe(false);
     expect(year.validity.customError).toBe(true);
-    expect(year.validationMessage).toBe("For G20 the value is from 2018 to 2024.");
+    expect(year.validationMessage).toBe("Outside the allowed range — from 2018 to 2024.");
     expect(screen.getByTestId("attributes-int-bounded").getAttribute("data-int-bound")).toBe(
       "refused"
     );
@@ -300,7 +310,7 @@ describe("the bound as a mechanism, not as prose", () => {
   });
 
   it("lets a value inside the bound through, on the element too", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     const year = box("year");
     fireEvent.change(year, { target: { value: "1990" } });
     expect(year.checkValidity()).toBe(false);
@@ -317,7 +327,7 @@ describe("the bound as a mechanism, not as prose", () => {
    * field's own error slot, and `aria-describedby` ties it to the input — so
    * a person who never sees the line is told the same thing. */
   it("puts the refusal in the field's own error slot, addressed by the input", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     const year = box("year");
     fireEvent.change(year, { target: { value: "1990" } });
     const said = screen.getByTestId("attributes-int-out-of-range");
@@ -329,7 +339,7 @@ describe("the bound as a mechanism, not as prose", () => {
   /** Blur is where a form usually asks; the refusal has to survive it rather
    * than being a keystroke-only decoration. */
   it("still refuses after the field is left", () => {
-    renderFields([GENERATION, YEAR], { generation: ["g20"] });
+    renderFields([STATIC_YEAR], {});
     const year = box("year");
     fireEvent.change(year, { target: { value: "1990" } });
     fireEvent.blur(year);

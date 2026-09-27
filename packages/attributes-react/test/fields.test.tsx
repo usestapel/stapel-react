@@ -264,12 +264,11 @@ describe("rules decide what is on screen", () => {
         />
       )
     );
-    // The narrowed ceiling reaches the control as its placeholder — a hint,
-    // never a clamp: the mirror is what refuses 11, with the engine's own
-    // sentence, and a control that silently rewrote it would be storing a
-    // number nobody typed.
-    const input = screen.getByLabelText("weight");
-    expect(input.getAttribute("placeholder")).toBe("1–10");
+    // A bound a rule DERIVED from another answer is a range to pick from
+    // (owner, 2026-09-27), and the picker states it while empty.
+    const picker = screen.getByLabelText("weight");
+    expect(picker.getAttribute("data-testid")).toBe("attributes-int-picker");
+    expect(picker.textContent).toContain("1–10");
   });
 });
 

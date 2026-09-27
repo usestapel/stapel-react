@@ -256,9 +256,22 @@ export interface ListingComposerBag {
    * a slug that comes back later comes back unattributed.
    */
   readonly featureSources: Readonly<Record<string, FeatureChangeSource>>;
-  /** Changing category keeps the answers the new schema also asks for. */
-  setCategory(categoryId: string): void;
-  /** Slugs cleared by the last category change — named, not silently lost. */
+  /**
+   * Changing category keeps the answers the new schema also asks for.
+   *
+   * An answer the new schema will not carry is not lost: it is SHELVED, and
+   * a later schema that asks for it again (switching «new» back to «used»,
+   * say) gets it back — value and provenance — wherever the form has no
+   * answer of its own for it by then.
+   *
+   * `quiet: true` is a switch the person should not be told about — a
+   * partition side (new/used, sell/rent) whose one-sided fields come and go
+   * with it. The drop still happens and is still shelved; it is simply not
+   * reported in {@link droppedOnCategoryChange}.
+   */
+  setCategory(categoryId: string, options?: { readonly quiet?: boolean }): void;
+  /** Slugs cleared by the last (non-quiet) category change — named, not
+   * silently lost. */
   readonly droppedOnCategoryChange: readonly string[];
 
   /** The client mirror, always current. */
@@ -322,9 +335,23 @@ export function useListingComposer(
   }));
   const [showErrors, setShowErrors] = useState(false);
   const [dropped, setDropped] = useState<readonly string[]>([]);
+  /** Answers a schema switch dropped, kept for a later schema that asks for
+   * them again — see `setCategory`. */
+  const shelf = useRef<{
+    values: Record<string, unknown>;
+    sources: Record<string, FeatureChangeSource>;
+  }>({ values: {}, sources: {} });
+  /** The pending switch was asked for with `quiet: true`. */
+  const quietSwitch = useRef(false);
+  /** The committed answers and their authors, for the schema effect to plan
+   * against without reading them inside a state updater. */
+  const latestValues = useRef(values);
+  latestValues.current = values;
   const [featureSources, setFeatureSources] = useState<
     Readonly<Record<string, FeatureChangeSource>>
   >({});
+  const featureSourcesRef = useRef(featureSources);
+  featureSourcesRef.current = featureSources;
   const [refusal, setRefusal] = useState<PublishRefusal | undefined>(undefined);
   const [outcome, setOutcome] = useState<PublishOutcome | undefined>(undefined);
   const [saved, setSaved] = useState(false);
@@ -410,48 +437,100 @@ export function useListingComposer(
      * draft's contents on the way in. */
     const switched = judgedSchema.current !== null && judgedSchema.current !== schemaKey;
     judgedSchema.current = schemaKey;
-    setValues((current) => {
-      /* On a SWITCH, `gone` is "what this schema will not carry": since
-         0.30.2 that includes an answer whose slug survives but whose VALUE
-         this category refuses — two leaves both declaring `color` differ in
-         the options behind it (D455). Otherwise it stays the older, narrower
-         question — "which slugs is this schema not asking about?" — because
-         within ONE category a value the mirror refuses is a person typing,
-         and deleting that is the composer editing them mid-sentence. */
-      const gone = switched
-        ? droppedFeatureSlugs(current.features, features)
-        : Object.keys(current.features)
-            .filter((slug) => !features.some((feature) => feature.slug === slug))
-            .sort();
-      const kept =
-        gone.length === 0
-          ? current.features
-          : Object.fromEntries(
-              Object.entries(current.features).filter(([slug]) => !gone.includes(slug))
-            );
-      // `FeatureDef.default` (and the type's own default) is what the CATALOGUE
-      // says a blank form opens with — a `select` option flagged `default`, a
-      // preset date. It is applied ONLY where the draft has no answer: a
-      // reopened listing, or anything typed before the schema landed, outranks
-      // a default, because a default is a suggestion and an answer is not.
-      const seeded: Record<string, unknown> = {};
-      for (const [slug, value] of Object.entries(initialFeatureValues(features))) {
-        if (kept[slug] === undefined) seeded[slug] = value;
+    const quiet = quietSwitch.current;
+    if (switched) quietSwitch.current = false;
+    // Planned against the COMMITTED answers, outside the state updater, so the
+    // shelf (a ref) is written exactly once — an updater may run twice.
+    const current = latestValues.current.features;
+    /* On a SWITCH, `gone` is "what this schema will not carry": since 0.30.2
+       that includes an answer whose slug survives but whose VALUE this
+       category refuses — two leaves both declaring `color` differ in the
+       options behind it (D455). Otherwise it stays the older, narrower
+       question — "which slugs is this schema not asking about?" — because
+       within ONE category a value the mirror refuses is a person typing, and
+       deleting that is the composer editing them mid-sentence. */
+    const gone = switched
+      ? droppedFeatureSlugs(current, features)
+      : Object.keys(current)
+          .filter((slug) => !features.some((feature) => feature.slug === slug))
+          .sort();
+    const answered = (slug: string): boolean =>
+      current[slug] !== undefined && !gone.includes(slug);
+    // Back off the SHELF: an answer an earlier switch dropped, which this
+    // schema asks for again and nobody has answered since. Judged by the same
+    // retention rule, so a value this schema refuses stays shelved.
+    const restored: Record<string, unknown> = {};
+    if (switched) {
+      const shelved = Object.fromEntries(
+        Object.entries(shelf.current.values).filter(
+          ([slug]) => !answered(slug) && features.some((one) => one.slug === slug)
+        )
+      );
+      const refused = new Set(droppedFeatureSlugs(shelved, features));
+      for (const [slug, value] of Object.entries(shelved)) {
+        if (!refused.has(slug)) restored[slug] = value;
       }
-      if (gone.length === 0 && Object.keys(seeded).length === 0) return current;
-      if (gone.length > 0) {
-        setDropped(gone);
-        // The provenance goes with the value it is about. Left behind, a slug
-        // the new category happens to ask for again would come back already
-        // stamped as somebody's answer.
-        setFeatureSources((sources) =>
-          Object.fromEntries(
-            Object.entries(sources).filter(([slug]) => !gone.includes(slug))
-          )
-        );
+    }
+    // `FeatureDef.default` (and the type's own default) is what the CATALOGUE
+    // says a blank form opens with — a `select` option flagged `default`, a
+    // preset date. It is applied ONLY where the draft has no answer: a
+    // reopened listing, or anything typed before the schema landed, outranks
+    // a default, because a default is a suggestion and an answer is not.
+    const seeded: Record<string, unknown> = {};
+    for (const [slug, value] of Object.entries(initialFeatureValues(features))) {
+      if (!answered(slug) && restored[slug] === undefined) seeded[slug] = value;
+    }
+    const back = Object.keys(restored);
+    if (gone.length === 0 && back.length === 0 && Object.keys(seeded).length === 0) {
+      return;
+    }
+    const shelvedSources = shelf.current.sources;
+    // The shelf: what leaves goes on it (switches only — a reopen's pruning
+    // is the catalogue moving on, not a person's answer to come back to);
+    // what comes back comes off it.
+    const nextShelf = {
+      values: Object.fromEntries(
+        Object.entries(shelf.current.values).filter(([slug]) => !back.includes(slug))
+      ),
+      sources: Object.fromEntries(
+        Object.entries(shelf.current.sources).filter(([slug]) => !back.includes(slug))
+      ),
+    };
+    if (switched) {
+      for (const slug of gone) {
+        if (current[slug] !== undefined) nextShelf.values[slug] = current[slug];
+        const source = featureSourcesRef.current[slug];
+        if (source !== undefined) nextShelf.sources[slug] = source;
       }
-      return { ...current, features: { ...kept, ...seeded } };
+    }
+    shelf.current = nextShelf;
+
+    setValues((prior) => {
+      const kept = Object.fromEntries(
+        Object.entries(prior.features).filter(([slug]) => !gone.includes(slug))
+      );
+      const additions: Record<string, unknown> = {};
+      for (const [slug, value] of Object.entries({ ...restored, ...seeded })) {
+        if (kept[slug] === undefined) additions[slug] = value;
+      }
+      return { ...prior, features: { ...kept, ...additions } };
     });
+    if (gone.length > 0 || back.length > 0) {
+      // The provenance goes with the value it is about. Left behind, a slug
+      // the new category happens to ask for again would come back already
+      // stamped as somebody's answer; brought back, it keeps whose it was.
+      setFeatureSources((sources) => {
+        const next: Record<string, FeatureChangeSource> = Object.fromEntries(
+          Object.entries(sources).filter(([slug]) => !gone.includes(slug))
+        );
+        for (const slug of back) {
+          const source = shelvedSources[slug];
+          if (source !== undefined) next[slug] = source;
+        }
+        return next;
+      });
+    }
+    if (gone.length > 0 && !quiet) setDropped(gone);
   }, [schemaSettled, features, schemaKey]);
 
   // The gallery is the upload bag's, whenever there is one: two sources of
@@ -742,8 +821,9 @@ export function useListingComposer(
       );
       options.onFeatureChange?.(slug, value, from);
     },
-    setCategory: (categoryId) => {
+    setCategory: (categoryId, setOptions) => {
       setSaved(false);
+      quietSwitch.current = setOptions?.quiet === true;
       // Told upwards FIRST and unconditionally: the container's schema read is
       // keyed by this id, and it must be asked for even when the composer is
       // uncontrolled — that is the wire `features` arrives on.

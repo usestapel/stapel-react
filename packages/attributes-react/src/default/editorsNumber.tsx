@@ -270,14 +270,128 @@ function useBoundConstraint(refusal: string | undefined): RefObject<HTMLDivEleme
 }
 
 /**
- * `IntConfig.optionsRef` — the year-of-make field scoped by the chosen
- * generation. The owner's ruling, final shape (together, not instead):
+ * The number an EMPTY box is showing as its placeholder, when it shows one.
  *
- *  - the numeric KEYPAD stays — typing is the primary path;
- *  - a dropdown of the allowed set rides along: a typed prefix filters it, a
- *    typed number that IS allowed commits with no further UI, and a typed
- *    number OUTSIDE the set shows the whole set plus a bounds hint — the
- *    dropdown is the recovery path;
+ * Owner, 2026-09-27: pressing + or − on an empty field that reads «154000»
+ * in grey started from the bound (or from 0), so the grey number the person
+ * was looking at was not where the walk began. The placeholder is now the
+ * first value a stepper commits, and the next press adds to or subtracts
+ * from it. Only a single number qualifies: a range box («1–1000000») or a
+ * word is not a value anybody could have meant.
+ */
+export function placeholderNumber(
+  text: string,
+  integer: boolean
+): number | undefined {
+  const compact = text.replace(/[\s\u00a0\u202f]/g, "").replace(",", ".");
+  if (!/^-?\d+(\.\d+)?$/.test(compact)) return undefined;
+  const value = Number(compact);
+  if (!Number.isFinite(value)) return undefined;
+  if (integer && !Number.isInteger(value)) return undefined;
+  return value;
+}
+
+/**
+ * Where the two steppers go from `typed`, walking by one inside an optional
+ * bound — or, on an empty box, to the placeholder's own number when it is
+ * inside the bound, and to the nearer end otherwise.
+ */
+export function stepTargets(
+  typed: number | undefined,
+  seed: number | undefined,
+  min: number | undefined,
+  max: number | undefined
+): { readonly up: number | undefined; readonly down: number | undefined } {
+  if (typed === undefined) {
+    if (seed !== undefined && withinBounds(seed, min, max)) {
+      return { up: seed, down: seed };
+    }
+    return { up: min, down: max };
+  }
+  const up = Math.floor(typed) + 1;
+  const down = Math.ceil(typed) - 1;
+  return {
+    up: max !== undefined && up > max ? undefined : up,
+    down: min !== undefined && down < min ? undefined : down,
+  };
+}
+
+/**
+ * A range the form DERIVED from other answers, drawn as a picker.
+ *
+ * Owner, 2026-09-27: when the year of make has a definite range computed
+ * from the generation, it is picked, not typed — a list of the years in the
+ * range, newest first, in the house long-list picker (a bottom sheet on a
+ * phone, a centred list on a desktop). The steppers still ride beside it.
+ */
+function IntRangePicker(props: {
+  readonly id: string | undefined;
+  readonly feature: ValueEditorProps["feature"];
+  readonly values: readonly number[];
+  readonly current: number | undefined;
+  readonly disabled: boolean;
+  readonly required: boolean;
+  readonly invalid: boolean;
+  readonly touchFloor: boolean;
+  readonly describedBy: string | undefined;
+  readonly onPick: (value: number) => void;
+}): ReactElement {
+  const t = useT();
+  const sheet = useDisclosure();
+  const newestFirst = useMemo(
+    () => [...props.values].sort((left, right) => right - left),
+    [props.values]
+  );
+  const lowest = props.values[0];
+  const highest = props.values[props.values.length - 1];
+  const box = rangePlaceholder(lowest, highest);
+  return (
+    <>
+      <PickerTrigger
+        id={props.id}
+        expanded={sheet.open}
+        onOpen={sheet.show}
+        disabled={props.disabled}
+        ariaLabel={featureName(props.feature)}
+        placeholder={box ?? t(ATTRIBUTES_I18N_KEYS.selectPlaceholder)}
+        testId="attributes-int-picker"
+        touchFloor={props.touchFloor}
+        describedBy={props.describedBy}
+        {...(props.current !== undefined ? { value: String(props.current) } : {})}
+        {...(props.required ? { required: true } : {})}
+        {...(props.invalid ? { invalid: true } : {})}
+      />
+      <SkinPickerSheet
+        mode="single"
+        open={sheet.open}
+        onClose={sheet.hide}
+        title={featureName(props.feature)}
+        options={newestFirst.map((one) => ({ value: String(one), label: String(one) }))}
+        searchPlaceholder={t(ATTRIBUTES_I18N_KEYS.pickerSearch)}
+        refineLabel={t(ATTRIBUTES_I18N_KEYS.pickerRefine)}
+        emptyLabel={t(ATTRIBUTES_I18N_KEYS.vocabularyNoMatches)}
+        testId="attributes-int-picker-sheet"
+        {...(props.current !== undefined ? { value: String(props.current) } : {})}
+        onChange={(next) => {
+          const picked = numberish(next);
+          if (picked !== undefined) props.onPick(picked);
+          sheet.hide();
+        }}
+      />
+    </>
+  );
+}
+
+/**
+ * `IntConfig.optionsRef` — the year-of-make field scoped by the chosen
+ * generation. The owner's ruling (2026-09-27 supersedes the keypad-first
+ * one):
+ *
+ *  - once the allowed set is KNOWN, the year is picked from it — the house
+ *    long-list picker, newest first ({@link IntRangePicker});
+ *  - while it is not known (in flight, no client, a failed or capped fetch)
+ *    the numeric keypad stands in, with the recovery dropdown for a typed
+ *    number outside the catalogue's bound;
  *  - the two steppers walk the ALLOWED set (skipping gaps), greyed at the
  *    ends;
  *  - exactly one allowed value bakes: committed and grey, like every other
@@ -346,7 +460,7 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   const cfgMin = numberish(cfg["min"]);
   const cfgMax = numberish(cfg["max"]);
   const rangeHint = useRangeHint();
-  const listId = useId();
+  const refusalId = useId();
 
   // The allowed set for the CURRENT parent, ascending; `null` while loading
   // or when it cannot be trusted (no client, a failed fetch, a page-capped
@@ -424,15 +538,26 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
         : (allowed ?? []);
   const lowest = allowed?.[0];
   const highest = allowed?.[allowed.length - 1];
+  // An empty box starts the walk at the number its placeholder shows, when
+  // that number is one the set allows — see {@link placeholderNumber}.
+  const seed = placeholderNumber(placeholder, true);
+  const seedAllowed =
+    seed !== undefined && allowed !== null && allowed.includes(seed) ? seed : undefined;
+  // No set to walk (no client, a failed fetch, a capped level) but a live
+  // box: the steppers walk by one inside the catalogue's own bound.
+  const freeSteps =
+    allowed === null && !pending && !awaitingParent
+      ? stepTargets(typed, seed, cfgMin, cfgMax)
+      : undefined;
   const upTarget = !loaded
-    ? undefined
+    ? freeSteps?.up
     : typed === undefined
-      ? lowest
+      ? (seedAllowed ?? lowest)
       : allowed?.find((one) => one > typed);
   const downTarget = !loaded
-    ? undefined
+    ? freeSteps?.down
     : typed === undefined
-      ? highest
+      ? (seedAllowed ?? highest)
       : [...(allowed ?? [])].reverse().find((one) => one < typed);
 
   const commit = (next: number | undefined): void => {
@@ -492,8 +617,9 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
   // What the ELEMENT says about the set, beside what the panel and the
   // steppers do with it. The ends of the loaded set win over the catalogue's
   // static bound, because they are the constraint the server will apply.
-  const listed = loaded && (allowed?.length ?? 0) > 0;
-  const dom = intDomBounds(boundLow, boundHigh, listed ? listId : undefined);
+  // A loaded set is drawn as the picker, so the box (and its datalist) is
+  // only ever the unloaded state's — its bounds are the static ones.
+  const dom = intDomBounds(boundLow, boundHigh, undefined);
   // The same sentence, handed to the browser: what this field refuses in
   // words it now refuses in `validity` too — see {@link useBoundConstraint}.
   const host = useBoundConstraint(refusalText);
@@ -517,6 +643,20 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
     >
       <Flex align="center" gap={spacing[1]}>
         <div style={{ flex: 1 }}>
+          {loaded ? (
+            <IntRangePicker
+              id={props.id}
+              feature={props.feature}
+              values={allowed ?? []}
+              current={current}
+              disabled={props.disabled === true}
+              required={props.required === true}
+              invalid={refusalText !== undefined || props.error !== undefined}
+              touchFloor={touchFloor}
+              describedBy={refusalText !== undefined ? refusalId : undefined}
+              onPick={commit}
+            />
+          ) : (
           <SkinNumberField
             id={props.id}
             value={current}
@@ -546,9 +686,24 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
               : {})}
             onValueChange={commit}
           />
-          {listed && <IntAllowedList id={listId} values={allowed ?? []} />}
+          )}
+          {loaded && refusalText !== undefined && (
+            <div id={refusalId}>
+              <HintLine>
+                <span
+                  data-testid={
+                    outOfSet || outOfBound
+                      ? "attributes-int-out-of-set"
+                      : "attributes-int-refusal-range"
+                  }
+                >
+                  {refusalText}
+                </span>
+              </HintLine>
+            </div>
+          )}
         </div>
-        {loaded && (
+        {(loaded || freeSteps !== undefined) && (
           <IntSteppers
             disabled={props.disabled === true}
             down={downTarget}
@@ -576,7 +731,7 @@ const RefIntEditor = (props: ValueEditorProps): ReactElement => {
           </span>
         </HintLine>
       )}
-      {panel.length > 0 && (
+      {panel.length > 0 && !loaded && (
         <IntSuggestions
           label={featureName(props.feature)}
           values={panel}
@@ -658,6 +813,7 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
   const values = useMemo(() => boundedIntValues(min, max), [min, max]);
   const baked = min !== undefined && max !== undefined && min === max;
   const listId = useId();
+  const refusalId = useId();
 
   // What the person is TYPING, before the host round-trips it — so a
   // half-typed «201» filters the list on the keystroke rather than a render
@@ -721,26 +877,27 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
           ? prefixMatched
           : values;
 
+  // An empty box starts the walk at the number its placeholder shows (the
+  // catalogue's example), then adds or subtracts one from there.
+  const seed = placeholderNumber(placeholder, true);
+  const seeded = seed !== undefined && withinBounds(seed, min, max) ? seed : undefined;
+  const free = stepTargets(typed, seeded, min, max);
   const up =
     values !== null
       ? typed === undefined
-        ? values[0]
+        ? (seeded ?? values[0])
         : values.find((one) => one > typed)
-      : typed === undefined
-        ? min
-        : max !== undefined && Math.floor(typed) + 1 > max
-          ? undefined
-          : Math.floor(typed) + 1;
+      : free.up;
   const down =
     values !== null
       ? typed === undefined
-        ? values[values.length - 1]
+        ? (seeded ?? values[values.length - 1])
         : [...values].reverse().find((one) => one < typed)
-      : typed === undefined
-        ? max
-        : min !== undefined && Math.ceil(typed) - 1 < min
-          ? undefined
-          : Math.ceil(typed) - 1;
+      : free.down;
+  // The bound was DERIVED from other answers (a rule named its parents) and
+  // is listable: the range is picked rather than typed — see IntRangePicker.
+  const derivedRange =
+    values !== null && !baked && (props.boundSources ?? []).some((one) => one.length > 0);
 
   // The bound, three ways, and never twice at once: as the empty box's
   // placeholder, as a grey line under it while the answer fits, and as the
@@ -831,12 +988,36 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
           </Typography.Text>
         )}
         <div style={{ flex: 1 }}>
-          {field}
-          {values !== null && !baked && (
+          {derivedRange && values !== null ? (
+            <>
+              <IntRangePicker
+                id={props.id}
+                feature={props.feature}
+                values={values}
+                current={current}
+                disabled={props.disabled === true}
+                required={props.required === true}
+                invalid={refused !== undefined || props.error !== undefined}
+                touchFloor={touchFloor}
+                describedBy={refused !== undefined ? refusalId : undefined}
+                onPick={commit}
+              />
+              {refused !== undefined && (
+                <div id={refusalId}>
+                  <HintLine>
+                    <span data-testid="attributes-int-out-of-range">{refused}</span>
+                  </HintLine>
+                </div>
+              )}
+            </>
+          ) : (
+            field
+          )}
+          {values !== null && !baked && !derivedRange && (
             <IntAllowedList id={listId} values={values} />
           )}
         </div>
-        {!baked && values !== null && (
+        {!baked && values !== null && !derivedRange && (
           <Button
             aria-label={t(ATTRIBUTES_I18N_KEYS.intChooseValue)}
             aria-expanded={panel.length > 0}
@@ -858,7 +1039,7 @@ function BoundedIntEditor(props: ValueEditorProps): ReactElement {
           />
         )}
       </Flex>
-      {panel.length > 0 && (
+      {panel.length > 0 && !derivedRange && (
         <IntSuggestions
           label={featureName(props.feature)}
           values={panel}
