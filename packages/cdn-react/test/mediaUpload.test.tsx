@@ -41,7 +41,7 @@ describe("the key and the descriptor", () => {
       "file/exists/": { body: MISS },
       "POST upload/image/": { body: uploaded(imageRow({ hash })) },
     });
-    const { result } = renderHook(() => useMediaUpload(), {
+    const { result } = renderHook(() => useMediaUpload({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapper(server),
     });
 
@@ -68,7 +68,7 @@ describe("the key and the descriptor", () => {
       "file/exists/": { body: hit(imageRow({ hash })) },
       "POST upload/image/": { body: uploaded(imageRow({ hash })) },
     });
-    const { result } = renderHook(() => useMediaUpload(), {
+    const { result } = renderHook(() => useMediaUpload({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapper(server),
     });
     await act(async () => {
@@ -86,7 +86,7 @@ describe("the key and the descriptor", () => {
       "file/exists/": { body: MISS },
       "POST upload/file/": { body: { file: fileRow({ hash }), message: "ok" } },
     });
-    const { result } = renderHook(() => useMediaUpload(), {
+    const { result } = renderHook(() => useMediaUpload({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapper(server),
     });
     await act(async () => {
@@ -99,7 +99,7 @@ describe("the key and the descriptor", () => {
 
   it("a client-side refusal is an error, not a silent nothing", async () => {
     const server = mockServer({});
-    const { result } = renderHook(() => useMediaUpload(), {
+    const { result } = renderHook(() => useMediaUpload({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapper(server),
     });
     let outcome: unknown = "unset";

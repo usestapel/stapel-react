@@ -56,7 +56,7 @@ function storingServer(): MockServer {
 describe("single-slot preview", () => {
   it("creates a preview for the pick and revokes it on unmount", async () => {
     const server = storingServer();
-    const { result, unmount } = renderHook(() => useUploadImage(), {
+    const { result, unmount } = renderHook(() => useUploadImage({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapperFor(server),
     });
 
@@ -75,7 +75,7 @@ describe("single-slot preview", () => {
 
   it("a second pick revokes the first preview before showing the second", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadImage(), {
+    const { result } = renderHook(() => useUploadImage({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapperFor(server),
     });
 
@@ -97,7 +97,7 @@ describe("single-slot preview", () => {
 
   it("reset clears the pick, and its preview with it", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadImage(), {
+    const { result } = renderHook(() => useUploadImage({ target: { kind: "image", assetType: "product" } }), {
       wrapper: wrapperFor(server),
     });
 
@@ -126,7 +126,7 @@ describe("queue tile preview", () => {
 
   it("removing a tile revokes exactly that tile's URL", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 

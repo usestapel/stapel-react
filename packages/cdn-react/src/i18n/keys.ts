@@ -125,6 +125,7 @@ export const CDN_I18N_KEYS = {
   errorInvalidFormat: "error.400.invalid_format",
   errorInvalidHash: "error.400.invalid_hash",
   errorInvalidImageType: "error.400.invalid_image_type",
+  errorImageTypeRequired: "error.400.image_type_required",
   errorMissingFields: "error.400.missing_fields",
   errorTooManyRefs: "error.400.too_many_refs",
   errorNoFile: "error.400.no_file",

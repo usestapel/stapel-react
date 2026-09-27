@@ -25,7 +25,7 @@ describe("dedup pre-check (spec §8.2 — the CDN already has it)", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     });
 
@@ -43,7 +43,7 @@ describe("dedup pre-check (spec §8.2 — the CDN already has it)", () => {
     });
     const runtime = createHarnessRuntime({ server });
 
-    await runUpload(runtime.api, file, { target: { kind: "image" }, limits });
+    await runUpload(runtime.api, file, { target: { kind: "image", assetType: "product" }, limits });
 
     expect(server.calls[0]?.url).toContain(`file_hash=${hash}`);
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
@@ -59,7 +59,7 @@ describe("dedup pre-check (spec §8.2 — the CDN already has it)", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     });
 
@@ -82,7 +82,7 @@ describe("dedup pre-check (spec §8.2 — the CDN already has it)", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     });
 
@@ -103,7 +103,7 @@ describe("dedup pre-check (spec §8.2 — the CDN already has it)", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     });
 
@@ -147,7 +147,7 @@ describe("the pre-check is an optimisation and never fails the upload", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     });
 
@@ -166,7 +166,7 @@ describe("the pre-check is an optimisation and never fails the upload", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     });
 
@@ -183,7 +183,7 @@ describe("the pre-check is an optimisation and never fails the upload", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       dedup: false,
     });
@@ -206,7 +206,7 @@ describe("a refusal from the upload itself reaches the caller in one dialect", (
     const runtime = createHarnessRuntime({ server });
 
     await expect(
-      runUpload(runtime.api, file, { target: { kind: "image" }, limits })
+      runUpload(runtime.api, file, { target: { kind: "image", assetType: "product" }, limits })
     ).rejects.toMatchObject({ code: "error.413.file_too_large", status: 413 });
   });
 
@@ -217,7 +217,7 @@ describe("a refusal from the upload itself reaches the caller in one dialect", (
 
     // No `/upload/image/` route → the harness answers 404 with a real envelope.
     const failure = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
     }).catch((error: unknown) => error);
 
@@ -237,7 +237,7 @@ describe("the phase sequence is the flow, said out loud", () => {
     const phases: string[] = [];
 
     await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       onPhase: (next) => phases.push(next),
     });
@@ -253,7 +253,7 @@ describe("the phase sequence is the flow, said out loud", () => {
     const phases: string[] = [];
 
     await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       onPhase: (next) => phases.push(next),
     });

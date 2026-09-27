@@ -348,7 +348,7 @@ describe("the gallery counts in words that agree with the number", () => {
   it("says 'photo' for one and 'photos' for ten", () => {
     const { unmount } = render(
       <TestHarness server={quiet()}>
-        <MediaGalleryField max={1} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={1} />
       </TestHarness>
     );
     expect(screen.getByTestId("cdn-gallery-count").textContent).toBe("0 of 1 photo");
@@ -356,7 +356,7 @@ describe("the gallery counts in words that agree with the number", () => {
 
     render(
       <TestHarness server={quiet()}>
-        <MediaGalleryField max={10} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
       </TestHarness>
     );
     expect(screen.getByTestId("cdn-gallery-count").textContent).toBe("0 of 10 photos");
@@ -379,7 +379,7 @@ describe("the gallery counts in words that agree with the number", () => {
   it("shows the empty gallery as a designed state inside the drop target", () => {
     render(
       <TestHarness server={quiet()}>
-        <MediaGalleryField max={10} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
       </TestHarness>
     );
     const empty = screen.getByTestId("cdn-gallery-empty");
@@ -391,7 +391,7 @@ describe("the gallery counts in words that agree with the number", () => {
     const server = mockServer({ "/file/exists/": { body: MISS } });
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} initialRefs={[IMAGE_REF]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[IMAGE_REF]} />
       </TestHarness>
     );
     await waitFor(() => {
@@ -407,7 +407,7 @@ describe("the gallery counts in words that agree with the number", () => {
       <TestHarness server={mockServer({ "/file/exists/": { body: MISS } })}>
         {/* TWO photos: the move arrows are drawn only where there is an
             order to change, so a one-photo gallery has nothing to size. */}
-        <MediaGalleryField max={10} initialRefs={[IMAGE_REF, SECOND_IMAGE_REF]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[IMAGE_REF, SECOND_IMAGE_REF]} />
       </TestHarness>
     );
     // `size="small"` opted every tile control out of the 44px phone rule
@@ -424,7 +424,7 @@ describe("the image slot is a slot", () => {
   it("renders the phase only once something is happening", () => {
     render(
       <TestHarness server={quiet()}>
-        <MediaGalleryField max={10} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
       </TestHarness>
     );
     // "Waiting its turn" under an untouched control described a queue position
@@ -443,7 +443,7 @@ describe("the image slot is a slot", () => {
     const { ImageUploadField } = await import("../src/default/index.js");
     render(
       <TestHarness server={server}>
-        <ImageUploadField />
+        <ImageUploadField target={{ kind: "image", assetType: "product" }} />
       </TestHarness>
     );
     fireEvent.change(screen.getByTestId("cdn-image-input"), {

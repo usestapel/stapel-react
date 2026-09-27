@@ -12,7 +12,7 @@ import { toStapelApiError, useObjectUrlPreview } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type { CdnImage, CdnRef, CdnVariantsStatus } from "../api/types.js";
 import { useCdnRuntime } from "../model/context.js";
-import { isUploadCanceled, runUpload } from "../model/upload.js";
+import { isUploadCanceled, requireTarget, runUpload } from "../model/upload.js";
 import type { CdnUploadTarget, UploadPhase } from "../model/upload.js";
 
 export interface UploadImageBag {
@@ -49,11 +49,11 @@ export interface UploadImageBag {
   readonly error: StapelApiError | null;
 }
 
-export function useUploadImage(options?: {
-  readonly target?: CdnUploadTarget;
+export function useUploadImage(options: {
+  readonly target: CdnUploadTarget;
 }): UploadImageBag {
   const runtime = useCdnRuntime();
-  const target: CdnUploadTarget = options?.target ?? { kind: "image" };
+  const target: CdnUploadTarget = requireTarget(options?.target);
 
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<UploadPhase>("idle");

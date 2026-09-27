@@ -47,7 +47,7 @@ import type {
 } from "../api/types.js";
 import { useCdnRuntime } from "../model/context.js";
 import type { CdnIntakeLimits } from "../model/limits.js";
-import { isUploadCanceled, runUpload } from "../model/upload.js";
+import { isUploadCanceled, requireTarget, runUpload } from "../model/upload.js";
 import type {
   CdnUploadTarget,
   DedupSkipReason,
@@ -116,8 +116,8 @@ export interface MediaUploadCallOptions {
 }
 
 export interface UseMediaUploadOptions {
-  /** Default intake. `{kind: "image"}` when omitted. */
-  readonly target?: CdnUploadTarget;
+  /** Default intake for this slot. Required (images name their asset type). */
+  readonly target: CdnUploadTarget;
 }
 
 /**
@@ -215,9 +215,9 @@ function descriptorOf(row: CdnMediaRow): CdnRenderMeta | null {
   return row.render_meta ?? null;
 }
 
-export function useMediaUpload(options?: UseMediaUploadOptions): MediaUploadBag {
+export function useMediaUpload(options: UseMediaUploadOptions): MediaUploadBag {
   const runtime = useCdnRuntime();
-  const defaultTarget: CdnUploadTarget = options?.target ?? { kind: "image" };
+  const defaultTarget: CdnUploadTarget = requireTarget(options?.target);
 
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<UploadPhase>("idle");

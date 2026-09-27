@@ -166,7 +166,7 @@ describe("runUpload with the audio target", () => {
       "file/exists/": { body: MISS },
       "POST upload/audio/": { body: uploadedAudio(audioRow({ hash })) },
     });
-    const { result } = renderHook(() => useMediaUpload(), { wrapper: wrapper(server) });
+    const { result } = renderHook(() => useMediaUpload({ target: { kind: "image", assetType: "product" } }), { wrapper: wrapper(server) });
     await act(async () => {
       await result.current.upload(blob, { target: { kind: "audio" } });
     });

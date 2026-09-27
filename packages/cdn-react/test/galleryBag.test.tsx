@@ -41,7 +41,7 @@ function storing() {
  * never import each other — the CONTAINER is the seam, and this test plays it).
  */
 function ComposerWithGallery(): ReactElement {
-  const gallery: UploadQueueBag = useUploadQueue({ max: 10 });
+  const gallery: UploadQueueBag = useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 });
   return (
     <>
       <MediaGalleryField bag={gallery} />
@@ -111,7 +111,7 @@ describe("<MediaGalleryField bag>", () => {
     const refs: string[][] = [];
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} onRefsChange={(next) => refs.push([...next])} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} onRefsChange={(next) => refs.push([...next])} />
       </TestHarness>
     );
 

@@ -46,7 +46,7 @@ async function settle(result: { current: UploadQueueBag }): Promise<void> {
 describe("admitting files", () => {
   it("uploads each pick and exposes the references in display order", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -64,7 +64,7 @@ describe("admitting files", () => {
 
   it("a file over the ceiling is ADMITTED as a failed item, not silently dropped", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -83,7 +83,7 @@ describe("admitting files", () => {
 
   it("overflow past `max` is admitted with the pair's own reason", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 1 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 1 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -102,7 +102,7 @@ describe("capacity and the gates", () => {
   it("canAdd is blocked WITH a reason once the gallery is full", async () => {
     const server = storingServer();
     const { result } = renderHook(
-      () => useUploadQueue({ max: 1, initialRefs: [`product/${"a".repeat(64)}`] }),
+      () => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 1, initialRefs: [`product/${"a".repeat(64)}`] }),
       { wrapper: wrapperFor(server) }
     );
 
@@ -120,7 +120,7 @@ describe("capacity and the gates", () => {
         body: uploaded(imageRow({ hash: "a".repeat(64) })),
       },
     });
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -139,7 +139,7 @@ describe("capacity and the gates", () => {
 
   it("settled stays blocked — for a DIFFERENT reason — when an item failed", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -167,7 +167,7 @@ describe("per-item control (spec §8.2 — cancel one file out of the queue)", (
         };
       },
     });
-    const { result } = renderHook(() => useUploadQueue({ max: 10, concurrency: 1 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10, concurrency: 1 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -196,7 +196,7 @@ describe("per-item control (spec §8.2 — cancel one file out of the queue)", (
           : { status: 201, body: uploaded(imageRow({ hash: "c".repeat(64) })) };
       },
     });
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -217,7 +217,7 @@ describe("per-item control (spec §8.2 — cancel one file out of the queue)", (
 
   it("remove drops the item and the reference with it", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -239,7 +239,7 @@ describe("per-item control (spec §8.2 — cancel one file out of the queue)", (
 describe("the order IS the meaning", () => {
   it("reorder moves a reference and the list reports the new order", async () => {
     const server = storingServer();
-    const { result } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -262,7 +262,7 @@ describe("the order IS the meaning", () => {
   it("an out-of-range move is a no-op, not a dropped photo", async () => {
     const server = storingServer();
     const { result } = renderHook(
-      () => useUploadQueue({ max: 10, initialRefs: [`product/${"a".repeat(64)}`] }),
+      () => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10, initialRefs: [`product/${"a".repeat(64)}`] }),
       { wrapper: wrapperFor(server) }
     );
 
@@ -278,6 +278,7 @@ describe("the order IS the meaning", () => {
     const { result } = renderHook(
       () =>
         useUploadQueue({
+          target: { kind: "image", assetType: "product" },
           max: 10,
           onRefsChange: (refs) => seen.push([...refs]),
         }),
@@ -307,7 +308,7 @@ describe("a reopened draft", () => {
   it("starts from stored references with no bytes uploaded, then resolves each row through the owner-scoped read", async () => {
     const server = storingServer();
     const refs = [`product/${"a".repeat(64)}`, `avatar/${"b".repeat(64)}`];
-    const { result } = renderHook(() => useUploadQueue({ max: 10, initialRefs: refs }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10, initialRefs: refs }), {
       wrapper: wrapperFor(server),
     });
 
@@ -328,7 +329,7 @@ describe("a reopened draft", () => {
     const hash = "a".repeat(64);
     const ref = `product/${hash}`;
     const server = mockServer({ "/file/exists/": { body: hit(imageRow({ hash })) } });
-    const { result } = renderHook(() => useUploadQueue({ max: 10, initialRefs: [ref] }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10, initialRefs: [ref] }), {
       wrapper: wrapperFor(server),
     });
 
@@ -344,7 +345,7 @@ describe("a reopened draft", () => {
   it("a reference the server no longer resolves ends with no row, not a hang", async () => {
     const ref = `product/${"a".repeat(64)}`;
     const server = mockServer({ "/file/exists/": { body: MISS } });
-    const { result } = renderHook(() => useUploadQueue({ max: 10, initialRefs: [ref] }), {
+    const { result } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10, initialRefs: [ref] }), {
       wrapper: wrapperFor(server),
     });
 
@@ -366,7 +367,7 @@ describe("a reopened draft", () => {
     const { result } = renderHook(
       () => ({
         resolved: useCdnRef(ref),
-        queue: useUploadQueue({ max: 10, initialRefs: [ref] }),
+        queue: useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10, initialRefs: [ref] }),
       }),
       { wrapper: wrapperFor(server) }
     );
@@ -384,7 +385,7 @@ describe("leaving the page", () => {
   it("aborts anything still in flight on unmount", async () => {
     const abort = vi.spyOn(AbortController.prototype, "abort");
     const server = storingServer();
-    const { result, unmount } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result, unmount } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 
@@ -420,7 +421,7 @@ describe("leaving the page", () => {
    */
   it("lets an aborted upload settle after unmount without writing state", async () => {
     const server = storingServer();
-    const { result, unmount } = renderHook(() => useUploadQueue({ max: 10 }), {
+    const { result, unmount } = renderHook(() => useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 }), {
       wrapper: wrapperFor(server),
     });
 

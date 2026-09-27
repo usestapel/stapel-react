@@ -121,7 +121,8 @@ export interface MediaGalleryFieldOwnProps {
   bag?: undefined;
   /** How many photos this gallery holds. The storefront's composer: 10. */
   max: number;
-  target?: CdnUploadTarget;
+  /** Where the bytes go; an image target names its asset type. */
+  target: CdnUploadTarget;
   /** References the gallery starts with — a reopened draft. */
   initialRefs?: readonly CdnRef[];
   /** The list to store, in display order, on every change. */
@@ -672,7 +673,7 @@ export function MediaGalleryField(props: MediaGalleryFieldProps): ReactElement {
     ) : (
       <MediaUploader
         max={props.max}
-        {...(props.target !== undefined ? { target: props.target } : {})}
+        target={props.target}
         {...(props.initialRefs !== undefined ? { initialRefs: props.initialRefs } : {})}
         {...(props.onRefsChange !== undefined
           ? { onRefsChange: props.onRefsChange }

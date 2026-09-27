@@ -23,6 +23,7 @@ export const cdnI18nBundleEs: I18nDictionary = {
   "error.400.invalid_format": "Formato de archivo no admitido",
   "error.400.invalid_hash": "Hash de archivo no válido",
   "error.400.invalid_image_type": "Tipo de imagen desconocido",
+  "error.400.image_type_required": "Falta el tipo de imagen",
   "error.400.too_many_refs":
     "Demasiadas referencias en una sola petición ({count}; el máximo es {max})",
   "error.400.missing_fields": "Faltan campos obligatorios",

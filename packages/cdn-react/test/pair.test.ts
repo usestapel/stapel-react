@@ -34,7 +34,7 @@ describe("the asset type a target produces", () => {
     // Not a guess: `ImageUploadView.post` writes the literal. The generated
     // TypeEnum says "avatar" because the schema is built from the library
     // default of a setting this endpoint never reads.
-    expect(targetAssetType({ kind: "image" })).toBe("product");
+    expect(targetAssetType({ kind: "image", assetType: "product" })).toBe("product");
   });
 
   it("the avatar intake stores `avatar`, and a typed one stores what it was given", () => {

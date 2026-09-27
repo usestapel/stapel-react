@@ -77,7 +77,7 @@ describe("<ImageUploadField/>", () => {
     const server = storing();
     render(
       <TestHarness server={server}>
-        <ImageUploadField />
+        <ImageUploadField target={{ kind: "image", assetType: "product" }} />
       </TestHarness>
     );
 
@@ -98,7 +98,7 @@ describe("<MediaGalleryField/>", () => {
   it("shows the count and the empty state", () => {
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={10} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
       </TestHarness>
     );
 
@@ -109,7 +109,7 @@ describe("<MediaGalleryField/>", () => {
   it("a full gallery switches Add off AND says why", () => {
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={1} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={1} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
 
@@ -128,6 +128,7 @@ describe("<MediaGalleryField/>", () => {
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
         />
@@ -142,6 +143,7 @@ describe("<MediaGalleryField/>", () => {
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
           onRefsChange={(refs) => changed.push([...refs])}
@@ -160,7 +162,7 @@ describe("<MediaGalleryField/>", () => {
     const server = mockServer({ "/file/exists/": { body: hit(imageRow({ hash: HASH })) } });
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
 
@@ -182,7 +184,7 @@ describe("<MediaGalleryField/>", () => {
     const server = mockServer({ "/file/exists/": { body: MISS } });
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
 
@@ -199,7 +201,7 @@ describe("<MediaGalleryField/>", () => {
     const changed: string[][] = [];
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} onRefsChange={(refs) => changed.push([...refs])} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} onRefsChange={(refs) => changed.push([...refs])} />
       </TestHarness>
     );
 
@@ -255,6 +257,7 @@ describe("<MediaGalleryField/> — badges on the tile, sentences under the grid"
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
         />
@@ -295,7 +298,7 @@ describe("<MediaGalleryField/> — badges on the tile, sentences under the grid"
     });
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
       </TestHarness>
     );
 
@@ -321,7 +324,7 @@ describe("<MediaGalleryField/> — badges on the tile, sentences under the grid"
     });
     render(
       <TestHarness server={server}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
 
@@ -337,7 +340,7 @@ describe("<MediaGalleryField/> — badges on the tile, sentences under the grid"
   it("no outcome, no notice — the slot does not print an empty line", async () => {
     render(
       <TestHarness server={mockServer({ "/file/exists/": { body: MISS } })}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
 
@@ -389,7 +392,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     try {
       render(
         <TestHarness server={storing()}>
-          <MediaGalleryField max={10} />
+          <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
         </TestHarness>
       );
       expect(grid().getAttribute("data-columns")).toBe(String(columns));
@@ -408,7 +411,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     expect(galleryColumns(undefined)).toBe(3);
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={10} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} />
       </TestHarness>
     );
     expect(grid().getAttribute("data-columns")).toBe("3");
@@ -418,6 +421,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
         />
@@ -442,7 +446,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
   it("keeps every cell square, filling its column, never under the floor", () => {
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
     for (const cell of [
@@ -468,7 +472,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
   it("makes the picture FILL its square, whatever shape the photograph is", () => {
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
     const cell = screen.getByTestId("cdn-gallery-tile");
@@ -488,7 +492,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
   it("draws no move arrows on a gallery with one photo — there is no order", () => {
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={10} initialRefs={[`product/${HASH}`]} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} initialRefs={[`product/${HASH}`]} />
       </TestHarness>
     );
     expect(screen.getAllByTestId("cdn-gallery-tile")).toHaveLength(1);
@@ -505,6 +509,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
         />
@@ -551,6 +556,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
         />
@@ -578,6 +584,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     render(
       <TestHarness server={storing()}>
         <MediaGalleryField
+          target={{ kind: "image", assetType: "product" }}
           max={10}
           initialRefs={[`product/${HASH}`, `product/${"b".repeat(64)}`]}
         />
@@ -600,7 +607,7 @@ describe("<MediaGalleryField/> — a grid of square tiles", () => {
     const changed: string[][] = [];
     render(
       <TestHarness server={storing()}>
-        <MediaGalleryField max={10} onRefsChange={(refs) => changed.push([...refs])} />
+        <MediaGalleryField target={{ kind: "image", assetType: "product" }} max={10} onRefsChange={(refs) => changed.push([...refs])} />
       </TestHarness>
     );
 

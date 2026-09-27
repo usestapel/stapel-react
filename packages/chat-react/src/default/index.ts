@@ -118,6 +118,7 @@ export {
   AttachButton,
   AttachmentChips,
   renderMetaToAttachment,
+  DEFAULT_CHAT_IMAGE_ASSET_TYPE,
   STORABLE_ATTACHMENT_TYPES,
   useCdnAttachmentUpload,
   VoiceAttachButton,

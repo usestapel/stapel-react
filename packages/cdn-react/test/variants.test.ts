@@ -33,7 +33,7 @@ describe("waiting for the ladder", () => {
     const runtime = createHarnessRuntime({ server, variants: immediate });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       variants: immediate,
     });
@@ -62,7 +62,7 @@ describe("waiting for the ladder", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       variants: { attempts: 2, intervalMs: 0, wait: () => Promise.resolve() },
     });
@@ -90,7 +90,7 @@ describe("waiting for the ladder", () => {
     const runtime = createHarnessRuntime({ server });
 
     const outcome = await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       variants: immediate,
     });
@@ -112,7 +112,7 @@ describe("waiting for the ladder", () => {
     const runtime = createHarnessRuntime({ server });
 
     await runUpload(runtime.api, file, {
-      target: { kind: "image" },
+      target: { kind: "image", assetType: "product" },
       limits,
       variants: { attempts: 0 },
     });

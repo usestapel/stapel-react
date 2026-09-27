@@ -47,6 +47,7 @@ import { parseCdnRef } from "../model/refs.js";
 import {
   isProcessed,
   isUploadCanceled,
+  requireTarget,
   runUpload,
   targetFileKind,
   variantsStatusOf,
@@ -111,8 +112,12 @@ export interface UseUploadQueueOptions {
    * composer passes 10; a single-image field passes 1.
    */
   readonly max: number;
-  /** Where the bytes go. Default: `{ kind: "image" }`. */
-  readonly target?: CdnUploadTarget;
+  /**
+   * Where the bytes go — and, for images, the asset type they are stored as
+   * (`{ kind: "image", assetType: "product" }`). Required: the type decides
+   * the row's policies, and there is no default that is right for everyone.
+   */
+  readonly target: CdnUploadTarget;
   /** References this queue starts with — a reopened draft. */
   readonly initialRefs?: readonly CdnRef[];
   /** How many uploads run at once. Default 3. */
@@ -212,7 +217,7 @@ const RESTORED: Omit<UploadItem, "id" | "ref"> = {
 
 export function useUploadQueue(options: UseUploadQueueOptions): UploadQueueBag {
   const runtime = useCdnRuntime();
-  const target: CdnUploadTarget = options.target ?? { kind: "image" };
+  const target: CdnUploadTarget = requireTarget(options.target);
   // What `file/exists/` calls this target's rows — used both for the ceilings
   // below and for matching a restored item's resolved row further down.
   const fileKind = targetFileKind(target);

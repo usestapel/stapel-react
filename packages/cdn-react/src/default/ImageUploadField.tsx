@@ -38,8 +38,8 @@ import { DropZone } from "./DropZone.js";
 import { PHASE_KEYS, PREVIEW_BOX } from "./phase.js";
 
 export interface ImageUploadFieldProps {
-  /** Where the bytes go. Default: the general image intake. */
-  target?: CdnUploadTarget;
+  /** Where the bytes go, e.g. `{ kind: "avatar" }` or an image with its asset type. */
+  target: CdnUploadTarget;
   /** Called with `<type>/<hash>` once the CDN holds the bytes. */
   onUploaded?: (ref: string) => void;
   /** A reference already stored, rendered until a new pick replaces it. */
@@ -150,7 +150,7 @@ function ImageUploadFieldBody(props: {
 export function ImageUploadField(props: ImageUploadFieldProps): ReactElement {
   return (
     <SkinTheme {...(props.mode !== undefined ? { mode: props.mode } : {})}>
-      <ImageUpload {...(props.target !== undefined ? { target: props.target } : {})}>
+      <ImageUpload target={props.target}>
         {(bag) => (
           <ImageUploadFieldBody
             bag={bag}

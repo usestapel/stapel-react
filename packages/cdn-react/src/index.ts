@@ -100,6 +100,7 @@ export type { CdnRefBag } from "./model/queries.js";
 export {
   isUploadCanceled,
   runUpload,
+  requireTarget,
   targetAssetType,
   targetFileKind,
   UploadCanceled,

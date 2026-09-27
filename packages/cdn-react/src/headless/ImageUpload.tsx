@@ -14,11 +14,9 @@ import type { UploadImageBag } from "./useUploadImage.js";
  * ```
  */
 export function ImageUpload(props: {
-  target?: CdnUploadTarget;
+  target: CdnUploadTarget;
   children: (bag: UploadImageBag) => ReactNode;
 }): ReactNode {
-  const bag = useUploadImage(
-    props.target !== undefined ? { target: props.target } : {}
-  );
+  const bag = useUploadImage({ target: props.target });
   return props.children(bag);
 }

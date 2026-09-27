@@ -26,6 +26,8 @@ export interface RecordedCall {
   readonly method: string;
   /** The `file` part of a multipart body, when there was one. */
   readonly file: File | null;
+  /** The `type` part of a multipart body (the image asset type), when sent. */
+  readonly assetType?: string | null;
 }
 
 export interface HandlerResult {
@@ -58,11 +60,14 @@ export function mockServer(
           : input.url;
     const method = (init?.method ?? "GET").toUpperCase();
     let file: File | null = null;
+    let assetType: string | null = null;
     if (typeof FormData !== "undefined" && init?.body instanceof FormData) {
       const part = init.body.get("file");
       file = part instanceof File ? part : null;
+      const typed = init.body.get("type");
+      assetType = typeof typed === "string" ? typed : null;
     }
-    const call: RecordedCall = { url, method, file };
+    const call: RecordedCall = { url, method, file, assetType };
     calls.push(call);
 
     for (const [pattern, route] of Object.entries(routes)) {

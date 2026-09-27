@@ -60,10 +60,12 @@ import { refOf } from "./refs.js";
 export type CdnUploadTarget =
   | {
       /**
-       * `POST /upload/image/`. The general intake — note that it stores
-       * `type="product"` regardless of `ASSET_TYPES`.
+       * `POST /upload/image/` with `type=<assetType>`. The asset type is
+       * required: it decides the row's policies (sizes, watermark,
+       * retention), and there is no safe default to fall back on.
        */
       readonly kind: "image";
+      readonly assetType: string;
     }
   | {
       /** `POST /upload/avatar/`. The only intake that needs a real session. */
@@ -103,15 +105,32 @@ export type CdnUploadTarget =
     };
 
 /**
+ * The target a hook was handed, or a named error. Types already make it
+ * required; this is for JavaScript callers and `as` casts, because a silent
+ * default here is how listing photos were stored as avatars.
+ */
+export function requireTarget(target: CdnUploadTarget | undefined): CdnUploadTarget {
+  if (target === undefined || target === null) {
+    throw new Error("@stapel/cdn-react: an upload target is required");
+  }
+  if (
+    target.kind === "image" &&
+    (typeof target.assetType !== "string" || target.assetType.trim() === "")
+  ) {
+    throw new Error('@stapel/cdn-react: an image target needs an assetType, e.g. { kind: "image", assetType: "product" }');
+  }
+  return target;
+}
+
+/**
  * The asset type a target produces, which is what the pre-check must match
- * before it may short-circuit. `"product"` is not a guess: it is the literal
- * the view writes (`ImageUploadView.post`); `"video"`, `"audio"` and `"file"`
- * are the prefixes `stapel_cdn.metadata.media_ref` builds for those models.
+ * before it may short-circuit. `"video"`, `"audio"` and `"file"` are the
+ * prefixes `stapel_cdn.metadata.media_ref` builds for those models.
  */
 export function targetAssetType(target: CdnUploadTarget): string {
   switch (target.kind) {
     case "image":
-      return "product";
+      return target.assetType;
     case "avatar":
       return "avatar";
     case "typed":
@@ -283,7 +302,8 @@ export async function runUpload(
   file: File,
   options: RunUploadOptions
 ): Promise<UploadOutcome> {
-  const { target, limits, signal } = options;
+  const { limits, signal } = options;
+  const target = requireTarget(options.target);
   const phase = (next: UploadPhase): void => options.onPhase?.(next);
 
   throwIfAborted(signal);
@@ -454,7 +474,7 @@ async function uploadTo(
     case "typed":
       return (await api.uploadTypedImage(target.assetType, file, sig(signal))).image;
     case "image":
-      return (await api.uploadImage(file, sig(signal))).image;
+      return (await api.uploadImage(file, target.assetType, sig(signal))).image;
     case "video":
       return (await api.uploadVideo(file, sig(signal))).video;
     case "audio":

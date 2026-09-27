@@ -37,6 +37,7 @@ import {
   ConversationThreadPanel,
   MessageAttachments,
   STORABLE_ATTACHMENT_TYPES,
+  DEFAULT_CHAT_IMAGE_ASSET_TYPE,
   useCdnAttachmentUpload,
   VoiceAttachButton,
 } from "../src/default/index.js";
@@ -51,6 +52,7 @@ interface CdnCall {
   readonly url: string;
   readonly method: string;
   readonly file: File | null;
+  readonly assetType: string | null;
 }
 
 /** A stapel-cdn that records the multipart part and answers the audio 201. */
@@ -67,11 +69,14 @@ function cdnServer(): {
       typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const method = (init?.method ?? "GET").toUpperCase();
     let file: File | null = null;
+    let assetType: string | null = null;
     if (init?.body instanceof FormData) {
       const part = init.body.get("file");
       file = part instanceof File ? part : null;
+      const typed = init.body.get("type");
+      assetType = typeof typed === "string" ? typed : null;
     }
-    calls.push({ url, method, file });
+    calls.push({ url, method, file, assetType });
     const json = (status: number, body: unknown): Response =>
       new Response(JSON.stringify(body), {
         status,
@@ -196,6 +201,35 @@ describe("useCdnAttachmentUpload and the audio intake", () => {
     expect(post?.file?.type).toBe("audio/webm;codecs=opus");
     expect(post?.file?.name).toBe("voice-2026.webm");
     expect(cdn.calls.some((call) => call.url.includes("upload/file/"))).toBe(false);
+  });
+  it.each([
+    [undefined, DEFAULT_CHAT_IMAGE_ASSET_TYPE],
+    ["message", "message"],
+  ])("names the asset type on a picture (option %s -> %s)", async (option, expected) => {
+    const cdn = cdnServer();
+    const { result } = renderHook(
+      () => useCdnAttachmentUpload(option !== undefined ? { imageAssetType: option } : undefined),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <WithCdn cdn={cdn}>{children}</WithCdn>
+        ),
+      }
+    );
+    const photo = new File(["jpeg-bytes"], "photo.jpg", { type: "image/jpeg" });
+    await act(async () => {
+      // The fake answers 404 for the image intake; only the request matters.
+      await result
+        .current({
+          file: photo,
+          type: "image",
+          signal: new AbortController().signal,
+          onPhase: () => undefined,
+        })
+        .catch(() => undefined);
+    });
+    const post = cdn.calls.find((call) => call.url.includes("upload/image/"));
+    expect(post?.method).toBe("POST");
+    expect(post?.assetType).toBe(expected);
   });
 });
 

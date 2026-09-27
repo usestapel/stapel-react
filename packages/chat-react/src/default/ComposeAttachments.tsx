@@ -67,14 +67,32 @@ import type {
 } from "../headless/useAttachmentDraft.js";
 import { CHAT_I18N_KEYS } from "../i18n/keys.js";
 
+/**
+ * The stapel-cdn asset type chat pictures are stored as by default. It must be
+ * in the deployment's `ASSET_TYPES`; the generic intake refuses an untyped
+ * image (stapel-cdn 0.28.0), and guessing one filed chat photos as avatars.
+ */
+export const DEFAULT_CHAT_IMAGE_ASSET_TYPE = "chat";
+
 /** Which stapel-cdn intake a chat attachment type is stored through. */
-const TARGET_BY_TYPE: Readonly<Record<string, CdnUploadTarget>> = {
-  image: { kind: "image" },
-  gif: { kind: "image" },
-  video: { kind: "video" },
-  audio: { kind: "audio" },
-  file: { kind: "file" },
-};
+function targetFor(
+  type: string,
+  imageAssetType: string
+): CdnUploadTarget | undefined {
+  switch (type) {
+    case "image":
+    case "gif":
+      return { kind: "image", assetType: imageAssetType };
+    case "video":
+      return { kind: "video" };
+    case "audio":
+      return { kind: "audio" };
+    case "file":
+      return { kind: "file" };
+    default:
+      return undefined;
+  }
+}
 
 /** Types this build can store — the five builtin ones, since stapel-cdn 0.21.0. */
 export const STORABLE_ATTACHMENT_TYPES: readonly string[] = [
@@ -128,11 +146,15 @@ export function renderMetaToAttachment(
  * the same code underneath — validate, hash, ask `file/exists/`, POST only on a
  * miss — so a photo the CDN already holds still costs zero bytes here.
  */
-export function useCdnAttachmentUpload(): AttachmentUpload {
+export function useCdnAttachmentUpload(options?: {
+  /** Asset type for pictures and GIFs. Default {@link DEFAULT_CHAT_IMAGE_ASSET_TYPE}. */
+  readonly imageAssetType?: string;
+}): AttachmentUpload {
   const runtime = useCdnRuntime();
+  const imageAssetType = options?.imageAssetType ?? DEFAULT_CHAT_IMAGE_ASSET_TYPE;
   return useCallback<AttachmentUpload>(
     async ({ file, type, signal, onPhase }) => {
-      const target = TARGET_BY_TYPE[type];
+      const target = targetFor(type, imageAssetType);
       if (target === undefined) {
         // NAMED, and thrown before a byte moves. `type` is in the message so
         // a deployment that registered `sticker` in chat and forgot the CDN
@@ -155,7 +177,7 @@ export function useCdnAttachmentUpload(): AttachmentUpload {
         ),
       };
     },
-    [runtime]
+    [runtime, imageAssetType]
   );
 }
 

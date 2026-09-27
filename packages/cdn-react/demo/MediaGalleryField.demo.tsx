@@ -30,6 +30,7 @@ function Gallery(props: {
     <CdnDemoHarness handlers={STORING}>
       <MediaGalleryField
         max={props.max}
+        target={{ kind: "image", assetType: "product" }}
         {...(props.refs === undefined ? {} : { initialRefs: props.refs })}
       />
     </CdnDemoHarness>

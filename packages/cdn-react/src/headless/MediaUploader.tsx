@@ -23,7 +23,7 @@ import type { UploadQueueBag } from "./useUploadQueue.js";
 export function MediaUploader(props: {
   /** How many references this gallery may hold (listings' composer: 10). */
   max: number;
-  target?: CdnUploadTarget;
+  target: CdnUploadTarget;
   /** References the queue starts with — a reopened draft. */
   initialRefs?: readonly CdnRef[];
   concurrency?: number;
@@ -32,7 +32,7 @@ export function MediaUploader(props: {
 }): ReactNode {
   const bag = useUploadQueue({
     max: props.max,
-    ...(props.target !== undefined ? { target: props.target } : {}),
+    target: props.target,
     ...(props.initialRefs !== undefined ? { initialRefs: props.initialRefs } : {}),
     ...(props.concurrency !== undefined ? { concurrency: props.concurrency } : {}),
     ...(props.onRefsChange !== undefined

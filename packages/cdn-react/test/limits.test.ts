@@ -23,7 +23,7 @@ describe("the size ceiling (spec §8.2 — over the limit)", () => {
     const over = bigImageFile(limits.maxBytes + 1);
 
     await expect(
-      runUpload(runtime.api, over, { target: { kind: "image" }, limits })
+      runUpload(runtime.api, over, { target: { kind: "image", assetType: "product" }, limits })
     ).rejects.toMatchObject({ code: "error.413.file_too_large", status: 413 });
 
     // The whole point of mirroring: the bytes never left.

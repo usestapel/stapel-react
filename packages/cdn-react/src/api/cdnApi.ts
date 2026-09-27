@@ -122,10 +122,14 @@ export interface CdnApi {
    * reported from the pre-check (which is a contract) and from nowhere else —
    * see `model/upload.ts`.
    *
-   * The stored row's `type` is `"product"`, hardcoded in the view.
+   * `assetType` is sent as the `type` field and is the stored row's `type`.
+   * It is required: a deployment with several `ASSET_TYPES` has no default
+   * (stapel-cdn 0.28.0 answers `error.400.image_type_required`), and the
+   * first-entry guess it used to make filed listing photos as avatars.
    */
   uploadImage(
     file: File,
+    assetType: string,
     options?: { readonly signal?: AbortSignal }
   ): Promise<CdnImageUploadResponse>;
 
@@ -146,11 +150,7 @@ export interface CdnApi {
    * type, validated against `STAPEL_CDN["ASSET_TYPES"]`.
    *
    * Refuses `error.400.invalid_image_type` for a type this deployment does not
-   * declare. Note the asymmetry with {@link uploadImage}, which writes
-   * `"product"` without consulting that setting at all: on a default
-   * deployment `POST /images/product/upload/` is a 400 while
-   * `POST /upload/image/` happily stores a `product` row. A host that wants
-   * `product` addressable by name adds it to `ASSET_TYPES`.
+   * declare.
    */
   uploadTypedImage(
     imageType: string,
@@ -212,6 +212,17 @@ function filePart(file: File): FormData {
   return form;
 }
 
+function typedFilePart(file: File, assetType: string): FormData {
+  if (typeof assetType !== "string" || assetType.trim() === "") {
+    // Thrown before a byte moves: an untyped image upload is how listing
+    // photos ended up stored as avatars.
+    throw new Error("stapel-cdn image upload needs an explicit asset type");
+  }
+  const form = filePart(file);
+  form.append("type", assetType);
+  return form;
+}
+
 const signalOf = (options?: {
   readonly signal?: AbortSignal;
 }): { signal?: AbortSignal } =>
@@ -230,8 +241,8 @@ export function createCdnApi(client: StapelClient): CdnApi {
     describe: (refs, options) =>
       client.post("/describe/", { refs: [...refs] }, signalOf(options)),
 
-    uploadImage: (file, options) =>
-      client.post("/upload/image/", filePart(file), signalOf(options)),
+    uploadImage: (file, assetType, options) =>
+      client.post("/upload/image/", typedFilePart(file, assetType), signalOf(options)),
 
     uploadAvatar: (file, options) =>
       client.post("/upload/avatar/", filePart(file), signalOf(options)),

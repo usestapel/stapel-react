@@ -379,13 +379,14 @@ export interface paths {
          *     **Maximum file size:** `STAPEL_CDN["MAX_IMAGE_SIZE"]`, 20MB by default.
          *     Enforced before the body is hashed; over it the answer is 413.
          *
-         *     **Stored type:** `STAPEL_CDN["DEFAULT_UPLOAD_TYPE"]` when a deployment names
-         *     one, otherwise the FIRST entry of `STAPEL_CDN["ASSET_TYPES"]` — read from the
-         *     setting, never a literal, so the stored type is always a member of the
-         *     `TypeEnum` this document generates from that same setting. On the zero-infra
-         *     default (`ASSET_TYPES = ("avatar",)`) that is `"avatar"`. A `DEFAULT_UPLOAD_TYPE`
-         *     naming a value absent from `ASSET_TYPES` is a misconfiguration: this endpoint
-         *     answers 400 and `stapel_cdn.assets.W014` reports it at boot.
+         *     **Stored type:** the `type` form field, validated against
+         *     `STAPEL_CDN["ASSET_TYPES"]` (400 `error.400.invalid_image_type` otherwise).
+         *     Without it: `STAPEL_CDN["DEFAULT_UPLOAD_TYPE"]` when a deployment names one,
+         *     else the sole `ASSET_TYPES` entry. A deployment with several asset types and
+         *     no `DEFAULT_UPLOAD_TYPE` has no default: the request answers
+         *     400 `error.400.image_type_required`. A `DEFAULT_UPLOAD_TYPE` naming a value
+         *     absent from `ASSET_TYPES` is a misconfiguration: this endpoint answers 400 and
+         *     `stapel_cdn.assets.W014` reports it at boot.
          *
          *
          *     **Permissions:** `IsNotAnonymousUser`
@@ -674,18 +675,6 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
-        /**
-         * @description Serializer for file upload requests.
-         *
-         *     Upload a file using multipart/form-data with the 'file' field.
-         */
-        FileUpload: {
-            /**
-             * Format: uri
-             * @description The file to upload. Images: jpg, jpeg, png, gif, webp, avif, heic, heif. Videos: mp4, webm, mov, avi, mkv.
-             */
-            file: string;
-        };
         /** @description Successful file upload. */
         FileUploadResponse: {
             /** @description Uploaded file object */
@@ -853,6 +842,16 @@ export interface components {
             readonly created_at: string;
             /** Format: date-time */
             readonly updated_at: string;
+        };
+        /** @description ``POST /upload/image/``: the file plus the asset type to store it as. */
+        ImageUploadRequest: {
+            /**
+             * Format: uri
+             * @description The file to upload. Images: jpg, jpeg, png, gif, webp, avif, heic, heif. Videos: mp4, webm, mov, avi, mkv.
+             */
+            file: string;
+            /** @description Asset type, one of STAPEL_CDN['ASSET_TYPES']. Required when the deployment has several types and no DEFAULT_UPLOAD_TYPE. */
+            type?: string;
         };
         /** @description Successful image upload. */
         ImageUploadResponse: {
@@ -1598,8 +1597,8 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["FileUpload"];
-                "application/x-www-form-urlencoded": components["schemas"]["FileUpload"];
+                "multipart/form-data": components["schemas"]["ImageUploadRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ImageUploadRequest"];
             };
         };
         responses: {
