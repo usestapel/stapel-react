@@ -888,7 +888,7 @@
     },
     {
       "package": "@stapel/recordings-react",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "entries": [
         {
           "id": "recordings.list",
