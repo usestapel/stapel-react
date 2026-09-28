@@ -33,6 +33,7 @@ const LABELS = {
   zoomIn: "Zoom in",
   zoomOut: "Zoom out",
   pin: "Chosen point",
+  wheelHint: "Hold Ctrl to zoom",
 };
 
 const BERLIN: LatLon = { lat: 52.51667, lon: 13.38333 };
@@ -129,10 +130,108 @@ describe("<TileMap/> camera", () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
   });
 
-  it("zooms on the wheel", () => {
+  it("zooms on the wheel only with Ctrl or ⌘ held", () => {
     const { onChange } = mount({ zoom: 10 });
-    fireEvent.wheel(screen.getByTestId("map"), { deltaY: -120 });
+    fireEvent.wheel(screen.getByTestId("map"), { deltaY: -120, ctrlKey: true });
     expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
+    fireEvent.wheel(screen.getByTestId("map"), { deltaY: 120, metaKey: true });
+    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 9);
+  });
+
+  it("leaves a plain wheel to the page and shows the hint instead", () => {
+    const { onChange } = mount({ zoom: 10 });
+    const map = screen.getByTestId("map");
+    const event = new WheelEvent("wheel", { deltaY: -120, bubbles: true, cancelable: true });
+    act(() => {
+      map.dispatchEvent(event);
+    });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    expect(map.querySelector("[data-geo-wheel-hint]")?.textContent).toBe(LABELS.wheelHint);
+  });
+
+  it("does not jump a zoom level per event of a trackpad pinch", () => {
+    const { onChange } = mount({ zoom: 10 });
+    const map = screen.getByTestId("map");
+    for (let i = 0; i < 4; i += 1) fireEvent.wheel(map, { deltaY: -20, ctrlKey: true });
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.wheel(map, { deltaY: -20, ctrlKey: true });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
+  });
+});
+
+/** jsdom has no PointerEvent: a MouseEvent carries `button`/`buttons`, and
+ * `pointerType`/`pointerId`/`isPrimary` are laid on it by hand. */
+function pointer(
+  target: Element,
+  type: "pointerdown" | "pointermove",
+  init: { x: number; y: number; button?: number; buttons: number }
+): void {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX: init.x,
+    clientY: init.y,
+    button: init.button ?? 0,
+    buttons: init.buttons,
+  });
+  Object.defineProperties(event, {
+    pointerType: { value: "mouse" },
+    pointerId: { value: 1 },
+    isPrimary: { value: true },
+  });
+  fireEvent(target, event);
+}
+
+describe("<TileMap/> a drag never outlives its button", () => {
+  it("a mouse moving with no button held after a lost release does not pan", () => {
+    const { onChange } = mount();
+    const map = screen.getByTestId("map");
+    pointer(map, "pointerdown", { x: 200, y: 200, buttons: 1 });
+    // The release went somewhere else; the next moves carry no button.
+    pointer(map, "pointermove", { x: 260, y: 220, buttons: 0 });
+    pointer(map, "pointermove", { x: 300, y: 240, buttons: 0 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("a held left button still pans", () => {
+    const { onChange } = mount();
+    const map = screen.getByTestId("map");
+    pointer(map, "pointerdown", { x: 200, y: 200, buttons: 1 });
+    pointer(map, "pointermove", { x: 260, y: 200, buttons: 1 });
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("a right button does not arm a drag", () => {
+    const { onChange } = mount();
+    const map = screen.getByTestId("map");
+    pointer(map, "pointerdown", { x: 200, y: 200, button: 2, buttons: 2 });
+    pointer(map, "pointermove", { x: 260, y: 200, buttons: 2 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("the context menu, a lost capture and a window blur each end the drag", () => {
+    const { onChange } = mount();
+    const map = screen.getByTestId("map");
+    const arm = (): void => {
+      fireEvent.pointerDown(map, { clientX: 200, clientY: 200, isPrimary: true, pointerId: 1 });
+    };
+    const move = (): void => {
+      fireEvent.pointerMove(map, { clientX: 260, clientY: 200, pointerId: 1 });
+    };
+    arm();
+    fireEvent.contextMenu(map);
+    move();
+    arm();
+    fireEvent(map, new Event("lostpointercapture", { bubbles: true }));
+    move();
+    arm();
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+    move();
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

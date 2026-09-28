@@ -58,6 +58,15 @@
  * carries the `<a>` the licence requires — which is precisely what escaping it
  * would destroy.
  *
+ * ## Pointer and wheel
+ *
+ * Only a held main button pans. A drag whose release never arrives (the OS
+ * context menu swallows the mouseup of a right or ctrl click, focus leaves the
+ * window mid-drag, capture is lost) is ended by the next buttonless move, so
+ * the map never follows a cursor that is merely hovering. The wheel scrolls the
+ * page; it zooms only with Ctrl/⌘ held (a trackpad pinch is ctrl+wheel), and a
+ * plain wheel over the map shows `labels.wheelHint` instead.
+ *
  * ## Copy
  *
  * The four labels are PROPS, resolved by the caller, not `useT()` calls here.
@@ -85,6 +94,15 @@ import type { TileLayer } from "../api/types.js";
  * quarter tile: large enough to be progress, small enough to aim with. */
 const KEY_PAN_PX = 64;
 
+/** Wheel travel, in CSS pixels, that makes one zoom step. A mouse notch is
+ * ~100 px; a trackpad pinch arrives as many small ctrl+wheel events and must
+ * not jump a level per event. */
+const WHEEL_STEP_PX = 100;
+/** A pause this long starts a new wheel gesture from zero. */
+const WHEEL_IDLE_MS = 250;
+/** How long the "hold the modifier" hint stays after the last plain wheel. */
+const WHEEL_HINT_MS = 1400;
+
 /** The zoom the layer serves when it declines to say. */
 const FALLBACK_MIN_ZOOM = 0;
 const FALLBACK_MAX_ZOOM = 19;
@@ -98,6 +116,10 @@ export interface TileMapLabels {
   readonly zoomOut: string;
   /** The centre crosshair's accessible name. */
   readonly pin: string;
+  /** Shown over the map for a moment when the wheel scrolls past it without
+   * the zoom modifier held, e.g. "Hold Ctrl and scroll to zoom". Absent =
+   * no hint; the page still scrolls and the modifier still zooms. */
+  readonly wheelHint?: string;
 }
 
 export interface TileMapProps {
@@ -219,6 +241,7 @@ export function TileMap(props: TileMapProps): ReactElement {
   const box = useElementBox(containerRef);
   const drag = useRef<{ x: number; y: number } | null>(null);
   const [grabbing, setGrabbing] = useState(false);
+  const [wheelHint, setWheelHint] = useState(false);
 
   const commit = useCallback(
     (nextCenter: LatLon, nextZoom: number): void => {
@@ -241,16 +264,39 @@ export function TileMap(props: TileMapProps): ReactElement {
     [commit, center, zoom]
   );
 
-  // The wheel listener is attached natively with `passive: false`. React's own
-  // `onWheel` is registered at the root as PASSIVE, so `preventDefault()`
-  // inside it does nothing but print a console warning — and without it the
-  // page scrolls away underneath the map the person is zooming.
+  // The wheel belongs to the PAGE unless the zoom modifier is held (Ctrl, or
+  // ⌘ on a Mac; a trackpad pinch arrives as ctrl+wheel). A map that zooms on
+  // every wheel turn traps whoever scrolls the page over it, so a plain wheel
+  // is left alone and only raises the hint. Attached natively with
+  // `passive: false`: React's root `onWheel` is passive, and there
+  // `preventDefault()` on a modified wheel would not stop the page scroll.
+  const wheel = useRef({ travel: 0, lastAt: 0 });
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     const element = containerRef.current;
     if (element === null) return;
     const onWheel = (event: WheelEvent): void => {
+      if (!event.ctrlKey && !event.metaKey) {
+        setWheelHint(true);
+        clearTimeout(hintTimer.current);
+        hintTimer.current = setTimeout(() => {
+          setWheelHint(false);
+        }, WHEEL_HINT_MS);
+        return;
+      }
       event.preventDefault();
-      zoomBy(event.deltaY < 0 ? 1 : -1);
+      setWheelHint(false);
+      const state = wheel.current;
+      const now = Date.now();
+      if (now - state.lastAt > WHEEL_IDLE_MS) state.travel = 0;
+      state.lastAt = now;
+      // deltaMode 1 = lines, 2 = pages; normalise to pixels.
+      const scale = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? 800 : 1;
+      state.travel += event.deltaY * scale;
+      if (Math.abs(state.travel) < WHEEL_STEP_PX) return;
+      const steps = Math.trunc(state.travel / WHEEL_STEP_PX);
+      state.travel -= steps * WHEEL_STEP_PX;
+      zoomBy(-steps);
     };
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => {
@@ -258,8 +304,34 @@ export function TileMap(props: TileMapProps): ReactElement {
     };
   }, [zoomBy]);
 
+  useEffect(
+    () => () => {
+      clearTimeout(hintTimer.current);
+    },
+    []
+  );
+
+  const stopDrag = useCallback((): void => {
+    if (drag.current === null) return;
+    drag.current = null;
+    setGrabbing(false);
+  }, []);
+
+  // A gesture whose release never reaches the map — the OS context menu eats
+  // the mouseup of a right/ctrl click, a window switch mid-drag, a lost
+  // capture — must not leave the map glued to a cursor with no button down.
+  useEffect(() => {
+    window.addEventListener("blur", stopDrag);
+    return () => {
+      window.removeEventListener("blur", stopDrag);
+    };
+  }, [stopDrag]);
+
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>): void => {
     if (event.isPrimary === false) return;
+    // Only the main button pans. A right click opens a menu that swallows its
+    // own release, which would leave the drag armed.
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     if (isChrome(event.target)) return;
     drag.current = { x: event.clientX, y: event.clientY };
     setGrabbing(true);
@@ -274,25 +346,37 @@ export function TileMap(props: TileMapProps): ReactElement {
     (event: ReactPointerEvent<HTMLDivElement>): void => {
       const from = drag.current;
       if (from === null) return;
+      // The release was lost: a mouse or pen moving with no button held is a
+      // hover, never a pan.
+      if (
+        (event.pointerType === "mouse" || event.pointerType === "pen") &&
+        typeof event.buttons === "number" &&
+        (event.buttons & 1) === 0
+      ) {
+        stopDrag();
+        return;
+      }
       const dx = event.clientX - from.x;
       const dy = event.clientY - from.y;
       if (dx === 0 && dy === 0) return;
       drag.current = { x: event.clientX, y: event.clientY };
       panPixels(dx, dy);
     },
-    [panPixels]
+    [panPixels, stopDrag]
   );
 
-  const endDrag = useCallback((event: ReactPointerEvent<HTMLDivElement>): void => {
-    drag.current = null;
-    setGrabbing(false);
-    if (
-      typeof event.currentTarget.hasPointerCapture === "function" &&
-      event.currentTarget.hasPointerCapture(event.pointerId)
-    ) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  }, []);
+  const endDrag = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>): void => {
+      stopDrag();
+      if (
+        typeof event.currentTarget.hasPointerCapture === "function" &&
+        event.currentTarget.hasPointerCapture(event.pointerId)
+      ) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    },
+    [stopDrag]
+  );
 
   /** A map that can only be used with a pointer is not usable. Arrows pan,
    * `+`/`-` zoom, and the container is in the tab order with a name. */
@@ -371,6 +455,9 @@ export function TileMap(props: TileMapProps): ReactElement {
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onLostPointerCapture={stopDrag}
+      // A ctrl+click on a Mac is a left button that opens the context menu.
+      onContextMenu={stopDrag}
       onKeyDown={onKeyDown}
       onDoubleClick={(event) => {
         if (isChrome(event.target)) return;
@@ -491,6 +578,29 @@ export function TileMap(props: TileMapProps): ReactElement {
           <span aria-hidden="true">&minus;</span>
         </Button>
       </div>
+
+      {wheelHint && labels.wheelHint !== undefined && (
+        <div
+          data-geo-wheel-hint=""
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: spacing[4],
+            background: token.colorBgMask,
+            color: token.colorTextLightSolid,
+            fontSize: token.fontSizeLG,
+            textAlign: "center",
+            pointerEvents: "none",
+          }}
+        >
+          {labels.wheelHint}
+        </div>
+      )}
 
       {/* Always. There is no prop that removes this — see the module doc. */}
       <div

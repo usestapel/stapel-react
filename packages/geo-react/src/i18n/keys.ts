@@ -24,6 +24,9 @@ export const GEO_I18N_KEYS = {
   pickerMapLabel: "geo.picker.map_label",
   pickerZoomIn: "geo.picker.zoom_in",
   pickerZoomOut: "geo.picker.zoom_out",
+  /** Over the map when the wheel scrolls the page past it: the wheel zooms
+   * only with the modifier held. `{key}` is "Ctrl" or "⌘". */
+  pickerWheelHint: "geo.picker.wheel_hint",
   /** The centre crosshair. The map moves under a fixed pin, which is the
    * shape a thumb can actually use — dragging a small marker on a phone means
    * covering it with the finger that is dragging it. */
@@ -108,6 +111,7 @@ export const geoI18nBundleEn: I18nDictionary = {
   "geo.picker.map_label": "Map. Drag to move the pin; use the zoom buttons or the arrow keys.",
   "geo.picker.zoom_in": "Zoom in",
   "geo.picker.zoom_out": "Zoom out",
+  "geo.picker.wheel_hint": "To zoom the map, scroll while holding {key}",
   "geo.picker.pin_label": "The chosen point is at the centre of the map",
   "geo.picker.resolving": "Looking up this place…",
   "geo.picker.no_address": "No address at this point. The place is still saved.",

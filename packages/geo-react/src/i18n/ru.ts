@@ -55,6 +55,7 @@ export const geoI18nBundleRu: I18nDictionary = {
     "Карта. Перетаскивайте, чтобы переместить метку; масштаб — кнопками или стрелками.",
   "geo.picker.zoom_in": "Приблизить",
   "geo.picker.zoom_out": "Отдалить",
+  "geo.picker.wheel_hint": "Чтобы изменить масштаб, прокручивайте, удерживая {key}",
   "geo.picker.pin_label": "Выбранная точка — в центре карты",
   "geo.picker.resolving": "Ищем это место…",
   "geo.picker.no_address": "Здесь нет адреса. Место всё равно сохранится.",

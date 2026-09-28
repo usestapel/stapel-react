@@ -42,6 +42,7 @@ function Map(props: { readonly width: string; readonly height: number }): ReactE
           zoomIn: t(GEO_I18N_KEYS.pickerZoomIn),
           zoomOut: t(GEO_I18N_KEYS.pickerZoomOut),
           pin: t(GEO_I18N_KEYS.pickerPinLabel),
+          wheelHint: t(GEO_I18N_KEYS.pickerWheelHint, { key: "Ctrl" }),
         }}
         onChange={(nextCenter, nextZoom) => {
           setCenter(nextCenter);

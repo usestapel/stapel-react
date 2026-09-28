@@ -77,6 +77,12 @@ export function centerOf(
   return NO_OPINION;
 }
 
+/** The wheel-zoom modifier as the keyboard in front of the person names it. */
+function zoomModifierName(): string {
+  if (typeof navigator === "undefined") return "Ctrl";
+  return /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl";
+}
+
 export interface PickerBodyProps {
   readonly config: MapConfig;
   readonly height: number | string;
@@ -168,6 +174,7 @@ export function PickerBody(props: PickerBodyProps): ReactElement {
       zoomIn: t(GEO_I18N_KEYS.pickerZoomIn),
       zoomOut: t(GEO_I18N_KEYS.pickerZoomOut),
       pin: t(GEO_I18N_KEYS.pickerPinLabel),
+      wheelHint: t(GEO_I18N_KEYS.pickerWheelHint, { key: zoomModifierName() }),
     }),
     [t]
   );
