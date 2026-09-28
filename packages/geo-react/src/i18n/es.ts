@@ -57,7 +57,6 @@ export const geoI18nBundleEs: I18nDictionary = {
     "Mapa. Arrastra para mover el marcador; usa los botones de zoom o las flechas del teclado.",
   "geo.picker.zoom_in": "Acercar",
   "geo.picker.zoom_out": "Alejar",
-  "geo.picker.wheel_hint": "Para hacer zoom, desplázate con {key} pulsado",
   "geo.picker.pin_label": "El punto elegido está en el centro del mapa",
   "geo.picker.resolving": "Buscando este lugar…",
   "geo.picker.no_address":

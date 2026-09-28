@@ -33,7 +33,6 @@ const LABELS = {
   zoomIn: "Zoom in",
   zoomOut: "Zoom out",
   pin: "Chosen point",
-  wheelHint: "Hold Ctrl to zoom",
 };
 
 const BERLIN: LatLon = { lat: 52.51667, lon: 13.38333 };
@@ -130,32 +129,25 @@ describe("<TileMap/> camera", () => {
     expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
   });
 
-  it("zooms on the wheel only with Ctrl or ⌘ held", () => {
-    const { onChange } = mount({ zoom: 10 });
-    fireEvent.wheel(screen.getByTestId("map"), { deltaY: -120, ctrlKey: true });
-    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
-    fireEvent.wheel(screen.getByTestId("map"), { deltaY: 120, metaKey: true });
-    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 9);
-  });
-
-  it("leaves a plain wheel to the page and shows the hint instead", () => {
+  it("zooms on a plain wheel, and keeps the page from scrolling under it", () => {
     const { onChange } = mount({ zoom: 10 });
     const map = screen.getByTestId("map");
     const event = new WheelEvent("wheel", { deltaY: -120, bubbles: true, cancelable: true });
     act(() => {
       map.dispatchEvent(event);
     });
-    expect(onChange).not.toHaveBeenCalled();
-    expect(event.defaultPrevented).toBe(false);
-    expect(map.querySelector("[data-geo-wheel-hint]")?.textContent).toBe(LABELS.wheelHint);
+    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
+    expect(event.defaultPrevented).toBe(true);
+    fireEvent.wheel(map, { deltaY: 120 });
+    expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 9);
   });
 
-  it("does not jump a zoom level per event of a trackpad pinch", () => {
+  it("does not jump a zoom level per event of a trackpad scroll", () => {
     const { onChange } = mount({ zoom: 10 });
     const map = screen.getByTestId("map");
-    for (let i = 0; i < 4; i += 1) fireEvent.wheel(map, { deltaY: -20, ctrlKey: true });
+    for (let i = 0; i < 4; i += 1) fireEvent.wheel(map, { deltaY: -20 });
     expect(onChange).not.toHaveBeenCalled();
-    fireEvent.wheel(map, { deltaY: -20, ctrlKey: true });
+    fireEvent.wheel(map, { deltaY: -20 });
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenLastCalledWith(expect.anything(), 11);
   });
