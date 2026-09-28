@@ -4,8 +4,8 @@
  * the resumable checksum-verified multipart protocol. No React, no antd; not
  * re-exported from the package's main entry.
  */
-export { extractAudioTrack } from "./audioRemux.js";
-export type { RemuxResult } from "./audioRemux.js";
+export { extractAudioTrack, listAudioTracks, prepareUpload } from "./audioRemux.js";
+export type { AudioTrackInfo, ExtractAudioOptions, PreparedUpload, RemuxResult } from "./audioRemux.js";
 export { hashParts, fingerprintOf, partCount, partRange, sha256Hex, toHex } from "./fingerprint.js";
 export type { HashPartsOptions, HashPartsResult } from "./fingerprint.js";
 export {

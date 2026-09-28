@@ -1,7 +1,9 @@
 /**
  * Container-level audio extraction for ISO BMFF (mp4 / mov / m4v / 3gp).
+ * The chosen track is kept as it is: no decode, no downmix, no re-encode —
+ * the backend normalizes.
  *
- * Only the `moov` box is read into memory. The first `soun` trak is kept
+ * Only the `moov` box is read into memory. The chosen `soun` trak (default: the first) is kept
  * verbatim; the only table rewritten is its chunk offsets (`stco` / `co64`).
  * The output is `Blob([ftyp, moov, mdatHeader, ...source.slice(chunk)])`, so
  * every audio chunk is a slice reference into the source: nothing is decoded,
@@ -20,6 +22,11 @@ export interface RemuxResult {
   readonly contentType: "audio/mp4";
   /** Sample-entry fourcc of the kept track, e.g. `mp4a`. */
   readonly codec: string;
+  /** Channel count, unchanged from the source (no downmix). */
+  readonly channels: number;
+  readonly sampleRate: number;
+  /** Which audio track was kept (`AudioTrackInfo.index`). */
+  readonly trackIndex: number;
   /** Presentation duration of the audio track (edit list honoured). */
   readonly durationSeconds: number;
   /** Size of the source file. */
@@ -304,7 +311,102 @@ function baseName(name: string | undefined): string {
   return base || "audio";
 }
 
-async function remux(file: Blob & { name?: string }): Promise<RemuxResult> {
+/** One audio track as `listAudioTracks` reports it. */
+export interface AudioTrackInfo {
+  /** 0-based among the file's audio tracks; pass it as `trackIndex`. */
+  readonly index: number;
+  /** Sample-entry fourcc, e.g. `mp4a`, `Opus`, `ac-3`. */
+  readonly codec: string;
+  readonly channels: number;
+  readonly sampleRate: number;
+  /** ISO 639-2/T code from `mdhd`, when set (`und` is omitted). */
+  readonly language?: string;
+  /** The track's handler name, when it carries a non-default one. */
+  readonly name?: string;
+  readonly durationSeconds: number;
+  /** `tkhd` enabled flag. */
+  readonly enabled: boolean;
+  /** Whether `extractAudioTrack` can remux this track (else: upload whole). */
+  readonly remuxable: boolean;
+}
+
+export interface ExtractAudioOptions {
+  /** Which audio track (`AudioTrackInfo.index`). Default 0, the first. */
+  readonly trackIndex?: number;
+}
+
+const GENERIC_HANDLER_NAMES = new Set(["", "SoundHandler", "Core Media Audio", "Sound Media Handler"]);
+
+interface Movie {
+  readonly mvhd: Uint8Array;
+  readonly movieTimescale: number;
+  readonly audio: ReadonlyArray<{ readonly info: AudioTrackInfo; readonly track: AudioTrack | null }>;
+}
+
+function describeTrack(
+  trak: Node,
+  mdia: Node,
+  index: number,
+  movieTimescale: number,
+  track: AudioTrack | null
+): AudioTrackInfo {
+  const tkhd = view(raw(trak, "tkhd"));
+  const enabled = (tkhd.getUint32(8) & 1) === 1;
+  const tkhdDuration = tkhd.getUint8(8) === 1 ? u64(tkhd, 36) : tkhd.getUint32(28);
+  const mdhd = view(raw(mdia, "mdhd"));
+  const v1 = mdhd.getUint8(8) === 1;
+  const mdhdTimescale = mdhd.getUint32(v1 ? 28 : 20);
+  const mdhdDuration = v1 ? u64(mdhd, 32) : mdhd.getUint32(24);
+  const langBits = mdhd.getUint16(v1 ? 40 : 28) & 0x7fff;
+  const language = String.fromCharCode(
+    ((langBits >> 10) & 0x1f) + 0x60,
+    ((langBits >> 5) & 0x1f) + 0x60,
+    (langBits & 0x1f) + 0x60
+  );
+
+  const hdlr = raw(mdia, "hdlr");
+  let name = "";
+  if (hdlr.byteLength > 32) {
+    const bytes = hdlr.subarray(32);
+    const end = bytes.indexOf(0);
+    name = new TextDecoder().decode(end >= 0 ? bytes.subarray(0, end) : bytes).trim();
+  }
+
+  const minf = find(mdia, "minf");
+  const stbl = minf && find(minf, "stbl");
+  const stsd = view(raw(stbl, "stsd"));
+  if (stsd.getUint32(12) < 1 || stsd.byteLength < 16 + 36) fail("empty stsd");
+  const e = 16;
+  const codec = fourcc(stsd, e + 4);
+  const soundVersion = stsd.getUint16(e + 16);
+  let channels = stsd.getUint16(e + 24);
+  let sampleRate = stsd.getUint32(e + 32) / 65536;
+  if (soundVersion === 2 && stsd.byteLength >= e + 52) {
+    sampleRate = stsd.getFloat64(e + 40);
+    channels = stsd.getUint32(e + 48);
+  }
+  if (!(sampleRate > 0) && mdhdTimescale > 0) sampleRate = mdhdTimescale;
+
+  const durationSeconds =
+    tkhdDuration > 0 && movieTimescale > 0
+      ? tkhdDuration / movieTimescale
+      : mdhdTimescale > 0
+        ? mdhdDuration / mdhdTimescale
+        : 0;
+  return {
+    index,
+    codec,
+    channels,
+    sampleRate,
+    ...(langBits !== 0 && language !== "und" && /^[a-z]{3}$/.test(language) ? { language } : {}),
+    ...(GENERIC_HANDLER_NAMES.has(name) ? {} : { name }),
+    durationSeconds,
+    enabled,
+    remuxable: track !== null && track.chunks.length > 0,
+  };
+}
+
+async function readMovie(file: Blob): Promise<Movie> {
   const top = await topLevelBoxes(file);
   const first = top[0];
   if (!first || !LEADING_BOXES.has(first.type)) fail("not ISO BMFF");
@@ -320,30 +422,46 @@ async function remux(file: Blob & { name?: string }): Promise<RemuxResult> {
   if (moovChildren.some((c) => c.type === "mvex")) fail("fragmented (mvex)");
   const mvhdRef = moovChildren.find((c) => c.type === "mvhd");
   if (!mvhdRef) fail("missing mvhd");
+  const mvhd = buf.subarray(mvhdRef.start, mvhdRef.start + mvhdRef.size);
+  const mv = view(mvhd);
+  const movieTimescale = mv.getUint32(mv.getUint8(8) === 1 ? 28 : 20);
 
-  let track: AudioTrack | undefined;
+  const audio: Array<{ info: AudioTrackInfo; track: AudioTrack | null }> = [];
   for (const ref of moovChildren) {
     if (ref.type !== "trak") continue;
     const trak = toTree(buf, v, ref);
     const mdia = find(trak, "mdia");
     if (!mdia || handlerType(mdia) !== "soun") continue;
-    track = readAudioTrack(trak, file.size);
-    break;
+    let track: AudioTrack | null;
+    try {
+      track = readAudioTrack(trak, file.size);
+    } catch {
+      track = null; // listed, but uploaded whole if chosen
+    }
+    audio.push({ info: describeTrack(trak, mdia, audio.length, movieTimescale, track), track });
   }
-  if (!track) fail("no audio track");
-  if (track.chunks.length === 0) fail("audio track has no samples");
+  return { mvhd, movieTimescale, audio };
+}
+
+async function remux(
+  file: Blob & { name?: string },
+  trackIndex: number
+): Promise<RemuxResult> {
+  const movie = await readMovie(file);
+  const chosen = movie.audio[trackIndex];
+  if (!chosen) fail("no such audio track");
+  const track = chosen.track;
+  if (!track || !chosen.info.remuxable) fail("track cannot be remuxed");
 
   // mvhd copied, with its duration set to the audio track's.
-  const mvhd = buf.slice(mvhdRef.start, mvhdRef.start + mvhdRef.size);
+  const mvhd = movie.mvhd.slice();
   const mv = view(mvhd);
-  const mvV1 = mv.getUint8(8) === 1;
-  const movieTimescale = mv.getUint32(mvV1 ? 8 + 4 + 16 : 8 + 4 + 8);
-  if (mvV1) {
-    mv.setUint32(8 + 4 + 16 + 4, Math.floor(track.tkhdDuration / U32));
-    mv.setUint32(8 + 4 + 16 + 8, track.tkhdDuration % U32);
+  if (mv.getUint8(8) === 1) {
+    mv.setUint32(32, Math.floor(track.tkhdDuration / U32));
+    mv.setUint32(36, track.tkhdDuration % U32);
   } else {
     if (track.tkhdDuration >= U32) fail("duration overflow");
-    mv.setUint32(8 + 4 + 8 + 4, track.tkhdDuration);
+    mv.setUint32(24, track.tkhdDuration);
   }
 
   const ftyp = buildFtyp();
@@ -401,35 +519,79 @@ async function remux(file: Blob & { name?: string }): Promise<RemuxResult> {
   if (runStart >= 0) slices.push(file.slice(runStart, runEnd));
 
   const blob = new Blob([ftyp, moov, mdatHeader, ...slices], { type: "audio/mp4" });
-  const durationSeconds =
-    track.tkhdDuration > 0 && movieTimescale > 0
-      ? track.tkhdDuration / movieTimescale
-      : track.mdhdTimescale > 0
-        ? track.mdhdDuration / track.mdhdTimescale
-        : 0;
   return {
     blob,
     name: `${baseName(file.name)}.m4a`,
     contentType: "audio/mp4",
     codec: track.codec,
-    durationSeconds,
+    channels: chosen.info.channels,
+    sampleRate: chosen.info.sampleRate,
+    trackIndex,
+    durationSeconds: chosen.info.durationSeconds,
     originalBytes: file.size,
   };
 }
 
 /**
- * Extract the first audio track of an ISO BMFF file as a standalone `.m4a`
- * without decoding. `null` when the input is not something this can do
- * exactly — upload the original then.
+ * The file's audio tracks, for a picker when there is more than one. `null`
+ * when the tracks cannot be listed (not ISO BMFF, fragmented, a parse
+ * surprise) — upload the original then. `[]` means a movie with no audio.
+ */
+export async function listAudioTracks(
+  file: Blob
+): Promise<AudioTrackInfo[] | null> {
+  try {
+    return (await readMovie(file)).audio.map((a) => a.info);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract one audio track (default the first) of an ISO BMFF file as a
+ * standalone `.m4a` without decoding: the track is kept exactly as it is —
+ * same codec, same channel layout, same samples. `null` for anything this
+ * cannot do exactly — upload the original file whole then; extraction never
+ * blocks or fails an upload.
  */
 export async function extractAudioTrack(
-  file: Blob & { readonly name?: string }
+  file: Blob & { readonly name?: string },
+  options: ExtractAudioOptions = {}
 ): Promise<RemuxResult | null> {
   try {
-    return await remux(file);
+    const index = options.trackIndex ?? 0;
+    if (!Number.isInteger(index) || index < 0) return null;
+    return await remux(file, index);
   } catch {
     // Unsupported layout, or a parse surprise (RangeError from a DataView
     // read past a truncated box): either way, the original is uploaded.
     return null;
   }
+}
+
+/** What to upload: the remuxed audio, or the original file whole. */
+export interface PreparedUpload {
+  readonly blob: Blob;
+  readonly name: string;
+  readonly contentType: string;
+  /** The remux, or `null` when the original is sent as is. */
+  readonly audio: RemuxResult | null;
+}
+
+/**
+ * The remuxed audio when extraction works, the original file otherwise.
+ * Never throws and never blocks the upload on extraction.
+ */
+export async function prepareUpload(
+  file: Blob & { readonly name?: string },
+  options: ExtractAudioOptions = {}
+): Promise<PreparedUpload> {
+  const audio = await extractAudioTrack(file, options);
+  if (audio) return { blob: audio.blob, name: audio.name, contentType: audio.contentType, audio };
+  return {
+    blob: file,
+    name: file.name ?? "upload",
+    contentType: file.type || "application/octet-stream",
+    audio: null,
+  };
 }

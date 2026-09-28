@@ -77,18 +77,17 @@ checksum-verified multipart session.
 
 ```ts
 import {
-  extractAudioTrack, hashParts, runChunkedUpload, createChunkedTransport,
+  listAudioTracks, prepareUpload, hashParts, runChunkedUpload, createChunkedTransport,
 } from "@stapel/recordings-react/upload";
 
-const audio = await extractAudioTrack(file);           // null → send the original
-const blob = audio?.blob ?? file;
+const tracks = await listAudioTracks(file);            // >1 → let the user pick
+const { blob, name, contentType } = await prepareUpload(file, { trackIndex }); // original if it can't remux
 const { fingerprint, partHashes } = await hashParts(blob, limits.multipart_part_size);
 const transport = createChunkedTransport(client);
 const found = await transport.lookup({ fingerprint, workspaceId });
 // found.state === "complete" → already uploaded; "in_progress" → pass uploadId
 await runChunkedUpload({
-  transport, source: blob, name: audio?.name ?? file.name,
-  contentType: audio?.contentType ?? file.type, partSize: limits.multipart_part_size,
+  transport, source: blob, name, contentType, partSize: limits.multipart_part_size,
   hashes: partHashes, fingerprint, recordingId,
   ...(found.upload_id ? { uploadId: found.upload_id } : {}),
 });

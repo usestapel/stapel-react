@@ -110,6 +110,16 @@ entry) for files above the single-PUT path:
   track's own. Resolves `null` — upload the original — for anything else:
   not ISO BMFF (WebM included), no audio, fragmented, `moov` > 64 MiB, `stz2`,
   a sample entry outside mp4a/alac/ac-3/ec-3/Opus/fLaC/sawb/samr.
+- `listAudioTracks(file)` → `[{index, codec, channels, sampleRate, language?,
+  name?, durationSeconds, enabled, remuxable}]` (`null` when it cannot list —
+  upload the original). More than one → the host shows a picker and passes
+  `extractAudioTrack(file, { trackIndex })`; the library never guesses. The
+  kept track is exactly the source's: same codec, channel layout (stereo stays
+  stereo, 5.1 stays 5.1) and rate — no client-side downmix or re-encode; the
+  backend normalizes to mono.
+- `prepareUpload(file, { trackIndex })` → `{blob, name, contentType, audio}`:
+  the m4a when extraction works, the original file whole for any reason it
+  does not. Extraction never blocks or fails an upload.
 - `hashParts(blob, partSize)` / `fingerprintOf(size, partSize, hashes)` —
   fingerprint v1, one part in memory at a time; identical to the server's
   `fingerprint_of`.
