@@ -69,6 +69,34 @@ it KEEPS, and `stored_bytes_per_hour` is what an hour of speech costs — the th
 numbers a refusal can now be phrased in, instead of being discovered from a
 `413`.
 
+## Large uploads (`/upload`)
+
+A framework-free subpath for big files: extract the audio track of an mp4/mov
+without decoding it, fingerprint the bytes, and upload them as a resumable,
+checksum-verified multipart session.
+
+```ts
+import {
+  extractAudioTrack, hashParts, runChunkedUpload, createChunkedTransport,
+} from "@stapel/recordings-react/upload";
+
+const audio = await extractAudioTrack(file);           // null → send the original
+const blob = audio?.blob ?? file;
+const { fingerprint, partHashes } = await hashParts(blob, limits.multipart_part_size);
+const transport = createChunkedTransport(client);
+const found = await transport.lookup({ fingerprint, workspaceId });
+// found.state === "complete" → already uploaded; "in_progress" → pass uploadId
+await runChunkedUpload({
+  transport, source: blob, name: audio?.name ?? file.name,
+  contentType: audio?.contentType ?? file.type, partSize: limits.multipart_part_size,
+  hashes: partHashes, fingerprint, recordingId,
+  ...(found.upload_id ? { uploadId: found.upload_id } : {}),
+});
+```
+
+See MODULE.md for the failure vocabulary (`UploadInterruptedError`,
+`UploadRestartRequiredError`).
+
 ## Layers
 
 ```

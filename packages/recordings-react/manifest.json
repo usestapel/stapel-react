@@ -4,7 +4,7 @@
   "version": "0.9.0",
   "backend": {
     "module": "stapel-recordings",
-    "contract": ">=0.33 <0.34"
+    "contract": ">=0.34 <0.35"
   },
   "layers": [
     "api",
@@ -44,6 +44,41 @@
       "request": null,
       "response": "MediaURLDTO"
     },
+    "recordings_api_v1_recordings_multipart_abort_destroy": {
+      "method": "DELETE",
+      "path": "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/abort",
+      "tag": "Recordings",
+      "request": null,
+      "response": null
+    },
+    "recordings_api_v1_recordings_multipart_complete_create": {
+      "method": "POST",
+      "path": "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/complete",
+      "tag": "Recordings",
+      "request": "MultipartCompleteRequest",
+      "response": "RecordingDTO"
+    },
+    "recordings_api_v1_recordings_multipart_create": {
+      "method": "POST",
+      "path": "/recordings/api/v1/recordings/{recording_id}/multipart",
+      "tag": "Recordings",
+      "request": "MultipartStartRequest",
+      "response": "MultipartStartDTO"
+    },
+    "recordings_api_v1_recordings_multipart_parts_create": {
+      "method": "POST",
+      "path": "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/parts",
+      "tag": "Recordings",
+      "request": "MultipartMintRequest",
+      "response": "MultipartMintDTO"
+    },
+    "recordings_api_v1_recordings_multipart_parts_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/parts",
+      "tag": "Recordings",
+      "request": null,
+      "response": "MultipartManifestDTO"
+    },
     "recordings_api_v1_recordings_reprocess_create": {
       "method": "POST",
       "path": "/recordings/api/v1/recordings/{recording_id}/reprocess",
@@ -78,6 +113,13 @@
       "tag": "Recordings",
       "request": null,
       "response": "UploadLimitsDTO"
+    },
+    "recordings_api_v1_recordings_uploads_lookup_retrieve": {
+      "method": "GET",
+      "path": "/recordings/api/v1/recordings/uploads/lookup",
+      "tag": "Recordings",
+      "request": null,
+      "response": "UploadLookupDTO"
     },
     "recordings_api_v1_shares_media_retrieve": {
       "method": "GET",
@@ -459,6 +501,26 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.409.recording_upload_expired": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.recording_upload_part_mismatch": {
+      "status": 409,
+      "params": [
+        "part_number"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.409.recording_upload_parts_missing": {
+      "status": 409,
+      "params": [
+        "count",
+        "missing"
+      ],
+      "remediation": "fix_input"
+    },
     "error.410.gone": {
       "status": 410,
       "params": [],
@@ -773,6 +835,9 @@
     "error.409.recording_invalid_state",
     "error.409.recording_media_not_stored",
     "error.409.recording_no_transcript",
+    "error.409.recording_upload_expired",
+    "error.409.recording_upload_part_mismatch",
+    "error.409.recording_upload_parts_missing",
     "error.410.gone",
     "error.413.payload_too_large",
     "error.413.recording_too_large",

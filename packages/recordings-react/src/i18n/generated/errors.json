@@ -345,6 +345,32 @@
     "en": "This recording has no transcript to summarize yet"
   },
   {
+    "code": "error.409.recording_upload_expired",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "This upload has expired — start it again"
+  },
+  {
+    "code": "error.409.recording_upload_part_mismatch",
+    "status": 409,
+    "params": [
+      "part_number"
+    ],
+    "remediation": "fix_input",
+    "en": "Upload part {part_number} does not match its checksum"
+  },
+  {
+    "code": "error.409.recording_upload_parts_missing",
+    "status": 409,
+    "params": [
+      "count",
+      "missing"
+    ],
+    "remediation": "fix_input",
+    "en": "{count} upload parts have not arrived yet: {missing}"
+  },
+  {
     "code": "error.410.gone",
     "status": 410,
     "params": [],

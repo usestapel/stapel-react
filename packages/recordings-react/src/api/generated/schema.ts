@@ -148,6 +148,124 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recordings/api/v1/recordings/{recording_id}/multipart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Start a multipart upload.
+         *
+         *     Without ``fingerprint``: every part URL comes back in ``parts`` (legacy).
+         *     With ``fingerprint`` (v1): a VERIFIED upload — ``parts`` is empty; mint
+         *     part URLs bound to each part's SHA-256 with ``POST …/parts``.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["recordings_api_v1_recordings_multipart_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/abort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Abort a multipart upload and drop its stored parts.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        delete: operations["recordings_api_v1_recordings_multipart_abort_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Complete a multipart upload and enqueue the pipeline.
+         *
+         *     Body ``{parts: [{part_number, etag, sha256?}]}``. A verified upload is
+         *     checked against the store first: ``409 recording_upload_parts_missing``
+         *     (``{count, missing}``) or ``409 recording_upload_part_mismatch``
+         *     (``{part_number}``, 0 = the whole-file fingerprint) leave the upload
+         *     open to re-send and complete again. Idempotent: a completed upload
+         *     answers 200 with its recording.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["recordings_api_v1_recordings_multipart_complete_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recordings/api/v1/recordings/{recording_id}/multipart/{upload_id}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Part URLs and the store's manifest for one multipart upload.
+         *
+         *     ``POST`` (verified uploads): ``{parts: [{part_number, sha256}]}``, at
+         *     most 100 per call → URLs signed over each hash plus the exact
+         *     ``headers`` the PUT must send.
+         *
+         *     ``GET``: what the store holds (``uploaded_parts``) and what is
+         *     ``missing``. ``?mint=none`` returns the manifest alone; for a legacy
+         *     upload ``mint=missing`` (default) or ``mint=1,2`` also mints unbound URLs.
+         *     For a verified upload ``parts`` is always empty.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["recordings_api_v1_recordings_multipart_parts_retrieve"];
+        put?: never;
+        /**
+         * @description Part URLs and the store's manifest for one multipart upload.
+         *
+         *     ``POST`` (verified uploads): ``{parts: [{part_number, sha256}]}``, at
+         *     most 100 per call → URLs signed over each hash plus the exact
+         *     ``headers`` the PUT must send.
+         *
+         *     ``GET``: what the store holds (``uploaded_parts``) and what is
+         *     ``missing``. ``?mint=none`` returns the manifest alone; for a legacy
+         *     upload ``mint=missing`` (default) or ``mint=1,2`` also mints unbound URLs.
+         *     For a verified upload ``parts`` is always empty.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        post: operations["recordings_api_v1_recordings_multipart_parts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recordings/api/v1/recordings/{recording_id}/reprocess": {
         parameters: {
             query?: never;
@@ -308,6 +426,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recordings/api/v1/recordings/uploads/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Is this file already here? Looked up by its fingerprint v1.
+         *
+         *     ``found: false`` — start a new upload. ``state: complete`` — the
+         *     recording already holds this file (``upload_id`` is null).
+         *     ``state: in_progress`` — resume ``upload_id``; ``uploaded_parts`` and
+         *     ``missing`` are what the STORE holds. Workspace members only, and only
+         *     recordings the caller may open are considered.
+         *
+         *     **Permissions:** `IsNotAnonymousUser`
+         */
+        get: operations["recordings_api_v1_recordings_uploads_lookup_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recordings/api/v1/shares/{link_token}": {
         parameters: {
             query?: never;
@@ -391,6 +536,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CompletedPart: {
+            part_number: number;
+            etag: string;
+            sha256?: string;
+        };
         /** @description Incoming payload to create a recording + open an upload session. */
         CreateRecordingRequest: {
             /** Format: uuid */
@@ -437,6 +587,64 @@ export interface components {
             url: string;
             expires_at: string;
             expires_in: number;
+        };
+        MultipartCompleteRequest: {
+            parts: components["schemas"]["CompletedPart"][];
+        };
+        /** @description What the store holds for an upload, and what is still missing. */
+        MultipartManifestDTO: {
+            upload_id: string;
+            recording_id: string;
+            part_size_bytes: number;
+            total_parts: number;
+            expires_at: string;
+            uploaded_parts: components["schemas"]["StoredPartDTO"][];
+            missing: number[];
+            parts: components["schemas"]["MultipartPartURLDTO"][];
+        };
+        /** @description MultipartMintDTO(parts: 'list[MultipartPartURLDTO]', expires_at: 'str') */
+        MultipartMintDTO: {
+            parts: components["schemas"]["MultipartPartURLDTO"][];
+            expires_at: string;
+        };
+        MultipartMintRequest: {
+            parts: components["schemas"]["PartHash"][];
+        };
+        /**
+         * @description A presigned part URL. ``headers`` are the headers the PUT must send
+         *     exactly (the checksum a verified part URL is signed over); empty for a
+         *     legacy part.
+         */
+        MultipartPartURLDTO: {
+            part_number: number;
+            presigned_url: string;
+            headers: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * @description A started multipart upload. ``parts`` carries every part URL for a
+         *     legacy upload and is empty for a verified (fingerprint) one — those are
+         *     minted bound to each part's hash.
+         */
+        MultipartStartDTO: {
+            upload_id: string;
+            recording_id: string;
+            storage_key: string;
+            part_size_bytes: number;
+            total_parts: number;
+            parts: components["schemas"]["MultipartPartURLDTO"][];
+            expires_at: string;
+        };
+        MultipartStartRequest: {
+            file_size_bytes: number;
+            content_type?: string;
+            filename?: string;
+            fingerprint?: string;
+        };
+        PartHash: {
+            part_number: number;
+            sha256: string;
         };
         /**
          * @description A recording as seen by the API.
@@ -512,6 +720,16 @@ export interface components {
             segments: components["schemas"]["TranscriptSegmentDTO"][];
         };
         /**
+         * @description A part the STORE holds; ``sha256`` is the store's own digest (hex),
+         *     ``None`` on a backend that does not report one.
+         */
+        StoredPartDTO: {
+            part_number: number;
+            etag: string;
+            size: number;
+            sha256: string | null;
+        };
+        /**
          * @description The anchor-paginated envelope one transcript page arrives in.
          *
          *     Written out rather than left to the paginator's generic schema so the
@@ -575,6 +793,24 @@ export interface components {
             multipart_part_size: number;
             max_multipart_parts: number;
             allowed_extensions: string[];
+        };
+        /**
+         * @description Is this file (by fingerprint) already here?
+         *
+         *     ``found`` false: nothing to resume, start a new upload. ``state``
+         *     ``complete``: the recording already has it. ``in_progress``: resume
+         *     ``upload_id`` — ``uploaded_parts`` / ``missing`` are the store's view.
+         */
+        UploadLookupDTO: {
+            found: boolean;
+            state: string | null;
+            recording_id: string | null;
+            upload_id: string | null;
+            part_size_bytes: number | null;
+            total_parts: number | null;
+            uploaded_parts: components["schemas"]["StoredPartDTO"][];
+            missing: number[];
+            expires_at: string | null;
         };
         /** @description A single-PUT upload session. */
         UploadSessionDTO: {
@@ -714,6 +950,135 @@ export interface operations {
             };
         };
     };
+    recordings_api_v1_recordings_multipart_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MultipartStartRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MultipartStartRequest"];
+                "multipart/form-data": components["schemas"]["MultipartStartRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MultipartStartDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_multipart_abort_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordings_api_v1_recordings_multipart_complete_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MultipartCompleteRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MultipartCompleteRequest"];
+                "multipart/form-data": components["schemas"]["MultipartCompleteRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordingDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_multipart_parts_retrieve: {
+        parameters: {
+            query?: {
+                /** @description none | missing (default) | comma list of part numbers. Legacy uploads only; a verified upload never mints here. */
+                mint?: string;
+            };
+            header?: never;
+            path: {
+                recording_id: string;
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MultipartManifestDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_multipart_parts_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recording_id: string;
+                upload_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MultipartMintRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MultipartMintRequest"];
+                "multipart/form-data": components["schemas"]["MultipartMintRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MultipartMintDTO"];
+                };
+            };
+        };
+    };
     recordings_api_v1_recordings_reprocess_create: {
         parameters: {
             query?: never;
@@ -799,6 +1164,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadLimitsDTO"];
+                };
+            };
+        };
+    };
+    recordings_api_v1_recordings_uploads_lookup_retrieve: {
+        parameters: {
+            query: {
+                fingerprint: string;
+                workspace_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadLookupDTO"];
                 };
             };
         };

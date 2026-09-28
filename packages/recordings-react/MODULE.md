@@ -98,6 +98,37 @@ the media transfer — with one read before all of them:
 This is a thin surface over the module's current three endpoints — it grows and
 regenerates as the backend widens (e.g. per-recording transcript reads, delete).
 
+## Large uploads: `@stapel/recordings-react/upload` (backend 0.34.0)
+
+A framework-free subpath (no React, no antd, not re-exported from the main
+entry) for files above the single-PUT path:
+
+- `extractAudioTrack(file)` — ISO BMFF (mp4/mov/m4v/3gp) container remux: only
+  the `moov` is read, the first `soun` trak is kept verbatim, only its chunk
+  offsets are rewritten, and every audio chunk is a `Blob.slice` reference into
+  the source (nothing decoded or copied). `mvhd.duration` is set to the audio
+  track's own. Resolves `null` — upload the original — for anything else:
+  not ISO BMFF (WebM included), no audio, fragmented, `moov` > 64 MiB, `stz2`,
+  a sample entry outside mp4a/alac/ac-3/ec-3/Opus/fLaC/sawb/samr.
+- `hashParts(blob, partSize)` / `fingerprintOf(size, partSize, hashes)` —
+  fingerprint v1, one part in memory at a time; identical to the server's
+  `fingerprint_of`.
+- `runChunkedUpload({...})` — start (with the fingerprint) or resume a verified
+  multipart session: the server's manifest is the truth, parts are minted bound
+  to their SHA-256 (≤100 per call), PUT through a bounded pool with full-jitter
+  backoff that waits for `online` + `visible`; a checksum-refused part is
+  re-sent, `complete` is retried on transport/5xx/408/429, `parts_missing` →
+  re-list and send the rest. Gives up with `UploadInterruptedError` (resume
+  later with `uploadId`) or `UploadRestartRequiredError` (`expired`,
+  `layout_mismatch`, `fingerprint_mismatch`, `source_changed`).
+- `createChunkedTransport(client, { prefix })` — the six calls over an
+  openapi-fetch-style `GET/POST/DELETE` client; or implement
+  `ChunkedUploadTransport` yourself.
+
+The host flow: prepare (remux or original) → `hashParts` → `lookup` by
+fingerprint → `complete` (already here) / `in_progress` (resume that
+`upload_id`) / not found (create the recording, then `runChunkedUpload`).
+
 ## Extension seams (frontend-standard §7)
 
 - Client is injected via `<RecordingsProvider>` / core's `StapelConfigProvider`

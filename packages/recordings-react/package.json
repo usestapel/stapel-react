@@ -21,6 +21,10 @@
       "types": "./dist/default/index.d.ts",
       "default": "./dist/default/index.js"
     },
+    "./upload": {
+      "types": "./dist/upload/index.d.ts",
+      "default": "./dist/upload/index.js"
+    },
     "./i18n/ru": {
       "types": "./dist/i18n/ru.d.ts",
       "default": "./dist/i18n/ru.js"
@@ -63,6 +67,11 @@
       "name": "default — the antd skin (screens, player, transcript, share) must stay out of the main bundle",
       "path": "dist/default/index.js",
       "limit": "40 KB"
+    },
+    {
+      "name": "upload — framework-free remux + fingerprint + chunked upload: no react, no antd",
+      "path": "dist/upload/index.js",
+      "limit": "8 KB"
     }
   ],
   "peerDependencies": {

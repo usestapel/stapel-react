@@ -1,6 +1,6 @@
 # @stapel/recordings-react 0.9.0
 
-Headless React flow pair for stapel-recordings (contract >=0.33 <0.34) — business + state, zero visual opinion.
+Headless React flow pair for stapel-recordings (contract >=0.34 <0.35) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -25,11 +25,17 @@ Paths are relative to `/recordings/api/v1/`.
 - recordings_api_v1_recordings_finalize_create: POST /recordings/{recording_id}/finalize
 - recordings_api_v1_recordings_list: GET /recordings
 - recordings_api_v1_recordings_media_retrieve: GET /recordings/{recording_id}/media
+- recordings_api_v1_recordings_multipart_abort_destroy: DELETE /recordings/{recording_id}/multipart/{upload_id}/abort
+- recordings_api_v1_recordings_multipart_complete_create: POST /recordings/{recording_id}/multipart/{upload_id}/complete
+- recordings_api_v1_recordings_multipart_create: POST /recordings/{recording_id}/multipart
+- recordings_api_v1_recordings_multipart_parts_create: POST /recordings/{recording_id}/multipart/{upload_id}/parts
+- recordings_api_v1_recordings_multipart_parts_retrieve: GET /recordings/{recording_id}/multipart/{upload_id}/parts
 - recordings_api_v1_recordings_reprocess_create: POST /recordings/{recording_id}/reprocess
 - recordings_api_v1_recordings_resummarize_create: POST /recordings/{recording_id}/resummarize
 - recordings_api_v1_recordings_retrieve: GET /recordings/{recording_id}
 - recordings_api_v1_recordings_transcript_retrieve: GET /recordings/{recording_id}/transcript
 - recordings_api_v1_recordings_upload_limits_retrieve: GET /recordings/upload-limits
+- recordings_api_v1_recordings_uploads_lookup_retrieve: GET /recordings/uploads/lookup
 - recordings_api_v1_shares_media_retrieve: GET /shares/{link_token}/media
 - recordings_api_v1_shares_retrieve: GET /shares/{link_token}
 - recordings_api_v1_shares_unlock_create: POST /shares/{link_token}/unlock
@@ -48,7 +54,7 @@ Paths are relative to `/recordings/api/v1/`.
 - useUploadLimits (query) → getUploadLimits
 
 ## Errors (render t(code, params); UX from remediation)
-61 keys (full catalog: manifest.json §errors). By remediation: retry 24 · fix_input 22 · wait_and_retry 6 · verify 5 · contact_support 2 · reauthenticate 2.
+64 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · retry 24 · wait_and_retry 6 · verify 5 · contact_support 2 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.field.blank [400] → fix_input {field}
 - error.400.field.does_not_exist [400] → fix_input {field}
@@ -63,6 +69,8 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.unique [400] → fix_input {field}
 - error.400.recording_multipart_parts_invalid [400] → fix_input {max_parts}
 - error.400.recording_upload_size_invalid [400] → fix_input {limit}
+- error.409.recording_upload_part_mismatch [409] → fix_input {part_number}
+- error.409.recording_upload_parts_missing [409] → fix_input {count,missing}
 - error.413.recording_too_large [413] → retry {size,limit}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
