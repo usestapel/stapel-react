@@ -1,5 +1,11 @@
 # @stapel/recordings-react
 
+## 0.10.0
+
+### Minor Changes
+
+- 969fe87: New framework-free subpath `@stapel/recordings-react/upload` for large files (stapel-recordings 0.34.0): `extractAudioTrack` remuxes the first audio track of an mp4/mov/m4v/3gp into an m4a without decoding (only the `moov` is read; audio chunks stay slice references into the source; `null` for anything it cannot do exactly), `hashParts`/`fingerprintOf` compute fingerprint v1 one part at a time, `runChunkedUpload` starts or resumes a checksum-verified multipart session from the server's manifest (parts minted bound to their SHA-256, bounded pool, jittered retries that wait for online + visible, checksum-refused parts re-sent, `complete` retried, `parts_missing` re-listed) and stops with `UploadInterruptedError` or `UploadRestartRequiredError`, and `createChunkedTransport` maps the six calls onto an openapi-fetch-style client. Schema regenerated against the 0.34.0 contract (lookup, mint, manifest, fingerprint start, `CompletedPart.sha256`, four new upload error keys).
+
 ## 0.9.0
 
 ### Minor Changes
