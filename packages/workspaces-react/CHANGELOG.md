@@ -1,5 +1,11 @@
 # @stapel/workspaces-react
 
+## 0.21.0
+
+### Minor Changes
+
+- 02bd0b8: Regenerated against stapel-workspaces 0.34.1: `MemberPasswordResetRequest` no longer carries `first_login_policies` (the server decides the first-login demands and resets only members the workspace provisioned), and the `WorkspaceListResponse` field descriptions state the contract only.
+
 ## 0.20.0
 
 ### Minor Changes

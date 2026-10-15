@@ -1,5 +1,11 @@
 # @stapel/shell-react
 
+## 0.19.2
+
+### Patch Changes
+
+- 02bd0b8: The default skin's nav icon registry now resolves `FolderOutlined` and `SettingOutlined` to real glyphs instead of the fallback square.
+
 ## 0.19.1
 
 ### Patch Changes
