@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { OtpChannel, SignupAttribution } from "../api/types.js";
 import { createOtpFlow } from "../flows/otpFlow.js";
 import type { OtpState } from "../flows/otpFlow.js";
+import type { TotpProof } from "../flows/passwordLoginFlow.js";
 import { useFlow } from "@stapel/core";
 import { useAuthAnalytics, useAuthApi, useAuthSession } from "../model/context.js";
 
@@ -12,6 +13,8 @@ export interface PasswordlessLoginBag {
   requestCode(channel: OtpChannel, value: string, captchaToken?: string): void;
   resend(captchaToken?: string): void;
   submitCode(code: string): void;
+  /** Answer the TOTP step-up when `state.step === "totpRequired"`. */
+  submitTotp(proof: TotpProof): void;
   reset(): void;
 }
 
@@ -61,6 +64,9 @@ export function PasswordlessLogin(props: {
     },
     submitCode: (code) => {
       void flow.submitCode(code);
+    },
+    submitTotp: (proof) => {
+      void flow.submitTotp(proof);
     },
     reset: flow.reset,
   });

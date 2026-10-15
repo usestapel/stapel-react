@@ -16,7 +16,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
-import { resolveNavIcon } from "../src/default/icons.js";
+import { NAV_ICON_NAMES, isNavIcon, resolveNavIcon } from "../src/default/icons.js";
 
 // vitest runs from the package root, so a cwd-relative path is stable
 // across node/jsdom (jsdom's import.meta.url is not a file:// URL — see
@@ -55,6 +55,20 @@ describe("resolveNavIcon — coverage of every icon name the monorepo's own pair
 
   it.each(declaredIconNames())("resolves %s to a real glyph, not the fallback square", (name) => {
     expect(renderedMarkup(name)).not.toBe(fallbackMarkup);
+  });
+
+  // Names host manifests use that no pair here declares yet.
+  it.each(["FolderOutlined", "SettingOutlined"])(
+    "registers %s as a real, distinct glyph",
+    (name) => {
+      expect(isNavIcon(name)).toBe(true);
+      expect(NAV_ICON_NAMES).toContain(name);
+      expect(renderedMarkup(name)).not.toBe(fallbackMarkup);
+    }
+  );
+
+  it("draws FolderOutlined and FolderOpenOutlined differently", () => {
+    expect(renderedMarkup("FolderOutlined")).not.toBe(renderedMarkup("FolderOpenOutlined"));
   });
 
   it("falls back to the generic square for a name no pair in this monorepo declares", () => {

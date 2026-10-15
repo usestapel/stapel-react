@@ -132,13 +132,17 @@ export interface AuthApi {
    * ONLY when the caller has one: an absent option adds no key to the body,
    * so a deployment that captures nothing puts exactly the bytes on the wire
    * it always did.
+   *
+   * The answer is the login union: `TOTP_REQUIRED` when the account has TOTP
+   * enabled (OTP login step-up), `FIRST_LOGIN_REQUIRED` for a first-login
+   * policy, otherwise a session.
    */
   otpVerify(
     channel: OtpChannel,
     value: string,
     code: string,
     options?: OtpVerifyOptions
-  ): Promise<AuthResponse>;
+  ): Promise<LoginResponse>;
 
   // Password (auth-sa.md §3–5)
   passwordLogin(login: string, password: string): Promise<LoginResponse>;

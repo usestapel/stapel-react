@@ -474,13 +474,17 @@ export interface paths {
          *     never carries the new password (see
          *     :func:`~stapel_workspaces.services.reset_member_password`).
          *
-         *     **Whether the new password is temporary.** Yes — auth raises the
-         *     workspace's ``provisioned_user_policies`` (#90), defaulting to
-         *     ``password_change``. A password the admin knows must stop working the
-         *     first time it is used, and since auth 0.15.0 that demand holds on all
-         *     19 session-issuance paths rather than only the password form. An org
-         *     may pass an explicit ``[]`` to suppress it, and that lands in auth's
-         *     audit row.
+         *     **Whether the new password is temporary.** Always — the server
+         *     decides: ``password_change`` plus whatever else the workspace's
+         *     ``provisioned_user_policies`` (#90) demands. A password the admin knows
+         *     must stop working the first time it is used, and since auth 0.15.0 that
+         *     demand holds on every session-issuance path. The request cannot name
+         *     or suppress policies.
+         *
+         *     **Whose account.** Only a member this workspace PROVISIONED
+         *     (``WorkspaceMember.provisioned``). An invited member joined with an
+         *     account of their own; resetting it would hand the org a stranger's
+         *     credentials. Everybody else gets the same 404 as a stranger.
          *
          *     **Whether it is an existence oracle.** No: a target that is not a
          *     resettable member of THIS workspace — an unknown UUID, a real account
@@ -798,9 +802,9 @@ export interface paths {
          *
          *     ``STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"]`` already describes itself as
          *     "a DEFAULT, not a cage: a person still switches spaces, and their
-         *     explicit choice wins over it" — and until this endpoint there was nowhere
-         *     for that choice to be written down. Clients filled the hole by guessing,
-         *     and the guess (``workspaces[0]`` off a recency-ordered list) is #239.
+         *     explicit choice wins over it"; this endpoint is where that choice is
+         *     written down, so a client never has to guess it from a recency-ordered
+         *     list.
          *
          *     The choice is stated, never inferred. ``last_accessed_at`` remains what
          *     it has always been: telemetry written as a side effect of a GET, used to
@@ -1139,13 +1143,6 @@ export interface components {
             /** @description New password chosen by the admin. Omitted: the server generates a crypto-strong one, returned once as generated_password */
             password?: string | null;
             /**
-             * @description First-login steps to demand of the member afterwards — any subset of password_change / mfa_enroll. Omitted: the workspace's own security policies, falling back to password_change. A password somebody else chose has to stop working at its first use, so an EMPTY list is a deliberate, auditable choice, not a shortcut
-             * @example [
-             *       "password_change"
-             *     ]
-             */
-            first_login_policies?: string[] | null;
-            /**
              * @description Free-text note recorded on auth's audit row (e.g. the ticket the request came in on)
              * @example SUP-42
              */
@@ -1429,15 +1426,15 @@ export interface components {
         WorkspaceListResponse: {
             /** @description The caller's active memberships (empty for a guest — see is_guest) */
             workspaces?: components["schemas"]["WorkspaceResponse"][];
-            /** @description True when the caller holds NO active mandate anywhere (permissions.is_guest) — the wire form of the mandate-model vardict's guest predicate (2026-08-03), so a frontend can render the "incomplete dashboard" without re-deriving it from workspaces == [] */
+            /** @description True when the caller holds NO active mandate anywhere (permissions.is_guest) — the wire form of the guest predicate, so a frontend can render the "incomplete dashboard" without re-deriving it from workspaces == [] */
             is_guest?: boolean;
             /**
-             * @description Which workspace a client should open when the person has expressed no choice — the instance's STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"], echoed back ONLY when the caller actually holds an active membership in it, else "". Exists because clients that had to guess guessed badly: one frontend took `workspaces[0]` off a list ordered by last access, so a person in two spaces landed wherever they happened to have been last (measured 2026-08-06 as "the owner cannot see his own invitations" — they were in the OTHER space). A default, not a cage: an explicit choice still wins
+             * @description Which workspace a client should open when the person has expressed no choice — the instance's STAPEL_WORKSPACES["DEFAULT_WORKSPACE_ID"], echoed back ONLY when the caller actually holds an active membership in it, else "". Clients read this instead of guessing: `workspaces[0]` of a list ordered by last access lands a person who belongs to several spaces wherever they happened to be last. A default, not a cage: an explicit choice (preferred_workspace_id) still wins
              * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
              */
             default_workspace_id?: string;
             /**
-             * @description The person's OWN stated choice of home workspace (PUT me/preferred-workspace), echoed back ONLY while the membership carrying it is active, else "". This is the "explicit choice" default_workspace_id documents itself as yielding to, so a client resolves preferred first and the instance default only after it. Never inferred from behaviour — where somebody last clicked is last_accessed_at, which is telemetry, and reading it as a choice is what produced #239
+             * @description The person's OWN stated choice of home workspace (PUT me/preferred-workspace), echoed back ONLY while the membership carrying it is active, else "". This is the "explicit choice" default_workspace_id documents itself as yielding to, so a client resolves preferred first and the instance default only after it. Never inferred from behaviour — where somebody last clicked is last_accessed_at, which is telemetry, not a choice
              * @example a8bba7ae-5d2e-43e5-9911-0553e7df50b3
              */
             preferred_workspace_id?: string;

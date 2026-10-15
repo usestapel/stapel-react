@@ -36,6 +36,7 @@ import type {
   SignupAttribution,
 } from "../api/types.js";
 import { attributionQuery, authUrls } from "../api/urls.js";
+import type { TotpProof } from "../flows/passwordLoginFlow.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
 import type { SsoState } from "../flows/ssoFlow.js";
 import { useCapabilities } from "../model/queries.js";
@@ -215,7 +216,56 @@ function OtpCodeStep(props: {
   );
 }
 
-/** Email / phone one-time-code panel (RULES 8-9). */
+/** Inline TOTP step-up form (RULE 10), shared by every login panel whose
+ * flow can park in `totpRequired`: a 6-digit code or, toggled, a backup code. */
+function TotpStepForm(props: {
+  error: FlowError | undefined;
+  submitting: boolean;
+  onSubmit: (proof: TotpProof) => void;
+  /** The submit is a step of the auto-instrumented login funnel. */
+  "data-analytics": "flow";
+}): ReactElement {
+  const t = useT();
+  const fieldError = useFieldError();
+  const [useBackup, setUseBackup] = useState(false);
+  return (
+    <Form
+      layout="vertical"
+      data-analytics={props["data-analytics"]}
+      onFinish={(v: { proof?: string }) =>
+        props.onSubmit(
+          useBackup ? { backup_code: v.proof ?? "" } : { code: v.proof ?? "" }
+        )
+      }
+    >
+      <Form.Item
+        name="proof"
+        label={t(
+          useBackup ? AUTH_I18N_KEYS.totpUseBackup : AUTH_I18N_KEYS.totpEnterCode
+        )}
+        {...fieldError(props.error)}
+      >
+        <Input autoFocus />
+      </Form.Item>
+      <Button type="primary" htmlType="submit" block loading={props.submitting}>
+        {t(AUTH_I18N_KEYS.uiSubmit)}
+      </Button>
+      <Button
+        type="link"
+        onClick={() => setUseBackup((b) => !b)}
+        data-analytics="none"
+        data-analytics-reason="local-ui-toggle-backup-code"
+      >
+        {t(AUTH_I18N_KEYS.totpUseBackup)}
+      </Button>
+    </Form>
+  );
+}
+
+/** Email / phone one-time-code panel (RULES 8-9). A verify that answers with
+ * the TOTP step-up or a first-login intermediate is routed exactly like the
+ * password panel; a TOTP lockout returns to the identifier form with the
+ * error, since the challenge is spent and a fresh code is needed. */
 export function OtpPanel(props: {
   channel: OtpChannel;
   /**
@@ -270,6 +320,26 @@ export function OtpPanel(props: {
         if (s.step === "authenticated") {
           return <Result status="success" title={t(AUTH_I18N_KEYS.verificationSuccess)} />;
         }
+        if (s.step === "passwordChangeRequired") {
+          return <ForcedPasswordChangeCard challengeToken={s.challengeToken} />;
+        }
+        if (s.step === "mfaEnrollRequired") {
+          return <MfaEnrollPanel challengeToken={s.challengeToken} />;
+        }
+        if (
+          s.step === "totpRequired" ||
+          s.step === "verifyingTotp" ||
+          s.step === "totpError"
+        ) {
+          return (
+            <TotpStepForm
+              error={s.step === "totpError" ? s.error : undefined}
+              submitting={s.step === "verifyingTotp"}
+              onSubmit={bag.submitTotp}
+              data-analytics="flow"
+            />
+          );
+        }
         if (sent) {
           const err = s.step === "codeError" ? s.error : undefined;
           return (
@@ -289,7 +359,11 @@ export function OtpPanel(props: {
           );
         }
         const reqErr =
-          s.step === "requestError" || s.step === "locked" ? s.error : undefined;
+          s.step === "requestError" ||
+          s.step === "locked" ||
+          s.step === "totpLocked"
+            ? s.error
+            : undefined;
         return (
           <Form
             layout="vertical"
@@ -331,7 +405,6 @@ export function OtpPanel(props: {
 export function PasswordPanel(): ReactElement {
   const t = useT();
   const fieldError = useFieldError();
-  const [useBackup, setUseBackup] = useState(false);
   return (
     <PasswordLogin>
       {(bag) => {
@@ -345,51 +418,18 @@ export function PasswordPanel(): ReactElement {
         if (s.step === "mfaEnrollRequired") {
           return <MfaEnrollPanel challengeToken={s.challengeToken} />;
         }
-        const totp =
+        if (
           s.step === "totpRequired" ||
           s.step === "verifyingTotp" ||
-          s.step === "totpError";
-        if (totp) {
-          const err = s.step === "totpError" ? s.error : undefined;
+          s.step === "totpError"
+        ) {
           return (
-            <Form
-              layout="vertical"
-              onFinish={(v: { proof?: string }) =>
-                bag.submitTotp(
-                  useBackup
-                    ? { backup_code: v.proof ?? "" }
-                    : { code: v.proof ?? "" }
-                )
-              }
-            >
-              <Form.Item
-                name="proof"
-                label={t(
-                  useBackup
-                    ? AUTH_I18N_KEYS.totpUseBackup
-                    : AUTH_I18N_KEYS.totpEnterCode
-                )}
-                {...fieldError(err)}
-              >
-                <Input autoFocus />
-              </Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                block
-                loading={s.step === "verifyingTotp"}
-              >
-                {t(AUTH_I18N_KEYS.uiSubmit)}
-              </Button>
-              <Button
-                type="link"
-                onClick={() => setUseBackup((b) => !b)}
-                data-analytics="none"
-                data-analytics-reason="local-ui-toggle-backup-code"
-              >
-                {t(AUTH_I18N_KEYS.totpUseBackup)}
-              </Button>
-            </Form>
+            <TotpStepForm
+              error={s.step === "totpError" ? s.error : undefined}
+              submitting={s.step === "verifyingTotp"}
+              onSubmit={bag.submitTotp}
+              data-analytics="flow"
+            />
           );
         }
         const err = s.step === "error" ? s.error : undefined;

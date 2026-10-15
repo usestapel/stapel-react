@@ -2,9 +2,12 @@ import type { Analytics } from "@stapel/core";
 import type { AuthApi } from "../api/authApi.js";
 import type {
   AuthResponse,
+  FirstLoginRequires,
   OtpChannel,
   SignupAttribution,
 } from "../api/types.js";
+import { isFirstLoginChallenge, isTotpChallenge } from "../api/types.js";
+import type { TotpProof } from "./passwordLoginFlow.js";
 import { createFlowMachine } from "@stapel/core";
 import type { FlowMachine } from "@stapel/core";
 import { AUTH_FLOWS } from "./generated/flows.gen.js";
@@ -24,6 +27,13 @@ import type { FlowError } from "./errors.js";
  *  - `requestError` → request failed; retry
  *  - `codeError`    → wrong/expired code; human-wait, retry or resend
  *  - `locked`       → 423 lockout with `retry_after_minutes`
+ *
+ * A verify answer is the login union, not always a session: an account with
+ * TOTP enabled gets `TOTP_REQUIRED` (step-up, parks in `totpRequired` until
+ * `submitTotp`), and an org-provisioned account with a first-login policy
+ * gets `FIRST_LOGIN_REQUIRED` (parks in `passwordChangeRequired` /
+ * `mfaEnrollRequired`). The TOTP steps and their 423 → `totpLocked` rule
+ * mirror `passwordLoginFlow`.
  */
 export type OtpState =
   | { readonly step: "idle" }
@@ -60,6 +70,31 @@ export type OtpState =
       readonly channel: OtpChannel;
       readonly value: string;
       readonly error: FlowError;
+    }
+  | {
+      readonly step: "totpRequired";
+      readonly challengeToken: string;
+      readonly expiresIn: number;
+    }
+  | { readonly step: "verifyingTotp"; readonly challengeToken: string; readonly expiresIn: number }
+  | {
+      readonly step: "totpError";
+      readonly challengeToken: string;
+      readonly expiresIn: number;
+      readonly error: FlowError;
+    }
+  | { readonly step: "totpLocked"; readonly error: FlowError }
+  | {
+      readonly step: "passwordChangeRequired";
+      readonly requires: FirstLoginRequires;
+      readonly challengeToken: string;
+      readonly expiresIn: number;
+    }
+  | {
+      readonly step: "mfaEnrollRequired";
+      readonly requires: FirstLoginRequires;
+      readonly challengeToken: string;
+      readonly expiresIn: number;
     };
 
 export interface OtpFlow {
@@ -70,6 +105,8 @@ export interface OtpFlow {
   resend(captchaToken?: string): Promise<void>;
   /** Verify the entered code. */
   submitCode(code: string): Promise<void>;
+  /** Answer the TOTP step-up challenge (`totpRequired` / `totpError` only). */
+  submitTotp(proof: TotpProof): Promise<void>;
   /** Return to `idle`. */
   reset(): void;
 }
@@ -179,9 +216,27 @@ export function createOtpFlow(deps: OtpFlowDeps): OtpFlow {
           : deps.api.otpVerify(channel, value, code, { attribution });
       },
       {
-        resolve: (result): OtpState => {
-          deps.onAuthenticated?.(result);
-          return { step: "authenticated", result };
+        resolve: (r): OtpState => {
+          if (isTotpChallenge(r)) {
+            return {
+              step: "totpRequired",
+              challengeToken: r.challenge_token,
+              expiresIn: r.expires_in,
+            };
+          }
+          if (isFirstLoginChallenge(r)) {
+            return {
+              step:
+                r.requires === "password_change"
+                  ? "passwordChangeRequired"
+                  : "mfaEnrollRequired",
+              requires: r.requires,
+              challengeToken: r.challenge_token,
+              expiresIn: r.expires_in,
+            };
+          }
+          deps.onAuthenticated?.(r);
+          return { step: "authenticated", result: r };
         },
         reject: (error): OtpState => {
           const flowError = toFlowError(error);
@@ -194,9 +249,33 @@ export function createOtpFlow(deps: OtpFlowDeps): OtpFlow {
     );
   }
 
+  async function submitTotp(proof: TotpProof): Promise<void> {
+    const s = machine.getState();
+    if (s.step !== "totpRequired" && s.step !== "totpError") return;
+    const { challengeToken, expiresIn } = s;
+    await machine.run(
+      { step: "verifyingTotp", challengeToken, expiresIn },
+      () => deps.api.totpChallengeVerify(challengeToken, proof),
+      {
+        resolve: (result): OtpState => {
+          deps.onAuthenticated?.(result);
+          return { step: "authenticated", result };
+        },
+        reject: (error): OtpState => {
+          const flowError = toFlowError(error);
+          // A 423 here invalidates the challenge: a fresh code is needed.
+          if (flowError.status === LOCKED_STATUS) {
+            return { step: "totpLocked", error: flowError };
+          }
+          return { step: "totpError", challengeToken, expiresIn, error: flowError };
+        },
+      }
+    );
+  }
+
   function reset(): void {
     machine.to({ step: "idle" });
   }
 
-  return { machine, requestCode, resend, submitCode, reset };
+  return { machine, requestCode, resend, submitCode, submitTotp, reset };
 }

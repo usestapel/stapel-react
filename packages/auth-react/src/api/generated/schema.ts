@@ -53,7 +53,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Create anonymous user. Minting a NEW guest is capped per client per hour (`ANONYMOUS_RATE_LIMIT_PER_HOUR`) — reusing an existing guest session, by `device_id` from the SAME client address or by presenting the anonymous session itself, is free. `device_id` is a dedup key, not a credential: its 60-second slot is scoped to the caller's address, and a value short enough to guess is refused (`error.400.device_id_weak`).
+         * @description Create anonymous user. Minting a NEW guest is capped per client per hour (`ANONYMOUS_RATE_LIMIT_PER_HOUR`) — reusing an existing guest session, by `device_id` from the SAME client address or by presenting the anonymous session itself, is free. `device_id` is a dedup key, not a credential: its 60-second slot is scoped to the caller's address, and a value short enough to guess is refused (`error.400.device_id_weak`). An optional `attribution` object (the same one the OTP verify body takes) is stored against a newly minted guest; a malformed one is dropped, never refused, and it follows the guest into the account it becomes.
          *
          *     **Permissions:** `DenyEnrollOnly`
          */
@@ -356,6 +356,7 @@ export interface paths {
          *     - `LOGGED_IN` - Existing user logged in
          *     - `MERGED` - Anonymous user merged into existing account
          *     - `MODIFIED` - Authenticated user set an email, or re-verified the one already on the account
+         *     - `TOTP_REQUIRED` - LOGGED_IN or MERGED into an account with TOTP enabled (`OTP_LOGIN_STEP_UP`, default on): no session yet — pass `challenge_token` to `POST /totp/challenge/verify/`
          *
          *     **Wrong codes — 400, then 422 or 423.** Two independent limits guard this
          *     endpoint, and they are not interchangeable:
@@ -539,12 +540,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Logout user via GET request (for cookie-based authentication). Blacklists both access and refresh tokens.
-         *
-         *     **Permissions:** `DenyEnrollOnly`
-         */
-        get: operations["auth_api_v1_logout_retrieve"];
+        get?: never;
         put?: never;
         /**
          * @description Logout user and blacklist both access and refresh tokens
@@ -1525,6 +1521,7 @@ export interface paths {
          *     - `LOGGED_IN` - Existing user logged in
          *     - `MERGED` - Anonymous user merged into existing account
          *     - `MODIFIED` - Authenticated user set a phone, or re-verified the one already on the account
+         *     - `TOTP_REQUIRED` - LOGGED_IN or MERGED into an account with TOTP enabled (`OTP_LOGIN_STEP_UP`, default on): no session yet — pass `challenge_token` to `POST /totp/challenge/verify/`
          *
          *     **Wrong codes — 400, then 422 or 423.** Two independent limits guard this
          *     endpoint, and they are not interchangeable:
@@ -2630,6 +2627,8 @@ export interface components {
         AnonymousAuth: {
             /** @description Optional opaque random token identifying this install, used to deduplicate guest mints for 60 seconds. At least 16 characters of [A-Za-z0-9-._~:+/=] — a UUID or a random hex/base64 value, not a readable name. The dedup slot is scoped to the caller's IP, so this is not a credential and cannot resume another client's session. Omit it to mint a fresh guest every time. */
             device_id?: string;
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?, landing_ref?}. The click identifier may be omitted when utm.source or landing_ref names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying none of the three, are malformed. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored; a malformed object is dropped (logged server-side) and never refuses the request, and an invalid landing_ref is dropped on its own. */
+            attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         AuditLogEntry: {
             id: string;
@@ -2960,7 +2959,7 @@ export interface components {
             /** Format: email */
             email: string;
             code: string;
-            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?, landing_ref?}. The click identifier may be omitted when utm.source or landing_ref names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying none of the three, are malformed. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored; a malformed object is dropped (logged server-side) and never refuses the request, and an invalid landing_ref is dropped on its own. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /** @description One data owner's receipt for an erasure. */
@@ -3490,7 +3489,7 @@ export interface components {
         OAuth: {
             provider: string;
             access_token: string;
-            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?, landing_ref?}. The click identifier may be omitted when utm.source or landing_ref names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying none of the three, are malformed. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored; a malformed object is dropped (logged server-side) and never refuses the request, and an invalid landing_ref is dropped on its own. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /**
@@ -3788,7 +3787,7 @@ export interface components {
         PhoneAuthVerify: {
             phone: string;
             code: string;
-            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?}. The click identifier may be omitted when utm.source names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying neither, are refused. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored, a malformed object is refused with error.400.attribution_invalid. */
+            /** @description Optional advertising attribution captured by the client on the landing page: {click_id?, click_id_type?: gclid|gbraid|wbraid|yclid|fbclid|ttclid, captured_at, utm?, landing_ref?}. The click identifier may be omitted when utm.source or landing_ref names the channel (an email or aggregator landing carries no click id); an identifier without its type, and a record carrying none of the three, are malformed. Stored against the account only when this call registers it; ignored on a login. Unknown keys are ignored; a malformed object is dropped (logged server-side) and never refuses the request, and an invalid landing_ref is dropped on its own. */
             attribution?: components["schemas"]["SignupAttribution"] | null;
         };
         /**
@@ -4098,17 +4097,17 @@ export interface components {
          *     Unknown keys are ignored — DRF's default, and the right one here: the
          *     client-side capture library is versioned independently of this service,
          *     and a tag it learns to collect next month must not start refusing
-         *     sign-ups. Anything *malformed* is a different matter and is refused with
-         *     a single fleet error key rather than a per-field report: the object is
-         *     written by our own capture code, so a shape error is a bug to fix, not a
-         *     form for the user to correct, and the per-field detail would be the only
-         *     part of a registration 400 that names an internal field name.
+         *     sign-ups. Anything *malformed* is judged with a single fleet error key
+         *     (``error.400.attribution_invalid``) rather than a per-field report; as a
+         *     request field the whole object is then dropped with a warning
+         *     (:meth:`run_validation`), because a registration is never refused over
+         *     a marketing record.
          *
-         *     Both halves of the record are individually optional and the object is
-         *     still not a free-for-all — :meth:`to_internal_value` refuses the three
-         *     shapes that could not be reported anywhere: a ``click_id`` with no type
-         *     (no upload field to post it to), a type naming no identifier, and a
-         *     record that carries neither an identifier nor a ``utm.source``.
+         *     Each part of the record is optional and the object is still not a
+         *     free-for-all — :meth:`to_internal_value` refuses the three shapes that
+         *     could not be reported anywhere: a ``click_id`` with no type (no upload
+         *     field to post it to), a type naming no identifier, and a record that
+         *     carries no identifier, no ``utm.source`` and no ``landing_ref``.
          */
         SignupAttribution: {
             /** @description The advertising click identifier captured from the landing URL. Optional: a channel that puts no click id on the URL (email, an aggregator, an untagged referral) still attributes through utm.source. Sent with it, click_id_type is required. */
@@ -4131,6 +4130,8 @@ export interface components {
             captured_at: string;
             /** @description Standard campaign tags read off the same landing URL. */
             utm?: components["schemas"]["SignupUtm"] | null;
+            /** @description The landing surface the visitor clicked through (the landing link's `ref`), e.g. transcribe_hero. At most 64 characters of [a-z0-9_]; any other value is dropped on its own, never refusing the rest of the record. */
+            landing_ref?: string;
         };
         /** @description The five standard campaign tags. Every one optional, all blankable. */
         SignupUtm: {
@@ -5176,7 +5177,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthResponse"];
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             400: {
@@ -5430,33 +5431,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JWTStatus"];
-                };
-            };
-        };
-    };
-    auth_api_v1_logout_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogoutResponse"];
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StapelError"];
                 };
             };
         };
@@ -6759,7 +6733,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthResponse"];
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             400: {

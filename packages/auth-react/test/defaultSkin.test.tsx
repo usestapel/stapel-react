@@ -399,6 +399,68 @@ describe("<AuthPanel/> — OTP auto-submit (owner directive point 3)", () => {
   });
 });
 
+describe("<AuthPanel/> — OTP login with TOTP step-up", () => {
+  const EMAIL_CAPS = {
+    registration: { phone: false, email: true, password: false, oauth: [], sso: false, anonymous: false },
+    login: {
+      phone: false, email: true, password: false, oauth: [], sso: false,
+      qr: false, passkey: false, magic_link: false,
+    },
+    mfa: { totp: true, passkey: false },
+    otp: {
+      email_code_length: 4, phone_code_length: 4, totp_code_length: 6,
+      ttl_seconds: 600, resend_cooldown_seconds: 30,
+    },
+    methods: [method("email", "main", 0)],
+  };
+
+  it("a TOTP_REQUIRED verify shows the TOTP step, and the code completes sign-in", async () => {
+    let challengeBody: unknown = null;
+    server.use(
+      http.get(`${BASE}/capabilities/`, () => HttpResponse.json(EMAIL_CAPS)),
+      http.post(`${BASE}/email/request/`, () =>
+        HttpResponse.json({ message: "sent", target: "a***@b.com" })
+      ),
+      http.post(`${BASE}/email/verify/`, () =>
+        HttpResponse.json({ status: "TOTP_REQUIRED", challenge_token: "ct_1", expires_in: 300 })
+      ),
+      http.post(`${BASE}/totp/challenge/verify/`, async ({ request }) => {
+        challengeBody = await request.json();
+        return HttpResponse.json({
+          status: "LOGGED_IN",
+          user: {
+            id: "u1", username: "a", email: "a@b.com", phone: null,
+            auth_type: "email", is_email_verified: true, is_phone_verified: false,
+            is_anonymous: false, is_staff: false, is_superuser: false,
+            oauth_provider: null, created_at: "2026-01-01T00:00:00Z", last_login: null,
+          },
+          tokens: { access: "a", refresh: "r" },
+        });
+      })
+    );
+    const runtime = createAuthRuntime({ baseUrl: BASE });
+    render(wrap(runtime, <AuthPanel mode="light" />));
+    const emailInput = await screen.findByPlaceholderText("you@example.com");
+    fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+    screen.getByRole("button", { name: "Send code" }).click();
+    await screen.findByLabelText("OTP Input 1");
+    for (let i = 0; i < 4; i++) {
+      fireEvent.input(screen.getByLabelText(`OTP Input ${i + 1}`), {
+        target: { value: String(i + 1) },
+      });
+    }
+
+    const totpInput = await screen.findByLabelText("Enter your 6-digit code");
+    // No success screen yet: the challenge is not a session.
+    expect(screen.queryByText("Verified")).toBeNull();
+    fireEvent.change(totpInput, { target: { value: "654321" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() =>
+      expect(challengeBody).toEqual({ challenge_token: "ct_1", code: "654321" })
+    );
+  });
+});
+
 /**
  * Owner directive (tuning §54's pilot, points 1/3/4): the "three-dot" overflow
  * menu used to `setActive()` a channel absent from the tab strip's own

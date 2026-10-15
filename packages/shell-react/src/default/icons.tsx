@@ -98,6 +98,10 @@ const FolderOpenOutlined = svg(
   </>
 );
 
+const FolderOutlined = svg(
+  <path d="M3 6a1 1 0 0 1 1-1h4.5l2 2H20a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6z" />
+);
+
 const HeartOutlined = svg(
   <path d="M12 20.5s-7.5-4.7-9.8-9.4A5.2 5.2 0 0 1 12 6.3a5.2 5.2 0 0 1 9.8 4.8c-2.3 4.7-9.8 9.4-9.8 9.4z" />
 );
@@ -169,6 +173,13 @@ const SearchOutlined = svg(
   </>
 );
 
+const SettingOutlined = svg(
+  <>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2.5l1.6 2.3 2.7-.7.7 2.7 2.7.7-.7 2.7 2.3 1.8-2.3 1.8.7 2.7-2.7.7-.7 2.7-2.7-.7L12 21.5l-1.6-2.3-2.7.7-.7-2.7-2.7-.7.7-2.7L2.7 12l2.3-1.8-.7-2.7 2.7-.7.7-2.7 2.7.7z" />
+  </>
+);
+
 const TagOutlined = svg(
   <>
     <path d="M12.5 3H5a2 2 0 0 0-2 2v7.5a2 2 0 0 0 .586 1.414l8.5 8.5a2 2 0 0 0 2.828 0l6.086-6.086a2 2 0 0 0 0-2.828l-8.5-8.5A2 2 0 0 0 12.5 3z" />
@@ -189,6 +200,7 @@ const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
   AuditOutlined,
   ClockCircleOutlined,
   FolderOpenOutlined,
+  FolderOutlined,
   HeartOutlined,
   HomeOutlined,
   MessageOutlined,
@@ -197,6 +209,7 @@ const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
   ProfileOutlined,
   QrcodeOutlined,
   SearchOutlined,
+  SettingOutlined,
   TagOutlined,
 };
 

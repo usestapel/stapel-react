@@ -4,7 +4,7 @@
   "version": "0.25.0",
   "backend": {
     "module": "stapel-auth",
-    "contract": ">=0.45 <0.46"
+    "contract": ">=0.48 <0.49"
   },
   "layers": [
     "api",
@@ -337,7 +337,7 @@
       "path": "/auth/api/v1/email/verify/",
       "tag": "Email Auth",
       "request": "EmailAuthVerify",
-      "response": "AuthResponse"
+      "response": "LoginResponse"
     },
     "auth_api_v1_erasures_create": {
       "method": "POST",
@@ -379,13 +379,6 @@
       "path": "/auth/api/v1/logout/",
       "tag": "Session",
       "request": "LogoutRequest",
-      "response": "LogoutResponse"
-    },
-    "auth_api_v1_logout_retrieve": {
-      "method": "GET",
-      "path": "/auth/api/v1/logout/",
-      "tag": "Session",
-      "request": null,
       "response": "LogoutResponse"
     },
     "auth_api_v1_magic_request_create": {
@@ -673,7 +666,7 @@
       "path": "/auth/api/v1/phone/verify/",
       "tag": "Phone Auth",
       "request": "PhoneAuthVerify",
-      "response": "AuthResponse"
+      "response": "LoginResponse"
     },
     "auth_api_v1_qr_confirm_create": {
       "method": "POST",
