@@ -345,6 +345,13 @@
     "en": "This recording has no transcript to summarize yet"
   },
   {
+    "code": "error.409.recording_upload_duplicate",
+    "status": 409,
+    "params": [],
+    "remediation": "fix_input",
+    "en": "You already uploaded this file"
+  },
+  {
     "code": "error.409.recording_upload_expired",
     "status": 409,
     "params": [],

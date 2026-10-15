@@ -4,7 +4,7 @@
   "version": "0.11.0",
   "backend": {
     "module": "stapel-recordings",
-    "contract": ">=0.34 <0.35"
+    "contract": ">=0.41 <0.42"
   },
   "layers": [
     "api",
@@ -501,6 +501,11 @@
       "params": [],
       "remediation": "fix_input"
     },
+    "error.409.recording_upload_duplicate": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
     "error.409.recording_upload_expired": {
       "status": 409,
       "params": [],
@@ -835,6 +840,7 @@
     "error.409.recording_invalid_state",
     "error.409.recording_media_not_stored",
     "error.409.recording_no_transcript",
+    "error.409.recording_upload_duplicate",
     "error.409.recording_upload_expired",
     "error.409.recording_upload_part_mismatch",
     "error.409.recording_upload_parts_missing",

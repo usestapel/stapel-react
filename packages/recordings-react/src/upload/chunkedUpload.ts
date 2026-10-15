@@ -441,7 +441,13 @@ export async function runChunkedUpload(
       const started = await control(() =>
         transport.start(
           recordingId,
-          { file_size_bytes: size, content_type: contentType, fingerprint, filename: name },
+          {
+            file_size_bytes: size,
+            content_type: contentType,
+            fingerprint,
+            filename: name,
+            allow_duplicate: false,
+          },
           signal
         )
       );

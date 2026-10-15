@@ -551,6 +551,9 @@ export interface components {
             /** @default true */
             diarization_enabled: boolean;
             filename: string;
+            fingerprint?: string;
+            /** @default false */
+            allow_duplicate: boolean;
         };
         /** @description CreateRecordingResponse(recording: 'RecordingDTO', upload: 'UploadSessionDTO') */
         CreateRecordingResponse: {
@@ -641,6 +644,8 @@ export interface components {
             content_type?: string;
             filename?: string;
             fingerprint?: string;
+            /** @default false */
+            allow_duplicate: boolean;
         };
         PartHash: {
             part_number: number;

@@ -168,6 +168,7 @@ export function RecordingUpload(props: {
         language: draft.language,
         diarization_enabled: draft.diarizationEnabled,
         filename: file.name,
+        allow_duplicate: false,
       });
       setRecording(created.recording);
       setSession(created.upload);
