@@ -727,7 +727,7 @@
     },
     {
       "package": "@stapel/notifications-react",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "entries": [
         {
           "id": "notifications.feed",
@@ -1054,7 +1054,7 @@
     },
     {
       "package": "@stapel/translate-react",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "entries": [
         {
           "id": "account.language",
