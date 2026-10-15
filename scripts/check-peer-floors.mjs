@@ -25,7 +25,7 @@
  *     next visible tag and a correct floor is reported as too low.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { trackedPackageDirs } from "./packages-lib.mjs";

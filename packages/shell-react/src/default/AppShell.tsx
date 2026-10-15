@@ -27,13 +27,13 @@
  * react-router layout route.
  */
 import { useCallback, useMemo, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { Button, Drawer, Layout, theme } from "antd";
 import { Outlet } from "react-router";
 import { SkinTheme, useThemeMode } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { actionAvailable, actionBlocked, useT } from "@stapel/core";
-import type { ActionAvailability } from "@stapel/core";
+import type { ActionAvailability, ShellSlotId } from "@stapel/core";
 import { breakpoints, spacing } from "@stapel/tokens-antd";
 import { adminNavIds } from "../headless/resolveNav.js";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
@@ -180,7 +180,34 @@ export interface AppShellProps {
    * `history.scrollRestoration` for as long as they are mounted.
    */
   readonly scrollRestoration?: boolean;
+  /**
+   * Named regions, keyed by `@stapel/core`'s `ShellSlotId` — what the
+   * scaffold fills from the installed pairs' `embeds`. This chrome renders
+   * `topbar.start` (after the brand), `topbar.center` (the middle of the
+   * bar), `topbar.end` (before `headerExtra`), `sidenav.head` and
+   * `sidenav.foot` (the `Sider`, desktop and tablet) and `sheet.foot` (the
+   * phone nav sheet). Any other slot id is ignored; see `SHELL_TEMPLATES`.
+   */
+  readonly slots?: Partial<Record<ShellSlotId, ReactNode>>;
 }
+
+/** Wrap a filled slot in its testable region; an unfilled slot renders
+ * nothing at all. */
+function slotRegion(
+  slots: AppShellProps["slots"],
+  id: ShellSlotId,
+  style: CSSProperties
+): ReactNode {
+  const content = slots?.[id];
+  if (content === undefined || content === null) return null;
+  return (
+    <div style={style} data-testid={`app-shell-slot-${id}`}>
+      {content}
+    </div>
+  );
+}
+
+const ROW: CSSProperties = { display: "flex", alignItems: "center", gap: spacing[2], minWidth: 0 };
 
 /** Full app chrome: responsive `Sider`/`Drawer` nav + `<Outlet/>` content. */
 export function AppShell(props: AppShellProps): ReactElement {
@@ -274,6 +301,12 @@ function AppChrome(props: AppShellProps): ReactElement {
             {props.logo}
           </div>
         )}
+        {slotRegion(props.slots, "topbar.start", ROW)}
+        {slotRegion(props.slots, "topbar.center", {
+          ...ROW,
+          flex: "1 1 auto",
+          justifyContent: "center",
+        })}
         <div
           style={{
             marginInlineStart: "auto",
@@ -283,6 +316,7 @@ function AppChrome(props: AppShellProps): ReactElement {
           }}
           data-testid="app-shell-header-extra"
         >
+          {slotRegion(props.slots, "topbar.end", ROW)}
           {props.headerExtra}
         </div>
       </Layout.Header>
@@ -310,24 +344,33 @@ function AppChrome(props: AppShellProps): ReactElement {
             <div
               style={{ display: "flex", flexDirection: "column", height: "100%" }}
             >
+              {slotRegion(props.slots, "sidenav.head", {
+                padding: spacing[3],
+                borderBlockEnd: `1px solid ${token.colorSplit}`,
+              })}
               <NavMenu
                 nav={props.nav}
                 gate={gate}
                 {...(props.navBadges !== undefined ? { badges: props.navBadges } : {})}
                 style={{ borderInlineEnd: "none", paddingBlockStart: spacing[2] }}
               />
-              {themeControl && (
-                <div
-                  style={{
-                    marginBlockStart: "auto",
-                    padding: spacing[3],
-                    borderBlockStart: `1px solid ${token.colorSplit}`,
-                  }}
-                  data-testid="app-shell-theme"
-                >
-                  <ShellThemeControl />
-                </div>
-              )}
+              <div style={{ marginBlockStart: "auto" }}>
+                {slotRegion(props.slots, "sidenav.foot", {
+                  padding: spacing[3],
+                  borderBlockStart: `1px solid ${token.colorSplit}`,
+                })}
+                {themeControl && (
+                  <div
+                    style={{
+                      padding: spacing[3],
+                      borderBlockStart: `1px solid ${token.colorSplit}`,
+                    }}
+                    data-testid="app-shell-theme"
+                  >
+                    <ShellThemeControl />
+                  </div>
+                )}
+              </div>
             </div>
           </Layout.Sider>
         ) : (
@@ -380,6 +423,10 @@ function AppChrome(props: AppShellProps): ReactElement {
                 and an account control already in it — so the sheet, below the
                 destinations, is where a setting sits without reading as one
                 of them. */}
+            {slotRegion(props.slots, "sheet.foot", {
+              padding: spacing[3],
+              borderBlockStart: `1px solid ${token.colorSplit}`,
+            })}
             {themeControl && (
               <div
                 style={{

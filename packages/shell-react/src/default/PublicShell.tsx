@@ -61,6 +61,7 @@ import { Link, Outlet } from "react-router";
 import { SkinTheme } from "@stapel/tokens-antd/skin";
 import type { ThemeMode } from "@stapel/tokens-antd";
 import { useOptionalSite, useT } from "@stapel/core";
+import type { ShellSlotId } from "@stapel/core";
 import { cssVar, spacing } from "@stapel/tokens-antd";
 import type { ResolvedNavEntry } from "../headless/resolveNav.js";
 import { NavMenu } from "./navMenu.js";
@@ -840,6 +841,30 @@ export interface PublicShellProps {
    * does react-router's component.
    */
   readonly scrollRestoration?: boolean;
+  /**
+   * Named regions, keyed by `@stapel/core`'s `ShellSlotId`, mapped onto the
+   * props above: `topbar.start` → `brand`, `topbar.center` → `searchSlot`,
+   * `topbar.end` → `accountSlot`, `browsebar` → `categorySlot`, `footer` →
+   * `footer`. The explicit prop wins when both are given. `bottombar` is
+   * reserved for the phone dock and not rendered yet; other ids are ignored.
+   */
+  readonly slots?: Partial<Record<ShellSlotId, ReactNode>>;
+}
+
+/** Fill each legacy prop the host left out from its slot. */
+function withSlots(props: PublicShellProps): PublicShellProps {
+  const slots = props.slots;
+  if (slots === undefined) return props;
+  const pick = (legacy: ReactNode, slot: ShellSlotId): ReactNode =>
+    legacy !== undefined ? legacy : slots[slot];
+  return {
+    ...props,
+    brand: pick(props.brand, "topbar.start"),
+    searchSlot: pick(props.searchSlot, "topbar.center"),
+    accountSlot: pick(props.accountSlot, "topbar.end"),
+    categorySlot: pick(props.categorySlot, "browsebar"),
+    footer: pick(props.footer, "footer"),
+  };
 }
 
 /** The default `accountSlot`: the entry point that must never be absent. */
@@ -860,7 +885,7 @@ export function PublicShell(props: PublicShellProps): ReactElement {
       surface="base"
       style={{ minHeight: "100vh" }}
     >
-      <PublicChrome {...props} />
+      <PublicChrome {...withSlots(props)} />
     </SkinTheme>
   );
 }

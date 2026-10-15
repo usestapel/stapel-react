@@ -16,7 +16,7 @@
  *    `profiles.settings` — the placement `auth-react` gives `auth.security`,
  *    for the same reason.
  */
-import type { NavEntry } from "@stapel/core";
+import type { NavEmbed, NavEntry } from "@stapel/core";
 
 export const navEntries: readonly NavEntry[] = [
   {
@@ -40,5 +40,21 @@ export const navEntries: readonly NavEntry[] = [
     menuVisibleDefault: true,
     requiresAuth: true,
     order: 30,
+  },
+];
+
+/**
+ * The bell is header chrome on every member page, so it offers `topbar.end`,
+ * the trailing edge where a person looks for what is waiting. `member` because
+ * the feed it opens needs a session; `opens` hands the click to the feed entry.
+ */
+export const navEmbeds: readonly NavEmbed[] = [
+  {
+    id: "notifications.bell",
+    slot: "topbar.end",
+    component: { export: "NotificationBell", subpath: "default" },
+    order: 20,
+    surface: "member",
+    opens: "notifications.feed",
   },
 ];

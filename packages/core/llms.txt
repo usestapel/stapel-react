@@ -23,6 +23,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - REFRESH_HANDOFF_WINDOW_MS
 - REFRESH_INFLIGHT_MARKER_KEY
 - REFRESH_UNAVAILABLE
+- SHELL_SLOT_IDS
 - STAPEL_UI_KEYS
 - SiteProvider
 - SlotPlaceholder
@@ -188,7 +189,10 @@ signatures/JSDoc in the package README and src/index.ts.
 - MeCachePersisterOptions
 - ModuleContextKit
 - ModuleRuntime
+- NavBreakpoint
 - NavComponentRef
+- NavEmbed
+- NavEmbedSurface
 - NavEntry
 - NavPlacement
 - NavPlacementLevel
@@ -220,6 +224,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - SessionManager
 - SessionManagerEventMap
 - SessionStatus
+- ShellSlotId
 - SignInCta
 - SignInCtaProp
 - Site

@@ -267,8 +267,12 @@ export type { Breakpoint } from "@stapel/tokens";
 // navigation-manifest contract (scripted-fullstack navigation Phase 1): the
 // shared shape a pair's `src/nav/manifest.ts` exports and `resolveNav`
 // (`@stapel/shell-react`) consumes. Pure data types — no React, no I/O.
-export { navEntrySurface, navSurfaceVisibleTo } from "./nav.js";
+export { navEntrySurface, navSurfaceVisibleTo, SHELL_SLOT_IDS } from "./nav.js";
 export type {
+  NavEmbed,
+  NavEmbedSurface,
+  NavBreakpoint,
+  ShellSlotId,
   NavEntry,
   NavRoute,
   NavComponentRef,

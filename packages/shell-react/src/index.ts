@@ -26,3 +26,8 @@ export type {
 // pair's own labelKey/registerXI18n — see src/i18n/keys.ts's module doc).
 export { SHELL_I18N_KEYS, registerShellI18n } from "./i18n/keys.js";
 export type { ShellI18nKey } from "./i18n/keys.js";
+
+// The shell templates and the slots each renders — pure data, also published
+// as `shell-templates.json` for readers that do not run TypeScript.
+export { SHELL_TEMPLATES } from "./templates.js";
+export type { ShellTemplate, ShellTemplateId } from "./templates.js";

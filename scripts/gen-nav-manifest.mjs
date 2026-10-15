@@ -6,7 +6,8 @@
 // `PackageNavManifest` types — pure data, no React, no I/O). This script:
 //
 //   1. reads the CURRENT target's `src/nav/manifest.ts` (env NAV_PKG_DIR),
-//      validates its entries, and writes that pair's own
+//      validates its entries (and its optional `navEmbeds`, see
+//      `nav-lib.mjs`), and writes that pair's own
 //      `packages/<pair>/nav-manifest.json` (the `./nav-manifest` export
 //      subpath points here).
 //   2. rebuilds the ROOT `nav-manifest.json` from the FULL known set of
@@ -31,6 +32,12 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { filterTrackedPackages } from "./packages-lib.mjs";
+import {
+  assertUniqueEmbedIds,
+  auditEmbedOpens,
+  buildPackageNavManifest,
+  validateEmbeds,
+} from "./nav-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -53,6 +60,10 @@ const NAV_PACKAGES = filterTrackedPackages(
 );
 
 const OUT_ROOT_MANIFEST = resolve(ROOT, "nav-manifest.json");
+
+// The slot vocabulary `navEmbeds` validate against: core's own constant,
+// imported through the same strip-types loader as the pair manifests.
+const { SHELL_SLOT_IDS } = await import(resolve(ROOT, "packages/core/src/nav.ts"));
 
 // ── aggregate-level gates (shared-layer audit G5) ────────────────────────────
 // Two fields validate per-entry above and are still wrong in the aggregate:
@@ -236,11 +247,8 @@ async function loadPackageNavManifest(pkgDirAbs) {
   const mod = await import(resolve(pkgDirAbs, "src/nav/manifest.ts"));
   const entries = mod.navEntries;
   validateEntries(pkg.name, entries);
-  return {
-    package: pkg.name,
-    version: pkg.version,
-    entries,
-  };
+  validateEmbeds(pkg.name, mod.navEmbeds, SHELL_SLOT_IDS);
+  return buildPackageNavManifest(pkg, entries, mod.navEmbeds);
 }
 
 async function main() {
@@ -268,6 +276,7 @@ async function main() {
   // Stable order: by package name, so the aggregate diffs deterministically
   // regardless of NAV_PACKAGES' order.
   all.sort((a, b) => a.package.localeCompare(b.package));
+  assertUniqueEmbedIds(all);
 
   const rootManifest = {
     $generated:
@@ -276,7 +285,10 @@ async function main() {
   };
   await writeFile(OUT_ROOT_MANIFEST, `${JSON.stringify(rootManifest, null, 2)}\n`);
 
-  const problems = auditAggregate(all, await iconRegistryNames());
+  const problems = [
+    ...auditAggregate(all, await iconRegistryNames()),
+    ...auditEmbedOpens(all, CONTAINER_PARENT_IDS),
+  ];
   if (problems.length > 0) {
     const verb = NAV_GATE_STRICT ? "✖" : "⚠";
     console.error(
@@ -284,7 +296,8 @@ async function main() {
         `cannot render as declared:\n` +
         problems.join("\n") +
         `\n  Register the icon in packages/shell-react/src/default/icons.tsx, or declare the ` +
-        `parent\n  (a top-level entry with that id) in the pair that owns the section.` +
+        `parent\n  (a top-level entry with that id) in the pair that owns the section; an ` +
+        `embed's\n  opens names an entry the same way.` +
         (NAV_GATE_STRICT
           ? ""
           : `\n  (listing mode — pass --strict or set NAV_GATE=strict to fail on this)`)
@@ -293,9 +306,10 @@ async function main() {
   }
 
   const totalEntries = all.reduce((n, m) => n + m.entries.length, 0);
+  const totalEmbeds = all.reduce((n, m) => n + (m.embeds?.length ?? 0), 0);
   console.error(
     `gen:nav: ${current.package} → ${outPkgManifest} (${current.entries.length} entries); ` +
-      `root aggregate: ${all.length} packages, ${totalEntries} entries → ${OUT_ROOT_MANIFEST}`
+      `root aggregate: ${all.length} packages, ${totalEntries} entries, ${totalEmbeds} embeds → ${OUT_ROOT_MANIFEST}`
   );
 }
 

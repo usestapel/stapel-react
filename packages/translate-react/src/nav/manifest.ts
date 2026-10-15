@@ -21,10 +21,9 @@
  *
  * ── What is deliberately NOT here ─────────────────────────────────────────
  *
- * `<LanguageSwitcher compact/>` is header chrome: the container passes it into
- * `AppShell`'s existing `headerExtra` slot (`packages/shell-react/src/default/
- * AppShell.tsx`). Chrome that appears on every page is not a destination, and
- * giving it a route would put "Language" in the menu twice.
+ * `<LanguageSwitcher compact/>` is header chrome, offered below as an embed
+ * (`navEmbeds`), not an entry. Chrome that appears on every page is not a
+ * destination, and giving it a route would put "Language" in the menu twice.
  *
  * `<TranslatedText/>` / `<TranslateButton/>` mount inside somebody else's
  * screen (a listing, a review) — they have no address of their own either.
@@ -35,7 +34,7 @@
  * profiles-react's `profiles.language` makes. Requested in the wave-B REQUESTS
  * file; this pair's own skin draws its globe from `src/default/icons.tsx`.
  */
-import type { NavEntry } from "@stapel/core";
+import type { NavEmbed, NavEntry } from "@stapel/core";
 
 /** The container-owned account section this screen hangs from. */
 export const ACCOUNT_ROOT_ID = "account.root";
@@ -56,5 +55,21 @@ export const navEntries: readonly NavEntry[] = [
     requiresAuth: true,
     surface: "member",
     order: 40,
+  },
+];
+
+/**
+ * The switcher belongs on every page, signed in or not, so it offers
+ * `topbar.end` with surface `any`; `compact` is its header form (a globe and
+ * the current code). Ordered after the bell, nearer the trailing edge.
+ */
+export const navEmbeds: readonly NavEmbed[] = [
+  {
+    id: "translate.language_switcher",
+    slot: "topbar.end",
+    component: { export: "LanguageSwitcher", subpath: "default" },
+    order: 40,
+    surface: "any",
+    props: { compact: true },
   },
 ];

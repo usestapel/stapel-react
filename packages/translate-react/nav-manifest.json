@@ -22,5 +22,20 @@
       "surface": "member",
       "order": 40
     }
+  ],
+  "embeds": [
+    {
+      "id": "translate.language_switcher",
+      "slot": "topbar.end",
+      "component": {
+        "export": "LanguageSwitcher",
+        "subpath": "default"
+      },
+      "order": 40,
+      "surface": "any",
+      "props": {
+        "compact": true
+      }
+    }
   ]
 }

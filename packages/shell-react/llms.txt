@@ -10,6 +10,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - ADMIN_ROOT_ENTRY
 - ADMIN_ROOT_ID
 - SHELL_I18N_KEYS
+- SHELL_TEMPLATES
 - adminNavIds
 - registerShellI18n
 - resolveMemberNav
@@ -22,6 +23,8 @@ signatures/JSDoc in the package README and src/index.ts.
 - ResolveNavOptions
 - ResolvedNavEntry
 - ShellI18nKey
+- ShellTemplate
+- ShellTemplateId
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
 - (no app defineEvent() in this pair — its analytic events are the

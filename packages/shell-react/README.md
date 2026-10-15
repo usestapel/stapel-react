@@ -361,6 +361,39 @@ it arrives as data addressed by the id the manifest already gave the entry.
 both name the same entry the narrower input wins for the dock. New code passes
 `navBadges`.
 
+### `slots` — named regions both chromes render
+
+```tsx
+<AppShell nav={nav} slots={{ "topbar.end": <NotificationBell onOpen={openFeed} /> }} />
+<PublicShell nav={nav} slots={{ "topbar.center": <SearchBox />, footer: <Legal /> }} />
+```
+
+A `Partial<Record<ShellSlotId, ReactNode>>`, keyed by `@stapel/core`'s
+`SHELL_SLOT_IDS` — the same vocabulary a pair's `navEmbeds` declare against,
+so a scaffold can fill a chrome straight from the installed pairs' manifests.
+
+`<AppShell/>` renders `topbar.start` (after the brand), `topbar.center` (the
+middle of the bar), `topbar.end` (before `headerExtra`), `sidenav.head` (above
+the menu in the `Sider`), `sidenav.foot` (above the theme switch in the
+`Sider`) and `sheet.foot` (above the theme switch in the phone sheet). Each
+filled slot gets a `data-testid="app-shell-slot-<slotId>"` wrapper; an
+unfilled slot renders nothing.
+
+`<PublicShell/>` maps slots onto its existing props: `topbar.start` → `brand`,
+`topbar.center` → `searchSlot`, `topbar.end` → `accountSlot`, `browsebar` →
+`categorySlot`, `footer` → `footer`. The explicit prop wins when both are
+given. `bottombar` is reserved for the dock and not rendered yet.
+
+The template table — which chrome renders which slots — is the root export
+`SHELL_TEMPLATES` (pure data) and the published
+`@stapel/shell-react/shell-templates.json`; a test holds the two equal.
+
+| Template | Chrome | Slots | Exclusive (capacity one) | Status |
+|---|---|---|---|---|
+| `topbar-sidenav` | `AppShell` | `topbar.start`, `topbar.center`, `topbar.end`, `sidenav.head`, `sidenav.foot`, `sheet.foot` | `topbar.center` | shipped |
+| `topbar-only` | `PublicShell` | `topbar.start`, `topbar.center`, `topbar.end`, `browsebar`, `footer`, `bottombar` | `topbar.center`, `browsebar`, `footer` | shipped |
+| `sidenav-only` | — | `sidenav.head`, `sidenav.foot`, `sheet.foot`, `page.actions` | — | queued |
+
 ## `<ThemeModeControl/>` (`/theme` subpath — plain DOM, no antd, no CSS file)
 
 ```tsx

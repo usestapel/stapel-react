@@ -162,6 +162,7 @@
       "ADMIN_ROOT_ENTRY",
       "ADMIN_ROOT_ID",
       "SHELL_I18N_KEYS",
+      "SHELL_TEMPLATES",
       "adminNavIds",
       "registerShellI18n",
       "resolveMemberNav",
@@ -173,7 +174,9 @@
       "NavOverridesFile",
       "ResolveNavOptions",
       "ResolvedNavEntry",
-      "ShellI18nKey"
+      "ShellI18nKey",
+      "ShellTemplate",
+      "ShellTemplateId"
     ]
   }
 }

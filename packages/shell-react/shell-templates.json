@@ -1,0 +1,34 @@
+{
+  "templates": {
+    "topbar-sidenav": {
+      "chrome": "AppShell",
+      "slots": ["topbar.start", "topbar.center", "topbar.end", "sidenav.head", "sidenav.foot", "sheet.foot"],
+      "exclusive": ["topbar.center"],
+      "status": "shipped"
+    },
+    "topbar-only": {
+      "chrome": "PublicShell",
+      "slots": ["topbar.start", "topbar.center", "topbar.end", "browsebar", "footer", "bottombar"],
+      "exclusive": ["topbar.center", "browsebar", "footer"],
+      "status": "shipped"
+    },
+    "sidenav-only": {
+      "chrome": null,
+      "slots": ["sidenav.head", "sidenav.foot", "sheet.foot", "page.actions"],
+      "exclusive": [],
+      "status": "queued"
+    }
+  },
+  "slots": [
+    "topbar.start",
+    "topbar.center",
+    "topbar.end",
+    "sidenav.head",
+    "sidenav.foot",
+    "sheet.foot",
+    "bottombar",
+    "browsebar",
+    "footer",
+    "page.actions"
+  ]
+}

@@ -699,3 +699,62 @@ describe("<PublicShell/> — the page gutter is a token, and the same one everyw
     expect(style).toMatch(/padding:\s*\d+px/);
   });
 });
+
+describe("<PublicShell/> — slots map onto the named props", () => {
+  const slots = {
+    "topbar.start": <span>Slot brand</span>,
+    "topbar.center": <input aria-label="slot search" />,
+    "topbar.end": <span>Slot account</span>,
+    browsebar: <span>Slot categories</span>,
+    footer: <span>Slot footer</span>,
+    bottombar: <span>Reserved dock</span>,
+  } as const;
+
+  it("renders each slot in its region at desktop width", async () => {
+    setViewportWidth(1440);
+    render(wrap("/s", { slots }));
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+
+    expect(screen.getByTestId("public-shell-brand").textContent).toContain("Slot brand");
+    expect(within(screen.getByTestId("public-shell-search")).getByLabelText("slot search")).toBeDefined();
+    expect(within(screen.getByTestId("public-shell-header")).getByText("Slot account")).toBeDefined();
+    expect(screen.queryByText("Sign in")).toBeNull();
+    expect(screen.getByTestId("public-shell-categories").textContent).toContain("Slot categories");
+    expect(screen.getByTestId("public-shell-footer").textContent).toContain("Slot footer");
+    expect(screen.queryByText("Reserved dock")).toBeNull();
+  });
+
+  it("renders the top bar slots at phone width", async () => {
+    setViewportWidth(375);
+    render(wrap("/s", { slots }));
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+
+    const header = screen.getByTestId("public-shell-header");
+    expect(within(header).getByText("Slot brand")).toBeDefined();
+    expect(within(header).getByLabelText("slot search")).toBeDefined();
+    expect(within(header).getByText("Slot account")).toBeDefined();
+    setViewportWidth(1440);
+  });
+
+  it("lets the explicit prop win over its slot", async () => {
+    setViewportWidth(1440);
+    render(
+      wrap("/s", {
+        slots,
+        brand: <span>Prop brand</span>,
+        accountSlot: <span>Prop account</span>,
+        footer: <span>Prop footer</span>,
+      })
+    );
+    await waitFor(() => expect(screen.getByTestId("public-shell-header")).toBeDefined());
+
+    expect(screen.getByText("Prop brand")).toBeDefined();
+    expect(screen.queryByText("Slot brand")).toBeNull();
+    expect(screen.getByText("Prop account")).toBeDefined();
+    expect(screen.queryByText("Slot account")).toBeNull();
+    expect(screen.getByText("Prop footer")).toBeDefined();
+    expect(screen.queryByText("Slot footer")).toBeNull();
+    // Slots without a competing prop still fill.
+    expect(screen.getByTestId("public-shell-categories").textContent).toContain("Slot categories");
+  });
+});

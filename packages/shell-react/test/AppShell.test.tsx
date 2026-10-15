@@ -623,3 +623,67 @@ describe("<AppShell/> — nav badges reach the rows the entries render on", () =
     setViewportWidth(1440);
   });
 });
+
+describe("<AppShell/> — slots render in their named regions", () => {
+  const slots = {
+    "topbar.start": <span>Start</span>,
+    "topbar.center": <span>Center</span>,
+    "topbar.end": <span>Bell</span>,
+    "sidenav.head": <span>Head</span>,
+    "sidenav.foot": <span>Foot</span>,
+    "sheet.foot": <span>Sheet foot</span>,
+  } as const;
+  const follows = (a: Element, b: Element): boolean =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+  it("places the top bar and Sider slots at desktop width", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings", { logo: <span>Brand</span>, headerExtra: <span>Account</span>, slots }));
+    await waitFor(() => expect(screen.getByTestId("app-shell-sider")).toBeDefined());
+
+    const header = screen.getByTestId("app-shell-header");
+    const start = within(header).getByTestId("app-shell-slot-topbar.start");
+    expect(follows(screen.getByTestId("app-shell-brand"), start)).toBe(true);
+    expect(within(header).getByTestId("app-shell-slot-topbar.center").textContent).toBe("Center");
+    const extra = screen.getByTestId("app-shell-header-extra");
+    const end = within(extra).getByTestId("app-shell-slot-topbar.end");
+    expect(follows(end, within(extra).getByText("Account"))).toBe(true);
+
+    const sider = screen.getByTestId("app-shell-sider");
+    const head = within(sider).getByTestId("app-shell-slot-sidenav.head");
+    expect(follows(head, within(sider).getByText("Settings"))).toBe(true);
+    const foot = within(sider).getByTestId("app-shell-slot-sidenav.foot");
+    expect(follows(foot, within(sider).getByTestId("app-shell-theme"))).toBe(true);
+    // The phone sheet is not mounted at this width.
+    expect(screen.queryByTestId("app-shell-slot-sheet.foot")).toBeNull();
+  });
+
+  it("places the top bar and sheet slots at phone width", async () => {
+    setViewportWidth(375);
+    render(wrap("/settings", { slots }));
+    await waitFor(() => expect(screen.getByTestId("app-shell-menu-trigger")).toBeDefined());
+
+    const header = screen.getByTestId("app-shell-header");
+    expect(within(header).getByTestId("app-shell-slot-topbar.start")).toBeDefined();
+    expect(within(header).getByTestId("app-shell-slot-topbar.end")).toBeDefined();
+    expect(screen.queryByTestId("app-shell-slot-sidenav.head")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("app-shell-menu-trigger"));
+    await waitFor(() => expect(screen.getByTestId("app-shell-drawer")).toBeDefined());
+    const drawer = screen.getByTestId("app-shell-drawer");
+    const sheetFoot = within(drawer).getByTestId("app-shell-slot-sheet.foot");
+    expect(follows(sheetFoot, within(drawer).getByTestId("app-shell-theme"))).toBe(true);
+    setViewportWidth(1440);
+  });
+
+  it("renders no wrapper for a slot that is not filled", async () => {
+    setViewportWidth(1440);
+    render(wrap("/settings", { slots: { "topbar.end": <span>Bell</span> } }));
+    await waitFor(() => expect(screen.getByTestId("app-shell-sider")).toBeDefined());
+
+    expect(screen.getByTestId("app-shell-slot-topbar.end")).toBeDefined();
+    for (const id of ["topbar.start", "topbar.center", "sidenav.head", "sidenav.foot"]) {
+      expect(screen.queryByTestId(`app-shell-slot-${id}`)).toBeNull();
+    }
+  });
+});

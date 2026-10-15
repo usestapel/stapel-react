@@ -167,6 +167,66 @@ export function navSurfaceVisibleTo(
   return surface === "public" || principal === "member";
 }
 
+/**
+ * The shell slot vocabulary — every named region a chrome may render an
+ * embed into. Global and chrome-free on purpose: a pair declares against it
+ * without depending on any chrome, and `@stapel/shell-react`'s
+ * `SHELL_TEMPLATES` says which template renders which of these.
+ *
+ * Capacity one: `topbar.center`, `browsebar`, `footer`. `page.actions` is
+ * reserved — no template renders it yet.
+ */
+export const SHELL_SLOT_IDS = [
+  "topbar.start",
+  "topbar.center",
+  "topbar.end",
+  "sidenav.head",
+  "sidenav.foot",
+  "sheet.foot",
+  "bottombar",
+  "browsebar",
+  "footer",
+  "page.actions",
+] as const;
+
+/** One id out of {@link SHELL_SLOT_IDS}. */
+export type ShellSlotId = (typeof SHELL_SLOT_IDS)[number];
+
+/** Who sees an embed: `member` only inside the gated shell, `public` only
+ * outside it, `any` both. */
+export type NavEmbedSurface = "public" | "member" | "any";
+
+/** The width rungs an embed may be limited to. */
+export type NavBreakpoint = "phone" | "tablet" | "desktop";
+
+/**
+ * One chrome-shaped component a pair offers to a shell slot — a bell, a
+ * switcher, a search field. Declared as `navEmbeds` in the pair's
+ * `src/nav/manifest.ts`; `scripts/gen-nav-manifest.mjs` validates it and
+ * carries it under `embeds`. The scaffold, not the pair, decides which
+ * offered embeds a project renders.
+ */
+export interface NavEmbed {
+  /** Globally unique across installed pairs, `"<module>.<thing>"`
+   * (`^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$`). */
+  readonly id: string;
+  readonly slot: ShellSlotId;
+  /** The named export rendered in the slot. It takes no required props
+   * beyond {@link props} and, when {@link opens} is set, `onOpen`. */
+  readonly component: NavComponentRef;
+  /** Ascending within the slot; ties break on `id`. */
+  readonly order: number;
+  /** Omitted reads as `"any"`. */
+  readonly surface?: NavEmbedSurface;
+  /** Omitted means every width. */
+  readonly breakpoints?: readonly NavBreakpoint[];
+  /** Static scalar props the container passes verbatim. */
+  readonly props?: Readonly<Record<string, string | number | boolean>>;
+  /** A `NavEntry` id this embed opens: the container passes `onOpen`
+   * navigating to that entry's path. */
+  readonly opens?: string;
+}
+
 /** A single package's contribution to the nav tree — what
  * `src/nav/manifest.ts` exports, and what `packages/<pair>/nav-manifest.json`
  * (the `./nav-manifest` export subpath) serializes. */
@@ -175,4 +235,7 @@ export interface PackageNavManifest {
   readonly package: string;
   readonly version: string;
   readonly entries: readonly NavEntry[];
+  /** The shell slots this pair can embed into. Absent (never `[]`) when the
+   * pair offers none. */
+  readonly embeds?: readonly NavEmbed[];
 }

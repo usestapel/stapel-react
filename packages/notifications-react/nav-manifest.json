@@ -39,5 +39,18 @@
       "requiresAuth": true,
       "order": 30
     }
+  ],
+  "embeds": [
+    {
+      "id": "notifications.bell",
+      "slot": "topbar.end",
+      "component": {
+        "export": "NotificationBell",
+        "subpath": "default"
+      },
+      "order": 20,
+      "surface": "member",
+      "opens": "notifications.feed"
+    }
   ]
 }
