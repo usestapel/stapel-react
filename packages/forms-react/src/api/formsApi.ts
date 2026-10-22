@@ -1,5 +1,11 @@
 import type { StapelClient, StapelRequestOptions } from "@stapel/core";
 import { createExportTransport, exportSubmissionsCsv } from "./export.js";
+import {
+  fromWireFormRow,
+  fromWirePublicForm,
+  fromWireVersion,
+  toWireSchema,
+} from "./fieldShape.js";
 import type {
   CsvExportPage,
   FormsApiOptions,
@@ -218,7 +224,11 @@ export function createFormsApi(
     client,
 
     // ── public ───────────────────────────────────────────────────────────────
-    getPublicForm: (publicId) => client.get(`/public/${seg(publicId)}/`),
+    // The wire carries a field's kind as `config.type`; see `fieldShape.ts`.
+    getPublicForm: async (publicId) =>
+      fromWirePublicForm(
+        await client.get<PublicForm>(`/public/${seg(publicId)}/`)
+      ),
 
     submit: (publicId, body) =>
       client.post(
@@ -245,32 +255,51 @@ export function createFormsApi(
     },
 
     // ── admin: forms ─────────────────────────────────────────────────────────
-    listForms: (workspaceId, state) =>
-      client.get("/forms", {
-        query: { ...ws(workspaceId), ...(state !== undefined ? { state } : {}) },
-      }),
+    listForms: async (workspaceId, state) =>
+      (
+        await client.get<readonly FormRow[]>("/forms", {
+          query: { ...ws(workspaceId), ...(state !== undefined ? { state } : {}) },
+        })
+      ).map?.(fromWireFormRow) as readonly FormRow[],
 
-    getForm: (workspaceId, formId) =>
-      client.get(`/forms/${seg(formId)}`, { query: ws(workspaceId) }),
+    getForm: async (workspaceId, formId) =>
+      fromWireFormRow(
+        await client.get<FormRow>(`/forms/${seg(formId)}`, { query: ws(workspaceId) })
+      ),
 
-    createForm: (body) =>
-      client.post("/forms", body satisfies FormCreateRequest, mutating()),
+    createForm: async (body) =>
+      fromWireFormRow(
+        await client.post<FormRow>(
+          "/forms",
+          {
+            ...(body satisfies FormCreateRequest),
+            ...(body.draft_schema !== undefined
+              ? { draft_schema: toWireSchema(body.draft_schema) }
+              : {}),
+          },
+          mutating()
+        )
+      ),
 
-    patchForm: (workspaceId, formId, body) =>
-      client.patch(
-        `/forms/${seg(formId)}`,
-        body satisfies FormPatchRequest,
-        mutating({ query: ws(workspaceId) })
+    patchForm: async (workspaceId, formId, body) =>
+      fromWireFormRow(
+        await client.patch<FormRow>(
+          `/forms/${seg(formId)}`,
+          body satisfies FormPatchRequest,
+          mutating({ query: ws(workspaceId) })
+        )
       ),
 
     deleteForm: (workspaceId, formId) =>
       client.delete(`/forms/${seg(formId)}`, mutating({ query: ws(workspaceId) })),
 
-    putDraft: (workspaceId, formId, schema) =>
-      client.put(
-        `/forms/${seg(formId)}/draft`,
-        { schema },
-        mutating({ query: ws(workspaceId) })
+    putDraft: async (workspaceId, formId, schema) =>
+      fromWireFormRow(
+        await client.put<FormRow>(
+          `/forms/${seg(formId)}/draft`,
+          { schema: toWireSchema(schema) },
+          mutating({ query: ws(workspaceId) })
+        )
       ),
 
     publish: (workspaceId, formId) =>
@@ -280,22 +309,30 @@ export function createFormsApi(
         mutating({ query: ws(workspaceId) })
       ),
 
-    setState: (workspaceId, formId, state) =>
-      client.post(
-        `/forms/${seg(formId)}/state`,
-        { state },
-        mutating({ query: ws(workspaceId) })
+    setState: async (workspaceId, formId, state) =>
+      fromWireFormRow(
+        await client.post<FormRow>(
+          `/forms/${seg(formId)}/state`,
+          { state },
+          mutating({ query: ws(workspaceId) })
+        )
       ),
 
-    rotateLink: (workspaceId, formId) =>
-      client.post(
-        `/forms/${seg(formId)}/rotate-link`,
-        undefined,
-        mutating({ query: ws(workspaceId) })
+    rotateLink: async (workspaceId, formId) =>
+      fromWireFormRow(
+        await client.post<FormRow>(
+          `/forms/${seg(formId)}/rotate-link`,
+          undefined,
+          mutating({ query: ws(workspaceId) })
+        )
       ),
 
-    listVersions: (workspaceId, formId) =>
-      client.get(`/forms/${seg(formId)}/versions`, { query: ws(workspaceId) }),
+    listVersions: async (workspaceId, formId) =>
+      (
+        await client.get<readonly FormVersion[]>(`/forms/${seg(formId)}/versions`, {
+          query: ws(workspaceId),
+        })
+      ).map?.(fromWireVersion) as readonly FormVersion[],
 
     // ── admin: responses ─────────────────────────────────────────────────────
     listSubmissions: (params) =>
