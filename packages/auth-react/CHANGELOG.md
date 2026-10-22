@@ -1,5 +1,11 @@
 # @stapel/auth-react
 
+## 0.27.1
+
+### Patch Changes
+
+- 90f23b5: Each sign-in form has its own antd form name, so field ids are unique in the page: the email and phone tabs no longer both render `id="value"`.
+
 ## 0.27.0
 
 ### Minor Changes

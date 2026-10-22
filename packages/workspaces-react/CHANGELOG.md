@@ -1,5 +1,11 @@
 # @stapel/workspaces-react
 
+## 0.23.0
+
+### Minor Changes
+
+- 90f23b5: Contract pin to stapel-workspaces 0.37.0, where `PATCH` merges `settings` and `null` removes a key. `useUpdateSecuritySettings` sends only the change (`{settings: {security: patch}}`) with no read before it, so it no longer re-sends every stored key (which raced a concurrent edit); a key is removed by sending `null` (`WorkspaceSecurityPatch`).
+
 ## 0.22.1
 
 ### Patch Changes

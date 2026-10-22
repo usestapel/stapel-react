@@ -1,6 +1,6 @@
 {
   "package": "@stapel/notifications-react",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "entries": [
     {
       "id": "notifications.feed",
