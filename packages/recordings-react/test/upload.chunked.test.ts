@@ -394,3 +394,86 @@ describe("createChunkedTransport", () => {
     expect(err.status).toBe(0);
   });
 });
+
+describe("runChunkedUpload on a slow link", () => {
+  it("a part lost late, after its bytes moved, does not spend the retry budget", async () => {
+    const { server, base } = await setup(40, 10);
+    let lateFailures = 7; // more than the default 6 attempts
+    const put: PartPutter = async ({ url, headers, body, onProgress }) => {
+      onProgress(body.size); // the whole body went out…
+      if (url.endsWith("/1") && lateFailures-- > 0) {
+        return { status: 503, etag: null, body: "<Error><Code>SlowDown</Code></Error>" }; // …then the store gave up
+      }
+      return server.storePut(url, headers, body);
+    };
+    const r = await runChunkedUpload({ ...base, putPart: put, retry: { attempts: 6 } });
+    expect(r.recording).toEqual({ id: "rec-1" });
+    expect(server.putCount.get(1)).toBe(1);
+  });
+
+  it("a part that fails at once still stops after the retry budget", async () => {
+    const { base } = await setup(40, 10);
+    let tries = 0;
+    const put: PartPutter = async () => {
+      tries++;
+      return { status: 503, etag: null, body: "" };
+    };
+    const err = await runChunkedUpload({ ...base, putPart: put, concurrency: 1, retry: { attempts: 3 } }).catch((e) => e);
+    expect(err).toBeInstanceOf(UploadInterruptedError);
+    expect(tries).toBe(3);
+  });
+
+  it("a part that gives up lets the parts already on the wire finish", async () => {
+    const { server, base } = await setup(20, 10); // two parts
+    let releaseSlow!: () => void;
+    const slowGate = new Promise<void>((r) => { releaseSlow = r; });
+    let failures = 0;
+    const put: PartPutter = async ({ url, headers, body, signal }) => {
+      if (url.endsWith("/1")) {
+        failures++;
+        if (failures === 3) setTimeout(releaseSlow, 0); // the slow part lands after part 1 gave up
+        return { status: 503, etag: null, body: "" };
+      }
+      // Part 2: a long upload that honours cancellation like XHR does.
+      await Promise.race([
+        slowGate,
+        new Promise((_, reject) => signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")))),
+      ]).catch(() => undefined);
+      if (signal.aborted) return { status: 0, etag: null, body: "" };
+      return server.storePut(url, headers, body);
+    };
+    const err = await runChunkedUpload({ ...base, putPart: put, concurrency: 2, retry: { attempts: 3 } }).catch((e) => e);
+    expect(err).toBeInstanceOf(UploadInterruptedError);
+    expect(server.stored.has(2)).toBe(true);
+    expect((err as UploadInterruptedError).partsDone).toBe(1);
+  });
+
+  it("after a transient part failure only one part is on the wire at a time", async () => {
+    const { server, base } = await setup(80, 10); // eight parts
+    const liveNew = new Set<number>();
+    const startedBefore = new Set<number>();
+    const live = new Set<number>();
+    let failed = false;
+    let maxNewLive = 0;
+    const put: PartPutter = async ({ url, headers, body }) => {
+      const n = Number(url.split("/").pop());
+      live.add(n);
+      if (!failed) startedBefore.add(n);
+      else if (!startedBefore.has(n)) {
+        liveNew.add(n);
+        maxNewLive = Math.max(maxNewLive, [...live].filter((x) => !startedBefore.has(x) || x === 1).length);
+      }
+      await new Promise((r) => setTimeout(r, 3));
+      live.delete(n);
+      liveNew.delete(n);
+      if (n === 1 && !failed) {
+        failed = true;
+        return { status: 503, etag: null, body: "" };
+      }
+      return server.storePut(url, headers, body);
+    };
+    await runChunkedUpload({ ...base, putPart: put, concurrency: 4 });
+    expect(server.stored.size).toBe(8);
+    expect(maxNewLive).toBe(1);
+  });
+});

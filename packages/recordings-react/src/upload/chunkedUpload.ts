@@ -94,7 +94,11 @@ export type PartPutter = (args: {
 }) => Promise<PartPutResult>;
 
 export interface RetryPolicy {
-  /** Attempts per part (and for `complete`), first try included. Default 6. */
+  /**
+   * Attempts per part (and for `complete`), first try included. Default 6.
+   * A part attempt that moved real bytes before failing does not count; a
+   * part still stops after `attempts × 4` tries in all.
+   */
   readonly attempts?: number;
   readonly baseDelayMs?: number;
   readonly maxDelayMs?: number;
@@ -197,6 +201,11 @@ function isTransient(status: number): boolean {
 function isChecksumRefusal(r: PartPutResult): boolean {
   return r.status === 400;
 }
+
+/** An attempt that moved at least this much (or half the part) made progress. */
+const PROGRESS_FLOOR_BYTES = 256 * 1024;
+/** Total tries per part, progress-making ones included: `attempts` × this. */
+const PROGRESS_TRIES_FACTOR = 4;
 
 class PartFailure extends Error {
   constructor(
@@ -336,6 +345,8 @@ export async function runChunkedUpload(
   /** PUT a set of parts through a bounded worker pool. */
   const sendParts = async (numbers: readonly number[]): Promise<void> => {
     const id = uploadId as string;
+    // Lanes in use; a transient part failure drops it to one for the rest.
+    let lanes = concurrency;
     const urls = new Map<number, MultipartPartUrl>();
     let minting: Promise<void> | null = null;
     const queue = [...numbers];
@@ -373,10 +384,16 @@ export async function runChunkedUpload(
     const sendOne = async (n: number): Promise<void> => {
       const [start, end] = partRange(n, size, partSize);
       let checksumLeft = checksumResends;
-      for (let attempt = 0; ; ) {
+      // A slow link loses a part late (the store or a proxy gives up on a
+      // body that took minutes): an attempt that moved real bytes is not a
+      // dead end, so it does not spend the retry budget — only `tries` bounds
+      // it. Attempts that moved nothing do.
+      const progressFloor = Math.min(PROGRESS_FLOOR_BYTES, Math.ceil((end - start) / 2));
+      for (let attempt = 0, tries = 0; ; ) {
         if (signal.aborted) throw abortReason(signal);
         const u = await urlFor(n);
         inFlight.set(n, 0);
+        let moved = 0;
         let r: PartPutResult;
         try {
           r = await putPart({
@@ -385,6 +402,7 @@ export async function runChunkedUpload(
             body: source.slice(start, end),
             signal,
             onProgress: (loaded) => {
+              moved = Math.max(moved, loaded);
               inFlight.set(n, Math.min(loaded, end - start));
               report();
             },
@@ -409,27 +427,42 @@ export async function runChunkedUpload(
         if (r.status === 403) urls.delete(n); // expired signature: mint again
         const retryable =
           isTransient(r.status) || r.status === 403 || (r.status >= 200 && r.status < 300);
-        attempt++;
-        if (!retryable || attempt >= attempts) {
+        if (isTransient(r.status)) lanes = 1; // the link is struggling: one part at a time
+        tries++;
+        if (moved < progressFloor) attempt++;
+        if (
+          !retryable ||
+          attempt >= attempts ||
+          tries >= attempts * PROGRESS_TRIES_FACTOR ||
+          stopped()
+        ) {
           throw new PartFailure(n, `part ${n} failed with HTTP ${r.status}${r.etag ? "" : " (no ETag)"}`);
         }
-        await backoff(attempt - 1);
+        await backoff(Math.max(0, attempt - 1));
       }
     };
 
     let firstError: unknown;
-    const worker = async (): Promise<void> => {
-      while (queue.length > 0 && firstError === undefined) {
+    function stopped(): boolean {
+      return firstError !== undefined;
+    }
+    const worker = async (lane: number): Promise<void> => {
+      while (queue.length > 0 && firstError === undefined && lane < lanes) {
         const n = queue.shift() as number;
         try {
           await sendOne(n);
         } catch (e) {
           if (firstError === undefined) firstError = e;
-          ctl.abort(e);
+          // A part that ran out of retries stops new parts, but the ones
+          // already on the wire finish: their bytes are stored and a resume
+          // will not send them again. Anything else stops everything now.
+          if (!(e instanceof PartFailure)) ctl.abort(e);
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(concurrency, numbers.length) }, worker));
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, numbers.length) }, (_, lane) => worker(lane))
+    );
     if (firstError !== undefined) throw firstError;
   };
 
