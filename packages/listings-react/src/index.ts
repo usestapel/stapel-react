@@ -93,6 +93,7 @@ export type {
   ListingLifecycleStatus,
   ListingModerationStatus,
   ListingOwnerTransition,
+  ListingBoardParams,
   ListingPageParams,
   ListingStatusInfo,
   ListingStatusOwnerInfo,
@@ -318,6 +319,8 @@ export type {
   UseListingEngagementOverlayOptions,
 } from "./headless/Engagement.js";
 export { Favorites, useFavorites, useFavoriteToggle } from "./headless/Favorites.js";
+export { ListingBoard, useListingBoard } from "./headless/ListingBoard.js";
+export type { ListingBoardBag, UseListingBoardOptions } from "./headless/ListingBoard.js";
 export type {
   FavoriteToggleBag,
   FavoritesBag,

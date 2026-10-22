@@ -32,6 +32,48 @@
       }
     },
     {
+      "id": "listings.board",
+      "title": "Category board",
+      "description": "The default grid for a category page on a deployment without the search module: GET /listings/?category_id= with the category and its subtree. Loading, empty and failed are three arms; the pager renders only when there is a page to go to.",
+      "component": "ListingBoardPane",
+      "covers": [
+        "ListingBoard"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The category's listings, one page.",
+          "viewport": "phone",
+          "step": "ready_single_page"
+        },
+        {
+          "id": "paged",
+          "description": "A second page exists, so the pager appears.",
+          "viewport": "desktop",
+          "step": "ready_has_next"
+        },
+        {
+          "id": "empty",
+          "description": "No listings in this category yet.",
+          "viewport": "phone",
+          "step": "empty"
+        },
+        {
+          "id": "failed",
+          "description": "We could not ask — a retry, never an empty grid.",
+          "viewport": "phone",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/ListingBoard.demo.tsx",
+        "line": 24
+      }
+    },
+    {
       "id": "listings.card",
       "title": "Listing card",
       "description": "The slot @stapel/search-react fills through the container — the two pairs never import each other. Badges come out of the stored DAO projection, which carries each type's display config beside its value, so a grid of forty cards costs one query and no category read. The heart is never hidden from a visitor: it is blocked, the reason is printed beside it as ordinary text (a disabled button never fires the events a tooltip needs), and the container attaches the sign-in door.",

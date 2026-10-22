@@ -486,6 +486,15 @@ export interface ListingPageParams {
 }
 
 /**
+ * `GET /listings/` — a page of the public board, optionally narrowed to
+ * categories (stapel-listings 0.27.0). A category page passes its own id and
+ * its descendants'; empty or absent means every category.
+ */
+export interface ListingBoardParams extends ListingPageParams {
+  readonly categoryIds?: readonly string[];
+}
+
+/**
  * `GET /listings/my/listings/` — a page, plus the statuses to narrow to.
  *
  * `status` is a SET because a dashboard tab is one (`active` is

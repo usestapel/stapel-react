@@ -236,6 +236,9 @@ export const listingsI18nBundleEs: I18nDictionary = {
   "listings.mine.delete_confirm_body.final":
     "Desaparece de tu panel y no se puede recuperar.",
 
+  "listings.board.loading": "Cargando anuncios…",
+  "listings.board.load_failed": "No pudimos cargar los anuncios",
+  "listings.board.empty": "Todavía no hay anuncios aquí",
   "listings.favorites.title": "Favoritos",
   "listings.favorites.loading": "Cargando tus favoritos…",
   "listings.favorites.load_failed": "No pudimos cargar tus favoritos",

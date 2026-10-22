@@ -30,8 +30,8 @@
  * NOT blocked — it is a valid zero-duration marker, and the form says so
  * instead of quietly changing it.
  */
-import { useState } from "react";
-import type { ReactElement } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Alert, Button, Flex, Form, Input, Typography } from "antd";
 import {
   ErrorAlert,
@@ -118,11 +118,15 @@ export function EventEditorSheet(props: EventEditorSheetProps): ReactElement {
               {...(props.presets !== undefined ? { presets: props.presets } : {})}
               onSave={(body) => {
                 bag.save(body);
-                if (bag.saved !== null) props.onSaved?.(bag.saved);
               }}
               onCancelEvent={bag.cancel}
               onDismissError={bag.reset}
-            />
+            >
+              <OnWritten
+                written={bag.saved}
+                {...(props.onSaved !== undefined ? { onWritten: props.onSaved } : {})}
+              />
+            </EditorForm>
           )}
         </EventEditor>
       ) : (
@@ -141,16 +145,46 @@ export function EventEditorSheet(props: EventEditorSheetProps): ReactElement {
               {...(props.presets !== undefined ? { presets: props.presets } : {})}
               onSave={(body) => {
                 bag.create(body);
-                if (bag.created !== null) props.onSaved?.(bag.created);
               }}
               onDismissError={bag.reset}
-            />
+            >
+              <OnWritten
+                written={bag.created}
+                onWritten={(created) => {
+                  props.onSaved?.(created);
+                  // A created event is on the calendar now; the sheet that
+                  // made it has nothing left to do. The composer is reset so
+                  // the next open starts from an empty form.
+                  bag.reset();
+                  props.onClose();
+                }}
+              />
+            </EditorForm>
           )}
         </EventComposer>
       )}
     </SkinDialog>
     </SkinTheme>
   );
+}
+
+/**
+ * Reports a write once its answer lands. The mutation's result arrives on a
+ * later render than the click, so reading it inside the click handler saw
+ * `null` and `onSaved` never fired (and the create sheet never closed).
+ */
+function OnWritten(props: {
+  readonly written: CalendarEvent | null;
+  readonly onWritten?: (event: CalendarEvent) => void;
+}): null {
+  const reported = useRef<CalendarEvent | null>(null);
+  const { written, onWritten } = props;
+  useEffect(() => {
+    if (written === null || reported.current === written) return;
+    reported.current = written;
+    onWritten?.(written);
+  }, [written, onWritten]);
+  return null;
 }
 
 /** One hour, in milliseconds — the default length of a new event. */
@@ -168,6 +202,7 @@ function EditorForm(props: {
   readonly onSave: (body: EventCreateRequest) => void;
   readonly onCancelEvent?: () => void;
   readonly onDismissError: () => void;
+  readonly children?: ReactNode;
 }): ReactElement {
   const t = useT();
   const { event } = props;
@@ -345,6 +380,7 @@ function EditorForm(props: {
           setCancelAsking(false);
         }}
       />
+      {props.children}
     </Flex>
   );
 }

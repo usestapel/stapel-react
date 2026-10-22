@@ -4,7 +4,7 @@
   "version": "0.41.1",
   "backend": {
     "module": "stapel-listings",
-    "contract": ">=0.26 <0.27"
+    "contract": ">=0.27 <0.28"
   },
   "layers": [
     "api",
@@ -752,6 +752,25 @@
       "source": "demo/ListingActions.demo.tsx"
     },
     {
+      "id": "listings.board",
+      "title": "Category board",
+      "description": "The default grid for a category page on a deployment without the search module: GET /listings/?category_id= with the category and its subtree. Loading, empty and failed are three arms; the pager renders only when there is a page to go to.",
+      "component": "ListingBoardPane",
+      "covers": [
+        "ListingBoard"
+      ],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default",
+        "paged",
+        "empty",
+        "failed"
+      ],
+      "source": "demo/ListingBoard.demo.tsx"
+    },
+    {
       "id": "listings.card",
       "title": "Listing card",
       "description": "The slot @stapel/search-react fills through the container — the two pairs never import each other. Badges come out of the stored DAO projection, which carries each type's display config beside its value, so a grid of forty cards costs one query and no category read. The heart is never hidden from a visitor: it is blocked, the reason is printed beside it as ordinary text (a disabled button never fires the events a tooltip needs), and the container attaches the sign-in door.",
@@ -1108,6 +1127,9 @@
     "listings.blocked.no_editor",
     "listings.blocked.sign_in",
     "listings.blocked.transition",
+    "listings.board.empty",
+    "listings.board.load_failed",
+    "listings.board.loading",
     "listings.card.favorite_add",
     "listings.card.favorite_remove",
     "listings.card.no_photo",
@@ -1304,6 +1326,7 @@
       "LISTING_STATUSES",
       "LISTING_TRANSITIONS",
       "LOCATION_FIELD",
+      "ListingBoard",
       "ListingComposer",
       "ListingDetail",
       "ListingEngagementContext",
@@ -1404,6 +1427,7 @@
       "useFavorites",
       "useListing",
       "useListingActions",
+      "useListingBoard",
       "useListingCards",
       "useListingComposer",
       "useListingDetail",
@@ -1448,6 +1472,8 @@
       "LifecycleCaption",
       "ListingActionResponse",
       "ListingActionsBag",
+      "ListingBoardBag",
+      "ListingBoardParams",
       "ListingCard",
       "ListingComposerBag",
       "ListingDetailBag",
@@ -1514,6 +1540,7 @@
       "ShareTarget",
       "UseFavoritesOptions",
       "UseListingActionsOptions",
+      "UseListingBoardOptions",
       "UseListingComposerOptions",
       "UseListingDetailOptions",
       "UseListingEngagementOverlayOptions",

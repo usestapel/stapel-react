@@ -263,6 +263,9 @@ export const listingsI18nBundleRu: I18nDictionary = {
   "listings.mine.delete_confirm_body.final":
     "Оно исчезнет из кабинета, и вернуть его будет нельзя.",
 
+  "listings.board.loading": "Загружаем объявления…",
+  "listings.board.load_failed": "Не удалось загрузить объявления",
+  "listings.board.empty": "Здесь пока нет объявлений",
   "listings.favorites.title": "Избранное",
   "listings.favorites.loading": "Загружаем избранное…",
   "listings.favorites.load_failed": "Не удалось загрузить избранное",

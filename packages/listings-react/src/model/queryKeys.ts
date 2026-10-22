@@ -19,6 +19,9 @@ export interface ListingPageKey {
   readonly anchor: string | null;
   readonly direction: string | null;
   readonly limit: number | null;
+  /** The board's category narrowing, comma-joined; absent for every other
+   * list (and for the whole board), so their keys are unchanged. */
+  readonly categories?: string;
 }
 
 /** Normalize a page's parameters into its key. Exported because a test that

@@ -70,6 +70,7 @@ import { usePasskeyLogin } from "../headless/Passkey.js";
 import { passkeyFailureOf } from "../flows/errors.js";
 import { isWebauthnSupported } from "../webauthn.js";
 import { useCapabilities } from "../model/queries.js";
+import { useAfterSignIn } from "./afterSignIn.js";
 import { AUTH_I18N_KEYS } from "../i18n/keys.js";
 import type { AuthI18nKey } from "../i18n/keys.js";
 import {
@@ -194,6 +195,19 @@ export interface AuthPanelProps {
    */
   readonly showGuestEntry?: boolean;
   /**
+   * Called once when a sign-in on this panel lands (the session turns
+   * `authenticated` with a non-guest user while the panel is mounted). Hand
+   * it the router: `onAuthenticated={() => navigate(next ?? "/app")}`.
+   *
+   * Absent, the panel leaves the sign-in page itself: to a safe `?next=`
+   * path when the URL carries one, else to {@link afterSignInHref}. A panel
+   * that said "Verified" and stayed on `/login` was a dead end (Tier-0 e2e).
+   */
+  readonly onAuthenticated?: () => void;
+  /** Where the default {@link onAuthenticated} goes with no `?next=`.
+   * Default `"/"`. */
+  readonly afterSignInHref?: string;
+  /**
    * Who owns the frame (owner ruling 2026-09-02: pair visuals must never
    * force themselves on a host).
    *
@@ -306,6 +320,7 @@ export function AuthPanel(props: AuthPanelProps): ReactElement {
   // switch moves between them without a second route.
   const [picked, setPicked] = useState<"login" | "register" | null>(null);
   const variant = picked ?? props.variant ?? "login";
+  useAfterSignIn(props.onAuthenticated, props.afterSignInHref);
 
   // ── Passkey: the system prompt IS the first screen ──────────────────────
   //

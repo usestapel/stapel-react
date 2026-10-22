@@ -347,6 +347,9 @@ export const LISTINGS_I18N_KEYS = {
 
   // ── favourites ───────────────────────────────────────────────────────────
   favoritesTitle: "listings.favorites.title",
+  boardLoading: "listings.board.loading",
+  boardLoadFailed: "listings.board.load_failed",
+  boardEmpty: "listings.board.empty",
   favoritesLoading: "listings.favorites.loading",
   favoritesLoadFailed: "listings.favorites.load_failed",
   favoritesEmpty: "listings.favorites.empty",
@@ -599,6 +602,9 @@ export const listingsI18nBundleEn: Record<string, string> = {
   "listings.mine.delete_confirm_body.final":
     "It disappears from your dashboard and cannot be brought back.",
 
+  "listings.board.loading": "Loading listings…",
+  "listings.board.load_failed": "We could not load the listings",
+  "listings.board.empty": "No listings here yet",
   "listings.favorites.title": "Favourites",
   "listings.favorites.loading": "Loading your favourites…",
   "listings.favorites.load_failed": "We could not load your favourites",

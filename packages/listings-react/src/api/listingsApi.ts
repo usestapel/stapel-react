@@ -8,6 +8,7 @@ import type {
   ListingDraft,
   ListingDraftPatch,
   ListingOwnerTransition,
+  ListingBoardParams,
   ListingPageParams,
   ListingStatusInfo,
   MyCounters,
@@ -63,7 +64,7 @@ export interface ListingsApi {
    *    the "more from this category" strip a detail page may want.
    */
   list(
-    params?: ListingPageParams,
+    params?: ListingBoardParams,
     options?: { readonly signal?: AbortSignal }
   ): Promise<PaginatedListingCards>;
 
@@ -281,6 +282,14 @@ function pageQuery(
   };
 }
 
+/** The `?category_id=` half of a board query: one comma-separated value,
+ * like `?status=`; an empty set sends nothing (every category). */
+function categoryQuery(
+  ids: readonly string[] | undefined
+): Record<string, string> {
+  return ids !== undefined && ids.length > 0 ? { category_id: ids.join(",") } : {};
+}
+
 /**
  * The `?status=` half of a `my/listings` query.
  *
@@ -314,7 +323,10 @@ export function createListingsApi(client: StapelClient): ListingsApi {
     client,
 
     list: (params, options) =>
-      client.get(COLLECTION, { query: pageQuery(params), ...signal(options) }),
+      client.get(COLLECTION, {
+        query: { ...pageQuery(params), ...categoryQuery(params?.categoryIds) },
+        ...signal(options),
+      }),
 
     retrieve: (id, options) => client.get(listingPath(id), signal(options)),
 

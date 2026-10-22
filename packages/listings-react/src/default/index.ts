@@ -155,6 +155,8 @@ export type {
   ComposerLocationPickerProps,
 } from "./ListingComposerPage.js";
 export { MyListingsPane } from "./MyListingsPane.js";
+export { ListingBoardPane } from "./ListingBoardPane.js";
+export type { ListingBoardPaneProps } from "./ListingBoardPane.js";
 export type { MyListingsPaneProps, MyListingHrefRow } from "./MyListingsPane.js";
 export { FavoritesPane, FAVORITES_CARD_MIN } from "./FavoritesPane.js";
 export type {

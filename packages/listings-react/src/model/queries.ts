@@ -6,6 +6,7 @@ import type { ValidationBatchResult } from "@stapel/attributes-react";
 import type {
   ListingDetail,
   ListingDraft,
+  ListingBoardParams,
   ListingEngagementBatch,
   ListingPageParams,
   ListingStatusInfo,
@@ -109,12 +110,16 @@ export function useListingStatus(
  * still `failed` rather than stale rows pretending to be current.
  */
 export function useListingCards(
-  params?: ListingPageParams,
+  params?: ListingBoardParams,
   options?: { readonly enabled?: boolean }
 ): UseQueryResult<PaginatedListingCards, StapelApiError> {
   const api = useListingsApi();
+  const categories = params?.categoryIds?.join(",") ?? "";
   return useQuery({
-    queryKey: listingsQueryKeys.list(pageKey(params)),
+    queryKey: listingsQueryKeys.list({
+      ...pageKey(params),
+      ...(categories !== "" ? { categories } : {}),
+    }),
     queryFn: ({ signal }) => api.list(params, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: keepPreviousData,

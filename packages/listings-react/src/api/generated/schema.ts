@@ -10,15 +10,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Listings CRUD plus owner lifecycle actions and favorites.
-         *
-         *     Read and write live in one class, so the guest wall
-         *     (:func:`anonymous_write_refusal`, the ``ALLOW_ANONYMOUS_WRITES`` switch)
-         *     is applied per ACTION and never as a class permission: an anonymous
-         *     session must keep browsing and keep its favorites, and only the
-         *     authorship actions — ``create``, ``update``/``partial_update``,
-         *     ``save-draft``, ``publish`` — are the ones that turn a caller into a
-         *     seller.
+         * @description The published board, newest first, optionally per category.
          *
          *     **Permissions:** `IsAuthenticatedOrReadOnly`
          */
@@ -1607,6 +1599,8 @@ export interface operations {
             query?: {
                 /** @description Anchor value to paginate from (exclusive) */
                 anchor?: string;
+                /** @description Narrow the board to these categories: ids, comma-separated or the parameter repeated (a category page passes its own id and its descendants'). At most 200 ids; absent means every category. */
+                category_id?: string[];
                 /** @description Pagination direction */
                 direction?: "next" | "prev" | "center";
                 /** @description Number of items (default 100, max 1000) */
