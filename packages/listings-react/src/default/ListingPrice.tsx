@@ -22,9 +22,10 @@
  * back to the template literal either.
  *
  * The branch is decided by a context READ, and each arm is its own component,
- * so no hook is called conditionally. `@stapel/currencies-react` is an
- * OPTIONAL peer for exactly this reason: absent, only the plain arm ever
- * mounts.
+ * so no hook is called conditionally. `@stapel/currencies-react` is a
+ * REQUIRED peer: the static import below must resolve at the host's bundle
+ * time, which an optional peer cannot promise (vite fails the build on a
+ * missing optional peer's named import).
  */
 import { useContext } from "react";
 import type { ReactElement } from "react";

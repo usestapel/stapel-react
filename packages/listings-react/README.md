@@ -261,11 +261,11 @@ than dependencies:
 
 ```tsx
 const [categoryId, setCategoryId] = useState<number | null>(null);
-const gallery = useUploadQueue({ max: 10 });        // @stapel/cdn-react
+const gallery = useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 });        // @stapel/cdn-react
 const features = useCategoryFeatures(categoryId);   // @stapel/categories-react
 
 <ListingComposerPage
-  features={features.data ?? []}
+  features={features.data?.features ?? []}
   featuresLoading={features.isPending}
   featuresError={features.error ?? undefined}
   images={gallery}

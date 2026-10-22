@@ -63,7 +63,7 @@ spelled as different prop sets so that "both" cannot be written:
 <MediaGalleryField max={10} onRefsChange={(refs) => form.set("images_draft", refs)} />
 
 // beside a composer: the CALLER owns it, and both halves see one queue
-const gallery = useUploadQueue({ max: 10 });
+const gallery = useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 });
 <ListingComposerPage images={gallery} gallerySlot={<MediaGalleryField bag={gallery} />} … />
 ```
 

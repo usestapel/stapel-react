@@ -86,9 +86,6 @@
     "react": ">=19"
   },
   "peerDependenciesMeta": {
-    "@stapel/currencies-react": {
-      "optional": true
-    },
     "@stapel/tokens-antd": {
       "optional": true
     },

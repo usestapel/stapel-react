@@ -171,7 +171,7 @@ UNION — `{ bag }` or `{ max, target, initialRefs, onRefsChange }` — so a cal
 cannot ask for both, and a composer's wiring is:
 
 ```tsx
-const gallery = useUploadQueue({ max: 10 });
+const gallery = useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 });
 <ListingComposerPage images={gallery} gallerySlot={<MediaGalleryField bag={gallery} />} … />
 ```
 
