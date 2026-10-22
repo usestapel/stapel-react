@@ -331,7 +331,7 @@ describe("the owner's own rows come off the contract's own route", () => {
     // An anchor belongs to ONE ordered candidate set: carried across a tab
     // change it either bounces or honestly returns page four of a different
     // list.
-    const asked: { tab: string; anchor: string | undefined }[] = [];
+    const asked: { tab: string; anchor: string | number | undefined }[] = [];
     const srv = mockServer(dashboard());
     render(
       <TestProviders server={srv}>
