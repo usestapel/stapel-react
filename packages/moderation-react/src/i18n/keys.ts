@@ -63,6 +63,11 @@ export const MODERATION_I18N_KEYS = {
   reportBlockedInFlight: "moderation.report.blockedInFlight",
   reportBlockedVisitor: "moderation.report.blockedVisitor",
   reportBlockedReported: "moderation.report.blockedReported",
+  reportBlockedContact: "moderation.report.blockedContact",
+  reportContactEmail: "moderation.report.contactEmail",
+  reportContactEmailHint: "moderation.report.contactEmailHint",
+  reportContactRequired: "moderation.report.contactRequired",
+  reportCaptchaFailed: "moderation.report.captchaFailed",
   reportDone: "moderation.report.done",
 
   // ── my reports ────────────────────────────────────────────────────────
@@ -399,6 +404,14 @@ export const moderationI18nBundleEn: I18nDictionary = {
   "moderation.report.blockedInFlight": "Sending…",
   "moderation.report.blockedVisitor": "Sign in to send a report.",
   "moderation.report.blockedReported": "You have already reported this.",
+  "moderation.report.blockedContact": "Enter an email address so we can answer you.",
+  "moderation.report.contactEmail": "Your email",
+  "moderation.report.contactEmailHint":
+    "We send the outcome here. You do not need an account.",
+  "moderation.report.contactRequired":
+    "An email address is needed to send a report without an account.",
+  "moderation.report.captchaFailed":
+    "The check did not pass. Complete it again and resend.",
   "moderation.report.done": "Close",
 
   "moderation.reports.title": "Reports you sent",

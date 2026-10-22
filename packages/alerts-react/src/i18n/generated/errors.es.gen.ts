@@ -53,6 +53,7 @@ export const alertsErrorBundleEs: Record<AlertsErrorCode, string> = {
   "error.410.gone": "El recurso se ha eliminado permanentemente",
   "error.413.payload_too_large": "El cuerpo de la solicitud es demasiado grande",
   "error.415.unsupported_media_type": "Tipo de contenido no compatible",
+  "error.422.alerts_report_not_storable": "No se pudieron almacenar {events} evento(s) de este informe y se descartaron",
   "error.422.unprocessable_entity": "Entidad no procesable",
   "error.423.locked": "El recurso está bloqueado",
   "error.423.verification_locked": "Demasiados intentos fallidos — verificación bloqueada",

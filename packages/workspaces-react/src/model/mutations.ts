@@ -18,7 +18,7 @@ import type {
   PreferredWorkspaceResult,
   Workspace,
   WorkspaceCreate,
-  WorkspaceSecuritySettings,
+  WorkspaceSecurityPatch,
   WorkspaceUpdate,
 } from "../api/types.js";
 import { useWorkspacesApi } from "./context.js";
@@ -60,6 +60,10 @@ export function useCreateWorkspace(): UseMutationResult<
 /**
  * Partially update a workspace — writes the fresh row into its detail cache and
  * refreshes the list (name / slug may have changed there too).
+ *
+ * `settings` merges on the server (stapel-workspaces 0.37.0): send only the
+ * keys that change, and `null` to remove one. A change to `settings.security`
+ * belongs to {@link useUpdateSecuritySettings} (extra capability + step-up).
  */
 export function useUpdateWorkspace(
   workspaceId: string
@@ -469,34 +473,35 @@ export function useResetMemberPassword(
  * deliberate, auditable choice ("demand nothing"), so it is sent as such and
  * never dropped as "empty means unset".
  *
- * MERGES, because the backend does not: `PATCH` assigns `settings` wholesale
- * (`ws.settings = data.settings`), so sending a bare `{security: …}` would
- * silently drop every other key the workspace holds. The merge reads the
- * workspace fresh rather than trusting the detail cache — a stale snapshot
- * here would resurrect settings somebody else has since removed.
+ * Sends ONLY the change. Since stapel-workspaces 0.37.0 `PATCH` merges
+ * `settings` (top-level keys, and the `security` block one level deeper): a
+ * key not sent is kept and a key sent as `null` is removed. So the body is
+ * `{settings: {security: <patch>}}` with no read before it. The old
+ * read-merge-write sent every stored key back, which raced a concurrent
+ * edit (a key somebody had just removed came back) and, under the merge,
+ * can no longer remove anything by leaving it out. To remove a key, send
+ * it as `null`.
+ *
+ * Step-up: the backend compares the RESULT, so a patch that leaves
+ * `security` as stored needs no step-up, and any real change needs
+ * `workspace.security.manage` plus the `sensitive` step-up.
  */
 export function useUpdateSecuritySettings(
   workspaceId: string
-): UseMutationResult<Workspace, StapelApiError, WorkspaceSecuritySettings> {
+): UseMutationResult<Workspace, StapelApiError, WorkspaceSecurityPatch> {
   const api = useWorkspacesApi();
   const queryClient = useQueryClient();
   const options: UseMutationOptions<
     Workspace,
     StapelApiError,
-    WorkspaceSecuritySettings
+    WorkspaceSecurityPatch
   > = {
-    mutationFn: async (patch) => {
-      const current = await api.getWorkspace(workspaceId);
-      const settings = (current.settings ?? {}) as Record<string, unknown>;
-      const security = (settings["security"] ?? {}) as Record<string, unknown>;
+    mutationFn: (patch) => {
       // `policies_configured` is derived and read-only on the wire — never
-      // sent back, whatever a caller spread into the patch.
-      const { policies_configured: _derived, ...writable } = {
-        ...security,
-        ...patch,
-      };
+      // sent, whatever a caller spread into the patch.
+      const { policies_configured: _derived, ...writable } = patch;
       return api.updateWorkspace(workspaceId, {
-        settings: { ...settings, security: writable },
+        settings: { security: writable },
       });
     },
     onSuccess: (updated) => {

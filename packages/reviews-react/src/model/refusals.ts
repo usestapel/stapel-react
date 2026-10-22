@@ -74,6 +74,17 @@ export const REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED =
   "error.403.reviews_anonymous_not_allowed";
 /** The type's `can_moderate` callback said no (fail-closed when unset). */
 export const REVIEWS_ERROR_CANNOT_MODERATE = "error.403.reviews_cannot_moderate";
+/**
+ * The reply door refused this actor (stapel-reviews 0.8.0): the target type's
+ * `can_respond` callback said no, or, when it names none, the actor is not
+ * the stamped owner of the reviewed item.
+ */
+export const REVIEWS_ERROR_CANNOT_RESPOND = "error.403.reviews_cannot_respond";
+/**
+ * The author owns the item they tried to review and the target type does not
+ * set `allow_self_review` (stapel-reviews 0.8.0, default off).
+ */
+export const REVIEWS_ERROR_SELF_REVIEW = "error.403.reviews_self_review";
 /** No review with that id. */
 export const REVIEWS_ERROR_NOT_FOUND = "error.404.reviews_review_not_found";
 /** Responses are switched off for this target type. */
@@ -154,9 +165,24 @@ export function isReviewingForbidden(error: unknown): boolean {
   return isErrorCode(toReviewsError(error), REVIEWS_ERROR_CANNOT_REVIEW);
 }
 
+/** The author owns what they tried to review (`allow_self_review` is off). */
+export function isSelfReview(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_SELF_REVIEW);
+}
+
 /**
- * The type's `can_moderate` callback refused this actor — for a moderation
- * verdict OR for the owner's reply, which share the gate.
+ * The reply door refused this actor: `can_respond`, or the stamped owner when
+ * the target type names no callback. Fail-closed like the moderation gate, so
+ * a mis-offered reply box costs this 403, never a reply from a stranger.
+ */
+export function isRespondForbidden(error: unknown): boolean {
+  return isErrorCode(toReviewsError(error), REVIEWS_ERROR_CANNOT_RESPOND);
+}
+
+/**
+ * The type's `can_moderate` callback refused this actor for a moderation
+ * verdict. The owner's reply has its own gate since stapel-reviews 0.8.0
+ * ({@link isRespondForbidden}).
  *
  * Worth its own predicate rather than a generic "403": the callback is
  * **fail-closed** (`registry.check_can_moderate` denies everyone when a target

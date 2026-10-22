@@ -165,6 +165,12 @@ export interface SubmitReportBody {
   readonly goodFaith?: boolean;
   /** Where the answer goes when the reporter has no account. */
   readonly contactEmail?: string;
+  /**
+   * The token the host's captcha widget produced, for a guest report (backend
+   * 0.8.4 verifies it through core's verifier). An account's report ignores
+   * it, and a deployment with no verifier accepts the report without one.
+   */
+  readonly captchaToken?: string;
   /** The opaque tenant/area partition. */
   readonly scopeKey?: string;
   /**
@@ -297,6 +303,9 @@ export function createModerationApi(client: StapelClient): ModerationApi {
           : {}),
         ...(body.scopeKey !== undefined ? { scope_key: body.scopeKey } : {}),
         ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+        ...(body.captchaToken !== undefined
+          ? { captcha_token: body.captchaToken }
+          : {}),
       }),
 
     myReports: (page, options) =>

@@ -78,10 +78,12 @@ function addressQuery(params: ReviewListAddressing): Record<string, string> {
  *
  * ── The two write operations a CONSOLE reaches ────────────────────────────
  *
- * `POST /reviews/{id}/moderate` (hide/publish) and `POST /reviews/{id}/response`
- * (the target owner's single reply) are both gated on the target type's
+ * `POST /reviews/{id}/moderate` (hide/publish) is gated on the target type's
  * `can_moderate` callback, which is **fail-closed**: a type that names no
- * callback denies everyone (`registry.check_can_moderate`). This pair used to
+ * callback denies everyone (`registry.check_can_moderate`). `POST
+ * /reviews/{id}/response` (the target owner's single reply) has its own gate
+ * since stapel-reviews 0.8.0: the `can_respond` callback, or the stamped
+ * owner when the type names none (`error.403.reviews_cannot_respond`). This pair used to
  * omit them on the grounds that they belong to consoles it does not ship — and
  * the consequence was that stapel-reviews' moderation queue and the seller's
  * single reply were backend-only capabilities with no user-reachable surface
@@ -233,9 +235,9 @@ export interface ReviewsApi {
    * reads the way a naive client expects, in a module where the duplicate
    * REVIEW is a 400. A deployment may also switch replies off per target type
    * (`allow_response`), which is `error.400.reviews_response_not_allowed`, and
-   * the ownership gate is the same fail-closed `can_moderate` callback
-   * moderation uses — so the seller's reply and the moderator's verdict are
-   * refused with the same 403 code.
+   * the reply gate is the type's `can_respond` callback, or the stamped
+   * owner when it names none (stapel-reviews 0.8.0), refused as
+   * `error.403.reviews_cannot_respond`.
    */
   respond(
     reviewId: string,

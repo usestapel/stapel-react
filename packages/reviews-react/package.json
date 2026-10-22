@@ -58,9 +58,9 @@
       "limit": "7.5 KB"
     },
     {
-      "name": "default — the antd skin (list, stars, form, moderation queue, reply composer) must stay out of the main bundle",
+      "name": "default — the antd skin (list, stars, form, moderation queue, reply composer) must stay out of the main bundle. Raised 10 -> 10.2 KB (measured 10.04 KB) for the 0.8.0 refusals: the reply door's own 403 and the self-review gate reason",
       "path": "dist/default/index.js",
-      "limit": "10 KB"
+      "limit": "10.2 KB"
     },
     {
       "name": "i18n/ru — the Russian bundle is opt-in, not carried by the main entry",

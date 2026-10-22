@@ -64,6 +64,13 @@ export const MODERATION_ERROR_UNKNOWN_TARGET_TYPE =
 /** An anonymous report needs somewhere to send the answer. A **400**. */
 export const MODERATION_ERROR_CONTACT_REQUIRED =
   "error.400.moderation_contact_required";
+/**
+ * Core's cross-cutting captcha keys. A guest report under
+ * `ALLOW_ANONYMOUS_REPORTS` owes a captcha whenever the deployment configured a
+ * verifier (moderation 0.8.4, core's verifier). **400**.
+ */
+export const MODERATION_ERROR_CAPTCHA_REQUIRED = "error.400.captcha_required";
+export const MODERATION_ERROR_CAPTCHA_INVALID = "error.400.captcha_invalid";
 /** The attached snapshot is not accepted here (evidence-based types). **400**. */
 export const MODERATION_ERROR_EVIDENCE_INVALID =
   "error.400.moderation_evidence_invalid";
@@ -158,6 +165,22 @@ export function toModerationError(error: unknown): FlowError {
 
 const is = (error: unknown, code: string): boolean =>
   isErrorCode(toModerationError(error), code);
+
+/** A guest report came without the contact address it owes (Art. 16(2)(c)). */
+export function isContactRequired(error: unknown): boolean {
+  return is(error, MODERATION_ERROR_CONTACT_REQUIRED);
+}
+
+/**
+ * The guest report's captcha was missing or rejected. Both core keys, one
+ * remedy: run the host's challenge again and resend.
+ */
+export function isCaptchaRefusal(error: unknown): boolean {
+  return (
+    is(error, MODERATION_ERROR_CAPTCHA_REQUIRED) ||
+    is(error, MODERATION_ERROR_CAPTCHA_INVALID)
+  );
+}
 
 /** You are reporting your own content. */
 export function isOwnContent(error: unknown): boolean {

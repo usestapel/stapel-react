@@ -1869,6 +1869,13 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationBatchResult"];
                 };
             };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     listings_api_v1_listings_save_draft_create: {

@@ -65,6 +65,18 @@ export interface UseReportOptions {
   /** The host's opaque id for the thing. Never parsed by the module. */
   readonly targetKey: string;
   readonly scopeKey?: string;
+  /**
+   * The deployment opened `STAPEL_MODERATION['ALLOW_ANONYMOUS_REPORTS']`, so
+   * a visitor may file without an account (backend 0.8.4). The policy read
+   * does not carry the switch, so the host states it. A guest owes a contact
+   * address, and a captcha whenever the deployment configured a verifier.
+   */
+  readonly allowGuest?: boolean;
+  /**
+   * The token the host's captcha widget produced. Sent only on a guest
+   * report. This package ships no captcha and does not know the provider.
+   */
+  readonly captchaToken?: string;
 }
 
 /** Everything the report sheet renders and every reason it may be blocked. */
@@ -83,12 +95,22 @@ export interface ReportBag {
   readonly setGoodFaith: (value: boolean) => void;
   /** Settled "there is no session" — not "we have not looked yet". */
   readonly visitor: boolean;
+  /** A visitor who may file anyway (`allowGuest`): asked for a contact. */
+  readonly guest: boolean;
+  readonly contactEmail: string;
+  readonly setContactEmail: (email: string) => void;
   readonly submit: ActionAvailability;
   readonly run: () => void;
   readonly state: ReportFlowState;
   readonly refetchPolicy: () => void;
   readonly reset: () => void;
 }
+
+/**
+ * Enough of an address to send, not a validator: the server's `EmailField`
+ * decides. It keeps "a" and "@" from being sent as somebody's contact.
+ */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** The reason a code names, once the policy is actually loaded. */
 function pickReason(
@@ -111,6 +133,7 @@ export function useReport(options: UseReportOptions): ReportBag {
   const [reasonCode, setReasonCodeState] = useState("");
   const [description, setDescriptionState] = useState("");
   const [goodFaith, setGoodFaith] = useState(false);
+  const [contactEmail, setContactEmail] = useState("");
   // A 409 is not a fault: it is a fact about this target that outlives the
   // request, so it is remembered rather than re-derived from the last error.
   const [alreadyReported, setAlreadyReported] = useState(false);
@@ -121,6 +144,8 @@ export function useReport(options: UseReportOptions): ReportBag {
   // fact from "there is no session" and must not gate the control.
   const visitor =
     sessionStatus === "anonymous" || sessionStatus === "unauthenticated";
+  const guest = visitor && options.allowGuest === true;
+  const contact = contactEmail.trim();
 
   const refetchPolicy = useCallback(() => {
     void query.refetch();
@@ -146,7 +171,12 @@ export function useReport(options: UseReportOptions): ReportBag {
   );
 
   const submit = firstBlock(
-    visitor ? actionBlocked(MODERATION_I18N_KEYS.reportBlockedVisitor) : actionAvailable(),
+    visitor && !guest
+      ? actionBlocked(MODERATION_I18N_KEYS.reportBlockedVisitor)
+      : actionAvailable(),
+    guest && !EMAIL_SHAPE.test(contact)
+      ? actionBlocked(MODERATION_I18N_KEYS.reportBlockedContact)
+      : actionAvailable(),
     alreadyReported
       ? actionBlocked(MODERATION_I18N_KEYS.reportBlockedReported)
       : actionAvailable(),
@@ -175,6 +205,10 @@ export function useReport(options: UseReportOptions): ReportBag {
           goodFaith,
           ...(trimmed !== "" ? { description: trimmed } : {}),
           ...(options.scopeKey !== undefined ? { scopeKey: options.scopeKey } : {}),
+          ...(guest ? { contactEmail: contact } : {}),
+          ...(guest && options.captchaToken !== undefined
+            ? { captchaToken: options.captchaToken }
+            : {}),
         }),
       {
         resolve: (result) => ({
@@ -195,9 +229,12 @@ export function useReport(options: UseReportOptions): ReportBag {
       }
     );
   }, [
+    contact,
     description,
     goodFaith,
+    guest,
     machine,
+    options.captchaToken,
     options.scopeKey,
     options.targetKey,
     options.targetType,
@@ -211,6 +248,7 @@ export function useReport(options: UseReportOptions): ReportBag {
     setReasonCodeState("");
     setDescriptionState("");
     setGoodFaith(false);
+    setContactEmail("");
     machine.to({ step: "choosing_reason" });
   }, [machine]);
 
@@ -227,6 +265,9 @@ export function useReport(options: UseReportOptions): ReportBag {
     goodFaith,
     setGoodFaith,
     visitor,
+    guest,
+    contactEmail,
+    setContactEmail,
     submit,
     run,
     state,

@@ -378,6 +378,21 @@ export class ChatServer {
     this.socket.serverClose(4410);
   }
 
+  /**
+   * The periodic re-authorization (`_reauthorize_loop`, stapel-realtime
+   * 0.2.3) found the right gone: `error{code=unauthorized}`, then 4403 on a
+   * socket that was accepted long ago and sent no new `hello`.
+   */
+  loseAccess(): void {
+    this.error("unauthorized", "no longer authorized for this stream");
+    this.socket.serverClose(4403);
+  }
+
+  /** The re-authorization itself raised: 1011, which is NOT a verdict. */
+  authorizerFailed(): void {
+    this.socket.serverClose(1011);
+  }
+
   private sendJournal(type: string, seq: number, payload: Record<string, unknown>): void {
     if (seq <= this.maxSeqSent) return; // consumers.py::send_frame dedup
     this.maxSeqSent = seq;

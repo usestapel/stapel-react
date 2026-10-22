@@ -12,6 +12,7 @@ import type { MockServer } from "./harness.js";
 import {
   ALREADY_RESPONDED_409,
   DUPLICATE_400,
+  SELF_REVIEW_403,
   TARGET,
   UNAUTHENTICATED_401,
   review,
@@ -141,6 +142,20 @@ describe("the duplicate refusal", () => {
       );
     });
     expect(screen.getByTestId("duplicate").textContent).toBe("false");
+  });
+});
+
+describe("the self-review refusal (stapel-reviews 0.8.0)", () => {
+  it("is a named gate reason, not a generic error", async () => {
+    renderForm(mockServer({ "POST /reviews": SELF_REVIEW_403 }));
+    fireEvent.click(screen.getByTestId("rate"));
+    fireEvent.click(screen.getByTestId("submit"));
+    await waitFor(() => {
+      expect(screen.getByTestId("gate").textContent).toBe(
+        "reviews.submit.blocked.self_review"
+      );
+    });
+    expect(screen.getByTestId("error").textContent).toBe("none");
   });
 });
 

@@ -18,6 +18,7 @@ import {
   ALREADY_RESPONDED_409,
   DUPLICATE_400,
   FIRST_PAGE,
+  CANNOT_RESPOND_403,
   FORBIDDEN_403,
   RATED,
   TARGET,
@@ -546,6 +547,25 @@ describe("<ReviewResponseComposer>", () => {
     fireEvent.click(screen.getByTestId("reviews-response-submit"));
     await waitFor(() => {
       expect(screen.getByText("This review already has a reply")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("reviews-response-failed")).toBeNull();
+  });
+
+  it("reads the reply door's own 403 (can_respond) as 'not the owner', not a banner", async () => {
+    const server = mockServer({ "POST /response": CANNOT_RESPOND_403 });
+    render(
+      <TestProviders server={server}>
+        <ReviewResponseComposer target={TARGET} review={review()} canRespond />
+      </TestProviders>
+    );
+    fireEvent.change(screen.getByTestId("reviews-response-body"), {
+      target: { value: "Thanks" },
+    });
+    fireEvent.click(screen.getByTestId("reviews-response-submit"));
+    await waitFor(() => {
+      expect(
+        screen.getByText("The server does not accept you as the owner of this item")
+      ).toBeTruthy();
     });
     expect(screen.queryByTestId("reviews-response-failed")).toBeNull();
   });

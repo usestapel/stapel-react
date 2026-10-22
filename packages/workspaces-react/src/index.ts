@@ -162,6 +162,7 @@ export type {
   DisplayNameResult,
   ProvisionedUserPolicy,
   WorkspaceSecuritySettings,
+  WorkspaceSecurityPatch,
   RoleInfo,
   RoleList,
   WorkspaceRole,

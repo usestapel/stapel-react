@@ -25,6 +25,8 @@ import {
   isCaseResolved,
   isClaimedByAnother,
   isDescriptionRequired,
+  isCaptchaRefusal,
+  isContactRequired,
   isEvidenceInvalid,
   isNotAppellant,
   isNotClaimant,
@@ -52,6 +54,8 @@ export function reportRefusalKey(error: unknown): string | undefined {
     return MODERATION_I18N_KEYS.reportUnknownTargetType;
   }
   if (isEvidenceInvalid(error)) return MODERATION_I18N_KEYS.reportEvidenceInvalid;
+  if (isContactRequired(error)) return MODERATION_I18N_KEYS.reportContactRequired;
+  if (isCaptchaRefusal(error)) return MODERATION_I18N_KEYS.reportCaptchaFailed;
   return undefined;
 }
 

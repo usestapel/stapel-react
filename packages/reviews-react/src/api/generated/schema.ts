@@ -94,8 +94,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Attach the target owner's single reply to a review (owner-only via the
-         *     target type's can_moderate callback; gated by the allow_response policy).
+         * @description Attach the target owner's single reply to a review (the target type's
+         *     can_respond callback, or the target owner when it names none; gated by
+         *     the allow_response policy).
          *
          *     **Permissions:** `IsAuthenticated`
          */

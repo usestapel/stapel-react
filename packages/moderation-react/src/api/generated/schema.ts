@@ -266,14 +266,14 @@ export interface paths {
         /**
          * @description File a complaint, or list the ones you filed.
          *
-         *     **Permissions:** `IsNotAnonymousUser`
+         *     **Permissions:** `ReportIntakePermission`
          */
         get: operations["moderation_api_v1_reports_list"];
         put?: never;
         /**
          * @description File a complaint, or list the ones you filed.
          *
-         *     **Permissions:** `IsNotAnonymousUser`
+         *     **Permissions:** `ReportIntakePermission`
          */
         post: operations["moderation_api_v1_reports_create"];
         delete?: never;
@@ -538,6 +538,8 @@ export interface components {
             /** @default  */
             scope_key: string;
             evidence?: unknown;
+            /** @default  */
+            captcha_token: string;
         };
         /** @description Presents one complaint to a moderator. */
         ReportPresenterDTO: {

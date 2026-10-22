@@ -4,7 +4,7 @@
   "version": "0.1.1",
   "backend": {
     "module": "stapel-alerts",
-    "contract": ">=0.2 <0.3"
+    "contract": ">=0.4 <0.5"
   },
   "layers": [
     "api",
@@ -311,6 +311,13 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.422.alerts_report_not_storable": {
+      "status": 422,
+      "params": [
+        "events"
+      ],
+      "remediation": "wait_and_retry"
+    },
     "error.422.unprocessable_entity": {
       "status": 422,
       "params": [],
@@ -590,6 +597,7 @@
     "error.410.gone",
     "error.413.payload_too_large",
     "error.415.unsupported_media_type",
+    "error.422.alerts_report_not_storable",
     "error.422.unprocessable_entity",
     "error.423.locked",
     "error.423.verification_locked",

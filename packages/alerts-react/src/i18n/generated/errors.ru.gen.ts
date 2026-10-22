@@ -53,6 +53,7 @@ export const alertsErrorBundleRu: Record<AlertsErrorCode, string> = {
   "error.410.gone": "Ресурс был безвозвратно удалён",
   "error.413.payload_too_large": "Тело запроса слишком большое",
   "error.415.unsupported_media_type": "Неподдерживаемый тип данных",
+  "error.422.alerts_report_not_storable": "Не удалось сохранить {events} событ. из этого отчёта — они отброшены",
   "error.422.unprocessable_entity": "Невозможно обработать данные запроса",
   "error.423.locked": "Ресурс заблокирован",
   "error.423.verification_locked": "Слишком много неудачных попыток — подтверждение заблокировано",

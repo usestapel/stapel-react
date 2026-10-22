@@ -364,6 +364,14 @@ export interface operations {
                     "application/json": components["schemas"]["StapelError"];
                 };
             };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StapelError"];
+                };
+            };
         };
     };
     unregister_device_token: {

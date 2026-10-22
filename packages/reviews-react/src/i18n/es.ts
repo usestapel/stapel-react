@@ -71,6 +71,7 @@ export const reviewsI18nBundleEs: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "Ya has valorado esto",
   "reviews.submit.blocked.submitted": "Tu reseña se ha enviado",
   "reviews.submit.blocked.forbidden": "No puedes reseñar esto",
+  "reviews.submit.blocked.self_review": "No puedes reseñar algo que te pertenece",
   "reviews.submit.blocked.sign_in": "Inicia sesión para dejar una reseña",
   "reviews.submit.blocked.mandate_unknown": "Comprobando tu cuenta…",
 

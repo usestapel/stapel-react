@@ -10,6 +10,11 @@
  * and why, and finds the sign-in door beside the submit — instead of a control
  * that vanished and taught them nothing.
  *
+ * When the deployment accepts guest reports (`allowGuest`, backend 0.8.4),
+ * the door gives way to a contact address field: the answer has to reach a
+ * person with no account, and the captcha token comes from the host's widget
+ * (`captchaToken`).
+ *
  * ── The description box is always visible ─────────────────────────────────
  *
  * `requires_description` marks it REQUIRED; it does not make it appear. A box
@@ -56,6 +61,18 @@ export interface ReportSheetProps extends ThemeModeProp, SignInCtaProp {
   readonly targetKey: string;
   /** The tenant/area partition, when the host runs more than one. */
   readonly scopeKey?: string;
+  /**
+   * The deployment accepts guest reports (`ALLOW_ANONYMOUS_REPORTS`). A
+   * visitor then files with a contact address instead of meeting the
+   * sign-in door.
+   */
+  readonly allowGuest?: boolean;
+  /**
+   * The token the host's captcha widget produced, for a guest report. Render
+   * the widget beside the sheet; absent is legal on a deployment with no
+   * captcha verifier.
+   */
+  readonly captchaToken?: string;
   readonly "data-testid"?: string;
 }
 
@@ -68,6 +85,8 @@ export function ReportSheet(props: ReportSheetProps): ReactElement {
     targetType: props.targetType,
     targetKey: props.targetKey,
     ...(props.scopeKey !== undefined ? { scopeKey: props.scopeKey } : {}),
+    ...(props.allowGuest !== undefined ? { allowGuest: props.allowGuest } : {}),
+    ...(props.captchaToken !== undefined ? { captchaToken: props.captchaToken } : {}),
   });
 
   const { onClose } = props;
@@ -147,7 +166,26 @@ export function ReportSheet(props: ReportSheetProps): ReactElement {
           </Flex>
         ) : (
           <Flex vertical gap={spacing["3"]}>
-            {bag.visitor ? (
+            {bag.guest ? (
+              <Flex vertical gap={spacing["1"]}>
+                <Typography.Text strong>
+                  {t(MODERATION_I18N_KEYS.reportContactEmail)}
+                </Typography.Text>
+                <Typography.Text type="secondary">
+                  {t(MODERATION_I18N_KEYS.reportContactEmailHint)}
+                </Typography.Text>
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  value={bag.contactEmail}
+                  aria-label={t(MODERATION_I18N_KEYS.reportContactEmail)}
+                  data-testid={`${testId}-contact-email`}
+                  onChange={(event) => {
+                    bag.setContactEmail(event.target.value);
+                  }}
+                />
+              </Flex>
+            ) : bag.visitor ? (
               <ErrorAlert
                 variant="inline"
                 testId={`${testId}-visitor`}

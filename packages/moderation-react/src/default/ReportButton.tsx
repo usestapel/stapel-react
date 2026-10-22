@@ -35,6 +35,10 @@ export interface ReportButtonProps extends ThemeModeProp, SignInCtaProp {
   readonly targetType: string;
   readonly targetKey: string;
   readonly scopeKey?: string;
+  /** Guest reports are open on this deployment — see `ReportSheetProps`. */
+  readonly allowGuest?: boolean;
+  /** The host captcha widget's token for a guest report. */
+  readonly captchaToken?: string;
   /** Icon only, for a card's action row where the word does not fit. The
    * accessible name stays — it moves from the label to `aria-label`. */
   readonly compact?: boolean;
@@ -84,6 +88,10 @@ export function ReportButton(props: ReportButtonProps): ReactElement {
           targetKey={props.targetKey}
           data-testid={`${testId}-sheet`}
           {...(props.scopeKey !== undefined ? { scopeKey: props.scopeKey } : {})}
+          {...(props.allowGuest !== undefined ? { allowGuest: props.allowGuest } : {})}
+          {...(props.captchaToken !== undefined
+            ? { captchaToken: props.captchaToken }
+            : {})}
           {...(props.signIn !== undefined ? { signIn: props.signIn } : {})}
           {...(props.mode !== undefined ? { mode: props.mode } : {})}
         />

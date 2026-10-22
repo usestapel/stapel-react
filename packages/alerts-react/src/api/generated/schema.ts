@@ -144,7 +144,7 @@ export interface components {
             readonly title: string;
             readonly culprit: string;
             readonly exception_class: string;
-            readonly status: components["schemas"]["Status295Enum"];
+            readonly status: components["schemas"]["IssueStatusEnum"];
             readonly note: string;
             readonly count: number;
             readonly count_since_fix: number;
@@ -174,7 +174,7 @@ export interface components {
             readonly title: string;
             readonly culprit: string;
             readonly exception_class: string;
-            readonly status: components["schemas"]["Status295Enum"];
+            readonly status: components["schemas"]["IssueStatusEnum"];
             readonly note: string;
             readonly count: number;
             readonly count_since_fix: number;
@@ -231,6 +231,14 @@ export interface components {
          * @enum {string}
          */
         IssuePatchStatusEnum: "new" | "fixed" | "muted";
+        /**
+         * @description * `new` - New
+         *     * `fixed` - Fixed
+         *     * `regressed` - Regressed
+         *     * `muted` - Muted
+         * @enum {string}
+         */
+        IssueStatusEnum: "new" | "fixed" | "regressed" | "muted";
         /**
          * @description * `exception` - Exception
          *     * `log` - Log
@@ -303,14 +311,6 @@ export interface components {
             /** @default  */
             exc_class: string;
         };
-        /**
-         * @description * `new` - New
-         *     * `fixed` - Fixed
-         *     * `regressed` - Regressed
-         *     * `muted` - Muted
-         * @enum {string}
-         */
-        Status295Enum: "new" | "fixed" | "regressed" | "muted";
     };
     responses: never;
     parameters: never;

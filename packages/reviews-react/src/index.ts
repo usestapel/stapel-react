@@ -48,7 +48,7 @@
  *    consequence was that stapel-reviews' moderation queue and the seller's
  *    single reply existed on no screen in the fleet. Both are wired now,
  *    behind an explicit `canModerate` / `canRespond` capability the host
- *    declares and the server decides (the `can_moderate` callback is
+ *    declares and the server decides (`can_moderate` and `can_respond` are
  *    fail-closed, so a mis-offered control costs a 403, not a leak) — and a
  *    control the host has not armed renders switched off WITH its reason, not
  *    removed.
@@ -165,9 +165,11 @@ export {
   isDuplicateReview,
   isInvalidModerationAction,
   isModerationForbidden,
+  isRespondForbidden,
   isResponseNotAllowed,
   isReviewGone,
   isReviewingForbidden,
+  isSelfReview,
   isSignInRequired,
   isTooManyOwnerKeys,
   isUnknownTargetType,
@@ -175,12 +177,14 @@ export {
   REVIEWS_ERROR_AMBIGUOUS_ADDRESSING,
   REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED,
   REVIEWS_ERROR_CANNOT_MODERATE,
+  REVIEWS_ERROR_CANNOT_RESPOND,
   REVIEWS_ERROR_CANNOT_REVIEW,
   REVIEWS_ERROR_DUPLICATE,
   REVIEWS_ERROR_INVALID_MODERATION_ACTION,
   REVIEWS_ERROR_INVALID_RATING,
   REVIEWS_ERROR_NOT_FOUND,
   REVIEWS_ERROR_RESPONSE_NOT_ALLOWED,
+  REVIEWS_ERROR_SELF_REVIEW,
   REVIEWS_ERROR_TOO_MANY_OWNER_KEYS,
   REVIEWS_ERROR_UNKNOWN_TARGET_TYPE,
   toReviewsError,

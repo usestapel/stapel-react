@@ -233,3 +233,12 @@ export interface WorkspaceSecuritySettings {
   /** Extra keys pass through the backend verbatim (client extension). */
   readonly [extra: string]: unknown;
 }
+
+/**
+ * A change to `Workspace.settings.security` (stapel-workspaces 0.37.0 merge
+ * semantics): a key left out is kept, a key sent as `null` is removed. The
+ * derived `policies_configured` is never sent.
+ */
+export type WorkspaceSecurityPatch = {
+  readonly [K in keyof WorkspaceSecuritySettings]?: WorkspaceSecuritySettings[K] | null;
+};

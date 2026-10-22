@@ -93,6 +93,7 @@ export const REVIEWS_I18N_KEYS = {
   submitBlockedDuplicate: "reviews.submit.blocked.duplicate",
   submitBlockedSubmitted: "reviews.submit.blocked.submitted",
   submitBlockedForbidden: "reviews.submit.blocked.forbidden",
+  submitBlockedSelfReview: "reviews.submit.blocked.self_review",
   /** The mandate axis says this visitor has no account to attribute a review
    * to — said BEFORE the rating is typed, not after the POST is refused. */
   submitBlockedSignIn: "reviews.submit.blocked.sign_in",
@@ -154,7 +155,7 @@ export const REVIEWS_I18N_KEYS = {
   // The backend error keys stapel-reviews OWNS. They used to be localized
   // here, because the module shipped English only and its keys were absent
   // from the generated ru/es bundles. stapel-reviews 0.7.0 ships
-  // `translations/errors.ru.json` and `errors.es.json` for all twelve, so
+  // `translations/errors.ru.json` and `errors.es.json` for all of them, so
   // every one of them now arrives GENERATED, in all three locales, and this
   // pair authors none of them. They stay listed so `i18n-key-exists` knows
   // them and `test/i18n.test.ts` can prove the three bundles resolve them.
@@ -166,6 +167,8 @@ export const REVIEWS_I18N_KEYS = {
   errorUnknownTargetType: "error.400.reviews_unknown_target_type",
   errorAnonymousNotAllowed: "error.403.reviews_anonymous_not_allowed",
   errorCannotModerate: "error.403.reviews_cannot_moderate",
+  errorCannotRespond: "error.403.reviews_cannot_respond",
+  errorSelfReview: "error.403.reviews_self_review",
   errorCannotReview: "error.403.reviews_cannot_review",
   errorReviewNotFound: "error.404.reviews_review_not_found",
   errorAlreadyResponded: "error.409.reviews_already_responded",
@@ -258,6 +261,7 @@ export const reviewsI18nBundleEn: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "You have already rated this",
   "reviews.submit.blocked.submitted": "Your review has been sent",
   "reviews.submit.blocked.forbidden": "You cannot review this",
+  "reviews.submit.blocked.self_review": "You cannot review something you own",
   "reviews.submit.blocked.sign_in": "Sign in to leave a review",
   "reviews.submit.blocked.mandate_unknown": "Checking your account…",
 

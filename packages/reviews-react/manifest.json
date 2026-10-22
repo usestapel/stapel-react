@@ -4,7 +4,7 @@
   "version": "0.8.4",
   "backend": {
     "module": "stapel-reviews",
-    "contract": ">=0.7 <0.8"
+    "contract": ">=0.8 <0.9"
   },
   "layers": [
     "api",
@@ -303,7 +303,17 @@
       "params": [],
       "remediation": "retry"
     },
+    "error.403.reviews_cannot_respond": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
     "error.403.reviews_cannot_review": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.reviews_self_review": {
       "status": 403,
       "params": [],
       "remediation": "retry"
@@ -588,7 +598,9 @@
     "error.403.network_blocked",
     "error.403.reviews_anonymous_not_allowed",
     "error.403.reviews_cannot_moderate",
+    "error.403.reviews_cannot_respond",
     "error.403.reviews_cannot_review",
+    "error.403.reviews_self_review",
     "error.403.verification_enrollment_required",
     "error.403.verification_required",
     "error.404.ad_not_found",
@@ -691,6 +703,7 @@
     "reviews.submit.blocked.mandate_unknown",
     "reviews.submit.blocked.no_rating",
     "reviews.submit.blocked.pending",
+    "reviews.submit.blocked.self_review",
     "reviews.submit.blocked.sign_in",
     "reviews.submit.blocked.submitted"
   ],
@@ -703,6 +716,7 @@
       "REVIEWS_ERROR_AMBIGUOUS_ADDRESSING",
       "REVIEWS_ERROR_ANONYMOUS_NOT_ALLOWED",
       "REVIEWS_ERROR_CANNOT_MODERATE",
+      "REVIEWS_ERROR_CANNOT_RESPOND",
       "REVIEWS_ERROR_CANNOT_REVIEW",
       "REVIEWS_ERROR_CODES",
       "REVIEWS_ERROR_DUPLICATE",
@@ -710,6 +724,7 @@
       "REVIEWS_ERROR_INVALID_RATING",
       "REVIEWS_ERROR_NOT_FOUND",
       "REVIEWS_ERROR_RESPONSE_NOT_ALLOWED",
+      "REVIEWS_ERROR_SELF_REVIEW",
       "REVIEWS_ERROR_TOO_MANY_OWNER_KEYS",
       "REVIEWS_ERROR_UNKNOWN_TARGET_TYPE",
       "REVIEWS_I18N_KEYS",
@@ -734,9 +749,11 @@
       "isInvalidModerationAction",
       "isModeratedOut",
       "isModerationForbidden",
+      "isRespondForbidden",
       "isResponseNotAllowed",
       "isReviewGone",
       "isReviewingForbidden",
+      "isSelfReview",
       "isSignInRequired",
       "isTooManyOwnerKeys",
       "isUnknownTargetType",

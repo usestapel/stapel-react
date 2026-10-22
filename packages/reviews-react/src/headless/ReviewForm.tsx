@@ -18,6 +18,7 @@ import type { ReviewRatingBounds } from "../model/runtime.js";
 import {
   isDuplicateReview,
   isReviewingForbidden,
+  isSelfReview,
   isSignInRequired,
   toReviewsError,
 } from "../model/refusals.js";
@@ -76,6 +77,11 @@ export interface ReviewFormBag {
   readonly signInRequired: boolean;
   /** The type's `can_review` callback refused this author for this target. */
   readonly forbidden: boolean;
+  /**
+   * The author owns the reviewed item and the target type does not allow
+   * self-reviews (`error.403.reviews_self_review`, stapel-reviews 0.8.0).
+   */
+  readonly selfReview: boolean;
   /**
    * The refusal, for the error surface — `undefined` once it has been
    * translated into one of the named flags above AND that flag is what the
@@ -206,6 +212,7 @@ export function ReviewForm(props: ReviewFormProps): ReactElement {
   const failure = mutation.error ?? elevation.error ?? undefined;
   const duplicate = failure !== undefined && isDuplicateReview(failure);
   const forbidden = failure !== undefined && isReviewingForbidden(failure);
+  const selfReview = failure !== undefined && isSelfReview(failure);
   // Up front from the axis, or after the fact from the refusal — one state, so
   // the skin has one door to draw and the visitor one sentence to read.
   const signInRequired =
@@ -237,6 +244,9 @@ export function ReviewForm(props: ReviewFormProps): ReactElement {
       : actionAvailable(),
     forbidden
       ? actionBlocked(REVIEWS_I18N_KEYS.submitBlockedForbidden)
+      : actionAvailable(),
+    selfReview
+      ? actionBlocked(REVIEWS_I18N_KEYS.submitBlockedSelfReview)
       : actionAvailable()
   );
 
@@ -271,8 +281,13 @@ export function ReviewForm(props: ReviewFormProps): ReactElement {
         alreadyReviewed: alreadyKnown,
         signInRequired,
         forbidden,
+        selfReview,
         error:
-          failure === undefined || duplicate || forbidden || signInRequired
+          failure === undefined ||
+          duplicate ||
+          forbidden ||
+          selfReview ||
+          signInRequired
             ? undefined
             : toReviewsError(failure),
       })}

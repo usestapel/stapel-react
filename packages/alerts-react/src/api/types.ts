@@ -49,7 +49,7 @@ export type IssueLevel = Schemas["LevelEnum"];
 export type IssueKind = Schemas["KindEnum"];
 
 /** Where an issue is in its life — including the one nobody may assign. */
-export type IssueStatus = Schemas["Status295Enum"];
+export type IssueStatus = Schemas["IssueStatusEnum"];
 
 /** The statuses a CALLER may assign (`serializers.SETTABLE_STATUSES`). */
 export type SettableIssueStatus = Schemas["IssuePatchStatusEnum"];

@@ -89,6 +89,7 @@ export const reviewsI18nBundleRu: I18nDictionary = {
   "reviews.submit.blocked.duplicate": "Вы уже оценили это",
   "reviews.submit.blocked.submitted": "Ваш отзыв отправлен",
   "reviews.submit.blocked.forbidden": "Вы не можете оставить здесь отзыв",
+  "reviews.submit.blocked.self_review": "Нельзя оставить отзыв о том, что принадлежит вам",
   "reviews.submit.blocked.sign_in": "Войдите, чтобы оставить отзыв",
   "reviews.submit.blocked.mandate_unknown": "Проверяем вашу учётную запись…",
 

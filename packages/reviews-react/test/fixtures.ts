@@ -91,13 +91,25 @@ export const ANONYMOUS_NOT_ALLOWED_403 = {
   body: { localizable_error: "error.403.reviews_anonymous_not_allowed" },
 };
 
-/**
- * The fail-closed moderation gate saying no — to a VERDICT or to the owner's
- * REPLY, which share the callback and therefore share this code.
- */
+/** The fail-closed moderation gate saying no to a VERDICT. */
 export const FORBIDDEN_403 = {
   status: 403,
   body: { localizable_error: "error.403.reviews_cannot_moderate" },
+};
+
+/**
+ * The reply door saying no (stapel-reviews 0.8.0): `can_respond`, or the
+ * stamped owner when the target type names no callback.
+ */
+export const CANNOT_RESPOND_403 = {
+  status: 403,
+  body: { localizable_error: "error.403.reviews_cannot_respond" },
+};
+
+/** The author owns the item and `allow_self_review` is off (0.8.0). */
+export const SELF_REVIEW_403 = {
+  status: 403,
+  body: { localizable_error: "error.403.reviews_self_review" },
 };
 
 /** The reply already exists — and there is no endpoint that replaces it. */

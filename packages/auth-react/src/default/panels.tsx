@@ -40,6 +40,7 @@ import type { TotpProof } from "../flows/passwordLoginFlow.js";
 import type { QrLoginState } from "../flows/qrLoginFlow.js";
 import type { SsoState } from "../flows/ssoFlow.js";
 import { useCapabilities } from "../model/queries.js";
+import { useFormName } from "./formName.js";
 import { PasswordlessLogin } from "../headless/PasswordlessLogin.js";
 import { PasswordLogin } from "../headless/PasswordLogin.js";
 import { PasswordRegister } from "../headless/PasswordRegister.js";
@@ -226,10 +227,12 @@ function TotpStepForm(props: {
   "data-analytics": "flow";
 }): ReactElement {
   const t = useT();
+  const formName = useFormName("auth-totp");
   const fieldError = useFieldError();
   const [useBackup, setUseBackup] = useState(false);
   return (
     <Form
+      name={formName}
       layout="vertical"
       data-analytics={props["data-analytics"]}
       onFinish={(v: { proof?: string }) =>
@@ -285,6 +288,7 @@ export function OtpPanel(props: {
   hideChannelLabel?: boolean;
 }): ReactElement {
   const t = useT();
+  const formName = useFormName("auth-otp");
   const fieldError = useFieldError();
   const caps = useCapabilities();
   const { channel } = props;
@@ -366,6 +370,7 @@ export function OtpPanel(props: {
             : undefined;
         return (
           <Form
+            name={formName}
             layout="vertical"
             onFinish={(v: { value?: string }) =>
               bag.requestCode(channel, v.value ?? "")
@@ -404,6 +409,7 @@ export function OtpPanel(props: {
  * same pattern as the TOTP branch, the challenge replaces the form. */
 export function PasswordPanel(): ReactElement {
   const t = useT();
+  const formName = useFormName("auth-password");
   const fieldError = useFieldError();
   return (
     <PasswordLogin>
@@ -435,6 +441,7 @@ export function PasswordPanel(): ReactElement {
         const err = s.step === "error" ? s.error : undefined;
         return (
           <Form
+            name={formName}
             layout="vertical"
             onFinish={(v: { loginId?: string; password?: string }) =>
               bag.login(v.loginId ?? "", v.password ?? "")
@@ -480,6 +487,7 @@ export function PasswordPanel(): ReactElement {
  */
 export function PasswordRegisterPanel(): ReactElement {
   const t = useT();
+  const formName = useFormName("auth-register");
   const errorShown = useErrorShown();
   return (
     <PasswordRegister>
@@ -491,6 +499,7 @@ export function PasswordRegisterPanel(): ReactElement {
         const err = s.step === "error" ? s.error : undefined;
         return (
           <Form
+            name={formName}
             layout="vertical"
             onFinish={(v: { email?: string; password?: string; confirmPassword?: string }) =>
               bag.register({
@@ -668,6 +677,7 @@ export function PasskeyPanel(): ReactElement {
 /** Magic-link panel — request form → "check your email" (RULE 11). */
 export function MagicLinkPanel(): ReactElement {
   const t = useT();
+  const formName = useFormName("auth-magic-link");
   const fieldError = useFieldError();
   return (
     <MagicLink>
@@ -685,6 +695,7 @@ export function MagicLinkPanel(): ReactElement {
         const err = s.step === "error" ? s.error : undefined;
         return (
           <Form
+            name={formName}
             layout="vertical"
             onFinish={(v: { email?: string }) => bag.request(v.email ?? "")}
           >
@@ -789,6 +800,7 @@ export function OAuthPanel(props: {
  * a DIALOG from the overflow menu (owner directive point 3), never a tab. */
 export function SsoPanel(): ReactElement {
   const t = useT();
+  const formName = useFormName("auth-sso");
   // A form field's `help` line is copy-only by design: a `HTTP 500` stamped
   // under a domain input would be noise where an inline hint belongs.
   const fieldError = useFieldError();
@@ -801,6 +813,7 @@ export function SsoPanel(): ReactElement {
         return (
           <Flex vertical gap="middle">
             <Form
+              name={formName}
               layout="vertical"
               onFinish={(v: { domain?: string }) => bag.lookup(v.domain ?? "")}
             >

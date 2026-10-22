@@ -1,6 +1,6 @@
 # @stapel/alerts-react 0.1.1
 
-Headless React flow pair for stapel-alerts (contract >=0.2 <0.3) — business + state, zero visual opinion.
+Headless React flow pair for stapel-alerts (contract >=0.4 <0.5) — business + state, zero visual opinion.
 Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
 verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
 
@@ -33,7 +33,7 @@ Paths are relative to `/alerts/api/v1/`.
 - useIssueStatus (mutation) → fixIssue+patchIssue : IssueStatusBag
 
 ## Errors (render t(code, params); UX from remediation)
-48 keys (full catalog: manifest.json §errors). By remediation: fix_input 19 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.
+49 keys (full catalog: manifest.json §errors). By remediation: fix_input 19 · retry 15 · wait_and_retry 6 · verify 5 · contact_support 2 · reauthenticate 2.
 Param-bearing keys (interpolation slots matter):
 - error.400.alerts_batch_too_large [400] → fix_input {max}
 - error.400.alerts_status_not_settable [400] → fix_input {status}
@@ -48,6 +48,7 @@ Param-bearing keys (interpolation slots matter):
 - error.400.field.null [400] → fix_input {field}
 - error.400.field.required [400] → fix_input {field}
 - error.400.field.unique [400] → fix_input {field}
+- error.422.alerts_report_not_storable [422] → wait_and_retry {events}
 - error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
 
 ## Analytics events (typed; defineEvent → events.json, drift-gated)

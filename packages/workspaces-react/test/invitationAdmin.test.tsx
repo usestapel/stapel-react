@@ -450,18 +450,14 @@ describe("step-up level port", () => {
 // ── security settings (provisioned_user_policies is a LIST) ────────────────
 
 describe("useUpdateSecuritySettings (PATCH /{ws} settings.security)", () => {
-  it("sends the policies as a LIST and preserves the rest of settings", async () => {
+  it("sends only the change: the policies as a LIST, no read, no other key", async () => {
     let sent: Record<string, unknown> | null = null;
+    let reads = 0;
     server.use(
-      http.get(`${BASE}/${WS}`, () =>
-        HttpResponse.json({
-          ...WORKSPACE,
-          settings: {
-            branding: { logo: "acme.png" },
-            security: { require_mfa: false, policies_configured: false },
-          },
-        })
-      ),
+      http.get(`${BASE}/${WS}`, () => {
+        reads += 1;
+        return HttpResponse.json(WORKSPACE);
+      }),
       http.patch(`${BASE}/${WS}`, async ({ request }) => {
         sent = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ ...WORKSPACE, settings: sent.settings });
@@ -475,11 +471,14 @@ describe("useUpdateSecuritySettings (PATCH /{ws} settings.security)", () => {
     result.current.mutate({
       provisioned_user_policies: ["password_change", "mfa_enroll"],
       require_mfa: true,
+      policies_configured: true,
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // stapel-workspaces 0.37.0 merges `settings`: other keys (branding, the
+    // rest of `security`) are kept by the server, so re-sending them could
+    // only resurrect something a concurrent edit removed.
     expect(sent).toEqual({
       settings: {
-        branding: { logo: "acme.png" },
         security: {
           require_mfa: true,
           // A LIST since 0.13.0 (#90) — independent demands, not alternatives.
@@ -487,19 +486,30 @@ describe("useUpdateSecuritySettings (PATCH /{ws} settings.security)", () => {
         },
       },
     });
-    // `policies_configured` is derived and read-only — never echoed back.
-    const security = (
-      (sent as unknown as { settings: { security: Record<string, unknown> } })
-        .settings
-    ).security;
-    expect("policies_configured" in security).toBe(false);
-    expect("provisioned_user_policy" in security).toBe(false);
+    expect(reads).toBe(0);
+  });
+
+  it("removes a key by sending null, which the merge reads as removal", async () => {
+    let sent: Record<string, unknown> | null = null;
+    server.use(
+      http.patch(`${BASE}/${WS}`, async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(WORKSPACE);
+      })
+    );
+    const runtime = createWorkspacesRuntime({ baseUrl: BASE });
+    const queryClient = makeClient();
+    const { result } = renderHook(() => useUpdateSecuritySettings(WS), {
+      wrapper: ({ children }) => wrap(runtime, queryClient, children),
+    });
+    result.current.mutate({ provisioned_user_policy: null });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(sent).toEqual({ settings: { security: { provisioned_user_policy: null } } });
   });
 
   it("sends an explicit empty list rather than dropping it", async () => {
     let sent: Record<string, unknown> | null = null;
     server.use(
-      http.get(`${BASE}/${WS}`, () => HttpResponse.json(WORKSPACE)),
       http.patch(`${BASE}/${WS}`, async ({ request }) => {
         sent = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ ...WORKSPACE, settings: sent.settings });

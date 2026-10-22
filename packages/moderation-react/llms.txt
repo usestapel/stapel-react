@@ -66,7 +66,7 @@ Paths are relative to `/moderation/api/v1/`.
 - useMyAppealsQuery() → PagedRows<Appeal>
 - useCasesQuery(filters: CaseFilters) → PagedRows<Case>
 - useAppealQueueQuery(filters: AppealQueueFilters) → PagedRows<Appeal>
-- useReport(options: UseReportOptions — required { targetType: string; targetKey: string }, 1 optional) → ReportBag
+- useReport(options: UseReportOptions — required { targetType: string; targetKey: string }, 3 optional) → ReportBag
 - useReportPolicy(targetType?: unknown) → ReportPolicyBag
 - useAppeal(options?: UseAppealOptions — 2 optional) → AppealBag
 - useModerationQueue(initial?: QueueFilters — 6 optional) → ModerationQueueBag

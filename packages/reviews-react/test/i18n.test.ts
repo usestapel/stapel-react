@@ -113,9 +113,9 @@ describe.each(["en", "ru", "es"] as const)("locale %s", (locale) => {
   });
 });
 
-describe("ownership of the twelve module-owned keys", () => {
-  it("the module's own catalogue covers all twelve, in ru and es", () => {
-    expect(REVIEWS_OWNED).toHaveLength(12);
+describe("ownership of the fourteen module-owned keys", () => {
+  it("the module's own catalogue covers all fourteen, in ru and es", () => {
+    expect(REVIEWS_OWNED).toHaveLength(14);
     for (const code of REVIEWS_OWNED) {
       expect(reviewsI18nBundleRu[code], code).toBeTruthy();
       expect(reviewsI18nBundleEs[code], code).toBeTruthy();

@@ -4,7 +4,7 @@
   "version": "0.22.1",
   "backend": {
     "module": "stapel-workspaces",
-    "contract": ">=0.36 <0.37"
+    "contract": ">=0.37 <0.38"
   },
   "layers": [
     "api",
@@ -448,10 +448,7 @@
     },
     "useUpdateSecuritySettings": {
       "kind": "mutation",
-      "operations": [
-        "getWorkspace",
-        "updateWorkspace"
-      ],
+      "operation": "updateWorkspace",
       "invalidates": [
         [
           "workspaces",
@@ -1488,6 +1485,7 @@
       "WorkspaceListBag",
       "WorkspaceListData",
       "WorkspaceRole",
+      "WorkspaceSecurityPatch",
       "WorkspaceSecuritySettings",
       "WorkspaceSelection",
       "WorkspaceSelectionProviderProps",

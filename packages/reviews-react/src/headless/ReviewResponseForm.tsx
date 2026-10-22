@@ -7,7 +7,7 @@ import { REVIEWS_I18N_KEYS } from "../i18n/keys.js";
 import { useRespondToReview } from "../model/mutations.js";
 import {
   isAlreadyResponded,
-  isModerationForbidden,
+  isRespondForbidden,
   isResponseNotAllowed,
   isReviewGone,
   isSignInRequired,
@@ -45,7 +45,8 @@ export interface ReviewResponseBag {
   readonly alreadyResponded: boolean;
   /** Replies are switched off for this target type (`allow_response: false`). */
   readonly notAllowed: boolean;
-  /** The server refused the actor as the owner (the fail-closed 403). */
+  /** The server refused the actor at the reply door
+   * (`error.403.reviews_cannot_respond`, the fail-closed 403). */
   readonly forbidden: boolean;
   /** The write answered 401 — a reply needs an author to attribute it to. */
   readonly signInRequired: boolean;
@@ -60,10 +61,11 @@ export interface ReviewResponseFormProps {
   readonly target: ReviewTarget;
   readonly review: Review;
   /**
-   * Does the HOST believe this viewer owns the reviewed item? Same contract as
-   * `canModerate` — the server decides (and refuses with the same fail-closed
-   * 403, because a reply uses the moderation gate), and absent/`false` blocks
-   * the control WITH its reason rather than removing it.
+   * May this viewer reply, as the host knows it? Mirror the target type's
+   * `can_respond` callback (stapel-reviews 0.8.0), or, when the type names
+   * none, "this viewer is the stamped owner". The server decides and refuses
+   * with `error.403.reviews_cannot_respond`; absent/`false` blocks the
+   * control WITH its reason rather than removing it.
    */
   readonly canRespond?: boolean;
   readonly children: (bag: ReviewResponseBag) => ReactNode;
@@ -99,7 +101,7 @@ export function ReviewResponseForm(
   const failure = mutation.error ?? undefined;
   const conflicted = failure !== undefined && isAlreadyResponded(failure);
   const notAllowed = failure !== undefined && isResponseNotAllowed(failure);
-  const forbidden = failure !== undefined && isModerationForbidden(failure);
+  const forbidden = failure !== undefined && isRespondForbidden(failure);
   const signInRequired = failure !== undefined && isSignInRequired(failure);
   const gone = failure !== undefined && isReviewGone(failure);
 
