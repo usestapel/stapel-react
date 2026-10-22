@@ -1,5 +1,11 @@
 # @stapel/forms-react
 
+## 0.4.2
+
+### Patch Changes
+
+- A field's kind is read from where stapel-forms puts it. The server serves and stores each field as a `FeatureDef` dict whose kind is `config.type`, with no top-level `kind`; the pair keyed every renderer on `field.kind`, so a live public form showed each field as "cannot be shown" and blocked Send, and a builder save sent fields the server refuses. `api/fieldShape.ts` now normalizes at the API boundary: every schema read (`getPublicForm`, form rows' `draft_schema`, version schemas) gains `kind` from `config.type`, and every schema write (`putDraft`, `createForm`) carries `config.type` and no top-level `kind`. `FormFieldDef.kind` keeps its type, so consumers are unchanged. Tests feed the server's own shape (`test/wireShape.test.tsx`); they fail on 0.4.1.
+
 ## 0.4.1
 
 ### Patch Changes
