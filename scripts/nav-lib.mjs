@@ -153,3 +153,26 @@ export function auditEmbedOpens(manifests, containerParentIds) {
   }
   return problems;
 }
+
+/**
+ * A pair that writes `nav-manifest.json` must SHIP it: listed in `files` (or
+ * npm leaves it out of the tarball) and exported as `./nav-manifest.json` (or
+ * a consumer's resolver refuses the subpath). The scaffold and an intake read
+ * a pair's entries and embeds from there; a manifest that exists only in this
+ * repo is a contract nobody installing the pair can read.
+ */
+export function assertShipsNavManifest(pkg) {
+  const problems = [];
+  if (!(pkg.files ?? []).includes("nav-manifest.json")) {
+    problems.push('"files" does not list "nav-manifest.json"');
+  }
+  if (!Object.hasOwn(pkg.exports ?? {}, "./nav-manifest.json")) {
+    problems.push('"exports" has no "./nav-manifest.json"');
+  }
+  if (problems.length > 0) {
+    throw new Error(
+      `gen:nav: ${pkg.name} writes nav-manifest.json but does not publish it: ` +
+        `${problems.join("; ")} — add both to its package.json`
+    );
+  }
+}

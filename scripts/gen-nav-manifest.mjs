@@ -33,6 +33,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { filterTrackedPackages } from "./packages-lib.mjs";
 import {
+  assertShipsNavManifest,
   assertUniqueEmbedIds,
   auditEmbedOpens,
   buildPackageNavManifest,
@@ -248,6 +249,7 @@ async function loadPackageNavManifest(pkgDirAbs) {
   const entries = mod.navEntries;
   validateEntries(pkg.name, entries);
   validateEmbeds(pkg.name, mod.navEmbeds, SHELL_SLOT_IDS);
+  assertShipsNavManifest(pkg);
   return buildPackageNavManifest(pkg, entries, mod.navEmbeds);
 }
 

@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  assertShipsNavManifest,
   assertUniqueEmbedIds,
   auditEmbedOpens,
   buildPackageNavManifest,
@@ -131,4 +132,21 @@ test("a pair without embeds emits no embeds key", () => {
     assert.deepEqual(Object.keys(manifest), ["package", "version", "entries"]);
   }
   assert.deepEqual(buildPackageNavManifest(pkg, [feedEntry], [bell]).embeds, [bell]);
+});
+
+test("a pair that writes nav-manifest.json must publish it", () => {
+  const ships = {
+    name: PKG,
+    files: ["dist", "nav-manifest.json"],
+    exports: { ".": {}, "./nav-manifest.json": "./nav-manifest.json" },
+  };
+  assert.doesNotThrow(() => assertShipsNavManifest(ships));
+  assert.throws(
+    () => assertShipsNavManifest({ ...ships, files: ["dist"] }),
+    /does not publish it: "files" does not list "nav-manifest.json"/
+  );
+  assert.throws(
+    () => assertShipsNavManifest({ ...ships, exports: { ".": {} } }),
+    /"exports" has no "\.\/nav-manifest\.json"/
+  );
 });
