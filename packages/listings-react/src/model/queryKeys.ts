@@ -26,7 +26,9 @@ export interface ListingPageKey {
  * way the hook does. */
 export function pageKey(params?: ListingPageParams): ListingPageKey {
   return {
-    anchor: params?.anchor ?? null,
+    // A sequence anchor arrives as a number and travels as the same query
+    // string either way, so one key for both spellings.
+    anchor: params?.anchor === undefined ? null : String(params.anchor),
     direction: params?.direction ?? null,
     limit: params?.limit ?? null,
   };

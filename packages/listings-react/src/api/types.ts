@@ -336,7 +336,7 @@ export const LISTING_STATUSES: readonly ListingLifecycleStatus[] = [
 
 /** One lifecycle state. THE field that decides public visibility — and the
  * only one (`models.py`: "no visibility-reads-moderation_status coupling"). */
-export type ListingLifecycleStatus = Schemas["StatusD41Enum"];
+export type ListingLifecycleStatus = Schemas["ListingStatusEnum"];
 
 /**
  * One move the OWNER of a listing may make from where it is now — the third
@@ -478,8 +478,9 @@ export type { FeatureConfig, FeatureDef, FeatureValueDto };
 
 /** Query parameters of every keyset-paginated card list. */
 export interface ListingPageParams {
-  /** Opaque cursor from a previous answer. */
-  readonly anchor?: string;
+  /** Opaque cursor from a previous answer, echoed back as the wire gave it:
+   * a string for a datetime anchor, an integer for a sequence one. */
+  readonly anchor?: string | number;
   readonly direction?: "next" | "prev" | "center";
   readonly limit?: number;
 }

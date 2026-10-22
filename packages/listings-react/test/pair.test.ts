@@ -25,6 +25,9 @@ describe("query keys (frontend-standard §2 — namespaced)", () => {
     expect(pageKey()).toEqual(pageKey({}));
     expect(pageKey({ limit: 20 })).not.toEqual(pageKey());
     expect(pageKey({ anchor: "a1" })).not.toEqual(pageKey());
+    // A sequence anchor is an integer on the wire (stapel-listings 0.24.0) and
+    // the same query string as its spelling: one cache entry for both.
+    expect(pageKey({ anchor: 42 })).toEqual(pageKey({ anchor: "42" }));
   });
 
   it("keeps the status probe on its OWN key, not folded into the detail", () => {

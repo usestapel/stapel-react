@@ -709,15 +709,6 @@ export interface components {
          * @enum {string}
          */
         AvailableActionsEnum: "keep" | "add" | "edit" | "inherit" | "remove" | "create" | "replace";
-        /**
-         * @description * `make` - Make (brand / vendor / manufacturer)
-         *     * `model` - Model
-         *     * `generation` - Generation
-         *     * `year` - Year of manufacture
-         *     * `mileage` - Mileage
-         * @enum {string}
-         */
-        AxisRoleDerivedEnum: "make" | "model" | "generation" | "year" | "mileage";
         /** @enum {unknown} */
         BlankEnum: "";
         /** @description Serializer for boolean feature configuration. */
@@ -739,6 +730,11 @@ export interface components {
             type: "bool";
             value?: boolean;
         };
+        /**
+         * @description * `bool` - bool
+         * @enum {string}
+         */
+        BoolTypeEnum: "bool";
         /** @description Response for bulk create/update operations. */
         BulkUpdateResponse: {
             /** @description List of created/updated object IDs (each a pk: integer or uuid) */
@@ -1125,6 +1121,11 @@ export interface components {
             value?: number | null;
             unit?: string | null;
         };
+        /**
+         * @description * `convertible_unit` - convertible_unit
+         * @enum {string}
+         */
+        ConvertibleUnitTypeEnum: "convertible_unit";
         /** @description Serializer for date feature configuration. */
         DateConfig: {
             /**
@@ -1151,6 +1152,11 @@ export interface components {
             type: "date";
             value?: number | null;
         };
+        /**
+         * @description * `date` - date
+         * @enum {string}
+         */
+        DateTypeEnum: "date";
         /**
          * @description * `below_minimum` - below_minimum
          *     * `above_maximum` - above_maximum
@@ -1189,7 +1195,7 @@ export interface components {
              *     * `owner` - Owner (and staff)
              *     * `staff` - Staff only
              */
-            visibility?: components["schemas"]["VisibilityD99Enum"];
+            visibility?: components["schemas"]["FeatureVisibilityEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1197,7 +1203,7 @@ export interface components {
              *     * `title` - Title only
              *     * `none` - None
              */
-            translate?: components["schemas"]["Translate2c2Enum"];
+            translate?: components["schemas"]["FeatureTranslateModeEnum"];
             /**
              * @description Which classified axis this feature IS — `make`, `model`, `generation`, `year`, `mileage` — or null. Authored value first, then the loader's derivation.
              *
@@ -1207,7 +1213,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role: (components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["NullEnum"]) | null;
+            readonly axis_role: (components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["NullEnum"]) | null;
             /**
              * @description The authoring column: blank leaves the role to `load_catalog`'s slug-table derivation, a value pins it. `axis_role` above is the RESOLVED read.
              *
@@ -1217,7 +1223,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role_authored?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
+            axis_role_authored?: components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["BlankEnum"];
             readonly axis_role_derived: string;
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
@@ -1247,6 +1253,15 @@ export interface components {
             /** Siblings pks */
             readonly tn_siblings_pks: string;
         };
+        /**
+         * @description * `make` - Make (brand / vendor / manufacturer)
+         *     * `model` - Model
+         *     * `generation` - Generation
+         *     * `year` - Year of manufacture
+         *     * `mileage` - Mileage
+         * @enum {string}
+         */
+        FeatureAxisRoleEnum: "make" | "model" | "generation" | "year" | "mileage";
         /** @description Serializer for bulk add/update operations — id is required. */
         FeatureBulk: {
             id: number;
@@ -1296,7 +1311,7 @@ export interface components {
              *     * `owner` - Owner (and staff)
              *     * `staff` - Staff only
              */
-            visibility?: components["schemas"]["VisibilityD99Enum"];
+            visibility?: components["schemas"]["FeatureVisibilityEnum"];
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1318,7 +1333,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
+            axis_role?: components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["BlankEnum"];
             /**
              * @description Cache of `load_catalog`'s slug-table derivation. Read only when `axis_role` is blank; never overwrites an authored value.
              *
@@ -1328,7 +1343,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role_derived: components["schemas"]["AxisRoleDerivedEnum"];
+            readonly axis_role_derived: components["schemas"]["FeatureAxisRoleEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1336,7 +1351,7 @@ export interface components {
              *     * `title` - Title only
              *     * `none` - None
              */
-            translate?: components["schemas"]["Translate2c2Enum"];
+            translate?: components["schemas"]["FeatureTranslateModeEnum"];
             /** @description Test/scratch data — excluded from export_catalog fixtures. */
             is_test?: boolean;
             /** Parent */
@@ -1362,7 +1377,7 @@ export interface components {
              *     * `owner` - Owner (and staff)
              *     * `staff` - Staff only
              */
-            visibility?: components["schemas"]["VisibilityD99Enum"];
+            visibility?: components["schemas"]["FeatureVisibilityEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1370,7 +1385,7 @@ export interface components {
              *     * `title` - Title only
              *     * `none` - None
              */
-            translate?: components["schemas"]["Translate2c2Enum"];
+            translate?: components["schemas"]["FeatureTranslateModeEnum"];
             /**
              * @description Which classified axis this feature IS — `make`, `model`, `generation`, `year`, `mileage` — or null. It is what a storefront reads to build a «more of this make» link, or an AI descent to fill make before model, instead of matching slugs against a table of its own.
              *
@@ -1380,7 +1395,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role: (components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["NullEnum"]) | null;
+            readonly axis_role: (components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1454,7 +1469,7 @@ export interface components {
              *     * `owner` - Owner (and staff)
              *     * `staff` - Staff only
              */
-            visibility?: components["schemas"]["VisibilityD99Enum"];
+            visibility?: components["schemas"]["FeatureVisibilityEnum"];
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1476,7 +1491,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
+            axis_role?: components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["BlankEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1484,7 +1499,7 @@ export interface components {
              *     * `title` - Title only
              *     * `none` - None
              */
-            translate?: components["schemas"]["Translate2c2Enum"];
+            translate?: components["schemas"]["FeatureTranslateModeEnum"];
             /** @description Test/scratch data — excluded from export_catalog fixtures. */
             is_test?: boolean;
             /** Parent */
@@ -1538,33 +1553,32 @@ export interface components {
             /**
              * @description Who may READ a stored value: 'public' = anyone (the default), 'owner' = the object's owner and staff, 'staff' = staff only. The value is still required, validated and stored either way; a non-public feature is simply never a title and never a badge.
              *
-             *     * `public` - public
-             *     * `owner` - owner
-             *     * `staff` - staff
+             *     * `public` - Public — anyone may read the value
+             *     * `owner` - Owner (and staff)
+             *     * `staff` - Staff only
              * @default public
              */
-            visibility: components["schemas"]["FeatureEditorFeatureVisibilityEnum"];
+            visibility: components["schemas"]["FeatureVisibilityEnum"];
             /**
              * @description Which classified axis this feature IS, when it is one. Blank (the default) leaves it to `load_catalog`'s slug-table derivation; a value pins it and wins over derivation. Named for the AUTHORING column on purpose: it lines up with the key `FeatureSerializer` reads it back under, so an editor round-trip cannot pin a role the derivation merely guessed.
              *
-             *     * `` -
-             *     * `make` - make
-             *     * `model` - model
-             *     * `generation` - generation
-             *     * `year` - year
-             *     * `mileage` - mileage
+             *     * `make` - Make (brand / vendor / manufacturer)
+             *     * `model` - Model
+             *     * `generation` - Generation
+             *     * `year` - Year of manufacture
+             *     * `mileage` - Mileage
              * @default
              */
-            axis_role_authored: components["schemas"]["FeatureEditorFeatureAxisRoleAuthoredEnum"] | components["schemas"]["BlankEnum"];
+            axis_role_authored: components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["BlankEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
-             *     * `all` - all
-             *     * `title` - title
-             *     * `none` - none
+             *     * `all` - All (title + options)
+             *     * `title` - Title only
+             *     * `none` - None
              * @default all
              */
-            translate: components["schemas"]["FeatureEditorFeatureTranslateEnum"];
+            translate: components["schemas"]["FeatureTranslateModeEnum"];
             /** @description Conditional rules over sibling values (stapel-attributes' closed grammar). */
             rules?: {
                 [key: string]: unknown;
@@ -1584,30 +1598,6 @@ export interface components {
             /** @default 0 */
             tn_priority: number;
         };
-        /**
-         * @description * `` -
-         *     * `make` - make
-         *     * `model` - model
-         *     * `generation` - generation
-         *     * `year` - year
-         *     * `mileage` - mileage
-         * @enum {string}
-         */
-        FeatureEditorFeatureAxisRoleAuthoredEnum: "make" | "model" | "generation" | "year" | "mileage";
-        /**
-         * @description * `all` - all
-         *     * `title` - title
-         *     * `none` - none
-         * @enum {string}
-         */
-        FeatureEditorFeatureTranslateEnum: "all" | "title" | "none";
-        /**
-         * @description * `public` - public
-         *     * `owner` - owner
-         *     * `staff` - staff
-         * @enum {string}
-         */
-        FeatureEditorFeatureVisibilityEnum: "public" | "owner" | "staff";
         /** @description Item from the feature editor list. */
         FeatureEditorItem: {
             order: number;
@@ -1672,7 +1662,7 @@ export interface components {
              *     * `owner` - Owner (and staff)
              *     * `staff` - Staff only
              */
-            visibility?: components["schemas"]["VisibilityD99Enum"];
+            visibility?: components["schemas"]["FeatureVisibilityEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -1680,7 +1670,7 @@ export interface components {
              *     * `title` - Title only
              *     * `none` - None
              */
-            translate?: components["schemas"]["Translate2c2Enum"];
+            translate?: components["schemas"]["FeatureTranslateModeEnum"];
             /**
              * @description Which classified axis this feature IS — `make`, `model`, `generation`, `year`, `mileage` — or null. It is what a storefront reads to build a «more of this make» link, or an AI descent to fill make before model, instead of matching slugs against a table of its own.
              *
@@ -1690,7 +1680,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            readonly axis_role: (components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["NullEnum"]) | null;
+            readonly axis_role: (components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["NullEnum"]) | null;
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -1710,6 +1700,13 @@ export interface components {
             /** @description Slugs of the children that carry this feature, in the order `GET /children/` returns them. Present only beside `partial: true`. */
             carried_by?: string[];
         };
+        /**
+         * @description * `all` - All (title + options)
+         *     * `title` - Title only
+         *     * `none` - None
+         * @enum {string}
+         */
+        FeatureTranslateModeEnum: "all" | "title" | "none";
         /** @description Serializer for FeatureValidationResult. */
         FeatureValidationResult: {
             id?: unknown;
@@ -1724,6 +1721,13 @@ export interface components {
             } | null;
             warnings?: string[] | null;
         };
+        /**
+         * @description * `public` - Public — anyone may read the value
+         *     * `owner` - Owner (and staff)
+         *     * `staff` - Staff only
+         * @enum {string}
+         */
+        FeatureVisibilityEnum: "public" | "owner" | "staff";
         /** @description Serializer for float feature configuration. */
         FloatConfig: {
             /**
@@ -1753,6 +1757,11 @@ export interface components {
             /** Format: double */
             value?: number;
         };
+        /**
+         * @description * `float` - float
+         * @enum {string}
+         */
+        FloatTypeEnum: "float";
         /**
          * @description Serializer for group feature configuration.
          *
@@ -1786,6 +1795,11 @@ export interface components {
             min?: number;
             max?: number | null;
         };
+        /**
+         * @description * `group` - group
+         * @enum {string}
+         */
+        GroupTypeEnum: "group";
         /** @description Serializer for header feature configuration. */
         HeaderConfig: {
             /**
@@ -1804,6 +1818,11 @@ export interface components {
             type: "header";
             value?: string | null;
         };
+        /**
+         * @description * `header` - header
+         * @enum {string}
+         */
+        HeaderTypeEnum: "header";
         /** @description Serializer for hex color feature configuration. */
         HexColorConfig: {
             /**
@@ -1828,6 +1847,11 @@ export interface components {
             hex?: string | null;
             label?: string | null;
         };
+        /**
+         * @description * `hex_color` - hex_color
+         * @enum {string}
+         */
+        HexColorTypeEnum: "hex_color";
         /** @description Serializer for hex color value. */
         HexColorValue: {
             simple: string;
@@ -1863,6 +1887,11 @@ export interface components {
             type: "hierarchical_select";
             value?: string[];
         };
+        /**
+         * @description * `hierarchical_select` - hierarchical_select
+         * @enum {string}
+         */
+        HierarchicalSelectTypeEnum: "hierarchical_select";
         /** @description Serializer for integer feature configuration. */
         IntConfig: {
             /**
@@ -1890,6 +1919,11 @@ export interface components {
             type: "int";
             value?: number;
         };
+        /**
+         * @description * `int` - int
+         * @enum {string}
+         */
+        IntTypeEnum: "int";
         /** @description Serializer for /revision endpoint response. */
         MaxRevision: {
             /** @description Current maximum revision number */
@@ -2077,7 +2111,7 @@ export interface components {
              *     * `owner` - Owner (and staff)
              *     * `staff` - Staff only
              */
-            visibility?: components["schemas"]["VisibilityD99Enum"];
+            visibility?: components["schemas"]["FeatureVisibilityEnum"];
             /** @description Conditional rules (closed grammar). Validated by stapel-attributes. */
             rules?: unknown;
             /** @description Help text under the field; translation key or literal. */
@@ -2099,7 +2133,7 @@ export interface components {
              *     * `year` - Year of manufacture
              *     * `mileage` - Mileage
              */
-            axis_role?: components["schemas"]["AxisRoleDerivedEnum"] | components["schemas"]["BlankEnum"];
+            axis_role?: components["schemas"]["FeatureAxisRoleEnum"] | components["schemas"]["BlankEnum"];
             /**
              * @description What to translate: 'all' = title + options, 'title' = title only, 'none' = nothing
              *
@@ -2107,7 +2141,7 @@ export interface components {
              *     * `title` - Title only
              *     * `none` - None
              */
-            translate?: components["schemas"]["Translate2c2Enum"];
+            translate?: components["schemas"]["FeatureTranslateModeEnum"];
             /** @description Test/scratch data — excluded from export_catalog fixtures. */
             is_test?: boolean;
             /** Parent */
@@ -2142,6 +2176,11 @@ export interface components {
             type: "ref_hierarchical_select";
             value?: string[];
         };
+        /**
+         * @description * `ref_hierarchical_select` - ref_hierarchical_select
+         * @enum {string}
+         */
+        RefHierarchicalSelectTypeEnum: "ref_hierarchical_select";
         /** @description Serializer for the ref_select feature configuration. */
         RefSelectConfig: {
             /**
@@ -2171,6 +2210,11 @@ export interface components {
             type: "ref_select";
             value?: string[];
         };
+        /**
+         * @description * `ref_select` - ref_select
+         * @enum {string}
+         */
+        RefSelectTypeEnum: "ref_select";
         /** @description Serializer for select feature configuration. */
         SelectConfig: {
             /**
@@ -2208,6 +2252,11 @@ export interface components {
             default?: boolean;
         };
         /**
+         * @description * `select` - select
+         * @enum {string}
+         */
+        SelectTypeEnum: "select";
+        /**
          * @description * `ok` - ok
          *     * `validation_failed` - validation_failed
          * @enum {string}
@@ -2241,83 +2290,16 @@ export interface components {
             value?: string;
         };
         /**
+         * @description * `string` - string
+         * @enum {string}
+         */
+        StringTypeEnum: "string";
+        /**
          * @description * `l` - l
          *     * `m` - m
          * @enum {string}
          */
         StyleEnum: "l" | "m";
-        /**
-         * @description * `all` - All (title + options)
-         *     * `title` - Title only
-         *     * `none` - None
-         * @enum {string}
-         */
-        Translate2c2Enum: "all" | "title" | "none";
-        /**
-         * @description * `convertible_unit` - convertible_unit
-         * @enum {string}
-         */
-        Type104Enum: "convertible_unit";
-        /**
-         * @description * `group` - group
-         * @enum {string}
-         */
-        Type312Enum: "group";
-        /**
-         * @description * `date` - date
-         * @enum {string}
-         */
-        Type37eEnum: "date";
-        /**
-         * @description * `header` - header
-         * @enum {string}
-         */
-        Type3feEnum: "header";
-        /**
-         * @description * `hex_color` - hex_color
-         * @enum {string}
-         */
-        Type515Enum: "hex_color";
-        /**
-         * @description * `ref_hierarchical_select` - ref_hierarchical_select
-         * @enum {string}
-         */
-        Type565Enum: "ref_hierarchical_select";
-        /**
-         * @description * `hierarchical_select` - hierarchical_select
-         * @enum {string}
-         */
-        Type5beEnum: "hierarchical_select";
-        /**
-         * @description * `select` - select
-         * @enum {string}
-         */
-        Type63eEnum: "select";
-        /**
-         * @description * `string` - string
-         * @enum {string}
-         */
-        Type839Enum: "string";
-        /**
-         * @description * `int` - int
-         * @enum {string}
-         */
-        TypeC1bEnum: "int";
-        /**
-         * @description * `ref_select` - ref_select
-         * @enum {string}
-         */
-        TypeCcbEnum: "ref_select";
-        /**
-         * @description * `float` - float
-         * @enum {string}
-         */
-        TypeD7cEnum: "float";
-        /**
-         * @description * `bool` - bool
-         * @enum {string}
-         */
-        TypeE3eEnum: "bool";
         /** @description Restored soft-deleted categories. */
         UndeleteResponse: {
             /**
@@ -2342,13 +2324,6 @@ export interface components {
             valid: boolean;
             results: components["schemas"]["FeatureValidationResult"][];
         };
-        /**
-         * @description * `public` - Public — anyone may read the value
-         *     * `owner` - Owner (and staff)
-         *     * `staff` - Staff only
-         * @enum {string}
-         */
-        VisibilityD99Enum: "public" | "owner" | "staff";
     };
     responses: never;
     parameters: never;

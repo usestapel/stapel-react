@@ -558,6 +558,11 @@ export interface components {
             type: "bool";
             value?: boolean;
         };
+        /**
+         * @description * `bool` - bool
+         * @enum {string}
+         */
+        BoolTypeEnum: "bool";
         /** @description Serializer for convertible-unit feature DAO. */
         ConvertibleUnitDao: {
             name?: string | null;
@@ -593,6 +598,11 @@ export interface components {
             value?: number | null;
             unit?: string | null;
         };
+        /**
+         * @description * `convertible_unit` - convertible_unit
+         * @enum {string}
+         */
+        ConvertibleUnitTypeEnum: "convertible_unit";
         /** @description Serializer for date feature DAO. */
         DateDao: {
             name?: string | null;
@@ -620,6 +630,11 @@ export interface components {
             type: "date";
             value?: number | null;
         };
+        /**
+         * @description * `date` - date
+         * @enum {string}
+         */
+        DateTypeEnum: "date";
         /** @description Result of a (soft) delete. */
         DeleteResponse: {
             success: boolean;
@@ -705,6 +720,11 @@ export interface components {
             /** Format: double */
             value?: number;
         };
+        /**
+         * @description * `float` - float
+         * @enum {string}
+         */
+        FloatTypeEnum: "float";
         /** @description Serializer for group feature DAO. */
         GroupDao: {
             name?: string | null;
@@ -736,6 +756,11 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /**
+         * @description * `group` - group
+         * @enum {string}
+         */
+        GroupTypeEnum: "group";
         /** @description Serializer for header feature DAO. */
         HeaderDao: {
             name?: string | null;
@@ -763,6 +788,11 @@ export interface components {
             type: "header";
             value?: string | null;
         };
+        /**
+         * @description * `header` - header
+         * @enum {string}
+         */
+        HeaderTypeEnum: "header";
         /** @description Serializer for hex color feature DAO. */
         HexColorDao: {
             name?: string | null;
@@ -792,6 +822,11 @@ export interface components {
              */
             type: "hex_color";
         };
+        /**
+         * @description * `hex_color` - hex_color
+         * @enum {string}
+         */
+        HexColorTypeEnum: "hex_color";
         /** @description Serializer for hex color value. */
         HexColorValue: {
             simple: string;
@@ -825,6 +860,11 @@ export interface components {
             type: "hierarchical_select";
             value?: string[];
         };
+        /**
+         * @description * `hierarchical_select` - hierarchical_select
+         * @enum {string}
+         */
+        HierarchicalSelectTypeEnum: "hierarchical_select";
         /** @description Serializer for integer feature DAO. */
         IntDao: {
             name?: string | null;
@@ -856,6 +896,11 @@ export interface components {
             type: "int";
             value?: number;
         };
+        /**
+         * @description * `int` - int
+         * @enum {string}
+         */
+        IntTypeEnum: "int";
         /** @description Result of a lifecycle action (archive, complete/sold). */
         ListingActionResponse: {
             success: boolean;
@@ -927,7 +972,7 @@ export interface components {
             countable?: boolean;
             /** Format: int64 */
             stock_quantity?: number | null;
-            status?: components["schemas"]["StatusD41Enum"];
+            status?: components["schemas"]["ListingStatusEnum"];
             readonly is_favorited: boolean | null;
             readonly viewed: boolean | null;
             readonly view_count: number;
@@ -1017,7 +1062,7 @@ export interface components {
                 present: boolean;
             })[];
             readonly features_search: unknown;
-            status?: components["schemas"]["StatusD41Enum"];
+            status?: components["schemas"]["ListingStatusEnum"];
             moderation_status?: components["schemas"]["ModerationStatusEnum"];
             auto_republish?: boolean;
             countable?: boolean;
@@ -1068,7 +1113,7 @@ export interface components {
             countable?: boolean;
             /** Format: int64 */
             stock_quantity?: number | null;
-            readonly status: components["schemas"]["StatusD41Enum"];
+            readonly status: components["schemas"]["ListingStatusEnum"];
             readonly moderation_status: components["schemas"]["ModerationStatusEnum"];
             /** Format: date-time */
             readonly created_at: string;
@@ -1114,13 +1159,26 @@ export interface components {
              * @enum {string}
              */
             scope: "owner";
-            status: components["schemas"]["StatusD41Enum"];
+            status: components["schemas"]["ListingStatusEnum"];
             moderation_status: string;
             is_deleted: boolean;
             is_expired: boolean;
             is_active: boolean;
             owner_id: string;
         };
+        /**
+         * @description * `draft` - Draft
+         *     * `pending` - Pending Moderation
+         *     * `published` - Published
+         *     * `paused` - Paused
+         *     * `expired` - Expired
+         *     * `sold` - Sold
+         *     * `rejected` - Rejected
+         *     * `blocked` - Blocked (moderation takedown)
+         *     * `archived` - Archived
+         * @enum {string}
+         */
+        ListingStatusEnum: "draft" | "pending" | "published" | "paused" | "expired" | "sold" | "rejected" | "blocked" | "archived";
         /**
          * @description What a STRANGER may learn from the status probe: that a row exists.
          *
@@ -1178,7 +1236,7 @@ export interface components {
          *     ``from_status`` that tells a storefront what to re-render.
          */
         ListingTransitionRequest: {
-            to: components["schemas"]["ToEnum"];
+            to: components["schemas"]["ListingStatusEnum"];
         };
         /**
          * @description * `not_submitted` - Not submitted for review
@@ -1287,7 +1345,7 @@ export interface components {
             countable?: boolean;
             /** Format: int64 */
             stock_quantity?: number | null;
-            status?: components["schemas"]["StatusD41Enum"];
+            status?: components["schemas"]["ListingStatusEnum"];
             readonly is_favorited: boolean | null;
             readonly viewed: boolean | null;
             readonly view_count: number;
@@ -1306,10 +1364,10 @@ export interface components {
         NullEnum: null;
         PaginatedListingCardList: {
             items: components["schemas"]["ListingCard"][];
-            /** @description Anchor value for next page */
-            next_anchor?: string | null;
-            /** @description Anchor value for previous page */
-            prev_anchor?: string | null;
+            /** @description Anchor value for next page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            next_anchor?: (string | number) | null;
+            /** @description Anchor value for previous page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            prev_anchor?: (string | number) | null;
             /** @description Whether there are more items after this page */
             has_next: boolean;
             /** @description Whether there are items before this page */
@@ -1319,10 +1377,10 @@ export interface components {
         };
         PaginatedMyListingCardList: {
             items: components["schemas"]["MyListingCard"][];
-            /** @description Anchor value for next page */
-            next_anchor?: string | null;
-            /** @description Anchor value for previous page */
-            prev_anchor?: string | null;
+            /** @description Anchor value for next page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            next_anchor?: (string | number) | null;
+            /** @description Anchor value for previous page. The raw value of the ordering field: a string for a datetime anchor, an integer for a sequence one. Set `anchor_type` on the paginator to narrow this. */
+            prev_anchor?: (string | number) | null;
             /** @description Whether there are more items after this page */
             has_next: boolean;
             /** @description Whether there are items before this page */
@@ -1363,7 +1421,7 @@ export interface components {
             countable?: boolean;
             /** Format: int64 */
             stock_quantity?: number | null;
-            readonly status?: components["schemas"]["StatusD41Enum"];
+            readonly status?: components["schemas"]["ListingStatusEnum"];
             readonly moderation_status?: components["schemas"]["ModerationStatusEnum"];
             /** Format: date-time */
             readonly created_at?: string;
@@ -1406,6 +1464,11 @@ export interface components {
             type: "ref_hierarchical_select";
             value?: string[];
         };
+        /**
+         * @description * `ref_hierarchical_select` - ref_hierarchical_select
+         * @enum {string}
+         */
+        RefHierarchicalSelectTypeEnum: "ref_hierarchical_select";
         /** @description Serializer for the ref_select feature DAO. */
         RefSelectDao: {
             name?: string | null;
@@ -1438,6 +1501,11 @@ export interface components {
             type: "ref_select";
             value?: string[];
         };
+        /**
+         * @description * `ref_select` - ref_select
+         * @enum {string}
+         */
+        RefSelectTypeEnum: "ref_select";
         /** @description Serializer for select feature DAO. */
         SelectDao: {
             name?: string | null;
@@ -1469,18 +1537,10 @@ export interface components {
             value?: string[];
         };
         /**
-         * @description * `draft` - Draft
-         *     * `pending` - Pending Moderation
-         *     * `published` - Published
-         *     * `paused` - Paused
-         *     * `expired` - Expired
-         *     * `sold` - Sold
-         *     * `rejected` - Rejected
-         *     * `blocked` - Blocked (moderation takedown)
-         *     * `archived` - Archived
+         * @description * `select` - select
          * @enum {string}
          */
-        StatusD41Enum: "draft" | "pending" | "published" | "paused" | "expired" | "sold" | "rejected" | "blocked" | "archived";
+        SelectTypeEnum: "select";
         /** @description Serializer for string feature DAO. */
         StringDao: {
             name?: string | null;
@@ -1511,89 +1571,16 @@ export interface components {
             value?: string;
         };
         /**
+         * @description * `string` - string
+         * @enum {string}
+         */
+        StringTypeEnum: "string";
+        /**
          * @description * `l` - l
          *     * `m` - m
          * @enum {string}
          */
         StyleEnum: "l" | "m";
-        /**
-         * @description * `draft` - Draft
-         *     * `pending` - Pending Moderation
-         *     * `published` - Published
-         *     * `paused` - Paused
-         *     * `expired` - Expired
-         *     * `sold` - Sold
-         *     * `rejected` - Rejected
-         *     * `blocked` - Blocked (moderation takedown)
-         *     * `archived` - Archived
-         * @enum {string}
-         */
-        ToEnum: "draft" | "pending" | "published" | "paused" | "expired" | "sold" | "rejected" | "blocked" | "archived";
-        /**
-         * @description * `convertible_unit` - convertible_unit
-         * @enum {string}
-         */
-        Type104Enum: "convertible_unit";
-        /**
-         * @description * `group` - group
-         * @enum {string}
-         */
-        Type312Enum: "group";
-        /**
-         * @description * `date` - date
-         * @enum {string}
-         */
-        Type37eEnum: "date";
-        /**
-         * @description * `header` - header
-         * @enum {string}
-         */
-        Type3feEnum: "header";
-        /**
-         * @description * `hex_color` - hex_color
-         * @enum {string}
-         */
-        Type515Enum: "hex_color";
-        /**
-         * @description * `ref_hierarchical_select` - ref_hierarchical_select
-         * @enum {string}
-         */
-        Type565Enum: "ref_hierarchical_select";
-        /**
-         * @description * `hierarchical_select` - hierarchical_select
-         * @enum {string}
-         */
-        Type5beEnum: "hierarchical_select";
-        /**
-         * @description * `select` - select
-         * @enum {string}
-         */
-        Type63eEnum: "select";
-        /**
-         * @description * `string` - string
-         * @enum {string}
-         */
-        Type839Enum: "string";
-        /**
-         * @description * `int` - int
-         * @enum {string}
-         */
-        TypeC1bEnum: "int";
-        /**
-         * @description * `ref_select` - ref_select
-         * @enum {string}
-         */
-        TypeCcbEnum: "ref_select";
-        /**
-         * @description * `float` - float
-         * @enum {string}
-         */
-        TypeD7cEnum: "float";
-        /**
-         * @description * `bool` - bool
-         * @enum {string}
-         */
-        TypeE3eEnum: "bool";
         /**
          * @description * `dropdown` - dropdown
          *     * `checkboxes` - checkboxes

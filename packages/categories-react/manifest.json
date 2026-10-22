@@ -4,7 +4,7 @@
   "version": "0.35.1",
   "backend": {
     "module": "stapel-categories",
-    "contract": ">=0.24 <0.25"
+    "contract": ">=0.25 <0.26"
   },
   "layers": [
     "api",
