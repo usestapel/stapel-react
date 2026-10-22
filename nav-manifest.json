@@ -49,7 +49,7 @@
     },
     {
       "package": "@stapel/auth-react",
-      "version": "0.27.1",
+      "version": "0.28.0",
       "entries": [
         {
           "id": "auth.login",
@@ -250,7 +250,7 @@
     },
     {
       "package": "@stapel/calendar-react",
-      "version": "0.9.0",
+      "version": "0.9.1",
       "entries": [
         {
           "id": "calendar.month",
@@ -569,7 +569,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.41.1",
+      "version": "0.42.0",
       "entries": [
         {
           "id": "listings.detail",

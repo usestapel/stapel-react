@@ -1,5 +1,11 @@
 # @stapel/listings-react
 
+## 0.42.0
+
+### Minor Changes
+
+- c82f6f5: `<ListingBoardPane>` and `useListingBoard`: the public board, paged, narrowed to categories (`categoryIds`, sent as `?category_id=`, stapel-listings 0.27.0). It is the default grid for `CategoryPage`'s `renderListings` on a deployment without the search module. `ListingsApi.list` takes `ListingBoardParams`. Contract pin to stapel-listings 0.27.0.
+
 ## 0.41.1
 
 ### Patch Changes
