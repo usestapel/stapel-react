@@ -4,7 +4,7 @@
   "version": "0.8.2",
   "backend": {
     "module": "stapel-cdn",
-    "contract": ">=0.29 <0.30"
+    "contract": ">=0.30 <0.31"
   },
   "layers": [
     "api",
