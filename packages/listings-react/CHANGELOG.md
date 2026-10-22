@@ -1,5 +1,11 @@
 # @stapel/listings-react
 
+## 0.40.0
+
+### Minor Changes
+
+- 1847758: listings-react: `@stapel/currencies-react` is now a required peer. The `/default` entry imports it statically, so declaring it optional let a host without it fail `vite build`. cdn-react / listings-react docs: `useUploadQueue` examples pass the required `target`, and the composer example reads `useCategoryFeatures(...).data?.features`.
+
 ## 0.39.0
 
 ### Minor Changes
