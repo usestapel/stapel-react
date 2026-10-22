@@ -24,6 +24,8 @@
  * <InviteAcceptPage token={token} sessionEmail={email} />
  * ```
  */
+export { WorkspaceSwitcher } from "./WorkspaceSwitcher.js";
+export type { WorkspaceSwitcherProps } from "./WorkspaceSwitcher.js";
 export { WorkspacesPage } from "./WorkspacesPage.js";
 export type { WorkspacesPageProps } from "./WorkspacesPage.js";
 export { WorkspaceSettings } from "./WorkspaceSettings.js";

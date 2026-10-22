@@ -2323,6 +2323,22 @@
   },
   "demos": [
     {
+      "id": "auth.account-menu-skin",
+      "title": "Account menu (default skin)",
+      "description": "The top-bar account control: who is signed in, the way to the account section, and sign-out. Renders nothing for a visitor.",
+      "component": "AccountMenu",
+      "tokens": [
+        "text",
+        "surface",
+        "danger"
+      ],
+      "variants": [
+        "default",
+        "sign-out-only"
+      ],
+      "source": "demo/AccountMenuSkin.demo.tsx"
+    },
+    {
       "id": "auth.admin-audit-skin",
       "title": "Audit log (operator console)",
       "description": "Security activity across every account, newest first, filtered by event type, account and date range. Unrecognized activity carries a named chip; dates are formatted in the operator's app locale.",
@@ -2623,6 +2639,9 @@
     }
   ],
   "i18nKeys": [
+    "auth.account_menu.label_named",
+    "auth.account_menu.open",
+    "auth.account_menu.sign_out",
     "auth.admin.audit.actor",
     "auth.admin.audit.apply",
     "auth.admin.audit.clear",

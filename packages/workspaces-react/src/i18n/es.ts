@@ -343,6 +343,8 @@ export const workspacesI18nBundleEs: I18nDictionary = {
   "workspaces.nav.invitations": "Invitaciones",
   "workspaces.nav.audit": "Historial",
   "workspaces.nav.invite": "Invitación",
+  "workspaces.switcher.label": "Espacio de trabajo activo",
+  "workspaces.switcher.failed": "No se pudieron cargar los espacios de trabajo. Reintentar",
 };
 
 /**

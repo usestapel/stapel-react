@@ -4,6 +4,35 @@
   "version": "0.26.0",
   "demos": [
     {
+      "id": "auth.account-menu-skin",
+      "title": "Account menu (default skin)",
+      "description": "The top-bar account control: who is signed in, the way to the account section, and sign-out. Renders nothing for a visitor.",
+      "component": "AccountMenu",
+      "covers": [],
+      "tokens": [
+        "text",
+        "surface",
+        "danger"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "The project routes an account section, so the menu offers it above sign-out.",
+          "viewport": "phone",
+          "step": "open"
+        },
+        {
+          "id": "sign-out-only",
+          "description": "No account section in this project: the menu offers sign-out only, never an item that goes nowhere.",
+          "step": "signOutOnly"
+        }
+      ],
+      "source": {
+        "file": "demo/AccountMenuSkin.demo.tsx",
+        "line": 45
+      }
+    },
+    {
       "id": "auth.admin-audit-skin",
       "title": "Audit log (operator console)",
       "description": "Security activity across every account, newest first, filtered by event type, account and date range. Unrecognized activity carries a named chip; dates are formatted in the operator's app locale.",

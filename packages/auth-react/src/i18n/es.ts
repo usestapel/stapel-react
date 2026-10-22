@@ -541,6 +541,9 @@ export const authI18nBundleEs: I18nDictionary = {
   "auth.nav.admin_staff_roles": "Roles de personal",
   "auth.nav.admin_users": "Crear cuenta",
   "auth.nav.admin_audit": "Registro de auditoría",
+  "auth.account_menu.label_named": "Menú de la cuenta, sesión iniciada como {name}",
+  "auth.account_menu.open": "Cuenta",
+  "auth.account_menu.sign_out": "Cerrar sesión",
 };
 
 /**

@@ -126,6 +126,7 @@ const { tracked } = useTracked();
 - workspaces.invite-accept-page → <InviteAcceptPage> [default|wrong-account|expired]  demo/InviteAcceptPageSkin.demo.tsx
 - workspaces.members-manager → <MembersManager> [default|read-only|empty|no-workspace]  demo/MembersManagerSkin.demo.tsx
 - workspaces.role-select-field → <RoleSelectField> [default|no-registry]  demo/RoleSelectFieldSkin.demo.tsx
+- workspaces.switcher-skin → <WorkspaceSwitcher> [default|failed]  demo/WorkspaceSwitcherSkin.demo.tsx
 - workspaces.workspace-settings → <WorkspaceSettings> [default|delete-refused]  demo/WorkspaceSettingsSkin.demo.tsx
 - workspaces.workspaces-page → <WorkspacesPage> [default|empty|failed]  demo/WorkspacesPageSkin.demo.tsx
 Each source file is the canonical usage snippet (open the default variant).

@@ -158,6 +158,35 @@
       }
     },
     {
+      "id": "workspaces.switcher-skin",
+      "title": "Workspace switcher (default skin)",
+      "description": "The top-bar control over the one workspace selection every workspace screen reads: the active workspace and the others to switch to, or a retry when the list could not be read.",
+      "component": "WorkspaceSwitcher",
+      "covers": [],
+      "tokens": [
+        "text",
+        "surface",
+        "danger"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Two workspaces; the preferred one is active.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "failed",
+          "description": "The list read failed: a retry naming the failure, never an empty select that reads as no workspaces.",
+          "step": "failed"
+        }
+      ],
+      "source": {
+        "file": "demo/WorkspaceSwitcherSkin.demo.tsx",
+        "line": 28
+      }
+    },
+    {
       "id": "workspaces.workspace-settings",
       "title": "Workspace settings (default skin)",
       "description": "The shipped settings screen: the name and slug, the two-factor policy with the live enforcement counts (checked / missing / unverified — the last is the number to get to zero), the first-login demands for provisioned accounts, and a danger zone whose Delete is drawn from the server's own verdict.",

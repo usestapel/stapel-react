@@ -516,6 +516,9 @@ export const authI18nBundleRu: I18nDictionary = {
   "auth.nav.admin_staff_roles": "Служебные роли",
   "auth.nav.admin_users": "Создание аккаунта",
   "auth.nav.admin_audit": "Журнал событий",
+  "auth.account_menu.label_named": "Меню аккаунта, вы вошли как {name}",
+  "auth.account_menu.open": "Аккаунт",
+  "auth.account_menu.sign_out": "Выйти",
 };
 
 /**

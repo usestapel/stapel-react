@@ -158,5 +158,18 @@
       "surface": "member",
       "order": 44
     }
+  ],
+  "embeds": [
+    {
+      "id": "auth.account_menu",
+      "slot": "topbar.end",
+      "component": {
+        "export": "AccountMenu",
+        "subpath": "default"
+      },
+      "order": 90,
+      "surface": "member",
+      "opens": "account.root"
+    }
   ]
 }

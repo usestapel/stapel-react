@@ -990,6 +990,22 @@
       "source": "demo/RoleSelectFieldSkin.demo.tsx"
     },
     {
+      "id": "workspaces.switcher-skin",
+      "title": "Workspace switcher (default skin)",
+      "description": "The top-bar control over the one workspace selection every workspace screen reads: the active workspace and the others to switch to, or a retry when the list could not be read.",
+      "component": "WorkspaceSwitcher",
+      "tokens": [
+        "text",
+        "surface",
+        "danger"
+      ],
+      "variants": [
+        "default",
+        "failed"
+      ],
+      "source": "demo/WorkspaceSwitcherSkin.demo.tsx"
+    },
+    {
       "id": "workspaces.workspace-settings",
       "title": "Workspace settings (default skin)",
       "description": "The shipped settings screen: the name and slug, the two-factor policy with the live enforcement counts (checked / missing / unverified — the last is the number to get to zero), the first-login demands for provisioned accounts, and a danger zone whose Delete is drawn from the server's own verdict.",
@@ -1339,7 +1355,9 @@
     "workspaces.settings.subtitle",
     "workspaces.settings.title",
     "workspaces.settings.type.personal",
-    "workspaces.settings.type.work"
+    "workspaces.settings.type.work",
+    "workspaces.switcher.failed",
+    "workspaces.switcher.label"
   ],
   "exports": {
     "runtime": [

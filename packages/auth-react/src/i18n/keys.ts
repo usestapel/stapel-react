@@ -502,6 +502,11 @@ export const AUTH_I18N_KEYS = {
   navAdminStaffRoles: "auth.nav.admin_staff_roles",
   navAdminUsers: "auth.nav.admin_users",
   navAdminAudit: "auth.nav.admin_audit",
+
+  // `<AccountMenu/>` — the account control a shell puts in its top bar.
+  accountMenuLabelNamed: "auth.account_menu.label_named",
+  accountMenuOpen: "auth.account_menu.open",
+  accountMenuSignOut: "auth.account_menu.sign_out",
 } as const;
 
 export type AuthI18nKey =
@@ -1011,6 +1016,9 @@ export const authI18nBundleEn: I18nDictionary = {
   "auth.nav.admin_staff_roles": "Staff roles",
   "auth.nav.admin_users": "Create account",
   "auth.nav.admin_audit": "Audit log",
+  "auth.account_menu.label_named": "Account menu, signed in as {name}",
+  "auth.account_menu.open": "Account",
+  "auth.account_menu.sign_out": "Sign out",
 };
 
 /**

@@ -325,6 +325,9 @@ export const WORKSPACES_I18N_KEYS = {
   navInvitations: "workspaces.nav.invitations",
   navAudit: "workspaces.nav.audit",
   navInvite: "workspaces.nav.invite",
+  // `<WorkspaceSwitcher/>` — the top-bar control over the active workspace.
+  switcherLabel: "workspaces.switcher.label",
+  switcherFailed: "workspaces.switcher.failed",
 } as const;
 
 export type WorkspacesI18nKey =
@@ -652,6 +655,8 @@ export const workspacesI18nBundleEn: I18nDictionary = {
   "workspaces.nav.invitations": "Invitations",
   "workspaces.nav.audit": "History",
   "workspaces.nav.invite": "Invitation",
+  "workspaces.switcher.label": "Active workspace",
+  "workspaces.switcher.failed": "Workspaces could not be loaded. Try again",
 };
 
 /**

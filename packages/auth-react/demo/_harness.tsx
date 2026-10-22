@@ -23,6 +23,7 @@ import { I18nProvider, createI18n, useT } from "@stapel/core";
 import { cssVar, radii, spacing, fontSize } from "@stapel/tokens";
 import { createAuthRuntime } from "../src/index.js";
 import { AuthProvider, registerAuthI18n } from "../src/index.js";
+import type { StapelUser } from "../src/api/types.js";
 
 /** The base every mock handler mounts on (mirrors auth-sa.md `/auth/api/`). */
 export const DEMO_BASE = "https://auth.demo.stapel.dev/auth/api";
@@ -98,14 +99,23 @@ const demoBundleEn: Record<string, string> = {
  */
 export function AuthDemoHarness(props: {
   handlers?: DemoHandlers;
+  /** Start signed in as this user (a demo of member chrome). */
+  signedInAs?: StapelUser;
   children: ReactNode;
 }): ReactElement {
-  const { handlers } = props;
+  const { handlers, signedInAs } = props;
   const { runtime, queryClient, i18n } = useMemo(() => {
     const rt = createAuthRuntime({
       baseUrl: DEMO_BASE,
       fetch: mockFetch(handlers ?? {}),
     });
+    if (signedInAs !== undefined) {
+      rt.session.adopt({
+        status: "LOGGED_IN",
+        user: signedInAs,
+        tokens: { access: "demo-access", refresh: "demo-refresh" },
+      });
+    }
     const engine = createI18n({ locale: "en" });
     registerAuthI18n(engine);
     engine.registerBundle("en", demoBundleEn);
@@ -116,7 +126,7 @@ export function AuthDemoHarness(props: {
       }),
       i18n: engine,
     };
-  }, [handlers]);
+  }, [handlers, signedInAs]);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider i18n={i18n}>

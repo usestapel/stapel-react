@@ -356,6 +356,8 @@ export const workspacesI18nBundleRu: I18nDictionary = {
   "workspaces.nav.invitations": "Приглашения",
   "workspaces.nav.audit": "История",
   "workspaces.nav.invite": "Приглашение",
+  "workspaces.switcher.label": "Текущее пространство",
+  "workspaces.switcher.failed": "Не удалось загрузить пространства. Повторить",
 };
 
 /**

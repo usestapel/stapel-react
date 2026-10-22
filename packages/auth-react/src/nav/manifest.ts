@@ -30,7 +30,7 @@
  * DROPS an orphaned submenu entry rather than throwing, so a host with no
  * admin area gets a smaller menu, not a broken build.
  */
-import type { NavEntry } from "@stapel/core";
+import type { NavEmbed, NavEntry } from "@stapel/core";
 
 /** The container-owned top entry the operator console hangs from. A constant
  * so the reference cannot drift, and exported so a container can assert it
@@ -153,5 +153,25 @@ export const navEntries: readonly NavEntry[] = [
     requiresAuth: true,
     surface: "member",
     order: 44,
+  },
+];
+
+/**
+ * The account control is header chrome on every member page, so it offers
+ * `topbar.end` with the highest order of the fleet's top-bar embeds: the
+ * trailing corner is where a person looks for "who am I signed in as" and
+ * "sign out". `member` because it has nothing to say without a session.
+ * `opens` names the container-owned account section; a project that routes
+ * none mounts the menu without `onOpen`, and the menu then offers sign-out
+ * only.
+ */
+export const navEmbeds: readonly NavEmbed[] = [
+  {
+    id: "auth.account_menu",
+    slot: "topbar.end",
+    component: { export: "AccountMenu", subpath: "default" },
+    order: 90,
+    surface: "member",
+    opens: "account.root",
   },
 ];

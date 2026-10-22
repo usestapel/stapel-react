@@ -121,5 +121,17 @@
       "surface": "public",
       "order": 0
     }
+  ],
+  "embeds": [
+    {
+      "id": "workspaces.switcher",
+      "slot": "topbar.start",
+      "component": {
+        "export": "WorkspaceSwitcher",
+        "subpath": "default"
+      },
+      "order": 10,
+      "surface": "member"
+    }
   ]
 }

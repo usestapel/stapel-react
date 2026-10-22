@@ -207,6 +207,19 @@
           "surface": "member",
           "order": 44
         }
+      ],
+      "embeds": [
+        {
+          "id": "auth.account_menu",
+          "slot": "topbar.end",
+          "component": {
+            "export": "AccountMenu",
+            "subpath": "default"
+          },
+          "order": 90,
+          "surface": "member",
+          "opens": "account.root"
+        }
       ]
     },
     {
@@ -1286,6 +1299,18 @@
           "requiresAuth": false,
           "surface": "public",
           "order": 0
+        }
+      ],
+      "embeds": [
+        {
+          "id": "workspaces.switcher",
+          "slot": "topbar.start",
+          "component": {
+            "export": "WorkspaceSwitcher",
+            "subpath": "default"
+          },
+          "order": 10,
+          "surface": "member"
         }
       ]
     }

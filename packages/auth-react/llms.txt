@@ -256,6 +256,7 @@ const { tracked } = useTracked();
 ```
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- auth.account-menu-skin → <AccountMenu> [default|sign-out-only]  demo/AccountMenuSkin.demo.tsx
 - auth.admin-audit-skin → <AdminAuditPanel> [default|no-matches|forbidden]  demo/AdminAuditSkin.demo.tsx
 - auth.admin-service-keys-skin → <ServiceKeysPanel> [default|empty|forbidden]  demo/AdminServiceKeysSkin.demo.tsx
 - auth.admin-sso-orgs-skin → <SsoOrgsPanel> [default|empty|forbidden]  demo/AdminSsoOrgsSkin.demo.tsx

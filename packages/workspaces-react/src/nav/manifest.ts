@@ -40,7 +40,7 @@
  * belongs to none), never a blank page and never a crash from a selection
  * provider a shell forgot to wire.
  */
-import type { NavEntry } from "@stapel/core";
+import type { NavEmbed, NavEntry } from "@stapel/core";
 
 export const navEntries: readonly NavEntry[] = [
   {
@@ -116,5 +116,23 @@ export const navEntries: readonly NavEntry[] = [
     requiresAuth: false,
     surface: "public",
     order: 0,
+  },
+];
+
+/**
+ * The switcher says which workspace every screen below it is about, so it
+ * sits right after the brand in `topbar.start` — the place a person reads
+ * "where am I" before anything else — on every width. `member` because the
+ * list it switches over needs a session. It needs `WorkspaceSelectionProvider`
+ * above it; the scaffold mounts the provider around the member shell whenever
+ * it mounts this embed.
+ */
+export const navEmbeds: readonly NavEmbed[] = [
+  {
+    id: "workspaces.switcher",
+    slot: "topbar.start",
+    component: { export: "WorkspaceSwitcher", subpath: "default" },
+    order: 10,
+    surface: "member",
   },
 ];
