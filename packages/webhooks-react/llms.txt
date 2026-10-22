@@ -33,14 +33,17 @@ Paths are relative to `/webhooks/api/v1/`.
 - webhooks_api_v1_subscriptions_secret_create: POST /subscriptions/{subscription_id}/secret
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCreateSubscription (mutation) → createSubscription
-- useDeliveries (mutation) → deliveries+replay
-- useDelivery (query) → delivery
-- useEventCatalog (query) → eventCatalog
-- useSecretRotation (mutation) → rotateSecret
-- useSubscription (query) → subscription
-- useSubscriptions (mutation) → deleteSubscription+subscriptions+updateSubscription
-- useUpdateSubscription (mutation) → updateSubscription
+- useCreateSubscription (mutation) → createSubscription : UseMutationResult< SubscriptionSecret, StapelApiError, CreateSubscriptionBody >
+- useDeliveries (mutation) → deliveries+replay : DeliveriesBag
+- useDelivery (query) → delivery : { readonly state: LoadState<Delivery>; readonly refetch: () => void; }
+- useEventCatalog (query) → eventCatalog : EventCatalogBag
+- useSecretRotation (mutation) → rotateSecret : SecretRotationBag
+- useSubscription (query) → subscription : { readonly state: LoadState<Subscription>; readonly refetch: () => void; }
+- useSubscriptions (mutation) → deleteSubscription+subscriptions+updateSubscription : SubscriptionsBag
+- useUpdateSubscription (mutation) → updateSubscription : UseMutationResult< Subscription, StapelApiError, { readonly id: string; readonly patch: SubscriptionPatch } >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useSubscriptionForm(initial?: Subscription) → SubscriptionFormBag
 
 ## Errors (render t(code, params); UX from remediation)
 53 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 13 · verify 8 · wait_and_retry 5 · contact_support 4 · reauthenticate 1.

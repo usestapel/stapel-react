@@ -28,9 +28,9 @@ Paths are relative to `/alerts/api/v1/`.
 - alerts_api_v1_report_create: POST /report
 
 ## Query hooks (server state; keys come only from the key factory)
-- useIssue (query) → issue
-- useIssues (query) → issues
-- useIssueStatus (mutation) → fixIssue+patchIssue
+- useIssue (query) → issue : IssueBag
+- useIssues (query) → issues : IssuesBag
+- useIssueStatus (mutation) → fixIssue+patchIssue : IssueStatusBag
 
 ## Errors (render t(code, params); UX from remediation)
 48 keys (full catalog: manifest.json §errors). By remediation: fix_input 19 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.

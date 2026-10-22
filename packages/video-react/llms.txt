@@ -38,12 +38,16 @@ Paths are relative to `/video/api/v1/`.
 - video_api_v1_webhook_create: POST /webhook
 
 ## Query hooks (server state; keys come only from the key factory)
-- useActiveCall (query) → activeCall
-- useCallActions (mutation) → acceptCall+callToken+createCall+declineCall+hangupCall
-- useLobby (mutation) → admitParticipant+denyParticipant+participants
-- useMeeting (mutation) → createRoom+joinRoom
-- useRoom (query) → getRoom
-- useScopeUsage (query) → scopeUsage
+- useActiveCall (query) → activeCall : ActiveCallBag
+- useCallActions (mutation) → acceptCall+callToken+createCall+declineCall+hangupCall : CallActionsBag
+- useLobby (mutation) → admitParticipant+denyParticipant+participants : LobbyBag
+- useMeeting (mutation) → createRoom+joinRoom : MeetingBag
+- useRoom (query) → getRoom : LoadState<RoomResponse>
+- useScopeUsage (query) → scopeUsage : ScopeUsageBag
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useCalls() → CallsApi
+- useIncomingCall() → { readonly call: CallResponse | undefined; readonly peerId:…
 
 ## Errors (render t(code, params); UX from remediation)
 57 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 22 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

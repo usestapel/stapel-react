@@ -25,8 +25,13 @@ Paths are relative to `/currencies/api/v1/`.
 - currencies_api_v1_retrieve: GET /{code}/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCurrencies (query) → list
-- useCurrency (query) → retrieve
+- useCurrencies (query) → list : CurrenciesBag
+- useCurrency (query) → retrieve : { readonly state: LoadState<Currency>; refetch: () => void; }
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useMoney() → MoneyBag
+- useDisplayCurrency() → DisplayCurrencyBag
+- usePrice(options: UsePriceOptions — required { amount: string; currency: string }, 1 optional) → PriceBag
 
 ## Errors (render t(code, params); UX from remediation)
 45 keys (full catalog: manifest.json §errors). By remediation: fix_input 18 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

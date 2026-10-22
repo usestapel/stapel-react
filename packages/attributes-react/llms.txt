@@ -126,6 +126,10 @@ signatures/JSDoc in the package README and src/index.ts.
 - VocabularyTermAnswer
 - VocabularyTermPage
 
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useVocabularyClient() → VocabularyClient | null
+- useFeatureFields(options: UseFeatureFieldsOptions — required { features: readonly FeatureDef[] }, 3 optional) → FeatureFieldsState
+
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
 - (no app defineEvent() in this pair — its analytic events are the
   auto-instrumented flow funnels below)

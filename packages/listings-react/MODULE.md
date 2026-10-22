@@ -200,8 +200,12 @@ deprecated.
 
 ```tsx
 const [categoryId, setCategoryId] = useState<number | null>(null);
-const query = useCategoryFeatures(categoryId);      // @stapel/categories-react
-const features = loadStateFromQuery(query);         // @stapel/core
+// @stapel/categories-react answers `{ features, effectiveFrom }`; @stapel/core's
+// mapLoad + loadStateFromQuery keep the discriminant and pick the rows.
+const features = mapLoad(
+  loadStateFromQuery(useCategoryFeatures(categoryId)),
+  (result) => result.features,
+);
 
 <ListingComposerPage
   category={categoryId === null ? "" : String(categoryId)}
@@ -213,8 +217,8 @@ const features = loadStateFromQuery(query);         // @stapel/core
     />
   )}
   features={loadedRowsOrEmpty(features)}
-  featuresLoading={isLoadLoading(features)}
-  featuresError={isLoadFailed(features) ? features.error : undefined}
+  featuresLoading={features.status === "loading"}
+  {...(features.status === "failed" ? { featuresError: features.error } : {})}
 />
 ```
 
@@ -227,9 +231,14 @@ three apart. `loadStateFromQuery` keeps the discriminant and
 consumer its rows, with the state — not a flattened array — answering the two
 flags beside it.
 
-`useCategoryFeatures` returns `UseQueryResult<readonly CategoryFeature[]>` and
-`CategoryFeature` IS `FeatureDef` (categories-react re-exports the L0 type
-rather than mirroring it), so nothing converts. The three props travel
+`useCategoryFeatures` returns `UseQueryResult<CategoryFeaturesResult,
+StapelApiError>` — an object, `{ features: readonly CategoryFeature[],
+effectiveFrom: "own" | "children" }`, not an array — so `mapLoad` picks
+`result.features` before `loadedRowsOrEmpty` sees it. `CategoryFeature` IS
+`FeatureDef` (categories-react re-exports the L0 type rather than mirroring
+it), so the rows need no conversion. `featuresError` is spread in only when the
+read failed: the prop is optional, and under `exactOptionalPropertyTypes` it
+does not accept `undefined`. The three props travel
 together on purpose: `features={[]}` alone would say "this category asks
 nothing", which during the read is a lie the publish gate must not repeat.
 

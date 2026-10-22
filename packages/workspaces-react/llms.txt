@@ -53,31 +53,41 @@ Paths are relative to `/workspaces/api/v1/`.
 - workspaces_api_v1_roles_retrieve: GET /roles
 
 ## Query hooks (server state; keys come only from the key factory)
-- useAcceptInvitation (mutation) → acceptInvitation
-- useAudit (query) → listAudit
-- useClaimInvitation (mutation) → claimInvitation
-- useClearPreferredWorkspace (mutation) → clearPreferredWorkspace
-- useCreateWorkspace (mutation) → createWorkspace
-- useDeclineInvitation (mutation) → declineInvitation
-- useDeleteWorkspace (mutation) → deleteWorkspace
-- useInstanceShape (query) → getInstanceShape
-- useInvitationPreview (query) → getInvitationPreview
-- useInvitations (query) → listInvitations
-- useInviteMembers (mutation) → inviteMembers
-- useMembers (query) → listMembers
-- useRemoveMember (mutation) → removeMember
-- useRenameInvitation (mutation) → renameInvitation
-- useRenameMember (mutation) → renameMember
-- useResendInvitation (mutation) → resendInvitation
-- useResetMemberPassword (mutation) → resetMemberPassword
-- useRevokeInvitation (mutation) → revokeInvitation
-- useRoles (query) → listRoles
-- useSetPreferredWorkspace (mutation) → setPreferredWorkspace
-- useUpdateMemberRole (mutation) → updateMemberRole
-- useUpdateSecuritySettings (mutation) → getWorkspace+updateWorkspace
-- useUpdateWorkspace (mutation) → updateWorkspace
-- useWorkspace (query) → getWorkspace
-- useWorkspaces (query) → listWorkspaces
+- useAcceptInvitation (mutation) → acceptInvitation : UseMutationResult< Member, StapelApiError, InvitationAccept >
+- useAudit (query) → listAudit : UseQueryResult<AuditPage, StapelApiError>
+- useClaimInvitation (mutation) → claimInvitation : UseMutationResult< InvitationClaim, StapelApiError, string >
+- useClearPreferredWorkspace (mutation) → clearPreferredWorkspace : UseMutationResult< PreferredWorkspaceResult, StapelApiError, void >
+- useCreateWorkspace (mutation) → createWorkspace : UseMutationResult< Workspace, StapelApiError, WorkspaceCreate >
+- useDeclineInvitation (mutation) → declineInvitation : UseMutationResult< void, StapelApiError, string >
+- useDeleteWorkspace (mutation) → deleteWorkspace : UseMutationResult< void, StapelApiError, string >
+- useInstanceShape (query) → getInstanceShape : UseQueryResult< InstanceShape, StapelApiError >
+- useInvitationPreview (query) → getInvitationPreview : UseQueryResult<InvitationPreview, StapelApiError>
+- useInvitations (query) → listInvitations : UseQueryResult<InvitationPage, StapelApiError>
+- useInviteMembers (mutation) → inviteMembers : UseMutationResult<MemberInviteResult, StapelApiError, MemberInvite>
+- useMembers (query) → listMembers : UseQueryResult<MemberPage, StapelApiError>
+- useRemoveMember (mutation) → removeMember : UseMutationResult<void, StapelApiError, string>
+- useRenameInvitation (mutation) → renameInvitation : UseMutationResult<DisplayNameResult, StapelApiError, InvitationRename>
+- useRenameMember (mutation) → renameMember : UseMutationResult<DisplayNameResult, StapelApiError, MemberRename>
+- useResendInvitation (mutation) → resendInvitation : UseMutationResult<Invitation, StapelApiError, string>
+- useResetMemberPassword (mutation) → resetMemberPassword : UseMutationResult< MemberPasswordResetResult, StapelApiError, MemberPasswordResetVars >
+- useRevokeInvitation (mutation) → revokeInvitation : UseMutationResult<Invitation, StapelApiError, string>
+- useRoles (query) → listRoles : UseQueryResult< readonly RoleInfo[], StapelApiError >
+- useSetPreferredWorkspace (mutation) → setPreferredWorkspace : UseMutationResult< PreferredWorkspaceResult, StapelApiError, PreferredWorkspace >
+- useUpdateMemberRole (mutation) → updateMemberRole : UseMutationResult<Member, StapelApiError, MemberRoleChange>
+- useUpdateSecuritySettings (mutation) → getWorkspace+updateWorkspace : UseMutationResult<Workspace, StapelApiError, WorkspaceSecuritySettings>
+- useUpdateWorkspace (mutation) → updateWorkspace : UseMutationResult<Workspace, StapelApiError, WorkspaceUpdate>
+- useWorkspace (query) → getWorkspace : UseQueryResult<Workspace, StapelApiError>
+- useWorkspaces (query) → listWorkspaces : UseQueryResult<WorkspaceList, StapelApiError>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useWorkspaceSelection() → WorkspaceSelection
+- useOptionalWorkspaceSelection() → WorkspaceSelection | null
+- useCanCreateWorkspace() → boolean
+- useInfiniteInvitations(workspaceId: string | null, filters?: Omit<InvitationsParams, "anchor" | "direction">) → UseInfiniteQueryResult< InfiniteData<InvitationPage, string…
+- useCapabilities(workspaceId: string | null) → CapabilitiesResult
+- useCapabilityGate(workspaceId: string | null, capability: string) → CapabilityGate
+- useMandateState() → MandateState
+- useMandateSource() → MandateSource
 
 ## Errors (render t(code, params); UX from remediation)
 74 keys (full catalog: manifest.json §errors). By remediation: fix_input 35 · retry 13 · wait_and_retry 10 · contact_support 9 · verify 5 · reauthenticate 2.

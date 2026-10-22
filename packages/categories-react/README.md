@@ -186,7 +186,8 @@ comes from the cascade: see the commit-rule section below.
 |---|---|
 | `createCategoriesRuntime` / `CategoriesProvider` | wiring |
 | `useCategoryCatalog` | the delta-synced tree, one hook, mounted once |
-| `useCategoryChildren` / `useCategoryCarousel` / `useCategoryFeatures` / `useCategoriesRevision` | the four direct reads |
+| `useCategoryChildren` / `useCategoryCarousel` / `useCategoriesRevision` | direct reads |
+| `useCategoryFeatures(id)` | the category's schema: `UseQueryResult<CategoryFeaturesResult>`, an OBJECT `{ features, effectiveFrom }`, not an array — `mapLoad(loadStateFromQuery(q), (r) => r.features)` gives the rows as a `LoadState` |
 | `useCategoryTree(depth = 3)` | the nested menu tree — one cached call, `GET /tree/?depth=N` |
 | `browseStage(category)` | which page the category gets: `"tiles"` only for a root with children, `"feed"` otherwise |
 | `childControl(category)` | the filter a feed page's own rail gets for this category's children: `"none"` \| `"segmented"` \| `"list"` |

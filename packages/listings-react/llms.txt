@@ -43,22 +43,37 @@ Paths are relative to `/listings/api/v1/`.
 - listings_api_v1_listings_validate_draft_retrieve: GET /listings/{id}/validate-draft/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useArchiveListing (mutation) → archive
-- useCompleteListing (mutation) → complete
-- useCreateDraft (mutation) → createDraft
-- useDeleteListing (mutation) → remove
-- useFavoriteListing (mutation) → favorite+unfavorite
-- useListing (query) → retrieve
-- useListingCards (query) → list
-- useListingDraft (query) → draft
-- useListingEngagement (query) → engagement
-- useListingStatus (query) → status
-- useMyCounters (query) → myCounters
-- useMyFavorites (query) → myFavorites
-- usePublishListing (mutation) → publish
-- useSaveDraft (mutation) → saveDraft
-- useTransitionListing (mutation) → transition
-- useValidateDraft (query) → validateDraft
+- useArchiveListing (mutation) → archive : UseMutationResult< ListingActionResponse, StapelApiError, number >
+- useCompleteListing (mutation) → complete : UseMutationResult< ListingActionResponse, StapelApiError, number >
+- useCreateDraft (mutation) → createDraft : UseMutationResult< ListingDraft, StapelApiError, ListingDraftPatch >
+- useDeleteListing (mutation) → remove : UseMutationResult< DeleteResponse, StapelApiError, number >
+- useFavoriteListing (mutation) → favorite+unfavorite : UseMutationResult< FavoriteToggleResponse, StapelApiError, FavoriteInput >
+- useListing (query) → retrieve : UseQueryResult<ListingDetail, StapelApiError>
+- useListingCards (query) → list : UseQueryResult<PaginatedListingCards, StapelApiError>
+- useListingDraft (query) → draft : UseQueryResult<ListingDraft, StapelApiError>
+- useListingEngagement (query) → engagement : UseQueryResult<ListingEngagementBatch, StapelApiError>
+- useListingStatus (query) → status : UseQueryResult<ListingStatusInfo, StapelApiError>
+- useMyCounters (query) → myCounters : UseQueryResult<MyCounters, StapelApiError>
+- useMyFavorites (query) → myFavorites : UseQueryResult<PaginatedListingCards, StapelApiError>
+- usePublishListing (mutation) → publish : UseMutationResult< PublishResponse, StapelApiError, number >
+- useSaveDraft (mutation) → saveDraft : UseMutationResult< ListingDraft, StapelApiError, SaveDraftInput >
+- useTransitionListing (mutation) → transition : UseMutationResult< ListingActionResponse, StapelApiError, ListingTransitionInput >
+- useValidateDraft (query) → validateDraft : UseQueryResult<ValidationBatchResult, StapelApiError>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useMandateGate(action?: string) → ActionAvailability
+- useElevatableMandateGate(action?: string) → { readonly gate: ActionAvailability; readonly elevation: El…
+- useListingDetail(id: number, options?: UseListingDetailOptions — 2 optional) → ListingDetailBag
+- useListingComposer(options: UseListingComposerOptions — required { features: readonly FeatureDef[] }, 12 optional) → ListingComposerBag
+- useMyListings(options?: UseMyListingsOptions — 4 optional) → MyListingsBag
+- useEngagedListing(row: ListingCard) → ListingCard
+- useEngagementOverlay(id: number) → ListingEngagement | undefined
+- useListingEngagementOverlay(ids: readonly number[], options?: UseListingEngagementOverlayOptions — 1 optional) → ListingEngagementBag
+- useListingEngagementScope() → ListingEngagementBag
+- useFavorites(options?: UseFavoritesOptions — 1 optional) → FavoritesBag
+- useFavoriteToggle(id: number, favorited: boolean | null | undefined) → FavoriteToggleBag
+- useShare(options?: UseShareOptions — 5 optional) → ShareBag
+- useListingActions(id: number, status: ListingLifecycleStatus | undefined, options?: UseListingActionsOptions — 1 optional) → ListingActionsBag
 
 ## Errors (render t(code, params); UX from remediation)
 72 keys (full catalog: manifest.json §errors). By remediation: fix_input 43 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

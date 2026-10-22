@@ -31,6 +31,10 @@ signatures/JSDoc in the package README and src/index.ts.
 - StapelImage
 - VariantMeta
 
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useImageSlot(options?: ImageSlotOptions — 1 optional) → ImageSlot<T>
+- useDevicePixelRatio() → number
+
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
 - (no app defineEvent() in this pair — its analytic events are the
   auto-instrumented flow funnels below)

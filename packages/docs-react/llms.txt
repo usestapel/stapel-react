@@ -72,38 +72,41 @@ Paths are relative to `/docs/api/v1/`.
 - docs_api_v1_uploads_finalize_create: POST /uploads/{upload_id}/finalize
 
 ## Query hooks (server state; keys come only from the key factory)
-- useAppendUpdates (mutation) → postUpdate
-- useCreateDocument (mutation) → createDocument
-- useCreateFolder (mutation) → createFolder
-- useCreateRevision (mutation) → createRevision
-- useDocument (query) → getDocument
-- useDocumentAccess (query) → listAccess
-- useDocumentContent (query) → getContent
-- useDocumentLinks (query) → listLinks
-- useDocuments (query) → listDocuments
-- useDocUpdates (query) → getUpdates
-- useDownloadUrl (query) → getDownloadUrl
-- useExportUrl (mutation) → getDownloadUrl
-- useFolders (query) → listFolders
-- useFolderTree (query) → listFolders
-- useGrantAccess (mutation) → grantAccess
-- useMintShareLink (mutation) → createLink
-- useRestoreRevision (mutation) → restoreRevision
-- useRevisionContent (query) → getRevisionContent
-- useRevisions (query) → listRevisions
-- useRevokeAccess (mutation) → revokeAccess
-- useRevokeShareLink (mutation) → revokeLink
-- useSaveContent (mutation) → putContent
-- useSharedDocument (query) → getSharedDocument
-- useSharedDocumentContent (query) → getSharedContent
-- useSharedDownloadUrl (mutation) → getSharedDownloadUrl
-- useTrash (query) → listTrash
-- useTrashActions (mutation) → emptyTrash+restoreDocument+restoreFolder
-- useTrashDocument (mutation) → deleteDocument
-- useTrashFolder (mutation) → deleteFolder
-- useUpdateDocument (mutation) → patchDocument
-- useUpdateFolder (mutation) → patchFolder
-- useUpload (mutation) → createUpload+finalizeUpload+getDocument+putContent+uploadToPutUrl
+- useAppendUpdates (mutation) → postUpdate : UseMutationResult<AppendResult, StapelApiError, PostUpdateRequest>
+- useCreateDocument (mutation) → createDocument : UseMutationResult< DocDocument, StapelApiError, CreateDocumentRequest >
+- useCreateFolder (mutation) → createFolder : UseMutationResult< DocFolder, StapelApiError, CreateFolderRequest >
+- useCreateRevision (mutation) → createRevision : UseMutationResult<DocRevision, StapelApiError, CreateRevisionVariables>
+- useDocument (query) → getDocument : UseQueryResult<DocDocument, StapelApiError>
+- useDocumentAccess (query) → listAccess : UseQueryResult<DocumentAccessGrant[], StapelApiError>
+- useDocumentContent (query) → getContent : UseQueryResult<DocumentText, StapelApiError>
+- useDocumentLinks (query) → listLinks : UseQueryResult<DocumentShareLink[], StapelApiError>
+- useDocuments (query) → listDocuments : UseQueryResult<DocDocument[], StapelApiError>
+- useDocUpdates (query) → getUpdates : DocUpdatesBag
+- useDownloadUrl (query) → getDownloadUrl : UseQueryResult<DownloadUrl, StapelApiError>
+- useExportUrl (mutation) → getDownloadUrl : UseMutationResult< string, StapelApiError, ExportUrlVariables >
+- useFolders (query) → listFolders : UseQueryResult<DocFolder[], StapelApiError>
+- useFolderTree (query) → listFolders : UseQueryResult<FolderTreeNode[], StapelApiError>
+- useGrantAccess (mutation) → grantAccess : UseMutationResult<DocumentAccessGrant, StapelApiError, GrantAccessRequest>
+- useMintShareLink (mutation) → createLink : UseMutationResult< DocumentShareLink, StapelApiError, CreateLinkRequest | undefined >
+- useRestoreRevision (mutation) → restoreRevision : UseMutationResult<DocDocument, StapelApiError, RestoreRevisionVariables>
+- useRevisionContent (query) → getRevisionContent : UseQueryResult<RevisionText, StapelApiError>
+- useRevisions (query) → listRevisions : UseQueryResult<DocRevision[], StapelApiError>
+- useRevokeAccess (mutation) → revokeAccess : UseMutationResult<void, StapelApiError, string>
+- useRevokeShareLink (mutation) → revokeLink : UseMutationResult<void, StapelApiError, string>
+- useSaveContent (mutation) → putContent : UseMutationResult<SaveContentResult, StapelApiError, SaveContentVariables>
+- useSharedDocument (query) → getSharedDocument : UseQueryResult<SharedDocument, StapelApiError>
+- useSharedDocumentContent (query) → getSharedContent : UseQueryResult<DocumentText, StapelApiError>
+- useSharedDownloadUrl (mutation) → getSharedDownloadUrl : UseMutationResult< string, StapelApiError, SharedDownloadUrlVariables >
+- useTrash (query) → listTrash : UseQueryResult<TrashListing, StapelApiError>
+- useTrashActions (mutation) → emptyTrash+restoreDocument+restoreFolder : TrashActions
+- useTrashDocument (mutation) → deleteDocument : UseMutationResult< void, StapelApiError, string >
+- useTrashFolder (mutation) → deleteFolder : UseMutationResult< void, StapelApiError, string >
+- useUpdateDocument (mutation) → patchDocument : UseMutationResult< DocDocument, StapelApiError, UpdateDocumentVariables >
+- useUpdateFolder (mutation) → patchFolder : UseMutationResult< DocFolder, StapelApiError, UpdateFolderVariables >
+- useUpload (mutation) → createUpload+finalizeUpload+getDocument+putContent+uploadToPutUrl : UseMutationResult< UploadResult, StapelApiError, UploadVariables >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useDocStream(documentId: string, options?: DocStreamOptions — 6 optional) → DocStreamBag
 
 ## Errors (render t(code, params); UX from remediation)
 95 keys (full catalog: manifest.json §errors). By remediation: fix_input 44 · retry 37 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.

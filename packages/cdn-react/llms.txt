@@ -36,7 +36,17 @@ Paths are relative to `/cdn/api/v1/`.
 - upload_video: POST /upload/video/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCdnRef (query) → fileExists
+- useCdnRef (query) → fileExists : CdnRefBag
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useUploadImage(options: {…} — required { target: CdnUploadTarget }) → UploadImageBag
+- useMediaUpload(options: UseMediaUploadOptions — required { target: CdnUploadTarget }) → MediaUploadBag
+- useMediaRecorder(options?: UseMediaRecorderOptions — 3 optional) → MediaRecorderBag
+- useVoiceUpload() → VoiceUploadBag
+- useUploadQueue(options: UseUploadQueueOptions — required { max: number; target: CdnUploadTarget }, 3 optional) → UploadQueueBag
+- useDescribe(refs: readonly CdnRef[] | null | undefined) → DescribeBag
+- useDescribeRef(ref: CdnRef | null | undefined) → DescribeBag
+- useUploadPreview(item: UploadItem) → UploadPreview
 
 ## Errors (render t(code, params); UX from remediation)
 56 keys (full catalog: manifest.json §errors). By remediation: fix_input 26 · retry 16 · verify 5 · wait_and_retry 5 · contact_support 3 · reauthenticate 1.

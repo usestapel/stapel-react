@@ -41,17 +41,21 @@ Paths are relative to `/recordings/api/v1/`.
 - recordings_api_v1_shares_unlock_create: POST /shares/{link_token}/unlock
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCreateRecording (mutation) → createRecording
-- useFinalizeUpload (mutation) → finalizeUpload
-- useRecording (query) → getRecording
-- useRecordingMedia (query) → getMediaUrl
-- useRecordings (query) → listRecordings
-- useReprocess (mutation) → reprocess
-- useResummarize (mutation) → resummarize
-- useSharedMedia (query) → getSharedMediaUrl
-- useSharedRecording (query) → getSharedRecording
-- useUnlockShare (mutation) → unlockShare
-- useUploadLimits (query) → getUploadLimits
+- useCreateRecording (mutation) → createRecording : UseMutationResult< CreateRecordingResponse, StapelApiError, CreateRecordingRequest >
+- useFinalizeUpload (mutation) → finalizeUpload : UseMutationResult< Recording, StapelApiError, FinalizeUploadVariables >
+- useRecording (query) → getRecording : UseQueryResult<Recording, StapelApiError>
+- useRecordingMedia (query) → getMediaUrl : UseQueryResult<MediaUrl, StapelApiError>
+- useRecordings (query) → listRecordings : UseQueryResult<Recording[], StapelApiError>
+- useReprocess (mutation) → reprocess : UseMutationResult< Recording, StapelApiError, string >
+- useResummarize (mutation) → resummarize : UseMutationResult<Job, StapelApiError, string>
+- useSharedMedia (query) → getSharedMediaUrl : UseQueryResult<MediaUrl, StapelApiError>
+- useSharedRecording (query) → getSharedRecording : UseQueryResult<SharedRecording, StapelApiError>
+- useUnlockShare (mutation) → unlockShare : UseMutationResult< ShareUnlock, StapelApiError, UnlockShareVariables >
+- useUploadLimits (query) → getUploadLimits : UseQueryResult<UploadLimits, StapelApiError>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useTranscript(recordingId: string, params?: TranscriptParams, options?: {…} — 1 optional) → UseInfiniteQueryResult< InfiniteData<TranscriptPage, number…
+- useRecordingsFormat() → RecordingsFormat
 
 ## Errors (render t(code, params); UX from remediation)
 65 keys (full catalog: manifest.json §errors). By remediation: fix_input 26 · retry 24 · wait_and_retry 6 · verify 5 · contact_support 2 · reauthenticate 2.

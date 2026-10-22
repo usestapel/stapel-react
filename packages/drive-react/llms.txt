@@ -72,12 +72,16 @@ Paths are relative to `/docs/api/v1/`.
 - docs_api_v1_uploads_finalize_create: POST /uploads/{upload_id}/finalize
 
 ## Query hooks (server state; keys come only from the key factory)
-- useArchiveListing (query) → getArchiveListing
-- useDriveSearch (query) → search
-- useFolderChildren (query) → listFolderChildren
-- useRecents (query) → listRecents
-- useStarred (query) → listStarred
-- useToggleStar (mutation) → setStar
+- useArchiveListing (query) → getArchiveListing : UseQueryResult<ArchiveListing, StapelApiError>
+- useDriveSearch (query) → search : UseQueryResult<DriveSearchHit[], StapelApiError>
+- useFolderChildren (query) → listFolderChildren : UseQueryResult<DocFolder[], StapelApiError>
+- useRecents (query) → listRecents : UseQueryResult<DocDocument[], StapelApiError>
+- useStarred (query) → listStarred : UseQueryResult<StarredListing, StapelApiError>
+- useToggleStar (mutation) → setStar : UseMutationResult< void, StapelApiError, ToggleStarVariables, StarRollback >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useThumbnailUrl() → ( documentId: string, tier: ThumbnailTier ) => string
+- useUploadQueue(options: UploadQueueOptions — required { workspaceId: string }, 2 optional) → UploadQueueBag
 
 ## Errors (render t(code, params); UX from remediation)
 95 keys (full catalog: manifest.json §errors). By remediation: fix_input 44 · retry 37 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 2.

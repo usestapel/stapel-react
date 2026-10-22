@@ -38,15 +38,15 @@ Paths are relative to `/gdpr/api/v1/`.
 - gdpr_api_v1_user_data_export_status_retrieve: GET /user/data-export/status
 
 ## Query hooks (server state; keys come only from the key factory)
-- useAccountClosure (mutation) → cancelClosure+closureStatus+initiateClosure
-- useDataExport (mutation) → downloadExport+exportStatus+requestExport
-- useDsar (mutation) → submitDsar
-- useDsarQueue (query) → dsarQueue
-- useErasure (query) → erasure
-- useMyErasures (query) → myErasures
-- useOwnersHealth (query) → ownersHealth
-- useRequestErasure (mutation) → requestErasure
-- useUpdateDsar (mutation) → updateDsar
+- useAccountClosure (mutation) → cancelClosure+closureStatus+initiateClosure : AccountClosureBag
+- useDataExport (mutation) → downloadExport+exportStatus+requestExport : DataExportBag
+- useDsar (mutation) → submitDsar : DsarBag
+- useDsarQueue (query) → dsarQueue : DsarQueueBag
+- useErasure (query) → erasure : { readonly state: LoadState<ErasureStatus>; readonly refetch: () => void }
+- useMyErasures (query) → myErasures : MyErasuresBag
+- useOwnersHealth (query) → ownersHealth : OwnersHealthBag
+- useRequestErasure (mutation) → requestErasure : UseMutationResult< ErasureStatus, StapelApiError, RequestErasureBody >
+- useUpdateDsar (mutation) → updateDsar : UseMutationResult< DsarStatus, StapelApiError, UpdateDsarVariables >
 
 ## Errors (render t(code, params); UX from remediation)
 60 keys (full catalog: manifest.json §errors). By remediation: fix_input 22 · retry 21 · verify 5 · wait_and_retry 5 · contact_support 4 · reauthenticate 3.

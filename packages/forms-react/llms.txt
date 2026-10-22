@@ -41,23 +41,29 @@ Paths are relative to `/forms/api/v1/`.
 - forms_api_v1_submissions_retrieve: GET /submissions/{submission_id}
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCreateForm (mutation) → createForm
-- useDeleteForm (mutation) → deleteForm
-- useDeleteSubmission (mutation) → deleteSubmission
-- useFieldKinds (query) → listFieldKinds
-- useForm (query) → getForm
-- useForms (query) → listForms
-- useFormVersions (query) → listVersions
-- usePublicForm (query) → getPublicForm
-- usePublishForm (mutation) → publish
-- useResendSubmission (mutation) → resendSubmission
-- useRotateLink (mutation) → rotateLink
-- useSaveDraft (mutation) → putDraft
-- useSetFormState (mutation) → setState
-- useSubmission (query) → getSubmission
-- useSubmissions (query) → listSubmissions
-- useSubmitForm (mutation) → submit
-- useUpdateForm (mutation) → patchForm
+- useCreateForm (mutation) → createForm : UseMutationResult< FormRow, StapelApiError, FormCreateRequest >
+- useDeleteForm (mutation) → deleteForm : UseMutationResult< void, StapelApiError, FormRef >
+- useDeleteSubmission (mutation) → deleteSubmission : UseMutationResult< void, StapelApiError, SubmissionRef >
+- useFieldKinds (query) → listFieldKinds : UseQueryResult<FieldKindCatalogue, StapelApiError>
+- useForm (query) → getForm : UseQueryResult<FormRow, StapelApiError>
+- useForms (query) → listForms : UseQueryResult<readonly FormRow[], StapelApiError>
+- useFormVersions (query) → listVersions : UseQueryResult<readonly FormVersion[], StapelApiError>
+- usePublicForm (query) → getPublicForm : UseQueryResult<PublicForm, StapelApiError>
+- usePublishForm (mutation) → publish : UseMutationResult< PublishResult, StapelApiError, FormRef >
+- useResendSubmission (mutation) → resendSubmission : UseMutationResult< ResendResult, StapelApiError, ResendVariables >
+- useRotateLink (mutation) → rotateLink : UseMutationResult< FormRow, StapelApiError, FormRef >
+- useSaveDraft (mutation) → putDraft : UseMutationResult< FormRow, StapelApiError, SaveDraftVariables >
+- useSetFormState (mutation) → setState : UseMutationResult< FormRow, StapelApiError, SetFormStateVariables >
+- useSubmission (query) → getSubmission : UseQueryResult<Submission, StapelApiError>
+- useSubmissions (query) → listSubmissions : UseQueryResult<readonly Submission[], StapelApiError>
+- useSubmitForm (mutation) → submit : UseMutationResult< SubmitResult, StapelApiError, SubmitVariables >
+- useUpdateForm (mutation) → patchForm : UseMutationResult< FormRow, StapelApiError, UpdateFormVariables >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useFormsWorkspaceId(explicit?: string) → string | null
+- useFormsCapability(capability: string) → CapabilityVerdict
+- useFormsCapabilityGate(capability: string) → ActionAvailability
+- useCsvExport() → CsvExportBag
 
 ## Errors (render t(code, params); UX from remediation)
 76 keys (full catalog: manifest.json §errors). By remediation: fix_input 42 · retry 14 · verify 7 · contact_support 6 · wait_and_retry 6 · reauthenticate 1.

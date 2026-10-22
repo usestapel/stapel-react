@@ -47,6 +47,13 @@ Paths are relative to `/translate/api/v1/`.
 - translate_api_v1_translations_retrieve: GET /translations/{id}/
 - translate_api_v1_translations_revision_retrieve: GET /translations/revision/
 
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useCurrentLocale() → string
+- useLanguage() → LanguageBag
+- useRemoteLocale(locale?: string) → LoadState<RemoteLocaleStatus>
+- useLocaleStatus(locale: string) → RemoteLocaleStatus | undefined
+- useTranslateText(input: string | readonly string[], options?: UseTranslateTextOptions — 4 optional) → TranslateTextBag
+
 ## Errors (render t(code, params); UX from remediation)
 48 keys (full catalog: manifest.json §errors). By remediation: fix_input 21 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
 Param-bearing keys (interpolation slots matter):

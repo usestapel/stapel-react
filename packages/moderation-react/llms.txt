@@ -46,20 +46,33 @@ Paths are relative to `/moderation/api/v1/`.
 - moderation_api_v1_stats_retrieve: GET /stats
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCaseDetailQuery (query) → caseDetail
-- useCaseEventsQuery (query) → caseEvents
-- useClaimCase (mutation) → claim
-- useIssueSanction (mutation) → issueSanction
-- useLiftSanction (mutation) → liftSanction
-- usePolicy (query) → policy
-- useReleaseCase (mutation) → release
-- useRescanCase (mutation) → rescan
-- useResolveAppeal (mutation) → resolveAppeal
-- useSanctionsQuery (query) → sanctions
-- useStatsQuery (query) → stats
-- useSubmitAppeal (mutation) → submitAppeal
-- useSubmitReport (mutation) → submitReport
-- useSubmitVerdict (mutation) → verdict
+- useCaseDetailQuery (query) → caseDetail : UseQueryResult<CaseDetail, StapelApiError>
+- useCaseEventsQuery (query) → caseEvents : UseQueryResult<readonly CaseEvent[], StapelApiError>
+- useClaimCase (mutation) → claim : UseMutationResult<Case, StapelApiError, string>
+- useIssueSanction (mutation) → issueSanction : UseMutationResult< Sanction, StapelApiError, IssueSanctionBody >
+- useLiftSanction (mutation) → liftSanction : UseMutationResult< Sanction, StapelApiError, LiftSanctionVariables >
+- usePolicy (query) → policy : UseQueryResult< PolicyDisclosure, StapelApiError >
+- useReleaseCase (mutation) → release : UseMutationResult<Case, StapelApiError, string>
+- useRescanCase (mutation) → rescan : UseMutationResult< RescanResult, StapelApiError, string >
+- useResolveAppeal (mutation) → resolveAppeal : UseMutationResult< Appeal, StapelApiError, ResolveAppealVariables >
+- useSanctionsQuery (query) → sanctions : PagedRows<Sanction>
+- useStatsQuery (query) → stats : UseQueryResult<Stats, StapelApiError>
+- useSubmitAppeal (mutation) → submitAppeal : UseMutationResult< Appeal, StapelApiError, SubmitAppealBody >
+- useSubmitReport (mutation) → submitReport : UseMutationResult< ReportResult, StapelApiError, SubmitReportBody >
+- useSubmitVerdict (mutation) → verdict : UseMutationResult< Verdict, StapelApiError, VerdictVariables >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useMyReportsQuery() → PagedRows<Report>
+- useMyAppealsQuery() → PagedRows<Appeal>
+- useCasesQuery(filters: CaseFilters) → PagedRows<Case>
+- useAppealQueueQuery(filters: AppealQueueFilters) → PagedRows<Appeal>
+- useReport(options: UseReportOptions — required { targetType: string; targetKey: string }, 1 optional) → ReportBag
+- useReportPolicy(targetType?: unknown) → ReportPolicyBag
+- useAppeal(options?: UseAppealOptions — 2 optional) → AppealBag
+- useModerationQueue(initial?: QueueFilters — 6 optional) → ModerationQueueBag
+- useModerationDlq() → ModerationDlqBag
+- useCase(options: UseCaseOptions — required { caseId: string | undefined }, 1 optional) → CaseBag
+- useAppealsQueue(initialState?: unknown) → AppealsQueueBag
 
 ## Errors (render t(code, params); UX from remediation)
 70 keys (full catalog: manifest.json §errors). By remediation: fix_input 25 · verify 18 · retry 13 · wait_and_retry 7 · contact_support 6 · reauthenticate 1.

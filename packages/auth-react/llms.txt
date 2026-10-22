@@ -168,49 +168,59 @@ Paths are relative to `/auth/api/v1/`.
 - jwt_status: GET /jwt/status/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useAdminAudit (query) → adminAudit
-- useAssignStaffRole (mutation) → assignStaffRole
-- useAuditLog (query) → auditLog
-- useCancelDelayedChange (mutation) → changeDelayedCancel
-- useCancelTotpDelayedChange (mutation) → totpChangeDelayedCancel
-- useCapabilities (query) → capabilities
-- useConfirmQrLogin (mutation) → qrConfirm
-- useConfirmSession (mutation) → confirmSession
-- useCreateAdminUser (mutation) → createAdminUser
-- useCreateServiceKey (mutation) → createServiceKey
-- useCreateSsoOrg (mutation) → createSsoOrg
-- useDelayedChangeStatus (query) → changeDelayedStatus
-- useDeleteServiceKey (mutation) → deleteServiceKey
-- useDeleteSsoOrg (mutation) → deleteSsoOrg
-- useDisableTotp (mutation) → totpDisable
-- useInitiateDelayedChange (mutation) → changeDelayedInitiate
-- useInitiateTotpDelayedChange (mutation) → totpChangeDelayedInitiate
-- useLinkOAuth (mutation) → oauthLink
-- useLogout (mutation) → logout
-- useMe (query) → me
-- useOAuthLinks (query) → oauthLinks
-- usePasskeys (query) → passkeys
-- usePasswordMethods (query) → passwordMethods
-- useRejectQrLogin (mutation) → qrReject
-- useRemovePasskey (mutation) → passkeyRemove
-- useRemoveStaffRole (mutation) → removeStaffRole
-- useRenamePasskey (mutation) → passkeyRename
-- useRevokeOtherSessions (mutation) → revokeOtherSessions
-- useRevokeSession (mutation) → revokeSession
-- useSaveSsoOrgConfig (mutation) → patchSsoOrgConfig+putSsoOrgConfig
-- useSecurityStatus (query) → securityStatus
-- useServiceKeys (query) → serviceKeys
-- useSessions (query) → sessions
-- useSetVerificationPreference (mutation) → setVerificationPreference
-- useSsoLookup (query) → ssoLookup
-- useSsoOrg (query) → ssoOrg
-- useSsoOrgs (query) → ssoOrgs
-- useStaffRoles (query) → staffRoles
-- useTotpDelayedChangeStatus (query) → totpChangeDelayedStatus
-- useUnlinkOAuth (mutation) → oauthUnlink
-- useUpdateServiceKey (mutation) → updateServiceKey
-- useUpdateSsoOrg (mutation) → updateSsoOrg
-- useVerificationPreferences (query) → verificationPreferences
+- useAdminAudit (query) → adminAudit : UseQueryResult<AuditPage, StapelApiError>
+- useAssignStaffRole (mutation) → assignStaffRole : UseMutationResult< StaffRoleAssignment, StapelApiError, StaffRoleAssignRequest >
+- useAuditLog (query) → auditLog : UseQueryResult<AuditPage, StapelApiError>
+- useCancelDelayedChange (mutation) → changeDelayedCancel : UseMutationResult<StatusResponse, StapelApiError, string>
+- useCancelTotpDelayedChange (mutation) → totpChangeDelayedCancel : UseMutationResult< StatusResponse, StapelApiError, string >
+- useCapabilities (query) → capabilities : UseQueryResult<Capabilities, StapelApiError>
+- useConfirmQrLogin (mutation) → qrConfirm : UseMutationResult< StatusResponse, StapelApiError, string >
+- useConfirmSession (mutation) → confirmSession : UseMutationResult< StatusResponse, StapelApiError, string >
+- useCreateAdminUser (mutation) → createAdminUser : UseMutationResult< AdminUserCreateResponse, StapelApiError, AdminUserCreateRequest >
+- useCreateServiceKey (mutation) → createServiceKey : UseMutationResult< ServiceKey, StapelApiError, ServiceKeyWrite >
+- useCreateSsoOrg (mutation) → createSsoOrg : UseMutationResult< SsoOrg, StapelApiError, SsoOrgWrite >
+- useDelayedChangeStatus (query) → changeDelayedStatus : UseQueryResult<DelayedChangeStatus, StapelApiError>
+- useDeleteServiceKey (mutation) → deleteServiceKey : UseMutationResult< void, StapelApiError, number >
+- useDeleteSsoOrg (mutation) → deleteSsoOrg : UseMutationResult<void, StapelApiError, string>
+- useDisableTotp (mutation) → totpDisable : UseMutationResult< StatusResponse, StapelApiError, TotpDisableRequest >
+- useInitiateDelayedChange (mutation) → changeDelayedInitiate : UseMutationResult<DelayedChangeInitiatedResponse, StapelApiError, string>
+- useInitiateTotpDelayedChange (mutation) → totpChangeDelayedInitiate : UseMutationResult< DelayedChangeInitiatedResponse, StapelApiError, string | undefined >
+- useLinkOAuth (mutation) → oauthLink : UseMutationResult< readonly LinkedOAuthAccount[], StapelApiError, { provider: string; accessToken: string } >
+- useLogout (mutation) → logout : UseMutationResult<void, StapelApiError, void>
+- useMe (query) → me : UseQueryResult<StapelUser, StapelApiError>
+- useOAuthLinks (query) → oauthLinks : UseQueryResult< readonly LinkedOAuthAccount[], StapelApiError >
+- usePasskeys (query) → passkeys : UseQueryResult< readonly Passkey[], StapelApiError >
+- usePasswordMethods (query) → passwordMethods : UseQueryResult< PasswordMethods, StapelApiError >
+- useRejectQrLogin (mutation) → qrReject : UseMutationResult< StatusResponse, StapelApiError, string >
+- useRemovePasskey (mutation) → passkeyRemove : UseMutationResult< void, StapelApiError, string >
+- useRemoveStaffRole (mutation) → removeStaffRole : UseMutationResult< void, StapelApiError, string >
+- useRenamePasskey (mutation) → passkeyRename : UseMutationResult< Passkey, StapelApiError, { readonly id: string; readonly deviceName: string } >
+- useRevokeOtherSessions (mutation) → revokeOtherSessions : UseMutationResult< StatusResponse, StapelApiError, void >
+- useRevokeSession (mutation) → revokeSession : UseMutationResult< StatusResponse, StapelApiError, string >
+- useSaveSsoOrgConfig (mutation) → patchSsoOrgConfig+putSsoOrgConfig : UseMutationResult< SsoOrgConfig, StapelApiError, { readonly slug: string; readonly body: SsoOrgConfig; readonly replace: boolean } >
+- useSecurityStatus (query) → securityStatus : UseQueryResult< SecurityStatus, StapelApiError >
+- useServiceKeys (query) → serviceKeys : UseQueryResult< readonly ServiceKey[], StapelApiError >
+- useSessions (query) → sessions : UseQueryResult< readonly AuthSessionRecord[], StapelApiError >
+- useSetVerificationPreference (mutation) → setVerificationPreference : UseMutationResult< VerificationPreferenceRow, StapelApiError, { readonly scope: string; readonly enabled: boolean } >
+- useSsoLookup (query) → ssoLookup : UseQueryResult<SsoLookupResponse, StapelApiError>
+- useSsoOrg (query) → ssoOrg : UseQueryResult<SsoOrg, StapelApiError>
+- useSsoOrgs (query) → ssoOrgs : UseQueryResult<readonly SsoOrg[], StapelApiError>
+- useStaffRoles (query) → staffRoles : UseQueryResult<readonly StaffRoleAssignment[], StapelApiError>
+- useTotpDelayedChangeStatus (query) → totpChangeDelayedStatus : UseQueryResult< DelayedChangeStatus, StapelApiError >
+- useUnlinkOAuth (mutation) → oauthUnlink : UseMutationResult<void, StapelApiError, string>
+- useUpdateServiceKey (mutation) → updateServiceKey : UseMutationResult< ServiceKey, StapelApiError, { readonly id: number; readonly body: ServiceKeyPatch } >
+- useUpdateSsoOrg (mutation) → updateSsoOrg : UseMutationResult< SsoOrg, StapelApiError, { readonly slug: string; readonly body: SsoOrgPatch } >
+- useVerificationPreferences (query) → verificationPreferences : UseQueryResult< VerificationPreferences, StapelApiError >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useAuthRuntime() → AuthRuntime
+- useAuthApi() → AuthApi
+- useAuthSession() → AuthSession
+- useVerification() → VerificationController
+- useAuthAnalytics() → Analytics | null
+- useAuthSessionState() → AuthSessionState
+- usePhoneCountryDefault(options?: UsePhoneCountryDefaultOptions — 5 optional) → PhoneCountryDefault
+- usePasskeyLogin(webauthnGet?: WebauthnBinding) → PasskeyLoginBag
 
 ## Errors (render t(code, params); UX from remediation)
 144 keys (full catalog: manifest.json §errors). By remediation: fix_input 62 · retry 38 · reauthenticate 17 · contact_support 9 · verify 9 · wait_and_retry 9.

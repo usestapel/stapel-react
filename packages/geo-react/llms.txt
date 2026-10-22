@@ -40,7 +40,13 @@ Paths are relative to `/geo/api/v1/`.
 - geo_api_v1_map_config_retrieve: GET /map/config
 
 ## Query hooks (server state; keys come only from the key factory)
-- useMapConfig (query) → mapConfig
+- useMapConfig (query) → mapConfig : { readonly state: LoadState<MapConfig>; refetch: () => void }
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- usePlaceSearch(options: UsePlaceSearchOptions — required { config: MapConfig | undefined }, 3 optional) → PlaceSearchBag
+- useBrowserPosition(options?: UseBrowserPositionOptions — 4 optional) → BrowserPositionBag
+- useResolvedLocation(options: UseResolvedLocationOptions — required { config: MapConfig | undefined }, 4 optional) → ResolvedLocationBag
+- useLocationPicker(options: UseLocationPickerOptions — required { config: MapConfig | undefined }, 5 optional) → LocationPickerBag
 
 ## Errors (render t(code, params); UX from remediation)
 50 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

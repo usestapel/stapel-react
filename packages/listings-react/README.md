@@ -261,13 +261,19 @@ than dependencies:
 
 ```tsx
 const [categoryId, setCategoryId] = useState<number | null>(null);
-const gallery = useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 });        // @stapel/cdn-react
-const features = useCategoryFeatures(categoryId);   // @stapel/categories-react
+// @stapel/cdn-react — `target` and `max` are both required.
+const gallery = useUploadQueue({ target: { kind: "image", assetType: "product" }, max: 10 });
+// @stapel/categories-react answers `{ features, effectiveFrom }`; @stapel/core's
+// mapLoad + loadStateFromQuery keep loading / failed / loaded apart.
+const features = mapLoad(
+  loadStateFromQuery(useCategoryFeatures(categoryId)),
+  (result) => result.features,
+);
 
 <ListingComposerPage
-  features={features.data?.features ?? []}
-  featuresLoading={features.isPending}
-  featuresError={features.error ?? undefined}
+  features={loadedRowsOrEmpty(features)}
+  featuresLoading={features.status === "loading"}
+  {...(features.status === "failed" ? { featuresError: features.error } : {})}
   images={gallery}
   category={categoryId === null ? "" : String(categoryId)}
   onCategoryChange={(id) => setCategoryId(id === "" ? null : Number(id))}

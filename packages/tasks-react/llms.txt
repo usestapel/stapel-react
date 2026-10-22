@@ -48,26 +48,32 @@ Paths are relative to `/tasks/api/v1/`.
 - tasks_api_v1_tasks_retrieve: GET /tasks/{task_id}
 
 ## Query hooks (server state; keys come only from the key factory)
-- useAddChecklistItem (mutation) → addChecklistItem
-- useAddColumn (mutation) → addColumn
-- useAddComment (mutation) → addComment
-- useArchiveBoard (mutation) → archiveBoard
-- useArchiveTask (mutation) → archiveTask
-- useAssign (mutation) → assign
-- useBoardCardsQuery (query) → boardCards
-- useBoardQuery (query) → board
-- useBoardsQuery (query) → boards
-- useChecklistQuery (query) → checklist
-- useCommentsQuery (query) → comments
-- useCreateBoard (mutation) → createBoard
-- useCreateTaskMutation (mutation) → createTask
-- useMoveTask (mutation) → moveTask
-- useReorderColumns (mutation) → reorderColumns
-- useSetChecklistState (mutation) → setChecklistState
-- useTaskQuery (query) → task
-- useUpdateBoard (mutation) → updateBoard
-- useUpdateTask (mutation) → updateTask
-- useVocabularyQuery (query) → presets
+- useAddChecklistItem (mutation) → addChecklistItem : UseMutationResult<ChecklistItem, StapelApiError, string>
+- useAddColumn (mutation) → addColumn : UseMutationResult<Column, StapelApiError, ColumnCreateBody>
+- useAddComment (mutation) → addComment : UseMutationResult<Comment, StapelApiError, string>
+- useArchiveBoard (mutation) → archiveBoard : UseMutationResult< ArchivedResponse, StapelApiError, string >
+- useArchiveTask (mutation) → archiveTask : UseMutationResult<ArchivedResponse, StapelApiError, undefined>
+- useAssign (mutation) → assign : UseMutationResult<Task, StapelApiError, readonly string[]>
+- useBoardCardsQuery (query) → boardCards : UseQueryResult<BoardCards, StapelApiError>
+- useBoardQuery (query) → board : UseQueryResult<Board, StapelApiError>
+- useBoardsQuery (query) → boards : UseQueryResult< readonly Board[], StapelApiError >
+- useChecklistQuery (query) → checklist : UseQueryResult<readonly ChecklistItem[], StapelApiError>
+- useCommentsQuery (query) → comments : UseQueryResult<readonly Comment[], StapelApiError>
+- useCreateBoard (mutation) → createBoard : UseMutationResult< Board, StapelApiError, BoardCreateBody >
+- useCreateTaskMutation (mutation) → createTask : UseMutationResult<Task, StapelApiError, TaskCreateBody>
+- useMoveTask (mutation) → moveTask : UseMutationResult< MoveResponse, StapelApiError, MoveVariables >
+- useReorderColumns (mutation) → reorderColumns : UseMutationResult<readonly Column[], StapelApiError, readonly string[]>
+- useSetChecklistState (mutation) → setChecklistState : UseMutationResult<ChecklistItem, StapelApiError, ChecklistStateVariables>
+- useTaskQuery (query) → task : UseQueryResult<Task, StapelApiError>
+- useUpdateBoard (mutation) → updateBoard : UseMutationResult<Board, StapelApiError, BoardUpdateBody>
+- useUpdateTask (mutation) → updateTask : UseMutationResult<Task, StapelApiError, TaskUpdateBody>
+- useVocabularyQuery (query) → presets : UseQueryResult< BoardVocabulary, StapelApiError >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useBoards() → BoardsBag
+- useBoard(boardId: string | undefined, initialFilters?: BoardFilters — 4 optional) → BoardBag
+- useTask(taskId: string | undefined) → TaskBag
+- useCreateTask(boardId: string | undefined, initialColumn?: string) → CreateTaskBag
 
 ## Errors (render t(code, params); UX from remediation)
 57 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 20 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

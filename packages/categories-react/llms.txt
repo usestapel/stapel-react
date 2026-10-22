@@ -60,13 +60,19 @@ Paths are relative to `/categories/api/v1/`.
 - collect_translation_keys: GET /categories/translation-keys/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useCategoriesRevision (query) → revision
-- useCategory (query) → retrieve
-- useCategoryCarousel (query) → carousel
-- useCategoryCatalog (query) → —
-- useCategoryChildren (query) → children
-- useCategoryFeatures (query) → features
-- useCategoryTree (query) → tree
+- useCategoriesRevision (query) → revision : UseQueryResult<MaxRevision, StapelApiError>
+- useCategory (query) → retrieve : UseQueryResult<Category, StapelApiError>
+- useCategoryCarousel (query) → carousel : UseQueryResult<readonly Category[], StapelApiError>
+- useCategoryCatalog (query) → — : UseQueryResult<CategoryCatalog, StapelApiError>
+- useCategoryChildren (query) → children : UseQueryResult<readonly CategoryChild[], StapelApiError>
+- useCategoryFeatures (query) → features : UseQueryResult<CategoryFeaturesResult, StapelApiError>
+- useCategoryTree (query) → tree : UseQueryResult<readonly CategoryTreeNode[], StapelApiError>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useCategoryLevels(parentIds: readonly (number | null)[], options?: CategoryBrowseOptions — 1 optional) → CategoryFanOut<readonly Category[]>
+- useCategoryRows(ids: readonly number[], options?: {…} — 2 optional) → CategoryFanOut<Category>
+- useCategorySearch(query: string, options?: UseCategorySearchOptions — 3 optional) → readonly CategorySearchHit[]
+- useCategoryCascade(options?: UseCategoryCascadeOptions — 7 optional) → CategoryCascadeBag
 
 ## Errors (render t(code, params); UX from remediation)
 64 keys (full catalog: manifest.json §errors). By remediation: fix_input 37 · retry 14 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

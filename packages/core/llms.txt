@@ -247,6 +247,36 @@ signatures/JSDoc in the package README and src/index.ts.
 - VerificationChallengeHandler
 - VerificationOutcome
 
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useKeptLoad(state: LoadState<T>, options?: KeepPreviousOption) → LoadState<T>
+- useActionGate(availability: ActionAvailability) → ActionGateView
+- useStapelConfig() → StapelConfig
+- useStapelClient(module?: string) → StapelClient
+- useI18n() → I18nEngine
+- useOptionalI18n() → I18nEngine | null
+- useT() → TranslateFn
+- useTPlural() → PluralTranslateFn
+- useFormat() → Format
+- useAnalytics() → Analytics
+- useRecents(scope: string, options?: UseRecentsOptions — 2 optional) → RecentsBag
+- useSessionReady(manager: SessionManager) → boolean
+- useActiveSessionReady() → boolean
+- useActiveSessionStatus() → SessionStatus | null
+- useBreakpoint() → Breakpoint | undefined
+- useMandate() → MandateState
+- useMandatePrincipal() → MandatePrincipal | null
+- useElevation(action: string | null | undefined) → Elevation
+- useElevationSource() → ElevationSource | null
+- useObjectUrlPreview(file: Blob | null | undefined) → string | null
+- useFlow(machine: FlowMachine<S>) → S
+- useFormatFlowError() → (error: FlowError) => string
+- useDescribeFlowError() → (error: FlowError) => FlowErrorDisplay
+- useErrorText(fallbackCode?: unknown) → (error: unknown) => string | undefined
+- useErrorDisplay(fallbackCode?: unknown) → (error: unknown) => FlowErrorDisplay | undefined
+- usePermission(kind: PermissionKind, options?: UsePermissionOptions — 3 optional) → PermissionBag
+- useSite() → Site
+- useOptionalSite() → Site | null
+
 ## Analytics events (typed; defineEvent → events.json, drift-gated)
 - (no app defineEvent() in this pair — its analytic events are the
   auto-instrumented flow funnels below)

@@ -33,15 +33,18 @@ Paths are relative to `/calendar/api/v1/`.
 - calendar_api_v1_events_retrieve: GET /events/{event_id}
 
 ## Query hooks (server state; keys come only from the key factory)
-- useAvailability (query) → availability
-- useCalendar (query) → calendar
-- useCreateEvent (mutation) → createEvent
-- useDeleteEvent (mutation) → deleteEvent
-- useEvent (query) → getEvent
-- useEvents (query) → listEvents
-- useReplaceParticipants (mutation) → replaceParticipants
-- useRespondToEvent (mutation) → respond
-- useUpdateEvent (mutation) → updateEvent
+- useAvailability (query) → availability : UseQueryResult<AvailabilityResponse, StapelApiError>
+- useCalendar (query) → calendar : UseQueryResult<CalendarResponse, StapelApiError>
+- useCreateEvent (mutation) → createEvent : UseMutationResult< CalendarEvent, StapelApiError, EventCreateRequest >
+- useDeleteEvent (mutation) → deleteEvent : UseMutationResult< EventDeleteOutcome, StapelApiError, string >
+- useEvent (query) → getEvent : UseQueryResult<CalendarEvent, StapelApiError>
+- useEvents (query) → listEvents : UseQueryResult<CalendarEvent[], StapelApiError>
+- useReplaceParticipants (mutation) → replaceParticipants : UseMutationResult< CalendarEvent, StapelApiError, ReplaceParticipantsVariables >
+- useRespondToEvent (mutation) → respond : UseMutationResult< CalendarEvent, StapelApiError, RespondVariables >
+- useUpdateEvent (mutation) → updateEvent : UseMutationResult< CalendarEvent, StapelApiError, UpdateEventVariables >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useUserName() → (userId: string) => string
 
 ## Errors (render t(code, params); UX from remediation)
 49 keys (full catalog: manifest.json §errors). By remediation: fix_input 21 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

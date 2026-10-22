@@ -27,7 +27,10 @@ Paths are relative to `/vocabularies/api/v1/`.
 - vocabularies_api_v1_vocabularies_terms_retrieve: GET /vocabularies/{slug}/terms/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useTermLabels (query) → —
+- useTermLabels (query) → — : LoadState<TermLabels>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useTermSearch(client: VocabularyClient | null, options: TermSearchOptions — required { vocabulary: string; level: string }, 2 optional) → TermSearchState
 
 ## Errors (render t(code, params); UX from remediation)
 45 keys (full catalog: manifest.json §errors). By remediation: fix_input 17 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

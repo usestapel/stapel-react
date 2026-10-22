@@ -28,9 +28,23 @@ Paths are relative to `/search/api/v1/`.
 - search_api_v1_suggest_retrieve: GET /suggest
 
 ## Query hooks (server state; keys come only from the key factory)
-- useRankingDisclosure (query) → ranking
-- useSearchQuery (query) → query
-- useSuggest (query) → suggest
+- useRankingDisclosure (query) → ranking : UseQueryResult<RankingResponse, StapelApiError>
+- useSearchQuery (query) → query : UseQueryResult<SearchResponse, StapelApiError>
+- useSuggest (query) → suggest : UseQueryResult<SuggestAnswer, StapelApiError>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useFacetKeys() → FacetKeyMap
+- usePublishFacetKeys(labels: FacetLabelsMap | undefined) → void
+- usePublishRangeAxes(category: string | undefined, slugs: readonly string[] | undefined) → void
+- useRememberedRangeAxes(category: string | undefined) → readonly string[] | undefined
+- useSearchState() → SearchStateBag
+- useFacetPanel(props?: {…} — 4 optional) → FacetPanelBag
+- useDependentFacets(groups: readonly FacetGroup[], values: Readonly<Record<string, readonly string[]>>, meta: Pick<FacetMeta, "dependent_facets"> | undefined) → DependentFacetsBag
+- useHostFacetLabels(groups: LoadState<readonly FacetGroup[]>, resolve: FacetLabelResolver | undefined, locale: string | undefined) → LoadState<readonly FacetGroup[]>
+- useAppliedSort() → string | undefined
+- useSearchBox(options?: UseSearchBoxOptions — 4 optional) → SearchBoxBag
+- useOtherCategories(options?: {…} — 1 optional) → OtherCategoriesBag
+- useSearchCount(state: SearchCountState, options?: UseSearchCountOptions — 2 optional) → LoadState<SearchCount>
 
 ## Errors (render t(code, params); UX from remediation)
 55 keys (full catalog: manifest.json §errors). By remediation: fix_input 27 · retry 15 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

@@ -30,12 +30,18 @@ Paths are relative to `/notifications/api/v1/`.
 - unregister_device_token: DELETE /devices/{token}/
 
 ## Query hooks (server state; keys come only from the key factory)
-- useDevices (query) → listDevices
-- useMarkFeedRead (mutation) → markFeedRead
-- useNotificationFeed (query) → feed
-- useRegisterDevice (mutation) → registerDevice
-- useUnregisterDevice (mutation) → unregisterDevice
-- useUnregisterDeviceById (mutation) → unregisterDeviceById
+- useDevices (query) → listDevices : UseQueryResult< readonly DeviceListItem[], StapelApiError >
+- useMarkFeedRead (mutation) → markFeedRead : UseMutationResult< FeedReadResponse, StapelApiError, FeedReadTarget, MarkFeedReadContext >
+- useNotificationFeed (query) → feed : UseQueryResult<NotificationFeedPage, StapelApiError>
+- useRegisterDevice (mutation) → registerDevice : UseMutationResult< DeviceTokenResponse, StapelApiError, RegisterDeviceVariables >
+- useUnregisterDevice (mutation) → unregisterDevice : UseMutationResult< void, StapelApiError, string >
+- useUnregisterDeviceById (mutation) → unregisterDeviceById : UseMutationResult< void, StapelApiError, number >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useInfiniteNotificationFeed(limit?: number) → UseInfiniteQueryResult< InfiniteData<NotificationFeedPage, …
+- useUnreadCount() → LoadState<number>
+- useFeedDelivery() → FeedDelivery
+- usePageVisible() → boolean
 
 ## Errors (render t(code, params); UX from remediation)
 47 keys (full catalog: manifest.json §errors). By remediation: fix_input 20 · retry 13 · verify 6 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.

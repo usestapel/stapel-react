@@ -230,6 +230,7 @@ export function extractHooks(source, fileName, factoryName) {
       kind: isMutation ? "mutation" : "query",
       operations,
     };
+    if (stmt.type) hook.returns = stmt.type.getText().replace(/\s+/g, " ").trim();
 
     if (isMutation) {
       const refs = [];
@@ -275,8 +276,10 @@ export function buildHooks(allHooks, keyFactory) {
   return out;
 }
 
-/** Compact llms.txt lines for the hooks surface. */
-export function renderLlmsHooks(hooks) {
+/** Compact llms.txt lines for the hooks surface. `returns` (name → declared
+ * return type) is llms-only: an agent that reads `→ features` alone guesses
+ * the data is an array when it is `{ features, effectiveFrom }`. */
+export function renderLlmsHooks(hooks, returns = {}) {
   const names = Object.keys(hooks);
   const L = [];
   if (names.length === 0) return L;
@@ -284,7 +287,111 @@ export function renderLlmsHooks(hooks) {
   for (const name of names) {
     const h = hooks[name];
     const op = h.operation ?? (h.operations ? h.operations.join("+") : "—");
-    L.push(`- ${name} (${h.kind}) → ${op}`);
+    const ret = returns[name] ? ` : ${returns[name]}` : "";
+    L.push(`- ${name} (${h.kind}) → ${op}${ret}`);
   }
   return L;
+}
+
+// ── hook signatures from the package entry (llms.txt) ────────────────────────
+//
+// The catalog above sees only hooks that call useQuery/useMutation in the model
+// layer. A pair's other public hooks (an upload queue, a recorder, a describe
+// bag) were invisible to llms.txt, so an agent reading it guessed their
+// options — and a REQUIRED option it never saw (`useUploadQueue({ target })`)
+// is a type error in every page it writes. This reads the package entry's
+// exported `use*` names, finds each declaration in the module it is
+// re-exported from, and states the call: parameters, the REQUIRED members of
+// an options object (declared in that module or inline), and the return type.
+
+const MAX_TYPE = 60;
+
+function clip(text) {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > MAX_TYPE ? `${flat.slice(0, MAX_TYPE - 1)}…` : flat;
+}
+
+/** `[{name, module}]` for every exported value `use*` re-exported by the entry. */
+export function entryHookExports(indexSource, fileName = "index.ts") {
+  const sf = sourceFile(indexSource, fileName);
+  const out = [];
+  for (const stmt of sf.statements) {
+    if (!ts.isExportDeclaration(stmt) || stmt.isTypeOnly || !stmt.moduleSpecifier) continue;
+    if (!stmt.exportClause || !ts.isNamedExports(stmt.exportClause)) continue;
+    for (const el of stmt.exportClause.elements) {
+      if (el.isTypeOnly) continue;
+      const name = el.name.text;
+      if (!/^use[A-Z]/.test(name)) continue;
+      out.push({
+        name,
+        local: el.propertyName ? el.propertyName.text : name,
+        module: stmt.moduleSpecifier.text,
+      });
+    }
+  }
+  return out;
+}
+
+function membersOf(node) {
+  const members = ts.isTypeLiteralNode(node) || ts.isInterfaceDeclaration(node) ? node.members : null;
+  if (!members) return null;
+  const required = [];
+  let optional = 0;
+  for (const m of members) {
+    if (!ts.isPropertySignature(m) || !m.name) continue;
+    if (m.questionToken) {
+      optional += 1;
+      continue;
+    }
+    required.push(`${m.name.getText()}: ${m.type ? clip(m.type.getText()) : "unknown"}`);
+  }
+  return { required, optional };
+}
+
+function findDeclaredType(sf, name) {
+  for (const stmt of sf.statements) {
+    if (ts.isInterfaceDeclaration(stmt) && stmt.name.text === name) return stmt;
+    if (ts.isTypeAliasDeclaration(stmt) && stmt.name.text === name) return stmt.type;
+  }
+  return null;
+}
+
+/** One compact signature line for `local` in `source`, or null. */
+export function hookSignature(source, fileName, exportedName, local) {
+  const sf = sourceFile(source, fileName);
+  let fn = null;
+  for (const stmt of sf.statements) {
+    if (ts.isFunctionDeclaration(stmt) && stmt.name?.text === local) fn = stmt;
+  }
+  if (!fn) return null;
+  const params = fn.parameters.map((p) => {
+    const optional = p.questionToken || p.initializer ? "?" : "";
+    const typeNode = p.type;
+    let text = `${p.name.getText()}${optional}: ${typeNode ? clip(typeNode.getText()) : "unknown"}`;
+    let shape = null;
+    if (typeNode && ts.isTypeLiteralNode(typeNode)) shape = membersOf(typeNode);
+    else if (typeNode && ts.isTypeReferenceNode(typeNode)) {
+      const decl = findDeclaredType(sf, typeNode.typeName.getText());
+      if (decl) shape = membersOf(decl);
+      if (shape) text = `${p.name.getText()}${optional}: ${typeNode.getText()}`;
+    }
+    if (shape && (shape.required.length > 0 || shape.optional > 0)) {
+      const req = shape.required.length > 0 ? `required { ${shape.required.join("; ")} }` : "";
+      const opt = shape.optional > 0 ? `${shape.optional} optional` : "";
+      if (ts.isTypeLiteralNode(typeNode)) text = `${p.name.getText()}${optional}: {…}`;
+      text += ` — ${[req, opt].filter(Boolean).join(", ")}`;
+    }
+    return text;
+  });
+  const ret = fn.type ? ` → ${clip(fn.type.getText())}` : "";
+  return `- ${exportedName}(${params.join(", ")})${ret}`;
+}
+
+/** llms.txt lines for the entry's hooks the query/mutation catalog lacks. */
+export function renderLlmsHookSignatures(lines) {
+  if (lines.length === 0) return [];
+  return [
+    "## Other hooks (call shape; a REQUIRED option missing is a type error)",
+    ...lines,
+  ];
 }

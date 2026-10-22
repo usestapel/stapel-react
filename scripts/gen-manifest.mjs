@@ -30,7 +30,15 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { manifestEvents, renderLlmsEvents } from "./events-lib.mjs";
 import { manifestDemos, renderLlmsDemos } from "./demos-lib.mjs";
-import { parseKeyFactory, extractHooks, buildHooks, renderLlmsHooks } from "./hooks-lib.mjs";
+import {
+  parseKeyFactory,
+  extractHooks,
+  buildHooks,
+  renderLlmsHooks,
+  entryHookExports,
+  hookSignature,
+  renderLlmsHookSignatures,
+} from "./hooks-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -109,6 +117,10 @@ const QUERYKEYS_FILE = process.env.MANIFEST_QUERYKEYS_FILE ?? "src/model/queryKe
 
 const OUT_MANIFEST = resolve(PKG_DIR, "manifest.json");
 const OUT_LLMS = resolve(PKG_DIR, "llms.txt");
+/** Set in main() before rendering; read by both llms renderers. */
+let HOOK_SIGNATURE_LINES = [];
+/** Declared return types of the catalogued hooks (llms.txt only). */
+const HOOK_RETURNS = {};
 const LLMS_TOKEN_BUDGET = 6000; // §2.4 — a pair's slice must fit an agent's context
 
 /**
@@ -227,6 +239,36 @@ function i18nKeys(uiKeysSrc, flows, errors) {
 }
 
 /**
+ * Call-shape lines for the entry's exported hooks the query/mutation catalog
+ * does not cover (hooks-lib `hookSignature`) — llms.txt only.
+ */
+async function entryHookSignatureLines(catalog) {
+  let indexSrc;
+  try {
+    indexSrc = await readFile(resolve(PKG_DIR, "src/index.ts"), "utf8");
+  } catch {
+    return [];
+  }
+  const lines = [];
+  for (const { name, local, module } of entryHookExports(indexSrc)) {
+    if (Object.hasOwn(catalog, name) || !module.startsWith(".")) continue;
+    const base = resolve(PKG_DIR, "src", module.replace(/\.js$/, ""));
+    for (const ext of [".ts", ".tsx"]) {
+      let src;
+      try {
+        src = await readFile(base + ext, "utf8");
+      } catch {
+        continue;
+      }
+      const line = hookSignature(src, base + ext, name, local);
+      if (line) lines.push(line);
+      break;
+    }
+  }
+  return lines;
+}
+
+/**
  * The pair's query-hook catalog (§2.4): scan the model dir for exported use*
  * hooks, resolve their keys against the key factory. A pair without a model dir
  * (or key factory) degrades to an empty catalog rather than failing.
@@ -253,6 +295,7 @@ async function hooksCatalog() {
     const src = await readFile(resolve(PKG_DIR, rel), "utf8");
     all.push(...extractHooks(src, rel, QUERY_KEYS));
   }
+  for (const h of all) if (h.returns) HOOK_RETURNS[h.name] = h.returns;
   return buildHooks(all, factoryMap);
 }
 
@@ -310,9 +353,13 @@ function renderLlms(m, factories, eventsJson, demosJson) {
     L.push(`- ${id}: ${op.method} ${shownPath}`);
   }
   L.push("");
-  const hookLines = renderLlmsHooks(m.hooks);
+  const hookLines = renderLlmsHooks(m.hooks, HOOK_RETURNS);
   if (hookLines.length > 0) {
     for (const line of hookLines) L.push(line);
+    L.push("");
+  }
+  if (HOOK_SIGNATURE_LINES.length > 0) {
+    for (const line of HOOK_SIGNATURE_LINES) L.push(line);
     L.push("");
   }
   L.push("## Errors (render t(code, params); UX from remediation)");
@@ -417,9 +464,13 @@ function renderLlmsGeneric(m, factories, eventsJson, demosJson) {
     for (const name of m.exports.types) L.push(`- ${name}`);
     L.push("");
   }
-  const hookLines = renderLlmsHooks(m.hooks);
+  const hookLines = renderLlmsHooks(m.hooks, HOOK_RETURNS);
   if (hookLines.length > 0) {
     for (const line of hookLines) L.push(line);
+    L.push("");
+  }
+  if (HOOK_SIGNATURE_LINES.length > 0) {
+    for (const line of HOOK_SIGNATURE_LINES) L.push(line);
     L.push("");
   }
   for (const line of renderLlmsEvents(eventsJson)) L.push(line);
@@ -538,6 +589,9 @@ async function main() {
     exports: exportsCatalog,
   };
 
+  HOOK_SIGNATURE_LINES = renderLlmsHookSignatures(
+    await entryHookSignatureLines(manifest.hooks)
+  );
   const llms = USE_GENERIC_RENDER
     ? renderLlmsGeneric(manifest, factories, eventsJson, demosJson)
     : renderLlms(manifest, factories, eventsJson, demosJson);

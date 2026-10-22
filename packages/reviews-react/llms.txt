@@ -29,11 +29,16 @@ Paths are relative to `/reviews/api/v1/`.
 - reviews_api_v1_reviews_retrieve: GET /reviews
 
 ## Query hooks (server state; keys come only from the key factory)
-- useModerateReview (mutation) → moderate
-- useOwnerAggregates (query) → aggregatesByOwner
-- useRespondToReview (mutation) → respond
-- useReviewAggregate (query) → aggregate
-- useSubmitReview (mutation) → createReview
+- useModerateReview (mutation) → moderate : UseMutationResult<Review, StapelApiError, ModerateReviewVariables>
+- useOwnerAggregates (query) → aggregatesByOwner : UseQueryResult<OwnerAggregatesResponse, StapelApiError>
+- useRespondToReview (mutation) → respond : UseMutationResult<Review, StapelApiError, RespondToReviewVariables>
+- useReviewAggregate (query) → aggregate : UseQueryResult<ReviewAggregate, StapelApiError>
+- useSubmitReview (mutation) → createReview : UseMutationResult<Review, StapelApiError, SubmitReviewVariables>
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useOwnerReviews(ownerKey: string, options?: UseOwnerReviewsOptions — 1 optional) → ReviewListQueryResult
+- useReviewList(target: ReviewTarget, options?: UseReviewListOptions — 3 optional) → ReviewListQueryResult
+- useReviewDateFormat() → (iso: string) => string | undefined
 
 ## Errors (render t(code, params); UX from remediation)
 54 keys (full catalog: manifest.json §errors). By remediation: fix_input 24 · retry 17 · verify 5 · wait_and_retry 5 · contact_support 2 · reauthenticate 1.
