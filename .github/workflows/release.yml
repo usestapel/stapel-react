@@ -132,8 +132,25 @@ jobs:
           # human's push is routine. Rebase the ONE bot commit onto the new tip
           # and retry rather than treating a non-fast-forward as fatal — never
           # force-push, so a real conflict still stops here for a human.
+          # The siblings were checked out at the OLD pins before this step;
+          # the publish step regenerates against them and would disagree with
+          # the bump just committed (2026-10-22: two releases failed this way,
+          # and a push made with GITHUB_TOKEN starts no new run). Move every
+          # sibling to its new pinned ref before going on.
+          resync_siblings() {
+            for m in $(jq -r '.modules | keys[]' contract-pins.json); do
+              ref=$(jq -r ".modules[\"$m\"].ref" contract-pins.json)
+              case "$m" in stapel-auth) dest=".errors-source/$m";; *) dest=".other-source/$m";; esac
+              if [ "$(git -C "$dest" rev-parse HEAD)" != "$ref" ]; then
+                git -C "$dest" fetch -q --depth 1 origin "$ref"
+                git -C "$dest" checkout -q FETCH_HEAD
+                echo "resynced $m @ $ref"
+              fi
+            done
+          }
           for attempt in 1 2 3; do
             if git push origin HEAD:main; then
+              resync_siblings
               exit 0
             fi
             echo "push rejected (attempt $attempt/3) — fetching and rebasing onto the new tip"
