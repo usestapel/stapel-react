@@ -41,6 +41,16 @@ generated `llms.txt` (agent context) and `manifest.json` (machine catalog).
   The completeness gate requires ≥1 demo per exported headless component; the
   starter `Workspaces.demo.tsx` covers `WorkspacesProvider`. Demos never ship.
 
+## Shell embed
+
+`<WorkspaceSwitcher/>` (`/default`) is the pair's shell embed
+`workspaces.switcher` (`src/nav/manifest.ts` `navEmbeds`: `topbar.start`,
+member, order 10). It reads and writes `WorkspaceSelection`, the one selection
+the workspace screens read, so it needs `<WorkspaceSelectionProvider>` above
+it — the scaffold mounts that provider around the member shell whenever the
+pair is selected. Outside a provider, or with no workspace, it renders nothing;
+a failed list is a retry, never an empty select.
+
 ## Extension seams (frontend-standard §7)
 
 - Client is injected via `<WorkspacesProvider>` / core's `StapelConfigProvider`

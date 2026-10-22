@@ -267,6 +267,11 @@ auto-submit, the reference responsive alt-method sheet):
   browser-side step this pair cannot perform itself; `PasskeysManager`'s "Add"
   no longer needs one — `webauthnCreate` is now an OVERRIDE over the built-in
   browser binding (see "WebAuthn binding" above).
+- **`<AccountMenu/>`** (`default/AccountMenu.tsx`) — the top-bar account control
+  (identity line, "Account" when `onOpen` is given, sign-out). It is the pair's
+  shell embed `auth.account_menu` (`src/nav/manifest.ts` `navEmbeds`:
+  `topbar.end`, member, order 90, opens `account.root`), so a scaffolded shell
+  places it from the manifest. Renders nothing signed out.
 
 ## Follow-up
 
