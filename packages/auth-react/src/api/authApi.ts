@@ -24,6 +24,8 @@ import type {
   PasskeyRegisterBeginResponse,
   PasswordMethods,
   PasswordOtpChangeResponse,
+  PasswordOtpRequestBody,
+  PasswordOtpVerifyBody,
   PasswordRegisterRequest,
   QrGenerateResponse,
   QrStatusResponse,
@@ -372,11 +374,15 @@ export function createAuthApi(client: StapelClient): AuthApi {
         mutating()
       ),
     passwordChangeOtpRequest: (method) =>
-      client.post("/password/change/otp/request/", { method }, mutating()),
+      client.post(
+        "/password/change/otp/request/",
+        { method } satisfies PasswordOtpRequestBody,
+        mutating()
+      ),
     passwordChangeOtpVerify: (method, code, newPassword) =>
       client.post(
         "/password/change/otp/verify/",
-        { method, code, new_password: newPassword },
+        { method, code, new_password: newPassword } satisfies PasswordOtpVerifyBody,
         mutating()
       ),
     passwordResetRequest: (channel, value) =>

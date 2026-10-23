@@ -1,7 +1,7 @@
 {
   "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
   "package": "@stapel/auth-react",
-  "version": "0.28.0",
+  "version": "0.28.1",
   "demos": [
     {
       "id": "auth.account-menu-skin",

@@ -3442,12 +3442,6 @@ export interface components {
         MagicLinkRequestResponse: {
             message: string;
         };
-        /**
-         * @description * `PasswordMethodType.EMAIL` - PasswordMethodType.EMAIL
-         *     * `PasswordMethodType.PHONE` - PasswordMethodType.PHONE
-         * @enum {string}
-         */
-        Method204Enum: "PasswordMethodType.EMAIL" | "PasswordMethodType.PHONE";
         MfaEnrollExchange: {
             /** @description Opaque token from FirstLoginChallengeResponse (requires=mfa_enroll). */
             challenge_token: string;
@@ -3645,11 +3639,17 @@ export interface components {
             has_password: boolean;
         };
         PasswordOtpChangeResponse: components["schemas"]["AuthResponse"] | components["schemas"]["SimpleStatusResponse"];
+        /**
+         * @description * `email` - email
+         *     * `phone` - phone
+         * @enum {string}
+         */
+        PasswordOtpMethodEnum: "email" | "phone";
         PasswordOtpRequest: {
-            method: components["schemas"]["Method204Enum"];
+            method: components["schemas"]["PasswordOtpMethodEnum"];
         };
         PasswordOtpVerify: {
-            method: components["schemas"]["Method204Enum"];
+            method: components["schemas"]["PasswordOtpMethodEnum"];
             code: string;
             new_password: string;
         };

@@ -1,5 +1,11 @@
 # @stapel/auth-react
 
+## 0.28.1
+
+### Patch Changes
+
+- auth-react: regenerated against stapel-auth 0.50.1. The password-OTP `method` is typed as `PasswordOtpMethodEnum` (`"email" | "phone"`, the wire values) instead of the old `Method204Enum` literals, and the password-change OTP request/verify bodies are checked against the generated schema (`PasswordOtpRequestBody`, `PasswordOtpVerifyBody`).
+
 ## 0.28.0
 
 ### Minor Changes

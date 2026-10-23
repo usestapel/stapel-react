@@ -170,6 +170,12 @@ export function isAuthResponse(r: PasswordOtpChangeResponse): r is AuthResponse 
   return "user" in r;
 }
 
+/** Body of POST /password/change/otp/request/ (`method` = the channel name). */
+export type PasswordOtpRequestBody = Schemas["PasswordOtpRequest"];
+
+/** Body of POST /password/change/otp/verify/. */
+export type PasswordOtpVerifyBody = Schemas["PasswordOtpVerify"];
+
 /** `{ access, refresh }` from POST/GET /token/refresh/. */
 export type RefreshResponse = Schemas["TokenPairResponse"];
 
