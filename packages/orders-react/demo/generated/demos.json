@@ -1,0 +1,215 @@
+{
+  "$generated": "by scripts/gen-demos.mjs — do not edit; drift-gated (pnpm gen:demos:check)",
+  "package": "@stapel/orders-react",
+  "version": "0.0.0",
+  "demos": [
+    {
+      "id": "orders.add-to-cart",
+      "title": "Add to cart (headless)",
+      "description": "A native button that always carries data-testid=add-to-cart and owns its POST cart/lines/ request; a page only names the purchasable.",
+      "component": "AddToCartButton",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default",
+          "viewport": "phone",
+          "step": "ready"
+        }
+      ],
+      "source": {
+        "file": "demo/AddToCartButton.demo.tsx",
+        "line": 16
+      }
+    },
+    {
+      "id": "orders.add-to-cart-skin",
+      "title": "Add to cart (default skin)",
+      "description": "The antd add-to-cart control: it owns its request and offers Go to cart after a success.",
+      "component": "AddToCartButton",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px, the design width.",
+          "viewport": "phone",
+          "step": "ready"
+        }
+      ],
+      "source": {
+        "file": "demo/AddToCartButtonSkin.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "orders.cart-badge",
+      "title": "Cart badge",
+      "description": "The top-bar badge: the line count of the cart, hidden while the cart is empty.",
+      "component": "CartBadge",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px, the design width.",
+          "viewport": "phone",
+          "step": "ready"
+        }
+      ],
+      "source": {
+        "file": "demo/CartBadge.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "orders.cart-page",
+      "title": "Cart page",
+      "description": "The cart: one row per line with a quantity stepper, the server-summed total and the link to checkout.",
+      "component": "CartPage",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px, the design width.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "An empty cart says so.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/CartPage.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "orders.checkout-page",
+      "title": "Checkout page",
+      "description": "Contact and delivery address, one submit that sends the same idempotency key until it succeeds.",
+      "component": "CheckoutPage",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width.",
+          "viewport": "desktop",
+          "step": "form"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px, the design width.",
+          "viewport": "phone",
+          "step": "form"
+        }
+      ],
+      "source": {
+        "file": "demo/CheckoutPage.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "orders.detail-pane",
+      "title": "Order detail",
+      "description": "One order: lines, total, delivery address and the cancel button while the order is cancellable.",
+      "component": "OrderDetailPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px, the design width.",
+          "viewport": "phone",
+          "step": "ready"
+        }
+      ],
+      "source": {
+        "file": "demo/OrderDetailPane.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "orders.history-pane",
+      "title": "Order history",
+      "description": "The orders of the signed-in person, newest first: number, status, total and date per row.",
+      "component": "OrderHistoryPane",
+      "covers": [],
+      "tokens": [],
+      "variants": [
+        {
+          "id": "default",
+          "description": "Desktop width.",
+          "viewport": "desktop",
+          "step": "ready"
+        },
+        {
+          "id": "phone",
+          "description": "The same surface at 390px, the design width.",
+          "viewport": "phone",
+          "step": "ready"
+        },
+        {
+          "id": "empty",
+          "description": "No orders yet.",
+          "viewport": "phone",
+          "step": "empty"
+        }
+      ],
+      "source": {
+        "file": "demo/OrderHistoryPane.demo.tsx",
+        "line": 19
+      }
+    },
+    {
+      "id": "orders.provider",
+      "title": "Orders provider",
+      "description": "The headless orders root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "OrdersProvider",
+      "covers": [],
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        {
+          "id": "default"
+        }
+      ],
+      "source": {
+        "file": "demo/Orders.demo.tsx",
+        "line": 24
+      }
+    }
+  ]
+}

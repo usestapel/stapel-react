@@ -1,0 +1,96 @@
+{
+  "package": "@stapel/orders-react",
+  "version": "0.0.0",
+  "entries": [
+    {
+      "id": "orders.cart",
+      "labelKey": "orders.nav.cart",
+      "icon": "TagOutlined",
+      "route": {
+        "path": "/cart"
+      },
+      "component": {
+        "export": "CartPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 60
+    },
+    {
+      "id": "orders.checkout",
+      "labelKey": "orders.nav.checkout",
+      "icon": "TagOutlined",
+      "route": {
+        "path": "/checkout"
+      },
+      "component": {
+        "export": "CheckoutPage",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": false,
+      "surface": "public",
+      "order": 61
+    },
+    {
+      "id": "orders.mine",
+      "labelKey": "orders.nav.mine",
+      "icon": "OrderedListOutlined",
+      "route": {
+        "path": "orders"
+      },
+      "component": {
+        "export": "OrderHistoryPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "submenu",
+        "parentId": "account.root"
+      },
+      "menuVisibleDefault": true,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 40
+    },
+    {
+      "id": "orders.detail",
+      "labelKey": "orders.nav.detail",
+      "icon": "OrderedListOutlined",
+      "route": {
+        "path": "/orders/:id"
+      },
+      "component": {
+        "export": "OrderDetailPane",
+        "subpath": "default"
+      },
+      "placement": {
+        "level": "top"
+      },
+      "menuVisibleDefault": false,
+      "requiresAuth": true,
+      "surface": "member",
+      "order": 62
+    }
+  ],
+  "embeds": [
+    {
+      "id": "orders.cart_badge",
+      "slot": "topbar.end",
+      "component": {
+        "export": "CartBadge",
+        "subpath": "default"
+      },
+      "order": 20,
+      "surface": "any",
+      "opens": "orders.cart"
+    }
+  ]
+}

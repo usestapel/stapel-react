@@ -1,0 +1,197 @@
+[
+  {
+    "id": "orders.cart",
+    "titleKey": "flow.orders.cart.title",
+    "descriptionKey": "flow.orders.cart.description",
+    "actors": [
+      "Shopper (guest session or account)"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 0,
+        "noteKey": "flow.orders.cart.step.0.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.orders.cart.step.1.note",
+        "ref": "stapel_orders.views.CartView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/orders/api/v1/cart/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.orders.cart.step.2.note",
+        "ref": "stapel_orders.views.CartLinesView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/orders/api/v1/cart/lines/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 3,
+        "noteKey": "flow.orders.cart.step.3.note",
+        "ref": "stapel_orders.views.CartLineDetailView.patch",
+        "endpoints": [
+          {
+            "method": "PATCH",
+            "path": "/orders/api/v1/cart/lines/<int:line_id>/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 4,
+        "noteKey": "flow.orders.cart.step.4.note",
+        "ref": "stapel_orders.views.CartLineDetailView.delete",
+        "endpoints": [
+          {
+            "method": "DELETE",
+            "path": "/orders/api/v1/cart/lines/<int:line_id>/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 5,
+        "noteKey": "flow.orders.cart.step.5.note",
+        "ref": "stapel_orders.views.CartView.delete",
+        "endpoints": [
+          {
+            "method": "DELETE",
+            "path": "/orders/api/v1/cart/"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "orders.fulfilment",
+    "titleKey": "flow.orders.fulfilment.title",
+    "descriptionKey": "flow.orders.fulfilment.description",
+    "actors": [
+      "Staff"
+    ],
+    "steps": [
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.orders.fulfilment.step.1.note",
+        "ref": "stapel_orders.views.OrderTransitionView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/orders/api/v1/orders/<int:order_id>/transition/"
+          }
+        ]
+      },
+      {
+        "kind": "action",
+        "order": 2,
+        "noteKey": "flow.orders.fulfilment.step.2.note",
+        "ref": "orders.order.status_changed",
+        "endpoints": []
+      }
+    ]
+  },
+  {
+    "id": "orders.history",
+    "titleKey": "flow.orders.history.title",
+    "descriptionKey": "flow.orders.history.description",
+    "actors": [
+      "Buyer"
+    ],
+    "steps": [
+      {
+        "kind": "http",
+        "order": 1,
+        "noteKey": "flow.orders.history.step.1.note",
+        "ref": "stapel_orders.views.OrderListView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/orders/api/v1/orders/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.orders.history.step.2.note",
+        "ref": "stapel_orders.views.OrderDetailView.get",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/orders/api/v1/orders/<int:order_id>/"
+          }
+        ]
+      },
+      {
+        "kind": "http",
+        "order": 3,
+        "noteKey": "flow.orders.history.step.3.note",
+        "ref": "stapel_orders.views.OrderCancelView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/orders/api/v1/orders/<int:order_id>/cancel/"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "orders.purchase",
+    "titleKey": "flow.orders.purchase.title",
+    "descriptionKey": "flow.orders.purchase.description",
+    "actors": [
+      "Shopper with an account (guests when CHECKOUT_REQUIRES_ACCOUNT is off)"
+    ],
+    "steps": [
+      {
+        "kind": "human",
+        "order": 1,
+        "noteKey": "flow.orders.purchase.step.1.note",
+        "ref": "",
+        "endpoints": []
+      },
+      {
+        "kind": "http",
+        "order": 2,
+        "noteKey": "flow.orders.purchase.step.2.note",
+        "ref": "stapel_orders.views.CheckoutView.post",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/orders/api/v1/checkout/"
+          }
+        ]
+      },
+      {
+        "kind": "action",
+        "order": 3,
+        "noteKey": "flow.orders.purchase.step.3.note",
+        "ref": "orders.order.placed",
+        "endpoints": []
+      },
+      {
+        "kind": "action",
+        "order": 4,
+        "noteKey": "flow.orders.purchase.step.4.note",
+        "ref": "payment.completed",
+        "endpoints": []
+      }
+    ]
+  }
+]

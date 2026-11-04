@@ -108,6 +108,10 @@
     "stapel-alerts": {
       "ref": "92ad0c0d7f7ab99eb63e390e898a3692554aa6d5",
       "note": "release v0.4.0 - 2026-10-22: the issue status enum is pinned as IssueStatusEnum (was the collision name Status295Enum); error.422.alerts_report_not_storable (0.3.x). release v0.2.1 - 2026-09-14: the contract catches up with the wire. docs/schema.json now declares GET /issues -> IssuePage {count, offset, limit, results} (0.2.0 said Issue[] off a hand-written responses= while the view built a page), so the pair's hand-declared IssuePage is replaced by the generated one and test/pair.test.ts keeps proving the envelope against the wire rather than against a belief. The list gains ?limit= (1..200, default 50, clamped, echoed in the envelope) - useIssues(filters) passes it through and still pages by the echoed size, never by the number it asked for. PatchedIssuePatch: muted_until on its own is a mute (status=muted inferred, null = no deadline), and any transition out of muted clears the deadline - so mute sends the deadline alone, and the skin's guard against a stale deadline on a fixed row is no longer a workaround, just the rule that a deadline belongs to the muted status. Operation ids unchanged; docs/errors.json and docs/flows.json byte-identical to 0.2.0 (git diff --stat, not assumed). pyproject 0.2.0 -> 0.2.1 keeps the manifest range at >=0.2 <0.3."
+    },
+    "stapel-orders": {
+      "ref": "b64b4bc85d77081a1b1986a9e72a1b25af6c9cd5",
+      "note": "release v0.1.0 - 2026-11-05: stapel-orders joins the pins for @stapel/orders-react (cart, checkout, anchor-paginated order history under /orders/api/v1/). First entry for this module; the pair is generated from this ref."
     }
   }
 }

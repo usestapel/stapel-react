@@ -1,0 +1,163 @@
+{
+  "$generated": "by scripts/gen-events.mjs — do not edit; drift-gated (pnpm gen:events:check)",
+  "package": "@stapel/orders-react",
+  "version": "0.0.0",
+  "defined": [],
+  "flows": [
+    {
+      "flow": "orders.cart",
+      "event": "flow.orders.cart.<step>",
+      "titleKey": "flow.orders.cart.title",
+      "descriptionKey": "flow.orders.cart.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 0,
+          "kind": "human",
+          "noteKey": "flow.orders.cart.step.0.note"
+        },
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.orders.cart.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.orders.cart.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "http",
+          "noteKey": "flow.orders.cart.step.3.note"
+        },
+        {
+          "order": 4,
+          "kind": "http",
+          "noteKey": "flow.orders.cart.step.4.note"
+        },
+        {
+          "order": 5,
+          "kind": "http",
+          "noteKey": "flow.orders.cart.step.5.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "orders.fulfilment",
+      "event": "flow.orders.fulfilment.<step>",
+      "titleKey": "flow.orders.fulfilment.title",
+      "descriptionKey": "flow.orders.fulfilment.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.orders.fulfilment.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "action",
+          "noteKey": "flow.orders.fulfilment.step.2.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "orders.history",
+      "event": "flow.orders.history.<step>",
+      "titleKey": "flow.orders.history.title",
+      "descriptionKey": "flow.orders.history.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 1,
+          "kind": "http",
+          "noteKey": "flow.orders.history.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.orders.history.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "http",
+          "noteKey": "flow.orders.history.step.3.note"
+        }
+      ],
+      "source": "flows.json"
+    },
+    {
+      "flow": "orders.purchase",
+      "event": "flow.orders.purchase.<step>",
+      "titleKey": "flow.orders.purchase.title",
+      "descriptionKey": "flow.orders.purchase.description",
+      "props": {
+        "phase": {
+          "type": "string",
+          "description": "Transition phase of the funnel step",
+          "options": [
+            "started",
+            "completed",
+            "failed"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "order": 1,
+          "kind": "human",
+          "noteKey": "flow.orders.purchase.step.1.note"
+        },
+        {
+          "order": 2,
+          "kind": "http",
+          "noteKey": "flow.orders.purchase.step.2.note"
+        },
+        {
+          "order": 3,
+          "kind": "action",
+          "noteKey": "flow.orders.purchase.step.3.note"
+        },
+        {
+          "order": 4,
+          "kind": "action",
+          "noteKey": "flow.orders.purchase.step.4.note"
+        }
+      ],
+      "source": "flows.json"
+    }
+  ]
+}

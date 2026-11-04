@@ -1,0 +1,110 @@
+# @stapel/orders-react 0.0.0
+
+Headless React flow pair for stapel-orders (contract >=0.1 <0.2) — business + state, zero visual opinion.
+Built on @stapel/core: typed client + StapelApiError envelope, auth token refresh,
+verification-403 interception, i18n engine, analytics facade, TanStack Query layer.
+
+## The one right way (do this, the rest is a review/lint smell)
+- No raw fetch/axios. The client is injected via <OrdersProvider>/StapelConfigProvider;
+  every hook and flow already carries auth, refresh, and the error envelope.
+- Render errors, never try/catch them: a flow's state carries FlowError{code,params};
+  render `t(code, params)` and branch on `explainOrdersError(code)` remediation.
+- Server state = the use* hooks (query layer); keys come only from ordersQueryKeys.
+- User strings = i18n keys (registerOrdersI18n); never string literals.
+- Sign-in UI = a headless flow component; copy it (shadcn-style) to restyle.
+
+## Layers
+api (typed client) · model (hooks, session) · flows (machines) · headless · i18n
+
+## Documented flows (flows.json — canonical id, steps, endpoints)
+- orders.cart: GET /orders/api/v1/cart/, POST /orders/api/v1/cart/lines/, PATCH /orders/api/v1/cart/lines/<int:line_id>/, DELETE /orders/api/v1/cart/lines/<int:line_id>/, DELETE /orders/api/v1/cart/
+- orders.fulfilment: POST /orders/api/v1/orders/<int:order_id>/transition/
+- orders.history: GET /orders/api/v1/orders/, GET /orders/api/v1/orders/<int:order_id>/, POST /orders/api/v1/orders/<int:order_id>/cancel/
+- orders.purchase: POST /orders/api/v1/checkout/
+
+## Operations (typed; use the named op, never a path string)
+Request/response schema names are in manifest.json + the generated types.
+Paths are relative to `/orders/api/v1/`.
+- orders_cart_clear: DELETE /cart/
+- orders_cart_lines_create: POST /cart/lines/
+- orders_cart_lines_destroy: DELETE /cart/lines/{line_id}/
+- orders_cart_lines_update: PATCH /cart/lines/{line_id}/
+- orders_cart_retrieve: GET /cart/
+- orders_checkout_create: POST /checkout/
+- orders_orders_cancel: POST /orders/{order_id}/cancel/
+- orders_orders_list: GET /orders/
+- orders_orders_retrieve: GET /orders/{order_id}/
+- orders_orders_transition: POST /orders/{order_id}/transition/
+
+## Query hooks (server state; keys come only from the key factory)
+- useAddToCart (mutation) → addLine : UseMutationResult< Cart, StapelApiError, AddToCartVariables >
+- useCancelOrder (mutation) → cancelOrder : UseMutationResult< Order, StapelApiError, number >
+- useCart (query) → cart : UseQueryResult<Cart, StapelApiError>
+- useCheckout (mutation) → checkout : UseCheckoutResult
+- useClearCart (mutation) → clearCart : UseMutationResult<Cart, StapelApiError, void>
+- useOrder (query) → order : UseQueryResult<Order, StapelApiError>
+- useRemoveCartLine (mutation) → removeLine : UseMutationResult< Cart, StapelApiError, number >
+- useUpdateCartLine (mutation) → updateLine : UseMutationResult< Cart, StapelApiError, { readonly lineId: number; readonly quantity: number } >
+
+## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useOrders(options?: UseOrdersOptions — 3 optional) → OrdersQueryResult
+- useAddToCartButton(props: AddToCartProps — required { purchasableType: string; purchasableKey: string }, 3 optional) → AddToCartBag
+
+## Errors (render t(code, params); UX from remediation)
+54 keys (full catalog: manifest.json §errors). By remediation: fix_input 23 · retry 16 · wait_and_retry 6 · verify 5 · contact_support 2 · reauthenticate 2.
+Param-bearing keys (interpolation slots matter):
+- error.400.field.blank [400] → fix_input {field}
+- error.400.field.does_not_exist [400] → fix_input {field}
+- error.400.field.invalid [400] → fix_input {field}
+- error.400.field.invalid_choice [400] → fix_input {field}
+- error.400.field.max_length [400] → fix_input {field,max_length}
+- error.400.field.max_value [400] → fix_input {field,max_value}
+- error.400.field.min_length [400] → fix_input {field,min_length}
+- error.400.field.min_value [400] → fix_input {field,min_value}
+- error.400.field.null [400] → fix_input {field}
+- error.400.field.required [400] → fix_input {field}
+- error.400.field.unique [400] → fix_input {field}
+- error.409.cart_too_many_lines [409] → fix_input {max}
+- error.409.order_transition_invalid [409] → fix_input {from,to}
+- error.429.rate_limit [429] → wait_and_retry {retry_after_minutes}
+
+## Analytics events (typed; defineEvent → events.json, drift-gated)
+- (no app defineEvent() in this pair — its analytic events are the
+  auto-instrumented flow funnels below)
+
+## Flow funnels (auto-instrumented: flow.<id>.<step> {phase})
+- flow.orders.cart.<step> — 6 documented step(s)
+- flow.orders.fulfilment.<step> — 2 documented step(s)
+- flow.orders.history.<step> — 3 documented step(s)
+- flow.orders.purchase.<step> — 4 documented step(s)
+
+```tsx
+// Typed event + tracked() click (the one right way; §3.1).
+const planSelected = defineEvent({
+  name: "pricing.plan.selected",
+  description: "User picked a plan",
+  props: { plan: prop.oneOf(["free", "pro", "team"], "Plan code") },
+});
+const { tracked } = useTracked();
+<Button onClick={tracked(planSelected, { plan }, startCheckout)} />
+// A click that STEPS a flow machine is already instrumented — mark it
+// data-analytics="flow" instead; tracked() on top double-counts (§3.2).
+```
+
+## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
+- orders.add-to-cart → <AddToCartButton> [default]  demo/AddToCartButton.demo.tsx
+- orders.add-to-cart-skin → <AddToCartButton> [default|phone]  demo/AddToCartButtonSkin.demo.tsx
+- orders.cart-badge → <CartBadge> [default|phone]  demo/CartBadge.demo.tsx
+- orders.cart-page → <CartPage> [default|phone|empty]  demo/CartPage.demo.tsx
+- orders.checkout-page → <CheckoutPage> [default|phone]  demo/CheckoutPage.demo.tsx
+- orders.detail-pane → <OrderDetailPane> [default|phone]  demo/OrderDetailPane.demo.tsx
+- orders.history-pane → <OrderHistoryPane> [default|phone|empty]  demo/OrderHistoryPane.demo.tsx
+- orders.provider → <OrdersProvider> [default]  demo/Orders.demo.tsx
+Each source file is the canonical usage snippet (open the default variant).
+
+## Snippets
+```tsx
+// Error rendering + remediation branch (one pattern for every pair).
+const r = explainOrdersError(err.code); // 'wait_and_retry' | 'verify' | ...
+return <Alert action={r}>{t(err.code, err.params)}</Alert>;
+```

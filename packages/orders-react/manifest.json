@@ -1,0 +1,950 @@
+{
+  "$generated": "by scripts/gen-manifest.mjs — do not edit; drift-gated (pnpm gen:manifest:check)",
+  "package": "@stapel/orders-react",
+  "version": "0.0.0",
+  "backend": {
+    "module": "stapel-orders",
+    "contract": ">=0.1 <0.2"
+  },
+  "layers": [
+    "api",
+    "model",
+    "flows",
+    "headless",
+    "i18n"
+  ],
+  "flows": {
+    "orders.cart": {
+      "titleKey": "flow.orders.cart.title",
+      "descriptionKey": "flow.orders.cart.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 0,
+          "noteKey": "flow.orders.cart.step.0.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.orders.cart.step.1.note",
+          "endpoints": [
+            "GET /orders/api/v1/cart/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.orders.cart.step.2.note",
+          "endpoints": [
+            "POST /orders/api/v1/cart/lines/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 3,
+          "noteKey": "flow.orders.cart.step.3.note",
+          "endpoints": [
+            "PATCH /orders/api/v1/cart/lines/<int:line_id>/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 4,
+          "noteKey": "flow.orders.cart.step.4.note",
+          "endpoints": [
+            "DELETE /orders/api/v1/cart/lines/<int:line_id>/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 5,
+          "noteKey": "flow.orders.cart.step.5.note",
+          "endpoints": [
+            "DELETE /orders/api/v1/cart/"
+          ]
+        }
+      ],
+      "endpoints": [
+        "GET /orders/api/v1/cart/",
+        "POST /orders/api/v1/cart/lines/",
+        "PATCH /orders/api/v1/cart/lines/<int:line_id>/",
+        "DELETE /orders/api/v1/cart/lines/<int:line_id>/",
+        "DELETE /orders/api/v1/cart/"
+      ]
+    },
+    "orders.fulfilment": {
+      "titleKey": "flow.orders.fulfilment.title",
+      "descriptionKey": "flow.orders.fulfilment.description",
+      "steps": [
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.orders.fulfilment.step.1.note",
+          "endpoints": [
+            "POST /orders/api/v1/orders/<int:order_id>/transition/"
+          ]
+        },
+        {
+          "kind": "action",
+          "order": 2,
+          "noteKey": "flow.orders.fulfilment.step.2.note",
+          "endpoints": []
+        }
+      ],
+      "endpoints": [
+        "POST /orders/api/v1/orders/<int:order_id>/transition/"
+      ]
+    },
+    "orders.history": {
+      "titleKey": "flow.orders.history.title",
+      "descriptionKey": "flow.orders.history.description",
+      "steps": [
+        {
+          "kind": "http",
+          "order": 1,
+          "noteKey": "flow.orders.history.step.1.note",
+          "endpoints": [
+            "GET /orders/api/v1/orders/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.orders.history.step.2.note",
+          "endpoints": [
+            "GET /orders/api/v1/orders/<int:order_id>/"
+          ]
+        },
+        {
+          "kind": "http",
+          "order": 3,
+          "noteKey": "flow.orders.history.step.3.note",
+          "endpoints": [
+            "POST /orders/api/v1/orders/<int:order_id>/cancel/"
+          ]
+        }
+      ],
+      "endpoints": [
+        "GET /orders/api/v1/orders/",
+        "GET /orders/api/v1/orders/<int:order_id>/",
+        "POST /orders/api/v1/orders/<int:order_id>/cancel/"
+      ]
+    },
+    "orders.purchase": {
+      "titleKey": "flow.orders.purchase.title",
+      "descriptionKey": "flow.orders.purchase.description",
+      "steps": [
+        {
+          "kind": "human",
+          "order": 1,
+          "noteKey": "flow.orders.purchase.step.1.note",
+          "endpoints": []
+        },
+        {
+          "kind": "http",
+          "order": 2,
+          "noteKey": "flow.orders.purchase.step.2.note",
+          "endpoints": [
+            "POST /orders/api/v1/checkout/"
+          ]
+        },
+        {
+          "kind": "action",
+          "order": 3,
+          "noteKey": "flow.orders.purchase.step.3.note",
+          "endpoints": []
+        },
+        {
+          "kind": "action",
+          "order": 4,
+          "noteKey": "flow.orders.purchase.step.4.note",
+          "endpoints": []
+        }
+      ],
+      "endpoints": [
+        "POST /orders/api/v1/checkout/"
+      ]
+    }
+  },
+  "machines": [],
+  "operations": {
+    "orders_cart_clear": {
+      "method": "DELETE",
+      "path": "/orders/api/v1/cart/",
+      "tag": "Orders",
+      "request": null,
+      "response": "CartResponse"
+    },
+    "orders_cart_lines_create": {
+      "method": "POST",
+      "path": "/orders/api/v1/cart/lines/",
+      "tag": "Orders",
+      "request": "CartLineAddRequest",
+      "response": "CartResponse"
+    },
+    "orders_cart_lines_destroy": {
+      "method": "DELETE",
+      "path": "/orders/api/v1/cart/lines/{line_id}/",
+      "tag": "Orders",
+      "request": null,
+      "response": "CartResponse"
+    },
+    "orders_cart_lines_update": {
+      "method": "PATCH",
+      "path": "/orders/api/v1/cart/lines/{line_id}/",
+      "tag": "Orders",
+      "request": "PatchedCartLineUpdateRequest",
+      "response": "CartResponse"
+    },
+    "orders_cart_retrieve": {
+      "method": "GET",
+      "path": "/orders/api/v1/cart/",
+      "tag": "Orders",
+      "request": null,
+      "response": "CartResponse"
+    },
+    "orders_checkout_create": {
+      "method": "POST",
+      "path": "/orders/api/v1/checkout/",
+      "tag": "Orders",
+      "request": "CheckoutRequest",
+      "response": "OrderResponse"
+    },
+    "orders_orders_cancel": {
+      "method": "POST",
+      "path": "/orders/api/v1/orders/{order_id}/cancel/",
+      "tag": "Orders",
+      "request": null,
+      "response": "OrderResponse"
+    },
+    "orders_orders_list": {
+      "method": "GET",
+      "path": "/orders/api/v1/orders/",
+      "tag": "Orders",
+      "request": null,
+      "response": "OrderPage"
+    },
+    "orders_orders_retrieve": {
+      "method": "GET",
+      "path": "/orders/api/v1/orders/{order_id}/",
+      "tag": "Orders",
+      "request": null,
+      "response": "OrderResponse"
+    },
+    "orders_orders_transition": {
+      "method": "POST",
+      "path": "/orders/api/v1/orders/{order_id}/transition/",
+      "tag": "Orders",
+      "request": "OrderTransitionRequest",
+      "response": "OrderResponse"
+    }
+  },
+  "hooks": {
+    "useAddToCart": {
+      "kind": "mutation",
+      "operation": "addLine"
+    },
+    "useCancelOrder": {
+      "kind": "mutation",
+      "operation": "cancelOrder",
+      "invalidates": [
+        [
+          "orders",
+          "order",
+          "{orderId}"
+        ],
+        [
+          "orders",
+          "list"
+        ]
+      ]
+    },
+    "useCart": {
+      "kind": "query",
+      "operation": "cart",
+      "queryKey": [
+        "orders",
+        "cart"
+      ]
+    },
+    "useCheckout": {
+      "kind": "mutation",
+      "operation": "checkout",
+      "invalidates": [
+        [
+          "orders",
+          "cart"
+        ],
+        [
+          "orders",
+          "order",
+          "{orderId}"
+        ],
+        [
+          "orders",
+          "list"
+        ]
+      ]
+    },
+    "useClearCart": {
+      "kind": "mutation",
+      "operation": "clearCart"
+    },
+    "useOrder": {
+      "kind": "query",
+      "operation": "order",
+      "queryKey": [
+        "orders",
+        "order",
+        "{orderId}"
+      ]
+    },
+    "useRemoveCartLine": {
+      "kind": "mutation",
+      "operation": "removeLine"
+    },
+    "useUpdateCartLine": {
+      "kind": "mutation",
+      "operation": "updateLine"
+    }
+  },
+  "errors": {
+    "error.400.bad_request": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.captcha_invalid": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.captcha_required": {
+      "status": 400,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.400.cart_empty": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.expected_list": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.field.blank": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.does_not_exist": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.invalid_choice": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.max_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "max_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_length": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_length"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.min_value": {
+      "status": 400,
+      "params": [
+        "field",
+        "min_value"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.null": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.required": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.field.unique": {
+      "status": 400,
+      "params": [
+        "field"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.400.invalid_ad_id": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.purchasable_type_unknown": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.purchasable_unknown": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.validation_error": {
+      "status": 400,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.400.verification_failed": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.400.verification_invalid_factor": {
+      "status": 400,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.401.unauthorized": {
+      "status": 401,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.402.payment_required": {
+      "status": 402,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.checkout_requires_account": {
+      "status": 403,
+      "params": [],
+      "remediation": "reauthenticate"
+    },
+    "error.403.forbidden": {
+      "status": 403,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.403.network_blocked": {
+      "status": 403,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.403.verification_enrollment_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.403.verification_required": {
+      "status": 403,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.404.ad_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.cart_line_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.order_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.404.verification_challenge_not_found": {
+      "status": 404,
+      "params": [],
+      "remediation": "verify"
+    },
+    "error.405.method_not_allowed": {
+      "status": 405,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.406.not_acceptable": {
+      "status": 406,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.408.request_timeout": {
+      "status": 408,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.cart_currency_mismatch": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.cart_price_changed": {
+      "status": 409,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.409.cart_too_many_lines": {
+      "status": 409,
+      "params": [
+        "max"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.409.conflict": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.409.order_transition_invalid": {
+      "status": 409,
+      "params": [
+        "from",
+        "to"
+      ],
+      "remediation": "fix_input"
+    },
+    "error.409.purchasable_unavailable": {
+      "status": 409,
+      "params": [],
+      "remediation": "fix_input"
+    },
+    "error.410.gone": {
+      "status": 410,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.413.payload_too_large": {
+      "status": 413,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.415.unsupported_media_type": {
+      "status": 415,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.422.unprocessable_entity": {
+      "status": 422,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.423.verification_locked": {
+      "status": 423,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.rate_limit": {
+      "status": 429,
+      "params": [
+        "retry_after_minutes"
+      ],
+      "remediation": "wait_and_retry"
+    },
+    "error.429.too_many_requests": {
+      "status": 429,
+      "params": [],
+      "remediation": "wait_and_retry"
+    },
+    "error.500.internal": {
+      "status": 500,
+      "params": [],
+      "remediation": "contact_support"
+    },
+    "error.503.mandate_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "retry"
+    },
+    "error.503.purchasable_unavailable": {
+      "status": 503,
+      "params": [],
+      "remediation": "wait_and_retry"
+    }
+  },
+  "events": {
+    "defined": [],
+    "flows": [
+      {
+        "flow": "orders.cart",
+        "event": "flow.orders.cart.<step>",
+        "steps": 6
+      },
+      {
+        "flow": "orders.fulfilment",
+        "event": "flow.orders.fulfilment.<step>",
+        "steps": 2
+      },
+      {
+        "flow": "orders.history",
+        "event": "flow.orders.history.<step>",
+        "steps": 3
+      },
+      {
+        "flow": "orders.purchase",
+        "event": "flow.orders.purchase.<step>",
+        "steps": 4
+      }
+    ]
+  },
+  "demos": [
+    {
+      "id": "orders.add-to-cart",
+      "title": "Add to cart (headless)",
+      "description": "A native button that always carries data-testid=add-to-cart and owns its POST cart/lines/ request; a page only names the purchasable.",
+      "component": "AddToCartButton",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/AddToCartButton.demo.tsx"
+    },
+    {
+      "id": "orders.add-to-cart-skin",
+      "title": "Add to cart (default skin)",
+      "description": "The antd add-to-cart control: it owns its request and offers Go to cart after a success.",
+      "component": "AddToCartButton",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/AddToCartButtonSkin.demo.tsx"
+    },
+    {
+      "id": "orders.cart-badge",
+      "title": "Cart badge",
+      "description": "The top-bar badge: the line count of the cart, hidden while the cart is empty.",
+      "component": "CartBadge",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/CartBadge.demo.tsx"
+    },
+    {
+      "id": "orders.cart-page",
+      "title": "Cart page",
+      "description": "The cart: one row per line with a quantity stepper, the server-summed total and the link to checkout.",
+      "component": "CartPage",
+      "variants": [
+        "default",
+        "phone",
+        "empty"
+      ],
+      "source": "demo/CartPage.demo.tsx"
+    },
+    {
+      "id": "orders.checkout-page",
+      "title": "Checkout page",
+      "description": "Contact and delivery address, one submit that sends the same idempotency key until it succeeds.",
+      "component": "CheckoutPage",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/CheckoutPage.demo.tsx"
+    },
+    {
+      "id": "orders.detail-pane",
+      "title": "Order detail",
+      "description": "One order: lines, total, delivery address and the cancel button while the order is cancellable.",
+      "component": "OrderDetailPane",
+      "variants": [
+        "default",
+        "phone"
+      ],
+      "source": "demo/OrderDetailPane.demo.tsx"
+    },
+    {
+      "id": "orders.history-pane",
+      "title": "Order history",
+      "description": "The orders of the signed-in person, newest first: number, status, total and date per row.",
+      "component": "OrderHistoryPane",
+      "variants": [
+        "default",
+        "phone",
+        "empty"
+      ],
+      "source": "demo/OrderHistoryPane.demo.tsx"
+    },
+    {
+      "id": "orders.provider",
+      "title": "Orders provider",
+      "description": "The headless orders root wires the runtime, i18n engine, and query client into React context. Replace with per-flow demos as you add headless components.",
+      "component": "OrdersProvider",
+      "tokens": [
+        "surface-raised"
+      ],
+      "variants": [
+        "default"
+      ],
+      "source": "demo/Orders.demo.tsx"
+    }
+  ],
+  "i18nKeys": [
+    "error.400.bad_request",
+    "error.400.captcha_invalid",
+    "error.400.captcha_required",
+    "error.400.cart_empty",
+    "error.400.expected_list",
+    "error.400.field.blank",
+    "error.400.field.does_not_exist",
+    "error.400.field.invalid",
+    "error.400.field.invalid_choice",
+    "error.400.field.max_length",
+    "error.400.field.max_value",
+    "error.400.field.min_length",
+    "error.400.field.min_value",
+    "error.400.field.null",
+    "error.400.field.required",
+    "error.400.field.unique",
+    "error.400.invalid_ad_id",
+    "error.400.purchasable_type_unknown",
+    "error.400.purchasable_unknown",
+    "error.400.validation_error",
+    "error.400.verification_failed",
+    "error.400.verification_invalid_factor",
+    "error.401.unauthorized",
+    "error.402.payment_required",
+    "error.403.checkout_requires_account",
+    "error.403.forbidden",
+    "error.403.network_blocked",
+    "error.403.verification_enrollment_required",
+    "error.403.verification_required",
+    "error.404.ad_not_found",
+    "error.404.cart_line_not_found",
+    "error.404.not_found",
+    "error.404.order_not_found",
+    "error.404.verification_challenge_not_found",
+    "error.405.method_not_allowed",
+    "error.406.not_acceptable",
+    "error.408.request_timeout",
+    "error.409.cart_currency_mismatch",
+    "error.409.cart_price_changed",
+    "error.409.cart_too_many_lines",
+    "error.409.conflict",
+    "error.409.order_transition_invalid",
+    "error.409.purchasable_unavailable",
+    "error.410.gone",
+    "error.413.payload_too_large",
+    "error.415.unsupported_media_type",
+    "error.422.unprocessable_entity",
+    "error.423.locked",
+    "error.423.verification_locked",
+    "error.429.rate_limit",
+    "error.429.too_many_requests",
+    "error.500.internal",
+    "error.503.mandate_unavailable",
+    "error.503.purchasable_unavailable",
+    "flow.orders.cart.description",
+    "flow.orders.cart.step.0.note",
+    "flow.orders.cart.step.1.note",
+    "flow.orders.cart.step.2.note",
+    "flow.orders.cart.step.3.note",
+    "flow.orders.cart.step.4.note",
+    "flow.orders.cart.step.5.note",
+    "flow.orders.cart.title",
+    "flow.orders.fulfilment.description",
+    "flow.orders.fulfilment.step.1.note",
+    "flow.orders.fulfilment.step.2.note",
+    "flow.orders.fulfilment.title",
+    "flow.orders.history.description",
+    "flow.orders.history.step.1.note",
+    "flow.orders.history.step.2.note",
+    "flow.orders.history.step.3.note",
+    "flow.orders.history.title",
+    "flow.orders.purchase.description",
+    "flow.orders.purchase.step.1.note",
+    "flow.orders.purchase.step.2.note",
+    "flow.orders.purchase.step.3.note",
+    "flow.orders.purchase.step.4.note",
+    "flow.orders.purchase.title",
+    "orders.add.adding",
+    "orders.add.go_to_cart",
+    "orders.add.in_cart",
+    "orders.add.label",
+    "orders.badge.label",
+    "orders.cart.checkout",
+    "orders.cart.empty",
+    "orders.cart.quantity",
+    "orders.cart.remove",
+    "orders.cart.title",
+    "orders.cart.total",
+    "orders.checkout.address_section",
+    "orders.checkout.contact",
+    "orders.checkout.field.city",
+    "orders.checkout.field.comment",
+    "orders.checkout.field.country",
+    "orders.checkout.field.country_format",
+    "orders.checkout.field.email",
+    "orders.checkout.field.line1",
+    "orders.checkout.field.name",
+    "orders.checkout.field.phone",
+    "orders.checkout.field.required",
+    "orders.checkout.price_changed",
+    "orders.checkout.submit",
+    "orders.checkout.title",
+    "orders.error.unknown",
+    "orders.history.empty",
+    "orders.history.load_more",
+    "orders.history.title",
+    "orders.nav.cart",
+    "orders.nav.checkout",
+    "orders.nav.detail",
+    "orders.nav.mine",
+    "orders.order.cancel",
+    "orders.order.delivery",
+    "orders.order.placed",
+    "orders.order.title",
+    "orders.order.total",
+    "orders.status.cancelled",
+    "orders.status.completed",
+    "orders.status.confirmed",
+    "orders.status.needs_review",
+    "orders.status.new",
+    "orders.status.shipped",
+    "orders.status.unknown"
+  ],
+  "exports": {
+    "runtime": [
+      "ADD_TO_CART_TESTID",
+      "AddToCartButton",
+      "ORDERS_ERRORS",
+      "ORDERS_ERROR_CODES",
+      "ORDERS_FLOWS",
+      "ORDERS_I18N_KEYS",
+      "ORDERS_PAGE",
+      "ORDERS_TESTIDS",
+      "OrdersProvider",
+      "OrdersRuntimeContext",
+      "createFlowMachine",
+      "createOrdersApi",
+      "createOrdersRuntime",
+      "explainOrdersError",
+      "flowEndpoints",
+      "isErrorCode",
+      "newIdempotencyKey",
+      "orderStatusFamily",
+      "orderStatusKey",
+      "ordersErrorBundleEn",
+      "ordersFromPages",
+      "ordersI18nBundleEn",
+      "ordersQueryKeys",
+      "registerOrdersI18n",
+      "toFlowError",
+      "useAddToCart",
+      "useAddToCartButton",
+      "useCancelOrder",
+      "useCart",
+      "useCheckout",
+      "useClearCart",
+      "useFlow",
+      "useOrder",
+      "useOrders",
+      "useOrdersAnalytics",
+      "useOrdersApi",
+      "useOrdersRuntime",
+      "useRemoveCartLine",
+      "useUpdateCartLine"
+    ],
+    "types": [
+      "AddToCartBag",
+      "AddToCartButtonProps",
+      "AddToCartProps",
+      "AddToCartVariables",
+      "AddressInput",
+      "AddressSnapshot",
+      "Cart",
+      "CartLine",
+      "CartLineAddBody",
+      "CartLineAddRequest",
+      "CartLineUpdateRequest",
+      "CheckoutBody",
+      "CheckoutRequest",
+      "CheckoutVariables",
+      "ContactInput",
+      "ContactSnapshot",
+      "CreateOrdersRuntimeOptions",
+      "FlowEndpoint",
+      "FlowError",
+      "FlowMachine",
+      "FlowMachineOptions",
+      "FlowStateBase",
+      "Order",
+      "OrderLine",
+      "OrderListParams",
+      "OrderPage",
+      "OrderStatus",
+      "OrderStatusFamily",
+      "OrderTransitionRequest",
+      "OrdersApi",
+      "OrdersErrorCode",
+      "OrdersErrorSpec",
+      "OrdersFlowId",
+      "OrdersFlowSpec",
+      "OrdersI18nKey",
+      "OrdersQueryResult",
+      "OrdersRuntime",
+      "OrdersTestId",
+      "PaymentStatus",
+      "Remediation",
+      "Schemas",
+      "UseCheckoutResult",
+      "UseOrdersOptions"
+    ]
+  }
+}
