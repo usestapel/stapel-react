@@ -569,7 +569,7 @@
     },
     {
       "package": "@stapel/listings-react",
-      "version": "0.42.0",
+      "version": "0.43.0",
       "entries": [
         {
           "id": "listings.detail",
@@ -796,7 +796,7 @@
     },
     {
       "package": "@stapel/orders-react",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "entries": [
         {
           "id": "orders.cart",

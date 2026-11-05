@@ -1,5 +1,12 @@
 # @stapel/shell-react
 
+## 0.20.1
+
+### Patch Changes
+
+- 03d2364: The nav icon registry gains `ShoppingCartOutlined`, used by the orders pair's cart
+  and checkout entries.
+
 ## 0.20.0
 
 ### Minor Changes
