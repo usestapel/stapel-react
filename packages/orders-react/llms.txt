@@ -47,6 +47,7 @@ Paths are relative to `/orders/api/v1/`.
 - useUpdateCartLine (mutation) → updateLine : UseMutationResult< Cart, StapelApiError, { readonly lineId: number; readonly quantity: number } >
 
 ## Other hooks (call shape; a REQUIRED option missing is a type error)
+- useHasCartSession() → boolean
 - useOrders(options?: UseOrdersOptions — 3 optional) → OrdersQueryResult
 - useAddToCartButton(props: AddToCartProps — required { purchasableType: string; purchasableKey: string }, 3 optional) → AddToCartBag
 
@@ -95,7 +96,7 @@ const { tracked } = useTracked();
 add-to-cart · go-to-cart · cart-badge · page-cart · cart-line · cart-total · cart-empty · checkout-link · page-checkout · checkout-submit · page-orders · order-row · orders-load-more · page-order · order-cancel
 
 ## Browser flows (flows.json, stapel.flows/1; a member flow needs a signed-in session first)
-- cart (any): A guest adds a listing to the cart and sees the line
+- cart (any): A visitor with no session adds a listing (a guest is minted on the click) and sees the line
 - purchase (member): A member adds a listing, checks out and lands on the placed order
 
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)

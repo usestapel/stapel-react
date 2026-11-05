@@ -5,7 +5,7 @@ import { EmptyState, ErrorAlert, Page } from "@stapel/tokens-antd/skin";
 import type { CartLine } from "../api/types.js";
 import { ORDERS_I18N_KEYS } from "../i18n/keys.js";
 import { useRemoveCartLine, useUpdateCartLine } from "../model/mutations.js";
-import { useCart } from "../model/queries.js";
+import { useCart, useHasCartSession } from "../model/queries.js";
 import { ORDERS_TESTIDS } from "../testids.js";
 import { useMoney } from "./money.js";
 import { DEFAULT_CHECKOUT_HREF, linkProps } from "./navigate.js";
@@ -21,11 +21,17 @@ export function CartPage(props: CartPageProps): ReactElement {
   const t = useT();
   const { token } = antdTheme.useToken();
   const cart = useCart();
+  const hasSession = useHasCartSession();
   const money = useMoney();
   const checkoutHref = props.checkoutHref ?? DEFAULT_CHECKOUT_HREF;
 
   let body: ReactElement;
-  if (cart.isPending) {
+  if (!hasSession) {
+    // No session owns a cart yet: it is empty, not loading.
+    body = (
+      <EmptyState testId={ORDERS_TESTIDS.cartEmpty} title={t(ORDERS_I18N_KEYS.cartEmpty)} />
+    );
+  } else if (cart.isPending) {
     body = <Spin />;
   } else if (cart.isError) {
     body = <ErrorAlert thrown={cart.error} onRetry={() => void cart.refetch()} />;

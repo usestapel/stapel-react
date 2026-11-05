@@ -68,6 +68,7 @@ export {
 export { ordersQueryKeys } from "./model/queryKeys.js";
 export {
   useCart,
+  useHasCartSession,
   useOrders,
   useOrder,
   ordersFromPages,
@@ -89,6 +90,7 @@ export type {
   UseCheckoutResult,
 } from "./model/mutations.js";
 export { orderStatusKey, orderStatusFamily } from "./model/status.js";
+export { ORDERS_ELEVATION_ACTIONS } from "./model/elevation.js";
 export type { OrderStatusFamily } from "./model/status.js";
 
 // ── testids (fixed by the pair, never a prop) ────────────────────────────────

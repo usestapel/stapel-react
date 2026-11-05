@@ -4,7 +4,7 @@ import type {
   UseInfiniteQueryResult,
   UseQueryResult,
 } from "@tanstack/react-query";
-import { useActiveSessionReady } from "@stapel/core";
+import { useActiveSessionReady, useActiveSessionStatus } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type { Cart, Order, OrderPage, OrderStatus } from "../api/types.js";
 import { useOrdersApi } from "./context.js";
@@ -14,19 +14,32 @@ import { ordersQueryKeys } from "./queryKeys.js";
 export const ORDERS_PAGE = 20;
 
 /**
+ * Does this visitor hold a session a cart could belong to? `false` only for a
+ * settled `"unauthenticated"`: no session, so no cart, and nothing to ask the
+ * server (it would answer 401). A host with no session-owning module
+ * (`null`) keeps asking, as before.
+ */
+export function useHasCartSession(): boolean {
+  return useActiveSessionStatus() !== "unauthenticated";
+}
+
+/**
  * The caller's cart. Waits for the session to settle: a guest session IS an
  * identity here (the cart is keyed on it), so a read racing the bootstrap
- * would cache somebody else's — or nobody's — cart.
+ * would cache somebody else's — or nobody's — cart. With no session at all it
+ * stays idle (the badge on every page must not buy a 401); the first add
+ * mints a guest through elevation, and the query starts with that session.
  */
 export function useCart(
   options: { readonly enabled?: boolean } = {}
 ): UseQueryResult<Cart, StapelApiError> {
   const api = useOrdersApi();
   const ready = useActiveSessionReady();
+  const hasSession = useHasCartSession();
   return useQuery({
     queryKey: ordersQueryKeys.cart,
     queryFn: ({ signal }) => api.cart({ signal }),
-    enabled: ready && options.enabled !== false,
+    enabled: ready && hasSession && options.enabled !== false,
   });
 }
 

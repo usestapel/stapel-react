@@ -4,7 +4,7 @@
   "flows": [
     {
       "id": "cart",
-      "title": "A guest adds a listing to the cart and sees the line",
+      "title": "A visitor with no session adds a listing (a guest is minted on the click) and sees the line",
       "session": "any",
       "steps": [
         { "op": "goto", "path": "/l/{listing_id}" },

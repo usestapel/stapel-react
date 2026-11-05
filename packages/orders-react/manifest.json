@@ -863,6 +863,7 @@
     "runtime": [
       "ADD_TO_CART_TESTID",
       "AddToCartButton",
+      "ORDERS_ELEVATION_ACTIONS",
       "ORDERS_ERRORS",
       "ORDERS_ERROR_CODES",
       "ORDERS_FLOWS",
@@ -893,6 +894,7 @@
       "useCheckout",
       "useClearCart",
       "useFlow",
+      "useHasCartSession",
       "useOrder",
       "useOrders",
       "useOrdersAnalytics",
@@ -966,7 +968,7 @@
   },
   "uiFlows": {
     "cart": {
-      "title": "A guest adds a listing to the cart and sees the line",
+      "title": "A visitor with no session adds a listing (a guest is minted on the click) and sees the line",
       "session": "any",
       "steps": 5
     },

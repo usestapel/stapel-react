@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import type { ReactElement, ReactNode } from "react";
-import { useT } from "@stapel/core";
+import { toStapelApiError, useElevation, useT } from "@stapel/core";
 import type { StapelApiError } from "@stapel/core";
 import type { Cart } from "../api/types.js";
 import { ORDERS_I18N_KEYS } from "../i18n/keys.js";
+import { ORDERS_ELEVATION_ACTIONS } from "../model/elevation.js";
 import { useAddToCart } from "../model/mutations.js";
 import { useCart } from "../model/queries.js";
 import { ORDERS_TESTIDS } from "../testids.js";
@@ -27,6 +29,10 @@ export interface AddToCartBag {
   readonly lineCount: number | undefined;
   /** Set after a success; the renderer offers "Go to cart". */
   readonly added: boolean;
+  /**
+   * The add's refusal, or the guest mint's failure (wrapped so the renderer
+   * reads one `code`). `null` while neither failed.
+   */
   readonly error: StapelApiError | null;
 }
 
@@ -34,30 +40,55 @@ export interface AddToCartBag {
  * The add-to-cart state machine every renderer shares: the control owns its
  * request, so a page only names the purchasable and can never wire a button
  * that does nothing.
+ *
+ * The add runs through core's elevation (`orders.add_to_cart`): with an
+ * `ElevationProvider` that lists the action, a visitor with no session gets a
+ * guest identity minted on the click, and the POST follows it, so the cart has
+ * an owner instead of a 401. Without a provider, `run` performs at once.
  */
 export function useAddToCartButton(props: AddToCartProps): AddToCartBag {
   const mutation = useAddToCart();
   const cart = useCart();
-  const disabled = props.disabled === true || mutation.isPending;
+  const elevation = useElevation(ORDERS_ELEVATION_ACTIONS.addToCart);
+  const pending = elevation.pending || mutation.isPending;
+  const disabled = props.disabled === true || pending;
+  const mintError =
+    elevation.error !== undefined ? toStapelApiError(elevation.error) : null;
+  // `pending` reaches the closure only after a render, and the mutation's
+  // state lands a tick after `mutate`; a double click falls in that gap. The
+  // ref closes it synchronously and opens again when the add settles or the
+  // mint fails (a failed mint never reaches `perform`).
+  const inFlight = useRef(false);
+  useEffect(() => {
+    if (elevation.error !== undefined) inFlight.current = false;
+  }, [elevation.error]);
   return {
     add: () => {
-      if (disabled) return;
-      mutation.mutate(
-        {
-          purchasableType: props.purchasableType,
-          purchasableKey: props.purchasableKey,
-          ...(props.quantity !== undefined ? { quantity: props.quantity } : {}),
-        },
-        { onSuccess: (next) => props.onAdded?.(next) }
-      );
+      if (disabled || inFlight.current) return;
+      inFlight.current = true;
+      elevation.run(() => {
+        mutation.mutate(
+          {
+            purchasableType: props.purchasableType,
+            purchasableKey: props.purchasableKey,
+            ...(props.quantity !== undefined ? { quantity: props.quantity } : {}),
+          },
+          {
+            onSuccess: (next) => props.onAdded?.(next),
+            onSettled: () => {
+              inFlight.current = false;
+            },
+          }
+        );
+      });
     },
-    pending: mutation.isPending,
+    pending,
     disabled,
     lineCount: mutation.isSuccess
       ? (cart.data?.line_count ?? mutation.data.line_count)
       : undefined,
     added: mutation.isSuccess,
-    error: mutation.error,
+    error: mutation.error ?? mintError,
   };
 }
 
