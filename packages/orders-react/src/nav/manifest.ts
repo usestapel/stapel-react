@@ -16,7 +16,7 @@ export const navEntries: readonly NavEntry[] = [
   {
     id: "orders.cart",
     labelKey: "orders.nav.cart",
-    icon: "TagOutlined",
+    icon: "ShoppingCartOutlined",
     route: { path: "/cart" },
     component: { export: "CartPage", subpath: "default" },
     placement: { level: "top" },
@@ -28,7 +28,7 @@ export const navEntries: readonly NavEntry[] = [
   {
     id: "orders.checkout",
     labelKey: "orders.nav.checkout",
-    icon: "TagOutlined",
+    icon: "ShoppingCartOutlined",
     // A browser route, not a request: billing's catalogued `checkout/`
     // operation shares the last segment, which is all the rule matches on.
     // eslint-disable-next-line stapel/no-string-paths -- route, not an API path
@@ -69,6 +69,12 @@ export const navEntries: readonly NavEntry[] = [
 /**
  * The cart badge is header chrome on every page, guest or member, so it
  * offers `topbar.end` with surface `any`; `opens` hands the click to the cart.
+ *
+ * `orders.add_to_cart` is a PAGE embed: the listing page (`listings.detail`,
+ * `/l/:id`) renders it in its `page.actions` slot and hands it the route's
+ * `id` as `purchasableKey`; `purchasableType` is the static `"listing"`. A
+ * project without the listings pair has no such page, and the scaffold drops
+ * the embed.
  */
 export const navEmbeds: readonly NavEmbed[] = [
   {
@@ -78,5 +84,15 @@ export const navEmbeds: readonly NavEmbed[] = [
     order: 20,
     surface: "any",
     opens: "orders.cart",
+  },
+  {
+    id: "orders.add_to_cart",
+    slot: "page.actions",
+    component: { export: "AddToCartButton", subpath: "default" },
+    order: 10,
+    surface: "any",
+    scope: { navEntry: "listings.detail" },
+    routeProps: { purchasableKey: "id" },
+    props: { purchasableType: "listing" },
   },
 ];

@@ -77,6 +77,9 @@ export {
 export type {
   ListingDetailPaneProps,
   ListingActionsPlacement,
+  ListingDetailRouteProps,
+  ListingDetailSlots,
+  ListingPageActionsSlot,
 } from "./ListingDetailPane.js";
 // The gallery's two shapes, its class and the stylesheet behind them — a host
 // that wants a third writes CSS against these rather than `!important` over an

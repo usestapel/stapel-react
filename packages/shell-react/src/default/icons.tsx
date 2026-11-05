@@ -180,6 +180,14 @@ const SettingOutlined = svg(
   </>
 );
 
+const ShoppingCartOutlined = svg(
+  <>
+    <path d="M2.5 3.5h2.2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.46-1.15L20.5 7.5H5.6" />
+    <circle cx="9.5" cy="19.5" r="1.25" />
+    <circle cx="17" cy="19.5" r="1.25" />
+  </>
+);
+
 const TagOutlined = svg(
   <>
     <path d="M12.5 3H5a2 2 0 0 0-2 2v7.5a2 2 0 0 0 .586 1.414l8.5 8.5a2 2 0 0 0 2.828 0l6.086-6.086a2 2 0 0 0 0-2.828l-8.5-8.5A2 2 0 0 0 12.5 3z" />
@@ -210,6 +218,7 @@ const REGISTRY: Record<string, (props: { size?: number }) => ReactElement> = {
   QrcodeOutlined,
   SearchOutlined,
   SettingOutlined,
+  ShoppingCartOutlined,
   TagOutlined,
 };
 

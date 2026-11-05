@@ -13,6 +13,7 @@ import {
   assertShipsNavManifest,
   assertUniqueEmbedIds,
   auditEmbedOpens,
+  auditEmbedScopes,
   buildPackageNavManifest,
   validateEmbeds,
 } from "./nav-lib.mjs";
@@ -122,6 +123,59 @@ test("opens to an undeclared entry is an audit problem; a declared or container 
   const problems = auditEmbedOpens([{ package: PKG, entries: [], embeds: [bell] }], containers);
   assert.equal(problems.length, 1);
   assert.match(problems[0], /embeds\[0\] "notifications\.bell": opens "notifications\.feed"/);
+});
+
+const addToCart = {
+  id: "orders.add_to_cart",
+  slot: "page.actions",
+  component: { export: "AddToCartButton", subpath: "default" },
+  order: 10,
+  scope: { navEntry: "listings.detail" },
+  routeProps: { purchasableKey: "id" },
+  props: { purchasableType: "listing" },
+};
+const listingDetail = { id: "listings.detail", route: { path: "/l/:id" } };
+
+test("a page-slot embed with scope and routeProps passes", () => {
+  assert.doesNotThrow(() => validateEmbeds("@stapel/orders-react", [addToCart], SHELL_SLOT_IDS));
+});
+
+test("page.actions needs a scope; a chrome slot refuses one; routeProps need a scope", () => {
+  const { scope: _scope, routeProps: _rp, ...unscoped } = addToCart;
+  assert.throws(
+    () => validateEmbeds(PKG, [unscoped], SHELL_SLOT_IDS),
+    /slot "page\.actions" is rendered by a page, not a chrome/
+  );
+  assert.throws(
+    () => validateEmbeds(PKG, [{ ...bell, scope: { navEntry: "listings.detail" } }], SHELL_SLOT_IDS),
+    /scope is only meaningful on a page slot/
+  );
+  const bad = [
+    { ...addToCart, scope: { navEntry: "" } },
+    { ...addToCart, scope: { navEntry: "listings.detail", extra: 1 } },
+    { ...addToCart, routeProps: {} },
+    { ...addToCart, routeProps: { "bad-prop": "id" } },
+    { ...addToCart, routeProps: { purchasableKey: "" } },
+    { ...addToCart, routeProps: { purchasableType: "id" } },
+  ];
+  for (const embed of bad) {
+    assert.throws(() => validateEmbeds(PKG, [embed], SHELL_SLOT_IDS), /gen:nav: .*embeds\[0\]/);
+  }
+});
+
+test("scope must name an installed entry and routeProps must read its params", () => {
+  const listings = { package: "@stapel/listings-react", entries: [listingDetail] };
+  const orders = { package: "@stapel/orders-react", entries: [], embeds: [addToCart] };
+  assert.deepEqual(auditEmbedScopes([listings, orders]), []);
+  const orphan = auditEmbedScopes([orders]);
+  assert.equal(orphan.length, 1);
+  assert.match(orphan[0], /scope\.navEntry "listings\.detail" is declared by no installed package/);
+  const wrongParam = auditEmbedScopes([
+    listings,
+    { ...orders, embeds: [{ ...addToCart, routeProps: { purchasableKey: "slug" } }] },
+  ]);
+  assert.equal(wrongParam.length, 1);
+  assert.match(wrongParam[0], /routeProps\.purchasableKey reads ":slug".*params: id/);
 });
 
 test("a pair without embeds emits no embeds key", () => {

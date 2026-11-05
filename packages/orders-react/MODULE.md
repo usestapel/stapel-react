@@ -34,21 +34,34 @@ into the cart cache, so the screen shows the numbers the next submit uses.
 ## Nav
 
 `orders.cart` `/cart` (public, hidden from the menu), `orders.checkout`
-`/checkout` (public, hidden), `orders.mine` under `account.root` (member),
-`orders.detail` `/orders/:id` (member, hidden). Embed `orders.cart_badge` →
-`topbar.end`, surface `any`, opens `orders.cart`. Whether a guest may place
-the order is the backend's `CHECKOUT_REQUIRES_ACCOUNT` (a 403 the page shows).
+`/checkout` (public, hidden), both with the shell's `ShoppingCartOutlined`;
+`orders.mine` under `account.root` (member), `orders.detail` `/orders/:id`
+(member, hidden). Whether a guest may place the order is the backend's
+`CHECKOUT_REQUIRES_ACCOUNT` (a 403 the page shows).
 
-## Not in 0.1.0 (named gaps)
+Embeds:
 
-- The `orders.add_to_cart` embed into `page.actions` on `listings.detail`
-  needs `scope` + `routeProps` on `@stapel/core` `NavEmbed` and listings-react
-  rendering `page.actions` (spec asks C1, R1). Until then a page renders
-  `<AddToCartButton/>` itself.
-- `testids` in `manifest.json` and a pair-shipped `flows.json` for the
-  preview walker (spec §6) are not emitted yet.
-- No icon in the shell registry reads as a cart; the entries use `TagOutlined`
-  and `OrderedListOutlined`.
+- `orders.cart_badge` → `topbar.end`, surface `any`, opens `orders.cart`.
+- `orders.add_to_cart` → `page.actions` with `scope: {navEntry:
+  "listings.detail"}`, `routeProps: {purchasableKey: "id"}`, `props:
+  {purchasableType: "listing"}`, component `AddToCartButton` from `./default`.
+  `@stapel/listings-react`'s `ListingDetailPane` renders the slot in the
+  reader's buy box and hands it `{ id }`; `@stapel/core`'s `embedsForPage` +
+  `resolveEmbedProps` turn the declaration into props. A project without the
+  listings pair has no such page and the scaffold drops the embed; a custom
+  page renders `<AddToCartButton purchasableType="part" purchasableKey={id}/>`.
+
+## Test ids and browser flows
+
+- `src/testids.ts` (`ORDERS_TESTIDS`) is read by `gen:manifest` into
+  `manifest.json` `testids`, so a recipe's UI criteria come from the pair.
+- `flows.json` (`stapel.flows/1`, exported as `./flows.json`): `cart` (a guest
+  adds a listing, sees the cart line) and `purchase` (a member adds, checks
+  out, lands on `page-order`). It needs `{listing_id}` from the host, and
+  `purchase` runs after the host's own sign-in steps (`session: "member"`,
+  since `CHECKOUT_REQUIRES_ACCOUNT` defaults to true). `gen:manifest`
+  validates every step against the runner's rules and the pair's test ids,
+  and projects the flows into `manifest.json` `uiFlows`.
 
 ## Extension seams (frontend-standard §7)
 

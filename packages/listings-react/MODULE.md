@@ -264,6 +264,22 @@ take the identical prop, so a container writes the destination once.
 The LABEL is this pair's (`listings.card.sign_in`, all three locales) rather
 than core's: core floors `en` and `ru`, and this pair also ships `es`.
 
+### 4.3 Other pairs' actions on the listing page: `page.actions`
+
+The listing page is the page other pairs act on: add it to a cart, book a
+slot. Those pairs declare a `page.actions` embed scoped to `listings.detail`
+(`@stapel/core` `NavEmbed` `scope` + `routeProps`), and the container passes
+`ListingDetailPane` `slots={{ "page.actions": … }}`. The slot takes a node or
+a render function; the pane calls the function with the route params of
+`/l/:id` (`{ id: "42" }`), and the container maps them onto each embed's props
+with core's `resolveEmbedProps` (orders: `id` → `purchasableKey`).
+
+It renders in the buy box under the contact control (`listings-detail-page-actions`),
+for readers only. Not in `ListingActions`: that cluster is two glyphs sized for
+the condensed bar, and a labelled button with a follow-up line is not a glyph.
+The owner's buy box holds Edit and Take down, and a buyer verb there would be
+the owner buying from themselves.
+
 ## 5. Gates and their reasons
 
 Every write in the pair is behind an `ActionAvailability`. The mandate axis is

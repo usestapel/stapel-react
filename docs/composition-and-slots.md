@@ -65,7 +65,7 @@ Slot vocabulary (v1):
 | `bottombar` | the phone dock island (beside the destinations) | many |
 | `browsebar` | the public shell's category / browse strip | **one** |
 | `footer` | the page footer | **one** |
-| `page.actions` | page-header actions (reserved; no template renders it yet) | many |
+| `page.actions` | a page's own actions — rendered by the PAGE an embed's `scope` names, not by a chrome (first: `ListingDetailPane`'s buy box) | many |
 
 Templates (v1):
 
@@ -129,10 +129,22 @@ under `embeds`):
     "props":     { "type": "object", "additionalProperties": { "type": ["string","number","boolean"] },
                    "description": "Static JSON props the container passes verbatim (`{ \"compact\": true }`)." },
     "opens":     { "type": "string",
-                   "description": "A NavEntry id this embed opens. The container passes `onOpen` navigating to that entry's path; the component must accept `onOpen: () => void`." }
+                   "description": "A NavEntry id this embed opens. The container passes `onOpen` navigating to that entry's path; the component must accept `onOpen: () => void`." },
+    "scope":     { "type": "object", "additionalProperties": false, "required": ["navEntry"],
+                   "properties": { "navEntry": {"type":"string","minLength":1} },
+                   "description": "The page that renders this embed. Required on `page.actions`, refused on every chrome slot." },
+    "routeProps": { "type": "object", "minProperties": 1,
+                    "additionalProperties": { "type": "string", "minLength": 1 },
+                    "description": "`{ <prop>: <route param> }` read from the scoped entry's path; needs `scope`; a key may not repeat a `props` key." }
   }
 }
 ```
+
+A page slot (`page.actions`) is filled by the page, not the chrome: the page
+calls the container's slot render function with its route params, and
+`@stapel/core`'s `embedsForPage(embeds, navEntry)` + `resolveEmbedProps(embed,
+params)` give the embeds and their props in render order. `resolveEmbedProps`
+returns `null` when a mapped param is missing, and the embed is then not drawn.
 
 Component contract: the export renders with no required props beyond
 `props` and, when `opens` is declared, `onOpen`. It reads its own pair's
@@ -147,7 +159,10 @@ of these is a red generator run with the offending pair, index and reason:
   `breakpoints` item outside the enum, a `props` value that is not a scalar;
 - `id` duplicated within the pair or across the aggregate;
 - `opens` naming an entry no installed pair and no container root declares
-  (same rule as `placement.parentId`).
+  (same rule as `placement.parentId`);
+- `page.actions` without `scope`, `scope` on a chrome slot, `routeProps`
+  without `scope`; `scope.navEntry` declared by no installed pair, or a
+  `routeProps` value that is not a `:param` of that entry's path.
 
 The aggregate carries each pair's `embeds` in the root `nav-manifest.json`;
 a pair with none has no `embeds` key (not an empty array), so every manifest
@@ -222,8 +237,9 @@ Inputs: the composition (§1), the installed pairs' mirrored `embeds`
 - `breakpoints` are validated and carried; the chromes render them only for
   `topbar.*` and `sidenav.foot` (phone/desktop) — `bottombar` is reserved
   until `AppShell` grows a dock (S).
-- `page.actions`: no chrome renders page headers; the slot is reserved so a
-  pair can already declare it (S, with a `PageHeader` skin component).
+- `page.actions` on more pages (the public profile, R-profiles) and the
+  scaffold's emission of scoped embeds into those pages' `slots` (stapel-tools
+  S4 of orders/reservations/feed).
 - An account menu embed from auth-react (C-R2-like; `topbar.end`, `member`,
   opens `account.root`) and a `WorkspaceSwitcher` from workspaces-react
   (C-R2) — both are new skin exports with demos (S each).

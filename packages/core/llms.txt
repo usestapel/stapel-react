@@ -52,6 +52,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - createStapelQueryClient
 - defaultPersistStorage
 - describeFlowError
+- embedsForPage
 - errorCode
 - errorCodePredicate
 - errorStatus
@@ -101,6 +102,7 @@ signatures/JSDoc in the package README and src/index.ts.
 - putToForeignOrigin
 - recentsStorageKey
 - requireLoaded
+- resolveEmbedProps
 - slugify
 - toDate
 - toFlowError
@@ -192,11 +194,14 @@ signatures/JSDoc in the package README and src/index.ts.
 - NavBreakpoint
 - NavComponentRef
 - NavEmbed
+- NavEmbedProps
+- NavEmbedScope
 - NavEmbedSurface
 - NavEntry
 - NavPlacement
 - NavPlacementLevel
 - NavRoute
+- NavRouteParams
 - NavSurface
 - NonEmptyArray
 - PackageNavManifest

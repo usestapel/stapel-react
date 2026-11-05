@@ -32,6 +32,7 @@
     "./manifest": "./manifest.json",
     "./manifest.json": "./manifest.json",
     "./nav-manifest.json": "./nav-manifest.json",
+    "./flows.json": "./flows.json",
     "./llms.txt": "./llms.txt",
     "./package.json": "./package.json"
   },
@@ -44,6 +45,7 @@
     "CHANGELOG.md",
     "manifest.json",
     "nav-manifest.json",
+    "flows.json",
     "llms.txt"
   ],
   "scripts": {

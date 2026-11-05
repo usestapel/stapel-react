@@ -91,6 +91,13 @@ const { tracked } = useTracked();
 // data-analytics="flow" instead; tracked() on top double-counts (§3.2).
 ```
 
+## Test ids (src/testids.ts — fixed by the pair, never props)
+add-to-cart · go-to-cart · cart-badge · page-cart · cart-line · cart-total · cart-empty · checkout-link · page-checkout · checkout-submit · page-orders · order-row · orders-load-more · page-order · order-cancel
+
+## Browser flows (flows.json, stapel.flows/1; a member flow needs a signed-in session first)
+- cart (any): A guest adds a listing to the cart and sees the line
+- purchase (member): A member adds a listing, checks out and lands on the placed order
+
 ## Demos (defineDemo → manifest.demos; compiled, linted, rendered examples)
 - orders.add-to-cart → <AddToCartButton> [default]  demo/AddToCartButton.demo.tsx
 - orders.add-to-cart-skin → <AddToCartButton> [default|phone]  demo/AddToCartButtonSkin.demo.tsx

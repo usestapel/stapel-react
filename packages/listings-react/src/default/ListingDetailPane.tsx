@@ -229,10 +229,45 @@ export { DETAIL_PHOTO_MIN } from "./detailGallery.js";
  */
 export const DETAIL_GALLERY_GUTTER: string = `${cssVar("page-gutter").slice(0, -1)}, ${String(spacing[3])}px)`;
 
+/**
+ * The route params this page hands its `page.actions` embeds — the params of
+ * `listings.detail` (`/l/:id`), as strings, the way a router reads them.
+ */
+// A type alias, not an interface: it stays assignable to core's
+// `NavRouteParams` index signature, so `resolveEmbedProps(embed, route)` types.
+export type ListingDetailRouteProps = {
+  readonly id: string;
+};
+
+/**
+ * What a container puts in the `page.actions` slot: a node, or a render
+ * function the pane calls with {@link ListingDetailRouteProps}. The function
+ * form is what a scaffold emits for embeds declaring
+ * `scope: { navEntry: "listings.detail" }` + `routeProps` (`@stapel/core`
+ * `resolveEmbedProps` maps the params onto each embed's props).
+ */
+export type ListingPageActionsSlot =
+  | ReactNode
+  | ((route: ListingDetailRouteProps) => ReactNode);
+
+/** The shell slots this page renders itself. Only `page.actions` today. */
+export interface ListingDetailSlots {
+  readonly "page.actions"?: ListingPageActionsSlot;
+}
+
 export interface ListingDetailPaneProps
   extends ThemeModeProp,
     CategoryFeaturesProp {
   readonly id: number;
+  /**
+   * PAGE SLOTS, keyed like the chromes' `slots` prop. `page.actions` is drawn
+   * in the buy box, under the contact control, for READERS only: the actions
+   * other pairs offer on a listing (add to cart, book a slot) are buyer verbs,
+   * and the owner's buy box holds Edit and Take down. Not in the travelling
+   * glyph cluster (`ListingActions`): that is two icons sized for a condensed
+   * bar, and a labelled button with a "Go to cart" follow-up is neither.
+   */
+  readonly slots?: ListingDetailSlots;
   /** The reader's own uuid, when the host knows it. Enables the owner view —
    * the only place the moderation axis is shown, because it is the only
    * person it concerns. */
@@ -890,6 +925,17 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
   const actionsNode: ReactNode = isActionsConfig(props.actions)
     ? null
     : props.actions;
+  // `page.actions`: a node as given, or the render function called with this
+  // page's route params. Nothing at all when the container filled nothing.
+  const pageActionsSlot = props.slots?.["page.actions"];
+  const pageActionsContent: ReactNode =
+    typeof pageActionsSlot === "function"
+      ? pageActionsSlot({ id: String(props.id) })
+      : pageActionsSlot;
+  const pageActions: ReactNode =
+    pageActionsContent === undefined || pageActionsContent === null || pageActionsContent === false
+      ? null
+      : pageActionsContent;
 
   const favoriteLabel = t(
     bag.isFavorited
@@ -1449,6 +1495,12 @@ export function ListingDetailPane(props: ListingDetailPaneProps): ReactElement {
                     <div data-testid="listings-detail-contact">
                       {props.contactSlot ?? <SlotPlaceholder name="contactSlot" />}
                     </div>
+
+                    {pageActions === null ? null : (
+                      <Flex wrap gap={spacing[2]} data-testid="listings-detail-page-actions">
+                        {pageActions}
+                      </Flex>
+                    )}
 
                     {/* ASK THE SELLER — under the door into the conversation,
                         because that is what a pressed chip opens. Never on the

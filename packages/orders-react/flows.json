@@ -1,0 +1,50 @@
+{
+  "schema": "stapel.flows/1",
+  "needs": ["listing_id"],
+  "flows": [
+    {
+      "id": "cart",
+      "title": "A guest adds a listing to the cart and sees the line",
+      "session": "any",
+      "steps": [
+        { "op": "goto", "path": "/l/{listing_id}" },
+        {
+          "op": "click",
+          "testid": "add-to-cart",
+          "expect_request": { "method": "POST", "path": "/orders/api/v1/cart/lines/" }
+        },
+        { "op": "click", "testid": "go-to-cart", "expect_path": "/cart$" },
+        { "op": "expect", "testid": "page-cart" },
+        { "op": "expect", "testid": "cart-line", "text": true }
+      ]
+    },
+    {
+      "id": "purchase",
+      "title": "A member adds a listing, checks out and lands on the placed order",
+      "session": "member",
+      "steps": [
+        { "op": "goto", "path": "/l/{listing_id}" },
+        {
+          "op": "click",
+          "testid": "add-to-cart",
+          "expect_request": { "method": "POST", "path": "/orders/api/v1/cart/lines/" }
+        },
+        { "op": "goto", "path": "/cart" },
+        { "op": "expect", "testid": "cart-line" },
+        { "op": "click", "testid": "checkout-link", "expect_path": "/checkout$" },
+        { "op": "fill", "within": "page-checkout", "field": { "name": "name" }, "value": "Alex Doe" },
+        { "op": "fill", "within": "page-checkout", "field": { "name": "phone" }, "value": "+12025550142" },
+        { "op": "fill", "within": "page-checkout", "field": { "autocomplete": "street-address" }, "value": "1 Main Street" },
+        { "op": "fill", "within": "page-checkout", "field": { "name": "city" }, "value": "Springfield" },
+        { "op": "fill", "within": "page-checkout", "field": { "name": "country" }, "value": "US" },
+        {
+          "op": "click",
+          "testid": "checkout-submit",
+          "expect_request": { "method": "POST", "path": "/orders/api/v1/checkout/" },
+          "expect_path": "/orders/[0-9]+$"
+        },
+        { "op": "expect", "testid": "page-order" }
+      ]
+    }
+  ]
+}

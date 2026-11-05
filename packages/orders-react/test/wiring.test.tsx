@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider, createI18n } from "@stapel/core";
+import { I18nProvider, createI18n, embedsForPage, resolveEmbedProps } from "@stapel/core";
 import {
   AddToCartButton,
   ORDERS_TESTIDS,
@@ -23,6 +23,8 @@ import {
   OrderDetailPane,
   OrderHistoryPane,
 } from "../src/default/index.js";
+import * as DefaultEntry from "../src/default/index.js";
+import { navEmbeds } from "../src/nav/manifest.js";
 import { DEMO_CART, DEMO_EMPTY_CART, DEMO_ORDER, DEMO_ORDER_PAGE } from "../demo/_fixtures.js";
 
 const BASE = "https://shop.example/orders/api/v1/";
@@ -243,5 +245,34 @@ describe("checkout", () => {
       calls.filter((c) => c.method === "POST").map((c) => (c.body as { idempotency_key: string }).idempotency_key)
     );
     expect(keys.size).toBe(1);
+  });
+});
+
+describe("the orders.add_to_cart page embed", () => {
+  it("lands on listings.detail and adds the listing the route names", async () => {
+    const page = embedsForPage(navEmbeds, "listings.detail");
+    expect(page.map((e) => e.id)).toEqual(["orders.add_to_cart"]);
+    const embed = page[0];
+    if (embed === undefined) throw new Error("orders.add_to_cart is not offered to listings.detail");
+    expect(embed.component.subpath).toBe("default");
+    // What a scaffold emits: the named export of the named subpath, with
+    // the embed's props resolved against the page's route params.
+    const Component = (DefaultEntry as unknown as Record<string, (p: object) => ReactElement>)[
+      embed.component.export
+    ];
+    if (Component === undefined) throw new Error(`./default has no ${embed.component.export}`);
+    const props = resolveEmbedProps(embed, { id: "7" });
+    expect(props).toEqual({ purchasableType: "listing", purchasableKey: "7" });
+    const calls = mount(<Component {...props} />, {
+      "GET cart/": DEMO_CART,
+      "POST cart/lines/": DEMO_CART,
+    });
+    fireEvent.click(await screen.findByTestId(ORDERS_TESTIDS.addToCart));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST")).toBe(true));
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({
+      purchasable_type: "listing",
+      purchasable_key: "7",
+      quantity: 1,
+    });
   });
 });

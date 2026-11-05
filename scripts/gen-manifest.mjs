@@ -39,6 +39,12 @@ import {
   hookSignature,
   renderLlmsHookSignatures,
 } from "./hooks-lib.mjs";
+import {
+  assertShipsUiFlows,
+  parseTestids,
+  renderLlmsUiSurface,
+  validateUiFlows,
+} from "./ui-surface-lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -388,6 +394,7 @@ function renderLlms(m, factories, eventsJson, demosJson) {
   L.push("");
   for (const line of renderLlmsEvents(eventsJson)) L.push(line);
   L.push("");
+  for (const line of renderLlmsUiSurface(m.testids, m.uiFlows)) L.push(line);
   if (demosJson.demos.length > 0) {
     for (const line of renderLlmsDemos(demosJson)) L.push(line);
     L.push("");
@@ -475,6 +482,7 @@ function renderLlmsGeneric(m, factories, eventsJson, demosJson) {
   }
   for (const line of renderLlmsEvents(eventsJson)) L.push(line);
   L.push("");
+  for (const line of renderLlmsUiSurface(m.testids, m.uiFlows)) L.push(line);
   if (demosJson.demos.length > 0) {
     for (const line of renderLlmsDemos(demosJson)) L.push(line);
     L.push("");
@@ -551,6 +559,23 @@ async function main() {
     )
   );
 
+  // The pair's UI surface (orders S3): fixed test ids and its own browser
+  // flows. Both optional — absent files leave the manifest byte-identical.
+  const testidsSrc = await readFile(resolve(PKG_DIR, "src/testids.ts"), "utf8").catch((e) => {
+    if (e?.code === "ENOENT") return null;
+    throw e;
+  });
+  const testids = testidsSrc === null ? undefined : parseTestids(testidsSrc, `${pkg.name} src/testids.ts`);
+  const uiFlowsDoc = await readJsonOptional(resolve(PKG_DIR, "flows.json"), null);
+  let uiFlows;
+  if (uiFlowsDoc !== null) {
+    if (testids === undefined) {
+      throw new Error(`gen:manifest: ${pkg.name} ships flows.json but no src/testids.ts for its steps to name`);
+    }
+    uiFlows = validateUiFlows(uiFlowsDoc, testids, `${pkg.name} flows.json`);
+    assertShipsUiFlows(pkg);
+  }
+
   const exportsCatalog = parseExports(indexSrc);
   const factories = exportsCatalog.runtime.filter((n) => /^create\w+(Flow|Controller)$/.test(n));
 
@@ -587,6 +612,8 @@ async function main() {
     demos: manifestDemos(demosJson),
     i18nKeys: i18nKeys(uiKeysSrc, flows, errors),
     exports: exportsCatalog,
+    ...(testids !== undefined ? { testids } : {}),
+    ...(uiFlows !== undefined ? { uiFlows } : {}),
   };
 
   HOOK_SIGNATURE_LINES = renderLlmsHookSignatures(

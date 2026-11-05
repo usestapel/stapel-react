@@ -173,8 +173,10 @@ export function navSurfaceVisibleTo(
  * without depending on any chrome, and `@stapel/shell-react`'s
  * `SHELL_TEMPLATES` says which template renders which of these.
  *
- * Capacity one: `topbar.center`, `browsebar`, `footer`. `page.actions` is
- * reserved — no template renders it yet.
+ * Capacity one: `topbar.center`, `browsebar`, `footer`. `page.actions` is the
+ * one PAGE slot: no chrome renders it, the page a {@link NavEmbed.scope}
+ * names does (e.g. `@stapel/listings-react`'s `ListingDetailPane`), handing
+ * each embed its route params through {@link NavEmbed.routeProps}.
  */
 export const SHELL_SLOT_IDS = [
   "topbar.start",
@@ -225,6 +227,67 @@ export interface NavEmbed {
   /** A `NavEntry` id this embed opens: the container passes `onOpen`
    * navigating to that entry's path. */
   readonly opens?: string;
+  /**
+   * The page this embed belongs to. Required for `page.actions` (a page slot
+   * means nothing without the page) and refused on every chrome slot, which
+   * renders on every page. An embed whose scoped entry no installed pair
+   * declares is dropped by the scaffold.
+   */
+  readonly scope?: NavEmbedScope;
+  /**
+   * Props read from the scoped page's route, `{ <prop>: <route param> }`:
+   * `{ purchasableKey: "id" }` on `listings.detail` (`/l/:id`) hands the
+   * listing id to the embed as `purchasableKey`. Every value must be a
+   * `:param` of the scoped entry's path; requires {@link scope}. See
+   * {@link resolveEmbedProps}.
+   */
+  readonly routeProps?: Readonly<Record<string, string>>;
+}
+
+/** Where a page-slot embed renders: the page of one `NavEntry`. */
+export interface NavEmbedScope {
+  readonly navEntry: string;
+}
+
+/** A page's route params as the page hands them to its page-slot embeds
+ * (`{ id: "42" }` for `/l/42`). */
+export type NavRouteParams = Readonly<Record<string, string | undefined>>;
+
+/** Props an embed renders with: its static props plus its route props. */
+export type NavEmbedProps = Readonly<Record<string, string | number | boolean>>;
+
+/**
+ * The props one embed renders with on a page: {@link NavEmbed.props} plus
+ * each {@link NavEmbed.routeProps} entry read from `params`. Returns `null`
+ * when a mapped param is absent or empty, so the caller renders nothing
+ * rather than a control bound to no record.
+ */
+export function resolveEmbedProps(
+  embed: Pick<NavEmbed, "props" | "routeProps">,
+  params: NavRouteParams
+): NavEmbedProps | null {
+  const out: Record<string, string | number | boolean> = { ...(embed.props ?? {}) };
+  for (const [prop, param] of Object.entries(embed.routeProps ?? {})) {
+    const value = params[param];
+    if (value === undefined || value === "") return null;
+    out[prop] = value;
+  }
+  return out;
+}
+
+/**
+ * The embeds `navEntry`'s page renders into `slot`, in render order
+ * (`order`, then `id`). Only scoped embeds qualify: an unscoped one belongs
+ * to a chrome slot, not to a page.
+ */
+export function embedsForPage(
+  embeds: readonly NavEmbed[],
+  navEntry: string,
+  slot: ShellSlotId = "page.actions"
+): NavEmbed[] {
+  return embeds
+    .filter((e) => e.slot === slot && e.scope?.navEntry === navEntry)
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 }
 
 /** A single package's contribution to the nav tree — what

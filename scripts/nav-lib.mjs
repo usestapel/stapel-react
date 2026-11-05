@@ -16,7 +16,13 @@ const EMBED_KEYS = new Set([
   "breakpoints",
   "props",
   "opens",
+  "scope",
+  "routeProps",
 ]);
+/** The one slot a PAGE renders, not a chrome: it needs a `scope`, and only
+ * it may have one. */
+export const PAGE_SLOT_IDS = ["page.actions"];
+const PROP_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const COMPONENT_KEYS = new Set(["export", "subpath"]);
 
 const isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -86,6 +92,39 @@ export function validateEmbed(pkgName, embed, index, slotIds) {
     embed.opens === undefined || nonEmpty(embed.opens),
     "opens must be a non-empty NavEntry id when present"
   );
+  const pageSlot = PAGE_SLOT_IDS.includes(embed.slot);
+  if (embed.scope === undefined) {
+    need(
+      !pageSlot,
+      `slot "${embed.slot}" is rendered by a page, not a chrome — add scope: { navEntry: "<entry id>" } naming that page`
+    );
+  } else {
+    need(
+      pageSlot,
+      `scope is only meaningful on a page slot (${PAGE_SLOT_IDS.join(", ")}); "${embed.slot}" renders on every page`
+    );
+    need(
+      isObject(embed.scope) &&
+        Object.keys(embed.scope).every((k) => k === "navEntry") &&
+        nonEmpty(embed.scope.navEntry),
+      'scope must be exactly { navEntry: "<entry id>" }'
+    );
+  }
+  if (embed.routeProps !== undefined) {
+    need(embed.scope !== undefined, "routeProps needs a scope: route params come from the scoped page");
+    need(
+      isObject(embed.routeProps) && Object.keys(embed.routeProps).length > 0,
+      "routeProps must be a non-empty object of { <prop>: <route param> } when present"
+    );
+    for (const [prop, param] of Object.entries(embed.routeProps)) {
+      need(PROP_NAME_PATTERN.test(prop), `routeProps key ${JSON.stringify(prop)} must be a prop name`);
+      need(nonEmpty(param), `routeProps.${prop} must name a route param`);
+      need(
+        embed.props === undefined || !Object.hasOwn(embed.props, prop),
+        `routeProps.${prop} collides with props.${prop} — one source per prop`
+      );
+    }
+  }
 }
 
 /** Throw unless `embeds` is undefined or an array of valid, pair-unique
@@ -149,6 +188,43 @@ export function auditEmbedOpens(manifests, containerParentIds) {
         `    - ${m.package} embeds[${i}] "${embed.id}": opens "${embed.opens}" is declared by no ` +
           `installed package and is not a container-synthesised id — onOpen would have nowhere to go`
       );
+    });
+  }
+  return problems;
+}
+
+/** The `:param` names of a route path (`/l/:id` → `["id"]`). */
+export function routeParams(path) {
+  return [...String(path).matchAll(/:([A-Za-z_][A-Za-z0-9_]*)/g)].map((m) => m[1]);
+}
+
+/** Problem lines for every page-slot embed whose `scope.navEntry` no
+ * installed package declares, or whose `routeProps` read a param that
+ * entry's path does not have. */
+export function auditEmbedScopes(manifests) {
+  const entries = new Map();
+  for (const m of manifests) for (const e of m.entries) entries.set(e.id, e);
+  const problems = [];
+  for (const m of manifests) {
+    (m.embeds ?? []).forEach((embed, i) => {
+      if (embed.scope === undefined) return;
+      const where = `    - ${m.package} embeds[${i}] "${embed.id}"`;
+      const entry = entries.get(embed.scope.navEntry);
+      if (entry === undefined) {
+        problems.push(
+          `${where}: scope.navEntry "${embed.scope.navEntry}" is declared by no installed package — ` +
+            `no page would render it`
+        );
+        return;
+      }
+      const params = routeParams(entry.route?.path ?? "");
+      for (const [prop, param] of Object.entries(embed.routeProps ?? {})) {
+        if (params.includes(param)) continue;
+        problems.push(
+          `${where}: routeProps.${prop} reads ":${param}", which ${embed.scope.navEntry} ` +
+            `("${entry.route?.path}") does not have — params: ${params.join(", ") || "none"}`
+        );
+      }
     });
   }
   return problems;

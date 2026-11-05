@@ -36,6 +36,7 @@ import {
   assertShipsNavManifest,
   assertUniqueEmbedIds,
   auditEmbedOpens,
+  auditEmbedScopes,
   buildPackageNavManifest,
   validateEmbeds,
 } from "./nav-lib.mjs";
@@ -290,6 +291,7 @@ async function main() {
   const problems = [
     ...auditAggregate(all, await iconRegistryNames()),
     ...auditEmbedOpens(all, CONTAINER_PARENT_IDS),
+    ...auditEmbedScopes(all),
   ];
   if (problems.length > 0) {
     const verb = NAV_GATE_STRICT ? "✖" : "⚠";
@@ -299,7 +301,7 @@ async function main() {
         problems.join("\n") +
         `\n  Register the icon in packages/shell-react/src/default/icons.tsx, or declare the ` +
         `parent\n  (a top-level entry with that id) in the pair that owns the section; an ` +
-        `embed's\n  opens names an entry the same way.` +
+        `embed's\n  opens and scope.navEntry name an entry the same way.` +
         (NAV_GATE_STRICT
           ? ""
           : `\n  (listing mode — pass --strict or set NAV_GATE=strict to fail on this)`)

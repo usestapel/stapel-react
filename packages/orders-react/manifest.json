@@ -946,5 +946,34 @@
       "UseCheckoutResult",
       "UseOrdersOptions"
     ]
+  },
+  "testids": {
+    "addToCart": "add-to-cart",
+    "goToCart": "go-to-cart",
+    "cartBadge": "cart-badge",
+    "pageCart": "page-cart",
+    "cartLine": "cart-line",
+    "cartTotal": "cart-total",
+    "cartEmpty": "cart-empty",
+    "checkoutLink": "checkout-link",
+    "pageCheckout": "page-checkout",
+    "checkoutSubmit": "checkout-submit",
+    "pageOrders": "page-orders",
+    "orderRow": "order-row",
+    "ordersLoadMore": "orders-load-more",
+    "pageOrder": "page-order",
+    "orderCancel": "order-cancel"
+  },
+  "uiFlows": {
+    "cart": {
+      "title": "A guest adds a listing to the cart and sees the line",
+      "session": "any",
+      "steps": 5
+    },
+    "purchase": {
+      "title": "A member adds a listing, checks out and lands on the placed order",
+      "session": "member",
+      "steps": 12
+    }
   }
 }

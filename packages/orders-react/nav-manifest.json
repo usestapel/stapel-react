@@ -5,7 +5,7 @@
     {
       "id": "orders.cart",
       "labelKey": "orders.nav.cart",
-      "icon": "TagOutlined",
+      "icon": "ShoppingCartOutlined",
       "route": {
         "path": "/cart"
       },
@@ -24,7 +24,7 @@
     {
       "id": "orders.checkout",
       "labelKey": "orders.nav.checkout",
-      "icon": "TagOutlined",
+      "icon": "ShoppingCartOutlined",
       "route": {
         "path": "/checkout"
       },
@@ -91,6 +91,25 @@
       "order": 20,
       "surface": "any",
       "opens": "orders.cart"
+    },
+    {
+      "id": "orders.add_to_cart",
+      "slot": "page.actions",
+      "component": {
+        "export": "AddToCartButton",
+        "subpath": "default"
+      },
+      "order": 10,
+      "surface": "any",
+      "scope": {
+        "navEntry": "listings.detail"
+      },
+      "routeProps": {
+        "purchasableKey": "id"
+      },
+      "props": {
+        "purchasableType": "listing"
+      }
     }
   ]
 }
