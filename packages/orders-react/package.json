@@ -1,6 +1,6 @@
 {
   "name": "@stapel/orders-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cart, idempotent checkout and order history for stapel-orders. Zero visual opinion in the main entry; an opt-in /default subpath ships the antd pages and the cart badge.",
   "license": "MIT",
   "repository": {
